@@ -3646,39 +3646,43 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                 }
 
                 if (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF) {
-                    uint8_t scs_qp = scs->static_config.startup_qp_offset != 0 && pcs->ppcs->is_startup_gop
-                        ? clamp_qp(scs, scs->static_config.qp + scs->static_config.startup_qp_offset)
-                        : (uint8_t)scs->static_config.qp;
+                    uint8_t   scs_qp     = scs->static_config.startup_qp_offset != 0 && pcs->ppcs->is_startup_gop
+                              ? clamp_qp(scs, scs->static_config.qp + scs->static_config.startup_qp_offset)
+                              : (uint8_t)scs->static_config.qp;
+                    const int scs_qindex = clamp_qindex(
+                        scs, quantizer_to_qindex[scs_qp] + scs->static_config.extended_crf_qindex_offset);
+
                     // if RC mode is 0,  fixed QP is used
                     // QP scaling based on POC number for Flat IPPP structure
                     // make sure no run to run is cause
                     if (pcs->ppcs->seq_param_changed)
-                        rc->active_worst_quality = quantizer_to_qindex[scs_qp];
+                        rc->active_worst_quality = scs_qindex;
                     frm_hdr->quantization_params.base_q_idx = quantizer_to_qindex[pcs->picture_qp];
                     if (pcs->ppcs->qp_on_the_fly == true) {
                         pcs->picture_qp                         = clamp_qp(scs, pcs->ppcs->picture_qp);
-                        frm_hdr->quantization_params.base_q_idx = quantizer_to_qindex[pcs->picture_qp];
+                        frm_hdr->quantization_params.base_q_idx = scs_qindex;
 
                     } else {
                         if (scs->enable_qp_scaling_flag) {
-                            const int32_t qindex = quantizer_to_qindex[scs_qp];
                             // if there are need enough pictures in the LAD/SlidingWindow, the adaptive QP scaling is not used
                             int32_t new_qindex;
                             // if CRF
                             if (pcs->ppcs->tpl_ctrls.enable) {
                                 if (pcs->picture_number == 0) {
-                                    rc->active_worst_quality = quantizer_to_qindex[scs_qp];
+                                    rc->active_worst_quality = scs_qindex;
                                     av1_rc_init(scs);
                                 }
                                 new_qindex = crf_qindex_calc(pcs, rc, rc->active_worst_quality);
                             } else // if CQP
-                                new_qindex = cqp_qindex_calc(pcs, qindex);
+                                new_qindex = cqp_qindex_calc(pcs, scs_qindex);
                             frm_hdr->quantization_params.base_q_idx = clamp_qindex(scs, new_qindex);
+                        } else {
+                            frm_hdr->quantization_params.base_q_idx = clamp_qindex(scs, scs_qindex);
                         }
 
                         if (scs->static_config.use_fixed_qindex_offsets) {
                             int32_t qindex = scs->static_config.use_fixed_qindex_offsets == 1
-                                ? quantizer_to_qindex[scs_qp]
+                                ? scs_qindex
                                 : frm_hdr->quantization_params
                                       .base_q_idx; // do not shut the auto QPS if use_fixed_qindex_offsets 2
 
@@ -3718,7 +3722,8 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
 #endif // FTR_SFRAME_QP
                         pcs->picture_qp = clamp_qp(scs, (frm_hdr->quantization_params.base_q_idx + 2) >> 2);
                     }
-                    int32_t chroma_qindex = frm_hdr->quantization_params.base_q_idx;
+                    int32_t chroma_qindex = frm_hdr->quantization_params.base_q_idx +
+                        scs->static_config.extended_crf_qindex_offset;
                     if (frame_is_intra_only(pcs->ppcs)) {
                         chroma_qindex += scs->static_config.key_frame_chroma_qindex_offset;
                     } else {

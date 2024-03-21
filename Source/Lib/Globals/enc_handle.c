@@ -4663,6 +4663,9 @@ static void copy_api_from_app(
     // Max TX size
     scs->static_config.max_tx_size = config_struct->max_tx_size;
 
+    // Extended CRF
+    scs->static_config.extended_crf_qindex_offset = config_struct->extended_crf_qindex_offset;
+
     // Override settings for Still IQ tune
     if (scs->static_config.tune == TUNE_IQ) {
         SVT_WARN("Tune 3: IQ overrides: sharpness, Variance Boost strength and curve, enable-qm and min/max level, and max TX size\n");

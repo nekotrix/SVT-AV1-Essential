@@ -448,7 +448,8 @@ static void tpl_subpel_search(SequenceControlSet *scs, PictureParentControlSet *
     svt_av1_set_subpel_mv_search_range(&ms_params->mv_limits, (FullMvLimits *)&mv_limits, &ref_mv);
 
     // Mvcost params
-    int32_t  qIndex = quantizer_to_qindex[(uint8_t)scs->static_config.qp];
+    int32_t qIndex = quantizer_to_qindex[(uint8_t)scs->static_config.qp] +
+        scs->static_config.extended_crf_qindex_offset;
     uint32_t rdmult = svt_aom_compute_rd_mult_based_on_qindex((EbBitDepth)8, pcs->update_type, qIndex) /
         TPL_RDMULT_SCALING_FACTOR;
     svt_tpl_init_mv_cost_params(&ms_params->mv_cost_params, &ref_mv, qIndex, rdmult,
