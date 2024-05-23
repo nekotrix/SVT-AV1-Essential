@@ -1193,6 +1193,7 @@ typedef struct PictureControlSetInitData {
     bool    allintra;
     uint8_t qp_scale_compress_strength;
     bool    adaptive_film_grain;
+    uint8_t max_tx_size;
 } PictureControlSetInitData;
 
 /**************************************

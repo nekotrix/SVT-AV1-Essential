@@ -911,6 +911,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+    if (config->max_tx_size != 32 && config->max_tx_size != 64) {
+        SVT_ERROR("Instance %u: Supported Max TX size values are 32 and 64\n", channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
+
     return return_error;
 }
 
@@ -1076,6 +1081,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->sframe_qp_offset              = 0;
 #endif // FTR_SFRAME_QP
     config_ptr->adaptive_film_grain = true;
+    config_ptr->max_tx_size         = 64;
     return return_error;
 }
 
@@ -2229,6 +2235,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"luminance-qp-bias", &config_struct->luminance_qp_bias},
         {"enable-tf", &config_struct->enable_tf},
         {"tf-strength", &config_struct->tf_strength},
+        {"max-tx-size", &config_struct->max_tx_size},
     };
     const size_t uint8_opts_size = sizeof(uint8_opts) / sizeof(uint8_opts[0]);
 

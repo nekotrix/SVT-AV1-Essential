@@ -989,9 +989,16 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     bool adaptive_film_grain;
 
+    /* @brief Limit transform sizes to the specified size
+     * 32: use transform sizes up to 64x64 pixels
+     * 64: use transform sizes up to 32x32 pixels
+     * Default is 64
+     */
+    uint8_t max_tx_size;
+
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
-    uint8_t padding[128 - (sizeof(uint8_t) * 3)
+    uint8_t padding[128 - (sizeof(uint8_t) * 4)
         - (sizeof(bool) * 2)
 #if FTR_SFRAME_POSI
         - sizeof(SvtAv1SFramePositions)

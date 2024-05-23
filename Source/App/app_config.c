@@ -210,6 +210,7 @@
 #define RTC_TOKEN "--rtc"
 #define QP_SCALE_COMPRESS_STRENGTH_TOKEN "--qp-scale-compress-strength"
 #define ADAPTIVE_FILM_GRAIN_TOKEN "--adaptive-film-grain"
+#define MAX_TX_SIZE_TOKEN "--max-tx-size"
 
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
@@ -973,6 +974,8 @@ ConfigDescription config_entry_variance_boost[] = {
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 1 [0-3]"},
     // Adaptive film grain
     {ADAPTIVE_FILM_GRAIN_TOKEN, "Adapts film grain blocksize based on video resolution, default is 1 [0-1]"},
+    // Max TX size
+    {MAX_TX_SIZE_TOKEN, "Limits the allowed transform sizes to the specified, default is 64 [32,64]"},
     // Termination
     {NULL, NULL}};
 
@@ -1184,6 +1187,9 @@ ConfigEntry config_entry[] = {
 
     // Adaptive film grain
     {ADAPTIVE_FILM_GRAIN_TOKEN, "AdaptiveFilmGrain", set_cfg_generic_token},
+
+    // Max TX size
+    {MAX_TX_SIZE_TOKEN, "MaxTxSize", set_cfg_generic_token},
 
     // Termination
     {NULL, NULL, NULL}};
