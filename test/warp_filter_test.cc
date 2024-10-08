@@ -73,6 +73,10 @@ INSTANTIATE_TEST_SUITE_P(
 #endif  // HAVE_NEON_I8MM
 
 #if HAVE_SVE
+INSTANTIATE_TEST_SUITE_P(
+    SVE, AV1WarpFilterTest,
+    libaom_test::AV1WarpFilter::BuildParams(svt_av1_warp_affine_sve));
+
 INSTANTIATE_TEST_SUITE_P(SVE, AV1HighbdWarpFilterTest,
                          libaom_test::AV1HighbdWarpFilter::BuildParams(
                              svt_av1_highbd_warp_affine_sve));
