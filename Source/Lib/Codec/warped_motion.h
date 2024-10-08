@@ -91,9 +91,6 @@ void svt_highbd_warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref8, 
                            int p_height, int p_stride, int subsampling_x, int subsampling_y, int bd,
                            ConvolveParams *conv_params);
 
-void dec_svt_highbd_warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref8, int width, int height, int stride,
-                               const uint8_t *const pred8, int p_col, int p_row, int p_width, int p_height,
-                               int p_stride, int subsampling_x, int subsampling_y, int bd, ConvolveParams *conv_params);
 void svt_warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref, int width, int height, int stride,
                     uint8_t *pred, int p_col, int p_row, int p_width, int p_height, int p_stride, int subsampling_x,
                     int subsampling_y, ConvolveParams *conv_params);

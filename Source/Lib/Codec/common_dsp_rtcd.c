@@ -803,7 +803,6 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
 #endif
     SET_SSE41_AVX2(svt_aom_copy_rect8_8bit_to_16bit, svt_aom_copy_rect8_8bit_to_16bit_c, svt_aom_copy_rect8_8bit_to_16bit_sse4_1, svt_aom_copy_rect8_8bit_to_16bit_avx2);
     SET_SSE41_AVX2(svt_av1_highbd_warp_affine, svt_av1_highbd_warp_affine_c, svt_av1_highbd_warp_affine_sse4_1, svt_av1_highbd_warp_affine_avx2);
-    SET_AVX2(dec_svt_av1_highbd_warp_affine, svt_aom_dec_svt_av1_highbd_warp_affine_c, svt_aom_dec_svt_av1_highbd_warp_affine_avx2);
     SET_SSE41_AVX2(svt_av1_warp_affine, svt_av1_warp_affine_c, svt_av1_warp_affine_sse4_1, svt_av1_warp_affine_avx2);
 
     SET_SSE2(svt_aom_highbd_lpf_horizontal_4, svt_aom_highbd_lpf_horizontal_4_c, svt_aom_highbd_lpf_horizontal_4_sse2);
@@ -1332,7 +1331,6 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
 
     SET_NEON(svt_aom_copy_rect8_8bit_to_16bit, svt_aom_copy_rect8_8bit_to_16bit_c, svt_aom_copy_rect8_8bit_to_16bit_neon);
     SET_ONLY_C(svt_av1_highbd_warp_affine, svt_av1_highbd_warp_affine_c);
-    SET_ONLY_C(dec_svt_av1_highbd_warp_affine, svt_aom_dec_svt_av1_highbd_warp_affine_c);
     SET_NEON(svt_av1_warp_affine, svt_av1_warp_affine_c, svt_av1_warp_affine_neon);
 
     SET_ONLY_C(svt_aom_highbd_lpf_horizontal_4, svt_aom_highbd_lpf_horizontal_4_c);
@@ -1857,7 +1855,6 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_cdef_filter_block, svt_cdef_filter_block_c);
     SET_ONLY_C(svt_aom_copy_rect8_8bit_to_16bit, svt_aom_copy_rect8_8bit_to_16bit_c);
     SET_ONLY_C(svt_av1_highbd_warp_affine, svt_av1_highbd_warp_affine_c);
-    SET_ONLY_C(dec_svt_av1_highbd_warp_affine, svt_aom_dec_svt_av1_highbd_warp_affine_c);
     SET_ONLY_C(svt_av1_warp_affine, svt_av1_warp_affine_c);
 
     SET_ONLY_C(svt_aom_highbd_lpf_horizontal_4, svt_aom_highbd_lpf_horizontal_4_c);
