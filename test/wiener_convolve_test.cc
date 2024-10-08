@@ -13,9 +13,9 @@
 /******************************************************************************
  * @file wiener_convolve_test.cc
  *
- * @brief Unit test of wiener convolbe add source:
- * - av1_wiener_convolve_add_src_avx2
- * - av1_highbd_wiener_convolve_add_src_avx2
+ * @brief Unit test of wiener convolve add source:
+ * - av1_wiener_convolve_add_src
+ * - av1_highbd_wiener_convolve_add_src
  *
  * @author Cidana-Edmond
  *
@@ -32,9 +32,9 @@
 #include "util.h"
 
 /**
- * @brief Unit test of wiener convolbe add source:
- * - svt_av1_wiener_convolve_add_src_avx2
- * - svt_av1_highbd_wiener_convolve_add_src_avx2
+ * @brief Unit test of wiener convolve add source:
+ * - svt_av1_wiener_convolve_add_src
+ * - svt_av1_highbd_wiener_convolve_add_src
  *
  * Test strategy:
  * Verify this assembly code by comparing with reference c implementation.
@@ -514,5 +514,14 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::Values(svt_av1_highbd_wiener_convolve_add_src_avx2),
         testing::Values(8, 10, 12)));
 #endif  // ARCH_X86_64
+
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, AV1WienerConvolveHbdTest,
+    ::testing::Combine(
+        ::testing::ValuesIn(test_block_size_table),
+        ::testing::Values(svt_av1_highbd_wiener_convolve_add_src_neon),
+        testing::Values(8, 10)));
+#endif  // ARCH_AARCH64
 
 }  // namespace
