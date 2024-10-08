@@ -438,6 +438,7 @@ EbCpuFlags svt_aom_get_cpu_flags_to_use() {
     #define SET_NEON(ptr, c, neon)                                  SET_FUNCTIONS(ptr, c, neon, 0, 0, 0, 0)
     #define SET_NEON_NEON_DOTPROD(ptr, c, neon, neon_dotprod)       SET_FUNCTIONS(ptr, c, neon, neon_dotprod, 0, 0, 0)
     #define SET_NEON_NEON_DOTPROD_NEON_I8MM(ptr, c, neon, neon_dotprod, neon_i8mm) SET_FUNCTIONS(ptr, c, neon, neon_dotprod, neon_i8mm, 0, 0)
+    #define SET_NEON_NEON_I8MM(ptr, c, neon, neon_i8mm)             SET_FUNCTIONS(ptr, c, neon, 0, neon_i8mm, 0, 0)
     #define SET_NEON_SVE(ptr, c, neon, sve)                         SET_FUNCTIONS(ptr, c, neon, 0, 0, sve, 0)
     #define SET_NEON_SVE2(ptr, c, neon, sve2)                       SET_FUNCTIONS(ptr, c, neon, 0, 0, 0, sve2)
 #else
@@ -1331,7 +1332,7 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
 
     SET_NEON(svt_aom_copy_rect8_8bit_to_16bit, svt_aom_copy_rect8_8bit_to_16bit_c, svt_aom_copy_rect8_8bit_to_16bit_neon);
     SET_NEON_SVE(svt_av1_highbd_warp_affine, svt_av1_highbd_warp_affine_c, svt_av1_highbd_warp_affine_neon, svt_av1_highbd_warp_affine_sve);
-    SET_NEON(svt_av1_warp_affine, svt_av1_warp_affine_c, svt_av1_warp_affine_neon);
+    SET_NEON_NEON_I8MM(svt_av1_warp_affine, svt_av1_warp_affine_c, svt_av1_warp_affine_neon, svt_av1_warp_affine_neon_i8mm);
 
     SET_ONLY_C(svt_aom_highbd_lpf_horizontal_4, svt_aom_highbd_lpf_horizontal_4_c);
     SET_ONLY_C(svt_aom_highbd_lpf_horizontal_6, svt_aom_highbd_lpf_horizontal_6_c);
