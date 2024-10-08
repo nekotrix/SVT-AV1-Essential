@@ -61,6 +61,10 @@ INSTANTIATE_TEST_SUITE_P(SSE4_1, AV1HighbdWarpFilterTest,
 INSTANTIATE_TEST_SUITE_P(
     NEON, AV1WarpFilterTest,
     libaom_test::AV1WarpFilter::BuildParams(svt_av1_warp_affine_neon));
+
+INSTANTIATE_TEST_SUITE_P(NEON, AV1HighbdWarpFilterTest,
+                         libaom_test::AV1HighbdWarpFilter::BuildParams(
+                             svt_av1_highbd_warp_affine_neon));
 #endif  // ARCH_AARCH64
 
 }  // namespace
