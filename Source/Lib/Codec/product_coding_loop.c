@@ -1102,6 +1102,7 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
                                                  ctx->blk_geom->bheight,
                                                  ctx->blk_geom->bwidth));
     }
+
     // If distortion cost is greater than the best cost, exit early. This candidate will never be
     // selected b/c only one candidate is sent to MDS3
     if (ctx->mds0_best_cost != (uint64_t)~0) {
@@ -1111,6 +1112,7 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
             return;
         }
     }
+
     // Fast Cost
     if (ctx->shut_fast_rate) {
         *(cand_bf->fast_cost)     = luma_fast_dist;
@@ -1433,6 +1435,38 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
             }
         }
     }
+#if OPT_MDS0_EXIT
+    if (ctx->mds0_ctrls.pruning_method_th && ctx->pd_pass == PD_PASS_1) {
+
+        if (ctx->mds0_ctrls.pruning_method_th != (uint8_t ) ~0 &&
+           (MIN(ctx->md_me_dist, ctx->md_pme_dist) / (ctx->blk_geom->bwidth * ctx->blk_geom->bheight)) > ctx->mds0_ctrls.pruning_method_th) {
+
+            if (ctx->mds0_ctrls.per_class_dist_to_cost_th[cand_bf->cand->cand_class] != (uint16_t)~0 &&
+                ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class] != (uint64_t)~0) {
+                const uint64_t distortion_cost = RDCOST((ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
+                    0,
+                    luma_fast_dist + chroma_fast_distortion);
+                if ((100 * (int64_t)((int64_t)distortion_cost - (int64_t)ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class])) >
+                    ((int64_t)ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class] * ctx->mds0_ctrls.per_class_dist_to_cost_th[cand_bf->cand->cand_class])) {
+                    *(cand_bf->fast_cost) = MAX_MODE_COST;
+                    return;
+                }
+            }
+        } else {
+
+            if (ctx->mds0_ctrls.dist_to_cost_th != (uint16_t)~0 && ctx->mds0_best_cost != (uint64_t)~0) {
+                const uint64_t distortion_cost = RDCOST((ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
+                    0,
+                    luma_fast_dist + chroma_fast_distortion);
+                if ((100 * (int64_t)((int64_t)distortion_cost - (int64_t)ctx->mds0_best_cost)) >
+                    ((int64_t)ctx->mds0_best_cost * ctx->mds0_ctrls.dist_to_cost_th)) {
+                    *(cand_bf->fast_cost) = MAX_MODE_COST;
+                    return;
+                }
+            }
+        }
+    }
+#else
     if (ctx->mds0_ctrls.enable_cost_based_early_exit && ctx->mds0_best_cost != (uint32_t)~0) {
         const uint64_t distortion_cost = RDCOST((ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
                                                 0,
@@ -1444,6 +1478,7 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
             return;
         }
     }
+#endif
     // Fast Cost
     if (ctx->shut_fast_rate) {
         *(cand_bf->fast_cost)     = luma_fast_dist + chroma_fast_distortion;
@@ -1619,7 +1654,6 @@ static void md_stage_0_light_pd0(PictureControlSet *pcs, ModeDecisionContext *ct
         // Initialize tx_depth
         cand_bf->cand->tx_depth = 0;
         fast_loop_core_light_pd0(cand_bf, pcs, ctx, input_pic, input_origin_index, blk_origin_index);
-
         if (*cand_bf->fast_cost < ctx->mds0_best_cost) {
             ctx->mds0_best_cost = *cand_bf->fast_cost;
             ctx->mds0_best_idx  = cand_buff_idx;
@@ -1649,7 +1683,6 @@ static void md_stage_0_light_pd1(PictureControlSet *pcs, ModeDecisionContext *ct
 
         cand_bf->cand->tx_depth       = 0;
         cand_bf->cand->interp_filters = default_interp_filter;
-
         // Prediction
         fast_loop_core_light_pd1(cand_bf, pcs, ctx, input_pic, loc);
 
@@ -1761,7 +1794,11 @@ static void md_stage_0(PictureControlSet *pcs, ModeDecisionContext *ctx,
                 if (cand->cand_class == CAND_CLASS_0)
                     ctx->mds0_best_class0_cost = *cand_bf->fast_cost;
             }
-
+#if OPT_MDS0_EXIT
+            if (*cand_bf->fast_cost < ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class]) {
+                ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class] = *cand_bf->fast_cost;
+            }
+#endif
             if (tot_itr > 1 && itr == 0) {
                 regular_intra_cost[cand->pred_mode] = *cand_bf->fast_cost;
 
@@ -8790,6 +8827,7 @@ static void md_encode_block_light_pd1(PictureControlSet *pcs, ModeDecisionContex
     ctx->md_stage            = MD_STAGE_0;
     ctx->mds0_best_idx       = 0;
     ctx->mds0_best_cost      = (uint64_t)~0;
+
     uint8_t perform_md_recon = do_md_recon(pcs->ppcs, ctx);
 
     // If there is only a single candidate, skip compensation if transform will be skipped (unless compensation is needed for recon)
@@ -9210,10 +9248,17 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
     ctx->mds1_best_class_it     = 0;
     ctx->perform_mds1           = 1;
     ctx->use_tx_shortcuts_mds3  = 0;
+#if OPT_MDS0_EXIT
+    ctx->mds0_best_cost_per_class[CAND_CLASS_0] =
+    ctx->mds0_best_cost_per_class[CAND_CLASS_1] =
+    ctx->mds0_best_cost_per_class[CAND_CLASS_2] =
+    ctx->mds0_best_cost_per_class[CAND_CLASS_3] = (uint64_t)~0;
+#endif
     ctx->mds0_best_cost         = (uint64_t)~0;
     ctx->mds0_best_class        = 0;
     ctx->mds0_best_class0_cost  = (uint64_t)~0;
     for (cand_class_it = CAND_CLASS_0; cand_class_it < CAND_CLASS_TOTAL; cand_class_it++) {
+
         //number of next level candidates could not exceed number of curr level candidates
         ctx->md_stage_1_count[cand_class_it] = MIN(ctx->md_stage_0_count[cand_class_it],
                                                    ctx->md_stage_1_count[cand_class_it]);

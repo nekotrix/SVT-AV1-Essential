@@ -3713,7 +3713,11 @@ static void derive_tf_params(SequenceControlSet *scs) {
     if (do_tf == 0) {
         tf_level = 0;
     }
+#if TUNE_M2
+    else if (enc_mode <= ENC_M1) {
+#else
     else if (enc_mode <= ENC_M2) {
+#endif
         tf_level = 1;
     }
     else if (enc_mode <= ENC_M3) {
@@ -4378,12 +4382,31 @@ static void set_param_based_on_input(SequenceControlSet *scs)
                     scs->super_block_size = 128;
             }
         }
+#if TUNE_SB64_FD2
+#if TUNE_M5
+        else if (scs->static_config.enc_mode <= ENC_M4) {
+#else
+        else if (scs->static_config.enc_mode <= ENC_M5) {
+#endif
+            if (scs->static_config.qp <= 56)
+                scs->super_block_size = 64;
+            else
+                scs->super_block_size = 128;
+        }
+        else if (scs->static_config.enc_mode <= ENC_M7) {
+            if (scs->static_config.qp <= 56 || (scs->static_config.fast_decode >= 2 && scs->static_config.qp <= 57 && !(scs->input_resolution <= INPUT_SIZE_360p_RANGE)))
+                scs->super_block_size = 64;
+            else
+                scs->super_block_size = 128;
+        }
+#else
         else if (scs->static_config.enc_mode <= ENC_M6) {
             if (scs->static_config.qp <= 56)
                 scs->super_block_size = 64;
             else
                 scs->super_block_size = 128;
         }
+#endif
         else
             scs->super_block_size = 64;
     // When switch frame is on, all renditions must have same super block size. See spec 5.5.1, 5.9.15.
@@ -4595,6 +4618,13 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         }
     }
     else {
+#if TUNE_MR
+#if TUNE_M2
+        if (scs->static_config.enc_mode <= ENC_M2) {
+#else
+        if (scs->static_config.enc_mode <= ENC_M1) {
+#endif
+#else
         if (scs->static_config.enc_mode <= ENC_MR) {
             if (!(scs->input_resolution <= INPUT_SIZE_360p_RANGE) && !(scs->static_config.fast_decode <= 1))
                 mrp_level = 9;
@@ -4602,6 +4632,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
                 mrp_level = 1;
         }
         else if (scs->static_config.enc_mode <= ENC_M1) {
+#endif
             if (!(scs->input_resolution <= INPUT_SIZE_360p_RANGE) && !(scs->static_config.fast_decode <= 1))
                 mrp_level = 9;
             else
@@ -4635,7 +4666,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->vq_ctrls.sharpness_ctrls.tf == 1                ||
         scs->static_config.enable_variance_boost)
         scs->calculate_variance = 1;
+#if TUNE_M7
+    else if (scs->static_config.enc_mode <= ENC_M7)
+#else
     else if (scs->static_config.enc_mode <= ENC_M6)
+#endif
         scs->calculate_variance = 1;
     else
         scs->calculate_variance = 0;

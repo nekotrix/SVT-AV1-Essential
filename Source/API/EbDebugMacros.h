@@ -38,6 +38,22 @@ extern "C" {
 #define FTR_LOSSLESS_SUPPORT    1 // Losless coding support
 #define FTR_STILL_PICTURE       1 // Still picture support
 
+#define TUNE_MFMV_FD2               1 // Disable MFMV in fd2
+#define TUNE_SB64_FD2               1 // Change QP check for SB64 in fd2
+#define TUNE_M6                     1 // M6 tuning
+#define TUNE_M5                     1 // M5 tuning
+#define TUNE_LAMBDA_MODULATION      1 // Lambda modulation tuning toward better VMAF
+#define OPT_HALF_PEL_BIAS           1 // Bias against quarter/eighth pel in subpel search for fast-decode mode
+#define TUNE_M4                     1 // M4 tuning
+#define TUNE_M0                     1 // M0 tuning
+#define TUNE_M3                     1 // M3 tuning
+#define TUNE_MR                     1 // MR tuning
+#define TUNE_M2                     1 // M2 tuning
+#define TUNE_M1                     1 // M1 tuning
+#define TUNE_M7                     1 // M7 tuning
+#define TUNE_M8                     1 // M8 tuning
+#define OPT_MDS0_EXIT               1 // Opt mds0 exit: reset the best-mds0-cost for each class to ensure that at least one candidate per class is retained before the mds1 pruning phase. Then, use the block complexity = MIN(me-dist, pme_dist) to switch between the two methods
+#define TUNE_M9                     1 // M9 tuning
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one

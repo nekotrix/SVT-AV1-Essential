@@ -1045,14 +1045,22 @@ int svt_aom_compute_rd_mult(PictureControlSet *pcs, uint8_t q_index, uint8_t me_
         if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present) {
             int qdiff = q_index - pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
             if (qdiff < 0) {
+#if TUNE_LAMBDA_MODULATION
+                factor = (qdiff <= -8) ? 105 : 115;
+#else
                 factor = (qdiff <= -8) ? 90 : 115;
+#endif
             } else if (qdiff > 0) {
                 factor = (qdiff <= 8) ? 135 : 150;
             }
         } else {
             int qdiff = me_q_index - pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
             if (qdiff < 0) {
+#if TUNE_LAMBDA_MODULATION
+                factor = (qdiff <= -4) ? 105 : 115;
+#else
                 factor = (qdiff <= -4) ? 100 : 115;
+#endif
             } else if (qdiff > 0) {
                 factor = (qdiff <= 4) ? 135 : 150;
             }
@@ -1083,14 +1091,22 @@ int svt_aom_compute_fast_lambda(PictureControlSet *pcs, uint8_t q_index, uint8_t
         if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present) {
             int qdiff = q_index - pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
             if (qdiff < 0) {
+#if TUNE_LAMBDA_MODULATION
+                factor = (qdiff <= -8) ? 105 : 115;
+#else
                 factor = (qdiff <= -8) ? 90 : 115;
+#endif
             } else if (qdiff > 0) {
                 factor = (qdiff <= 8) ? 135 : 150;
             }
         } else {
             int qdiff = me_q_index - pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
             if (qdiff < 0) {
+#if TUNE_LAMBDA_MODULATION
+                factor = (qdiff <= -4) ? 105 : 115;
+#else
                 factor = (qdiff <= -4) ? 100 : 115;
+#endif
             } else if (qdiff > 0) {
                 factor = (qdiff <= 4) ? 135 : 150;
             }
