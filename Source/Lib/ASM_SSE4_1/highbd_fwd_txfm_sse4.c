@@ -14727,3 +14727,83 @@ void svt_av1_fwd_txfm2d_64x16_N4_sse4_1(int16_t *input, int32_t *output, uint32_
     clear_buffer_wxh_N4(outcoeff, num_col, txfm_size_row);
     (void)bd;
 }
+#if FTR_LOSSLESS_SUPPORT
+static inline void transpose_32bit_4x4(const __m128i *const in, __m128i *const out) {
+    // Unpack 32 bit elements. Goes from:
+    // in[0]: 00 01 02 03
+    // in[1]: 10 11 12 13
+    // in[2]: 20 21 22 23
+    // in[3]: 30 31 32 33
+    // to:
+    // a0:    00 10 01 11
+    // a1:    20 30 21 31
+    // a2:    02 12 03 13
+    // a3:    22 32 23 33
+
+    const __m128i a0 = _mm_unpacklo_epi32(in[0], in[1]);
+    const __m128i a1 = _mm_unpacklo_epi32(in[2], in[3]);
+    const __m128i a2 = _mm_unpackhi_epi32(in[0], in[1]);
+    const __m128i a3 = _mm_unpackhi_epi32(in[2], in[3]);
+
+    // Unpack 64 bit elements resulting in:
+    // out[0]: 00 10 20 30
+    // out[1]: 01 11 21 31
+    // out[2]: 02 12 22 32
+    // out[3]: 03 13 23 33
+    out[0] = _mm_unpacklo_epi64(a0, a1);
+    out[1] = _mm_unpackhi_epi64(a0, a1);
+    out[2] = _mm_unpacklo_epi64(a2, a3);
+    out[3] = _mm_unpackhi_epi64(a2, a3);
+}
+
+void svt_av1_fwht4x4_sse4_1(int16_t *input, int32_t *output, uint32_t stride) {
+    __m128i in[4];
+    in[0] = _mm_loadl_epi64((const __m128i *)(input + 0 * stride));
+    in[1] = _mm_loadl_epi64((const __m128i *)(input + 1 * stride));
+    in[2] = _mm_loadl_epi64((const __m128i *)(input + 2 * stride));
+    in[3] = _mm_loadl_epi64((const __m128i *)(input + 3 * stride));
+
+    // Convert to int32_t.
+    __m128i op[4];
+    op[0] = _mm_cvtepi16_epi32(in[0]);
+    op[1] = _mm_cvtepi16_epi32(in[1]);
+    op[2] = _mm_cvtepi16_epi32(in[2]);
+    op[3] = _mm_cvtepi16_epi32(in[3]);
+
+    for (int i = 0; i < 2; ++i) {
+        __m128i a1 = op[0];
+        __m128i b1 = op[1];
+        __m128i c1 = op[2];
+        __m128i d1 = op[3];
+        __m128i e1;
+
+        a1 = _mm_add_epi32(a1, b1); // a1 += b1
+        d1 = _mm_sub_epi32(d1, c1); // d1 = d1 - c1
+        e1 = _mm_sub_epi32(a1, d1); // e1 = (a1 - d1) >> 1
+        e1 = _mm_srai_epi32(e1, 1);
+        b1 = _mm_sub_epi32(e1, b1); // b1 = e1 - b1
+        c1 = _mm_sub_epi32(e1, c1); // c1 = e1 - c1
+        a1 = _mm_sub_epi32(a1, c1); // a1 -= c1
+        d1 = _mm_add_epi32(d1, b1); // d1 += b1
+
+        op[0] = a1;
+        op[1] = c1;
+        op[2] = d1;
+        op[3] = b1;
+
+        if (i == 0) {
+            transpose_32bit_4x4(op, op);
+        }
+    }
+
+    op[0] = _mm_slli_epi32(op[0], UNIT_QUANT_SHIFT);
+    op[1] = _mm_slli_epi32(op[1], UNIT_QUANT_SHIFT);
+    op[2] = _mm_slli_epi32(op[2], UNIT_QUANT_SHIFT);
+    op[3] = _mm_slli_epi32(op[3], UNIT_QUANT_SHIFT);
+
+    _mm_storeu_si128((__m128i *)(output + 0), op[0]);
+    _mm_storeu_si128((__m128i *)(output + 4), op[1]);
+    _mm_storeu_si128((__m128i *)(output + 8), op[2]);
+    _mm_storeu_si128((__m128i *)(output + 12), op[3]);
+}
+#endif

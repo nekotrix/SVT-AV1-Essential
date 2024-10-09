@@ -35,6 +35,7 @@ extern "C" {
 #endif // __cplusplus
 
 #define CLN_LP_LVLS             1 // Change --lp input to represent the levels of parallelization that are actually implemented in the code
+#define FTR_LOSSLESS_SUPPORT    1 // Losless coding support
 
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0

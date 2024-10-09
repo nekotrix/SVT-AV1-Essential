@@ -5126,8 +5126,12 @@ void svt_aom_set_nsq_geom_ctrls(ModeDecisionContext *ctx, uint8_t nsq_geom_level
 void svt_aom_set_nsq_search_ctrls(PictureControlSet *pcs, ModeDecisionContext *ctx, uint8_t nsq_search_level,
                                   uint8_t resolution) {
     NsqSearchCtrls *nsq_search_ctrls = &ctx->nsq_search_ctrls;
-
-    if (pcs->me_dist_mod && nsq_search_level) {
+#if FTR_LOSSLESS_SUPPORT
+    if (pcs->mimic_only_tx_4x4)
+        nsq_search_level = 0;
+    else
+#endif
+        if (pcs->me_dist_mod && nsq_search_level) {
         uint32_t dist_64, dist_32, dist_16, dist_8, me_8x8_cost_variance;
         if (pcs->scs->super_block_size == 64) {
             dist_64              = pcs->ppcs->me_64x64_distortion[ctx->sb_index];
@@ -6416,8 +6420,12 @@ void svt_aom_set_dist_based_ref_pruning_controls(ModeDecisionContext *ctx, uint8
 }
 static void set_txs_controls(PictureControlSet *pcs, ModeDecisionContext *ctx, uint8_t txs_level) {
     TxsControls *txs_ctrls = &ctx->txs_ctrls;
-
-    if (pcs->me_dist_mod && txs_level) {
+#if FTR_LOSSLESS_SUPPORT
+    if (pcs->mimic_only_tx_4x4)
+        txs_level = 1;
+    else
+#endif
+        if (pcs->me_dist_mod && txs_level) {
         // med-banding
         uint32_t dist_64, dist_32, dist_16, dist_8, me_8x8_cost_variance;
         if (pcs->scs->super_block_size == 64) {
@@ -8364,8 +8372,11 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
                     avg_me_dist += ppcs->me_64x64_distortion[b64_idx];
                 }
                 avg_me_dist /= ppcs->b64_total_count;
+#if FTR_LOSSLESS_SUPPORT
+                avg_me_dist /= MAX(1, pcs->picture_qp);
+#else
                 avg_me_dist /= pcs->picture_qp;
-
+#endif
                 ppcs->frm_hdr.use_ref_frame_mvs = avg_me_dist < 200 || input_resolution <= INPUT_SIZE_360p_RANGE ? 1
                                                                                                                  : 0;
             }

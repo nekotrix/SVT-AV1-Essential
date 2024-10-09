@@ -980,13 +980,26 @@ typedef struct EbSvtAv1EncConfiguration {
      *  Default is 6 */
     uint8_t variance_octile;
 
+#if FTR_LOSSLESS_SUPPORT
+    /* @brief Signal to the library to enable losless coding
+     *
+     * Default is false.
+     */
+    Bool lossless;
+    /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
+#if CLN_LP_LVLS
+    uint8_t padding[128 - 2 * sizeof(Bool) - 2 * sizeof(uint8_t) - sizeof(uint32_t)];
+#else
+    uint8_t padding[128 - 2 * sizeof(Bool) - 2 * sizeof(uint8_t)];
+#endif
+#else
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
 #if CLN_LP_LVLS
     uint8_t padding[128 - sizeof(Bool) - 2 * sizeof(uint8_t) - sizeof(uint32_t)];
 #else
     uint8_t padding[128 - sizeof(Bool) - 2 * sizeof(uint8_t)];
 #endif
-
+#endif
 } EbSvtAv1EncConfiguration;
 
 /**

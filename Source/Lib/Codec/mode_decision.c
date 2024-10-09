@@ -3919,6 +3919,11 @@ static void inject_intra_candidates(
                 svt_aom_get_intra_uv_tx_type(cand_array[cand_total_cnt].intra_chroma_mode,
                     ctx->blk_geom->txsize_uv[0],
                     frm_hdr->reduced_tx_set);
+
+#if FTR_LOSSLESS_SUPPORT
+                if (pcs->lossless[ctx->blk_ptr->segment_id] && cand_array[cand_total_cnt].transform_type_uv != DCT_DCT)
+                    continue;
+#endif
             cand_array[cand_total_cnt].ref_frame_type = INTRA_FRAME;
             cand_array[cand_total_cnt].motion_mode = SIMPLE_TRANSLATION;
             cand_array[cand_total_cnt].is_interintra_used = 0;
@@ -3971,6 +3976,10 @@ static void inject_filter_intra_candidates(
                 svt_aom_get_intra_uv_tx_type(cand_array[cand_total_cnt].intra_chroma_mode,
                     ctx->blk_geom->txsize_uv[0],
                     frm_hdr->reduced_tx_set);
+#if FTR_LOSSLESS_SUPPORT
+                if (pcs->lossless[ctx->blk_ptr->segment_id] && cand_array[cand_total_cnt].transform_type_uv != DCT_DCT)
+                    continue;
+#endif
             cand_array[cand_total_cnt].ref_frame_type = INTRA_FRAME;
             cand_array[cand_total_cnt].motion_mode = SIMPLE_TRANSLATION;
             cand_array[cand_total_cnt].is_interintra_used = 0;
@@ -4085,6 +4094,10 @@ void  inject_palette_candidates(
             svt_aom_get_intra_uv_tx_type(cand_array[can_total_cnt].intra_chroma_mode,
                 ctx->blk_geom->txsize_uv[0],
                 pcs->ppcs->frm_hdr.reduced_tx_set);
+#if FTR_LOSSLESS_SUPPORT
+            if (pcs->lossless[ctx->blk_ptr->segment_id] && cand_array[can_total_cnt].transform_type_uv != DCT_DCT)
+                continue;
+#endif
         cand_array[can_total_cnt].ref_frame_type = INTRA_FRAME;
         cand_array[can_total_cnt].motion_mode = SIMPLE_TRANSLATION;
         INC_MD_CAND_CNT (can_total_cnt,pcs->ppcs->max_can_count);
