@@ -22,12 +22,14 @@
  *
  ******************************************************************************/
 
-#include "gtest/gtest.h"
 #include "aom_dsp_rtcd.h"
 #include "definitions.h"
+#include "gtest/gtest.h"
 #include "random.h"
+#include "util.h"
 
 namespace {
+using std::make_tuple;
 using svt_av1_test_tool::SVTRandom;
 
 // -----------------------------------------------------------------------------
@@ -55,17 +57,13 @@ using UPSAMPLE_LBD = void (*)(uint8_t *p, int size);
  * according to spec 7.11.2
  * BitDepth: 8bit
  */
-template <typename Sample, typename Func>
-class UpsampleTest {
+class UpsampleTest : public ::testing::TestWithParam<UPSAMPLE_LBD> {
   public:
     UpsampleTest() {
-        ref_func_ = nullptr;
-        tst_func_ = nullptr;
+        ref_func_ = svt_av1_upsample_intra_edge_c;
+        tst_func_ = GetParam();
         bd_ = 8;
         common_init();
-    }
-
-    virtual ~UpsampleTest() {
     }
 
     void RunTest() {
@@ -75,7 +73,8 @@ class UpsampleTest {
                 numPx_ = 4 * i;            // blkWh is increased with step 4.
                 prepare_data(pix_rnd);
 
-                run_upsample();
+                ref_func_(edge_ref_, numPx_);
+                tst_func_(edge_tst_, numPx_);
 
                 // When the process completes, entries -2 to 2*numPx-2
                 // are valid in buf;
@@ -100,52 +99,31 @@ class UpsampleTest {
         // When the process starts, entries -1 to numPx-1 are valid in buf
         int i = 0;
         for (; i < start_offset + numPx_; ++i)
-            edge_ref_data_[i] = edge_tst_data_[i] = (Sample)pix_rnd.random();
+            edge_ref_data_[i] = edge_tst_data_[i] = (uint8_t)pix_rnd.random();
 
-        Sample last = edge_ref_data_[start_offset + numPx_ - 1];
+        uint8_t last = edge_ref_data_[start_offset + numPx_ - 1];
         for (; i < edge_buf_size; ++i)
             edge_ref_data_[i] = edge_tst_data_[i] = last;
     }
 
-    virtual void run_upsample() {
-    }
+    uint8_t edge_ref_data_[edge_buf_size];
+    uint8_t edge_tst_data_[edge_buf_size];
 
-    Sample edge_ref_data_[edge_buf_size];
-    Sample edge_tst_data_[edge_buf_size];
+    uint8_t *edge_ref_;
+    uint8_t *edge_tst_;
 
-    Sample *edge_ref_;
-    Sample *edge_tst_;
-
-    Func ref_func_;
-    Func tst_func_;
+    UPSAMPLE_LBD ref_func_;
+    UPSAMPLE_LBD tst_func_;
     int numPx_;
     int bd_;
 };
 
-class LowbdUpsampleTest : public UpsampleTest<uint8_t, UPSAMPLE_LBD> {
-  public:
-    LowbdUpsampleTest() {
-        ref_func_ = svt_av1_upsample_intra_edge_c;
-        tst_func_ = svt_av1_upsample_intra_edge_sse4_1;
-        bd_ = 8;
-        common_init();
-    }
+TEST_P(UpsampleTest, RunTest) {
+    RunTest();
+}
 
-  protected:
-    void run_upsample() override {
-        ref_func_(edge_ref_, numPx_);
-        tst_func_(edge_tst_, numPx_);
-    }
-};
-
-#define TEST_CLASS(tc_name, type_name)     \
-    TEST(tc_name, match_test) {            \
-        type_name *test = new type_name(); \
-        test->RunTest();                   \
-        delete test;                       \
-    }
-
-TEST_CLASS(UpsampleTestLBD, LowbdUpsampleTest)
+INSTANTIATE_TEST_SUITE_P(SSE4_1, UpsampleTest,
+                         ::testing::Values(svt_av1_upsample_intra_edge_sse4_1));
 
 // -----------------------------------------------------------------------------
 // Filter edge Tests
@@ -153,28 +131,8 @@ TEST_CLASS(UpsampleTestLBD, LowbdUpsampleTest)
 #define INTRA_EDGE_FILT 3
 #define INTRA_EDGE_TAPS 5
 #define MAX_UPSAMPLE_SZ 16
-static void svt_av1_filter_intra_edge_c(uint8_t *p, int sz, int strength) {
-    if (!strength)
-        return;
 
-    const int kernel[INTRA_EDGE_FILT][INTRA_EDGE_TAPS] = {
-        {0, 4, 8, 4, 0}, {0, 5, 6, 5, 0}, {2, 4, 4, 4, 2}};
-    const int filt = strength - 1;
-    uint8_t edge[129];
-
-    svt_memcpy_c(edge, p, sz * sizeof(*p));
-    for (int i = 1; i < sz; i++) {
-        int s = 0;
-        for (int j = 0; j < INTRA_EDGE_TAPS; j++) {
-            int k = i - 2 + j;
-            k = (k < 0) ? 0 : k;
-            k = (k > sz - 1) ? sz - 1 : k;
-            s += edge[k] * kernel[filt][j];
-        }
-        s = (s + 8) >> 4;
-        p[i] = (uint8_t)s;
-    }
-}
+extern "C" void reset_test_env();
 
 using FILTER_EDGE_LBD = void (*)(uint8_t *p, int size, int strength);
 using FILTER_EDGE_HBD = void (*)(uint16_t *p, int size, int strength);
@@ -201,11 +159,9 @@ using FILTER_EDGE_HBD = void (*)(uint16_t *p, int size, int strength);
  * BitDepth: 8bit and 10bit
  */
 template <typename Sample, typename Func>
-class FilterEdgeTest {
+class FilterEdgeTest : public testing::TestWithParam<Func> {
   public:
     FilterEdgeTest() {
-        ref_func_ = tst_func_ = nullptr;
-        bd_ = 8;
         common_init();
     }
 
@@ -247,6 +203,10 @@ class FilterEdgeTest {
     }
 
     void run_filter_edge() {
+        // svt_av1_filter_intra_edge_c calls svt_memcpy through the rtcd
+        // pointers, reset the environment to make sure we call the C version.
+        reset_test_env();
+
         ref_func_(edge_ref_, numPx_, strength_);
         tst_func_(edge_tst_, numPx_, strength_);
     }
@@ -268,22 +228,32 @@ class LowbdFilterEdgeTest : public FilterEdgeTest<uint8_t, FILTER_EDGE_LBD> {
   public:
     LowbdFilterEdgeTest() {
         ref_func_ = svt_av1_filter_intra_edge_c;
-        tst_func_ = svt_av1_filter_intra_edge_sse4_1;
+        tst_func_ = GetParam();
         bd_ = 8;
-        common_init();
     }
 };
+
+TEST_P(LowbdFilterEdgeTest, RunTest) {
+    RunTest();
+}
+
+INSTANTIATE_TEST_SUITE_P(SSE4_1, LowbdFilterEdgeTest,
+                         ::testing::Values(svt_av1_filter_intra_edge_sse4_1));
 
 class HighbdFilterEdgeTest : public FilterEdgeTest<uint16_t, FILTER_EDGE_HBD> {
   public:
     HighbdFilterEdgeTest() {
         ref_func_ = svt_av1_filter_intra_edge_high_c;
-        tst_func_ = svt_av1_filter_intra_edge_high_sse4_1;
+        tst_func_ = GetParam();
         bd_ = 10;
-        common_init();
     }
 };
 
-TEST_CLASS(IntraFilterEdgeTestLowbd, LowbdFilterEdgeTest)
-TEST_CLASS(IntraFilterEdgeTestHighbd, HighbdFilterEdgeTest)
+TEST_P(HighbdFilterEdgeTest, RunTest) {
+    RunTest();
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    SSE4_1, HighbdFilterEdgeTest,
+    ::testing::Values(svt_av1_filter_intra_edge_high_sse4_1));
 }  // namespace
