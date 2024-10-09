@@ -14,9 +14,9 @@
  * @file intrapred_edge_filter_test.cc
  *
  * @brief Unit test for upsample and edge filter:
- * - svt_av1_upsample_intra_edge_sse4_1
- * - svt_av1_filter_intra_edge_sse4_1
- * - svt_av1_filter_intra_edge_high_sse4_1
+ * - svt_av1_upsample_intra_edge
+ * - svt_av1_filter_intra_edge
+ * - svt_av1_filter_intra_edge_high
  *
  * @author Cidana-Wenyao
  *
@@ -39,7 +39,7 @@ using UPSAMPLE_LBD = void (*)(uint8_t *p, int size);
 /**
  * @brief Unit test for upsample in intra prediction specified in
  * spec 7.11.2.11:
- * - svt_av1_upsample_intra_edge_sse4_1
+ * - svt_av1_upsample_intra_edge
  *
  * Test strategy:
  * Verify this assembly code by comparing with reference c implementation.
@@ -117,13 +117,16 @@ class UpsampleTest : public ::testing::TestWithParam<UPSAMPLE_LBD> {
     int numPx_;
     int bd_;
 };
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UpsampleTest);
 
 TEST_P(UpsampleTest, RunTest) {
     RunTest();
 }
 
+#if ARCH_X86_64
 INSTANTIATE_TEST_SUITE_P(SSE4_1, UpsampleTest,
                          ::testing::Values(svt_av1_upsample_intra_edge_sse4_1));
+#endif  // ARCH_X86_64
 
 // -----------------------------------------------------------------------------
 // Filter edge Tests
@@ -139,8 +142,8 @@ using FILTER_EDGE_HBD = void (*)(uint16_t *p, int size, int strength);
 
 /**
  * @brief Unit test for edge filter in intra prediction:
- * - svt_av1_filter_intra_edge_sse4_1
- * - svt_av1_filter_intra_edge_high_sse4_1
+ * - svt_av1_filter_intra_edge
+ * - svt_av1_filter_intra_edge_high
  *
  * Test strategy:
  * Verify this assembly code by comparing with reference c implementation.
@@ -237,8 +240,15 @@ TEST_P(LowbdFilterEdgeTest, RunTest) {
     RunTest();
 }
 
+#if ARCH_X86_64
 INSTANTIATE_TEST_SUITE_P(SSE4_1, LowbdFilterEdgeTest,
                          ::testing::Values(svt_av1_filter_intra_edge_sse4_1));
+#endif  // ARCH_X86_64
+
+#if ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(NEON, LowbdFilterEdgeTest,
+                         ::testing::Values(svt_av1_filter_intra_edge_neon));
+#endif  // ARCH_AARCH64
 
 class HighbdFilterEdgeTest : public FilterEdgeTest<uint16_t, FILTER_EDGE_HBD> {
   public:
@@ -248,12 +258,15 @@ class HighbdFilterEdgeTest : public FilterEdgeTest<uint16_t, FILTER_EDGE_HBD> {
         bd_ = 10;
     }
 };
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(HighbdFilterEdgeTest);
 
 TEST_P(HighbdFilterEdgeTest, RunTest) {
     RunTest();
 }
 
+#if ARCH_X86_64
 INSTANTIATE_TEST_SUITE_P(
     SSE4_1, HighbdFilterEdgeTest,
     ::testing::Values(svt_av1_filter_intra_edge_high_sse4_1));
+#endif  // ARCH_X86_64
 }  // namespace

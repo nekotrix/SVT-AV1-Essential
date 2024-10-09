@@ -3214,3 +3214,148 @@ PAETH_NXM_WIDE(16, 4)
 PAETH_NXM_WIDE(16, 64)
 PAETH_NXM_WIDE(32, 8)
 PAETH_NXM_WIDE(64, 16)
+
+void svt_av1_filter_intra_edge_neon(uint8_t *p, int sz, int strength) {
+    if (!strength)
+        return;
+    assert(sz >= 0 && sz <= 129);
+
+    uint8_t edge[160]; // Max value of sz + enough padding for vector accesses.
+    memcpy(edge + 1, p, sz * sizeof(*p));
+
+    // Populate extra space appropriately.
+    edge[0]      = edge[1];
+    edge[sz + 1] = edge[sz];
+    edge[sz + 2] = edge[sz];
+
+    // Don't overwrite first pixel.
+    uint8_t *dst = p + 1;
+    sz--;
+
+    if (strength == 1) { // Filter: {4, 8, 4}.
+        const uint8_t *src = edge + 1;
+
+        while (sz >= 8) {
+            uint8x8_t s0 = vld1_u8(src);
+            uint8x8_t s1 = vld1_u8(src + 1);
+            uint8x8_t s2 = vld1_u8(src + 2);
+
+            // Make use of the identity:
+            // (4*a + 8*b + 4*c) >> 4 == (a + (b << 1) + c) >> 2
+            uint16x8_t t0  = vaddl_u8(s0, s2);
+            uint16x8_t t1  = vaddl_u8(s1, s1);
+            uint16x8_t sum = vaddq_u16(t0, t1);
+            uint8x8_t  res = vrshrn_n_u16(sum, 2);
+
+            vst1_u8(dst, res);
+
+            src += 8;
+            dst += 8;
+            sz -= 8;
+        }
+
+        if (sz > 0) { // Handle sz < 8 to avoid modifying out-of-bounds values.
+            uint8x8_t s0 = vld1_u8(src);
+            uint8x8_t s1 = vld1_u8(src + 1);
+            uint8x8_t s2 = vld1_u8(src + 2);
+
+            uint16x8_t t0  = vaddl_u8(s0, s2);
+            uint16x8_t t1  = vaddl_u8(s1, s1);
+            uint16x8_t sum = vaddq_u16(t0, t1);
+            uint8x8_t  res = vrshrn_n_u16(sum, 2);
+
+            // Mask off out-of-bounds indices.
+            uint8x8_t current_dst = vld1_u8(dst);
+            uint8x8_t mask        = vcgt_u8(vdup_n_u8(sz), vcreate_u8(0x0706050403020100));
+            res                   = vbsl_u8(mask, res, current_dst);
+
+            vst1_u8(dst, res);
+        }
+    } else if (strength == 2) { // Filter: {5, 6, 5}.
+        const uint8_t *src = edge + 1;
+
+        const uint8x8x3_t filter = {{vdup_n_u8(5), vdup_n_u8(6), vdup_n_u8(5)}};
+
+        while (sz >= 8) {
+            uint8x8_t s0 = vld1_u8(src);
+            uint8x8_t s1 = vld1_u8(src + 1);
+            uint8x8_t s2 = vld1_u8(src + 2);
+
+            uint16x8_t accum = vmull_u8(s0, filter.val[0]);
+            accum            = vmlal_u8(accum, s1, filter.val[1]);
+            accum            = vmlal_u8(accum, s2, filter.val[2]);
+            uint8x8_t res    = vrshrn_n_u16(accum, 4);
+
+            vst1_u8(dst, res);
+
+            src += 8;
+            dst += 8;
+            sz -= 8;
+        }
+
+        if (sz > 0) { // Handle sz < 8 to avoid modifying out-of-bounds values.
+            uint8x8_t s0 = vld1_u8(src);
+            uint8x8_t s1 = vld1_u8(src + 1);
+            uint8x8_t s2 = vld1_u8(src + 2);
+
+            uint16x8_t accum = vmull_u8(s0, filter.val[0]);
+            accum            = vmlal_u8(accum, s1, filter.val[1]);
+            accum            = vmlal_u8(accum, s2, filter.val[2]);
+            uint8x8_t res    = vrshrn_n_u16(accum, 4);
+
+            // Mask off out-of-bounds indices.
+            uint8x8_t current_dst = vld1_u8(dst);
+            uint8x8_t mask        = vcgt_u8(vdup_n_u8(sz), vcreate_u8(0x0706050403020100));
+            res                   = vbsl_u8(mask, res, current_dst);
+
+            vst1_u8(dst, res);
+        }
+    } else { // Filter {2, 4, 4, 4, 2}.
+        const uint8_t *src = edge;
+
+        while (sz >= 8) {
+            uint8x8_t s0 = vld1_u8(src);
+            uint8x8_t s1 = vld1_u8(src + 1);
+            uint8x8_t s2 = vld1_u8(src + 2);
+            uint8x8_t s3 = vld1_u8(src + 3);
+            uint8x8_t s4 = vld1_u8(src + 4);
+
+            // Make use of the identity:
+            // (2*a + 4*b + 4*c + 4*d + 2*e) >> 4 == (a + ((b + c + d) << 1) + e) >> 3
+            uint16x8_t t0  = vaddl_u8(s0, s4);
+            uint16x8_t t1  = vaddl_u8(s1, s2);
+            t1             = vaddw_u8(t1, s3);
+            t1             = vaddq_u16(t1, t1);
+            uint16x8_t sum = vaddq_u16(t0, t1);
+            uint8x8_t  res = vrshrn_n_u16(sum, 3);
+
+            vst1_u8(dst, res);
+
+            src += 8;
+            dst += 8;
+            sz -= 8;
+        }
+
+        if (sz > 0) { // Handle sz < 8 to avoid modifying out-of-bounds values.
+            uint8x8_t s0 = vld1_u8(src);
+            uint8x8_t s1 = vld1_u8(src + 1);
+            uint8x8_t s2 = vld1_u8(src + 2);
+            uint8x8_t s3 = vld1_u8(src + 3);
+            uint8x8_t s4 = vld1_u8(src + 4);
+
+            uint16x8_t t0  = vaddl_u8(s0, s4);
+            uint16x8_t t1  = vaddl_u8(s1, s2);
+            t1             = vaddw_u8(t1, s3);
+            t1             = vaddq_u16(t1, t1);
+            uint16x8_t sum = vaddq_u16(t0, t1);
+            uint8x8_t  res = vrshrn_n_u16(sum, 3);
+
+            // Mask off out-of-bounds indices.
+            uint8x8_t current_dst = vld1_u8(dst);
+            uint8x8_t mask        = vcgt_u8(vdup_n_u8(sz), vcreate_u8(0x0706050403020100));
+            res                   = vbsl_u8(mask, res, current_dst);
+
+            vst1_u8(dst, res);
+        }
+    }
+}
