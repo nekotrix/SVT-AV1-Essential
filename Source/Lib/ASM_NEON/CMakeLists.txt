@@ -39,6 +39,7 @@ target_sources(
   PUBLIC transforms_intrin_neon.c
   PUBLIC hadmard_path_neon.c
   PUBLIC highbd_fwd_txfm_neon.c
+  PUBLIC highbd_intra_prediction_neon.c
   PUBLIC highbd_inv_txfm_neon.c
   PUBLIC highbd_pickrst_neon.c
   PUBLIC highbd_variance_neon.c

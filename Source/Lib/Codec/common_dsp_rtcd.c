@@ -1009,7 +1009,7 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
     SET_NEON(svt_cfl_predict_lbd, svt_cfl_predict_lbd_c, svt_aom_cfl_predict_lbd_neon);
     SET_ONLY_C(svt_cfl_predict_hbd, svt_cfl_predict_hbd_c);
     SET_NEON(svt_av1_filter_intra_predictor, svt_av1_filter_intra_predictor_c, svt_av1_filter_intra_predictor_neon);
-    SET_ONLY_C(svt_av1_filter_intra_edge_high, svt_av1_filter_intra_edge_high_c);
+    SET_NEON(svt_av1_filter_intra_edge_high, svt_av1_filter_intra_edge_high_c, svt_av1_filter_intra_edge_high_neon);
     SET_NEON(svt_av1_filter_intra_edge, svt_av1_filter_intra_edge_c, svt_av1_filter_intra_edge_neon);
     SET_ONLY_C(svt_av1_upsample_intra_edge, svt_av1_upsample_intra_edge_c);
     SET_ONLY_C(svt_av1_build_compound_diffwtd_mask_d16, svt_av1_build_compound_diffwtd_mask_d16_c);

@@ -258,7 +258,6 @@ class HighbdFilterEdgeTest : public FilterEdgeTest<uint16_t, FILTER_EDGE_HBD> {
         bd_ = 10;
     }
 };
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(HighbdFilterEdgeTest);
 
 TEST_P(HighbdFilterEdgeTest, RunTest) {
     RunTest();
@@ -269,4 +268,10 @@ INSTANTIATE_TEST_SUITE_P(
     SSE4_1, HighbdFilterEdgeTest,
     ::testing::Values(svt_av1_filter_intra_edge_high_sse4_1));
 #endif  // ARCH_X86_64
+
+#if ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, HighbdFilterEdgeTest,
+    ::testing::Values(svt_av1_filter_intra_edge_high_neon));
+#endif  // ARCH_AARCH64
 }  // namespace
