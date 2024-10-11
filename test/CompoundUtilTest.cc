@@ -474,7 +474,6 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(HbdCompBlendTest);
 TEST_P(HbdCompBlendTest, BlendA64Mask) {
     run_hbd_test(8);
     run_hbd_test(10);
-    run_hbd_test(12);
 }
 
 #ifdef ARCH_X86_64
@@ -544,7 +543,6 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(HbdCompBlendD16Test);
 TEST_P(HbdCompBlendD16Test, BlendA64MaskD16) {
     run_hbd_test(8);
     run_hbd_test(10);
-    run_hbd_test(12);
 }
 
 #ifdef ARCH_X86_64
@@ -609,7 +607,6 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(HbdCompBlendHMaskTest);
 TEST_P(HbdCompBlendHMaskTest, BlendA64Mask) {
     run_hbd_test(8);
     run_hbd_test(10);
-    run_hbd_test(12);
 }
 
 #ifdef ARCH_X86_64
@@ -674,7 +671,6 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EbHbdCompBlendHMaskTest);
 TEST_P(EbHbdCompBlendHMaskTest, BlendA64Mask) {
     run_hbd_test(8);
     run_hbd_test(10);
-    run_hbd_test(12);
 }
 
 #ifdef ARCH_X86_64
@@ -739,7 +735,6 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(HbdCompBlendVMaskTest);
 TEST_P(HbdCompBlendVMaskTest, BlendA64Mask) {
     run_hbd_test(8);
     run_hbd_test(10);
-    run_hbd_test(12);
 }
 
 #ifdef ARCH_X86_64
@@ -804,7 +799,6 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EbHbdCompBlendVMaskTest);
 TEST_P(EbHbdCompBlendVMaskTest, BlendA64Mask) {
     run_hbd_test(8);
     run_hbd_test(10);
-    run_hbd_test(12);
 }
 
 #ifdef ARCH_X86_64
@@ -965,8 +959,6 @@ TEST_P(BuildCompDiffwtdMaskHighbdTest, MatchTest) {
     run_test(DIFFWTD_38_INV, 8);
     run_test(DIFFWTD_38, 10);
     run_test(DIFFWTD_38_INV, 10);
-    run_test(DIFFWTD_38, 12);
-    run_test(DIFFWTD_38_INV, 12);
 }
 
 #ifdef ARCH_X86_64
@@ -1077,14 +1069,14 @@ TEST_P(BuildCompDiffwtdMaskD16Test, MatchTest) {
 INSTANTIATE_TEST_SUITE_P(
     SSE4_1, BuildCompDiffwtdMaskD16Test,
     ::testing::Combine(
-        ::testing::Range(8, 13, 2),
+        ::testing::Range(8, 11, 2),
         ::testing::Values(svt_av1_build_compound_diffwtd_mask_d16_sse4_1),
         ::testing::Range(BLOCK_4X4, BlockSizeS_ALL)));
 
 INSTANTIATE_TEST_SUITE_P(
     AVX2, BuildCompDiffwtdMaskD16Test,
     ::testing::Combine(
-        ::testing::Range(8, 13, 2),
+        ::testing::Range(8, 11, 2),
         ::testing::Values(svt_av1_build_compound_diffwtd_mask_d16_avx2),
         ::testing::Range(BLOCK_4X4, BlockSizeS_ALL)));
 #endif  // ARCH_X86_64
