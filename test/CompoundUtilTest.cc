@@ -959,7 +959,6 @@ class BuildCompDiffwtdMaskHighbdTest
   private:
     SVTRandom rnd_;
 };
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(BuildCompDiffwtdMaskHighbdTest);
 
 TEST_P(BuildCompDiffwtdMaskHighbdTest, MatchTest) {
     run_test(DIFFWTD_38, 8);
@@ -981,6 +980,14 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::Range(BLOCK_4X4, BlockSizeS_ALL),
         ::testing::Values(svt_av1_build_compound_diffwtd_mask_highbd_avx2)));
 #endif  // ARCH_X86_64
+
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, BuildCompDiffwtdMaskHighbdTest,
+    ::testing::Combine(
+        ::testing::Range(BLOCK_4X4, BlockSizeS_ALL),
+        ::testing::Values(svt_av1_build_compound_diffwtd_mask_highbd_neon)));
+#endif  // ARCH_AARCH64
 
 // test svt_av1_build_compound_diffwtd_mask_d16_avx2
 typedef void (*BuildCompDiffwtdMaskD16Func)(
