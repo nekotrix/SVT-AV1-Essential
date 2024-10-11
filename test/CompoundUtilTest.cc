@@ -1066,7 +1066,6 @@ class BuildCompDiffwtdMaskD16Test
     }
     SVTRandom rnd_;
 };  // class BuildCompDiffwtdMaskD16Test
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(BuildCompDiffwtdMaskD16Test);
 
 TEST_P(BuildCompDiffwtdMaskD16Test, MatchTest) {
     run_test();
@@ -1087,6 +1086,15 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::Values(svt_av1_build_compound_diffwtd_mask_d16_avx2),
         ::testing::Range(BLOCK_4X4, BlockSizeS_ALL)));
 #endif  // ARCH_X86_64
+
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, BuildCompDiffwtdMaskD16Test,
+    ::testing::Combine(
+        ::testing::Range(8, 11, 2),
+        ::testing::Values(svt_av1_build_compound_diffwtd_mask_d16_neon),
+        ::testing::Range(BLOCK_4X4, BlockSizeS_ALL)));
+#endif  // ARCH_AARCH64
 
 typedef int64_t (*AomSseFunc)(const uint8_t *, int, const uint8_t *, int, int,
                               int);
