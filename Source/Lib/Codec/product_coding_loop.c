@@ -11,6 +11,7 @@
 */
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "definitions.h"
 #include "me_sb_results.h"
@@ -69,11 +70,11 @@ static void determine_best_references(PictureControlSet *pcs, ModeDecisionContex
     const uint8_t      total_me_cnt = sb_results->total_me_candidate_index[ctx->me_block_offset];
     const MeCandidate *me_results   = &sb_results->me_candidate_array[ctx->me_cand_offset];
 
-    uint32_t is_last_added     = 0;
-    uint32_t is_bwd_added      = 0;
-    uint32_t is_last_bwd_added = 0;
+    uint8_t is_last_added     = 0;
+    uint8_t is_bwd_added      = 0;
+    uint8_t is_last_bwd_added = 0;
 
-    uint32_t ri = 0;
+    uint16_t ri = 0;
     for (uint8_t me_index = 0; me_index < total_me_cnt; ++me_index) {
         const MeCandidate *cand = &me_results[me_index];
         if (cand->direction == 0) {
@@ -1453,9 +1454,9 @@ void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_C
     }
 
     // minimum nics allowed
-    uint32_t min_mds1_nics = (pic_type < 2 && scaling_ctrls->stage1_scaling_num) ? 2 : 1;
-    uint32_t min_mds2_nics = (pic_type < 2 && scaling_ctrls->stage2_scaling_num) ? 2 : 1;
-    uint32_t min_mds3_nics = (pic_type < 2 && scaling_ctrls->stage3_scaling_num) ? 2 : 1;
+    uint8_t min_mds1_nics = (pic_type < 2 && scaling_ctrls->stage1_scaling_num) ? 2 : 1;
+    uint8_t min_mds2_nics = (pic_type < 2 && scaling_ctrls->stage2_scaling_num) ? 2 : 1;
+    uint8_t min_mds3_nics = (pic_type < 2 && scaling_ctrls->stage3_scaling_num) ? 2 : 1;
 
     // Set the scaling numerators
     uint32_t stage1_num = scaling_ctrls->stage1_scaling_num;
@@ -2878,10 +2879,9 @@ static Bool get_sb_tpl_inter_stats(PictureControlSet *pcs, ModeDecisionContext *
         const int sb_cols = MAX(1, sb_geom->width / tpl_blk_size);
         const int sb_rows = MAX(1, sb_geom->height / tpl_blk_size);
 
-        uint8_t tot_cnt           = 0;
-        uint8_t inter_cnt         = 0;
-        uint8_t max_list0_ref_idx = 0;
-        uint8_t max_list1_ref_idx = 0;
+        uint8_t tot_cnt             = 0;
+        uint8_t inter_cnt           = 0;
+        uint8_t max_list_ref_idx[2] = {0};
 
         // Loop over all blocks in the SB
         for (int i = 0; i < sb_rows; i++) {
@@ -2897,11 +2897,7 @@ static Bool get_sb_tpl_inter_stats(PictureControlSet *pcs, ModeDecisionContext *
                         ? (tpl_src_stats_buffer->best_rf_idx - 4)
                         : tpl_src_stats_buffer->best_rf_idx;
 
-                    if (list_index)
-                        max_list1_ref_idx = MAX(max_list1_ref_idx, ref_pic_index);
-                    else
-                        max_list0_ref_idx = MAX(max_list0_ref_idx, ref_pic_index);
-
+                    max_list_ref_idx[list_index] = MAX(max_list_ref_idx[list_index], ref_pic_index);
                     inter_cnt++;
                 }
 
@@ -2910,8 +2906,8 @@ static Bool get_sb_tpl_inter_stats(PictureControlSet *pcs, ModeDecisionContext *
         }
 
         *sb_inter_selection   = (inter_cnt * 100) / tot_cnt;
-        *sb_max_list0_ref_idx = max_list0_ref_idx;
-        *sb_max_list1_ref_idx = max_list1_ref_idx;
+        *sb_max_list0_ref_idx = max_list_ref_idx[0];
+        *sb_max_list1_ref_idx = max_list_ref_idx[1];
         return 1;
     }
     return 0;
@@ -3494,7 +3490,7 @@ static void av1_cost_calc_cfl(PictureControlSet *pcs, ModeDecisionCandidateBuffe
 static uint64_t md_cfl_rd_pick_alpha(PictureControlSet *pcs, ModeDecisionCandidateBuffer *cand_bf,
                                      ModeDecisionContext *ctx, EbPictureBufferDesc *input_pic,
                                      uint32_t input_cb_origin_in_index, uint32_t blk_chroma_origin_index,
-                                     int32_t *cfl_alpha_idx, int32_t *cfl_alpha_signs) {
+                                     uint8_t *cfl_alpha_idx, uint8_t *cfl_alpha_signs) {
     uint64_t best_rd = MAX_MODE_COST;
     uint64_t full_dist[DIST_TOTAL][DIST_CALC_TOTAL];
     uint64_t coeff_bits;
@@ -3505,58 +3501,64 @@ static uint64_t md_cfl_rd_pick_alpha(PictureControlSet *pcs, ModeDecisionCandida
         (uint64_t)ctx->md_rate_est_ctx->intra_uv_mode_fac_bits[CFL_ALLOWED][cand_bf->cand->pred_mode][UV_CFL_PRED],
         0);
     uint64_t best_rd_uv[CFL_JOINT_SIGNS][CFL_PRED_PLANES];
-    int32_t  best_c[CFL_JOINT_SIGNS][CFL_PRED_PLANES];
+    uint8_t  best_c[CFL_JOINT_SIGNS][CFL_PRED_PLANES];
 
-    for (int32_t plane = 0; plane < CFL_PRED_PLANES; plane++) {
+    for (uint8_t plane = 0; plane < CFL_PRED_PLANES; plane++) {
         coeff_bits                               = 0;
         full_dist[DIST_SSD][DIST_CALC_RESIDUAL]  = 0;
         full_dist[DIST_SSIM][DIST_CALC_RESIDUAL] = 0;
-        for (int32_t joint_sign = 0; joint_sign < CFL_JOINT_SIGNS; joint_sign++) {
+        for (uint8_t joint_sign = 0; joint_sign < CFL_JOINT_SIGNS; joint_sign++) {
             best_rd_uv[joint_sign][plane] = MAX_MODE_COST;
             best_c[joint_sign][plane]     = 0;
         }
+
         // Collect RD stats for an alpha value of zero in this plane.
-        // Skip i == CFL_SIGN_ZERO as (0, 0) is invalid.
-        for (int32_t i = CFL_SIGN_NEG; i < CFL_SIGNS; i++) {
-            const int32_t joint_sign = PLANE_SIGN_TO_JOINT_SIGN(plane, CFL_SIGN_ZERO, i);
-            if (i == CFL_SIGN_NEG) {
-                cand_bf->cand->cfl_alpha_idx   = 0;
-                cand_bf->cand->cfl_alpha_signs = joint_sign;
+        // Skip CFL_SIGN_ZERO as (0, 0) is invalid.
+        // The two remaining signs are CFL_SIGN_NEG and CFL_SIGN_POS
+        // Collect RD stats for CFL_SIGN_NEG
+        const uint8_t joint_sign_neg   = PLANE_SIGN_TO_JOINT_SIGN(plane, CFL_SIGN_ZERO, CFL_SIGN_NEG);
+        cand_bf->cand->cfl_alpha_idx   = 0;
+        cand_bf->cand->cfl_alpha_signs = joint_sign_neg;
+        // Only caculate cfl cost for joint_sign_neg
+        av1_cost_calc_cfl(pcs,
+                          cand_bf,
+                          ctx,
+                          (plane == 0) ? COMPONENT_CHROMA_CB : COMPONENT_CHROMA_CR,
+                          input_pic,
+                          input_cb_origin_in_index,
+                          blk_chroma_origin_index,
+                          full_dist,
+                          &coeff_bits,
+                          0);
+        if (coeff_bits != INT64_MAX) {
+            // Collect RD stats for CFL_SIGN_NEG
+            const int32_t alpha_rate_neg      = ctx->md_rate_est_ctx->cfl_alpha_fac_bits[joint_sign_neg][plane][0];
+            best_rd_uv[joint_sign_neg][plane] = RDCOST(
+                full_lambda, coeff_bits + alpha_rate_neg, full_dist[DIST_SSD][DIST_CALC_RESIDUAL]);
 
-                av1_cost_calc_cfl(pcs,
-                                  cand_bf,
-                                  ctx,
-                                  (plane == 0) ? COMPONENT_CHROMA_CB : COMPONENT_CHROMA_CR,
-                                  input_pic,
-                                  input_cb_origin_in_index,
-                                  blk_chroma_origin_index,
-                                  full_dist,
-                                  &coeff_bits,
-                                  0);
-
-                if (coeff_bits == INT64_MAX)
-                    break;
-            }
-            const int32_t alpha_rate      = ctx->md_rate_est_ctx->cfl_alpha_fac_bits[joint_sign][plane][0];
-            best_rd_uv[joint_sign][plane] = RDCOST(
-                full_lambda, coeff_bits + alpha_rate, full_dist[DIST_SSD][DIST_CALC_RESIDUAL]);
+            // Collect RD stats for CFL_SIGN_POS
+            const uint8_t joint_sign_pos      = PLANE_SIGN_TO_JOINT_SIGN(plane, CFL_SIGN_ZERO, CFL_SIGN_POS);
+            const int32_t alpha_rate_pos      = ctx->md_rate_est_ctx->cfl_alpha_fac_bits[joint_sign_pos][plane][0];
+            best_rd_uv[joint_sign_pos][plane] = RDCOST(
+                full_lambda, coeff_bits + alpha_rate_pos, full_dist[DIST_SSD][DIST_CALC_RESIDUAL]);
         }
     }
 
-    int32_t best_joint_sign = -1;
+    uint8_t best_joint_sign       = 0;
+    bool    best_joint_sign_found = false;
 
-    for (int32_t plane = 0; plane < CFL_PRED_PLANES; plane++) {
-        for (int32_t pn_sign = CFL_SIGN_NEG; pn_sign < CFL_SIGNS; pn_sign++) {
-            int32_t progress = 0;
-            for (int32_t c = 0; c < CFL_ALPHABET_SIZE; c++) {
-                int32_t flag = 0;
+    for (uint8_t plane = 0; plane < CFL_PRED_PLANES; plane++) {
+        for (uint8_t pn_sign = CFL_SIGN_NEG; pn_sign < CFL_SIGNS; pn_sign++) {
+            uint8_t progress = 0;
+            for (uint8_t c = 0; c < CFL_ALPHABET_SIZE; c++) {
+                uint8_t flag = 0;
                 if (c > ctx->cfl_ctrls.itr_th && progress < c)
                     break;
                 coeff_bits                               = 0;
                 full_dist[DIST_SSD][DIST_CALC_RESIDUAL]  = 0;
                 full_dist[DIST_SSIM][DIST_CALC_RESIDUAL] = 0;
-                for (int32_t i = 0; i < CFL_SIGNS; i++) {
-                    const int32_t joint_sign = PLANE_SIGN_TO_JOINT_SIGN(plane, pn_sign, i);
+                for (uint8_t i = 0; i < CFL_SIGNS; i++) {
+                    const uint8_t joint_sign = PLANE_SIGN_TO_JOINT_SIGN(plane, pn_sign, i);
                     if (i == 0) {
                         cand_bf->cand->cfl_alpha_idx   = (c << CFL_ALPHABET_SIZE_LOG2) + c;
                         cand_bf->cand->cfl_alpha_signs = joint_sign;
@@ -3589,8 +3591,9 @@ static uint64_t md_cfl_rd_pick_alpha(PictureControlSet *pcs, ModeDecisionCandida
                     this_rd += mode_rd + best_rd_uv[joint_sign][!plane];
                     if (this_rd >= best_rd)
                         continue;
-                    best_rd         = this_rd;
-                    best_joint_sign = joint_sign;
+                    best_rd               = this_rd;
+                    best_joint_sign       = joint_sign;
+                    best_joint_sign_found = true;
                 }
                 progress += flag;
             }
@@ -3598,13 +3601,12 @@ static uint64_t md_cfl_rd_pick_alpha(PictureControlSet *pcs, ModeDecisionCandida
     }
 
     if (best_rd != MAX_MODE_COST) {
-        int32_t ind = 0;
-        if (best_joint_sign >= 0) {
-            const int32_t u = best_c[best_joint_sign][CFL_PRED_U];
-            const int32_t v = best_c[best_joint_sign][CFL_PRED_V];
+        uint8_t ind = 0;
+        if (best_joint_sign_found) {
+            const uint8_t u = best_c[best_joint_sign][CFL_PRED_U];
+            const uint8_t v = best_c[best_joint_sign][CFL_PRED_V];
             ind             = (u << CFL_ALPHABET_SIZE_LOG2) + v;
-        } else
-            best_joint_sign = 0;
+        }
         *cfl_alpha_idx   = ind;
         *cfl_alpha_signs = best_joint_sign;
     }
@@ -3739,7 +3741,7 @@ static void cfl_prediction(PictureControlSet *pcs, ModeDecisionCandidateBuffer *
     compute_cfl_ac_components(ctx, cand_bf);
 
     // Loop over alphas and find the best CFL params
-    int32_t  cfl_alpha_idx = 0, cfl_alpha_signs = 0;
+    uint8_t  cfl_alpha_idx = 0, cfl_alpha_signs = 0;
     uint64_t cfl_rd = md_cfl_rd_pick_alpha(pcs,
                                            cand_bf,
                                            ctx,

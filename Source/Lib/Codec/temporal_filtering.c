@@ -748,10 +748,7 @@ static uint32_t calculate_squared_errors_sum(const uint8_t *s, int s_stride, con
     unsigned int i, j;
     uint32_t     sum = 0;
     for (i = 0; i < h; i++) {
-        for (j = 0; j < w; j++) {
-            const int16_t diff = s[i * s_stride + j] - p[i * p_stride + j];
-            sum += diff * diff;
-        }
+        for (j = 0; j < w; j++) { sum += SQR(s[i * s_stride + j] - p[i * p_stride + j]); }
     }
     return sum;
 }
@@ -763,10 +760,7 @@ static uint32_t calculate_squared_errors_sum_highbd(const uint16_t *s, int s_str
     unsigned int i, j;
     uint32_t     sum = 0;
     for (i = 0; i < h; i++) {
-        for (j = 0; j < w; j++) {
-            const int32_t diff = s[i * s_stride + j] - p[i * p_stride + j];
-            sum += diff * diff;
-        }
+        for (j = 0; j < w; j++) { sum += SQR(s[i * s_stride + j] - p[i * p_stride + j]); }
     }
     return (sum >> shift_factor);
 }

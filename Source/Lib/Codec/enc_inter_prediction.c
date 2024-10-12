@@ -565,11 +565,7 @@ int64_t svt_aom_highbd_sse_c(const uint8_t *a8, int a_stride, const uint8_t *b8,
     uint16_t *a   = (uint16_t *)a8; //CONVERT_TO_SHORTPTR(a8);
     uint16_t *b   = (uint16_t *)b8; //CONVERT_TO_SHORTPTR(b8);
     for (y = 0; y < height; y++) {
-        for (x = 0; x < width; x++) {
-            const int32_t diff = (int32_t)(a[x]) - (int32_t)(b[x]);
-            sse += diff * diff;
-        }
-
+        for (x = 0; x < width; x++) { sse += SQR((int32_t)(a[x]) - (int32_t)(b[x])); }
         a += a_stride;
         b += b_stride;
     }
@@ -581,11 +577,7 @@ int64_t svt_aom_sse_c(const uint8_t *a, int a_stride, const uint8_t *b, int b_st
     int64_t sse = 0;
 
     for (y = 0; y < height; y++) {
-        for (x = 0; x < width; x++) {
-            const int32_t diff = abs(a[x] - b[x]);
-            sse += diff * diff;
-        }
-
+        for (x = 0; x < width; x++) { sse += SQR(a[x] - b[x]); }
         a += a_stride;
         b += b_stride;
     }

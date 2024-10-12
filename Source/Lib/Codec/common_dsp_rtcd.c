@@ -22,6 +22,7 @@
 #include "common_dsp_rtcd.h"
 #include "pic_operators.h"
 #include "pack_unpack_c.h"
+#include "utility.h"
 
 #if defined ARCH_X86_64
 // for svt_aom_get_cpu_flags
@@ -83,9 +84,8 @@ int64_t svt_av1_block_error_c(const TranLow *coeff, const TranLow *dqcoeff,
   int64_t error = 0, sqcoeff = 0;
 
   for (i = 0; i < block_size; i++) {
-    const int diff = coeff[i] - dqcoeff[i];
-    error += diff * diff;
-    sqcoeff += coeff[i] * coeff[i];
+    error += SQR(coeff[i] - dqcoeff[i]);
+    sqcoeff += SQR(coeff[i]);
   }
 
   *ssz = sqcoeff;
