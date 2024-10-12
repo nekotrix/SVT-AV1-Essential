@@ -104,3 +104,25 @@ int8_t svt_av1_wedge_sign_from_residuals_neon(const int16_t *ds, const uint8_t *
 
     return (vaddvq_s64(sum) > limit);
 }
+
+void svt_av1_wedge_compute_delta_squares_neon(int16_t *d_ptr, const int16_t *a_ptr, const int16_t *b_ptr, int N) {
+    do {
+        int16x8_t a = vld1q_s16(a_ptr);
+        int16x8_t b = vld1q_s16(b_ptr);
+
+        int32x4_t sq_lo = vmull_s16(vget_low_s16(a), vget_low_s16(a));
+        int32x4_t sq_hi = vmull_s16(vget_high_s16(a), vget_high_s16(a));
+
+        sq_lo = vmlsl_s16(sq_lo, vget_low_s16(b), vget_low_s16(b));
+        sq_hi = vmlsl_s16(sq_hi, vget_high_s16(b), vget_high_s16(b));
+
+        int16x8_t res = vcombine_s16(vqmovn_s32(sq_lo), vqmovn_s32(sq_hi));
+
+        vst1q_s16(d_ptr, res);
+
+        d_ptr += 8;
+        a_ptr += 8;
+        b_ptr += 8;
+        N -= 8;
+    } while (N != 0);
+}

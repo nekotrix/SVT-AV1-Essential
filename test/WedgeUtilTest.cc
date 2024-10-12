@@ -229,7 +229,6 @@ class WedgeComputeDeltaSquaresTest
 
     WedgeComputeDeltaSquaresFunc test_func_;
 };
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WedgeComputeDeltaSquaresTest);
 
 // element-by-element calculate the difference of square
 TEST_P(WedgeComputeDeltaSquaresTest, ComputeDeltaSquareTest) {
@@ -241,6 +240,12 @@ INSTANTIATE_TEST_SUITE_P(
     AVX2, WedgeComputeDeltaSquaresTest,
     ::testing::Values(svt_av1_wedge_compute_delta_squares_avx2));
 #endif  // ARCH_X86_64
+
+#if ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, WedgeComputeDeltaSquaresTest,
+    ::testing::Values(svt_av1_wedge_compute_delta_squares_neon));
+#endif  // ARCH_AARCH64
 
 // test svt_av1_wedge_sse_from_residuals
 using WedgeSseFromResidualsFunc = uint64_t (*)(const int16_t *r1,
