@@ -180,6 +180,12 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     NEON, WedgeSignFromResidualsTest,
     ::testing::Values(svt_av1_wedge_sign_from_residuals_neon));
+
+#if HAVE_SVE
+INSTANTIATE_TEST_SUITE_P(
+    SVE, WedgeSignFromResidualsTest,
+    ::testing::Values(svt_av1_wedge_sign_from_residuals_sve));
+#endif  // HAVE_SVE
 #endif  // ARCH_AARCH64
 
 // test svt_av1_wedge_compute_delta_squares
