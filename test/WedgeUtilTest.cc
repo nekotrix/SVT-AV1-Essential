@@ -367,6 +367,12 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     NEON, WedgeSseFromResidualsTest,
     ::testing::Values(svt_av1_wedge_sse_from_residuals_neon));
+
+#if HAVE_SVE
+INSTANTIATE_TEST_SUITE_P(
+    SVE, WedgeSseFromResidualsTest,
+    ::testing::Values(svt_av1_wedge_sse_from_residuals_sve));
+#endif
 #endif  // ARCH_AARCH64
 
 typedef uint64_t (*AomSumSquaresI16Func)(const int16_t *, uint32_t);
