@@ -304,3 +304,133 @@ HIGHBD_SMOOTH_V_NXM_WIDE(64, 32)
 HIGHBD_SMOOTH_V_NXM_WIDE(64, 64)
 
 #undef HIGHBD_SMOOTH_V_NXM_WIDE
+
+// 256 - v = vneg_s8(v)
+static inline uint16x4_t negate_s8(const uint16x4_t v) { return vreinterpret_u16_s8(vneg_s8(vreinterpret_s8_u16(v))); }
+
+static INLINE void highbd_smooth_h_4xh_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *const top_row,
+                                            const uint16_t *left_column, int height) {
+    const uint16_t top_right = top_row[3];
+
+    const uint16x4_t weights_x        = vld1_u16(sm_weight_arrays_u16);
+    const uint16x4_t scaled_weights_x = negate_s8(weights_x);
+
+    const uint32x4_t weighted_tr = vmull_n_u16(scaled_weights_x, top_right);
+    do {
+        uint16x4_t       left_col       = vld1_u16(left_column);
+        const uint32x4_t weighted_left0 = vmlal_lane_u16(weighted_tr, weights_x, left_col, 0);
+        const uint32x4_t weighted_left1 = vmlal_lane_u16(weighted_tr, weights_x, left_col, 1);
+        const uint32x4_t weighted_left2 = vmlal_lane_u16(weighted_tr, weights_x, left_col, 2);
+        const uint32x4_t weighted_left3 = vmlal_lane_u16(weighted_tr, weights_x, left_col, 3);
+
+        vst1_u16(dst + 0 * stride, vrshrn_n_u32(weighted_left0, SMOOTH_WEIGHT_LOG2_SCALE));
+        vst1_u16(dst + 1 * stride, vrshrn_n_u32(weighted_left1, SMOOTH_WEIGHT_LOG2_SCALE));
+        vst1_u16(dst + 2 * stride, vrshrn_n_u32(weighted_left2, SMOOTH_WEIGHT_LOG2_SCALE));
+        vst1_u16(dst + 3 * stride, vrshrn_n_u32(weighted_left3, SMOOTH_WEIGHT_LOG2_SCALE));
+
+        dst += 4 * stride;
+        left_column += 4;
+        height -= 4;
+    } while (height != 0);
+}
+
+static INLINE void highbd_smooth_h_8xh_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *const top_row,
+                                            const uint16_t *const left_column, const int height) {
+    const uint16_t top_right = top_row[7];
+
+    const uint16x8_t weights_x = vld1q_u16(sm_weight_arrays_u16 + 4);
+
+    const uint32x4_t weighted_tr_low  = vmull_n_u16(negate_s8(vget_low_u16(weights_x)), top_right);
+    const uint32x4_t weighted_tr_high = vmull_n_u16(negate_s8(vget_high_u16(weights_x)), top_right);
+
+    for (int y = 0; y < height; ++y) {
+        const uint16_t   left_y            = left_column[y];
+        const uint32x4_t weighted_left_low = vmlal_n_u16(weighted_tr_low, vget_low_u16(weights_x), left_y);
+        vst1_u16(dst, vrshrn_n_u32(weighted_left_low, SMOOTH_WEIGHT_LOG2_SCALE));
+
+        const uint32x4_t weighted_left_high = vmlal_n_u16(weighted_tr_high, vget_high_u16(weights_x), left_y);
+        vst1_u16(dst + 4, vrshrn_n_u32(weighted_left_high, SMOOTH_WEIGHT_LOG2_SCALE));
+        dst += stride;
+    }
+}
+
+#define HIGHBD_SMOOTH_H_NXM(W, H)                                                                 \
+    void svt_aom_highbd_smooth_h_predictor_##W##x##H##_neon(                                      \
+        uint16_t *dst, ptrdiff_t y_stride, const uint16_t *above, const uint16_t *left, int bd) { \
+        (void)bd;                                                                                 \
+        highbd_smooth_h_##W##xh_neon(dst, y_stride, above, left, H);                              \
+    }
+
+HIGHBD_SMOOTH_H_NXM(4, 4)
+HIGHBD_SMOOTH_H_NXM(4, 8)
+HIGHBD_SMOOTH_H_NXM(4, 16)
+HIGHBD_SMOOTH_H_NXM(8, 4)
+HIGHBD_SMOOTH_H_NXM(8, 8)
+HIGHBD_SMOOTH_H_NXM(8, 16)
+HIGHBD_SMOOTH_H_NXM(8, 32)
+
+#undef HIGHBD_SMOOTH_H_NXM
+
+// For width 16 and above.
+#define HIGHBD_SMOOTH_H_PREDICTOR(W)                                                                               \
+    static INLINE void highbd_smooth_h_##W##xh_neon(uint16_t             *dst,                                     \
+                                                    ptrdiff_t             stride,                                  \
+                                                    const uint16_t *const top_row,                                 \
+                                                    const uint16_t *const left_column,                             \
+                                                    const int             height) {                                            \
+        const uint16_t top_right = top_row[(W)-1];                                                                 \
+                                                                                                                   \
+        uint16x4_t weights_x_low[(W) >> 3];                                                                        \
+        uint16x4_t weights_x_high[(W) >> 3];                                                                       \
+        uint32x4_t weighted_tr_low[(W) >> 3];                                                                      \
+        uint32x4_t weighted_tr_high[(W) >> 3];                                                                     \
+        for (int i = 0; i < (W) >> 3; ++i) {                                                                       \
+            const int x         = i << 3;                                                                          \
+            weights_x_low[i]    = vld1_u16(sm_weight_arrays_u16 + (W)-4 + x);                                      \
+            weighted_tr_low[i]  = vmull_n_u16(negate_s8(weights_x_low[i]), top_right);                             \
+            weights_x_high[i]   = vld1_u16(sm_weight_arrays_u16 + (W) + x);                                        \
+            weighted_tr_high[i] = vmull_n_u16(negate_s8(weights_x_high[i]), top_right);                            \
+        }                                                                                                          \
+                                                                                                                   \
+        for (int y = 0; y < height; ++y) {                                                                         \
+            uint16_t      *dst_x  = dst;                                                                           \
+            const uint16_t left_y = left_column[y];                                                                \
+            for (int i = 0; i < (W) >> 3; ++i) {                                                                   \
+                const uint32x4_t weighted_left_low = vmlal_n_u16(weighted_tr_low[i], weights_x_low[i], left_y);    \
+                vst1_u16(dst_x, vrshrn_n_u32(weighted_left_low, SMOOTH_WEIGHT_LOG2_SCALE));                        \
+                                                                                                                   \
+                const uint32x4_t weighted_left_high = vmlal_n_u16(weighted_tr_high[i], weights_x_high[i], left_y); \
+                vst1_u16(dst_x + 4, vrshrn_n_u32(weighted_left_high, SMOOTH_WEIGHT_LOG2_SCALE));                   \
+                dst_x += 8;                                                                                        \
+            }                                                                                                      \
+            dst += stride;                                                                                         \
+        }                                                                                                          \
+    }
+
+HIGHBD_SMOOTH_H_PREDICTOR(16)
+HIGHBD_SMOOTH_H_PREDICTOR(32)
+HIGHBD_SMOOTH_H_PREDICTOR(64)
+
+#undef HIGHBD_SMOOTH_H_PREDICTOR
+
+#define HIGHBD_SMOOTH_H_NXM_WIDE(W, H)                                                            \
+    void svt_aom_highbd_smooth_h_predictor_##W##x##H##_neon(                                      \
+        uint16_t *dst, ptrdiff_t y_stride, const uint16_t *above, const uint16_t *left, int bd) { \
+        (void)bd;                                                                                 \
+        highbd_smooth_h_##W##xh_neon(dst, y_stride, above, left, H);                              \
+    }
+
+HIGHBD_SMOOTH_H_NXM_WIDE(16, 4)
+HIGHBD_SMOOTH_H_NXM_WIDE(16, 8)
+HIGHBD_SMOOTH_H_NXM_WIDE(16, 16)
+HIGHBD_SMOOTH_H_NXM_WIDE(16, 32)
+HIGHBD_SMOOTH_H_NXM_WIDE(16, 64)
+HIGHBD_SMOOTH_H_NXM_WIDE(32, 8)
+HIGHBD_SMOOTH_H_NXM_WIDE(32, 16)
+HIGHBD_SMOOTH_H_NXM_WIDE(32, 32)
+HIGHBD_SMOOTH_H_NXM_WIDE(32, 64)
+HIGHBD_SMOOTH_H_NXM_WIDE(64, 16)
+HIGHBD_SMOOTH_H_NXM_WIDE(64, 32)
+HIGHBD_SMOOTH_H_NXM_WIDE(64, 64)
+
+#undef HIGHBD_SMOOTH_H_NXM_WIDE
