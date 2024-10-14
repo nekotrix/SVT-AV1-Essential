@@ -12,8 +12,9 @@
 #include <arm_neon.h>
 #include <assert.h>
 
-#include "definitions.h"
 #include "common_dsp_rtcd.h"
+#include "definitions.h"
+#include "intra_prediction.h"
 
 void svt_av1_filter_intra_edge_high_neon(uint16_t *p, int sz, int strength) {
     if (!strength)
@@ -165,3 +166,141 @@ void svt_av1_filter_intra_edge_high_neon(uint16_t *p, int sz, int strength) {
         }
     }
 }
+
+#define SMOOTH_WEIGHT_LOG2_SCALE 8
+
+// clang-format off
+const uint16_t sm_weight_arrays_u16[2 * MAX_BLOCK_DIM] = {
+    // bs = 4
+    255, 149,  85,  64,
+    // bs = 8
+    255, 197, 146, 105,  73,  50,  37,  32,
+    // bs = 16
+    255, 225, 196, 170, 145, 123, 102,  84,  68,  54,  43,  33,  26,  20,  17,  16,
+    // bs = 32
+    255, 240, 225, 210, 196, 182, 169, 157, 145, 133, 122, 111, 101,  92,  83,  74,
+     66,  59,  52,  45,  39,  34,  29,  25,  21,  17,  14,  12,  10,   9,   8,   8,
+    // bs = 64
+    255, 248, 240, 233, 225, 218, 210, 203, 196, 189, 182, 176, 169, 163, 156, 150,
+    144, 138, 133, 127, 121, 116, 111, 106, 101,  96,  91,  86,  82,  77,  73,  69,
+     65,  61,  57,  54,  50,  47,  44,  41,  38,  35,  32,  29,  27,  25,  22,  20,
+     18,  16,  15,  13,  12,  10,   9,   8,   7,   6,   6,   5,   5,   4,   4,   4,
+};
+// clang-format on
+
+static INLINE void highbd_smooth_v_4xh_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *const top_row,
+                                            const uint16_t *const left_column, const int height) {
+    const uint16_t        bottom_left = left_column[height - 1];
+    const uint16_t *const weights_y   = sm_weight_arrays_u16 + height - 4;
+
+    const uint16x4_t top_v         = vld1_u16(top_row);
+    const uint16x4_t bottom_left_v = vdup_n_u16(bottom_left);
+
+    for (int y = 0; y < height; ++y) {
+        const uint32x4_t weighted_bl  = vmull_n_u16(bottom_left_v, 256 - weights_y[y]);
+        const uint32x4_t weighted_top = vmlal_n_u16(weighted_bl, top_v, weights_y[y]);
+        vst1_u16(dst, vrshrn_n_u32(weighted_top, SMOOTH_WEIGHT_LOG2_SCALE));
+
+        dst += stride;
+    }
+}
+
+static INLINE void highbd_smooth_v_8xh_neon(uint16_t *dst, const ptrdiff_t stride, const uint16_t *const top_row,
+                                            const uint16_t *const left_column, const int height) {
+    const uint16_t        bottom_left = left_column[height - 1];
+    const uint16_t *const weights_y   = sm_weight_arrays_u16 + height - 4;
+
+    const uint16x4_t top_low       = vld1_u16(top_row);
+    const uint16x4_t top_high      = vld1_u16(top_row + 4);
+    const uint16x4_t bottom_left_v = vdup_n_u16(bottom_left);
+
+    for (int y = 0; y < height; ++y) {
+        const uint32x4_t weighted_bl = vmull_n_u16(bottom_left_v, 256 - weights_y[y]);
+
+        const uint32x4_t weighted_top_low = vmlal_n_u16(weighted_bl, top_low, weights_y[y]);
+        vst1_u16(dst, vrshrn_n_u32(weighted_top_low, SMOOTH_WEIGHT_LOG2_SCALE));
+
+        const uint32x4_t weighted_top_high = vmlal_n_u16(weighted_bl, top_high, weights_y[y]);
+        vst1_u16(dst + 4, vrshrn_n_u32(weighted_top_high, SMOOTH_WEIGHT_LOG2_SCALE));
+        dst += stride;
+    }
+}
+
+#define HIGHBD_SMOOTH_V_NXM(W, H)                                                                 \
+    void svt_aom_highbd_smooth_v_predictor_##W##x##H##_neon(                                      \
+        uint16_t *dst, ptrdiff_t y_stride, const uint16_t *above, const uint16_t *left, int bd) { \
+        (void)bd;                                                                                 \
+        highbd_smooth_v_##W##xh_neon(dst, y_stride, above, left, H);                              \
+    }
+
+HIGHBD_SMOOTH_V_NXM(4, 4)
+HIGHBD_SMOOTH_V_NXM(4, 8)
+HIGHBD_SMOOTH_V_NXM(4, 16)
+HIGHBD_SMOOTH_V_NXM(8, 4)
+HIGHBD_SMOOTH_V_NXM(8, 8)
+HIGHBD_SMOOTH_V_NXM(8, 16)
+HIGHBD_SMOOTH_V_NXM(8, 32)
+
+#undef HIGHBD_SMOOTH_V_NXM
+
+// For width 16 and above.
+#define HIGHBD_SMOOTH_V_PREDICTOR(W)                                                                                   \
+    static INLINE void highbd_smooth_v_##W##xh_neon(uint16_t             *dst,                                         \
+                                                    const ptrdiff_t       stride,                                      \
+                                                    const uint16_t *const top_row,                                     \
+                                                    const uint16_t *const left_column,                                 \
+                                                    const int             height) {                                                \
+        const uint16_t        bottom_left = left_column[height - 1];                                                   \
+        const uint16_t *const weights_y   = sm_weight_arrays_u16 + height - 4;                                         \
+                                                                                                                       \
+        uint16x8_t top_vals[(W) >> 3];                                                                                 \
+        for (int i = 0; i < (W) >> 3; ++i) {                                                                           \
+            const int x = i << 3;                                                                                      \
+            top_vals[i] = vld1q_u16(top_row + x);                                                                      \
+        }                                                                                                              \
+                                                                                                                       \
+        const uint16x4_t bottom_left_v = vdup_n_u16(bottom_left);                                                      \
+        for (int y = 0; y < height; ++y) {                                                                             \
+            const uint32x4_t weighted_bl = vmull_n_u16(bottom_left_v, 256 - weights_y[y]);                             \
+                                                                                                                       \
+            uint16_t *dst_x = dst;                                                                                     \
+            for (int i = 0; i < (W) >> 3; ++i) {                                                                       \
+                const uint32x4_t weighted_top_low = vmlal_n_u16(weighted_bl, vget_low_u16(top_vals[i]), weights_y[y]); \
+                vst1_u16(dst_x, vrshrn_n_u32(weighted_top_low, SMOOTH_WEIGHT_LOG2_SCALE));                             \
+                                                                                                                       \
+                const uint32x4_t weighted_top_high = vmlal_n_u16(                                                      \
+                    weighted_bl, vget_high_u16(top_vals[i]), weights_y[y]);                                            \
+                vst1_u16(dst_x + 4, vrshrn_n_u32(weighted_top_high, SMOOTH_WEIGHT_LOG2_SCALE));                        \
+                dst_x += 8;                                                                                            \
+            }                                                                                                          \
+            dst += stride;                                                                                             \
+        }                                                                                                              \
+    }
+
+HIGHBD_SMOOTH_V_PREDICTOR(16)
+HIGHBD_SMOOTH_V_PREDICTOR(32)
+HIGHBD_SMOOTH_V_PREDICTOR(64)
+
+#undef HIGHBD_SMOOTH_V_PREDICTOR
+
+#define HIGHBD_SMOOTH_V_NXM_WIDE(W, H)                                                            \
+    void svt_aom_highbd_smooth_v_predictor_##W##x##H##_neon(                                      \
+        uint16_t *dst, ptrdiff_t y_stride, const uint16_t *above, const uint16_t *left, int bd) { \
+        (void)bd;                                                                                 \
+        highbd_smooth_v_##W##xh_neon(dst, y_stride, above, left, H);                              \
+    }
+
+HIGHBD_SMOOTH_V_NXM_WIDE(16, 4)
+HIGHBD_SMOOTH_V_NXM_WIDE(16, 8)
+HIGHBD_SMOOTH_V_NXM_WIDE(16, 16)
+HIGHBD_SMOOTH_V_NXM_WIDE(16, 32)
+HIGHBD_SMOOTH_V_NXM_WIDE(16, 64)
+HIGHBD_SMOOTH_V_NXM_WIDE(32, 8)
+HIGHBD_SMOOTH_V_NXM_WIDE(32, 16)
+HIGHBD_SMOOTH_V_NXM_WIDE(32, 32)
+HIGHBD_SMOOTH_V_NXM_WIDE(32, 64)
+HIGHBD_SMOOTH_V_NXM_WIDE(64, 16)
+HIGHBD_SMOOTH_V_NXM_WIDE(64, 32)
+HIGHBD_SMOOTH_V_NXM_WIDE(64, 64)
+
+#undef HIGHBD_SMOOTH_V_NXM_WIDE
