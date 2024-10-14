@@ -1351,25 +1351,25 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
     SET_NEON(svt_aom_lpf_vertical_14, svt_aom_lpf_vertical_14_c, svt_aom_lpf_vertical_14_neon);
 
     // svt_aom_highbd_v_predictor
-    SET_ONLY_C(svt_aom_highbd_v_predictor_4x4, svt_aom_highbd_v_predictor_4x4_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_4x8, svt_aom_highbd_v_predictor_4x8_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_4x16, svt_aom_highbd_v_predictor_4x16_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_8x4, svt_aom_highbd_v_predictor_8x4_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_8x8, svt_aom_highbd_v_predictor_8x8_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_8x16, svt_aom_highbd_v_predictor_8x16_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_8x32, svt_aom_highbd_v_predictor_8x32_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_16x4, svt_aom_highbd_v_predictor_16x4_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_16x8, svt_aom_highbd_v_predictor_16x8_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_16x16, svt_aom_highbd_v_predictor_16x16_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_16x32, svt_aom_highbd_v_predictor_16x32_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_16x64, svt_aom_highbd_v_predictor_16x64_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_32x8, svt_aom_highbd_v_predictor_32x8_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_32x16, svt_aom_highbd_v_predictor_32x16_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_32x32, svt_aom_highbd_v_predictor_32x32_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_32x64, svt_aom_highbd_v_predictor_32x64_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_64x16, svt_aom_highbd_v_predictor_64x16_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_64x32, svt_aom_highbd_v_predictor_64x32_c);
-    SET_ONLY_C(svt_aom_highbd_v_predictor_64x64, svt_aom_highbd_v_predictor_64x64_c);
+    SET_NEON(svt_aom_highbd_v_predictor_4x4, svt_aom_highbd_v_predictor_4x4_c, svt_aom_highbd_v_predictor_4x4_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_4x8, svt_aom_highbd_v_predictor_4x8_c, svt_aom_highbd_v_predictor_4x8_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_4x16, svt_aom_highbd_v_predictor_4x16_c, svt_aom_highbd_v_predictor_4x16_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_8x4, svt_aom_highbd_v_predictor_8x4_c, svt_aom_highbd_v_predictor_8x4_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_8x8, svt_aom_highbd_v_predictor_8x8_c, svt_aom_highbd_v_predictor_8x8_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_8x16, svt_aom_highbd_v_predictor_8x16_c, svt_aom_highbd_v_predictor_8x16_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_8x32, svt_aom_highbd_v_predictor_8x32_c, svt_aom_highbd_v_predictor_8x32_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_16x4, svt_aom_highbd_v_predictor_16x4_c, svt_aom_highbd_v_predictor_16x4_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_16x8, svt_aom_highbd_v_predictor_16x8_c, svt_aom_highbd_v_predictor_16x8_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_16x16, svt_aom_highbd_v_predictor_16x16_c, svt_aom_highbd_v_predictor_16x16_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_16x32, svt_aom_highbd_v_predictor_16x32_c, svt_aom_highbd_v_predictor_16x32_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_16x64, svt_aom_highbd_v_predictor_16x64_c, svt_aom_highbd_v_predictor_16x64_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_32x8, svt_aom_highbd_v_predictor_32x8_c, svt_aom_highbd_v_predictor_32x8_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_32x16, svt_aom_highbd_v_predictor_32x16_c, svt_aom_highbd_v_predictor_32x16_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_32x32, svt_aom_highbd_v_predictor_32x32_c, svt_aom_highbd_v_predictor_32x32_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_32x64, svt_aom_highbd_v_predictor_32x64_c, svt_aom_highbd_v_predictor_32x64_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_64x16, svt_aom_highbd_v_predictor_64x16_c, svt_aom_highbd_v_predictor_64x16_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_64x32, svt_aom_highbd_v_predictor_64x32_c, svt_aom_highbd_v_predictor_64x32_neon);
+    SET_NEON(svt_aom_highbd_v_predictor_64x64, svt_aom_highbd_v_predictor_64x64_c, svt_aom_highbd_v_predictor_64x64_neon);
 
     //aom_highbd_smooth_predictor
     SET_NEON(svt_aom_highbd_smooth_predictor_4x4, svt_aom_highbd_smooth_predictor_4x4_c, svt_aom_highbd_smooth_predictor_4x4_neon);

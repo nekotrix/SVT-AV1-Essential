@@ -593,3 +593,128 @@ HIGHBD_SMOOTH_NXM_WIDE(64, 32)
 HIGHBD_SMOOTH_NXM_WIDE(64, 64)
 
 #undef HIGHBD_SMOOTH_NXM_WIDE
+
+// -----------------------------------------------------------------------------
+// V_PRED
+
+static INLINE uint16x8x2_t load_uint16x8x2(uint16_t const *ptr) {
+    uint16x8x2_t x;
+    // Clang/gcc uses ldp here.
+    x.val[0] = vld1q_u16(ptr);
+    x.val[1] = vld1q_u16(ptr + 8);
+    return x;
+}
+
+static INLINE void store_uint16x8x2(uint16_t *ptr, uint16x8x2_t x) {
+    vst1q_u16(ptr, x.val[0]);
+    vst1q_u16(ptr + 8, x.val[1]);
+}
+
+static INLINE void vertical4xh_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *const above, int height) {
+    const uint16x4_t row = vld1_u16(above);
+    int              y   = height;
+    do {
+        vst1_u16(dst, row);
+        vst1_u16(dst + stride, row);
+        dst += stride << 1;
+        y -= 2;
+    } while (y != 0);
+}
+
+static INLINE void vertical8xh_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *const above, int height) {
+    const uint16x8_t row = vld1q_u16(above);
+    int              y   = height;
+    do {
+        vst1q_u16(dst, row);
+        vst1q_u16(dst + stride, row);
+        dst += stride << 1;
+        y -= 2;
+    } while (y != 0);
+}
+
+static INLINE void vertical16xh_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *const above, int height) {
+    const uint16x8x2_t row = load_uint16x8x2(above);
+    int                y   = height;
+    do {
+        store_uint16x8x2(dst, row);
+        store_uint16x8x2(dst + stride, row);
+        dst += stride << 1;
+        y -= 2;
+    } while (y != 0);
+}
+
+static INLINE uint16x8x4_t load_uint16x8x4(uint16_t const *ptr) {
+    uint16x8x4_t x;
+    // Clang/gcc uses ldp here.
+    x.val[0] = vld1q_u16(ptr);
+    x.val[1] = vld1q_u16(ptr + 8);
+    x.val[2] = vld1q_u16(ptr + 16);
+    x.val[3] = vld1q_u16(ptr + 24);
+    return x;
+}
+
+static INLINE void store_uint16x8x4(uint16_t *ptr, uint16x8x4_t x) {
+    vst1q_u16(ptr, x.val[0]);
+    vst1q_u16(ptr + 8, x.val[1]);
+    vst1q_u16(ptr + 16, x.val[2]);
+    vst1q_u16(ptr + 24, x.val[3]);
+}
+
+static INLINE void vertical32xh_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *const above, int height) {
+    const uint16x8x4_t row = load_uint16x8x4(above);
+    int                y   = height;
+    do {
+        store_uint16x8x4(dst, row);
+        store_uint16x8x4(dst + stride, row);
+        dst += stride << 1;
+        y -= 2;
+    } while (y != 0);
+}
+
+static INLINE void vertical64xh_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *const above, int height) {
+    uint16_t          *dst32 = dst + 32;
+    const uint16x8x4_t row   = load_uint16x8x4(above);
+    const uint16x8x4_t row32 = load_uint16x8x4(above + 32);
+    int                y     = height;
+    do {
+        store_uint16x8x4(dst, row);
+        store_uint16x8x4(dst32, row32);
+        store_uint16x8x4(dst + stride, row);
+        store_uint16x8x4(dst32 + stride, row32);
+        dst += stride << 1;
+        dst32 += stride << 1;
+        y -= 2;
+    } while (y != 0);
+}
+
+#define HIGHBD_V_NXM(W, H)                                                                      \
+    void svt_aom_highbd_v_predictor_##W##x##H##_neon(                                           \
+        uint16_t *dst, ptrdiff_t stride, const uint16_t *above, const uint16_t *left, int bd) { \
+        (void)left;                                                                             \
+        (void)bd;                                                                               \
+        vertical##W##xh_neon(dst, stride, above, H);                                            \
+    }
+
+HIGHBD_V_NXM(4, 4)
+HIGHBD_V_NXM(4, 8)
+HIGHBD_V_NXM(4, 16)
+
+HIGHBD_V_NXM(8, 4)
+HIGHBD_V_NXM(8, 8)
+HIGHBD_V_NXM(8, 16)
+HIGHBD_V_NXM(8, 32)
+
+HIGHBD_V_NXM(16, 4)
+HIGHBD_V_NXM(16, 8)
+HIGHBD_V_NXM(16, 16)
+HIGHBD_V_NXM(16, 32)
+HIGHBD_V_NXM(16, 64)
+
+HIGHBD_V_NXM(32, 8)
+HIGHBD_V_NXM(32, 16)
+HIGHBD_V_NXM(32, 32)
+HIGHBD_V_NXM(32, 64)
+
+HIGHBD_V_NXM(64, 16)
+HIGHBD_V_NXM(64, 32)
+HIGHBD_V_NXM(64, 64)
