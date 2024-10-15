@@ -1223,3 +1223,60 @@ HIGHBD_DC_PREDICTOR_RECT(64, 32, q, 5, HIGHBD_DC_MULTIPLIER_1X2)
 #undef HIGHBD_DC_PREDICTOR_RECT
 #undef HIGHBD_DC_MULTIPLIER_1X2
 #undef HIGHBD_DC_MULTIPLIER_1X4
+
+// -----------------------------------------------------------------------------
+// DC_LEFT
+
+static INLINE uint32x4_t highbd_dc_load_sum_4(const uint16_t *left) {
+    const uint16x4_t a = vld1_u16(left); // up to 10 bits
+    const uint16x4_t b = vpadd_u16(a, a); // up to 11 bits
+    return vcombine_u32(vpaddl_u16(b), vdup_n_u32(0));
+}
+
+static INLINE uint32x4_t highbd_dc_load_sum_8(const uint16_t *left) {
+    return horizontal_add_and_broadcast_long_u16x8(vld1q_u16(left));
+}
+
+static INLINE uint32x4_t highbd_dc_load_sum_16(const uint16_t *left) {
+    return horizontal_add_and_broadcast_long_u16x8(highbd_dc_load_partial_sum_16(left));
+}
+
+static INLINE uint32x4_t highbd_dc_load_sum_32(const uint16_t *left) {
+    return horizontal_add_and_broadcast_long_u16x8(highbd_dc_load_partial_sum_32(left));
+}
+
+static INLINE uint32x4_t highbd_dc_load_sum_64(const uint16_t *left) {
+    return horizontal_add_and_broadcast_long_u16x8(highbd_dc_load_partial_sum_64(left));
+}
+
+#define DC_PREDICTOR_LEFT(w, h, shift, q)                                                       \
+    void svt_aom_highbd_dc_left_predictor_##w##x##h##_neon(                                     \
+        uint16_t *dst, ptrdiff_t stride, const uint16_t *above, const uint16_t *left, int bd) { \
+        (void)above;                                                                            \
+        (void)bd;                                                                               \
+        const uint32x4_t sum = highbd_dc_load_sum_##h(left);                                    \
+        const uint16x4_t dc0 = vrshrn_n_u32(sum, (shift));                                      \
+        highbd_dc_store_##w##xh(dst, stride, (h), vdup##q##_lane_u16(dc0, 0));                  \
+    }
+
+DC_PREDICTOR_LEFT(4, 4, 2, )
+DC_PREDICTOR_LEFT(4, 8, 3, )
+DC_PREDICTOR_LEFT(4, 16, 4, )
+DC_PREDICTOR_LEFT(8, 4, 2, q)
+DC_PREDICTOR_LEFT(8, 8, 3, q)
+DC_PREDICTOR_LEFT(8, 16, 4, q)
+DC_PREDICTOR_LEFT(8, 32, 5, q)
+DC_PREDICTOR_LEFT(16, 4, 2, q)
+DC_PREDICTOR_LEFT(16, 8, 3, q)
+DC_PREDICTOR_LEFT(16, 16, 4, q)
+DC_PREDICTOR_LEFT(16, 32, 5, q)
+DC_PREDICTOR_LEFT(16, 64, 6, q)
+DC_PREDICTOR_LEFT(32, 8, 3, q)
+DC_PREDICTOR_LEFT(32, 16, 4, q)
+DC_PREDICTOR_LEFT(32, 32, 5, q)
+DC_PREDICTOR_LEFT(32, 64, 6, q)
+DC_PREDICTOR_LEFT(64, 16, 4, q)
+DC_PREDICTOR_LEFT(64, 32, 5, q)
+DC_PREDICTOR_LEFT(64, 64, 6, q)
+
+#undef DC_PREDICTOR_LEFT

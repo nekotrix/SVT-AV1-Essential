@@ -379,7 +379,16 @@ const HBD_PARAMS HighbdIntraPredTestVectorAsmNEON[] = {
     hbd_entry(dc, 16, 64, neon),       hbd_entry(dc, 32, 8, neon),
     hbd_entry(dc, 32, 16, neon),       hbd_entry(dc, 32, 32, neon),
     hbd_entry(dc, 32, 64, neon),       hbd_entry(dc, 64, 16, neon),
-    hbd_entry(dc, 64, 32, neon),       hbd_entry(dc, 64, 64, neon)};
+    hbd_entry(dc, 64, 32, neon),       hbd_entry(dc, 64, 64, neon),
+    hbd_entry(dc_left, 4, 8, neon),    hbd_entry(dc_left, 4, 16, neon),
+    hbd_entry(dc_left, 8, 4, neon),    hbd_entry(dc_left, 8, 8, neon),
+    hbd_entry(dc_left, 8, 16, neon),   hbd_entry(dc_left, 8, 32, neon),
+    hbd_entry(dc_left, 16, 4, neon),   hbd_entry(dc_left, 16, 8, neon),
+    hbd_entry(dc_left, 16, 16, neon),  hbd_entry(dc_left, 16, 32, neon),
+    hbd_entry(dc_left, 16, 64, neon),  hbd_entry(dc_left, 32, 8, neon),
+    hbd_entry(dc_left, 32, 16, neon),  hbd_entry(dc_left, 32, 32, neon),
+    hbd_entry(dc_left, 32, 64, neon),  hbd_entry(dc_left, 64, 16, neon),
+    hbd_entry(dc_left, 64, 32, neon),  hbd_entry(dc_left, 64, 64, neon)};
 
 INSTANTIATE_TEST_SUITE_P(NEON, HighbdIntraPredTest,
                          ::testing::ValuesIn(HighbdIntraPredTestVectorAsmNEON));
