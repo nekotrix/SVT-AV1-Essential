@@ -1280,3 +1280,38 @@ DC_PREDICTOR_LEFT(64, 32, 5, q)
 DC_PREDICTOR_LEFT(64, 64, 6, q)
 
 #undef DC_PREDICTOR_LEFT
+
+// -----------------------------------------------------------------------------
+// DC_TOP
+
+#define DC_PREDICTOR_TOP(w, h, shift, q)                                                        \
+    void svt_aom_highbd_dc_top_predictor_##w##x##h##_neon(                                      \
+        uint16_t *dst, ptrdiff_t stride, const uint16_t *above, const uint16_t *left, int bd) { \
+        (void)bd;                                                                               \
+        (void)left;                                                                             \
+        const uint32x4_t sum = highbd_dc_load_sum_##w(above);                                   \
+        const uint16x4_t dc0 = vrshrn_n_u32(sum, (shift));                                      \
+        highbd_dc_store_##w##xh(dst, stride, (h), vdup##q##_lane_u16(dc0, 0));                  \
+    }
+
+DC_PREDICTOR_TOP(4, 4, 2, )
+DC_PREDICTOR_TOP(4, 8, 2, )
+DC_PREDICTOR_TOP(4, 16, 2, )
+DC_PREDICTOR_TOP(8, 4, 3, q)
+DC_PREDICTOR_TOP(8, 8, 3, q)
+DC_PREDICTOR_TOP(8, 16, 3, q)
+DC_PREDICTOR_TOP(8, 32, 3, q)
+DC_PREDICTOR_TOP(16, 4, 4, q)
+DC_PREDICTOR_TOP(16, 8, 4, q)
+DC_PREDICTOR_TOP(16, 16, 4, q)
+DC_PREDICTOR_TOP(16, 32, 4, q)
+DC_PREDICTOR_TOP(16, 64, 4, q)
+DC_PREDICTOR_TOP(32, 8, 5, q)
+DC_PREDICTOR_TOP(32, 16, 5, q)
+DC_PREDICTOR_TOP(32, 32, 5, q)
+DC_PREDICTOR_TOP(32, 64, 5, q)
+DC_PREDICTOR_TOP(64, 16, 6, q)
+DC_PREDICTOR_TOP(64, 32, 6, q)
+DC_PREDICTOR_TOP(64, 64, 6, q)
+
+#undef DC_PREDICTOR_TOP
