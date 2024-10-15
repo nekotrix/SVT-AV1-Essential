@@ -352,7 +352,16 @@ const HBD_PARAMS HighbdIntraPredTestVectorAsmNEON[] = {
     hbd_entry(v, 16, 64, neon),        hbd_entry(v, 32, 8, neon),
     hbd_entry(v, 32, 16, neon),        hbd_entry(v, 32, 32, neon),
     hbd_entry(v, 32, 64, neon),        hbd_entry(v, 64, 16, neon),
-    hbd_entry(v, 64, 32, neon),        hbd_entry(v, 64, 64, neon)};
+    hbd_entry(v, 64, 32, neon),        hbd_entry(v, 64, 64, neon),
+    hbd_entry(h, 4, 8, neon),          hbd_entry(h, 4, 16, neon),
+    hbd_entry(h, 8, 4, neon),          hbd_entry(h, 8, 8, neon),
+    hbd_entry(h, 8, 16, neon),         hbd_entry(h, 8, 32, neon),
+    hbd_entry(h, 16, 4, neon),         hbd_entry(h, 16, 8, neon),
+    hbd_entry(h, 16, 16, neon),        hbd_entry(h, 16, 32, neon),
+    hbd_entry(h, 16, 64, neon),        hbd_entry(h, 32, 8, neon),
+    hbd_entry(h, 32, 16, neon),        hbd_entry(h, 32, 32, neon),
+    hbd_entry(h, 32, 64, neon),        hbd_entry(h, 64, 16, neon),
+    hbd_entry(h, 64, 32, neon),        hbd_entry(h, 64, 64, neon)};
 
 INSTANTIATE_TEST_SUITE_P(NEON, HighbdIntraPredTest,
                          ::testing::ValuesIn(HighbdIntraPredTestVectorAsmNEON));
