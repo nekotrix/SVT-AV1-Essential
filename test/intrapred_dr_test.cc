@@ -555,7 +555,6 @@ class HighbdZ3PredTest : public DrPredTest<uint16_t, Z3_HBD>,
                   bd_);
     }
 };
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(HighbdZ3PredTest);
 
 TEST_P(HighbdZ3PredTest, MatchTest) {
     RunAllTest();
@@ -566,4 +565,10 @@ INSTANTIATE_TEST_SUITE_P(
     AVX2, HighbdZ3PredTest,
     ::testing::Values(svt_av1_highbd_dr_prediction_z3_avx2));
 #endif  // ARCH_X86_64
+
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, HighbdZ3PredTest,
+    ::testing::Values(svt_av1_highbd_dr_prediction_z3_neon));
+#endif  // ARCH_AARCH64
 }  // namespace

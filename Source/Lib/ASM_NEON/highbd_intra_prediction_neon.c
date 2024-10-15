@@ -17,6 +17,7 @@
 #include "definitions.h"
 #include "intra_prediction.h"
 #include "mem_neon.h"
+#include "transpose_neon.h"
 
 void svt_av1_filter_intra_edge_high_neon(uint16_t *p, int sz, int strength) {
     if (!strength)
@@ -2348,3 +2349,271 @@ void svt_av1_highbd_dr_prediction_z2_neon(uint16_t *dst, ptrdiff_t stride, int b
     assert(f != NULL);
     f(dst, stride, above, left, upsample_above, upsample_left, dx, dy, bd);
 }
+
+// -----------------------------------------------------------------------------
+// Z3
+
+// Both the lane to the use and the shift amount must be immediates.
+#define HIGHBD_DR_PREDICTOR_Z3_STEP_X4(out, iota, base, in0, in1, s0, s1, lane, shift)                     \
+    do {                                                                                                   \
+        uint32x4_t val       = vmull_lane_u16((in0), (s0), (lane));                                        \
+        val                  = vmlal_lane_u16(val, (in1), (s1), (lane));                                   \
+        const uint16x4_t cmp = vadd_u16((iota), vdup_n_u16(base));                                         \
+        const uint16x4_t res = vrshrn_n_u32(val, (shift));                                                 \
+        *(out)               = vbsl_u16(vclt_u16(cmp, vdup_n_u16(max_base_y)), res, vdup_n_u16(left_max)); \
+    } while (0)
+
+#define HIGHBD_DR_PREDICTOR_Z3_STEP_X8(out, iota, base, in0, in1, s0, s1, lane, shift)                  \
+    do {                                                                                                \
+        uint32x4_t val_lo = vmull_lane_u16(vget_low_u16(in0), (s0), (lane));                            \
+        val_lo            = vmlal_lane_u16(val_lo, vget_low_u16(in1), (s1), (lane));                    \
+        uint32x4_t val_hi = vmull_lane_u16(vget_high_u16(in0), (s0), (lane));                           \
+        val_hi            = vmlal_lane_u16(val_hi, vget_high_u16(in1), (s1), (lane));                   \
+        *(out)            = vcombine_u16(vrshrn_n_u32(val_lo, (shift)), vrshrn_n_u32(val_hi, (shift))); \
+    } while (0)
+
+static inline uint16x8x2_t z3_load_left_neon(const uint16_t *left0, int ofs, int max_ofs) {
+    uint16x8_t r0;
+    uint16x8_t r1;
+    if (ofs + 7 >= max_ofs) {
+        int shuffle_idx = max_ofs - ofs;
+        r0              = zn_load_masked_neon(left0 + (max_ofs - 7), shuffle_idx);
+    } else {
+        r0 = vld1q_u16(left0 + ofs);
+    }
+    if (ofs + 8 >= max_ofs) {
+        int shuffle_idx = max_ofs - ofs - 1;
+        r1              = zn_load_masked_neon(left0 + (max_ofs - 7), shuffle_idx);
+    } else {
+        r1 = vld1q_u16(left0 + ofs + 1);
+    }
+    return (uint16x8x2_t){{r0, r1}};
+}
+
+static void highbd_dr_prediction_z3_upsample0_neon(uint16_t *dst, ptrdiff_t stride, int bw, int bh,
+                                                   const uint16_t *left, int dy) {
+    assert(bw % 4 == 0);
+    assert(bh % 4 == 0);
+    assert(dy > 0);
+
+    // Factor out left + 1 to give the compiler a better chance of recognising
+    // that the offsets used for the loads from left and left + 1 are otherwise
+    // identical.
+    const uint16_t *left1 = left + 1;
+
+    const int max_base_y = (bw + bh - 1);
+    const int left_max   = left[max_base_y];
+    const int frac_bits  = 6;
+
+    const uint16x8_t iota1x8 = vreinterpretq_u16_s16(vld1q_s16(iota1_s16));
+    const uint16x4_t iota1x4 = vget_low_u16(iota1x8);
+
+    // The C implementation of the z3 predictor when not upsampling uses:
+    // ((y & 0x3f) >> 1)
+    // The right shift is unnecessary here since we instead shift by +1 later,
+    // so adjust the mask to 0x3e to ensure we don't consider the extra bit.
+    const uint16x4_t shift_mask = vdup_n_u16(0x3e);
+
+    if (bh == 4) {
+        int y = dy;
+        int c = 0;
+        do {
+            // Fully unroll the 4x4 block to allow us to use immediate lane-indexed
+            // multiply instructions.
+            const uint16x4_t shifts1 = vand_u16(vmla_n_u16(vdup_n_u16(y), iota1x4, dy), shift_mask);
+            const uint16x4_t shifts0 = vsub_u16(vdup_n_u16(64), shifts1);
+            const int        base0   = (y + 0 * dy) >> frac_bits;
+            const int        base1   = (y + 1 * dy) >> frac_bits;
+            const int        base2   = (y + 2 * dy) >> frac_bits;
+            const int        base3   = (y + 3 * dy) >> frac_bits;
+            uint16x4_t       out[4];
+            if (base0 >= max_base_y) {
+                out[0] = vdup_n_u16(left_max);
+            } else {
+                const uint16x4_t l00 = vld1_u16(left + base0);
+                const uint16x4_t l01 = vld1_u16(left1 + base0);
+                HIGHBD_DR_PREDICTOR_Z3_STEP_X4(&out[0], iota1x4, base0, l00, l01, shifts0, shifts1, 0, 6);
+            }
+            if (base1 >= max_base_y) {
+                out[1] = vdup_n_u16(left_max);
+            } else {
+                const uint16x4_t l10 = vld1_u16(left + base1);
+                const uint16x4_t l11 = vld1_u16(left1 + base1);
+                HIGHBD_DR_PREDICTOR_Z3_STEP_X4(&out[1], iota1x4, base1, l10, l11, shifts0, shifts1, 1, 6);
+            }
+            if (base2 >= max_base_y) {
+                out[2] = vdup_n_u16(left_max);
+            } else {
+                const uint16x4_t l20 = vld1_u16(left + base2);
+                const uint16x4_t l21 = vld1_u16(left1 + base2);
+                HIGHBD_DR_PREDICTOR_Z3_STEP_X4(&out[2], iota1x4, base2, l20, l21, shifts0, shifts1, 2, 6);
+            }
+            if (base3 >= max_base_y) {
+                out[3] = vdup_n_u16(left_max);
+            } else {
+                const uint16x4_t l30 = vld1_u16(left + base3);
+                const uint16x4_t l31 = vld1_u16(left1 + base3);
+                HIGHBD_DR_PREDICTOR_Z3_STEP_X4(&out[3], iota1x4, base3, l30, l31, shifts0, shifts1, 3, 6);
+            }
+            transpose_array_inplace_u16_4x4(out);
+            for (int r2 = 0; r2 < 4; ++r2) { vst1_u16(dst + r2 * stride + c, out[r2]); }
+            y += 4 * dy;
+            c += 4;
+        } while (c < bw);
+    } else {
+        int y = dy;
+        int c = 0;
+        do {
+            int r = 0;
+            do {
+                // Fully unroll the 4x4 block to allow us to use immediate lane-indexed
+                // multiply instructions.
+                const uint16x4_t shifts1 = vand_u16(vmla_n_u16(vdup_n_u16(y), iota1x4, dy), shift_mask);
+                const uint16x4_t shifts0 = vsub_u16(vdup_n_u16(64), shifts1);
+                const int        base0   = ((y + 0 * dy) >> frac_bits) + r;
+                const int        base1   = ((y + 1 * dy) >> frac_bits) + r;
+                const int        base2   = ((y + 2 * dy) >> frac_bits) + r;
+                const int        base3   = ((y + 3 * dy) >> frac_bits) + r;
+                uint16x8_t       out[4];
+                if (base0 >= max_base_y) {
+                    out[0] = vdupq_n_u16(left_max);
+                } else {
+                    const uint16x8x2_t l0 = z3_load_left_neon(left, base0, max_base_y);
+                    HIGHBD_DR_PREDICTOR_Z3_STEP_X8(
+                        &out[0], iota1x8, base0, l0.val[0], l0.val[1], shifts0, shifts1, 0, 6);
+                }
+                if (base1 >= max_base_y) {
+                    out[1] = vdupq_n_u16(left_max);
+                } else {
+                    const uint16x8x2_t l1 = z3_load_left_neon(left, base1, max_base_y);
+                    HIGHBD_DR_PREDICTOR_Z3_STEP_X8(
+                        &out[1], iota1x8, base1, l1.val[0], l1.val[1], shifts0, shifts1, 1, 6);
+                }
+                if (base2 >= max_base_y) {
+                    out[2] = vdupq_n_u16(left_max);
+                } else {
+                    const uint16x8x2_t l2 = z3_load_left_neon(left, base2, max_base_y);
+                    HIGHBD_DR_PREDICTOR_Z3_STEP_X8(
+                        &out[2], iota1x8, base2, l2.val[0], l2.val[1], shifts0, shifts1, 2, 6);
+                }
+                if (base3 >= max_base_y) {
+                    out[3] = vdupq_n_u16(left_max);
+                } else {
+                    const uint16x8x2_t l3 = z3_load_left_neon(left, base3, max_base_y);
+                    HIGHBD_DR_PREDICTOR_Z3_STEP_X8(
+                        &out[3], iota1x8, base3, l3.val[0], l3.val[1], shifts0, shifts1, 3, 6);
+                }
+                transpose_array_inplace_u16_4x8(out);
+                for (int r2 = 0; r2 < 4; ++r2) { vst1_u16(dst + (r + r2) * stride + c, vget_low_u16(out[r2])); }
+                for (int r2 = 0; r2 < 4; ++r2) { vst1_u16(dst + (r + r2 + 4) * stride + c, vget_high_u16(out[r2])); }
+                r += 8;
+            } while (r < bh);
+            y += 4 * dy;
+            c += 4;
+        } while (c < bw);
+    }
+}
+
+static void highbd_dr_prediction_z3_upsample1_neon(uint16_t *dst, ptrdiff_t stride, int bw, int bh,
+                                                   const uint16_t *left, int dy) {
+    assert(bw % 4 == 0);
+    assert(bh % 4 == 0);
+    assert(dy > 0);
+
+    const int max_base_y = (bw + bh - 1) << 1;
+    const int left_max   = left[max_base_y];
+    const int frac_bits  = 5;
+
+    const uint16x4_t iota1x4 = vreinterpret_u16_s16(vld1_s16(iota1_s16));
+    const uint16x8_t iota2x8 = vreinterpretq_u16_s16(vld1q_s16(iota2_s16));
+    const uint16x4_t iota2x4 = vget_low_u16(iota2x8);
+
+    // The C implementation of the z3 predictor when upsampling uses:
+    // (((x << 1) & 0x3f) >> 1)
+    // The two shifts are unnecessary here since the lowest bit is guaranteed to
+    // be zero when the mask is applied, so adjust the mask to 0x1f to avoid
+    // needing the shifts at all.
+    const uint16x4_t shift_mask = vdup_n_u16(0x1F);
+
+    if (bh == 4) {
+        int y = dy;
+        int c = 0;
+        do {
+            // Fully unroll the 4x4 block to allow us to use immediate lane-indexed
+            // multiply instructions.
+            const uint16x4_t   shifts1 = vand_u16(vmla_n_u16(vdup_n_u16(y), iota1x4, dy), shift_mask);
+            const uint16x4_t   shifts0 = vsub_u16(vdup_n_u16(32), shifts1);
+            const int          base0   = (y + 0 * dy) >> frac_bits;
+            const int          base1   = (y + 1 * dy) >> frac_bits;
+            const int          base2   = (y + 2 * dy) >> frac_bits;
+            const int          base3   = (y + 3 * dy) >> frac_bits;
+            const uint16x4x2_t l0      = vld2_u16(left + base0);
+            const uint16x4x2_t l1      = vld2_u16(left + base1);
+            const uint16x4x2_t l2      = vld2_u16(left + base2);
+            const uint16x4x2_t l3      = vld2_u16(left + base3);
+            uint16x4_t         out[4];
+            HIGHBD_DR_PREDICTOR_Z3_STEP_X4(&out[0], iota2x4, base0, l0.val[0], l0.val[1], shifts0, shifts1, 0, 5);
+            HIGHBD_DR_PREDICTOR_Z3_STEP_X4(&out[1], iota2x4, base1, l1.val[0], l1.val[1], shifts0, shifts1, 1, 5);
+            HIGHBD_DR_PREDICTOR_Z3_STEP_X4(&out[2], iota2x4, base2, l2.val[0], l2.val[1], shifts0, shifts1, 2, 5);
+            HIGHBD_DR_PREDICTOR_Z3_STEP_X4(&out[3], iota2x4, base3, l3.val[0], l3.val[1], shifts0, shifts1, 3, 5);
+            transpose_array_inplace_u16_4x4(out);
+            for (int r2 = 0; r2 < 4; ++r2) { vst1_u16(dst + r2 * stride + c, out[r2]); }
+            y += 4 * dy;
+            c += 4;
+        } while (c < bw);
+    } else {
+        assert(bh % 8 == 0);
+
+        int y = dy;
+        int c = 0;
+        do {
+            int r = 0;
+            do {
+                // Fully unroll the 4x8 block to allow us to use immediate lane-indexed
+                // multiply instructions.
+                const uint16x4_t   shifts1 = vand_u16(vmla_n_u16(vdup_n_u16(y), iota1x4, dy), shift_mask);
+                const uint16x4_t   shifts0 = vsub_u16(vdup_n_u16(32), shifts1);
+                const int          base0   = ((y + 0 * dy) >> frac_bits) + (r * 2);
+                const int          base1   = ((y + 1 * dy) >> frac_bits) + (r * 2);
+                const int          base2   = ((y + 2 * dy) >> frac_bits) + (r * 2);
+                const int          base3   = ((y + 3 * dy) >> frac_bits) + (r * 2);
+                const uint16x8x2_t l0      = vld2q_u16(left + base0);
+                const uint16x8x2_t l1      = vld2q_u16(left + base1);
+                const uint16x8x2_t l2      = vld2q_u16(left + base2);
+                const uint16x8x2_t l3      = vld2q_u16(left + base3);
+                uint16x8_t         out[4];
+                HIGHBD_DR_PREDICTOR_Z3_STEP_X8(&out[0], iota2x8, base0, l0.val[0], l0.val[1], shifts0, shifts1, 0, 5);
+                HIGHBD_DR_PREDICTOR_Z3_STEP_X8(&out[1], iota2x8, base1, l1.val[0], l1.val[1], shifts0, shifts1, 1, 5);
+                HIGHBD_DR_PREDICTOR_Z3_STEP_X8(&out[2], iota2x8, base2, l2.val[0], l2.val[1], shifts0, shifts1, 2, 5);
+                HIGHBD_DR_PREDICTOR_Z3_STEP_X8(&out[3], iota2x8, base3, l3.val[0], l3.val[1], shifts0, shifts1, 3, 5);
+                transpose_array_inplace_u16_4x8(out);
+                for (int r2 = 0; r2 < 4; ++r2) { vst1_u16(dst + (r + r2) * stride + c, vget_low_u16(out[r2])); }
+                for (int r2 = 0; r2 < 4; ++r2) { vst1_u16(dst + (r + r2 + 4) * stride + c, vget_high_u16(out[r2])); }
+                r += 8;
+            } while (r < bh);
+            y += 4 * dy;
+            c += 4;
+        } while (c < bw);
+    }
+}
+
+// Directional prediction, zone 3: 180 < angle < 270
+void svt_av1_highbd_dr_prediction_z3_neon(uint16_t *dst, ptrdiff_t stride, int bw, int bh, const uint16_t *above,
+                                          const uint16_t *left, int upsample_left, int dx, int dy, int bd) {
+    (void)above;
+    (void)dx;
+    (void)bd;
+    assert(bw % 4 == 0);
+    assert(bh % 4 == 0);
+    assert(dx == 1);
+    assert(dy > 0);
+
+    if (upsample_left) {
+        highbd_dr_prediction_z3_upsample1_neon(dst, stride, bw, bh, left, dy);
+    } else {
+        highbd_dr_prediction_z3_upsample0_neon(dst, stride, bw, bh, left, dy);
+    }
+}
+
+#undef HIGHBD_DR_PREDICTOR_Z3_STEP_X4
+#undef HIGHBD_DR_PREDICTOR_Z3_STEP_X8
