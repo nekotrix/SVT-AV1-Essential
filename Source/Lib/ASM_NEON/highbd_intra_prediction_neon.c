@@ -12,9 +12,11 @@
 #include <arm_neon.h>
 #include <assert.h>
 
+#include "bitstream_unit.h"
 #include "common_dsp_rtcd.h"
 #include "definitions.h"
 #include "intra_prediction.h"
+#include "mem_neon.h"
 
 void svt_av1_filter_intra_edge_high_neon(uint16_t *p, int sz, int strength) {
     if (!strength)
@@ -1523,4 +1525,826 @@ void svt_av1_highbd_dr_prediction_z1_neon(uint16_t *dst, ptrdiff_t stride, int b
     } else {
         highbd_dr_prediction_z1_upsample0_neon(dst, stride, bw, bh, above, dx);
     }
+}
+
+// -----------------------------------------------------------------------------
+// Z2
+
+// Incrementally shift more elements from `above` into the result, merging with
+// existing `left` elements.
+// X0, X1, X2, X3
+// Y0, X0, X1, X2
+// Y0, Y1, X0, X1
+// Y0, Y1, Y2, X0
+// Y0, Y1, Y2, Y3
+// clang-format off
+static const uint8_t z2_merge_shuffles_u16x4[5][8] = {
+  {  8,  9, 10, 11, 12, 13, 14, 15 },
+  {  0,  1,  8,  9, 10, 11, 12, 13 },
+  {  0,  1,  2,  3,  8,  9, 10, 11 },
+  {  0,  1,  2,  3,  4,  5,  8,  9 },
+  {  0,  1,  2,  3,  4,  5,  6,  7 },
+};
+// clang-format on
+
+// Incrementally shift more elements from `above` into the result, merging with
+// existing `left` elements.
+// X0, X1, X2, X3, X4, X5, X6, X7
+// Y0, X0, X1, X2, X3, X4, X5, X6
+// Y0, Y1, X0, X1, X2, X3, X4, X5
+// Y0, Y1, Y2, X0, X1, X2, X3, X4
+// Y0, Y1, Y2, Y3, X0, X1, X2, X3
+// Y0, Y1, Y2, Y3, Y4, X0, X1, X2
+// Y0, Y1, Y2, Y3, Y4, Y5, X0, X1
+// Y0, Y1, Y2, Y3, Y4, Y5, Y6, X0
+// Y0, Y1, Y2, Y3, Y4, Y5, Y6, Y7
+// clang-format off
+static const uint8_t z2_merge_shuffles_u16x8[9][16] = {
+  { 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 },
+  {  0,  1, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29 },
+  {  0,  1,  2,  3, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27 },
+  {  0,  1,  2,  3,  4,  5, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 },
+  {  0,  1,  2,  3,  4,  5,  6,  7, 16, 17, 18, 19, 20, 21, 22, 23 },
+  {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 16, 17, 18, 19, 20, 21 },
+  {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 16, 17, 18, 19 },
+  {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 16, 17 },
+  {  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 },
+};
+// clang-format on
+
+// clang-format off
+static const uint16_t z2_y_iter_masks_u16x4[5][4] = {
+  {      0U,      0U,      0U,      0U },
+  { 0xffffU,      0U,      0U,      0U },
+  { 0xffffU, 0xffffU,      0U,      0U },
+  { 0xffffU, 0xffffU, 0xffffU,      0U },
+  { 0xffffU, 0xffffU, 0xffffU, 0xffffU },
+};
+// clang-format on
+
+// clang-format off
+static const uint16_t z2_y_iter_masks_u16x8[9][8] = {
+  {      0U,      0U,      0U,      0U,      0U,      0U,      0U,      0U },
+  { 0xffffU,      0U,      0U,      0U,      0U,      0U,      0U,      0U },
+  { 0xffffU, 0xffffU,      0U,      0U,      0U,      0U,      0U,      0U },
+  { 0xffffU, 0xffffU, 0xffffU,      0U,      0U,      0U,      0U,      0U },
+  { 0xffffU, 0xffffU, 0xffffU, 0xffffU,      0U,      0U,      0U,      0U },
+  { 0xffffU, 0xffffU, 0xffffU, 0xffffU, 0xffffU,      0U,      0U,      0U },
+  { 0xffffU, 0xffffU, 0xffffU, 0xffffU, 0xffffU, 0xffffU,      0U,      0U },
+  { 0xffffU, 0xffffU, 0xffffU, 0xffffU, 0xffffU, 0xffffU, 0xffffU,      0U },
+  { 0xffffU, 0xffffU, 0xffffU, 0xffffU, 0xffffU, 0xffffU, 0xffffU, 0xffffU },
+};
+// clang-format on
+
+static AOM_FORCE_INLINE uint16x4_t highbd_dr_prediction_z2_tbl_left_x4_from_x8(const uint16x8_t left_data,
+                                                                               const int16x4_t indices, int base,
+                                                                               int n) {
+    // Need to adjust indices to operate on 0-based indices rather than
+    // `base`-based indices and then adjust from uint16x4 indices to uint8x8
+    // indices so we can use a tbl instruction (which only operates on bytes).
+    uint16x4_t       left_indices_u16 = vreinterpret_u16_s16(vsub_s16(indices, vdup_n_s16(base)));
+    uint8x8_t        left_indices     = vreinterpret_u8_u16(vmla_n_u16(vdup_n_u16(0x0100U), left_indices_u16, 0x0202U));
+    const uint16x4_t ret              = vreinterpret_u16_u8(vqtbl1_u8(vreinterpretq_u8_u16(left_data), left_indices));
+    return vand_u16(ret, vld1_u16(z2_y_iter_masks_u16x4[n]));
+}
+
+static AOM_FORCE_INLINE uint16x4_t highbd_dr_prediction_z2_tbl_left_x4_from_x16(const uint16x8x2_t left_data,
+                                                                                const int16x4_t indices, int base,
+                                                                                int n) {
+    // Need to adjust indices to operate on 0-based indices rather than
+    // `base`-based indices and then adjust from uint16x4 indices to uint8x8
+    // indices so we can use a tbl instruction (which only operates on bytes).
+    uint16x4_t       left_indices_u16 = vreinterpret_u16_s16(vsub_s16(indices, vdup_n_s16(base)));
+    uint8x8_t        left_indices     = vreinterpret_u8_u16(vmla_n_u16(vdup_n_u16(0x0100U), left_indices_u16, 0x0202U));
+    uint8x16x2_t     data_u8 = {{vreinterpretq_u8_u16(left_data.val[0]), vreinterpretq_u8_u16(left_data.val[1])}};
+    const uint16x4_t ret     = vreinterpret_u16_u8(vqtbl2_u8(data_u8, left_indices));
+    return vand_u16(ret, vld1_u16(z2_y_iter_masks_u16x4[n]));
+}
+
+static AOM_FORCE_INLINE uint16x8_t highbd_dr_prediction_z2_tbl_left_x8_from_x8(const uint16x8_t left_data,
+                                                                               const int16x8_t indices, int base,
+                                                                               int n) {
+    // Need to adjust indices to operate on 0-based indices rather than
+    // `base`-based indices and then adjust from uint16x4 indices to uint8x8
+    // indices so we can use a tbl instruction (which only operates on bytes).
+    uint16x8_t       left_indices_u16 = vreinterpretq_u16_s16(vsubq_s16(indices, vdupq_n_s16(base)));
+    uint8x16_t       left_indices = vreinterpretq_u8_u16(vmlaq_n_u16(vdupq_n_u16(0x0100U), left_indices_u16, 0x0202U));
+    const uint16x8_t ret          = vreinterpretq_u16_u8(vqtbl1q_u8(vreinterpretq_u8_u16(left_data), left_indices));
+    return vandq_u16(ret, vld1q_u16(z2_y_iter_masks_u16x8[n]));
+}
+
+static AOM_FORCE_INLINE uint16x8_t highbd_dr_prediction_z2_tbl_left_x8_from_x16(const uint16x8x2_t left_data,
+                                                                                const int16x8_t indices, int base,
+                                                                                int n) {
+    // Need to adjust indices to operate on 0-based indices rather than
+    // `base`-based indices and then adjust from uint16x4 indices to uint8x8
+    // indices so we can use a tbl instruction (which only operates on bytes).
+    uint16x8_t       left_indices_u16 = vreinterpretq_u16_s16(vsubq_s16(indices, vdupq_n_s16(base)));
+    uint8x16_t       left_indices = vreinterpretq_u8_u16(vmlaq_n_u16(vdupq_n_u16(0x0100U), left_indices_u16, 0x0202U));
+    uint8x16x2_t     data_u8      = {{vreinterpretq_u8_u16(left_data.val[0]), vreinterpretq_u8_u16(left_data.val[1])}};
+    const uint16x8_t ret          = vreinterpretq_u16_u8(vqtbl2q_u8(data_u8, left_indices));
+    return vandq_u16(ret, vld1q_u16(z2_y_iter_masks_u16x8[n]));
+}
+
+static AOM_FORCE_INLINE uint16x4x2_t highbd_dr_prediction_z2_gather_left_x4(const uint16_t *left,
+                                                                            const int16x4_t indices, int n) {
+    assert(n > 0);
+    assert(n <= 4);
+    // Load two elements at a time and then uzp them into separate vectors, to
+    // reduce the number of memory accesses.
+    uint32x2_t ret0_u32 = vdup_n_u32(0);
+    uint32x2_t ret1_u32 = vdup_n_u32(0);
+
+    // Use a single vget_lane_u64 to minimize vector to general purpose register
+    // transfers and then mask off the bits we actually want.
+    const uint64_t indices0123 = vget_lane_u64(vreinterpret_u64_s16(indices), 0);
+    const int      idx0        = (int16_t)((indices0123 >> 0) & 0xffffU);
+    const int      idx1        = (int16_t)((indices0123 >> 16) & 0xffffU);
+    const int      idx2        = (int16_t)((indices0123 >> 32) & 0xffffU);
+    const int      idx3        = (int16_t)((indices0123 >> 48) & 0xffffU);
+
+    // At time of writing both Clang and GCC produced better code with these
+    // nested if-statements compared to a switch statement with fallthrough.
+    load_unaligned_u32_2x1_lane(ret0_u32, left + idx0, 0);
+    if (n > 1) {
+        load_unaligned_u32_2x1_lane(ret0_u32, left + idx1, 1);
+        if (n > 2) {
+            load_unaligned_u32_2x1_lane(ret1_u32, left + idx2, 0);
+            if (n > 3) {
+                load_unaligned_u32_2x1_lane(ret1_u32, left + idx3, 1);
+            }
+        }
+    }
+    return vuzp_u16(vreinterpret_u16_u32(ret0_u32), vreinterpret_u16_u32(ret1_u32));
+}
+
+static AOM_FORCE_INLINE uint16x8x2_t highbd_dr_prediction_z2_gather_left_x8(const uint16_t *left,
+                                                                            const int16x8_t indices, int n) {
+    assert(n > 0);
+    assert(n <= 8);
+    // Load two elements at a time and then uzp them into separate vectors, to
+    // reduce the number of memory accesses.
+    uint32x4_t ret0_u32 = vdupq_n_u32(0);
+    uint32x4_t ret1_u32 = vdupq_n_u32(0);
+
+    // Use a pair of vget_lane_u64 to minimize vector to general purpose register
+    // transfers and then mask off the bits we actually want.
+    const uint64_t indices0123 = vgetq_lane_u64(vreinterpretq_u64_s16(indices), 0);
+    const uint64_t indices4567 = vgetq_lane_u64(vreinterpretq_u64_s16(indices), 1);
+    const int      idx0        = (int16_t)((indices0123 >> 0) & 0xffffU);
+    const int      idx1        = (int16_t)((indices0123 >> 16) & 0xffffU);
+    const int      idx2        = (int16_t)((indices0123 >> 32) & 0xffffU);
+    const int      idx3        = (int16_t)((indices0123 >> 48) & 0xffffU);
+    const int      idx4        = (int16_t)((indices4567 >> 0) & 0xffffU);
+    const int      idx5        = (int16_t)((indices4567 >> 16) & 0xffffU);
+    const int      idx6        = (int16_t)((indices4567 >> 32) & 0xffffU);
+    const int      idx7        = (int16_t)((indices4567 >> 48) & 0xffffU);
+
+    // At time of writing both Clang and GCC produced better code with these
+    // nested if-statements compared to a switch statement with fallthrough.
+    load_unaligned_u32_4x1_lane(ret0_u32, left + idx0, 0);
+    if (n > 1) {
+        load_unaligned_u32_4x1_lane(ret0_u32, left + idx1, 1);
+        if (n > 2) {
+            load_unaligned_u32_4x1_lane(ret0_u32, left + idx2, 2);
+            if (n > 3) {
+                load_unaligned_u32_4x1_lane(ret0_u32, left + idx3, 3);
+                if (n > 4) {
+                    load_unaligned_u32_4x1_lane(ret1_u32, left + idx4, 0);
+                    if (n > 5) {
+                        load_unaligned_u32_4x1_lane(ret1_u32, left + idx5, 1);
+                        if (n > 6) {
+                            load_unaligned_u32_4x1_lane(ret1_u32, left + idx6, 2);
+                            if (n > 7) {
+                                load_unaligned_u32_4x1_lane(ret1_u32, left + idx7, 3);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return vuzpq_u16(vreinterpretq_u16_u32(ret0_u32), vreinterpretq_u16_u32(ret1_u32));
+}
+
+static AOM_FORCE_INLINE uint16x4_t highbd_dr_prediction_z2_merge_x4(uint16x4_t out_x, uint16x4_t out_y,
+                                                                    int base_shift) {
+    assert(base_shift >= 0);
+    assert(base_shift <= 4);
+    // On AArch64 we can permute the data from the `above` and `left` vectors
+    // into a single vector in a single load (of the permute vector) + tbl.
+    const uint8x8x2_t out_yx = {{vreinterpret_u8_u16(out_y), vreinterpret_u8_u16(out_x)}};
+    return vreinterpret_u16_u8(vtbl2_u8(out_yx, vld1_u8(z2_merge_shuffles_u16x4[base_shift])));
+}
+
+static AOM_FORCE_INLINE uint16x8_t highbd_dr_prediction_z2_merge_x8(uint16x8_t out_x, uint16x8_t out_y,
+                                                                    int base_shift) {
+    assert(base_shift >= 0);
+    assert(base_shift <= 8);
+    // On AArch64 we can permute the data from the `above` and `left` vectors
+    // into a single vector in a single load (of the permute vector) + tbl.
+    const uint8x16x2_t out_yx = {{vreinterpretq_u8_u16(out_y), vreinterpretq_u8_u16(out_x)}};
+    return vreinterpretq_u16_u8(vqtbl2q_u8(out_yx, vld1q_u8(z2_merge_shuffles_u16x8[base_shift])));
+}
+
+static AOM_FORCE_INLINE uint16x4_t highbd_dr_prediction_z2_apply_shift_x4(uint16x4_t a0, uint16x4_t a1,
+                                                                          int16x4_t shift) {
+    uint32x4_t res = vmull_u16(a1, vreinterpret_u16_s16(shift));
+    res            = vmlal_u16(res, a0, vsub_u16(vdup_n_u16(32), vreinterpret_u16_s16(shift)));
+    return vrshrn_n_u32(res, 5);
+}
+
+static AOM_FORCE_INLINE uint16x8_t highbd_dr_prediction_z2_apply_shift_x8(uint16x8_t a0, uint16x8_t a1,
+                                                                          int16x8_t shift) {
+    return vcombine_u16(
+        highbd_dr_prediction_z2_apply_shift_x4(vget_low_u16(a0), vget_low_u16(a1), vget_low_s16(shift)),
+        highbd_dr_prediction_z2_apply_shift_x4(vget_high_u16(a0), vget_high_u16(a1), vget_high_s16(shift)));
+}
+
+static AOM_FORCE_INLINE uint16x4_t highbd_dr_prediction_z2_step_x4(const uint16_t *above, const uint16x4_t above0,
+                                                                   const uint16x4_t above1, const uint16_t *left,
+                                                                   int dx, int dy, int r, int c) {
+    const int16x4_t iota = vld1_s16(iota1_s16);
+
+    const int x0 = (c << 6) - (r + 1) * dx;
+    const int y0 = (r << 6) - (c + 1) * dy;
+
+    const int16x4_t x0123       = vadd_s16(vdup_n_s16(x0), vshl_n_s16(iota, 6));
+    const int16x4_t y0123       = vsub_s16(vdup_n_s16(y0), vmul_n_s16(iota, dy));
+    const int16x4_t shift_x0123 = vshr_n_s16(vand_s16(x0123, vdup_n_s16(0x3F)), 1);
+    const int16x4_t shift_y0123 = vshr_n_s16(vand_s16(y0123, vdup_n_s16(0x3F)), 1);
+    const int16x4_t base_y0123  = vshr_n_s16(y0123, 6);
+
+    const int base_shift = ((((r + 1) * dx) - 1) >> 6) - c;
+
+    // Based on the value of `base_shift` there are three possible cases to
+    // compute the result:
+    // 1) base_shift <= 0: We can load and operate entirely on data from the
+    //                     `above` input vector.
+    // 2) base_shift < vl: We can load from `above[-1]` and shift
+    //                     `vl - base_shift` elements across to the end of the
+    //                     vector, then compute the remainder from `left`.
+    // 3) base_shift >= vl: We can load and operate entirely on data from the
+    //                      `left` input vector.
+
+    if (base_shift <= 0) {
+        const int        base_x = x0 >> 6;
+        const uint16x4_t a0     = vld1_u16(above + base_x);
+        const uint16x4_t a1     = vld1_u16(above + base_x + 1);
+        return highbd_dr_prediction_z2_apply_shift_x4(a0, a1, shift_x0123);
+    } else if (base_shift < 4) {
+        const uint16x4x2_t l01     = highbd_dr_prediction_z2_gather_left_x4(left + 1, base_y0123, base_shift);
+        const uint16x4_t   out16_y = highbd_dr_prediction_z2_apply_shift_x4(l01.val[0], l01.val[1], shift_y0123);
+
+        // No need to reload from above in the loop, just use pre-loaded constants.
+        const uint16x4_t out16_x = highbd_dr_prediction_z2_apply_shift_x4(above0, above1, shift_x0123);
+
+        return highbd_dr_prediction_z2_merge_x4(out16_x, out16_y, base_shift);
+    } else {
+        const uint16x4x2_t l01 = highbd_dr_prediction_z2_gather_left_x4(left + 1, base_y0123, 4);
+        return highbd_dr_prediction_z2_apply_shift_x4(l01.val[0], l01.val[1], shift_y0123);
+    }
+}
+
+static AOM_FORCE_INLINE uint16x8_t highbd_dr_prediction_z2_step_x8(const uint16_t *above, const uint16x8_t above0,
+                                                                   const uint16x8_t above1, const uint16_t *left,
+                                                                   int dx, int dy, int r, int c) {
+    const int16x8_t iota = vld1q_s16(iota1_s16);
+
+    const int x0 = (c << 6) - (r + 1) * dx;
+    const int y0 = (r << 6) - (c + 1) * dy;
+
+    const int16x8_t x01234567       = vaddq_s16(vdupq_n_s16(x0), vshlq_n_s16(iota, 6));
+    const int16x8_t y01234567       = vsubq_s16(vdupq_n_s16(y0), vmulq_n_s16(iota, dy));
+    const int16x8_t shift_x01234567 = vshrq_n_s16(vandq_s16(x01234567, vdupq_n_s16(0x3F)), 1);
+    const int16x8_t shift_y01234567 = vshrq_n_s16(vandq_s16(y01234567, vdupq_n_s16(0x3F)), 1);
+    const int16x8_t base_y01234567  = vshrq_n_s16(y01234567, 6);
+
+    const int base_shift = ((((r + 1) * dx) - 1) >> 6) - c;
+
+    // Based on the value of `base_shift` there are three possible cases to
+    // compute the result:
+    // 1) base_shift <= 0: We can load and operate entirely on data from the
+    //                     `above` input vector.
+    // 2) base_shift < vl: We can load from `above[-1]` and shift
+    //                     `vl - base_shift` elements across to the end of the
+    //                     vector, then compute the remainder from `left`.
+    // 3) base_shift >= vl: We can load and operate entirely on data from the
+    //                      `left` input vector.
+
+    if (base_shift <= 0) {
+        const int        base_x = x0 >> 6;
+        const uint16x8_t a0     = vld1q_u16(above + base_x);
+        const uint16x8_t a1     = vld1q_u16(above + base_x + 1);
+        return highbd_dr_prediction_z2_apply_shift_x8(a0, a1, shift_x01234567);
+    } else if (base_shift < 8) {
+        const uint16x8x2_t l01     = highbd_dr_prediction_z2_gather_left_x8(left + 1, base_y01234567, base_shift);
+        const uint16x8_t   out16_y = highbd_dr_prediction_z2_apply_shift_x8(l01.val[0], l01.val[1], shift_y01234567);
+
+        // No need to reload from above in the loop, just use pre-loaded constants.
+        const uint16x8_t out16_x = highbd_dr_prediction_z2_apply_shift_x8(above0, above1, shift_x01234567);
+
+        return highbd_dr_prediction_z2_merge_x8(out16_x, out16_y, base_shift);
+    } else {
+        const uint16x8x2_t l01 = highbd_dr_prediction_z2_gather_left_x8(left + 1, base_y01234567, 8);
+        return highbd_dr_prediction_z2_apply_shift_x8(l01.val[0], l01.val[1], shift_y01234567);
+    }
+}
+
+// Left array is accessed from -1 through `bh - 1` inclusive.
+// Above array is accessed from -1 through `bw - 1` inclusive.
+#define HIGHBD_DR_PREDICTOR_Z2_WXH(bw, bh)                                                                       \
+    static void highbd_dr_prediction_z2_##bw##x##bh##_neon(uint16_t       *dst,                                  \
+                                                           ptrdiff_t       stride,                               \
+                                                           const uint16_t *above,                                \
+                                                           const uint16_t *left,                                 \
+                                                           int             upsample_above,                       \
+                                                           int             upsample_left,                        \
+                                                           int             dx,                                   \
+                                                           int             dy,                                   \
+                                                           int             bd) {                                             \
+        (void)bd;                                                                                                \
+        (void)upsample_above;                                                                                    \
+        (void)upsample_left;                                                                                     \
+        assert(!upsample_above);                                                                                 \
+        assert(!upsample_left);                                                                                  \
+        assert(bw % 4 == 0);                                                                                     \
+        assert(bh % 4 == 0);                                                                                     \
+        assert(dx > 0);                                                                                          \
+        assert(dy > 0);                                                                                          \
+                                                                                                                 \
+        uint16_t left_data[bh + 1];                                                                              \
+        memcpy(left_data, left - 1, (bh + 1) * sizeof(uint16_t));                                                \
+                                                                                                                 \
+        uint16x8_t a0, a1;                                                                                       \
+        if (bw == 4) {                                                                                           \
+            a0 = vcombine_u16(vld1_u16(above - 1), vdup_n_u16(0));                                               \
+            a1 = vcombine_u16(vld1_u16(above + 0), vdup_n_u16(0));                                               \
+        } else {                                                                                                 \
+            a0 = vld1q_u16(above - 1);                                                                           \
+            a1 = vld1q_u16(above + 0);                                                                           \
+        }                                                                                                        \
+                                                                                                                 \
+        int r = 0;                                                                                               \
+        do {                                                                                                     \
+            if (bw == 4) {                                                                                       \
+                vst1_u16(dst,                                                                                    \
+                         highbd_dr_prediction_z2_step_x4(                                                        \
+                             above, vget_low_u16(a0), vget_low_u16(a1), left_data, dx, dy, r, 0));               \
+            } else {                                                                                             \
+                int c = 0;                                                                                       \
+                do {                                                                                             \
+                    vst1q_u16(dst + c, highbd_dr_prediction_z2_step_x8(above, a0, a1, left_data, dx, dy, r, c)); \
+                    c += 8;                                                                                      \
+                } while (c < bw);                                                                                \
+            }                                                                                                    \
+            dst += stride;                                                                                       \
+        } while (++r < bh);                                                                                      \
+    }
+
+HIGHBD_DR_PREDICTOR_Z2_WXH(4, 16)
+HIGHBD_DR_PREDICTOR_Z2_WXH(8, 16)
+HIGHBD_DR_PREDICTOR_Z2_WXH(8, 32)
+HIGHBD_DR_PREDICTOR_Z2_WXH(16, 4)
+HIGHBD_DR_PREDICTOR_Z2_WXH(16, 8)
+HIGHBD_DR_PREDICTOR_Z2_WXH(16, 16)
+HIGHBD_DR_PREDICTOR_Z2_WXH(16, 32)
+HIGHBD_DR_PREDICTOR_Z2_WXH(16, 64)
+HIGHBD_DR_PREDICTOR_Z2_WXH(32, 8)
+HIGHBD_DR_PREDICTOR_Z2_WXH(32, 16)
+HIGHBD_DR_PREDICTOR_Z2_WXH(32, 32)
+HIGHBD_DR_PREDICTOR_Z2_WXH(32, 64)
+HIGHBD_DR_PREDICTOR_Z2_WXH(64, 16)
+HIGHBD_DR_PREDICTOR_Z2_WXH(64, 32)
+HIGHBD_DR_PREDICTOR_Z2_WXH(64, 64)
+
+#undef HIGHBD_DR_PREDICTOR_Z2_WXH
+
+typedef void (*highbd_dr_prediction_z2_ptr)(uint16_t *dst, ptrdiff_t stride, const uint16_t *above,
+                                            const uint16_t *left, int upsample_above, int upsample_left, int dx, int dy,
+                                            int bd);
+
+static void highbd_dr_prediction_z2_4x4_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *above,
+                                             const uint16_t *left, int upsample_above, int upsample_left, int dx,
+                                             int dy, int bd) {
+    (void)bd;
+    assert(dx > 0);
+    assert(dy > 0);
+
+    const int frac_bits_x = 6 - upsample_above;
+    const int frac_bits_y = 6 - upsample_left;
+    const int min_base_x  = -(1 << (upsample_above + frac_bits_x));
+
+    // if `upsample_left` then we need -2 through 6 inclusive from `left`.
+    // else we only need -1 through 3 inclusive.
+
+    uint16x8_t left_data0, left_data1;
+    if (upsample_left) {
+        left_data0 = vld1q_u16(left - 2);
+        left_data1 = vld1q_u16(left - 1);
+    } else {
+        left_data0 = vcombine_u16(vld1_u16(left - 1), vdup_n_u16(0));
+        left_data1 = vcombine_u16(vld1_u16(left + 0), vdup_n_u16(0));
+    }
+
+    const int16x4_t iota0123 = vld1_s16(iota1_s16);
+    const int16x4_t iota1234 = vld1_s16(iota1_s16 + 1);
+
+    for (int r = 0; r < 4; ++r) {
+        const int       base_shift = (min_base_x + (r + 1) * dx + 63) >> 6;
+        const int       x0         = (r + 1) * dx;
+        const int16x4_t x0123      = vsub_s16(vshl_n_s16(iota0123, 6), vdup_n_s16(x0));
+        const int       base_x0    = (-x0) >> frac_bits_x;
+        if (base_shift <= 0) {
+            uint16x4_t a0, a1;
+            int16x4_t  shift_x0123;
+            if (upsample_above) {
+                const uint16x4x2_t a01 = vld2_u16(above + base_x0);
+                a0                     = a01.val[0];
+                a1                     = a01.val[1];
+                shift_x0123            = vand_s16(x0123, vdup_n_s16(0x1F));
+            } else {
+                a0          = vld1_u16(above + base_x0);
+                a1          = vld1_u16(above + base_x0 + 1);
+                shift_x0123 = vshr_n_s16(vand_s16(x0123, vdup_n_s16(0x3F)), 1);
+            }
+            vst1_u16(dst, highbd_dr_prediction_z2_apply_shift_x4(a0, a1, shift_x0123));
+        } else if (base_shift < 4) {
+            // Calculate Y component from `left`.
+            const int       y_iters     = base_shift;
+            const int16x4_t y0123       = vsub_s16(vdup_n_s16(r << 6), vmul_n_s16(iota1234, dy));
+            const int16x4_t base_y0123  = vshl_s16(y0123, vdup_n_s16(-frac_bits_y));
+            const int16x4_t shift_y0123 = vshr_n_s16(vand_s16(vmul_n_s16(y0123, 1 << upsample_left), vdup_n_s16(0x3F)),
+                                                     1);
+            uint16x4_t      l0, l1;
+            const int       left_data_base = upsample_left ? -2 : -1;
+            l0 = highbd_dr_prediction_z2_tbl_left_x4_from_x8(left_data0, base_y0123, left_data_base, y_iters);
+            l1 = highbd_dr_prediction_z2_tbl_left_x4_from_x8(left_data1, base_y0123, left_data_base, y_iters);
+
+            const uint16x4_t out_y = highbd_dr_prediction_z2_apply_shift_x4(l0, l1, shift_y0123);
+
+            // Calculate X component from `above`.
+            const int16x4_t shift_x0123 = vshr_n_s16(vand_s16(vmul_n_s16(x0123, 1 << upsample_above), vdup_n_s16(0x3F)),
+                                                     1);
+            uint16x4_t      a0, a1;
+            if (upsample_above) {
+                const uint16x4x2_t a01 = vld2_u16(above + (base_x0 % 2 == 0 ? -2 : -1));
+                a0                     = a01.val[0];
+                a1                     = a01.val[1];
+            } else {
+                a0 = vld1_u16(above - 1);
+                a1 = vld1_u16(above + 0);
+            }
+            const uint16x4_t out_x = highbd_dr_prediction_z2_apply_shift_x4(a0, a1, shift_x0123);
+
+            // Combine X and Y vectors.
+            const uint16x4_t out = highbd_dr_prediction_z2_merge_x4(out_x, out_y, base_shift);
+            vst1_u16(dst, out);
+        } else {
+            const int16x4_t y0123       = vsub_s16(vdup_n_s16(r << 6), vmul_n_s16(iota1234, dy));
+            const int16x4_t base_y0123  = vshl_s16(y0123, vdup_n_s16(-frac_bits_y));
+            const int16x4_t shift_y0123 = vshr_n_s16(vand_s16(vmul_n_s16(y0123, 1 << upsample_left), vdup_n_s16(0x3F)),
+                                                     1);
+            uint16x4_t      l0, l1;
+            const int       left_data_base = upsample_left ? -2 : -1;
+            l0 = highbd_dr_prediction_z2_tbl_left_x4_from_x8(left_data0, base_y0123, left_data_base, 4);
+            l1 = highbd_dr_prediction_z2_tbl_left_x4_from_x8(left_data1, base_y0123, left_data_base, 4);
+            vst1_u16(dst, highbd_dr_prediction_z2_apply_shift_x4(l0, l1, shift_y0123));
+        }
+        dst += stride;
+    }
+}
+
+static void highbd_dr_prediction_z2_4x8_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *above,
+                                             const uint16_t *left, int upsample_above, int upsample_left, int dx,
+                                             int dy, int bd) {
+    (void)bd;
+    assert(dx > 0);
+    assert(dy > 0);
+
+    const int frac_bits_x = 6 - upsample_above;
+    const int frac_bits_y = 6 - upsample_left;
+    const int min_base_x  = -(1 << (upsample_above + frac_bits_x));
+
+    // if `upsample_left` then we need -2 through 14 inclusive from `left`.
+    // else we only need -1 through 6 inclusive.
+
+    uint16x8x2_t left_data0, left_data1;
+    if (upsample_left) {
+        left_data0 = vld1q_u16_x2(left - 2);
+        left_data1 = vld1q_u16_x2(left - 1);
+    } else {
+        left_data0 = (uint16x8x2_t){{vld1q_u16(left - 1), vdupq_n_u16(0)}};
+        left_data1 = (uint16x8x2_t){{vld1q_u16(left + 0), vdupq_n_u16(0)}};
+    }
+
+    const int16x4_t iota0123 = vld1_s16(iota1_s16);
+    const int16x4_t iota1234 = vld1_s16(iota1_s16 + 1);
+
+    for (int r = 0; r < 8; ++r) {
+        const int       base_shift = (min_base_x + (r + 1) * dx + 63) >> 6;
+        const int       x0         = (r + 1) * dx;
+        const int16x4_t x0123      = vsub_s16(vshl_n_s16(iota0123, 6), vdup_n_s16(x0));
+        const int       base_x0    = (-x0) >> frac_bits_x;
+        if (base_shift <= 0) {
+            uint16x4_t a0, a1;
+            int16x4_t  shift_x0123;
+            if (upsample_above) {
+                const uint16x4x2_t a01 = vld2_u16(above + base_x0);
+                a0                     = a01.val[0];
+                a1                     = a01.val[1];
+                shift_x0123            = vand_s16(x0123, vdup_n_s16(0x1F));
+            } else {
+                a0          = vld1_u16(above + base_x0);
+                a1          = vld1_u16(above + base_x0 + 1);
+                shift_x0123 = vand_s16(vshr_n_s16(x0123, 1), vdup_n_s16(0x1F));
+            }
+            vst1_u16(dst, highbd_dr_prediction_z2_apply_shift_x4(a0, a1, shift_x0123));
+        } else if (base_shift < 4) {
+            // Calculate Y component from `left`.
+            const int       y_iters     = base_shift;
+            const int16x4_t y0123       = vsub_s16(vdup_n_s16(r << 6), vmul_n_s16(iota1234, dy));
+            const int16x4_t base_y0123  = vshl_s16(y0123, vdup_n_s16(-frac_bits_y));
+            const int16x4_t shift_y0123 = vshr_n_s16(vand_s16(vmul_n_s16(y0123, 1 << upsample_left), vdup_n_s16(0x3F)),
+                                                     1);
+
+            uint16x4_t l0, l1;
+            const int  left_data_base = upsample_left ? -2 : -1;
+            l0 = highbd_dr_prediction_z2_tbl_left_x4_from_x16(left_data0, base_y0123, left_data_base, y_iters);
+            l1 = highbd_dr_prediction_z2_tbl_left_x4_from_x16(left_data1, base_y0123, left_data_base, y_iters);
+
+            const uint16x4_t out_y = highbd_dr_prediction_z2_apply_shift_x4(l0, l1, shift_y0123);
+
+            // Calculate X component from `above`.
+            uint16x4_t a0, a1;
+            int16x4_t  shift_x0123;
+            if (upsample_above) {
+                const uint16x4x2_t a01 = vld2_u16(above + (base_x0 % 2 == 0 ? -2 : -1));
+                a0                     = a01.val[0];
+                a1                     = a01.val[1];
+                shift_x0123            = vand_s16(x0123, vdup_n_s16(0x1F));
+            } else {
+                a0          = vld1_u16(above - 1);
+                a1          = vld1_u16(above + 0);
+                shift_x0123 = vand_s16(vshr_n_s16(x0123, 1), vdup_n_s16(0x1F));
+            }
+            const uint16x4_t out_x = highbd_dr_prediction_z2_apply_shift_x4(a0, a1, shift_x0123);
+
+            // Combine X and Y vectors.
+            const uint16x4_t out = highbd_dr_prediction_z2_merge_x4(out_x, out_y, base_shift);
+            vst1_u16(dst, out);
+        } else {
+            const int16x4_t y0123       = vsub_s16(vdup_n_s16(r << 6), vmul_n_s16(iota1234, dy));
+            const int16x4_t base_y0123  = vshl_s16(y0123, vdup_n_s16(-frac_bits_y));
+            const int16x4_t shift_y0123 = vshr_n_s16(vand_s16(vmul_n_s16(y0123, 1 << upsample_left), vdup_n_s16(0x3F)),
+                                                     1);
+
+            uint16x4_t l0, l1;
+            const int  left_data_base = upsample_left ? -2 : -1;
+            l0 = highbd_dr_prediction_z2_tbl_left_x4_from_x16(left_data0, base_y0123, left_data_base, 4);
+            l1 = highbd_dr_prediction_z2_tbl_left_x4_from_x16(left_data1, base_y0123, left_data_base, 4);
+
+            vst1_u16(dst, highbd_dr_prediction_z2_apply_shift_x4(l0, l1, shift_y0123));
+        }
+        dst += stride;
+    }
+}
+
+static void highbd_dr_prediction_z2_8x4_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *above,
+                                             const uint16_t *left, int upsample_above, int upsample_left, int dx,
+                                             int dy, int bd) {
+    (void)bd;
+    assert(dx > 0);
+    assert(dy > 0);
+
+    const int frac_bits_x = 6 - upsample_above;
+    const int frac_bits_y = 6 - upsample_left;
+    const int min_base_x  = -(1 << (upsample_above + frac_bits_x));
+
+    // if `upsample_left` then we need -2 through 6 inclusive from `left`.
+    // else we only need -1 through 3 inclusive.
+
+    uint16x8_t left_data0, left_data1;
+    if (upsample_left) {
+        left_data0 = vld1q_u16(left - 2);
+        left_data1 = vld1q_u16(left - 1);
+    } else {
+        left_data0 = vcombine_u16(vld1_u16(left - 1), vdup_n_u16(0));
+        left_data1 = vcombine_u16(vld1_u16(left + 0), vdup_n_u16(0));
+    }
+
+    const int16x8_t iota01234567 = vld1q_s16(iota1_s16);
+    const int16x8_t iota12345678 = vld1q_s16(iota1_s16 + 1);
+
+    for (int r = 0; r < 4; ++r) {
+        const int       base_shift = (min_base_x + (r + 1) * dx + 63) >> 6;
+        const int       x0         = (r + 1) * dx;
+        const int16x8_t x01234567  = vsubq_s16(vshlq_n_s16(iota01234567, 6), vdupq_n_s16(x0));
+        const int       base_x0    = (-x0) >> frac_bits_x;
+        if (base_shift <= 0) {
+            uint16x8_t a0, a1;
+            int16x8_t  shift_x01234567;
+            if (upsample_above) {
+                const uint16x8x2_t a01 = vld2q_u16(above + base_x0);
+                a0                     = a01.val[0];
+                a1                     = a01.val[1];
+                shift_x01234567        = vandq_s16(x01234567, vdupq_n_s16(0x1F));
+            } else {
+                a0              = vld1q_u16(above + base_x0);
+                a1              = vld1q_u16(above + base_x0 + 1);
+                shift_x01234567 = vandq_s16(vshrq_n_s16(x01234567, 1), vdupq_n_s16(0x1F));
+            }
+            vst1q_u16(dst, highbd_dr_prediction_z2_apply_shift_x8(a0, a1, shift_x01234567));
+        } else if (base_shift < 8) {
+            // Calculate Y component from `left`.
+            const int       y_iters         = base_shift;
+            const int16x8_t y01234567       = vsubq_s16(vdupq_n_s16(r << 6), vmulq_n_s16(iota12345678, dy));
+            const int16x8_t base_y01234567  = vshlq_s16(y01234567, vdupq_n_s16(-frac_bits_y));
+            const int16x8_t shift_y01234567 = vshrq_n_s16(
+                vandq_s16(vmulq_n_s16(y01234567, 1 << upsample_left), vdupq_n_s16(0x3F)), 1);
+
+            uint16x8_t l0, l1;
+            const int  left_data_base = upsample_left ? -2 : -1;
+            l0 = highbd_dr_prediction_z2_tbl_left_x8_from_x8(left_data0, base_y01234567, left_data_base, y_iters);
+            l1 = highbd_dr_prediction_z2_tbl_left_x8_from_x8(left_data1, base_y01234567, left_data_base, y_iters);
+
+            const uint16x8_t out_y = highbd_dr_prediction_z2_apply_shift_x8(l0, l1, shift_y01234567);
+
+            // Calculate X component from `above`.
+            uint16x8_t a0, a1;
+            int16x8_t  shift_x01234567;
+            if (upsample_above) {
+                const uint16x8x2_t a01 = vld2q_u16(above + (base_x0 % 2 == 0 ? -2 : -1));
+                a0                     = a01.val[0];
+                a1                     = a01.val[1];
+                shift_x01234567        = vandq_s16(x01234567, vdupq_n_s16(0x1F));
+            } else {
+                a0              = vld1q_u16(above - 1);
+                a1              = vld1q_u16(above + 0);
+                shift_x01234567 = vandq_s16(vshrq_n_s16(x01234567, 1), vdupq_n_s16(0x1F));
+            }
+            const uint16x8_t out_x = highbd_dr_prediction_z2_apply_shift_x8(a0, a1, shift_x01234567);
+
+            // Combine X and Y vectors.
+            const uint16x8_t out = highbd_dr_prediction_z2_merge_x8(out_x, out_y, base_shift);
+            vst1q_u16(dst, out);
+        } else {
+            const int16x8_t y01234567       = vsubq_s16(vdupq_n_s16(r << 6), vmulq_n_s16(iota12345678, dy));
+            const int16x8_t base_y01234567  = vshlq_s16(y01234567, vdupq_n_s16(-frac_bits_y));
+            const int16x8_t shift_y01234567 = vshrq_n_s16(
+                vandq_s16(vmulq_n_s16(y01234567, 1 << upsample_left), vdupq_n_s16(0x3F)), 1);
+
+            uint16x8_t l0, l1;
+            const int  left_data_base = upsample_left ? -2 : -1;
+            l0 = highbd_dr_prediction_z2_tbl_left_x8_from_x8(left_data0, base_y01234567, left_data_base, 8);
+            l1 = highbd_dr_prediction_z2_tbl_left_x8_from_x8(left_data1, base_y01234567, left_data_base, 8);
+
+            vst1q_u16(dst, highbd_dr_prediction_z2_apply_shift_x8(l0, l1, shift_y01234567));
+        }
+        dst += stride;
+    }
+}
+
+static void highbd_dr_prediction_z2_8x8_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *above,
+                                             const uint16_t *left, int upsample_above, int upsample_left, int dx,
+                                             int dy, int bd) {
+    (void)bd;
+    assert(dx > 0);
+    assert(dy > 0);
+
+    const int frac_bits_x = 6 - upsample_above;
+    const int frac_bits_y = 6 - upsample_left;
+    const int min_base_x  = -(1 << (upsample_above + frac_bits_x));
+
+    // if `upsample_left` then we need -2 through 14 inclusive from `left`.
+    // else we only need -1 through 6 inclusive.
+
+    uint16x8x2_t left_data0, left_data1;
+    if (upsample_left) {
+        left_data0 = vld1q_u16_x2(left - 2);
+        left_data1 = vld1q_u16_x2(left - 1);
+    } else {
+        left_data0 = (uint16x8x2_t){{vld1q_u16(left - 1), vdupq_n_u16(0)}};
+        left_data1 = (uint16x8x2_t){{vld1q_u16(left + 0), vdupq_n_u16(0)}};
+    }
+
+    const int16x8_t iota01234567 = vld1q_s16(iota1_s16);
+    const int16x8_t iota12345678 = vld1q_s16(iota1_s16 + 1);
+
+    for (int r = 0; r < 8; ++r) {
+        const int       base_shift = (min_base_x + (r + 1) * dx + 63) >> 6;
+        const int       x0         = (r + 1) * dx;
+        const int16x8_t x01234567  = vsubq_s16(vshlq_n_s16(iota01234567, 6), vdupq_n_s16(x0));
+        const int       base_x0    = (-x0) >> frac_bits_x;
+        if (base_shift <= 0) {
+            uint16x8_t a0, a1;
+            int16x8_t  shift_x01234567;
+            if (upsample_above) {
+                const uint16x8x2_t a01 = vld2q_u16(above + base_x0);
+                a0                     = a01.val[0];
+                a1                     = a01.val[1];
+                shift_x01234567        = vandq_s16(x01234567, vdupq_n_s16(0x1F));
+            } else {
+                a0              = vld1q_u16(above + base_x0);
+                a1              = vld1q_u16(above + base_x0 + 1);
+                shift_x01234567 = vandq_s16(vshrq_n_s16(x01234567, 1), vdupq_n_s16(0x1F));
+            }
+            vst1q_u16(dst, highbd_dr_prediction_z2_apply_shift_x8(a0, a1, shift_x01234567));
+        } else if (base_shift < 8) {
+            // Calculate Y component from `left`.
+            const int       y_iters         = base_shift;
+            const int16x8_t y01234567       = vsubq_s16(vdupq_n_s16(r << 6), vmulq_n_s16(iota12345678, dy));
+            const int16x8_t base_y01234567  = vshlq_s16(y01234567, vdupq_n_s16(-frac_bits_y));
+            const int16x8_t shift_y01234567 = vshrq_n_s16(
+                vandq_s16(vmulq_n_s16(y01234567, 1 << upsample_left), vdupq_n_s16(0x3F)), 1);
+
+            uint16x8_t l0, l1;
+            const int  left_data_base = upsample_left ? -2 : -1;
+            l0 = highbd_dr_prediction_z2_tbl_left_x8_from_x16(left_data0, base_y01234567, left_data_base, y_iters);
+            l1 = highbd_dr_prediction_z2_tbl_left_x8_from_x16(left_data1, base_y01234567, left_data_base, y_iters);
+
+            const uint16x8_t out_y = highbd_dr_prediction_z2_apply_shift_x8(l0, l1, shift_y01234567);
+
+            // Calculate X component from `above`.
+            uint16x8_t a0, a1;
+            int16x8_t  shift_x01234567;
+            if (upsample_above) {
+                const uint16x8x2_t a01 = vld2q_u16(above + (base_x0 % 2 == 0 ? -2 : -1));
+                a0                     = a01.val[0];
+                a1                     = a01.val[1];
+                shift_x01234567        = vandq_s16(x01234567, vdupq_n_s16(0x1F));
+            } else {
+                a0              = vld1q_u16(above - 1);
+                a1              = vld1q_u16(above + 0);
+                shift_x01234567 = vandq_s16(vshrq_n_s16(x01234567, 1), vdupq_n_s16(0x1F));
+            }
+            const uint16x8_t out_x = highbd_dr_prediction_z2_apply_shift_x8(a0, a1, shift_x01234567);
+
+            // Combine X and Y vectors.
+            const uint16x8_t out = highbd_dr_prediction_z2_merge_x8(out_x, out_y, base_shift);
+            vst1q_u16(dst, out);
+        } else {
+            const int16x8_t y01234567       = vsubq_s16(vdupq_n_s16(r << 6), vmulq_n_s16(iota12345678, dy));
+            const int16x8_t base_y01234567  = vshlq_s16(y01234567, vdupq_n_s16(-frac_bits_y));
+            const int16x8_t shift_y01234567 = vshrq_n_s16(
+                vandq_s16(vmulq_n_s16(y01234567, 1 << upsample_left), vdupq_n_s16(0x3F)), 1);
+
+            uint16x8_t l0, l1;
+            const int  left_data_base = upsample_left ? -2 : -1;
+            l0 = highbd_dr_prediction_z2_tbl_left_x8_from_x16(left_data0, base_y01234567, left_data_base, 8);
+            l1 = highbd_dr_prediction_z2_tbl_left_x8_from_x16(left_data1, base_y01234567, left_data_base, 8);
+
+            vst1q_u16(dst, highbd_dr_prediction_z2_apply_shift_x8(l0, l1, shift_y01234567));
+        }
+        dst += stride;
+    }
+}
+
+static highbd_dr_prediction_z2_ptr dr_predictor_z2_arr_neon[7][7] = {
+    {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+    {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+    {NULL,
+     NULL,
+     &highbd_dr_prediction_z2_4x4_neon,
+     &highbd_dr_prediction_z2_4x8_neon,
+     &highbd_dr_prediction_z2_4x16_neon,
+     NULL,
+     NULL},
+    {NULL,
+     NULL,
+     &highbd_dr_prediction_z2_8x4_neon,
+     &highbd_dr_prediction_z2_8x8_neon,
+     &highbd_dr_prediction_z2_8x16_neon,
+     &highbd_dr_prediction_z2_8x32_neon,
+     NULL},
+    {NULL,
+     NULL,
+     &highbd_dr_prediction_z2_16x4_neon,
+     &highbd_dr_prediction_z2_16x8_neon,
+     &highbd_dr_prediction_z2_16x16_neon,
+     &highbd_dr_prediction_z2_16x32_neon,
+     &highbd_dr_prediction_z2_16x64_neon},
+    {NULL,
+     NULL,
+     NULL,
+     &highbd_dr_prediction_z2_32x8_neon,
+     &highbd_dr_prediction_z2_32x16_neon,
+     &highbd_dr_prediction_z2_32x32_neon,
+     &highbd_dr_prediction_z2_32x64_neon},
+    {NULL,
+     NULL,
+     NULL,
+     NULL,
+     &highbd_dr_prediction_z2_64x16_neon,
+     &highbd_dr_prediction_z2_64x32_neon,
+     &highbd_dr_prediction_z2_64x64_neon},
+};
+
+// Directional prediction, zone 2: 90 < angle < 180
+void svt_av1_highbd_dr_prediction_z2_neon(uint16_t *dst, ptrdiff_t stride, int bw, int bh, const uint16_t *above,
+                                          const uint16_t *left, int upsample_above, int upsample_left, int dx, int dy,
+                                          int bd) {
+    highbd_dr_prediction_z2_ptr f = dr_predictor_z2_arr_neon[get_msb(bw)][get_msb(bh)];
+    assert(f != NULL);
+    f(dst, stride, above, left, upsample_above, upsample_left, dx, dy, bd);
 }

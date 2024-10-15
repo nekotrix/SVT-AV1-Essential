@@ -803,6 +803,12 @@ static INLINE void load_s16_8x3(const int16_t *s, ptrdiff_t p, int16x8_t *const 
     *s2 = vld1q_s16(s);
 }
 
+#define load_unaligned_u32_2x1_lane(v, p, lane) \
+    do { (v) = vld1_lane_u32((const uint32_t *)(p), (v), (lane)); } while (0)
+
+#define load_unaligned_u32_4x1_lane(v, p, lane) \
+    do { (v) = vld1q_lane_u32((const uint32_t *)(p), (v), (lane)); } while (0)
+
 // Load 2 sets of 4 bytes when alignment is not guaranteed.
 static INLINE uint8x8_t load_unaligned_u8(const uint8_t *buf, int stride) {
     uint32_t a;
