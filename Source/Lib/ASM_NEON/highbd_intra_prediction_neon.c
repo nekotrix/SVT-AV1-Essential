@@ -1047,3 +1047,179 @@ HIGHBD_PAETH_NXM_WIDE(32, 64)
 HIGHBD_PAETH_NXM_WIDE(64, 16)
 HIGHBD_PAETH_NXM_WIDE(64, 32)
 HIGHBD_PAETH_NXM_WIDE(64, 64)
+
+// -----------------------------------------------------------------------------
+// DC
+
+static INLINE void highbd_dc_store_4xh(uint16_t *dst, ptrdiff_t stride, int h, uint16x4_t dc) {
+    for (int i = 0; i < h; ++i) { vst1_u16(dst + i * stride, dc); }
+}
+
+static INLINE void highbd_dc_store_8xh(uint16_t *dst, ptrdiff_t stride, int h, uint16x8_t dc) {
+    for (int i = 0; i < h; ++i) { vst1q_u16(dst + i * stride, dc); }
+}
+
+static INLINE void highbd_dc_store_16xh(uint16_t *dst, ptrdiff_t stride, int h, uint16x8_t dc) {
+    for (int i = 0; i < h; ++i) {
+        vst1q_u16(dst + i * stride, dc);
+        vst1q_u16(dst + i * stride + 8, dc);
+    }
+}
+
+static INLINE void highbd_dc_store_32xh(uint16_t *dst, ptrdiff_t stride, int h, uint16x8_t dc) {
+    for (int i = 0; i < h; ++i) {
+        vst1q_u16(dst + i * stride, dc);
+        vst1q_u16(dst + i * stride + 8, dc);
+        vst1q_u16(dst + i * stride + 16, dc);
+        vst1q_u16(dst + i * stride + 24, dc);
+    }
+}
+
+static INLINE void highbd_dc_store_64xh(uint16_t *dst, ptrdiff_t stride, int h, uint16x8_t dc) {
+    for (int i = 0; i < h; ++i) {
+        vst1q_u16(dst + i * stride, dc);
+        vst1q_u16(dst + i * stride + 8, dc);
+        vst1q_u16(dst + i * stride + 16, dc);
+        vst1q_u16(dst + i * stride + 24, dc);
+        vst1q_u16(dst + i * stride + 32, dc);
+        vst1q_u16(dst + i * stride + 40, dc);
+        vst1q_u16(dst + i * stride + 48, dc);
+        vst1q_u16(dst + i * stride + 56, dc);
+    }
+}
+
+static INLINE uint32x4_t horizontal_add_and_broadcast_long_u16x8(uint16x8_t a) {
+    // Need to assume input is up to 16 bits wide from dc 64x64 partial sum, so
+    // promote first.
+    const uint32x4_t b = vpaddlq_u16(a);
+    const uint32x4_t c = vpaddq_u32(b, b);
+    return vpaddq_u32(c, c);
+}
+
+static INLINE uint16x8_t highbd_dc_load_partial_sum_4(const uint16_t *left) {
+    // Nothing to do since sum is already one vector, but saves needing to
+    // special case w=4 or h=4 cases. The combine will be zero cost for a sane
+    // compiler since vld1 already sets the top half of a vector to zero as part
+    // of the operation.
+    return vcombine_u16(vld1_u16(left), vdup_n_u16(0));
+}
+
+static INLINE uint16x8_t highbd_dc_load_partial_sum_8(const uint16_t *left) {
+    // Nothing to do since sum is already one vector, but saves needing to
+    // special case w=8 or h=8 cases.
+    return vld1q_u16(left);
+}
+
+static INLINE uint16x8_t highbd_dc_load_partial_sum_16(const uint16_t *left) {
+    const uint16x8_t a0 = vld1q_u16(left + 0); // up to 10 bits
+    const uint16x8_t a1 = vld1q_u16(left + 8);
+    return vaddq_u16(a0, a1); // up to 11 bits
+}
+
+static INLINE uint16x8_t highbd_dc_load_partial_sum_32(const uint16_t *left) {
+    const uint16x8_t a0 = vld1q_u16(left + 0); // up to 10 bits
+    const uint16x8_t a1 = vld1q_u16(left + 8);
+    const uint16x8_t a2 = vld1q_u16(left + 16);
+    const uint16x8_t a3 = vld1q_u16(left + 24);
+    const uint16x8_t b0 = vaddq_u16(a0, a1); // up to 11 bits
+    const uint16x8_t b1 = vaddq_u16(a2, a3);
+    return vaddq_u16(b0, b1); // up to 12 bits
+}
+
+static INLINE uint16x8_t highbd_dc_load_partial_sum_64(const uint16_t *left) {
+    const uint16x8_t a0 = vld1q_u16(left + 0); // up to 10 bits
+    const uint16x8_t a1 = vld1q_u16(left + 8);
+    const uint16x8_t a2 = vld1q_u16(left + 16);
+    const uint16x8_t a3 = vld1q_u16(left + 24);
+    const uint16x8_t a4 = vld1q_u16(left + 32);
+    const uint16x8_t a5 = vld1q_u16(left + 40);
+    const uint16x8_t a6 = vld1q_u16(left + 48);
+    const uint16x8_t a7 = vld1q_u16(left + 56);
+    const uint16x8_t b0 = vaddq_u16(a0, a1); // up to 11 bits
+    const uint16x8_t b1 = vaddq_u16(a2, a3);
+    const uint16x8_t b2 = vaddq_u16(a4, a5);
+    const uint16x8_t b3 = vaddq_u16(a6, a7);
+    const uint16x8_t c0 = vaddq_u16(b0, b1); // up to 12 bits
+    const uint16x8_t c1 = vaddq_u16(b2, b3);
+    return vaddq_u16(c0, c1); // up to 13 bits
+}
+
+#define HIGHBD_DC_PREDICTOR(w, h, shift)                                                        \
+    void svt_aom_highbd_dc_predictor_##w##x##h##_neon(                                          \
+        uint16_t *dst, ptrdiff_t stride, const uint16_t *above, const uint16_t *left, int bd) { \
+        (void)bd;                                                                               \
+        const uint16x8_t a   = highbd_dc_load_partial_sum_##w(above);                           \
+        const uint16x8_t l   = highbd_dc_load_partial_sum_##h(left);                            \
+        const uint32x4_t sum = horizontal_add_and_broadcast_long_u16x8(vaddq_u16(a, l));        \
+        const uint16x4_t dc0 = vrshrn_n_u32(sum, shift);                                        \
+        highbd_dc_store_##w##xh(dst, stride, (h), vdupq_lane_u16(dc0, 0));                      \
+    }
+
+void svt_aom_highbd_dc_predictor_4x4_neon(uint16_t *dst, ptrdiff_t stride, const uint16_t *above, const uint16_t *left,
+                                          int bd) {
+    // In the rectangular cases we simply extend the shorter vector to uint16x8
+    // in order to accumulate, however in the 4x4 case there is no shorter vector
+    // to extend so it is beneficial to do the whole calculation in uint16x4
+    // instead.
+    (void)bd;
+    const uint16x4_t a   = vld1_u16(above); // up to 10 bits
+    const uint16x4_t l   = vld1_u16(left);
+    uint16x4_t       sum = vpadd_u16(a, l); // up to 11 bits
+    sum                  = vpadd_u16(sum, sum); // up to 12 bits
+    sum                  = vpadd_u16(sum, sum);
+    const uint16x4_t dc  = vrshr_n_u16(sum, 3);
+    highbd_dc_store_4xh(dst, stride, 4, dc);
+}
+
+HIGHBD_DC_PREDICTOR(8, 8, 4)
+HIGHBD_DC_PREDICTOR(16, 16, 5)
+HIGHBD_DC_PREDICTOR(32, 32, 6)
+HIGHBD_DC_PREDICTOR(64, 64, 7)
+
+#undef HIGHBD_DC_PREDICTOR
+
+static INLINE int divide_using_multiply_shift(int num, int shift1, int multiplier, int shift2) {
+    const int interm = num >> shift1;
+    return interm * multiplier >> shift2;
+}
+
+#define HIGHBD_DC_MULTIPLIER_1X2 0xAAAB
+#define HIGHBD_DC_MULTIPLIER_1X4 0x6667
+#define HIGHBD_DC_SHIFT2 17
+
+static INLINE int highbd_dc_predictor_rect(int bw, int bh, int sum, int shift1, uint32_t multiplier) {
+    return divide_using_multiply_shift(sum + ((bw + bh) >> 1), shift1, multiplier, HIGHBD_DC_SHIFT2);
+}
+
+#undef HIGHBD_DC_SHIFT2
+
+#define HIGHBD_DC_PREDICTOR_RECT(w, h, q, shift, mult)                                          \
+    void svt_aom_highbd_dc_predictor_##w##x##h##_neon(                                          \
+        uint16_t *dst, ptrdiff_t stride, const uint16_t *above, const uint16_t *left, int bd) { \
+        (void)bd;                                                                               \
+        uint16x8_t sum_above = highbd_dc_load_partial_sum_##w(above);                           \
+        uint16x8_t sum_left  = highbd_dc_load_partial_sum_##h(left);                            \
+        uint16x8_t sum_vec   = vaddq_u16(sum_left, sum_above);                                  \
+        int        sum       = vaddlvq_u16(sum_vec);                                            \
+        int        dc0       = highbd_dc_predictor_rect((w), (h), sum, (shift), (mult));        \
+        highbd_dc_store_##w##xh(dst, stride, (h), vdup##q##_n_u16(dc0));                        \
+    }
+
+HIGHBD_DC_PREDICTOR_RECT(4, 8, , 2, HIGHBD_DC_MULTIPLIER_1X2)
+HIGHBD_DC_PREDICTOR_RECT(4, 16, , 2, HIGHBD_DC_MULTIPLIER_1X4)
+HIGHBD_DC_PREDICTOR_RECT(8, 4, q, 2, HIGHBD_DC_MULTIPLIER_1X2)
+HIGHBD_DC_PREDICTOR_RECT(8, 16, q, 3, HIGHBD_DC_MULTIPLIER_1X2)
+HIGHBD_DC_PREDICTOR_RECT(8, 32, q, 3, HIGHBD_DC_MULTIPLIER_1X4)
+HIGHBD_DC_PREDICTOR_RECT(16, 4, q, 2, HIGHBD_DC_MULTIPLIER_1X4)
+HIGHBD_DC_PREDICTOR_RECT(16, 8, q, 3, HIGHBD_DC_MULTIPLIER_1X2)
+HIGHBD_DC_PREDICTOR_RECT(16, 32, q, 4, HIGHBD_DC_MULTIPLIER_1X2)
+HIGHBD_DC_PREDICTOR_RECT(16, 64, q, 4, HIGHBD_DC_MULTIPLIER_1X4)
+HIGHBD_DC_PREDICTOR_RECT(32, 8, q, 3, HIGHBD_DC_MULTIPLIER_1X4)
+HIGHBD_DC_PREDICTOR_RECT(32, 16, q, 4, HIGHBD_DC_MULTIPLIER_1X2)
+HIGHBD_DC_PREDICTOR_RECT(32, 64, q, 5, HIGHBD_DC_MULTIPLIER_1X2)
+HIGHBD_DC_PREDICTOR_RECT(64, 16, q, 4, HIGHBD_DC_MULTIPLIER_1X4)
+HIGHBD_DC_PREDICTOR_RECT(64, 32, q, 5, HIGHBD_DC_MULTIPLIER_1X2)
+
+#undef HIGHBD_DC_PREDICTOR_RECT
+#undef HIGHBD_DC_MULTIPLIER_1X2
+#undef HIGHBD_DC_MULTIPLIER_1X4
