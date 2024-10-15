@@ -1348,3 +1348,179 @@ HIGHBD_DC_PREDICTOR_128(64, 32, q)
 HIGHBD_DC_PREDICTOR_128(64, 64, q)
 
 #undef HIGHBD_DC_PREDICTOR_128
+
+// -----------------------------------------------------------------------------
+// Z1
+
+static int16_t iota1_s16[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+static int16_t iota2_s16[] = {0, 2, 4, 6, 8, 10, 12, 14};
+
+static AOM_FORCE_INLINE uint16x4_t highbd_dr_z1_apply_shift_x4(uint16x4_t a0, uint16x4_t a1, int shift) {
+    // The C implementation of the z1 predictor uses (32 - shift) and a right
+    // shift by 5, however we instead double shift to avoid an unnecessary right
+    // shift by 1.
+    uint32x4_t res = vmull_n_u16(a1, shift);
+    res            = vmlal_n_u16(res, a0, 64 - shift);
+    return vrshrn_n_u32(res, 6);
+}
+
+static AOM_FORCE_INLINE uint16x8_t highbd_dr_z1_apply_shift_x8(uint16x8_t a0, uint16x8_t a1, int shift) {
+    return vcombine_u16(highbd_dr_z1_apply_shift_x4(vget_low_u16(a0), vget_low_u16(a1), shift),
+                        highbd_dr_z1_apply_shift_x4(vget_high_u16(a0), vget_high_u16(a1), shift));
+}
+
+// clang-format off
+static const uint8_t kLoadMaxShuffles[] = {
+  14, 15, 14, 15, 14, 15, 14, 15, 14, 15, 14, 15, 14, 15, 14, 15,
+  12, 13, 14, 15, 14, 15, 14, 15, 14, 15, 14, 15, 14, 15, 14, 15,
+  10, 11, 12, 13, 14, 15, 14, 15, 14, 15, 14, 15, 14, 15, 14, 15,
+   8,  9, 10, 11, 12, 13, 14, 15, 14, 15, 14, 15, 14, 15, 14, 15,
+   6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 14, 15, 14, 15, 14, 15,
+   4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 14, 15, 14, 15,
+   2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 14, 15,
+   0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
+};
+// clang-format on
+
+static inline uint16x8_t zn_load_masked_neon(const uint16_t *ptr, int shuffle_idx) {
+    uint8x16_t shuffle = vld1q_u8(&kLoadMaxShuffles[16 * shuffle_idx]);
+    uint8x16_t src     = vreinterpretq_u8_u16(vld1q_u16(ptr));
+    return vreinterpretq_u16_u8(vqtbl1q_u8(src, shuffle));
+}
+
+static void highbd_dr_prediction_z1_upsample0_neon(uint16_t *dst, ptrdiff_t stride, int bw, int bh,
+                                                   const uint16_t *above, int dx) {
+    assert(bw % 4 == 0);
+    assert(bh % 4 == 0);
+    assert(dx > 0);
+
+    const int max_base_x = (bw + bh) - 1;
+    const int above_max  = above[max_base_x];
+
+    const int16x8_t iota1x8 = vld1q_s16(iota1_s16);
+    const int16x4_t iota1x4 = vget_low_s16(iota1x8);
+
+    int x = dx;
+    int r = 0;
+    do {
+        const int base = x >> 6;
+        if (base >= max_base_x) {
+            for (int i = r; i < bh; ++i) {
+                svt_aom_memset16(dst, above_max, bw);
+                dst += stride;
+            }
+            return;
+        }
+
+        // The C implementation of the z1 predictor when not upsampling uses:
+        // ((x & 0x3f) >> 1)
+        // The right shift is unnecessary here since we instead shift by +1 later,
+        // so adjust the mask to 0x3e to ensure we don't consider the extra bit.
+        const int shift = x & 0x3e;
+
+        if (bw == 4) {
+            const uint16x4_t a0  = vld1_u16(&above[base]);
+            const uint16x4_t a1  = vld1_u16(&above[base + 1]);
+            const uint16x4_t val = highbd_dr_z1_apply_shift_x4(a0, a1, shift);
+            const uint16x4_t cmp = vcgt_s16(vdup_n_s16(max_base_x - base), iota1x4);
+            const uint16x4_t res = vbsl_u16(cmp, val, vdup_n_u16(above_max));
+            vst1_u16(dst, res);
+        } else {
+            int c = 0;
+            do {
+                uint16x8_t a0;
+                uint16x8_t a1;
+                if (base + c >= max_base_x) {
+                    a0 = a1 = vdupq_n_u16(above_max);
+                } else {
+                    if (base + c + 7 >= max_base_x) {
+                        int shuffle_idx = max_base_x - base - c;
+                        a0              = zn_load_masked_neon(above + (max_base_x - 7), shuffle_idx);
+                    } else {
+                        a0 = vld1q_u16(above + base + c);
+                    }
+                    if (base + c + 8 >= max_base_x) {
+                        int shuffle_idx = max_base_x - base - c - 1;
+                        a1              = zn_load_masked_neon(above + (max_base_x - 7), shuffle_idx);
+                    } else {
+                        a1 = vld1q_u16(above + base + c + 1);
+                    }
+                }
+
+                vst1q_u16(dst + c, highbd_dr_z1_apply_shift_x8(a0, a1, shift));
+                c += 8;
+            } while (c < bw);
+        }
+
+        dst += stride;
+        x += dx;
+    } while (++r < bh);
+}
+
+static void highbd_dr_prediction_z1_upsample1_neon(uint16_t *dst, ptrdiff_t stride, int bw, int bh,
+                                                   const uint16_t *above, int dx) {
+    assert(bw % 4 == 0);
+    assert(bh % 4 == 0);
+    assert(dx > 0);
+
+    const int max_base_x = ((bw + bh) - 1) << 1;
+    const int above_max  = above[max_base_x];
+
+    const int16x8_t iota2x8 = vld1q_s16(iota2_s16);
+    const int16x4_t iota2x4 = vget_low_s16(iota2x8);
+
+    int x = dx;
+    int r = 0;
+    do {
+        const int base = x >> 5;
+        if (base >= max_base_x) {
+            for (int i = r; i < bh; ++i) {
+                svt_aom_memset16(dst, above_max, bw);
+                dst += stride;
+            }
+            return;
+        }
+
+        // The C implementation of the z1 predictor when upsampling uses:
+        // (((x << 1) & 0x3f) >> 1)
+        // The right shift is unnecessary here since we instead shift by +1 later,
+        // so adjust the mask to 0x3e to ensure we don't consider the extra bit.
+        const int shift = (x << 1) & 0x3e;
+
+        if (bw == 4) {
+            const uint16x4x2_t a01 = vld2_u16(&above[base]);
+            const uint16x4_t   val = highbd_dr_z1_apply_shift_x4(a01.val[0], a01.val[1], shift);
+            const uint16x4_t   cmp = vcgt_s16(vdup_n_s16(max_base_x - base), iota2x4);
+            const uint16x4_t   res = vbsl_u16(cmp, val, vdup_n_u16(above_max));
+            vst1_u16(dst, res);
+        } else {
+            int c = 0;
+            do {
+                const uint16x8x2_t a01 = vld2q_u16(&above[base + 2 * c]);
+                const uint16x8_t   val = highbd_dr_z1_apply_shift_x8(a01.val[0], a01.val[1], shift);
+                const uint16x8_t   cmp = vcgtq_s16(vdupq_n_s16(max_base_x - base - 2 * c), iota2x8);
+                const uint16x8_t   res = vbslq_u16(cmp, val, vdupq_n_u16(above_max));
+                vst1q_u16(dst + c, res);
+                c += 8;
+            } while (c < bw);
+        }
+
+        dst += stride;
+        x += dx;
+    } while (++r < bh);
+}
+
+// Directional prediction, zone 1: 0 < angle < 90
+void svt_av1_highbd_dr_prediction_z1_neon(uint16_t *dst, ptrdiff_t stride, int bw, int bh, const uint16_t *above,
+                                          const uint16_t *left, int upsample_above, int dx, int dy, int bd) {
+    (void)left;
+    (void)dy;
+    (void)bd;
+    assert(dy == 1);
+
+    if (upsample_above) {
+        highbd_dr_prediction_z1_upsample1_neon(dst, stride, bw, bh, above, dx);
+    } else {
+        highbd_dr_prediction_z1_upsample0_neon(dst, stride, bw, bh, above, dx);
+    }
+}
