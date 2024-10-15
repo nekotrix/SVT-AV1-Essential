@@ -1315,3 +1315,36 @@ DC_PREDICTOR_TOP(64, 32, 6, q)
 DC_PREDICTOR_TOP(64, 64, 6, q)
 
 #undef DC_PREDICTOR_TOP
+
+// -----------------------------------------------------------------------------
+// DC_128
+
+#define HIGHBD_DC_PREDICTOR_128(w, h, q)                                                        \
+    void svt_aom_highbd_dc_128_predictor_##w##x##h##_neon(                                      \
+        uint16_t *dst, ptrdiff_t stride, const uint16_t *above, const uint16_t *left, int bd) { \
+        (void)above;                                                                            \
+        (void)left;                                                                             \
+        highbd_dc_store_##w##xh(dst, stride, (h), vdup##q##_n_u16(0x80 << (bd - 8)));           \
+    }
+
+HIGHBD_DC_PREDICTOR_128(4, 4, )
+HIGHBD_DC_PREDICTOR_128(4, 8, )
+HIGHBD_DC_PREDICTOR_128(4, 16, )
+HIGHBD_DC_PREDICTOR_128(8, 4, q)
+HIGHBD_DC_PREDICTOR_128(8, 8, q)
+HIGHBD_DC_PREDICTOR_128(8, 16, q)
+HIGHBD_DC_PREDICTOR_128(8, 32, q)
+HIGHBD_DC_PREDICTOR_128(16, 4, q)
+HIGHBD_DC_PREDICTOR_128(16, 8, q)
+HIGHBD_DC_PREDICTOR_128(16, 16, q)
+HIGHBD_DC_PREDICTOR_128(16, 32, q)
+HIGHBD_DC_PREDICTOR_128(16, 64, q)
+HIGHBD_DC_PREDICTOR_128(32, 8, q)
+HIGHBD_DC_PREDICTOR_128(32, 16, q)
+HIGHBD_DC_PREDICTOR_128(32, 32, q)
+HIGHBD_DC_PREDICTOR_128(32, 64, q)
+HIGHBD_DC_PREDICTOR_128(64, 16, q)
+HIGHBD_DC_PREDICTOR_128(64, 32, q)
+HIGHBD_DC_PREDICTOR_128(64, 64, q)
+
+#undef HIGHBD_DC_PREDICTOR_128
