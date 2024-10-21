@@ -1120,5 +1120,10 @@ INSTANTIATE_TEST_SUITE_P(AVX2, ComputeCulLevelTest,
 #ifdef ARCH_AARCH64
 INSTANTIATE_TEST_SUITE_P(NEON, ComputeCulLevelTest,
                          ::testing::Values(svt_av1_compute_cul_level_neon));
+
+#if HAVE_SVE
+INSTANTIATE_TEST_SUITE_P(SVE, ComputeCulLevelTest,
+                         ::testing::Values(svt_av1_compute_cul_level_sve));
+#endif  // HAVE_SVE
 #endif  // ARCH_AARCH64
 }  // namespace

@@ -1377,6 +1377,7 @@ extern "C" {
                                                         uint32_t *p_best_mv64x64, uint32_t mv, uint32_t p_sad32x32[4][8]);
 
     uint8_t svt_av1_compute_cul_level_neon(const int16_t *const scan, const int32_t *const quant_coeff, uint16_t *eob);
+    uint8_t svt_av1_compute_cul_level_sve(const int16_t *const scan, const int32_t *const quant_coeff, uint16_t *eob);
 
     void svt_aom_apply_filtering_central_neon(struct MeContext *me_ctx, EbPictureBufferDesc *input_picture_ptr_central,
                                               EbByte *src, uint32_t **accum, uint16_t **count, uint16_t blk_width,

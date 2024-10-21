@@ -941,7 +941,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_av1_highbd_resize_plane, svt_av1_highbd_resize_plane_c);
 #endif
     SET_ONLY_C(svt_av1_resize_plane, svt_av1_resize_plane_c);
-    SET_NEON(svt_av1_compute_cul_level, svt_av1_compute_cul_level_c, svt_av1_compute_cul_level_neon);
+    SET_NEON_SVE(svt_av1_compute_cul_level, svt_av1_compute_cul_level_c, svt_av1_compute_cul_level_neon, svt_av1_compute_cul_level_sve);
     SET_ONLY_C(svt_ssim_8x8, svt_ssim_8x8_c);
     SET_ONLY_C(svt_ssim_4x4, svt_ssim_4x4_c);
     SET_ONLY_C(svt_ssim_8x8_hbd, svt_ssim_8x8_hbd_c);

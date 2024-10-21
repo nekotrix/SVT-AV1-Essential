@@ -19,6 +19,7 @@ check_both_flags_add(-march=armv8.2-a+dotprod+i8mm+sve)
 target_sources(
   ASM_SVE
   PUBLIC aom_sum_squares_sve.c
+  PUBLIC av1_quantize_sve.c
   PUBLIC block_error_sve.c
   PUBLIC cdef_sve.c
   PUBLIC compute_sad_sve.c
