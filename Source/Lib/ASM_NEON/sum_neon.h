@@ -51,4 +51,31 @@ static INLINE uint32x4_t horizontal_add_4d_u16x8(const uint16x8_t sum[4]) {
     return vpaddlq_u16(b0);
 }
 
+static INLINE uint64_t horizontal_long_add_u32x4_x2(const uint32x4_t a[2]) {
+    return vaddlvq_u32(a[0]) + vaddlvq_u32(a[1]);
+}
+
+static INLINE uint64_t horizontal_long_add_u32x4_x4(const uint32x4_t a[4]) {
+    uint64x2_t sum = vpaddlq_u32(a[0]);
+    sum            = vpadalq_u32(sum, a[1]);
+    sum            = vpadalq_u32(sum, a[2]);
+    sum            = vpadalq_u32(sum, a[3]);
+
+    return vaddvq_u64(sum);
+}
+
+static INLINE uint64_t horizontal_long_add_u32x4_x8(const uint32x4_t a[8]) {
+    uint64x2_t sum[2];
+    sum[0] = vpaddlq_u32(a[0]);
+    sum[1] = vpaddlq_u32(a[1]);
+    sum[0] = vpadalq_u32(sum[0], a[2]);
+    sum[1] = vpadalq_u32(sum[1], a[3]);
+    sum[0] = vpadalq_u32(sum[0], a[4]);
+    sum[1] = vpadalq_u32(sum[1], a[5]);
+    sum[0] = vpadalq_u32(sum[0], a[6]);
+    sum[1] = vpadalq_u32(sum[1], a[7]);
+
+    return vaddvq_u64(vaddq_u64(sum[0], sum[1]));
+}
+
 #endif // AOM_AOM_DSP_ARM_SUM_NEON_H_

@@ -13,266 +13,255 @@
 
 #include "aom_dsp_rtcd.h"
 #include "mem_neon.h"
+#include "sum_neon.h"
 
-static INLINE uint32_t highbd_sse_W8x1_neon(uint16x8_t q2, uint16x8_t q3) {
-    uint32_t         sse;
-    const uint32_t   sse1 = 0;
-    const uint32x4_t q1   = vld1q_dup_u32(&sse1);
+static INLINE void highbd_sse_8x1_init_neon(const uint16_t *src, const uint16_t *ref, uint32x4_t *sse_acc0,
+                                            uint32x4_t *sse_acc1) {
+    uint16x8_t s = vld1q_u16(src);
+    uint16x8_t r = vld1q_u16(ref);
 
-    uint16x8_t q4 = vabdq_u16(q2, q3); // diff = abs(a[x] - b[x])
-    uint16x4_t d0 = vget_low_u16(q4);
-    uint16x4_t d1 = vget_high_u16(q4);
+    uint16x8_t abs_diff    = vabdq_u16(s, r);
+    uint16x4_t abs_diff_lo = vget_low_u16(abs_diff);
+    uint16x4_t abs_diff_hi = vget_high_u16(abs_diff);
 
-    uint32x4_t q6 = vmlal_u16(q1, d0, d0);
-    uint32x4_t q7 = vmlal_u16(q1, d1, d1);
+    *sse_acc0 = vmull_u16(abs_diff_lo, abs_diff_lo);
+    *sse_acc1 = vmull_u16(abs_diff_hi, abs_diff_hi);
+}
 
-    uint32x2_t d4 = vadd_u32(vget_low_u32(q6), vget_high_u32(q6));
-    uint32x2_t d5 = vadd_u32(vget_low_u32(q7), vget_high_u32(q7));
+static INLINE void highbd_sse_8x1_neon(const uint16_t *src, const uint16_t *ref, uint32x4_t *sse_acc0,
+                                       uint32x4_t *sse_acc1) {
+    uint16x8_t s = vld1q_u16(src);
+    uint16x8_t r = vld1q_u16(ref);
 
-    uint32x2_t d6 = vadd_u32(d4, d5);
+    uint16x8_t abs_diff    = vabdq_u16(s, r);
+    uint16x4_t abs_diff_lo = vget_low_u16(abs_diff);
+    uint16x4_t abs_diff_hi = vget_high_u16(abs_diff);
 
-    sse = vget_lane_u32(d6, 0);
-    sse += vget_lane_u32(d6, 1);
+    *sse_acc0 = vmlal_u16(*sse_acc0, abs_diff_lo, abs_diff_lo);
+    *sse_acc1 = vmlal_u16(*sse_acc1, abs_diff_hi, abs_diff_hi);
+}
+
+static INLINE int64_t highbd_sse_128xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+                                            int height) {
+    uint32x4_t sse[8];
+    highbd_sse_8x1_init_neon(src + 0 * 8, ref + 0 * 8, &sse[0], &sse[1]);
+    highbd_sse_8x1_init_neon(src + 1 * 8, ref + 1 * 8, &sse[2], &sse[3]);
+    highbd_sse_8x1_init_neon(src + 2 * 8, ref + 2 * 8, &sse[4], &sse[5]);
+    highbd_sse_8x1_init_neon(src + 3 * 8, ref + 3 * 8, &sse[6], &sse[7]);
+    highbd_sse_8x1_neon(src + 4 * 8, ref + 4 * 8, &sse[0], &sse[1]);
+    highbd_sse_8x1_neon(src + 5 * 8, ref + 5 * 8, &sse[2], &sse[3]);
+    highbd_sse_8x1_neon(src + 6 * 8, ref + 6 * 8, &sse[4], &sse[5]);
+    highbd_sse_8x1_neon(src + 7 * 8, ref + 7 * 8, &sse[6], &sse[7]);
+    highbd_sse_8x1_neon(src + 8 * 8, ref + 8 * 8, &sse[0], &sse[1]);
+    highbd_sse_8x1_neon(src + 9 * 8, ref + 9 * 8, &sse[2], &sse[3]);
+    highbd_sse_8x1_neon(src + 10 * 8, ref + 10 * 8, &sse[4], &sse[5]);
+    highbd_sse_8x1_neon(src + 11 * 8, ref + 11 * 8, &sse[6], &sse[7]);
+    highbd_sse_8x1_neon(src + 12 * 8, ref + 12 * 8, &sse[0], &sse[1]);
+    highbd_sse_8x1_neon(src + 13 * 8, ref + 13 * 8, &sse[2], &sse[3]);
+    highbd_sse_8x1_neon(src + 14 * 8, ref + 14 * 8, &sse[4], &sse[5]);
+    highbd_sse_8x1_neon(src + 15 * 8, ref + 15 * 8, &sse[6], &sse[7]);
+
+    src += src_stride;
+    ref += ref_stride;
+
+    while (--height != 0) {
+        highbd_sse_8x1_neon(src + 0 * 8, ref + 0 * 8, &sse[0], &sse[1]);
+        highbd_sse_8x1_neon(src + 1 * 8, ref + 1 * 8, &sse[2], &sse[3]);
+        highbd_sse_8x1_neon(src + 2 * 8, ref + 2 * 8, &sse[4], &sse[5]);
+        highbd_sse_8x1_neon(src + 3 * 8, ref + 3 * 8, &sse[6], &sse[7]);
+        highbd_sse_8x1_neon(src + 4 * 8, ref + 4 * 8, &sse[0], &sse[1]);
+        highbd_sse_8x1_neon(src + 5 * 8, ref + 5 * 8, &sse[2], &sse[3]);
+        highbd_sse_8x1_neon(src + 6 * 8, ref + 6 * 8, &sse[4], &sse[5]);
+        highbd_sse_8x1_neon(src + 7 * 8, ref + 7 * 8, &sse[6], &sse[7]);
+        highbd_sse_8x1_neon(src + 8 * 8, ref + 8 * 8, &sse[0], &sse[1]);
+        highbd_sse_8x1_neon(src + 9 * 8, ref + 9 * 8, &sse[2], &sse[3]);
+        highbd_sse_8x1_neon(src + 10 * 8, ref + 10 * 8, &sse[4], &sse[5]);
+        highbd_sse_8x1_neon(src + 11 * 8, ref + 11 * 8, &sse[6], &sse[7]);
+        highbd_sse_8x1_neon(src + 12 * 8, ref + 12 * 8, &sse[0], &sse[1]);
+        highbd_sse_8x1_neon(src + 13 * 8, ref + 13 * 8, &sse[2], &sse[3]);
+        highbd_sse_8x1_neon(src + 14 * 8, ref + 14 * 8, &sse[4], &sse[5]);
+        highbd_sse_8x1_neon(src + 15 * 8, ref + 15 * 8, &sse[6], &sse[7]);
+
+        src += src_stride;
+        ref += ref_stride;
+    }
+
+    return horizontal_long_add_u32x4_x8(sse);
+}
+
+static INLINE int64_t highbd_sse_64xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+                                           int height) {
+    uint32x4_t sse[8];
+    highbd_sse_8x1_init_neon(src + 0 * 8, ref + 0 * 8, &sse[0], &sse[1]);
+    highbd_sse_8x1_init_neon(src + 1 * 8, ref + 1 * 8, &sse[2], &sse[3]);
+    highbd_sse_8x1_init_neon(src + 2 * 8, ref + 2 * 8, &sse[4], &sse[5]);
+    highbd_sse_8x1_init_neon(src + 3 * 8, ref + 3 * 8, &sse[6], &sse[7]);
+    highbd_sse_8x1_neon(src + 4 * 8, ref + 4 * 8, &sse[0], &sse[1]);
+    highbd_sse_8x1_neon(src + 5 * 8, ref + 5 * 8, &sse[2], &sse[3]);
+    highbd_sse_8x1_neon(src + 6 * 8, ref + 6 * 8, &sse[4], &sse[5]);
+    highbd_sse_8x1_neon(src + 7 * 8, ref + 7 * 8, &sse[6], &sse[7]);
+
+    src += src_stride;
+    ref += ref_stride;
+
+    while (--height != 0) {
+        highbd_sse_8x1_neon(src + 0 * 8, ref + 0 * 8, &sse[0], &sse[1]);
+        highbd_sse_8x1_neon(src + 1 * 8, ref + 1 * 8, &sse[2], &sse[3]);
+        highbd_sse_8x1_neon(src + 2 * 8, ref + 2 * 8, &sse[4], &sse[5]);
+        highbd_sse_8x1_neon(src + 3 * 8, ref + 3 * 8, &sse[6], &sse[7]);
+        highbd_sse_8x1_neon(src + 4 * 8, ref + 4 * 8, &sse[0], &sse[1]);
+        highbd_sse_8x1_neon(src + 5 * 8, ref + 5 * 8, &sse[2], &sse[3]);
+        highbd_sse_8x1_neon(src + 6 * 8, ref + 6 * 8, &sse[4], &sse[5]);
+        highbd_sse_8x1_neon(src + 7 * 8, ref + 7 * 8, &sse[6], &sse[7]);
+
+        src += src_stride;
+        ref += ref_stride;
+    }
+
+    return horizontal_long_add_u32x4_x8(sse);
+}
+
+static INLINE int64_t highbd_sse_32xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+                                           int height) {
+    uint32x4_t sse[8];
+    highbd_sse_8x1_init_neon(src + 0 * 8, ref + 0 * 8, &sse[0], &sse[1]);
+    highbd_sse_8x1_init_neon(src + 1 * 8, ref + 1 * 8, &sse[2], &sse[3]);
+    highbd_sse_8x1_init_neon(src + 2 * 8, ref + 2 * 8, &sse[4], &sse[5]);
+    highbd_sse_8x1_init_neon(src + 3 * 8, ref + 3 * 8, &sse[6], &sse[7]);
+
+    src += src_stride;
+    ref += ref_stride;
+
+    while (--height != 0) {
+        highbd_sse_8x1_neon(src + 0 * 8, ref + 0 * 8, &sse[0], &sse[1]);
+        highbd_sse_8x1_neon(src + 1 * 8, ref + 1 * 8, &sse[2], &sse[3]);
+        highbd_sse_8x1_neon(src + 2 * 8, ref + 2 * 8, &sse[4], &sse[5]);
+        highbd_sse_8x1_neon(src + 3 * 8, ref + 3 * 8, &sse[6], &sse[7]);
+
+        src += src_stride;
+        ref += ref_stride;
+    }
+
+    return horizontal_long_add_u32x4_x8(sse);
+}
+
+static INLINE int64_t highbd_sse_16xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+                                           int height) {
+    uint32x4_t sse[4];
+    highbd_sse_8x1_init_neon(src + 0 * 8, ref + 0 * 8, &sse[0], &sse[1]);
+    highbd_sse_8x1_init_neon(src + 1 * 8, ref + 1 * 8, &sse[2], &sse[3]);
+
+    src += src_stride;
+    ref += ref_stride;
+
+    while (--height != 0) {
+        highbd_sse_8x1_neon(src + 0 * 8, ref + 0 * 8, &sse[0], &sse[1]);
+        highbd_sse_8x1_neon(src + 1 * 8, ref + 1 * 8, &sse[2], &sse[3]);
+
+        src += src_stride;
+        ref += ref_stride;
+    }
+
+    return horizontal_long_add_u32x4_x4(sse);
+}
+
+static INLINE int64_t highbd_sse_8xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+                                          int height) {
+    uint32x4_t sse[2];
+    highbd_sse_8x1_init_neon(src, ref, &sse[0], &sse[1]);
+
+    src += src_stride;
+    ref += ref_stride;
+
+    while (--height != 0) {
+        highbd_sse_8x1_neon(src, ref, &sse[0], &sse[1]);
+
+        src += src_stride;
+        ref += ref_stride;
+    }
+
+    return horizontal_long_add_u32x4_x2(sse);
+}
+
+static INLINE int64_t highbd_sse_4xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+                                          int height) {
+    // Peel the first loop iteration.
+    uint16x4_t s = vld1_u16(src);
+    uint16x4_t r = vld1_u16(ref);
+
+    uint16x4_t abs_diff = vabd_u16(s, r);
+    uint32x4_t sse      = vmull_u16(abs_diff, abs_diff);
+
+    src += src_stride;
+    ref += ref_stride;
+
+    while (--height != 0) {
+        s = vld1_u16(src);
+        r = vld1_u16(ref);
+
+        abs_diff = vabd_u16(s, r);
+        sse      = vmlal_u16(sse, abs_diff, abs_diff);
+
+        src += src_stride;
+        ref += ref_stride;
+    }
+
+    return vaddlvq_u32(sse);
+}
+
+static INLINE int64_t highbd_sse_wxh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+                                          int width, int height) {
+    // { 0, 1, 2, 3, 4, 5, 6, 7 }
+    uint16x8_t k01234567      = vmovl_u8(vcreate_u8(0x0706050403020100));
+    uint16x8_t remainder_mask = vcltq_u16(k01234567, vdupq_n_u16(width & 7));
+    uint64_t   sse            = 0;
+
+    do {
+        int w      = width;
+        int offset = 0;
+
+        do {
+            uint16x8_t s = vld1q_u16(src + offset);
+            uint16x8_t r = vld1q_u16(ref + offset);
+
+            if (w < 8) {
+                // Mask out-of-range elements.
+                s = vandq_u16(s, remainder_mask);
+                r = vandq_u16(r, remainder_mask);
+            }
+
+            uint16x8_t abs_diff    = vabdq_u16(s, r);
+            uint16x4_t abs_diff_lo = vget_low_u16(abs_diff);
+            uint16x4_t abs_diff_hi = vget_high_u16(abs_diff);
+
+            uint32x4_t sse_u32 = vmull_u16(abs_diff_lo, abs_diff_lo);
+            sse_u32            = vmlal_u16(sse_u32, abs_diff_hi, abs_diff_hi);
+
+            sse += vaddlvq_u32(sse_u32);
+
+            offset += 8;
+            w -= 8;
+        } while (w > 0);
+
+        src += src_stride;
+        ref += ref_stride;
+    } while (--height != 0);
 
     return sse;
 }
 
-int64_t svt_aom_highbd_sse_neon(const uint8_t *a8, int a_stride, const uint8_t *b8, int b_stride, int width,
+int64_t svt_aom_highbd_sse_neon(const uint8_t *src8, int src_stride, const uint8_t *ref8, int ref_stride, int width,
                                 int height) {
-    static const uint16_t k01234567[8] = {0, 1, 2, 3, 4, 5, 6, 7};
-    const uint16x8_t      q0           = vld1q_u16(k01234567);
-    int64_t               sse          = 0;
-    uint16_t             *a            = (uint16_t *)a8;
-    uint16_t             *b            = (uint16_t *)b8;
-    int                   x, y;
-    int                   addinc;
-    uint16x4_t            d0, d1, d2, d3;
-    uint16_t              dx;
-    uint16x8_t            q2, q3, q4, q5;
+    uint16_t *src = (uint16_t *)src8;
+    uint16_t *ref = (uint16_t *)ref8;
 
     switch (width) {
-    case 4:
-        for (y = 0; y < height; y += 2) {
-            d0 = vld1_u16(a); // load 4 data
-            a += a_stride;
-            d1 = vld1_u16(a);
-            a += a_stride;
-
-            d2 = vld1_u16(b);
-            b += b_stride;
-            d3 = vld1_u16(b);
-            b += b_stride;
-            q2 = vcombine_u16(d0, d1); // make a 8 data vector
-            q3 = vcombine_u16(d2, d3);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-        }
-        break;
-    case 8:
-        for (y = 0; y < height; y++) {
-            q2 = vld1q_u16(a);
-            q3 = vld1q_u16(b);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            a += a_stride;
-            b += b_stride;
-        }
-        break;
-    case 16:
-        for (y = 0; y < height; y++) {
-            q2 = vld1q_u16(a);
-            q3 = vld1q_u16(b);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 8);
-            q3 = vld1q_u16(b + 8);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            a += a_stride;
-            b += b_stride;
-        }
-        break;
-    case 32:
-        for (y = 0; y < height; y++) {
-            q2 = vld1q_u16(a);
-            q3 = vld1q_u16(b);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 8);
-            q3 = vld1q_u16(b + 8);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 16);
-            q3 = vld1q_u16(b + 16);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 24);
-            q3 = vld1q_u16(b + 24);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            a += a_stride;
-            b += b_stride;
-        }
-        break;
-    case 64:
-        for (y = 0; y < height; y++) {
-            q2 = vld1q_u16(a);
-            q3 = vld1q_u16(b);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 8);
-            q3 = vld1q_u16(b + 8);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 16);
-            q3 = vld1q_u16(b + 16);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 24);
-            q3 = vld1q_u16(b + 24);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 32);
-            q3 = vld1q_u16(b + 32);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 40);
-            q3 = vld1q_u16(b + 40);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 48);
-            q3 = vld1q_u16(b + 48);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 56);
-            q3 = vld1q_u16(b + 56);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            a += a_stride;
-            b += b_stride;
-        }
-        break;
-    case 128:
-        for (y = 0; y < height; y++) {
-            q2 = vld1q_u16(a);
-            q3 = vld1q_u16(b);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 8);
-            q3 = vld1q_u16(b + 8);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 16);
-            q3 = vld1q_u16(b + 16);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 24);
-            q3 = vld1q_u16(b + 24);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 32);
-            q3 = vld1q_u16(b + 32);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 40);
-            q3 = vld1q_u16(b + 40);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 48);
-            q3 = vld1q_u16(b + 48);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 56);
-            q3 = vld1q_u16(b + 56);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 64);
-            q3 = vld1q_u16(b + 64);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 72);
-            q3 = vld1q_u16(b + 72);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 80);
-            q3 = vld1q_u16(b + 80);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 88);
-            q3 = vld1q_u16(b + 88);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 96);
-            q3 = vld1q_u16(b + 96);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 104);
-            q3 = vld1q_u16(b + 104);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 112);
-            q3 = vld1q_u16(b + 112);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-
-            q2 = vld1q_u16(a + 120);
-            q3 = vld1q_u16(b + 120);
-
-            sse += highbd_sse_W8x1_neon(q2, q3);
-            a += a_stride;
-            b += b_stride;
-        }
-        break;
-    default:
-
-        for (y = 0; y < height; y++) {
-            x = width;
-            while (x > 0) {
-                addinc = width - x;
-                q2     = vld1q_u16(a + addinc);
-                q3     = vld1q_u16(b + addinc);
-                if (x < 8) {
-                    dx = x;
-                    q4 = vld1q_dup_u16(&dx);
-                    q5 = vcltq_u16(q0, q4);
-                    q2 = vandq_u16(q2, q5);
-                    q3 = vandq_u16(q3, q5);
-                }
-                sse += highbd_sse_W8x1_neon(q2, q3);
-                x -= 8;
-            }
-            a += a_stride;
-            b += b_stride;
-        }
+    case 4: return highbd_sse_4xh_neon(src, src_stride, ref, ref_stride, height);
+    case 8: return highbd_sse_8xh_neon(src, src_stride, ref, ref_stride, height);
+    case 16: return highbd_sse_16xh_neon(src, src_stride, ref, ref_stride, height);
+    case 32: return highbd_sse_32xh_neon(src, src_stride, ref, ref_stride, height);
+    case 64: return highbd_sse_64xh_neon(src, src_stride, ref, ref_stride, height);
+    case 128: return highbd_sse_128xh_neon(src, src_stride, ref, ref_stride, height);
+    default: return highbd_sse_wxh_neon(src, src_stride, ref, ref_stride, width, height);
     }
-    return (int64_t)sse;
 }
