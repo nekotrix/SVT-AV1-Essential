@@ -293,8 +293,8 @@ class FullDistortionKernel16BitsFuncTest
     }
 
     void init_data(TestPattern pattern) {
-        /// Support up to 15 bit depth
-        const uint16_t mask = (1 << 15) - 1;
+        /// Support up to 10 bit depth
+        const uint16_t mask = (1 << 10) - 1;
         uint16_t *input_16bit = (uint16_t *)input_;
         uint16_t *recon_16bit = (uint16_t *)recon_;
         SVTRandom rnd = SVTRandom(0, mask);
