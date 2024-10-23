@@ -290,14 +290,14 @@ void svt_aom_hadamard_32x32_neon(const int16_t *src_diff, ptrdiff_t src_stride, 
 void svt_full_distortion_kernel32_bits_neon(int32_t *coeff, uint32_t coeff_stride, int32_t *recon_coeff,
                                             uint32_t recon_coeff_stride, uint64_t distortion_result[DIST_CALC_TOTAL],
                                             uint32_t area_width, uint32_t area_height) {
-    int64x2_t sum1      = vdupq_n_s64(0);
-    int64x2_t sum2      = vdupq_n_s64(0);
-    uint32_t  row_count = area_height;
+    int64x2_t residual_distortion = vdupq_n_s64(0);
+    int64x2_t residual_prediction = vdupq_n_s64(0);
+
     do {
         int32_t *coeff_temp       = coeff;
         int32_t *recon_coeff_temp = recon_coeff;
 
-        uint32_t col_count = area_width / 4;
+        uint32_t col_count = area_width;
         do {
             int32x4_t x0 = vld1q_s32(coeff_temp);
             int32x4_t y0 = vld1q_s32(recon_coeff_temp);
@@ -307,34 +307,25 @@ void svt_full_distortion_kernel32_bits_neon(int32_t *coeff, uint32_t coeff_strid
             int32x2_t y_lo = vget_low_s32(y0);
             int32x2_t y_hi = vget_high_s32(y0);
 
-            sum2 = vmlal_s32(sum2, x_lo, x_lo);
-            sum2 = vmlal_s32(sum2, x_hi, x_hi);
+            residual_prediction = vmlal_s32(residual_prediction, x_lo, x_lo);
+            residual_prediction = vmlal_s32(residual_prediction, x_hi, x_hi);
 
             int32x2_t x_lo_sub = vsub_s32(x_lo, y_lo);
             int32x2_t x_hi_sub = vsub_s32(x_hi, y_hi);
 
-            int64x2_t x_lo_wide = vmull_s32(x_lo_sub, x_lo_sub);
-            int64x2_t x_hi_wide = vmull_s32(x_hi_sub, x_hi_sub);
-
-            sum1 = vaddq_s64(sum1, x_lo_wide);
-            sum1 = vaddq_s64(sum1, x_hi_wide);
+            residual_distortion = vmlal_s32(residual_distortion, x_lo_sub, x_lo_sub);
+            residual_distortion = vmlal_s32(residual_distortion, x_hi_sub, x_hi_sub);
 
             coeff_temp += 4;
             recon_coeff_temp += 4;
-        } while (--col_count);
+            col_count -= 4;
+        } while (col_count != 0);
 
         coeff += coeff_stride;
         recon_coeff += recon_coeff_stride;
-        row_count -= 1;
-    } while (row_count > 0);
+    } while (--area_height != 0);
 
-    int64x2_t tmp  = vcombine_s64(vget_high_s64(sum1), vget_low_s64(sum1));
-    int64x2_t tmp2 = vaddq_s64(sum1, tmp);
-    tmp            = vcombine_s64(vget_high_s64(sum2), vget_low_s64(sum2));
-    int64x2_t tmp3 = vaddq_s64(sum2, tmp);
-    tmp3           = vcombine_s64(vget_low_s64(tmp2), vget_low_s64(tmp3));
-
-    vst1q_s64((int64_t *)distortion_result, tmp3);
+    vst1q_s64((int64_t *)distortion_result, vpaddq_s64(residual_distortion, residual_prediction));
 }
 
 static INLINE void unpack_and_2bcompress_32_neon(uint16_t *in16b_buffer, uint8_t *out8b_buffer, uint8_t *out2b_buffer,
