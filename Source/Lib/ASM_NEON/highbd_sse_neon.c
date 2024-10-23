@@ -265,3 +265,22 @@ int64_t svt_aom_highbd_sse_neon(const uint8_t *src8, int src_stride, const uint8
     default: return highbd_sse_wxh_neon(src, src_stride, ref, ref_stride, width, height);
     }
 }
+
+uint64_t svt_full_distortion_kernel16_bits_neon(uint8_t *input8, uint32_t input_offset, uint32_t input_stride,
+                                                uint8_t *recon8, int32_t recon_offset, uint32_t recon_stride,
+                                                uint32_t area_width, uint32_t area_height) {
+    uint16_t *input = (uint16_t *)input8;
+    uint16_t *recon = (uint16_t *)recon8;
+    input += input_offset;
+    recon += recon_offset;
+
+    switch (area_width) {
+    case 4: return highbd_sse_4xh_neon(input, input_stride, recon, recon_stride, area_height);
+    case 8: return highbd_sse_8xh_neon(input, input_stride, recon, recon_stride, area_height);
+    case 16: return highbd_sse_16xh_neon(input, input_stride, recon, recon_stride, area_height);
+    case 32: return highbd_sse_32xh_neon(input, input_stride, recon, recon_stride, area_height);
+    case 64: return highbd_sse_64xh_neon(input, input_stride, recon, recon_stride, area_height);
+    case 128: return highbd_sse_128xh_neon(input, input_stride, recon, recon_stride, area_height);
+    default: return highbd_sse_wxh_neon(input, input_stride, recon, recon_stride, area_width, area_height);
+    }
+}
