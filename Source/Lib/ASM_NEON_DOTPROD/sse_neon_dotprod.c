@@ -199,3 +199,19 @@ int64_t svt_aom_sse_neon_dotprod(const uint8_t *src, int src_stride, const uint8
     default: return sse_wxh_neon_dotprod(src, src_stride, ref, ref_stride, width, height);
     }
 }
+
+uint64_t svt_spatial_full_distortion_kernel_neon_dotprod(uint8_t *src, uint32_t src_offset, uint32_t src_stride,
+                                                         uint8_t *ref, int32_t ref_offset, uint32_t ref_stride,
+                                                         uint32_t width, uint32_t height) {
+    src += src_offset;
+    ref += ref_offset;
+    switch (width) {
+    case 4: return sse_4xh_neon_dotprod(src, src_stride, ref, ref_stride, height);
+    case 8: return sse_8xh_neon_dotprod(src, src_stride, ref, ref_stride, height);
+    case 16: return sse_16xh_neon_dotprod(src, src_stride, ref, ref_stride, height);
+    case 32: return sse_32xh_neon_dotprod(src, src_stride, ref, ref_stride, height);
+    case 64: return sse_64xh_neon_dotprod(src, src_stride, ref, ref_stride, height);
+    case 128: return sse_128xh_neon_dotprod(src, src_stride, ref, ref_stride, height);
+    default: return sse_wxh_neon_dotprod(src, src_stride, ref, ref_stride, width, height);
+    }
+}

@@ -276,6 +276,14 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Combine(
         ::testing::ValuesIn(TEST_AREA_SIZES),
         ::testing::Values(svt_spatial_full_distortion_kernel_neon)));
+
+#if HAVE_NEON_DOTPROD
+INSTANTIATE_TEST_SUITE_P(
+    NEON_DOTPROD, SpatialFullDistortionKernelFuncTest,
+    ::testing::Combine(
+        ::testing::ValuesIn(TEST_AREA_SIZES),
+        ::testing::Values(svt_spatial_full_distortion_kernel_neon_dotprod)));
+#endif  // HAVE_NEON_DOTPROD
 #endif  // ARCH_AARCH64
 
 class FullDistortionKernel16BitsFuncTest
