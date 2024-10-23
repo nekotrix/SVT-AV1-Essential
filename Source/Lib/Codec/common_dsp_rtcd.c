@@ -1051,7 +1051,7 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
     SET_NEON(svt_full_distortion_kernel_cbf_zero32_bits, svt_full_distortion_kernel_cbf_zero32_bits_c, svt_full_distortion_kernel_cbf_zero32_bits_neon);
     SET_NEON(svt_full_distortion_kernel32_bits, svt_full_distortion_kernel32_bits_c, svt_full_distortion_kernel32_bits_neon);
     SET_NEON_NEON_DOTPROD(svt_spatial_full_distortion_kernel, svt_spatial_full_distortion_kernel_c, svt_spatial_full_distortion_kernel_neon, svt_spatial_full_distortion_kernel_neon_dotprod);
-    SET_NEON(svt_full_distortion_kernel16_bits, svt_full_distortion_kernel16_bits_c, svt_full_distortion_kernel16_bits_neon);
+    SET_NEON_SVE(svt_full_distortion_kernel16_bits, svt_full_distortion_kernel16_bits_c, svt_full_distortion_kernel16_bits_neon, svt_full_distortion_kernel16_bits_sve);
     SET_NEON(svt_residual_kernel8bit, svt_residual_kernel8bit_c, svt_residual_kernel8bit_neon);
     SET_NEON(svt_residual_kernel16bit, svt_residual_kernel16bit_c, svt_residual_kernel16bit_neon);
     SET_ONLY_C(svt_picture_average_kernel, svt_picture_average_kernel_c);

@@ -480,6 +480,13 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::ValuesIn(TEST_AREA_SIZES),
         ::testing::Values(svt_full_distortion_kernel16_bits_neon)));
 
+#if HAVE_SVE
+INSTANTIATE_TEST_SUITE_P(
+    SVE, FullDistortionKernel16BitsFuncTest,
+    ::testing::Combine(
+        ::testing::ValuesIn(TEST_AREA_SIZES),
+        ::testing::Values(svt_full_distortion_kernel16_bits_sve)));
+#endif  // HAVE_SVE
 #endif
 
 typedef void (*FullDistortionKernel32BitsFunc)(
