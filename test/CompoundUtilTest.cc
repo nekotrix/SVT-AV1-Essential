@@ -564,6 +564,13 @@ INSTANTIATE_TEST_SUITE_P(
                                     svt_aom_highbd_blend_a64_d16_mask_avx2)}));
 #endif  // ARCH_X86_64
 
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, HbdCompBlendD16Test,
+    ::testing::ValuesIn({make_tuple(svt_aom_highbd_blend_a64_d16_mask_c,
+                                    svt_aom_highbd_blend_a64_d16_mask_neon)}));
+#endif  // ARCH_AARCH64
+
 using HbdBlendA64HMaskFunc = void (*)(uint8_t *, uint32_t, const uint8_t *,
                                       uint32_t, const uint8_t *, uint32_t,
                                       const uint8_t *, int, int, int);
