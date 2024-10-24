@@ -1154,6 +1154,13 @@ static INLINE void store_unaligned_u16_4x2(uint16_t *dst, uint32_t dst_stride, u
     store_unaligned_u16_4x1(dst, src, 1);
 }
 
+// The `lane` parameter here must be an immediate.
+#define store_u8_2x1_lane(dst, src, lane)                           \
+    do {                                                            \
+        uint16_t a = vget_lane_u16(vreinterpret_u16_u8(src), lane); \
+        memcpy(dst, &a, 2);                                         \
+    } while (0)
+
 #define store_u8_4x1_lane(dst, src, lane)                           \
     do {                                                            \
         uint32_t a = vget_lane_u32(vreinterpret_u32_u8(src), lane); \
@@ -1166,7 +1173,16 @@ static INLINE void store_u8x4_strided_x2(uint8_t *dst, ptrdiff_t stride, uint8x8
     dst += stride;
     store_u8_4x1_lane(dst, src, 1);
 }
+
+// Store two blocks of 16-bits from a single vector.
+static inline void store_u8x2_strided_x2(uint8_t *dst, uint32_t dst_stride, uint8x8_t src) {
+    store_u8_2x1_lane(dst, src, 0);
+    dst += dst_stride;
+    store_u8_2x1_lane(dst, src, 1);
+}
+
 #undef store_u8_4x1_lane
+#undef store_u8_2x1_lane
 
 #define store_s16_4x1_lane(dst, src, lane)                            \
     do {                                                              \
