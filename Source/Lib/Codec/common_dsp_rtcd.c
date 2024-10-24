@@ -466,8 +466,6 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
     SET_SSE41_AVX2(svt_aom_blend_a64_vmask, svt_aom_blend_a64_vmask_c, svt_aom_blend_a64_vmask_sse4_1, svt_av1_blend_a64_vmask_avx2);
     SET_SSE41_AVX2(svt_aom_lowbd_blend_a64_d16_mask, svt_aom_lowbd_blend_a64_d16_mask_c, svt_aom_lowbd_blend_a64_d16_mask_sse4_1, svt_aom_lowbd_blend_a64_d16_mask_avx2);
     SET_SSE41(svt_aom_highbd_blend_a64_mask, svt_aom_highbd_blend_a64_mask_c, svt_aom_highbd_blend_a64_mask_8bit_sse4_1);
-    SET_SSE41(svt_aom_highbd_blend_a64_hmask_8bit, svt_aom_highbd_blend_a64_hmask_8bit_c, svt_aom_highbd_blend_a64_hmask_8bit_sse4_1);
-    SET_SSE41(svt_aom_highbd_blend_a64_vmask_8bit, svt_aom_highbd_blend_a64_vmask_8bit_c, svt_aom_highbd_blend_a64_vmask_8bit_sse4_1);
     SET_SSE41_AVX2(svt_aom_highbd_blend_a64_vmask_16bit, svt_aom_highbd_blend_a64_vmask_16bit_c, svt_aom_highbd_blend_a64_vmask_16bit_sse4_1, svt_av1_highbd_blend_a64_vmask_16bit_avx2);
     SET_SSE41_AVX2(svt_aom_highbd_blend_a64_hmask_16bit, svt_aom_highbd_blend_a64_hmask_16bit_c, svt_aom_highbd_blend_a64_hmask_16bit_sse4_1, svt_av1_highbd_blend_a64_hmask_16bit_avx2);
     SET_SSE41_AVX2(svt_aom_highbd_blend_a64_d16_mask, svt_aom_highbd_blend_a64_d16_mask_c, svt_aom_highbd_blend_a64_d16_mask_sse4_1, svt_aom_highbd_blend_a64_d16_mask_avx2);
@@ -1001,8 +999,6 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
     SET_NEON(svt_aom_blend_a64_vmask, svt_aom_blend_a64_vmask_c, svt_aom_blend_a64_vmask_neon);
     SET_NEON(svt_aom_lowbd_blend_a64_d16_mask, svt_aom_lowbd_blend_a64_d16_mask_c, svt_aom_lowbd_blend_a64_d16_mask_neon);
     SET_NEON(svt_aom_highbd_blend_a64_mask, svt_aom_highbd_blend_a64_mask_c, svt_aom_highbd_blend_a64_mask_neon);
-    SET_ONLY_C(svt_aom_highbd_blend_a64_hmask_8bit, svt_aom_highbd_blend_a64_hmask_8bit_c);
-    SET_ONLY_C(svt_aom_highbd_blend_a64_vmask_8bit, svt_aom_highbd_blend_a64_vmask_8bit_c);
     SET_ONLY_C(svt_aom_highbd_blend_a64_vmask_16bit, svt_aom_highbd_blend_a64_vmask_16bit_c);
     SET_ONLY_C(svt_aom_highbd_blend_a64_hmask_16bit, svt_aom_highbd_blend_a64_hmask_16bit_c);
     SET_NEON(svt_aom_highbd_blend_a64_d16_mask, svt_aom_highbd_blend_a64_d16_mask_c, svt_aom_highbd_blend_a64_d16_mask_neon);
@@ -1529,8 +1525,6 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_aom_blend_a64_vmask, svt_aom_blend_a64_vmask_c);
     SET_ONLY_C(svt_aom_lowbd_blend_a64_d16_mask, svt_aom_lowbd_blend_a64_d16_mask_c);
     SET_ONLY_C(svt_aom_highbd_blend_a64_mask, svt_aom_highbd_blend_a64_mask_c);
-    SET_ONLY_C(svt_aom_highbd_blend_a64_hmask_8bit, svt_aom_highbd_blend_a64_hmask_8bit_c);
-    SET_ONLY_C(svt_aom_highbd_blend_a64_vmask_8bit, svt_aom_highbd_blend_a64_vmask_8bit_c);
     SET_ONLY_C(svt_aom_highbd_blend_a64_vmask_16bit, svt_aom_highbd_blend_a64_vmask_16bit_c);
     SET_ONLY_C(svt_aom_highbd_blend_a64_hmask_16bit, svt_aom_highbd_blend_a64_hmask_16bit_c);
     SET_ONLY_C(svt_aom_highbd_blend_a64_d16_mask, svt_aom_highbd_blend_a64_d16_mask_c);

@@ -978,51 +978,6 @@ static void blend_a64_vmask_b12_w8n_sse4_1(uint16_t *dst, uint32_t dst_stride, c
 // Dispatch
 //////////////////////////////////////////////////////////////////////////////
 
-void svt_aom_highbd_blend_a64_vmask_8bit_sse4_1(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
-                                                uint32_t src0_stride, const uint8_t *src1_8, uint32_t src1_stride,
-                                                const uint8_t *mask, int w, int h, int bd) {
-    typedef void (*BlendFn)(uint16_t * dst,
-                            uint32_t        dst_stride,
-                            const uint16_t *src0,
-                            uint32_t        src0_stride,
-                            const uint16_t *src1,
-                            uint32_t        src1_stride,
-                            const uint8_t  *mask,
-                            int             w,
-                            int             h);
-
-    assert(IMPLIES(src0_8 == dst_8, src0_stride == dst_stride));
-    assert(IMPLIES(src1_8 == dst_8, src1_stride == dst_stride));
-
-    assert(h >= 1);
-    assert(w >= 1);
-    assert(IS_POWER_OF_TWO(h));
-    assert(IS_POWER_OF_TWO(w));
-
-    assert(bd == 8 || bd == 10 || bd == 12);
-
-    if (EB_UNLIKELY((h | w) & 3)) { // if (w <= 2 || h <= 2)
-        svt_aom_highbd_blend_a64_vmask_8bit_c(
-            dst_8, dst_stride, src0_8, src0_stride, src1_8, src1_stride, mask, w, h, bd);
-    } else {
-        uint16_t *const       dst  = (uint16_t *)(dst_8); // CONVERT_TO_SHORTPTR(dst_8);
-        const uint16_t *const src0 = (uint16_t *)(src0_8); //CONVERT_TO_SHORTPTR(src0_8);
-        const uint16_t *const src1 = (uint16_t *)(src1_8); //CONVERT_TO_SHORTPTR(src1_8);
-        // Dimensions are: bd_index X width_index
-        static const BlendFn blend[2][2] = {{
-                                                // bd == 8 or 10
-                                                blend_a64_vmask_b10_w8n_sse4_1, // w % 8 == 0
-                                                blend_a64_vmask_b10_w4_sse4_1, // w == 4
-                                            },
-                                            {
-                                                // bd == 12
-                                                blend_a64_vmask_b12_w8n_sse4_1, // w % 8 == 0
-                                                blend_a64_vmask_b12_w4_sse4_1, // w == 4
-                                            }};
-        blend[bd == 12][(w >> 2) & 1](dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, w, h);
-    }
-}
-
 /*Horizontal related blend functions*/
 
 // To start out, just dispatch to the function using the 2D mask and
@@ -1031,13 +986,6 @@ void svt_aom_highbd_blend_a64_vmask_8bit_sse4_1(uint8_t *dst_8, uint32_t dst_str
 void svt_aom_blend_a64_hmask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0, uint32_t src0_stride,
                                     const uint8_t *src1, uint32_t src1_stride, const uint8_t *mask, int w, int h) {
     svt_aom_blend_a64_mask_sse4_1(dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, 0, w, h, 0, 0);
-}
-
-void svt_aom_highbd_blend_a64_hmask_8bit_sse4_1(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
-                                                uint32_t src0_stride, const uint8_t *src1_8, uint32_t src1_stride,
-                                                const uint8_t *mask, int w, int h, int bd) {
-    svt_aom_highbd_blend_a64_mask_8bit_sse4_1(
-        dst_8, dst_stride, src0_8, src0_stride, src1_8, src1_stride, mask, 0, w, h, 0, 0, bd);
 }
 
 void svt_aom_highbd_blend_a64_mask_16bit_sse4_1(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,

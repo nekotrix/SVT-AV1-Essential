@@ -319,33 +319,6 @@ void svt_aom_blend_a64_vmask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t 
     }
 }
 
-void svt_aom_highbd_blend_a64_vmask_8bit_c(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
-                                           uint32_t src0_stride, const uint8_t *src1_8, uint32_t src1_stride,
-                                           const uint8_t *mask, int w, int h, int bd) {
-    int             i, j;
-    uint16_t       *dst  = (uint16_t *)(dst_8); // CONVERT_TO_SHORTPTR(dst_8);
-    const uint16_t *src0 = (uint16_t *)(src0_8); //CONVERT_TO_SHORTPTR(src0_8);
-    const uint16_t *src1 = (uint16_t *)(src1_8); //CONVERT_TO_SHORTPTR(src1_8);
-    (void)bd;
-
-    assert(IMPLIES(src0 == dst, src0_stride == dst_stride));
-    assert(IMPLIES(src1 == dst, src1_stride == dst_stride));
-
-    assert(h >= 1);
-    assert(w >= 1);
-    assert(IS_POWER_OF_TWO(h));
-    assert(IS_POWER_OF_TWO(w));
-
-    assert(bd == 8 || bd == 10 || bd == 12);
-
-    for (i = 0; i < h; ++i) {
-        const int m = mask[i];
-        for (j = 0; j < w; ++j) {
-            dst[i * dst_stride + j] = AOM_BLEND_A64(m, src0[i * src0_stride + j], src1[i * src1_stride + j]);
-        }
-    }
-}
-
 /*Horizontal mask related blend functions*/
 void svt_aom_blend_a64_hmask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0, uint32_t src0_stride,
                                const uint8_t *src1, uint32_t src1_stride, const uint8_t *mask, int w, int h) {
@@ -358,32 +331,6 @@ void svt_aom_blend_a64_hmask_c(uint8_t *dst, uint32_t dst_stride, const uint8_t 
     assert(w >= 1);
     assert(IS_POWER_OF_TWO(h));
     assert(IS_POWER_OF_TWO(w));
-
-    for (i = 0; i < h; ++i) {
-        for (j = 0; j < w; ++j) {
-            dst[i * dst_stride + j] = AOM_BLEND_A64(mask[j], src0[i * src0_stride + j], src1[i * src1_stride + j]);
-        }
-    }
-}
-
-void svt_aom_highbd_blend_a64_hmask_8bit_c(uint8_t *dst_8, uint32_t dst_stride, const uint8_t *src0_8,
-                                           uint32_t src0_stride, const uint8_t *src1_8, uint32_t src1_stride,
-                                           const uint8_t *mask, int w, int h, int bd) {
-    int             i, j;
-    uint16_t       *dst  = (uint16_t *)(dst_8); // CONVERT_TO_SHORTPTR(dst_8);
-    const uint16_t *src0 = (uint16_t *)(src0_8); //CONVERT_TO_SHORTPTR(src0_8);
-    const uint16_t *src1 = (uint16_t *)(src1_8); //CONVERT_TO_SHORTPTR(src1_8);
-    (void)bd;
-
-    assert(IMPLIES(src0 == dst, src0_stride == dst_stride));
-    assert(IMPLIES(src1 == dst, src1_stride == dst_stride));
-
-    assert(h >= 1);
-    assert(w >= 1);
-    assert(IS_POWER_OF_TWO(h));
-    assert(IS_POWER_OF_TWO(w));
-
-    assert(bd == 8 || bd == 10 || bd == 12);
 
     for (i = 0; i < h; ++i) {
         for (j = 0; j < w; ++j) {
