@@ -714,6 +714,13 @@ INSTANTIATE_TEST_SUITE_P(AVX2, HbdCompBlendVMaskTest,
                              svt_av1_highbd_blend_a64_vmask_16bit_avx2)}));
 #endif  // ARCH_X86_64
 
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(NEON, HbdCompBlendVMaskTest,
+                         ::testing::ValuesIn({make_tuple(
+                             svt_aom_highbd_blend_a64_vmask_16bit_c,
+                             svt_aom_highbd_blend_a64_vmask_16bit_neon)}));
+#endif  // ARCH_AARCH64
+
 typedef void (*BuildCompDiffwtdMaskedFunc)(uint8_t *mask,
                                            DIFFWTD_MASK_TYPE mask_type,
                                            const uint8_t *src0, int src0_stride,
