@@ -1184,6 +1184,12 @@ static inline void store_u8x2_strided_x2(uint8_t *dst, uint32_t dst_stride, uint
 #undef store_u8_4x1_lane
 #undef store_u8_2x1_lane
 
+#define store_u16_4x1_lane(dst, src, lane)                             \
+    do {                                                               \
+        uint64_t a = vgetq_lane_u64(vreinterpretq_u64_u16(src), lane); \
+        memcpy(dst, &a, 8);                                            \
+    } while (0)
+
 #define store_s16_4x1_lane(dst, src, lane)                            \
     do {                                                              \
         int64_t a = vgetq_lane_s64(vreinterpretq_s64_s16(src), lane); \
@@ -1196,6 +1202,15 @@ static INLINE void store_s16x4_strided_x2(int16_t *dst, int32_t dst_stride, int1
     dst += dst_stride;
     store_s16_4x1_lane(dst, src, 1);
 }
+
+// Store two blocks of 64-bits from a single vector.
+static INLINE void store_u16x4_strided_x2(uint16_t *dst, uint32_t dst_stride, uint16x8_t src) {
+    store_u16_4x1_lane(dst, src, 0);
+    dst += dst_stride;
+    store_u16_4x1_lane(dst, src, 1);
+}
+
+#undef store_u16_4x1_lane
 #undef store_s16_4x1_lane
 
 #endif // AOM_AOM_DSP_ARM_MEM_NEON_H_

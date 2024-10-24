@@ -38,6 +38,7 @@ target_sources(
   PUBLIC encodetxb_neon.c
   PUBLIC transforms_intrin_neon.c
   PUBLIC hadmard_path_neon.c
+  PUBLIC highbd_blend_a64_mask_neon.c
   PUBLIC highbd_fwd_txfm_neon.c
   PUBLIC highbd_inter_prediction_neon.c
   PUBLIC highbd_intra_prediction_neon.c

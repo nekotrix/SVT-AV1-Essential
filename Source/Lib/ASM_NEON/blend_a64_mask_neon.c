@@ -11,9 +11,11 @@
 
 #include <arm_neon.h>
 #include <assert.h>
+
+#include "blend_a64_mask_neon.h"
 #include "common_dsp_rtcd.h"
-#include "mem_neon.h"
 #include "definitions.h"
+#include "mem_neon.h"
 
 static INLINE uint8x16_t alpha_blend_a64_u8x16(uint8x16_t m, uint8x16_t a, uint8x16_t b) {
     uint16x8_t       blend_u16_lo, blend_u16_hi;
@@ -41,20 +43,10 @@ static INLINE uint8x8_t alpha_blend_a64_u8x8(uint8x8_t m, uint8x8_t a, uint8x8_t
     return vrshrn_n_u16(blend_u16, AOM_BLEND_A64_ROUND_BITS);
 }
 
-static INLINE uint8x8_t avg_blend_u8x8(uint8x8_t a, uint8x8_t b) { return vrhadd_u8(a, b); }
-
 static INLINE uint8x16_t avg_blend_u8x16(uint8x16_t a, uint8x16_t b) { return vrhaddq_u8(a, b); }
-
-static INLINE uint8x8_t avg_blend_pairwise_u8x8(uint8x8_t a, uint8x8_t b) { return vrshr_n_u8(vpadd_u8(a, b), 1); }
 
 static INLINE uint8x16_t avg_blend_pairwise_u8x16(uint8x16_t a, uint8x16_t b) {
     return vrshrq_n_u8(vpaddq_u8(a, b), 1);
-}
-
-static INLINE uint8x8_t avg_blend_pairwise_u8x8_4(uint8x8_t a, uint8x8_t b, uint8x8_t c, uint8x8_t d) {
-    uint8x8_t a_c = vpadd_u8(a, c);
-    uint8x8_t b_d = vpadd_u8(b, d);
-    return vrshr_n_u8(vqadd_u8(a_c, b_d), 2);
 }
 
 static INLINE uint8x16_t avg_blend_pairwise_u8x16_4(uint8x16_t a, uint8x16_t b, uint8x16_t c, uint8x16_t d) {
