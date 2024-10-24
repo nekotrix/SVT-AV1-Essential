@@ -1161,6 +1161,7 @@ extern "C" {
 
     void svt_aom_highbd_blend_a64_mask_neon(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0, uint32_t src0_stride, const uint8_t *src1, uint32_t src1_stride, const uint8_t *mask, uint32_t mask_stride, int w, int h, int subx, int suby, int bd);
     void svt_aom_highbd_blend_a64_d16_mask_neon(uint8_t *dst, uint32_t dst_stride, const CONV_BUF_TYPE *src0, uint32_t src0_stride, const CONV_BUF_TYPE *src1, uint32_t src1_stride, const uint8_t *mask, uint32_t mask_stride, int w, int h, int subx, int suby, ConvolveParams *conv_params, const int bd);
+    void svt_aom_highbd_blend_a64_hmask_16bit_neon(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0, uint32_t src0_stride, const uint16_t *src1, uint32_t src1_stride, const uint8_t *mask, int w, int h, int bd);
 
     void svt_av1_selfguided_restoration_neon(const uint8_t *dat8, int32_t width, int32_t height, int32_t stride, int32_t *flt0, int32_t *flt1, int32_t flt_stride, int32_t sgr_params_idx, int32_t bit_depth, int32_t highbd);
 

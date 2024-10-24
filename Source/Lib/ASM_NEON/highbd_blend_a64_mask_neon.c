@@ -458,3 +458,80 @@ void svt_aom_highbd_blend_a64_d16_mask_neon(uint8_t *dst_8, uint32_t dst_stride,
             dst, dst_stride, src0, src0_stride, src1, src1_stride, mask, mask_stride, w, h, subw, subh);
     }
 }
+
+static INLINE uint16x4_t alpha_blend_a64_u16x4(uint16x4_t m, uint16x4_t a, uint16x4_t b) {
+    const uint16x4_t m_inv = vsub_u16(vdup_n_u16(AOM_BLEND_A64_MAX_ALPHA), m);
+
+    uint32x4_t blend_u16 = vmull_u16(m, a);
+
+    blend_u16 = vmlal_u16(blend_u16, m_inv, b);
+
+    return vrshrn_n_u32(blend_u16, AOM_BLEND_A64_ROUND_BITS);
+}
+
+void svt_aom_highbd_blend_a64_hmask_16bit_neon(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
+                                               uint32_t src0_stride, const uint16_t *src1, uint32_t src1_stride,
+                                               const uint8_t *mask, int w, int h, int bd) {
+    (void)bd;
+
+    assert(IMPLIES(src0 == dst, src0_stride == dst_stride));
+    assert(IMPLIES(src1 == dst, src1_stride == dst_stride));
+
+    assert(h >= 1);
+    assert(w >= 1);
+    assert(IS_POWER_OF_TWO(h));
+    assert(IS_POWER_OF_TWO(w));
+
+    assert(bd == 8 || bd == 10 || bd == 12);
+
+    if (w >= 8) {
+        do {
+            int i = 0;
+            do {
+                uint16x8_t m0 = vmovl_u8(vld1_u8(mask + i));
+                uint16x8_t s0 = vld1q_u16(src0 + i);
+                uint16x8_t s1 = vld1q_u16(src1 + i);
+
+                uint16x8_t blend = alpha_blend_a64_u16x8(m0, s0, s1);
+
+                vst1q_u16(dst + i, blend);
+                i += 8;
+            } while (i < w);
+
+            src0 += src0_stride;
+            src1 += src1_stride;
+            dst += dst_stride;
+        } while (--h != 0);
+    } else if (w == 4) {
+        const uint16x8_t m0 = vmovl_u8(load_unaligned_dup_u8_4x2(mask));
+        do {
+            uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);
+            uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);
+
+            uint16x8_t blend = alpha_blend_a64_u16x8(m0, s0, s1);
+
+            store_u16x4_strided_x2(dst, dst_stride, blend);
+
+            src0 += 2 * src0_stride;
+            src1 += 2 * src1_stride;
+            dst += 2 * dst_stride;
+            h -= 2;
+        } while (h != 0);
+    } else {
+        assert(w == 2);
+        const uint16x4_t m0 = vget_low_u16(vmovl_u8(load_unaligned_dup_u8_2x4(mask)));
+        do {
+            uint16x4_t s0 = load_unaligned_u16_2x2(src0, src0_stride);
+            uint16x4_t s1 = load_unaligned_u16_2x2(src1, src1_stride);
+
+            uint16x4_t blend = alpha_blend_a64_u16x4(m0, s0, s1);
+
+            store_u16x2_strided_x2(dst, dst_stride, blend);
+
+            src0 += 2 * src0_stride;
+            src1 += 2 * src1_stride;
+            dst += 2 * dst_stride;
+            h -= 2;
+        } while (h != 0);
+    }
+}

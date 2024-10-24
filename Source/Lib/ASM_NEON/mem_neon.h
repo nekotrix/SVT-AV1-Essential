@@ -527,20 +527,29 @@ static INLINE void store_s16_4x4(int16_t *s, ptrdiff_t dst_stride, const int16x4
     vst1_s16(s, s3);
 }
 
-/* These intrinsics require immediate values, so we must use #defines
-   to enforce that. */
-#define store_s16_2x1_lane(s, s0, lane) \
-    do { vst1_lane_s32((int32_t *)(s), vreinterpret_s32_s16(s0), lane); } while (0)
-#define store_u16_2x1_lane(s, s0, lane) \
-    do { vst1_lane_u32((uint32_t *)(s), vreinterpret_u32_u16(s0), lane); } while (0)
-#define store_u16q_2x1_lane(s, s0, lane) \
-    do { vst1q_lane_u32((uint32_t *)(s), vreinterpretq_u32_u16(s0), lane); } while (0)
-
 static INLINE void store_s16_8x2(int16_t *s, ptrdiff_t dst_stride, const int16x8_t s0, const int16x8_t s1) {
     vst1q_s16(s, s0);
     s += dst_stride;
     vst1q_s16(s, s1);
 }
+
+#define store_u16_2x1_lane(dst, src, lane)                           \
+    do {                                                             \
+        uint32_t a = vget_lane_u32(vreinterpret_u32_u16(src), lane); \
+        memcpy(dst, &a, 4);                                          \
+    } while (0)
+
+#define store_u16_4x1_lane(dst, src, lane)                             \
+    do {                                                               \
+        uint64_t a = vgetq_lane_u64(vreinterpretq_u64_u16(src), lane); \
+        memcpy(dst, &a, 8);                                            \
+    } while (0)
+
+#define store_s16_4x1_lane(dst, src, lane)                            \
+    do {                                                              \
+        int64_t a = vgetq_lane_s64(vreinterpretq_s64_s16(src), lane); \
+        memcpy(dst, &a, 8);                                           \
+    } while (0)
 
 // Store the low 32-bits from a single vector.
 static INLINE void store_u16_2x1(uint16_t *dst, const uint16x4_t src) { store_u16_2x1_lane(dst, src, 0); }
@@ -1184,23 +1193,18 @@ static inline void store_u8x2_strided_x2(uint8_t *dst, uint32_t dst_stride, uint
 #undef store_u8_4x1_lane
 #undef store_u8_2x1_lane
 
-#define store_u16_4x1_lane(dst, src, lane)                             \
-    do {                                                               \
-        uint64_t a = vgetq_lane_u64(vreinterpretq_u64_u16(src), lane); \
-        memcpy(dst, &a, 8);                                            \
-    } while (0)
-
-#define store_s16_4x1_lane(dst, src, lane)                            \
-    do {                                                              \
-        int64_t a = vgetq_lane_s64(vreinterpretq_s64_s16(src), lane); \
-        memcpy(dst, &a, 8);                                           \
-    } while (0)
-
 // Store two blocks of 64-bits from a single vector.
 static INLINE void store_s16x4_strided_x2(int16_t *dst, int32_t dst_stride, int16x8_t src) {
     store_s16_4x1_lane(dst, src, 0);
     dst += dst_stride;
     store_s16_4x1_lane(dst, src, 1);
+}
+
+// Store two blocks of 32-bits from a single vector.
+static inline void store_u16x2_strided_x2(uint16_t *dst, uint32_t dst_stride, uint16x4_t src) {
+    store_u16_2x1_lane(dst, src, 0);
+    dst += dst_stride;
+    store_u16_2x1_lane(dst, src, 1);
 }
 
 // Store two blocks of 64-bits from a single vector.
@@ -1210,6 +1214,7 @@ static INLINE void store_u16x4_strided_x2(uint16_t *dst, uint32_t dst_stride, ui
     store_u16_4x1_lane(dst, src, 1);
 }
 
+#undef store_u16_2x1_lane
 #undef store_u16_4x1_lane
 #undef store_s16_4x1_lane
 
