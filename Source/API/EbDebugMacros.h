@@ -40,10 +40,7 @@ extern "C" {
 
 #define TUNE_MFMV_FD2               1 // Disable MFMV in fd2
 #define TUNE_SB64_FD2               1 // Change QP check for SB64 in fd2
-#define TUNE_M6                     0 // M6 tuning
 #define TUNE_M5                     1 // M5 tuning
-#define TUNE_LAMBDA_MODULATION      0 // Lambda modulation tuning toward better VMAF
-#define OPT_HALF_PEL_BIAS           0 // Bias against quarter/eighth pel in subpel search for fast-decode mode
 #define TUNE_M4                     1 // M4 tuning
 #define TUNE_M0                     1 // M0 tuning
 #define TUNE_M3                     1 // M3 tuning
@@ -54,6 +51,7 @@ extern "C" {
 #define TUNE_M8                     1 // M8 tuning
 #define OPT_MDS0_EXIT               1 // Opt mds0 exit: reset the best-mds0-cost for each class to ensure that at least one candidate per class is retained before the mds1 pruning phase. Then, use the block complexity = MIN(me-dist, pme_dist) to switch between the two methods
 #define TUNE_M9                     1 // M9 tuning
+#define TUNE_M10                    1 // M10 tuning
 #define OPT_GM 1
 #if OPT_GM
 #define FIX_GM_TRANS                1 // Fix assumptions that disallow TRANSLATION GM model
@@ -64,8 +62,26 @@ extern "C" {
 #define OPT_GM_RFN_EARLY_EXIT       1 // Skip GM refinement when unlikely to succeed
 #define OPT_GM_CORESP_FROM_MV       1 // Generate the GM correspondence points from ME MVs
 #define OPT_GM_LVLS                 1 // Optimize the GM levels used in each preset
+#define CLN_UNUSED_GM_SIGS          1 // Remove unused GM signals
+#define OPT_GM_LVL_M5               1 // Use GM for 480p/720p only for M5
 #endif
-
+#define OPT_DLF_FD2                 1 // Opt DLF for fd2
+#define OPT_CDEF_FD2                1 // Opt CDEF for fd2
+#define OPT_M6_NEW                  1 // Opt M6 new
+#define OPT_M5_NEW                  1 // Opt M5 new
+#define OPT_TXS                     1 // Opt txs
+#define OPT_ME                      1 // Opt ME
+#define OPT_TF                      1 // OPT tf
+#define TUNE_M6_BDR_2               1 // OPT M6 in term of BDR
+#define TUNE_M5_BDR                 1 // OPT M6 in term of BDR
+#define OPT_LAMBDA                  1 // OPTimized lambda modulation: (1) Expanded the QP bands for lambda - weighting; from 2 to 4 bands, (2) Reduced the intra-percentage threshold
+#define TUNE_M4_2                   1 // M4 tuning
+#define TUNE_M6_3                   0 // Tune M6 feats
+#define TUNE_M9_2                   1 // M9 tuning
+#define TUNE_M10_2                  1 // M10 tuning
+#define TUNE_M11_2                  1 // M11 tuning
+#define OPT_FD_10BIT                1 // Opt fd for 10bit
+#define TUNE_LAMBDA_WEIGHT          1 // Tune lambda weight
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one

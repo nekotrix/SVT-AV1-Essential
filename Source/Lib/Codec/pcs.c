@@ -1180,8 +1180,10 @@ static void picture_parent_control_set_dctor(EbPtr ptr) {
     EB_DESTROY_MUTEX(obj->pcs_total_rate_mutex);
     if (obj->dg_detector)
         EB_DELETE(obj->dg_detector);
+#if !CLN_UNUSED_GM_SIGS
     EB_DELETE(obj->quarter_src_pic);
     EB_DELETE(obj->sixteenth_src_pic);
+#endif
 }
 /*
 ppcs_update_param: update the parameters in PictureParentControlSet for changing the resolution on the fly
@@ -1223,6 +1225,7 @@ EbErrorType ppcs_update_param(PictureParentControlSet *ppcs) {
     ppcs->render_width   = scs->max_input_luma_width;
     ppcs->render_height  = scs->max_input_luma_height;
 
+#if !CLN_UNUSED_GM_SIGS
     if (svt_aom_need_gm_ref_info(scs->static_config.enc_mode, scs->static_config.resize_mode == RESIZE_NONE)) {
         EbPictureBufferDescInitData input_pic_buf_desc_init_data;
         input_pic_buf_desc_init_data.max_width          = scs->max_input_luma_width >> 1;
@@ -1251,7 +1254,7 @@ EbErrorType ppcs_update_param(PictureParentControlSet *ppcs) {
 
         svt_picture_buffer_desc_update(ppcs->sixteenth_src_pic, (EbPtr)(&input_pic_buf_desc_init_data));
     }
-
+#endif
     return return_error;
 }
 static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *object_ptr, EbPtr object_init_data_ptr) {
@@ -1425,6 +1428,7 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
         : 0;
     EB_NEW(object_ptr->dg_detector, svt_aom_dg_detector_seg_ctor);
 
+#if !CLN_UNUSED_GM_SIGS
     if (svt_aom_need_gm_ref_info(init_data_ptr->enc_mode, init_data_ptr->static_config.resize_mode == RESIZE_NONE)) {
         EbPictureBufferDescInitData input_pic_buf_desc_init_data;
         input_pic_buf_desc_init_data.max_width          = init_data_ptr->picture_width >> 1;
@@ -1453,6 +1457,7 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
 
         EB_NEW(object_ptr->sixteenth_src_pic, svt_picture_buffer_desc_ctor, (EbPtr)(&input_pic_buf_desc_init_data));
     }
+#endif
 
     return return_error;
 }

@@ -87,11 +87,13 @@ static void svt_reference_object_dctor(EbPtr p) {
             EB_DESTROY_MUTEX(obj->resize_mutex[sr_denom_idx][resize_denom_idx]);
         }
     }
+#if !CLN_UNUSED_GM_SIGS
     EB_DELETE(obj->quarter_reference_picture);
     EB_DELETE(obj->sixteenth_reference_picture);
     EB_DELETE(obj->input_picture);
     EB_DELETE(obj->quarter_input_picture);
     EB_DELETE(obj->sixteenth_input_picture);
+#endif
 }
 /*
 svt_reference_param_update: update the parameters in EbReferenceObject for changing the resolution on the fly
@@ -138,6 +140,7 @@ EbErrorType svt_reference_param_update(EbReferenceObject *ref_object, SequenceCo
         initialize_samples_neighboring_reference_picture(
             ref_object, &picture_buffer_desc_init_data_ptr, picture_buffer_desc_init_data_ptr.bit_depth);
     }
+#if !CLN_UNUSED_GM_SIGS
     const bool gm_ref_info = svt_aom_need_gm_ref_info(scs->static_config.enc_mode,
                                                       scs->static_config.resize_mode == RESIZE_NONE);
     if (gm_ref_info)
@@ -171,6 +174,7 @@ EbErrorType svt_reference_param_update(EbReferenceObject *ref_object, SequenceCo
 
         svt_picture_buffer_desc_update(ref_object->sixteenth_reference_picture, (EbPtr)&buf_desc);
     }
+#endif
 
     ref_object->mi_rows = ref_object->reference_picture->height >> MI_SIZE_LOG2;
     ref_object->mi_cols = ref_object->reference_picture->width >> MI_SIZE_LOG2;
@@ -205,11 +209,13 @@ EbErrorType svt_reference_object_ctor(EbReferenceObject *ref_object, EbPtr objec
         initialize_samples_neighboring_reference_picture(
             ref_object, picture_buffer_desc_init_data_ptr, picture_buffer_desc_init_data_16bit_ptr.bit_depth);
     }
+#if !CLN_UNUSED_GM_SIGS
     ref_object->input_picture = NULL;
     const bool gm_ref_info    = svt_aom_need_gm_ref_info(ref_init_ptr->static_config->enc_mode,
                                                       ref_init_ptr->static_config->resize_mode == RESIZE_NONE);
     if (gm_ref_info)
         EB_NEW(ref_object->input_picture, svt_picture_buffer_desc_ctor, (EbPtr)picture_buffer_desc_init_data_ptr);
+#endif
     uint32_t mi_rows = ref_object->reference_picture->height >> MI_SIZE_LOG2;
     uint32_t mi_cols = ref_object->reference_picture->width >> MI_SIZE_LOG2;
     // there should be one unit info per plane and per rest unit
@@ -220,6 +226,7 @@ EbErrorType svt_reference_object_ctor(EbReferenceObject *ref_object, EbPtr objec
         const int mem_size = ((mi_rows + 1) >> 1) * ((mi_cols + 1) >> 1);
         EB_CALLOC_ALIGNED_ARRAY(ref_object->mvs, mem_size);
     }
+#if !CLN_UNUSED_GM_SIGS
     ref_object->quarter_reference_picture   = NULL;
     ref_object->sixteenth_reference_picture = NULL;
     if (gm_ref_info) {
@@ -253,6 +260,7 @@ EbErrorType svt_reference_object_ctor(EbReferenceObject *ref_object, EbPtr objec
     ref_object->ds_pics.picture_ptr           = ref_object->reference_picture;
     ref_object->ds_pics.quarter_picture_ptr   = ref_object->quarter_reference_picture;
     ref_object->ds_pics.sixteenth_picture_ptr = ref_object->sixteenth_reference_picture;
+#endif
     memset(&ref_object->film_grain_params, 0, sizeof(ref_object->film_grain_params));
     // set all supplemental downscaled reference picture pointers to NULL
     for (uint8_t sr_denom_idx = 0; sr_denom_idx < NUM_SR_SCALES + 1; sr_denom_idx++) {

@@ -1753,6 +1753,7 @@ void pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *scs) {
     // set up the Slice Type
     ref_object->slice_type = pcs->ppcs->slice_type;
     ref_object->r0         = pcs->ppcs->r0;
+#if !CLN_UNUSED_GM_SIGS
     if (pcs->ppcs->gm_ctrls.enabled && pcs->ppcs->gm_ctrls.use_ref_info) {
         bool gm_need_full, gm_need_quart, gm_need_sixteen;
 
@@ -1782,6 +1783,7 @@ void pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *scs) {
             memcpy(ref->buffer_y, pcs->ppcs->sixteenth_src_pic->buffer_y, ref->luma_size);
         }
     }
+#endif
 }
 /*
  * Generate depth removal settings

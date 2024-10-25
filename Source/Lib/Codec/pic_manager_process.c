@@ -429,8 +429,10 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
 
             scs     = input_pic_demux->scs;
             enc_ctx = scs->enc_ctx;
+#if !CLN_UNUSED_GM_SIGS
             ((EbReferenceObject *)input_pic_demux->ref_pic_wrapper->object_ptr)->ds_pics.picture_number =
                 input_pic_demux->picture_number;
+#endif
             // Find the Reference in the Reference List
 #if OPT_LD_LATENCY2
             svt_block_on_mutex(enc_ctx->ref_pic_list_mutex);

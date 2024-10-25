@@ -21,12 +21,14 @@
 typedef struct EbReferenceObject {
     EbDctor                     dctor;
     EbPictureBufferDesc        *reference_picture;
+#if !CLN_UNUSED_GM_SIGS
     EbPictureBufferDesc        *quarter_reference_picture;
     EbPictureBufferDesc        *sixteenth_reference_picture;
     EbDownScaledBufDescPtrArray ds_pics; // Pointer array for down scaled pictures
     EbPictureBufferDesc        *input_picture;
     EbPictureBufferDesc        *quarter_input_picture;
     EbPictureBufferDesc        *sixteenth_input_picture;
+#endif
     EbPictureBufferDesc        *downscaled_reference_picture[NUM_SR_SCALES + 1][NUM_RESIZE_SCALES + 1];
     uint64_t                    downscaled_picture_number[NUM_SR_SCALES + 1]
                                       [NUM_RESIZE_SCALES + 1]; // save the picture_number for each denom

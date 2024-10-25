@@ -521,8 +521,8 @@ void svt_aom_reset_mode_decision_neighbor_arrays(PictureControlSet *pcs, uint16_
     return;
 }
 // If the ref intra percentage is below the TH, applying modulation to the MD lambda
-#if TUNE_LAMBDA_MODULATION
-#define LAMBDA_MOD_INTRA_TH 25
+#if OPT_LAMBDA
+#define LAMBDA_MOD_INTRA_TH 50
 #define LAMBDA_MOD_INTRA_SCALING_FACTOR 138
 #else
 #define LAMBDA_MOD_INTRA_TH 65
@@ -540,7 +540,7 @@ static void av1_lambda_assign_md(PictureControlSet *pcs, ModeDecisionContext *ct
 
     if (pcs->scs->stats_based_sb_lambda_modulation) {
         if (pcs->temporal_layer_index > 0) {
-#if TUNE_LAMBDA_MODULATION
+#if OPT_LAMBDA
             if (pcs->ref_intra_percentage < LAMBDA_MOD_INTRA_TH) {
                 ctx->full_lambda_md[0] = (ctx->full_lambda_md[0] * LAMBDA_MOD_INTRA_SCALING_FACTOR) >> 7;
                 ctx->fast_lambda_md[0] = (ctx->fast_lambda_md[0] * LAMBDA_MOD_INTRA_SCALING_FACTOR) >> 7;

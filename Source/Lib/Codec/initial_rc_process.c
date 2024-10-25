@@ -183,15 +183,13 @@ uint8_t svt_aom_get_tpl_group_level(uint8_t tpl, int8_t enc_mode, SvtAv1RcMode r
     uint8_t tpl_group_level;
     if (!tpl)
         tpl_group_level = 0;
-#if TUNE_M6
-    else if (enc_mode <= ENC_M6)
-        tpl_group_level = 1;
-#else
     else if (enc_mode <= ENC_M5)
         tpl_group_level = 1;
+#if !OPT_M6_NEW
     else if (enc_mode <= ENC_M6)
         tpl_group_level = 2;
 #endif
+
     else if (enc_mode <= ENC_M9 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M10))
         tpl_group_level = 3;
     else
@@ -289,9 +287,25 @@ uint8_t svt_aom_set_tpl_group(PictureParentControlSet *pcs, uint8_t tpl_group_le
 
 static uint8_t get_tpl_params_level(int8_t enc_mode, SvtAv1RcMode rc_mode) {
     uint8_t tpl_params_level;
+#if TUNE_M4_2
+    if (enc_mode <= ENC_M2) {
+#else
     if (enc_mode <= ENC_M4) {
+#endif
         tpl_params_level = 1;
+#if OPT_M6_NEW
+#if OPT_M5_NEW
+#if TUNE_M4_2
+    } else if (enc_mode <= ENC_M3) {
+#else
+    } else if (enc_mode <= ENC_M4) {
+#endif
+#else
+    } else if (enc_mode <= ENC_M5) {
+#endif
+#else
     } else if (enc_mode <= ENC_M6) {
+#endif
         tpl_params_level = 3;
     } else if (enc_mode <= ENC_M9 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M10)) {
         tpl_params_level = 4;

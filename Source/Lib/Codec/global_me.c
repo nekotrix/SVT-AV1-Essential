@@ -54,8 +54,10 @@ void svt_aom_gm_pre_processor(PictureParentControlSet *pcs, PictureParentControl
     pcs->gm_ctrls.chess_rfn                    = 1;
     pcs->gm_ctrls.match_sz                     = 7;
     pcs->gm_ctrls.inj_psq_glb                  = TRUE;
+#if !CLN_UNUSED_GM_SIGS
     pcs->gm_ctrls.use_ref_info                 = 0;
     pcs->gm_ctrls.layer_offset                 = 0;
+#endif
 #if OPT_GM_RFN_EARLY_EXIT
     pcs->gm_ctrls.rfn_early_exit = 1;
 #endif
@@ -155,12 +157,14 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
     pa_reference_object   = (EbPaReferenceObject *)pcs->pa_ref_pic_wrapper->object_ptr;
     quarter_picture_ptr   = (EbPictureBufferDesc *)pa_reference_object->quarter_downsampled_picture_ptr;
     sixteenth_picture_ptr = (EbPictureBufferDesc *)pa_reference_object->sixteenth_downsampled_picture_ptr;
+#if !CLN_UNUSED_GM_SIGS
     PictureControlSet *cpcs;
     cpcs = pcs->child_pcs;
     if (pcs->gm_ctrls.use_ref_info) {
         quarter_picture_ptr   = pcs->quarter_src_pic;
         sixteenth_picture_ptr = pcs->sixteenth_src_pic;
     }
+#endif
     uint32_t num_of_list_to_search = (pcs->slice_type == P_SLICE) ? 1 /*List 0 only*/ : 2 /*List 0 + 1*/;
     // Initilize global motion to be OFF for all references frames.
     memset(pcs->is_global_motion, FALSE, MAX_NUM_OF_REF_PIC_LIST * REF_LIST_MAX_DEPTH);
@@ -190,6 +194,16 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
     // 1: use up to 1 ref per list @ the GMV params derivation
     // 2: use up to 2 ref per list @ the GMV params derivation
     // 3: all refs @ the GMV params derivation
+#if CLN_UNUSED_GM_SIGS
+    if (average_me_sad <= (GMV_ME_SAD_TH_0))
+        global_motion_estimation_level = 0;
+    else if (average_me_sad < (GMV_ME_SAD_TH_1))
+        global_motion_estimation_level = 1;
+    else if (average_me_sad < (GMV_ME_SAD_TH_2))
+        global_motion_estimation_level = 2;
+    else
+        global_motion_estimation_level = 3;
+#else
     uint32_t offset = pcs->gm_ctrls.qp_offset ? CLIP3(0, 5, (int)(90 - ((int)2 * pcs->scs->static_config.qp))) : 0;
 
     if (average_me_sad <= (GMV_ME_SAD_TH_0 + offset))
@@ -200,6 +214,7 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
         global_motion_estimation_level = 2;
     else
         global_motion_estimation_level = 3;
+#endif
     if (pcs->gm_ctrls.downsample_level == GM_ADAPT_0) {
         pcs->gm_downsample_level = (average_me_sad < GMV_ME_SAD_TH_1) ? GM_DOWN : GM_FULL;
     } else if (pcs->gm_ctrls.downsample_level == GM_ADAPT_1) {
@@ -219,7 +234,7 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                                                100)))) // if more than 5% of SB(s) have stationary block(s) then shut gm
             global_motion_estimation_level = 0;
     }
-
+#if !CLN_UNUSED_GM_SIGS
     if (pcs->gm_ctrls.use_ref_info) {
         svt_aom_assert_err(pcs->gm_ctrls.layer_offset < 4, "gm_layer_invalid");
         uint8_t layer_offset      = pcs->gm_ctrls.layer_offset - 1;
@@ -246,6 +261,7 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                 global_motion_estimation_level = 0;
         }
     }
+#endif
     if (global_motion_estimation_level) {
         EbPictureBufferDesc *input_detection, *input_refinement;
         if (pcs->gm_downsample_level == GM_DOWN16) {
@@ -302,6 +318,42 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                 uint8_t              detect_refine_scale_factor;
                 EbPictureBufferDesc *ref_detection, *ref_refinement;
                 uint8_t              chess_refn;
+#if CLN_UNUSED_GM_SIGS
+                ref_picture_ptr = ref_object->input_padded_pic;
+                quarter_ref_pic_ptr = ref_object->quarter_downsampled_picture_ptr;
+                sixteenth_ref_pic_ptr = ref_object->sixteenth_downsampled_picture_ptr;
+
+                if (pcs->gm_downsample_level == GM_DOWN16) {
+                    input_detection = sixteenth_picture_ptr;
+                    ref_detection = sixteenth_ref_pic_ptr;
+
+                    input_refinement = sixteenth_picture_ptr;
+                    ref_refinement = sixteenth_ref_pic_ptr;
+
+                    detect_refine_scale_factor = 1;
+                    chess_refn = 0;
+                }
+                else if (pcs->gm_downsample_level == GM_DOWN) {
+                    input_detection = quarter_picture_ptr;
+                    ref_detection = quarter_ref_pic_ptr;
+
+                    input_refinement = quarter_picture_ptr;
+                    ref_refinement = quarter_ref_pic_ptr;
+
+                    detect_refine_scale_factor = 1;
+                    chess_refn = GM_ADAPT_1 ? pcs->gm_ctrls.chess_rfn : 0;
+                }
+                else {
+                    input_detection = input_pic;
+                    ref_detection = ref_picture_ptr;
+
+                    input_refinement = input_pic;
+                    ref_refinement = ref_picture_ptr;
+
+                    detect_refine_scale_factor = 1;
+                    chess_refn = pcs->gm_ctrls.chess_rfn;
+                }
+#else
                 if (pcs->gm_ctrls.use_ref_info) {
                     cpcs = pcs->child_pcs;
                     EbReferenceObject *ref_obj =
@@ -374,6 +426,7 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                         chess_refn                 = pcs->gm_ctrls.chess_rfn;
                     }
                 }
+#endif
                 compute_global_motion(pcs,
                                       frm_corners,
                                       num_frm_corners,

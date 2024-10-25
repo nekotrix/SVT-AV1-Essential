@@ -597,10 +597,12 @@ typedef struct GmControls {
     // GM_ADAPT_0: Downsampling is done adaptively (GM_FULL or GM_DOWN) based on the average ME distortion.
     // GM_ADAPT_1: Downsampling is done adaptively (GM_DOWN or GM_DOWN16) based on the average ME distortion and the picture variance.
     uint8_t downsample_level;
+#if !CLN_UNUSED_GM_SIGS
     // do GM in the closed loop instead of the open loop and use reference information 0: off 1: on
     bool use_ref_info;
     // do the detection bypass for last layer pictures   0:off     1:last layer     2:last 2 layers 3: last 3 layers
     uint8_t layer_offset;
+#endif
     //use a fraction of corner points for computing correspondences for RANSAC in detection. 1:1/4   2:2/4   3:3/4   4:all
     uint8_t corners;
     //skip global motion refinement using a chess pattern to skip blocks
@@ -613,8 +615,10 @@ typedef struct GmControls {
     bool pp_enabled;
     //limit the search to ref index = 0 only
     bool ref_idx0_only;
+#if !CLN_UNUSED_GM_SIGS
     // if true, apply an offset to the segments of the me-dist based modulation
     uint8_t qp_offset;
+#endif
     // 0: off, 1: enable early exit from parameter refinement
     uint8_t rfn_early_exit;
 #if OPT_GM_CORESP_FROM_MV
@@ -883,8 +887,10 @@ typedef struct PictureParentControlSet {
     double                                  luma_ssim;
     double                                  cr_ssim;
     double                                  cb_ssim;
+#if !CLN_UNUSED_GM_SIGS
     EbPictureBufferDesc                    *quarter_src_pic;
     EbPictureBufferDesc                    *sixteenth_src_pic;
+#endif
     // Pointer array for down scaled pictures
     EbObjectWrapper            *downscaled_pic_wrapper;
     EbDownScaledBufDescPtrArray ds_pics;
