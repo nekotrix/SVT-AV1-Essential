@@ -1996,6 +1996,20 @@ typedef enum TransformationType
     AFFINE = 3,        // affine, 6-parameter
     TRANS_TYPES,
 } TransformationType;
+#if CLN_WMMAT
+#define MAX_PARAMDIM 6
+// The order of values in the wmmat matrix below is best described
+// by the affine transformation:
+//      [x'     (m2 m3 m0   [x
+//  z .  y'  =   m4 m5 m1 *  y
+//       1]       0  0 1)    1]
+typedef struct EbWarpedMotionParams {
+    TransformationType wmtype;
+    int32_t wmmat[MAX_PARAMDIM];
+    int16_t alpha, beta, gamma, delta;
+    int8_t invalid;
+} EbWarpedMotionParams;
+#else
 // The order of values in the wmmat matrix below is best described
 // by the homography:
 //      [x'     (m2 m3 m0   [x
@@ -2008,6 +2022,7 @@ typedef struct EbWarpedMotionParams
     int16_t alpha, beta, gamma, delta;
     int8_t invalid;
 } EbWarpedMotionParams;
+#endif
 
 /*! Scale factors and scaling function pointers  when reference and current frame dimensions are not equal */
 typedef struct ScaleFactors {
@@ -2023,8 +2038,12 @@ typedef struct ScaleFactors {
 /* clang-format off */
 static const EbWarpedMotionParams default_warp_params = {
     IDENTITY,
+#if CLN_WMMAT
+{ 0, 0, (1 << WARPEDMODEL_PREC_BITS), 0, 0, (1 << WARPEDMODEL_PREC_BITS) },
+#else
 { 0, 0, (1 << WARPEDMODEL_PREC_BITS), 0, 0, (1 << WARPEDMODEL_PREC_BITS), 0,
 0 },
+#endif
 0, 0, 0, 0,
 0,
 };

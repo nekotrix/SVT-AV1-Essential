@@ -65,18 +65,57 @@ void set_global_motion_field(PictureControlSet *pcs) {
         pcs->ppcs->global_motion[frame_index].wmmat[3] = 0;
         pcs->ppcs->global_motion[frame_index].wmmat[4] = 0;
         pcs->ppcs->global_motion[frame_index].wmmat[5] = (1 << WARPEDMODEL_PREC_BITS);
+#if !CLN_WMMAT
         pcs->ppcs->global_motion[frame_index].wmmat[6] = 0;
         pcs->ppcs->global_motion[frame_index].wmmat[7] = 0;
+#endif
     }
 
     //Update MV
     PictureParentControlSet *ppcs = pcs->ppcs;
     for (frame_index = INTRA_FRAME; frame_index <= ALTREF_FRAME; ++frame_index) {
+#if FIX_GM_TRANS
+        const uint8_t list_idx = get_list_idx(frame_index);
+        const uint8_t ref_idx = get_ref_frame_idx(frame_index);
+        if (!ppcs->is_global_motion[list_idx][ref_idx])
+            continue;
+        ppcs->global_motion[frame_index] =
+            ppcs->svt_aom_global_motion_estimation[list_idx][ref_idx];
+#else
         if (ppcs->is_global_motion[get_list_idx(frame_index)][get_ref_frame_idx(frame_index)])
             ppcs->global_motion[frame_index] =
                 ppcs->svt_aom_global_motion_estimation[get_list_idx(frame_index)][get_ref_frame_idx(frame_index)];
+#endif
         uint8_t sf = ppcs->gm_downsample_level == GM_DOWN ? 2 : ppcs->gm_downsample_level == GM_DOWN16 ? 4 : 1;
         svt_aom_upscale_wm_params(&ppcs->global_motion[frame_index], sf);
+#if FIX_GM_TRANS
+        if (ppcs->global_motion[frame_index].wmtype == TRANSLATION) {
+            // The offset to derive the translation is different when the wmtype is TRANSLATION. Therefore,
+            // for translation convert the param to the correct offset.
+            ppcs->global_motion[frame_index].wmmat[0] = convert_to_trans_prec(ppcs->frm_hdr.allow_high_precision_mv, ppcs->global_motion[frame_index].wmmat[0]) <<
+                GM_TRANS_ONLY_PREC_DIFF;
+            ppcs->global_motion[frame_index].wmmat[1] = convert_to_trans_prec(ppcs->frm_hdr.allow_high_precision_mv, ppcs->global_motion[frame_index].wmmat[1]) <<
+                GM_TRANS_ONLY_PREC_DIFF;
+
+            // For TRANSLATION type global motion models, svt_aom_gm_get_motion_vector_enc() gives
+            // the wrong motion vector due to an AV1 spec bug.
+            //
+            // gm->wmmat[0] is supposed to be the horizontal translation, and so should
+            // go into res.as_mv.col, and gm->wmmat[1] is supposed to be the vertical
+            // translation and so should go into res.as_mv.row
+            //
+            // However, in the spec, these assignments are accidentally reversed, and so
+            // we must keep this incorrect logic to match the spec.
+            //
+            // See also: https://crbug.com/aomedia/3328
+            //
+            // To deal with this bug, reverse the translation model entries, since the model was generated with wmmat[0]
+            // being x and wmmat[1] being y
+            const int32_t temp_wm1 = ppcs->global_motion[frame_index].wmmat[1];
+            ppcs->global_motion[frame_index].wmmat[1] = ppcs->global_motion[frame_index].wmmat[0];
+            ppcs->global_motion[frame_index].wmmat[0] = temp_wm1;
+        }
+#endif
     }
 }
 

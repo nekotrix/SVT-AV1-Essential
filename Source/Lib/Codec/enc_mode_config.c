@@ -105,8 +105,13 @@ uint8_t svt_aom_get_gm_core_level(EncMode enc_mode, bool super_res_off) {
     if (super_res_off) {
         if (enc_mode <= ENC_MR)
             gm_level = 2;
+#if OPT_GM_LVLS
+        else if (enc_mode <= ENC_M6)
+            gm_level = 3;
+#else
         else if (enc_mode <= ENC_M2)
             gm_level = 4;
+#endif
         else
             gm_level = 0;
     }
@@ -2014,7 +2019,12 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
     case 1:
         gm_ctrls->enabled                      = 1;
         gm_ctrls->identiy_exit                 = 0;
+#if OPT_GM_LVLS
+        gm_ctrls->search_start_model           = TRANSLATION;
+        gm_ctrls->search_end_model             = AFFINE;
+#else
         gm_ctrls->rotzoom_model_only           = 0;
+#endif
         gm_ctrls->bipred_only                  = 0;
         gm_ctrls->bypass_based_on_me           = 0;
         gm_ctrls->use_stationary_block         = 0;
@@ -2031,11 +2041,22 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
         gm_ctrls->pp_enabled    = 0;
         gm_ctrls->ref_idx0_only = 0;
         gm_ctrls->qp_offset     = 0;
+#if OPT_GM_RFN_EARLY_EXIT
+        gm_ctrls->rfn_early_exit = 0;
+#endif
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->correspondence_method = CORNERS;
+#endif
         break;
     case 2:
         gm_ctrls->enabled                      = 1;
         gm_ctrls->identiy_exit                 = 1;
+#if OPT_GM_LVLS
+        gm_ctrls->search_start_model           = TRANSLATION;
+        gm_ctrls->search_end_model             = ROTZOOM;
+#else
         gm_ctrls->rotzoom_model_only           = 1;
+#endif
         gm_ctrls->bipred_only                  = 0;
         gm_ctrls->bypass_based_on_me           = 0;
         gm_ctrls->use_stationary_block         = 0;
@@ -2048,14 +2069,56 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
         gm_ctrls->inj_psq_glb                  = FALSE;
         gm_ctrls->use_ref_info                 = 0;
         gm_ctrls->layer_offset                 = 0;
+#if OPT_GM_CORESP_FROM_MV
         gm_ctrls->pp_enabled                   = 1;
+#else
+        gm_ctrls->pp_enabled                   = 1;
+#endif
         gm_ctrls->ref_idx0_only                = 0;
         gm_ctrls->qp_offset                    = 0;
+#if OPT_GM_RFN_EARLY_EXIT
+        gm_ctrls->rfn_early_exit = 0;
+#endif
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->correspondence_method = CORNERS;
+#endif
         break;
+#if OPT_GM_LVLS
+    case 3:
+        gm_ctrls->enabled = 1;
+        gm_ctrls->identiy_exit = 1;
+        gm_ctrls->search_start_model = TRANSLATION;
+        gm_ctrls->search_end_model = ROTZOOM;
+        gm_ctrls->bipred_only = 0;
+        gm_ctrls->bypass_based_on_me = 1;
+        gm_ctrls->use_stationary_block = 0;
+        gm_ctrls->use_distance_based_active_th = 0;
+        gm_ctrls->params_refinement_steps = 5;
+        gm_ctrls->downsample_level = GM_FULL;
+        gm_ctrls->corners = 2;
+        gm_ctrls->chess_rfn = 1;
+        gm_ctrls->match_sz = 7;
+        gm_ctrls->inj_psq_glb = TRUE;
+        gm_ctrls->use_ref_info = 0;
+        gm_ctrls->layer_offset = 0;
+        gm_ctrls->pp_enabled = 0;
+        gm_ctrls->ref_idx0_only = 1;
+        gm_ctrls->qp_offset = 0;
+        gm_ctrls->rfn_early_exit = 1;
+        gm_ctrls->correspondence_method = pcs->input_resolution <= INPUT_SIZE_480p_RANGE ? MV_8x8
+                                        : pcs->input_resolution <= INPUT_SIZE_1080p_RANGE ? MV_16x16
+                                        : MV_32x32;
+        break;
+#else
     case 3:
         gm_ctrls->enabled                      = 1;
         gm_ctrls->identiy_exit                 = 1;
+#if OPT_GM_LVLS
+        gm_ctrls->search_start_model           = TRANSLATION;
+        gm_ctrls->search_end_model             = ROTZOOM;
+#else
         gm_ctrls->rotzoom_model_only           = 1;
+#endif
         gm_ctrls->bipred_only                  = 0;
         gm_ctrls->bypass_based_on_me           = 0;
         gm_ctrls->use_stationary_block         = 0;
@@ -2068,29 +2131,58 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
         gm_ctrls->inj_psq_glb                  = FALSE;
         gm_ctrls->use_ref_info                 = 0;
         gm_ctrls->layer_offset                 = 0;
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->pp_enabled                   = 0;
+#else
         gm_ctrls->pp_enabled                   = 1;
+#endif
         gm_ctrls->ref_idx0_only                = 0;
         gm_ctrls->qp_offset                    = 0;
+#if OPT_GM_RFN_EARLY_EXIT
+        gm_ctrls->rfn_early_exit = 0;
+#endif
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->correspondence_method = MV_8x8;
+#endif
         break;
     case 4:
         gm_ctrls->enabled                      = 1;
         gm_ctrls->identiy_exit                 = 1;
+#if OPT_GM_LVLS
+        gm_ctrls->search_start_model           = TRANSLATION;
+        gm_ctrls->search_end_model             = ROTZOOM;
+#else
         gm_ctrls->rotzoom_model_only           = 1;
+#endif
         gm_ctrls->bipred_only                  = 0;
         gm_ctrls->bypass_based_on_me           = 1;
         gm_ctrls->use_stationary_block         = 0;
         gm_ctrls->use_distance_based_active_th = 0;
         gm_ctrls->params_refinement_steps      = 5;
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->downsample_level             = GM_FULL;
+#else
         gm_ctrls->downsample_level             = GM_ADAPT_0;
+#endif
         gm_ctrls->corners                      = 2;
         gm_ctrls->chess_rfn                    = 0;
         gm_ctrls->match_sz                     = 7;
         gm_ctrls->inj_psq_glb                  = TRUE;
         gm_ctrls->use_ref_info                 = 0;
         gm_ctrls->layer_offset                 = 0;
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->pp_enabled                   = 0;
+#else
         gm_ctrls->pp_enabled                   = 1;
+#endif
         gm_ctrls->ref_idx0_only                = 1;
         gm_ctrls->qp_offset                    = 0;
+#if OPT_GM_RFN_EARLY_EXIT
+        gm_ctrls->rfn_early_exit = 1;
+#endif
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->correspondence_method = MV_8x8;
+#endif
         break;
     case 5:
         gm_ctrls->enabled                      = 1;
@@ -2108,9 +2200,19 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
         gm_ctrls->inj_psq_glb                  = TRUE;
         gm_ctrls->use_ref_info                 = 0;
         gm_ctrls->layer_offset                 = 0;
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->pp_enabled                   = 0;
+#else
         gm_ctrls->pp_enabled                   = 1;
+#endif
         gm_ctrls->ref_idx0_only                = 1;
         gm_ctrls->qp_offset                    = 0;
+#if OPT_GM_RFN_EARLY_EXIT
+        gm_ctrls->rfn_early_exit = 1;
+#endif
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->correspondence_method = MV_8x8;
+#endif
         break;
     case 6:
         gm_ctrls->enabled                      = 1;
@@ -2128,9 +2230,19 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
         gm_ctrls->inj_psq_glb                  = TRUE;
         gm_ctrls->use_ref_info                 = 0;
         gm_ctrls->layer_offset                 = 0;
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->pp_enabled                   = 0;
+#else
         gm_ctrls->pp_enabled                   = 1;
+#endif
         gm_ctrls->ref_idx0_only                = 1;
         gm_ctrls->qp_offset                    = 1;
+#if OPT_GM_RFN_EARLY_EXIT
+        gm_ctrls->rfn_early_exit = 1;
+#endif
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->correspondence_method = MV_8x8;
+#endif
         break;
     case 7:
         gm_ctrls->enabled                      = 1;
@@ -2151,6 +2263,12 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
         gm_ctrls->pp_enabled                   = 0;
         gm_ctrls->ref_idx0_only                = 1;
         gm_ctrls->qp_offset                    = 1;
+#if OPT_GM_RFN_EARLY_EXIT
+        gm_ctrls->rfn_early_exit = 1;
+#endif
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->correspondence_method = MV_8x8;
+#endif
         break;
     case 8:
         gm_ctrls->enabled                      = 1;
@@ -2171,10 +2289,22 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
         gm_ctrls->pp_enabled                   = 0;
         gm_ctrls->ref_idx0_only                = 1;
         gm_ctrls->qp_offset                    = 1;
+#if OPT_GM_RFN_EARLY_EXIT
+        gm_ctrls->rfn_early_exit = 1;
+#endif
+#if OPT_GM_CORESP_FROM_MV
+        gm_ctrls->correspondence_method = MV_8x8;
+#endif
         break;
-
+#endif
     default: assert(0); break;
     }
+#if OPT_GM_CORESP_FROM_MV
+    if (gm_ctrls->correspondence_method < CORNERS) {
+        // Correspondence method 1 relies on ME info, which is unavailable in pre-processor stage
+        gm_ctrls->pp_enabled = 0;
+    }
+#endif
     if (gm_level)
         assert((gm_ctrls->match_sz & 1) == 1);
 }
@@ -7945,7 +8075,7 @@ Used by svt_aom_sig_deriv_enc_dec and memory allocation
 */
 bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base) {
 #if TUNE_M5
-    (void) is_base;
+    UNUSED(is_base);
 #endif
     if (enc_mode <= ENC_M4)
         return false;

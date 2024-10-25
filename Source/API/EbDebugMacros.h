@@ -40,10 +40,10 @@ extern "C" {
 
 #define TUNE_MFMV_FD2               1 // Disable MFMV in fd2
 #define TUNE_SB64_FD2               1 // Change QP check for SB64 in fd2
-#define TUNE_M6                     1 // M6 tuning
+#define TUNE_M6                     0 // M6 tuning
 #define TUNE_M5                     1 // M5 tuning
-#define TUNE_LAMBDA_MODULATION      1 // Lambda modulation tuning toward better VMAF
-#define OPT_HALF_PEL_BIAS           1 // Bias against quarter/eighth pel in subpel search for fast-decode mode
+#define TUNE_LAMBDA_MODULATION      0 // Lambda modulation tuning toward better VMAF
+#define OPT_HALF_PEL_BIAS           0 // Bias against quarter/eighth pel in subpel search for fast-decode mode
 #define TUNE_M4                     1 // M4 tuning
 #define TUNE_M0                     1 // M0 tuning
 #define TUNE_M3                     1 // M3 tuning
@@ -54,6 +54,18 @@ extern "C" {
 #define TUNE_M8                     1 // M8 tuning
 #define OPT_MDS0_EXIT               1 // Opt mds0 exit: reset the best-mds0-cost for each class to ensure that at least one candidate per class is retained before the mds1 pruning phase. Then, use the block complexity = MIN(me-dist, pme_dist) to switch between the two methods
 #define TUNE_M9                     1 // M9 tuning
+#define OPT_GM 1
+#if OPT_GM
+#define FIX_GM_TRANS                1 // Fix assumptions that disallow TRANSLATION GM model
+#define CLN_WMMAT                   1 // wm matrix should have 6 entries, not 8, since two entries of the 8 are always 0
+#define CLN_GM                      1 // Cleanup the GM code path
+#define CLN_RANSAC                  1 // Cleanup the ransac function (port new code from libaom)
+#define OPT_GM_PARAM_REFIN          1 // Remove extra refinement from GM
+#define OPT_GM_RFN_EARLY_EXIT       1 // Skip GM refinement when unlikely to succeed
+#define OPT_GM_CORESP_FROM_MV       1 // Generate the GM correspondence points from ME MVs
+#define OPT_GM_LVLS                 1 // Optimize the GM levels used in each preset
+#endif
+
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one

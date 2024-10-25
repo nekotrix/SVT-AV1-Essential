@@ -553,6 +553,77 @@ typedef struct {
     Bool                            is_ref;
     EbDownScaledBufDescPtrArray     tpl_ref_ds_ptr_array[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
 } TPLData;
+#if OPT_GM_CORESP_FROM_MV
+typedef enum CorrespondenceMethod {
+    MV_64x64 = 0,
+    MV_32x32 = 1,
+    MV_16x16 = 2,
+    MV_8x8 = 3,
+    CORNERS = 4
+} CorrespondenceMethod;
+#endif
+#if OPT_GM_RFN_EARLY_EXIT
+typedef struct GmControls {
+    // 0: disable GM, 1: Enable GM
+    uint8_t enabled;
+    // 0: generate GM params for both list_0 and list_1, 1: do not generate GM params for list_1 if
+    // list_0/ref_idx_0 is id
+    uint8_t identiy_exit;
+#if OPT_GM_LVLS
+    // GM supports three models: TRANSLATION, ROTZOOM, AFFINE. Set the start and end models to be searched
+    // Set the starting model to be searched for GM (TRANSLATION, ROTZOOM, AFFINE)
+    uint8_t search_start_model;
+    // Set the end model to be searched for GM (TRANSLATION, ROTZOOM, AFFINE)
+    uint8_t search_end_model;
+#else
+    // 0: use both rotzoom and affine models, 1:use rotzoom model only
+    uint8_t rotzoom_model_only;
+#endif
+    // 0: Inject both unipred and bipred global candidates in MD, 1: test bipred only
+    uint8_t bipred_only;
+    // 0: Do not bypass GM search based on the uniformity of motion estimation MVs. 1 : Enable bypass of GM search on ME MVs
+    uint8_t bypass_based_on_me;
+    // 0: do not consider stationary_block info @ me-based bypass, 1: consider stationary_block info
+    // @ me-based bypass (only if bypass_based_on_me=1)
+    uint8_t use_stationary_block;
+    // 0: used default active_th,1: increase active_th baed on distance to ref (only if
+    // bypass_based_on_me=1)
+    uint8_t use_distance_based_active_th;
+    // The number of refinement steps to use in the GM params refinement
+    uint8_t params_refinement_steps;
+    // GM_FULL: Use full resolution pic in GM search;
+    // GM_DOWN: GM search on downsampled picture with a downsampling factor of 2 in each dimension;
+    // GM_DOWN16: GM search on downsampled picture with a downsampling factor of 4 in each dimension;
+    // GM_ADAPT_0: Downsampling is done adaptively (GM_FULL or GM_DOWN) based on the average ME distortion.
+    // GM_ADAPT_1: Downsampling is done adaptively (GM_DOWN or GM_DOWN16) based on the average ME distortion and the picture variance.
+    uint8_t downsample_level;
+    // do GM in the closed loop instead of the open loop and use reference information 0: off 1: on
+    bool use_ref_info;
+    // do the detection bypass for last layer pictures   0:off     1:last layer     2:last 2 layers 3: last 3 layers
+    uint8_t layer_offset;
+    //use a fraction of corner points for computing correspondences for RANSAC in detection. 1:1/4   2:2/4   3:3/4   4:all
+    uint8_t corners;
+    //skip global motion refinement using a chess pattern to skip blocks
+    uint8_t chess_rfn;
+    //change the window size for correlation calculations. must be odd. N: NxN window size goes from 1 to 15
+    uint8_t match_sz;
+    //Inject global only if Parent SQ is global
+    bool inj_psq_glb;
+    //enable Pre-processor for GM
+    bool pp_enabled;
+    //limit the search to ref index = 0 only
+    bool ref_idx0_only;
+    // if true, apply an offset to the segments of the me-dist based modulation
+    uint8_t qp_offset;
+    // 0: off, 1: enable early exit from parameter refinement
+    uint8_t rfn_early_exit;
+#if OPT_GM_CORESP_FROM_MV
+    // 0: Generate correspondence points using corners; 1: Generate correspondence points using ME MVs
+    // When using level 1, corners and match_sz signals will not be used, and pp_enabled must be 0
+    CorrespondenceMethod correspondence_method;
+#endif
+} GmControls;
+#else
 typedef struct GmControls {
     // 0: generate GM params for both list_0 and list_1, 1: do not generate GM params for list_1 if
     // list_0/ref_idx_0 is id
@@ -593,6 +664,7 @@ typedef struct GmControls {
     // if true, apply an offset to the segments of the me-dist based modulation
     uint8_t qp_offset;
 } GmControls;
+#endif
 typedef struct CdefControls {
     uint8_t enabled;
     uint8_t number_of_prim_in_second_loop[2];
