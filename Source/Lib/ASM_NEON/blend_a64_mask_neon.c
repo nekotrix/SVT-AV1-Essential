@@ -43,18 +43,6 @@ static INLINE uint8x8_t alpha_blend_a64_u8x8(uint8x8_t m, uint8x8_t a, uint8x8_t
     return vrshrn_n_u16(blend_u16, AOM_BLEND_A64_ROUND_BITS);
 }
 
-static INLINE uint8x16_t avg_blend_u8x16(uint8x16_t a, uint8x16_t b) { return vrhaddq_u8(a, b); }
-
-static INLINE uint8x16_t avg_blend_pairwise_u8x16(uint8x16_t a, uint8x16_t b) {
-    return vrshrq_n_u8(vpaddq_u8(a, b), 1);
-}
-
-static INLINE uint8x16_t avg_blend_pairwise_u8x16_4(uint8x16_t a, uint8x16_t b, uint8x16_t c, uint8x16_t d) {
-    uint8x16_t a_c = vpaddq_u8(a, c);
-    uint8x16_t b_d = vpaddq_u8(b, d);
-    return vrshrq_n_u8(vqaddq_u8(a_c, b_d), 2);
-}
-
 void svt_aom_blend_a64_hmask_neon(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0, uint32_t src0_stride,
                                   const uint8_t *src1, uint32_t src1_stride, const uint8_t *mask, int w, int h) {
     assert(IMPLIES(src0 == dst, src0_stride == dst_stride));
@@ -305,7 +293,7 @@ void svt_aom_lowbd_blend_a64_d16_mask_neon(uint8_t *dst, uint32_t dst_stride, co
                     uint16x8_t s0 = vld1q_u16(src0 + i);
                     uint16x8_t s1 = vld1q_u16(src1 + i);
 
-                    uint16x8_t m_avg = vmovl_u8(avg_blend_pairwise_u8x8_4(m0, m1, m2, m3));
+                    uint16x8_t m_avg = avg_blend_pairwise_long_u8x8_4(m0, m1, m2, m3);
 
                     uint8x8_t blend = alpha_blend_a64_d16_u16x8(m_avg, s0, s1, offset_vec);
 
@@ -327,7 +315,7 @@ void svt_aom_lowbd_blend_a64_d16_mask_neon(uint8_t *dst, uint32_t dst_stride, co
                 uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);
                 uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);
 
-                uint16x8_t m_avg = vmovl_u8(avg_blend_pairwise_u8x8_4(m0, m1, m2, m3));
+                uint16x8_t m_avg = avg_blend_pairwise_long_u8x8_4(m0, m1, m2, m3);
                 uint8x8_t  blend = alpha_blend_a64_d16_u16x8(m_avg, s0, s1, offset_vec);
 
                 store_u8x4_strided_x2(dst, dst_stride, blend);
@@ -349,7 +337,7 @@ void svt_aom_lowbd_blend_a64_d16_mask_neon(uint8_t *dst, uint32_t dst_stride, co
                     uint16x8_t s0 = vld1q_u16(src0 + i);
                     uint16x8_t s1 = vld1q_u16(src1 + i);
 
-                    uint16x8_t m_avg = vmovl_u8(avg_blend_pairwise_u8x8(m0, m1));
+                    uint16x8_t m_avg = vmovl_u8(vrshr_n_u8(vpadd_u8(m0, m1), 1));
                     uint8x8_t  blend = alpha_blend_a64_d16_u16x8(m_avg, s0, s1, offset_vec);
 
                     vst1_u8(dst + i, blend);
@@ -368,7 +356,7 @@ void svt_aom_lowbd_blend_a64_d16_mask_neon(uint8_t *dst, uint32_t dst_stride, co
                 uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);
                 uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);
 
-                uint16x8_t m_avg = vmovl_u8(avg_blend_pairwise_u8x8(m0, m1));
+                uint16x8_t m_avg = vmovl_u8(vrshr_n_u8(vpadd_u8(m0, m1), 1));
                 uint8x8_t  blend = alpha_blend_a64_d16_u16x8(m_avg, s0, s1, offset_vec);
 
                 store_u8x4_strided_x2(dst, dst_stride, blend);
@@ -390,7 +378,7 @@ void svt_aom_lowbd_blend_a64_d16_mask_neon(uint8_t *dst, uint32_t dst_stride, co
                     uint16x8_t s0 = vld1q_u16(src0 + i);
                     uint16x8_t s1 = vld1q_u16(src1 + i);
 
-                    uint16x8_t m_avg = vmovl_u8(avg_blend_u8x8(m0, m1));
+                    uint16x8_t m_avg = vmovl_u8(vrhadd_u8(m0, m1));
                     uint8x8_t  blend = alpha_blend_a64_d16_u16x8(m_avg, s0, s1, offset_vec);
 
                     vst1_u8(dst + i, blend);
@@ -409,7 +397,7 @@ void svt_aom_lowbd_blend_a64_d16_mask_neon(uint8_t *dst, uint32_t dst_stride, co
                 uint16x8_t s0   = load_unaligned_u16_4x2(src0, src0_stride);
                 uint16x8_t s1   = load_unaligned_u16_4x2(src1, src1_stride);
 
-                uint16x8_t m_avg = vmovl_u8(avg_blend_u8x8(m0_2, m1_3));
+                uint16x8_t m_avg = vmovl_u8(vrhadd_u8(m0_2, m1_3));
                 uint8x8_t  blend = alpha_blend_a64_d16_u16x8(m_avg, s0, s1, offset_vec);
 
                 store_u8x4_strided_x2(dst, dst_stride, blend);
@@ -565,7 +553,7 @@ void svt_aom_blend_a64_mask_neon(uint8_t *dst, uint32_t dst_stride, const uint8_
                     const uint8x16_t s0 = vld1q_u8(src0 + i);
                     const uint8x16_t s1 = vld1q_u8(src1 + i);
 
-                    const uint8x16_t m_avg = avg_blend_pairwise_u8x16(m0, m1);
+                    const uint8x16_t m_avg = vrshrq_n_u8(vpaddq_u8(m0, m1), 1);
                     const uint8x16_t blend = alpha_blend_a64_u8x16(m_avg, s0, s1);
 
                     vst1q_u8(dst + i, blend);
@@ -585,7 +573,7 @@ void svt_aom_blend_a64_mask_neon(uint8_t *dst, uint32_t dst_stride, const uint8_
                 const uint8x8_t s0 = vld1_u8(src0);
                 const uint8x8_t s1 = vld1_u8(src1);
 
-                const uint8x8_t m_avg = avg_blend_pairwise_u8x8(m0, m1);
+                const uint8x8_t m_avg = vrshr_n_u8(vpadd_u8(m0, m1), 1);
                 const uint8x8_t blend = alpha_blend_a64_u8x8(m_avg, s0, s1);
 
                 vst1_u8(dst, blend);
@@ -602,7 +590,7 @@ void svt_aom_blend_a64_mask_neon(uint8_t *dst, uint32_t dst_stride, const uint8_
                 const uint8x8_t s0 = load_unaligned_u8_4x2(src0, src0_stride);
                 const uint8x8_t s1 = load_unaligned_u8_4x2(src1, src1_stride);
 
-                const uint8x8_t m_avg = avg_blend_pairwise_u8x8(m0, m1);
+                const uint8x8_t m_avg = vrshr_n_u8(vpadd_u8(m0, m1), 1);
                 const uint8x8_t blend = alpha_blend_a64_u8x8(m_avg, s0, s1);
 
                 store_unaligned_u8_4x2(dst, dst_stride, blend);
@@ -624,7 +612,7 @@ void svt_aom_blend_a64_mask_neon(uint8_t *dst, uint32_t dst_stride, const uint8_
                     const uint8x16_t s0 = vld1q_u8(src0 + i);
                     const uint8x16_t s1 = vld1q_u8(src1 + i);
 
-                    const uint8x16_t m_avg = avg_blend_u8x16(m0, m1);
+                    const uint8x16_t m_avg = vrhaddq_u8(m0, m1);
                     const uint8x16_t blend = alpha_blend_a64_u8x16(m_avg, s0, s1);
 
                     vst1q_u8(dst + i, blend);
@@ -644,7 +632,7 @@ void svt_aom_blend_a64_mask_neon(uint8_t *dst, uint32_t dst_stride, const uint8_
                 const uint8x8_t s0 = vld1_u8(src0);
                 const uint8x8_t s1 = vld1_u8(src1);
 
-                const uint8x8_t m_avg = avg_blend_u8x8(m0, m1);
+                const uint8x8_t m_avg = vrhadd_u8(m0, m1);
                 const uint8x8_t blend = alpha_blend_a64_u8x8(m_avg, s0, s1);
 
                 vst1_u8(dst, blend);
@@ -661,7 +649,7 @@ void svt_aom_blend_a64_mask_neon(uint8_t *dst, uint32_t dst_stride, const uint8_
                 const uint8x8_t s0   = load_unaligned_u8_4x2(src0, src0_stride);
                 const uint8x8_t s1   = load_unaligned_u8_4x2(src1, src1_stride);
 
-                const uint8x8_t m_avg = avg_blend_u8x8(m0_2, m1_3);
+                const uint8x8_t m_avg = vrhadd_u8(m0_2, m1_3);
                 const uint8x8_t blend = alpha_blend_a64_u8x8(m_avg, s0, s1);
 
                 store_unaligned_u8_4x2(dst, dst_stride, blend);
