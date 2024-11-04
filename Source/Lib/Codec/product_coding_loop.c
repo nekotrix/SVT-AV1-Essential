@@ -6811,9 +6811,9 @@ static void md_stage_2(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
         ModeDecisionCandidate       *cand           = cand_bf->cand;
         ctx->mds_tx_size_mode                       = 0;
 #if FTR_LOSSLESS_SUPPORT
-        ctx->mds_txt_level = pcs->lossless[ctx->blk_ptr->segment_id] ? 0
-            : is_intra_mode(cand->pred_mode)                         ? ctx->txt_ctrls.enabled
-                                                                     : 0;
+        ctx->mds_txt_level = svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) ? 0
+            : is_intra_mode(cand->pred_mode)                                            ? ctx->txt_ctrls.enabled
+                                                                                        : 0;
 #else
         ctx->mds_txt_level = is_intra_mode(cand->pred_mode) ? ctx->txt_ctrls.enabled : 0;
 #endif
@@ -6938,7 +6938,7 @@ static void md_stage_3(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
 
         ctx->mds_tx_size_mode = ctx->txs_ctrls.enabled && (ctx->blk_geom->sq_size >= ctx->txs_ctrls.min_sq_size);
 #if FTR_LOSSLESS_SUPPORT
-        ctx->mds_txt_level = pcs->lossless[ctx->blk_ptr->segment_id] ? 0 : ctx->txt_ctrls.enabled;
+        ctx->mds_txt_level = svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) ? 0 : ctx->txt_ctrls.enabled;
 #else
         ctx->mds_txt_level = ctx->txt_ctrls.enabled;
 #endif
@@ -7228,7 +7228,8 @@ static void search_best_mds3_uv_mode(PictureControlSet *pcs, EbPictureBufferDesc
         cand_array[uv_mode_total_count].transform_type_uv         = svt_aom_get_intra_uv_tx_type(
             cand_array[uv_mode_total_count].intra_chroma_mode, ctx->blk_geom->txsize_uv[0], frm_hdr->reduced_tx_set);
 #if FTR_LOSSLESS_SUPPORT // fix
-        if (pcs->lossless[ctx->blk_ptr->segment_id] && cand_array[uv_mode_total_count].transform_type_uv != DCT_DCT)
+        if (svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) &&
+            cand_array[uv_mode_total_count].transform_type_uv != DCT_DCT)
             continue;
 #endif
         uv_mode_total_count++;
@@ -7429,7 +7430,7 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
                 cand_array[uv_mode_total_count].transform_type_uv          = svt_aom_get_intra_uv_tx_type(
                     uv_mode, ctx->blk_geom->txsize_uv[0], frm_hdr->reduced_tx_set);
 #if FTR_LOSSLESS_SUPPORT // fix
-                if (pcs->lossless[ctx->blk_ptr->segment_id] &&
+                if (svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) &&
                     cand_array[uv_mode_total_count].transform_type_uv != DCT_DCT)
                     continue;
 #endif

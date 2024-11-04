@@ -591,12 +591,9 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         RateControlResults *rc_results = (RateControlResults *)rc_results_wrapper->object_ptr;
         PictureControlSet  *pcs        = (PictureControlSet *)rc_results->pcs_wrapper->object_ptr;
         SequenceControlSet *scs        = pcs->scs;
-#if FTR_LOSSLESS_SUPPORT
-        pcs->mimic_only_tx_4x4 = 0;
-#endif
-        pcs->min_me_clpx = 0;
-        pcs->max_me_clpx = 0;
-        pcs->avg_me_clpx = 0;
+        pcs->min_me_clpx               = 0;
+        pcs->max_me_clpx               = 0;
+        pcs->avg_me_clpx               = 0;
         if (pcs->slice_type != I_SLICE) {
             uint32_t b64_idx;
             uint64_t avg_me_clpx = 0;
@@ -899,6 +896,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         }
 
 #if FTR_LOSSLESS_SUPPORT // ---
+        pcs->mimic_only_tx_4x4 = 0;
         if (frm_hdr->segmentation_params.segmentation_enabled) {
             Bool has_lossless_segment = 0;
             // Loop through each segment to determine if it is coded losslessly

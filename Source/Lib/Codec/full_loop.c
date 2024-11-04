@@ -1563,7 +1563,7 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
 
     // If rdoq_level is specified in the command line instruction, set perform_rdoq accordingly.
 #if FTR_LOSSLESS_SUPPORT
-    perform_rdoq = !pcs->lossless[ctx->blk_ptr->segment_id] &&
+    perform_rdoq = !svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) &&
         ((ctx->mds_skip_rdoq == FALSE || is_encode_pass) && ctx->rdoq_level);
 #else
     perform_rdoq = ((ctx->mds_skip_rdoq == FALSE || is_encode_pass) && ctx->rdoq_level);
@@ -1709,7 +1709,7 @@ void svt_aom_inv_transform_recon_wrapper(uint8_t *pred_buffer, uint32_t pred_off
                                     component_type,
                                     eob,
 #if FTR_LOSSLESS_SUPPORT
-                                    pcs->lossless[ctx->blk_ptr->segment_id]);
+                                    svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id));
 #else
                                     0 /*lossless*/);
 #endif
@@ -1724,7 +1724,7 @@ void svt_aom_inv_transform_recon_wrapper(uint8_t *pred_buffer, uint32_t pred_off
                                         component_type,
                                         eob,
 #if FTR_LOSSLESS_SUPPORT
-                                        pcs->lossless[ctx->blk_ptr->segment_id]);
+                                        svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id));
 #else
                                         0 /*lossless*/);
 #endif

@@ -1899,7 +1899,7 @@ uint64_t svt_aom_tx_size_bits(MdRateEstimationContext *md_rate_est_ctx, MacroBlo
     int      is_inter_tx = is_inter_block(&mbmi->block_mi);
     if (tx_mode == TX_MODE_SELECT && block_signals_txsize(bsize) &&
 #if FTR_LOSSLESS_SUPPORT
-        !(is_inter_tx && skip) && !pcs->lossless[segment_id]) {
+        !(is_inter_tx && skip) && !svt_av1_is_lossless_segment(pcs, segment_id)) {
 #else
         !(is_inter_tx && skip) /*&& !xd->lossless[segment_id]*/) {
 #endif

@@ -3173,7 +3173,7 @@ EbErrorType svt_aom_estimate_transform(int16_t *residual_buffer, uint32_t residu
     (void)component_type;
 
 #if FTR_LOSSLESS_SUPPORT
-    if (pcs->lossless[ctx->blk_ptr->segment_id]) {
+    if (svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id)) {
         assert(transform_type == DCT_DCT);
         int32_t dst[16];
 
