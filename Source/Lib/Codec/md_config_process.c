@@ -875,26 +875,6 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             pcs->ppcs->enable_restoration = 0;
         }
 
-        // Post the results to the MD processes
-        uint16_t tg_count = pcs->ppcs->tile_group_cols * pcs->ppcs->tile_group_rows;
-        for (uint16_t tile_group_idx = 0; tile_group_idx < tg_count; tile_group_idx++) {
-            svt_get_empty_object(context_ptr->mode_decision_configuration_output_fifo_ptr, &enc_dec_tasks_wrapper);
-
-            EncDecTasks *enc_dec_tasks      = (EncDecTasks *)enc_dec_tasks_wrapper->object_ptr;
-            enc_dec_tasks->pcs_wrapper      = rc_results->pcs_wrapper;
-            enc_dec_tasks->input_type       = rc_results->superres_recode ? ENCDEC_TASKS_SUPERRES_INPUT
-                                                                          : ENCDEC_TASKS_MDC_INPUT;
-            enc_dec_tasks->tile_group_index = tile_group_idx;
-
-            // Post the Full Results Object
-            svt_post_full_object(enc_dec_tasks_wrapper);
-
-            if (rc_results->superres_recode) {
-                // for superres input, only send one task
-                break;
-            }
-        }
-
 #if FTR_LOSSLESS_SUPPORT // ---
         pcs->mimic_only_tx_4x4 = 0;
         if (frm_hdr->segmentation_params.segmentation_enabled) {
@@ -960,7 +940,25 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             pcs->pic_lpd1_lvl                           = 0;
         }
 #endif
+        // Post the results to the MD processes
+        uint16_t tg_count = pcs->ppcs->tile_group_cols * pcs->ppcs->tile_group_rows;
+        for (uint16_t tile_group_idx = 0; tile_group_idx < tg_count; tile_group_idx++) {
+            svt_get_empty_object(context_ptr->mode_decision_configuration_output_fifo_ptr, &enc_dec_tasks_wrapper);
 
+            EncDecTasks *enc_dec_tasks      = (EncDecTasks *)enc_dec_tasks_wrapper->object_ptr;
+            enc_dec_tasks->pcs_wrapper      = rc_results->pcs_wrapper;
+            enc_dec_tasks->input_type       = rc_results->superres_recode ? ENCDEC_TASKS_SUPERRES_INPUT
+                                                                          : ENCDEC_TASKS_MDC_INPUT;
+            enc_dec_tasks->tile_group_index = tile_group_idx;
+
+            // Post the Full Results Object
+            svt_post_full_object(enc_dec_tasks_wrapper);
+
+            if (rc_results->superres_recode) {
+                // for superres input, only send one task
+                break;
+            }
+        }
         // Release Rate Control Results
         svt_release_object(rc_results_wrapper);
     }
