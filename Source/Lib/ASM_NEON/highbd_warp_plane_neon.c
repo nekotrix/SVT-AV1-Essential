@@ -254,13 +254,13 @@ void svt_av1_highbd_warp_affine_neon(const int32_t *mat, const uint8_t *ref8b, c
                                      int p_width, int p_height, int p_stride, int subsampling_x, int subsampling_y,
                                      int bd, ConvolveParams *conv_params, int16_t alpha, int16_t beta, int16_t gamma,
                                      int16_t delta) {
-    uint16_t *ref = svt_aom_memalign(32, sizeof(uint16_t) * width * height);
-    svt_enc_msb_pack2d_neon((uint8_t *)ref8b, stride8b, (uint8_t *)ref2b, ref, stride2b, width, width, height);
     highbd_warp_affine_common(mat,
-                              ref,
+                              ref8b,
+                              ref2b,
                               width,
                               height,
-                              width,
+                              stride8b,
+                              stride2b,
                               pred,
                               p_col,
                               p_row,
@@ -275,5 +275,4 @@ void svt_av1_highbd_warp_affine_neon(const int32_t *mat, const uint8_t *ref8b, c
                               beta,
                               gamma,
                               delta);
-    svt_aom_free(ref);
 }
