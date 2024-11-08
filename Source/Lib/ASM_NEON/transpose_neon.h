@@ -935,6 +935,14 @@ static AOM_FORCE_INLINE void transpose_arrays_s32_4nx4n(const int32x4_t *in, int
     }
 }
 
+static AOM_FORCE_INLINE void transpose_arrays_s32_4x8(const int32x4_t *in, int32x4_t *out) {
+    transpose_arrays_s32_4nx4n(in, out, 4, 8);
+}
+
+static AOM_FORCE_INLINE void transpose_arrays_s32_4x16(const int32x4_t *in, int32x4_t *out) {
+    transpose_arrays_s32_4nx4n(in, out, 4, 16);
+}
+
 static AOM_FORCE_INLINE void transpose_arrays_s32_8x8(const int32x4_t *in, int32x4_t *out) {
     transpose_arrays_s32_4nx4n(in, out, 8, 8);
 }
