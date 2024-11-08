@@ -245,7 +245,7 @@ static INLINE const int32_t *cospi_arr(int32_t n) { return svt_aom_eb_av1_cospi_
 
 static INLINE const int32_t *sinpi_arr(int32_t n) { return svt_aom_eb_av1_sinpi_arr_data[n - cos_bit_min]; }
 
-static const int32_t new_sqrt2_bits = 12;
+#define new_sqrt2_bits ((int32_t)12)
 // 2^12 * sqrt(2)
 static const int32_t new_sqrt2 = 5793;
 // 2^12 / sqrt(2)
