@@ -44,6 +44,7 @@ target_sources(
   PUBLIC highbd_intra_prediction_neon.c
   PUBLIC highbd_inv_txfm_neon.c
   PUBLIC highbd_pickrst_neon.c
+  PUBLIC highbd_quantize_neon.c
   PUBLIC highbd_sse_neon.c
   PUBLIC highbd_variance_neon.c
   PUBLIC highbd_wiener_convolve_neon.c

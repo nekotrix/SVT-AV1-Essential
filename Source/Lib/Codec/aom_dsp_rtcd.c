@@ -565,7 +565,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_subtract_average, svt_subtract_average_c);
     SET_ONLY_C(svt_get_proj_subspace, svt_get_proj_subspace_c);
     SET_NEON(svt_aom_quantize_b, svt_aom_quantize_b_c_ii, svt_aom_quantize_b_neon);
-    SET_ONLY_C(svt_aom_highbd_quantize_b, svt_aom_highbd_quantize_b_c);
+    SET_NEON(svt_aom_highbd_quantize_b, svt_aom_highbd_quantize_b_c, svt_aom_highbd_quantize_b_neon);
     SET_NEON(svt_av1_quantize_b_qm, svt_aom_quantize_b_c_ii, svt_aom_quantize_b_neon);
     SET_ONLY_C(svt_av1_highbd_quantize_b_qm, svt_aom_highbd_quantize_b_c);
     SET_NEON(svt_av1_quantize_fp, svt_av1_quantize_fp_c, svt_av1_quantize_fp_neon);

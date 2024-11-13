@@ -339,6 +339,24 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(svt_aom_highbd_quantize_b_avx2)));
 #endif  // ARCH_X86_64
 
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    LBD_NEON, QuantizeBTest,
+    ::testing::Combine(::testing::Values(static_cast<int>(TX_16X16),
+                                         static_cast<int>(TX_32X32),
+                                         static_cast<int>(TX_64X64)),
+                       ::testing::Values(static_cast<int>(EB_EIGHT_BIT)),
+                       ::testing::Values(svt_aom_quantize_b_neon)));
+
+INSTANTIATE_TEST_SUITE_P(
+    HBD_NEON, QuantizeBTest,
+    ::testing::Combine(::testing::Values(static_cast<int>(TX_16X16),
+                                         static_cast<int>(TX_32X32),
+                                         static_cast<int>(TX_64X64)),
+                       ::testing::Values(static_cast<int>(EB_TEN_BIT)),
+                       ::testing::Values(svt_aom_highbd_quantize_b_neon)));
+#endif  // ARCH_AARCH64
+
 class QuantizeBQmTest : public QuantizeBTest {
   protected:
     QuantizeBQmTest() : QuantizeBTest() {
@@ -545,13 +563,4 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(svt_av1_highbd_quantize_b_qm_avx2)));
 #endif  // ARCH_X86_64
 
-#ifdef ARCH_AARCH64
-INSTANTIATE_TEST_SUITE_P(
-    LBD_NEON, QuantizeBTest,
-    ::testing::Combine(::testing::Values(static_cast<int>(TX_16X16),
-                                         static_cast<int>(TX_32X32),
-                                         static_cast<int>(TX_64X64)),
-                       ::testing::Values(static_cast<int>(EB_EIGHT_BIT)),
-                       ::testing::Values(svt_aom_quantize_b_neon)));
-#endif  // ARCH_AARCH64
 }  // namespace QuantizeAsmTest
