@@ -125,11 +125,11 @@ elseif(NOT COMPILE_C_ONLY AND HAVE_ARM_PLATFORM)
             # against stderr does not recognise the "invalid feature modifier" error
             # produced by certain versions of GCC, leading to the feature being
             # incorrectly marked as available.
-            set(OLD_CMAKE_REQURED_FLAGS ${CMAKE_REQUIRED_FLAGS})
+            set(OLD_CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
             set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${${flavor}_FLAG}")
             unset(${flavor}_FLAG_SUPPORTED)
             check_c_source_compiles("static void function(void) {} ${C_MAIN}" ${flavor}_FLAG_SUPPORTED)
-            set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQURED_FLAGS})
+            set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQUIRED_FLAGS})
 
             if(NOT ${flavor}_FLAG_SUPPORTED)
               set(ENABLE_${flavor} 0)
