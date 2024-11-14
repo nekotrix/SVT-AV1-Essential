@@ -999,6 +999,47 @@ const QuantizeParam kQParamArrayNeon[] = {
 
 INSTANTIATE_TEST_SUITE_P(NEON, QuantizeLbdTest,
                          ::testing::ValuesIn(kQParamArrayNeon));
+
+const QuantizeHbdParam kQHbdParamArrayNeon[] = {
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_16X16), TYPE_FP, EB_EIGHT_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_4X16), TYPE_FP, EB_EIGHT_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_16X4), TYPE_FP, EB_EIGHT_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_32X8), TYPE_FP, EB_EIGHT_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_8X32), TYPE_FP, EB_EIGHT_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_64X64), TYPE_FP, EB_EIGHT_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_16X16), TYPE_FP, EB_TEN_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_4X16), TYPE_FP, EB_TEN_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_16X4), TYPE_FP, EB_TEN_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_32X8), TYPE_FP, EB_TEN_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_8X32), TYPE_FP, EB_TEN_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_64X64), TYPE_FP, EB_EIGHT_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_16X16), TYPE_FP, EB_TWELVE_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_4X16), TYPE_FP, EB_TWELVE_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_16X4), TYPE_FP, EB_TWELVE_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_32X8), TYPE_FP, EB_TWELVE_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_8X32), TYPE_FP, EB_TWELVE_BIT),
+    make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
+               static_cast<TxSize>(TX_64X64), TYPE_FP, EB_TWELVE_BIT)};
+
+INSTANTIATE_TEST_SUITE_P(NEON, QuantizeHbdTest,
+                         ::testing::ValuesIn(kQHbdParamArrayNeon));
 #endif  // ARCH_AARCH64
 
 using ComputeCulLevelFunc = uint8_t (*)(const int16_t *const scan,
