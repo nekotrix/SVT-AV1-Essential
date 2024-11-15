@@ -488,6 +488,10 @@ VarianceParam variance_func_sse2[] = {
                   &svt_aom_variance128x128_sse2)};
 
 VarianceParam variance_func_avx2[] = {
+    VarianceParam(8, 4, &svt_aom_variance8x4_c, &svt_aom_variance8x4_avx2),
+    VarianceParam(8, 8, &svt_aom_variance8x8_c, &svt_aom_variance8x8_avx2),
+    VarianceParam(8, 16, &svt_aom_variance8x16_c, &svt_aom_variance8x16_avx2),
+    VarianceParam(8, 32, &svt_aom_variance8x32_c, &svt_aom_variance8x32_avx2),
     VarianceParam(16, 4, &svt_aom_variance16x4_c, &svt_aom_variance16x4_avx2),
     VarianceParam(16, 8, &svt_aom_variance16x8_c, &svt_aom_variance16x8_avx2),
     VarianceParam(16, 16, &svt_aom_variance16x16_c,
