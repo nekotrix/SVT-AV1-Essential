@@ -639,6 +639,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Only hierarchical levels 2-5 is currently supported.\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+
     if (config->rate_control_mode == SVT_AV1_RC_MODE_VBR && config->intra_period_length == -1) {
         SVT_ERROR(
             "Instance %u: keyint = -1 is not supported for modes other than CRF rate control "
@@ -855,7 +856,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Variance boost octile must be between 1 and 8\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-
+#if FTR_STILL_PICTURE
+    if ((int8_t)config->avif < 0 || (int8_t)config->avif > 1) {
+        SVT_ERROR("Instance %u: avif must be either 0 or 1\n", channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
+#endif
     return return_error;
 }
 
@@ -1987,6 +1993,9 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"fast-decode", &config_struct->fast_decode},
 #if FTR_LOSSLESS_SUPPORT
         {"lossless", &config_struct->lossless},
+#endif
+#if FTR_STILL_PICTURE
+        {"avif", &config_struct->avif},
 #endif
     };
     const size_t uint8_opts_size = sizeof(uint8_opts) / sizeof(uint8_opts[0]);

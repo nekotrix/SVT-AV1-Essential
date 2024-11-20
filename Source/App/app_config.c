@@ -199,6 +199,9 @@
 #if FTR_LOSSLESS_SUPPORT
 #define LOSSLESS_TOKEN "--lossless"
 #endif
+#if FTR_STILL_PICTURE
+#define AVIF_TOKEN "--avif"
+#endif
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -1143,6 +1146,9 @@ ConfigEntry config_entry_specific[] = {
 #if FTR_LOSSLESS_SUPPORT
     {SINGLE_INPUT, LOSSLESS_TOKEN, "Enable lossless coding, default is 0 [0-1]", set_cfg_generic_token},
 #endif
+#if FTR_STILL_PICTURE
+    {SINGLE_INPUT, AVIF_TOKEN, "Enable still-picture coding, default is 0 [0-1]", set_cfg_generic_token},
+#endif
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};
 
@@ -1372,6 +1378,9 @@ ConfigEntry config_entry[] = {
 #if FTR_LOSSLESS_SUPPORT
     // Lossless coding
     {SINGLE_INPUT, LOSSLESS_TOKEN, "Lossless", set_cfg_generic_token},
+#endif
+#if FTR_STILL_PICTURE
+    {SINGLE_INPUT, AVIF_TOKEN, "Avif", set_cfg_generic_token},
 #endif
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};

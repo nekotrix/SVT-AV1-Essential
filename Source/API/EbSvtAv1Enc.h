@@ -986,11 +986,26 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is false.
      */
     Bool lossless;
+#if FTR_STILL_PICTURE
+    /* @brief Signal to the library to enable still-picture coding
+     *
+     * Default is false.
+     */
+    Bool avif;
+#endif
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
 #if CLN_LP_LVLS
+#if FTR_STILL_PICTURE
+    uint8_t padding[128 - 3 * sizeof(Bool) - 2 * sizeof(uint8_t) - sizeof(uint32_t)];
+#else
     uint8_t padding[128 - 2 * sizeof(Bool) - 2 * sizeof(uint8_t) - sizeof(uint32_t)];
+#endif
+#else
+#if FTR_STILL_PICTURE
+    uint8_t padding[128 - 3 * sizeof(Bool) - 2 * sizeof(uint8_t)];
 #else
     uint8_t padding[128 - 2 * sizeof(Bool) - 2 * sizeof(uint8_t)];
+#endif
 #endif
 #else
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/

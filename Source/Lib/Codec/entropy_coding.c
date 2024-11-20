@@ -3648,8 +3648,12 @@ static uint32_t write_sequence_header_obu(SequenceControlSet *scs, uint8_t *cons
     svt_aom_wb_write_bit(&wb, scs->seq_header.reduced_still_picture_header);
 
     if (scs->seq_header.reduced_still_picture_header) {
+#if FTR_STILL_PICTURE
+        write_bitstream_level(scs->level[0], &wb);
+#else
         SVT_ERROR("reduced_still_picture_hdr not supported\n");
         //write_bitstream_level(cm->seq_params.level[0], &wb);
+#endif
     } else {
         svt_aom_wb_write_bit(&wb, scs->seq_header.timing_info.timing_info_present); // timing info present flag
 
