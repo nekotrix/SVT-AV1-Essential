@@ -74,6 +74,8 @@ int main(int argc, char **argv) {
         append_negative_gtest_filter("AVX2");
     if (!(simd_caps & EB_CPU_FLAGS_AVX512F))
         append_negative_gtest_filter("AVX512");
+    if (!(simd_caps & EB_CPU_FLAGS_AVX512ICL))
+        append_negative_gtest_filter("AVX512ICL");
 #endif  // ARCH_X86_64
 
     return RUN_ALL_TESTS();

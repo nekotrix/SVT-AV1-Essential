@@ -437,6 +437,8 @@ typedef uint64_t EbCpuFlags;
 #define EB_CPU_FLAGS_AVX512PF (1 << 13)
 #define EB_CPU_FLAGS_AVX512BW (1 << 14)
 #define EB_CPU_FLAGS_AVX512VL (1 << 15)
+// AVX512 extensions supported on Icelake and later (Zen 4 and later on AMD)
+#define EB_CPU_FLAGS_AVX512ICL (1 << 16)
 #elif defined(ARCH_AARCH64)
 // Armv8.0-A mandatory Neon instructions.
 #define EB_CPU_FLAGS_NEON (1 << 0)

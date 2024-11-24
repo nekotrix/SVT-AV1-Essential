@@ -158,6 +158,7 @@ static const char *get_asm_level_name_str(EbCpuFlags cpu_flags) {
         {"avx",          EB_CPU_FLAGS_AVX},
         {"avx2",         EB_CPU_FLAGS_AVX2},
         {"avx512",       EB_CPU_FLAGS_AVX512F},
+        {"avx512icl",    EB_CPU_FLAGS_AVX512ICL},
 #elif defined(ARCH_AARCH64)
         {"neon",         EB_CPU_FLAGS_NEON},
         {"crc32",        EB_CPU_FLAGS_ARM_CRC32},

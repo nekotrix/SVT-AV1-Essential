@@ -732,6 +732,7 @@ static const vector<EbCpuFlags> valid_use_cpu_flags = {
     EB_CPU_FLAGS_AVX512PF,
     EB_CPU_FLAGS_AVX512BW,
     EB_CPU_FLAGS_AVX512VL,
+    EB_CPU_FLAGS_AVX512ICL,
 #elif defined(ARCH_AARCH64)
     EB_CPU_FLAGS_NEON,
 #endif

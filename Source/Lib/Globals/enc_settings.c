@@ -470,7 +470,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR(
             "Instance %u: param '--asm' have invalid value.\n"
             "Value should be [0 - 11] or [c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, "
-            "avx2, avx512, max]\n",
+            "avx2, avx512, avx512icl, max]\n",
             channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
@@ -1548,6 +1548,8 @@ static EbErrorType str_to_asm(const char *nptr, EbCpuFlags *out) {
         {"9", (EB_CPU_FLAGS_AVX2 << 1) - 1},
         {"avx512", (EB_CPU_FLAGS_AVX512VL << 1) - 1},
         {"10", (EB_CPU_FLAGS_AVX512VL << 1) - 1},
+        {"avx512icl", (EB_CPU_FLAGS_AVX512ICL << 1) - 1},
+        {"11", (EB_CPU_FLAGS_AVX512ICL << 1) - 1},
 #elif defined(ARCH_AARCH64)
         {"neon", (EB_CPU_FLAGS_NEON << 1) - 1},
         {"1", (EB_CPU_FLAGS_NEON << 1) - 1},
