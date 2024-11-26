@@ -14,6 +14,7 @@
 #include <immintrin.h>
 #include <stdint.h>
 #include "inv_transforms.h"
+#include "synonyms_avx2.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -112,25 +113,25 @@ static INLINE void transpose_16bit_16x16_avx2(const __m256i *const in, __m256i *
         c[i / 2 + 0] = _mm256_unpacklo_epi64(b[i], b[i + 1]);
         c[i / 2 + 8] = _mm256_unpackhi_epi64(b[i], b[i + 1]);
     }
-    out[0 + 0] = _mm256_permute2x128_si256(c[0], c[1], 0x20);
-    out[1 + 0] = _mm256_permute2x128_si256(c[8], c[9], 0x20);
-    out[2 + 0] = _mm256_permute2x128_si256(c[4], c[5], 0x20);
-    out[3 + 0] = _mm256_permute2x128_si256(c[12], c[13], 0x20);
+    out[0 + 0] = yy_unpacklo_epi128(c[0], c[1]);
+    out[1 + 0] = yy_unpacklo_epi128(c[8], c[9]);
+    out[2 + 0] = yy_unpacklo_epi128(c[4], c[5]);
+    out[3 + 0] = yy_unpacklo_epi128(c[12], c[13]);
 
-    out[0 + 8] = _mm256_permute2x128_si256(c[0], c[1], 0x31);
-    out[1 + 8] = _mm256_permute2x128_si256(c[8], c[9], 0x31);
-    out[2 + 8] = _mm256_permute2x128_si256(c[4], c[5], 0x31);
-    out[3 + 8] = _mm256_permute2x128_si256(c[12], c[13], 0x31);
+    out[0 + 8] = yy_unpackhi_epi128(c[0], c[1]);
+    out[1 + 8] = yy_unpackhi_epi128(c[8], c[9]);
+    out[2 + 8] = yy_unpackhi_epi128(c[4], c[5]);
+    out[3 + 8] = yy_unpackhi_epi128(c[12], c[13]);
 
-    out[4 + 0] = _mm256_permute2x128_si256(c[0 + 2], c[1 + 2], 0x20);
-    out[5 + 0] = _mm256_permute2x128_si256(c[8 + 2], c[9 + 2], 0x20);
-    out[6 + 0] = _mm256_permute2x128_si256(c[4 + 2], c[5 + 2], 0x20);
-    out[7 + 0] = _mm256_permute2x128_si256(c[12 + 2], c[13 + 2], 0x20);
+    out[4 + 0] = yy_unpacklo_epi128(c[0 + 2], c[1 + 2]);
+    out[5 + 0] = yy_unpacklo_epi128(c[8 + 2], c[9 + 2]);
+    out[6 + 0] = yy_unpacklo_epi128(c[4 + 2], c[5 + 2]);
+    out[7 + 0] = yy_unpacklo_epi128(c[12 + 2], c[13 + 2]);
 
-    out[4 + 8] = _mm256_permute2x128_si256(c[0 + 2], c[1 + 2], 0x31);
-    out[5 + 8] = _mm256_permute2x128_si256(c[8 + 2], c[9 + 2], 0x31);
-    out[6 + 8] = _mm256_permute2x128_si256(c[4 + 2], c[5 + 2], 0x31);
-    out[7 + 8] = _mm256_permute2x128_si256(c[12 + 2], c[13 + 2], 0x31);
+    out[4 + 8] = yy_unpackhi_epi128(c[0 + 2], c[1 + 2]);
+    out[5 + 8] = yy_unpackhi_epi128(c[8 + 2], c[9 + 2]);
+    out[6 + 8] = yy_unpackhi_epi128(c[4 + 2], c[5 + 2]);
+    out[7 + 8] = yy_unpackhi_epi128(c[12 + 2], c[13 + 2]);
 }
 
 static INLINE void flip_buf_avx2(__m256i *in, __m256i *out, int size) {

@@ -18,6 +18,7 @@
 #include "memory_avx2.h"
 #include "memory_sse4_1.h"
 #include "synonyms.h"
+#include "synonyms_avx2.h"
 
 #define LEFT_SHIFT (2 * FILTER_BITS - 3 - COMPOUND_ROUND1_BITS)
 
@@ -631,8 +632,8 @@ static INLINE void xy_x_round_store_32_avx2(const __m256i res[2], int16_t *const
 
     r[0]             = xy_x_round_avx2(res[0]);
     r[1]             = xy_x_round_avx2(res[1]);
-    const __m256i d0 = _mm256_inserti128_si256(r[0], _mm256_castsi256_si128(r[1]), 1);
-    const __m256i d1 = _mm256_inserti128_si256(r[1], _mm256_extracti128_si256(r[0], 1), 0);
+    const __m256i d0 = yy_unpacklo_epi128(r[0], r[1]);
+    const __m256i d1 = yy_unpackhi_epi128(r[0], r[1]);
     _mm256_storeu_si256((__m256i *)dst, d0);
     _mm256_storeu_si256((__m256i *)(dst + 16), d1);
 }
@@ -842,8 +843,8 @@ static INLINE void sr_x_2tap_32_avg_avx2(const uint8_t *const src, uint8_t *cons
 
 static INLINE void jnt_no_avg_store_16x2_avx2(const __m256i src0, const __m256i src1, ConvBufType *const dst,
                                               const ptrdiff_t stride) {
-    const __m256i d0 = _mm256_inserti128_si256(src0, _mm256_castsi256_si128(src1), 1);
-    const __m256i d1 = _mm256_inserti128_si256(src1, _mm256_extracti128_si256(src0, 1), 0);
+    const __m256i d0 = yy_unpacklo_epi128(src0, src1);
+    const __m256i d1 = yy_unpackhi_epi128(src0, src1);
     _mm256_storeu_si256((__m256i *)dst, d0);
     _mm256_storeu_si256((__m256i *)(dst + stride), d1);
 }
@@ -1222,8 +1223,8 @@ static INLINE void xy_x_2tap_32_avx2(const uint8_t *const src, const __m256i coe
     xy_x_convolve_2tap_32_avx2(src, coeffs, r);
     const __m256i d0 = xy_x_round_avx2(r[0]);
     const __m256i d1 = xy_x_round_avx2(r[1]);
-    // d0 = _mm256_inserti128_si256(d0, _mm256_extracti128_si256(d1, 0), 1);
-    // d1 = _mm256_inserti128_si256(d1, _mm256_extracti128_si256(d0, 1), 0);
+    // d0 = yy_unpacklo_epi128(d0, d1);
+    // d1 = yy_unpackhi_epi128(d0, d1);
     _mm256_storeu_si256((__m256i *)dst, d0);
     _mm256_storeu_si256((__m256i *)(dst + 16), d1);
 }

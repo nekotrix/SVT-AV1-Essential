@@ -17,6 +17,7 @@
 
 #include "convolve_avx2.h"
 #include "synonyms.h"
+#include "synonyms_avx2.h"
 #include "convolve.h"
 
 void svt_av1_highbd_convolve_2d_sr_avx2(const uint16_t *src, int32_t src_stride, uint16_t *dst, int32_t dst_stride,
@@ -62,8 +63,8 @@ void svt_av1_highbd_convolve_2d_sr_avx2(const uint16_t *src, int32_t src_stride,
                 if (i + 1 < im_h)
                     row1 = _mm256_loadu_si256((__m256i *)&src_ptr[(i + 1) * src_stride + j]);
 
-                const __m256i r0 = _mm256_permute2x128_si256(row0, row1, 0x20);
-                const __m256i r1 = _mm256_permute2x128_si256(row0, row1, 0x31);
+                const __m256i r0 = yy_unpacklo_epi128(row0, row1);
+                const __m256i r1 = yy_unpackhi_epi128(row0, row1);
 
                 // even pixels
                 s[0] = _mm256_alignr_epi8(r1, r0, 0);

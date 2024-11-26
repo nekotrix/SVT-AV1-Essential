@@ -18,6 +18,7 @@
 
 #include "convolve_avx2.h"
 #include "convolve.h"
+#include "synonyms_avx2.h"
 
 #include "inter_prediction.h"
 
@@ -100,8 +101,7 @@ void svt_av1_highbd_jnt_convolve_2d_copy_avx2(const uint16_t *src, int32_t src_s
             for (j = 0; j < w; j += 8) {
                 const __m128i src_row_0 = _mm_loadu_si128((__m128i *)(&src[i * src_stride + j]));
                 const __m128i src_row_1 = _mm_loadu_si128((__m128i *)(&src[i * src_stride + j + src_stride]));
-                // since not all compilers yet support _mm256_set_m128i()
-                const __m256i src_10 = _mm256_insertf128_si256(_mm256_castsi128_si256(src_row_0), src_row_1, 1);
+                const __m256i src_10    = yy_setr_m128i(src_row_0, src_row_1);
 
                 const __m256i res = _mm256_sll_epi16(src_10, left_shift);
 
@@ -143,11 +143,9 @@ void svt_av1_highbd_jnt_convolve_2d_copy_avx2(const uint16_t *src, int32_t src_s
                     }
                 } else {
                     if (do_average) {
-                        const __m256i data_0 = _mm256_castsi128_si256(
-                            _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j])));
-                        const __m256i data_1 = _mm256_castsi128_si256(
-                            _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j + dst_stride])));
-                        const __m256i data_01 = _mm256_permute2x128_si256(data_0, data_1, 0x20);
+                        const __m128i data_0  = _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j]));
+                        const __m128i data_1  = _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j + dst_stride]));
+                        const __m256i data_01 = yy_setr_m128i(data_0, data_1);
 
                         const __m256i data_ref_0_lo = _mm256_unpacklo_epi16(data_01, zero);
                         const __m256i data_ref_0_hi = _mm256_unpackhi_epi16(data_01, zero);
@@ -259,8 +257,8 @@ void svt_av1_highbd_jnt_convolve_2d_avx2(const uint16_t *src, int32_t src_stride
                 if (i + 1 < im_h)
                     row1 = _mm256_loadu_si256((__m256i *)&src_ptr[(i + 1) * src_stride + j]);
 
-                const __m256i r0 = _mm256_permute2x128_si256(row0, row1, 0x20);
-                const __m256i r1 = _mm256_permute2x128_si256(row0, row1, 0x31);
+                const __m256i r0 = yy_unpacklo_epi128(row0, row1);
+                const __m256i r1 = yy_unpackhi_epi128(row0, row1);
 
                 // even pixels
                 s[0] = _mm256_alignr_epi8(r1, r0, 0);
@@ -359,11 +357,9 @@ void svt_av1_highbd_jnt_convolve_2d_avx2(const uint16_t *src, int32_t src_stride
                     __m256i res_unsigned_hi = _mm256_add_epi32(res_b_round, offset_const);
 
                     if (do_average) {
-                        const __m256i data_0 = _mm256_castsi128_si256(
-                            _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j])));
-                        const __m256i data_1 = _mm256_castsi128_si256(
-                            _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j + dst_stride])));
-                        const __m256i data_01 = _mm256_permute2x128_si256(data_0, data_1, 0x20);
+                        const __m128i data_0  = _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j]));
+                        const __m128i data_1  = _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j + dst_stride]));
+                        const __m256i data_01 = yy_setr_m128i(data_0, data_1);
 
                         const __m256i data_ref_0_lo = _mm256_unpacklo_epi16(data_01, zero);
                         const __m256i data_ref_0_hi = _mm256_unpackhi_epi16(data_01, zero);
@@ -465,8 +461,8 @@ void svt_av1_highbd_jnt_convolve_x_avx2(const uint16_t *src, int32_t src_stride,
             const __m256i row0 = _mm256_loadu_si256((__m256i *)&src_ptr[i * src_stride + j]);
             __m256i       row1 = _mm256_loadu_si256((__m256i *)&src_ptr[(i + 1) * src_stride + j]);
 
-            const __m256i r0 = _mm256_permute2x128_si256(row0, row1, 0x20);
-            const __m256i r1 = _mm256_permute2x128_si256(row0, row1, 0x31);
+            const __m256i r0 = yy_unpacklo_epi128(row0, row1);
+            const __m256i r1 = yy_unpackhi_epi128(row0, row1);
 
             // even pixels
             s[0] = _mm256_alignr_epi8(r1, r0, 0);
@@ -530,11 +526,9 @@ void svt_av1_highbd_jnt_convolve_x_avx2(const uint16_t *src, int32_t src_stride,
                 __m256i res_unsigned_hi = _mm256_add_epi32(res2, offset_const);
 
                 if (do_average) {
-                    const __m256i data_0 = _mm256_castsi128_si256(
-                        _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j])));
-                    const __m256i data_1 = _mm256_castsi128_si256(
-                        _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j + dst_stride])));
-                    const __m256i data_01 = _mm256_permute2x128_si256(data_0, data_1, 0x20);
+                    const __m128i data_0  = _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j]));
+                    const __m128i data_1  = _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j + dst_stride]));
+                    const __m256i data_01 = yy_setr_m128i(data_0, data_1);
 
                     const __m256i data_ref_0_lo = _mm256_unpacklo_epi16(data_01, zero);
                     const __m256i data_ref_0_hi = _mm256_unpackhi_epi16(data_01, zero);
@@ -718,11 +712,9 @@ void svt_av1_highbd_jnt_convolve_y_avx2(const uint16_t *src, int32_t src_stride,
                     __m256i res_unsigned_hi = _mm256_add_epi32(res_b_round, offset_const);
 
                     if (do_average) {
-                        const __m256i data_0 = _mm256_castsi128_si256(
-                            _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j])));
-                        const __m256i data_1 = _mm256_castsi128_si256(
-                            _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j + dst_stride])));
-                        const __m256i data_01 = _mm256_permute2x128_si256(data_0, data_1, 0x20);
+                        const __m128i data_0  = _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j]));
+                        const __m128i data_1  = _mm_loadu_si128((__m128i *)(&dst[i * dst_stride + j + dst_stride]));
+                        const __m256i data_01 = yy_setr_m128i(data_0, data_1);
 
                         const __m256i data_ref_0_lo = _mm256_unpacklo_epi16(data_01, zero);
                         const __m256i data_ref_0_hi = _mm256_unpackhi_epi16(data_01, zero);

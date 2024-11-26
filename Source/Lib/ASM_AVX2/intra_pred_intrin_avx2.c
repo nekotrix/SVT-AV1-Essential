@@ -686,7 +686,7 @@ static INLINE void h_predictor_32x8line(const __m256i *row, uint8_t *dst, ptrdif
 
     for (i = 0; i < 4; i++) {
         t[i]       = _mm256_shuffle_epi8(*row, m);
-        __m256i r0 = _mm256_permute2x128_si256(t[i], t[i], 0);
+        __m256i r0 = _mm256_inserti128_si256(t[i], _mm256_castsi256_si128(t[i]), 1);
         __m256i r1 = _mm256_permute2x128_si256(t[i], t[i], 0x11);
         _mm256_storeu_si256((__m256i *)dst, r0);
         _mm256_storeu_si256((__m256i *)(dst + (stride << 4)), r1);
@@ -3794,8 +3794,7 @@ static void highbd_dr_prediction_z3_16x32_avx2(uint16_t *dst, ptrdiff_t stride, 
             _mm_storeu_si128((__m128i *)(dst + (i + j) * stride + 8), _mm256_castsi256_si128(d[(i + j) + 8]));
         }
         for (int32_t i = 8; i < 16; i++) {
-            _mm256_storeu_si256((__m256i *)(dst + (i + j) * stride),
-                                _mm256_inserti128_si256(d[(i + j)], _mm256_extracti128_si256(d[(i + j) - 8], 1), 0));
+            _mm256_storeu_si256((__m256i *)(dst + (i + j) * stride), yy_unpackhi_epi128(d[(i + j) - 8], d[(i + j)]));
         }
     }
 }
@@ -4034,7 +4033,7 @@ static INLINE __m256i paeth_32x1_pred(const __m256i *left, const __m256i *top0, 
     p1               = _mm256_permute4x64_epi64(p0, 0xe);
     const __m256i x1 = _mm256_packus_epi16(p0, p1);
 
-    return _mm256_permute2x128_si256(x0, x1, 0x20);
+    return yy_unpacklo_epi128(x0, x1);
 }
 
 void svt_aom_paeth_predictor_32x16_avx2(uint8_t *dst, ptrdiff_t stride, const uint8_t *above, const uint8_t *left) {

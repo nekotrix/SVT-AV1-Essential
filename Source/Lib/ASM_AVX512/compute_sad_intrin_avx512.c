@@ -16,7 +16,7 @@
 #include "compute_sad_avx2.h"
 #include <immintrin.h>
 #include "memory_avx2.h"
-#include "transpose_avx2.h"
+#include "synonyms_avx2.h"
 #include "utility.h"
 #include "compute_sad_c.h"
 
@@ -344,8 +344,8 @@ SIMD_INLINE void add16x16x2to32bit(const __m512i sads512[2], __m256i sads256[2])
 
     // 0 1 2 3  4 5 6 7
     // 8 9 A b  C D E F
-    sads256[0] = _mm256_unpacklo_epi128(sad256_0, sad256_1);
-    sads256[1] = _mm256_unpackhi_epi128(sad256_0, sad256_1);
+    sads256[0] = yy_unpacklo_epi128(sad256_0, sad256_1);
+    sads256[1] = yy_unpackhi_epi128(sad256_0, sad256_1);
 }
 
 SIMD_INLINE void add16x16x3to32bit(const __m512i sads512[3], __m256i sads256[2]) {
@@ -378,8 +378,8 @@ SIMD_INLINE void add16x16x3to32bit(const __m512i sads512[3], __m256i sads256[2])
 
     // 0 1 2 3  4 5 6 7
     // 8 9 A b  C D E F
-    sads256[0] = _mm256_unpacklo_epi128(sad256_0, sad256_1);
-    sads256[1] = _mm256_unpackhi_epi128(sad256_0, sad256_1);
+    sads256[0] = yy_unpacklo_epi128(sad256_0, sad256_1);
+    sads256[1] = yy_unpackhi_epi128(sad256_0, sad256_1);
 }
 
 SIMD_INLINE void add16x16x4to32bit(const __m512i sads512[4], __m256i sads256[2]) {
@@ -417,8 +417,8 @@ SIMD_INLINE void add16x16x4to32bit(const __m512i sads512[4], __m256i sads256[2])
 
     // 0 1 2 3  4 5 6 7
     // 8 9 A b  C D E F
-    sads256[0] = _mm256_unpacklo_epi128(sad256_0, sad256_1);
-    sads256[1] = _mm256_unpackhi_epi128(sad256_0, sad256_1);
+    sads256[0] = yy_unpacklo_epi128(sad256_0, sad256_1);
+    sads256[1] = yy_unpackhi_epi128(sad256_0, sad256_1);
 }
 
 SIMD_INLINE void add16x16x6to32bit(const __m512i sads512[6], __m256i sads256[2]) {
@@ -463,8 +463,8 @@ SIMD_INLINE void add16x16x6to32bit(const __m512i sads512[6], __m256i sads256[2])
 
     // 0 1 2 3  4 5 6 7
     // 8 9 A b  C D E F
-    sads256[0] = _mm256_unpacklo_epi128(sad256_0, sad256_1);
-    sads256[1] = _mm256_unpackhi_epi128(sad256_0, sad256_1);
+    sads256[0] = yy_unpacklo_epi128(sad256_0, sad256_1);
+    sads256[1] = yy_unpackhi_epi128(sad256_0, sad256_1);
 }
 
 SIMD_INLINE void add16x16x8to32bit(const __m512i sads512[8], __m256i sads256[2]) {
@@ -518,8 +518,8 @@ SIMD_INLINE void add16x16x8to32bit(const __m512i sads512[8], __m256i sads256[2])
 
     // 0 1 2 3  4 5 6 7
     // 8 9 A b  C D E F
-    sads256[0] = _mm256_unpacklo_epi128(sad256_0, sad256_1);
-    sads256[1] = _mm256_unpackhi_epi128(sad256_0, sad256_1);
+    sads256[0] = yy_unpacklo_epi128(sad256_0, sad256_1);
+    sads256[1] = yy_unpackhi_epi128(sad256_0, sad256_1);
 }
 
 static INLINE uint32_t saturate_add(const __m128i sum0, const __m128i sum1, __m128i *const minpos) {

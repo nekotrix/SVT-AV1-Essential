@@ -15,6 +15,7 @@
 #include "common_dsp_rtcd.h"
 #include "inter_prediction.h"
 #include "resize.h"
+#include "synonyms_avx2.h"
 
 #ifndef _mm_storeu_si32
 #define _mm_storeu_si32(p, a) (void)(*(int *)(p) = _mm_cvtsi128_si32((a)))
@@ -515,12 +516,12 @@ static INLINE void highbd_down2_symeven_prepare_4pt(const __m128i load_0, const 
     __m128i vec128_tmp_1 = _mm_alignr_epi8(load_1, load_0, 4); // cat and shift right 2x 16-bit (4 bytes)
     __m256i vec256_tmp_1 = _mm256_cvtepu16_epi32(vec128_tmp_1);
     // -3 -2 -1 00 -1 00 01 02
-    __m256i vec0 = _mm256_permute2x128_si256(vec256_tmp_0, vec256_tmp_1, 0x20);
+    __m256i vec0 = yy_unpacklo_epi128(vec256_tmp_0, vec256_tmp_1);
     // 00 -1 -2 -3 02 01 00 -1
     vec0 = _mm256_shuffle_epi32(vec0, _MM_SHUFFLE(0, 1, 2, 3));
 
     // 01 02 03 04 03 04 05 06
-    __m256i vec1 = _mm256_permute2x128_si256(vec256_tmp_0, vec256_tmp_1, 0x31);
+    __m256i vec1 = yy_unpackhi_epi128(vec256_tmp_0, vec256_tmp_1);
 
     __m256i p01 = _mm256_add_epi32(vec0, vec1);
     // P00a P00b P00c P00d P01a P01b P01c P01d
@@ -534,7 +535,7 @@ static INLINE void highbd_down2_symeven_prepare_4pt(const __m128i load_0, const 
     vec128_tmp_1 = _mm_alignr_epi8(load_0, load_1, 4);
     vec256_tmp_1 = _mm256_cvtepu16_epi32(vec128_tmp_1);
     // 05 06 07 08 07 08 09 10
-    vec1 = _mm256_permute2x128_si256(vec256_tmp_0, vec256_tmp_1, 0x20);
+    vec1 = yy_unpacklo_epi128(vec256_tmp_0, vec256_tmp_1);
 
     __m256i p23 = _mm256_add_epi32(vec0, vec1);
     // P02a P02b P02c P02d P03a P03b P03c P03d
@@ -551,12 +552,12 @@ static INLINE void highbd_down2_symeven_prepare_2pt(const __m256i a, const __m25
     // b: -1 00 01 02 03 04 05 06
 
     // -3 -2 -1 00 -1 00 01 02
-    __m256i vec0 = _mm256_permute2x128_si256(a, b, 0x20);
+    __m256i vec0 = yy_unpacklo_epi128(a, b);
     // 00 -1 -2 -3 02 01 00 -1
     vec0 = _mm256_shuffle_epi32(vec0, _MM_SHUFFLE(0, 1, 2, 3));
 
     // 01 02 03 04 03 04 05 06
-    __m256i vec1 = _mm256_permute2x128_si256(a, b, 0x31);
+    __m256i vec1 = yy_unpackhi_epi128(a, b);
 
     *vec_2pt = _mm256_add_epi32(vec0, vec1);
     // P00a P00b P00c P00d P01a P01b P01c P01d

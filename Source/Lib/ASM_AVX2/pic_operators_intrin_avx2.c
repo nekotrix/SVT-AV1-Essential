@@ -12,6 +12,7 @@
 #include "definitions.h"
 #include <immintrin.h>
 #include "pic_operators_inline_avx2.h"
+#include "synonyms_avx2.h"
 
 #include "pack_unpack_c.h"
 
@@ -64,10 +65,10 @@ static INLINE void compressed_packmsb_32x2h(uint8_t *in8_bit_buffer, uint32_t in
         concat3 = _mm256_srli_epi16(_mm256_unpackhi_epi8(in_n_bit_stride, in_8bit_stride), 6);
 
         //Re-organize the packing for writing to the out buffer
-        out0_15     = _mm256_inserti128_si256(concat0, _mm256_castsi256_si128(concat1), 1);
-        out16_31    = _mm256_inserti128_si256(concat1, _mm256_extracti128_si256(concat0, 1), 0);
-        out_s0_s15  = _mm256_inserti128_si256(concat2, _mm256_castsi256_si128(concat3), 1);
-        out_s16_s31 = _mm256_inserti128_si256(concat3, _mm256_extracti128_si256(concat2, 1), 0);
+        out0_15     = yy_unpacklo_epi128(concat0, concat1);
+        out16_31    = yy_unpackhi_epi128(concat0, concat1);
+        out_s0_s15  = yy_unpacklo_epi128(concat2, concat3);
+        out_s16_s31 = yy_unpackhi_epi128(concat2, concat3);
 
         _mm256_storeu_si256((__m256i *)out16_bit_buffer, out0_15);
         _mm256_storeu_si256((__m256i *)(out16_bit_buffer + 16), out16_31);
@@ -125,10 +126,10 @@ static INLINE void compressed_packmsb_64xh(uint8_t *in8_bit_buffer, uint32_t in8
         concat3 = _mm256_srli_epi16(_mm256_unpackhi_epi8(in_n_bit32, in_8_bit32), 6);
 
         //Re-organize the packing for writing to the out buffer
-        out_0_15  = _mm256_inserti128_si256(concat0, _mm256_castsi256_si128(concat1), 1);
-        out16_31  = _mm256_inserti128_si256(concat1, _mm256_extracti128_si256(concat0, 1), 0);
-        out32_47  = _mm256_inserti128_si256(concat2, _mm256_castsi256_si128(concat3), 1);
-        out_48_63 = _mm256_inserti128_si256(concat3, _mm256_extracti128_si256(concat2, 1), 0);
+        out_0_15  = yy_unpacklo_epi128(concat0, concat1);
+        out16_31  = yy_unpackhi_epi128(concat0, concat1);
+        out32_47  = yy_unpacklo_epi128(concat2, concat3);
+        out_48_63 = yy_unpackhi_epi128(concat2, concat3);
 
         _mm256_storeu_si256((__m256i *)out16_bit_buffer, out_0_15);
         _mm256_storeu_si256((__m256i *)(out16_bit_buffer + 16), out16_31);
@@ -172,10 +173,10 @@ static INLINE void compressed_packmsb_128(uint8_t *in8_bit_buffer, uint8_t *inn_
         ext32_47 = _mm256_unpacklo_epi16(ext01h, ext23h);
         ext48_63 = _mm256_unpackhi_epi16(ext01h, ext23h);
 
-        in_n_bit   = _mm256_inserti128_si256(ext0_15, _mm256_castsi256_si128(ext16_31), 0x1);
-        in_n_bit32 = _mm256_inserti128_si256(ext32_47, _mm256_castsi256_si128(ext48_63), 0x1);
-        in_n_bit64 = _mm256_inserti128_si256(ext16_31, _mm256_extracti128_si256(ext0_15, 0x1), 0x0);
-        in_n_bit96 = _mm256_inserti128_si256(ext48_63, _mm256_extracti128_si256(ext32_47, 0x1), 0x0);
+        in_n_bit   = yy_unpacklo_epi128(ext0_15, ext16_31);
+        in_n_bit32 = yy_unpacklo_epi128(ext32_47, ext48_63);
+        in_n_bit64 = yy_unpackhi_epi128(ext0_15, ext16_31);
+        in_n_bit96 = yy_unpackhi_epi128(ext32_47, ext48_63);
 
         in_8_bit   = _mm256_loadu_si256((__m256i *)(in8_bit_buffer + w * 128));
         in_8_bit32 = _mm256_loadu_si256((__m256i *)(in8_bit_buffer + w * 128 + 32));
@@ -189,10 +190,10 @@ static INLINE void compressed_packmsb_128(uint8_t *in8_bit_buffer, uint8_t *inn_
         concat3 = _mm256_srli_epi16(_mm256_unpackhi_epi8(in_n_bit32, in_8_bit32), 6);
 
         //Re-organize the packing for writing to the out buffer
-        out_0_15  = _mm256_inserti128_si256(concat0, _mm256_castsi256_si128(concat1), 1);
-        out16_31  = _mm256_inserti128_si256(concat1, _mm256_extracti128_si256(concat0, 1), 0);
-        out32_47  = _mm256_inserti128_si256(concat2, _mm256_castsi256_si128(concat3), 1);
-        out_48_63 = _mm256_inserti128_si256(concat3, _mm256_extracti128_si256(concat2, 1), 0);
+        out_0_15  = yy_unpacklo_epi128(concat0, concat1);
+        out16_31  = yy_unpackhi_epi128(concat0, concat1);
+        out32_47  = yy_unpacklo_epi128(concat2, concat3);
+        out_48_63 = yy_unpackhi_epi128(concat2, concat3);
 
         _mm256_storeu_si256((__m256i *)(out16_bit_buffer + w * 128), out_0_15);
         _mm256_storeu_si256((__m256i *)(out16_bit_buffer + w * 128 + 16), out16_31);
@@ -206,10 +207,10 @@ static INLINE void compressed_packmsb_128(uint8_t *in8_bit_buffer, uint8_t *inn_
         concat3 = _mm256_srli_epi16(_mm256_unpackhi_epi8(in_n_bit96, in_8_bit96), 6);
 
         //Re-organize the packing for writing to the out buffer
-        out_0_15  = _mm256_inserti128_si256(concat0, _mm256_castsi256_si128(concat1), 1);
-        out16_31  = _mm256_inserti128_si256(concat1, _mm256_extracti128_si256(concat0, 1), 0);
-        out32_47  = _mm256_inserti128_si256(concat2, _mm256_castsi256_si128(concat3), 1);
-        out_48_63 = _mm256_inserti128_si256(concat3, _mm256_extracti128_si256(concat2, 1), 0);
+        out_0_15  = yy_unpacklo_epi128(concat0, concat1);
+        out16_31  = yy_unpackhi_epi128(concat0, concat1);
+        out32_47  = yy_unpacklo_epi128(concat2, concat3);
+        out_48_63 = yy_unpackhi_epi128(concat2, concat3);
 
         _mm256_storeu_si256((__m256i *)(out16_bit_buffer + w * 128 + 64), out_0_15);
         _mm256_storeu_si256((__m256i *)(out16_bit_buffer + w * 128 + 80), out16_31);
@@ -534,10 +535,10 @@ void svt_enc_msb_pack2d_avx2_intrin_al(uint8_t *in8_bit_buffer, uint32_t in8_str
             concat3 = _mm256_srli_epi16(_mm256_unpackhi_epi8(in_n_bit_stride, in_8bit_stride), 6);
 
             //Re-organize the packing for writing to the out buffer
-            out0_15     = _mm256_inserti128_si256(concat0, _mm256_castsi256_si128(concat1), 1);
-            out16_31    = _mm256_inserti128_si256(concat1, _mm256_extracti128_si256(concat0, 1), 0);
-            out_s0_s15  = _mm256_inserti128_si256(concat2, _mm256_castsi256_si128(concat3), 1);
-            out_s16_s31 = _mm256_inserti128_si256(concat3, _mm256_extracti128_si256(concat2, 1), 0);
+            out0_15     = yy_unpacklo_epi128(concat0, concat1);
+            out16_31    = yy_unpackhi_epi128(concat0, concat1);
+            out_s0_s15  = yy_unpacklo_epi128(concat2, concat3);
+            out_s16_s31 = yy_unpackhi_epi128(concat2, concat3);
 
             _mm256_storeu_si256((__m256i *)out16_bit_buffer, out0_15);
             _mm256_storeu_si256((__m256i *)(out16_bit_buffer + 16), out16_31);
@@ -575,10 +576,10 @@ void svt_enc_msb_pack2d_avx2_intrin_al(uint8_t *in8_bit_buffer, uint32_t in8_str
             out3 = _mm_srli_epi16(_mm_unpackhi_epi8(xx_in_n_bit_stride, xx_in_8bit_stride), 6);
 
             //Re-organize the packing for writing to the out buffer
-            out0_15     = _mm256_inserti128_si256(concat0, _mm256_castsi256_si128(concat1), 1);
-            out16_31    = _mm256_inserti128_si256(concat1, _mm256_extracti128_si256(concat0, 1), 0);
-            out_s0_s15  = _mm256_inserti128_si256(concat2, _mm256_castsi256_si128(concat3), 1);
-            out_s16_s31 = _mm256_inserti128_si256(concat3, _mm256_extracti128_si256(concat2, 1), 0);
+            out0_15     = yy_unpacklo_epi128(concat0, concat1);
+            out16_31    = yy_unpackhi_epi128(concat0, concat1);
+            out_s0_s15  = yy_unpacklo_epi128(concat2, concat3);
+            out_s16_s31 = yy_unpackhi_epi128(concat2, concat3);
 
             _mm256_storeu_si256((__m256i *)out16_bit_buffer, out0_15);
             _mm256_storeu_si256((__m256i *)(out16_bit_buffer + 16), out16_31);
@@ -620,14 +621,14 @@ void svt_enc_msb_pack2d_avx2_intrin_al(uint8_t *in8_bit_buffer, uint32_t in8_str
             concat7 = _mm256_srli_epi16(_mm256_unpackhi_epi8(in_n_bitStride32, in_8bit_stride32), 6);
 
             //Re-organize the packing for writing to the out buffer
-            out_0_15    = _mm256_inserti128_si256(concat0, _mm256_castsi256_si128(concat1), 1);
-            out16_31    = _mm256_inserti128_si256(concat1, _mm256_extracti128_si256(concat0, 1), 0);
-            out32_47    = _mm256_inserti128_si256(concat2, _mm256_castsi256_si128(concat3), 1);
-            out_48_63   = _mm256_inserti128_si256(concat3, _mm256_extracti128_si256(concat2, 1), 0);
-            out_s0_s15  = _mm256_inserti128_si256(concat4, _mm256_castsi256_si128(concat5), 1);
-            out_s16_s31 = _mm256_inserti128_si256(concat5, _mm256_extracti128_si256(concat4, 1), 0);
-            out_s32_s47 = _mm256_inserti128_si256(concat6, _mm256_castsi256_si128(concat7), 1);
-            out_s48_s63 = _mm256_inserti128_si256(concat7, _mm256_extracti128_si256(concat6, 1), 0);
+            out_0_15    = yy_unpacklo_epi128(concat0, concat1);
+            out16_31    = yy_unpackhi_epi128(concat0, concat1);
+            out32_47    = yy_unpacklo_epi128(concat2, concat3);
+            out_48_63   = yy_unpackhi_epi128(concat2, concat3);
+            out_s0_s15  = yy_unpacklo_epi128(concat4, concat5);
+            out_s16_s31 = yy_unpackhi_epi128(concat4, concat5);
+            out_s32_s47 = yy_unpacklo_epi128(concat6, concat7);
+            out_s48_s63 = yy_unpackhi_epi128(concat6, concat7);
 
             _mm256_storeu_si256((__m256i *)out16_bit_buffer, out_0_15);
             _mm256_storeu_si256((__m256i *)(out16_bit_buffer + 16), out16_31);
@@ -679,14 +680,14 @@ void svt_enc_msb_pack2d_avx2_intrin_al(uint8_t *in8_bit_buffer, uint32_t in8_str
             out3 = _mm_srli_epi16(_mm_unpackhi_epi8(xx_in_n_bit_stride, xx_in_8bit_stride), 6);
 
             //Re-organize the packing for writing to the out buffer
-            out_0_15    = _mm256_inserti128_si256(concat0, _mm256_castsi256_si128(concat1), 1);
-            out16_31    = _mm256_inserti128_si256(concat1, _mm256_extracti128_si256(concat0, 1), 0);
-            out32_47    = _mm256_inserti128_si256(concat2, _mm256_castsi256_si128(concat3), 1);
-            out_48_63   = _mm256_inserti128_si256(concat3, _mm256_extracti128_si256(concat2, 1), 0);
-            out_s0_s15  = _mm256_inserti128_si256(concat4, _mm256_castsi256_si128(concat5), 1);
-            out_s16_s31 = _mm256_inserti128_si256(concat5, _mm256_extracti128_si256(concat4, 1), 0);
-            out_s32_s47 = _mm256_inserti128_si256(concat6, _mm256_castsi256_si128(concat7), 1);
-            out_s48_s63 = _mm256_inserti128_si256(concat7, _mm256_extracti128_si256(concat6, 1), 0);
+            out_0_15    = yy_unpacklo_epi128(concat0, concat1);
+            out16_31    = yy_unpackhi_epi128(concat0, concat1);
+            out32_47    = yy_unpacklo_epi128(concat2, concat3);
+            out_48_63   = yy_unpackhi_epi128(concat2, concat3);
+            out_s0_s15  = yy_unpacklo_epi128(concat4, concat5);
+            out_s16_s31 = yy_unpackhi_epi128(concat4, concat5);
+            out_s32_s47 = yy_unpacklo_epi128(concat6, concat7);
+            out_s48_s63 = yy_unpackhi_epi128(concat6, concat7);
 
             _mm256_storeu_si256((__m256i *)out16_bit_buffer, out_0_15);
             _mm256_storeu_si256((__m256i *)(out16_bit_buffer + 16), out16_31);
@@ -2268,10 +2269,10 @@ static INLINE void transpose(__m256i out[4], __m256i in[4]) {
     //out[1] = 01 05 09 0D 11 15 19 1D  21 25 29 2D 31 35 39 3D  41 45 49 4D 51 55 59 5D  61 65 69 6D 71 75 79 7D
     //out[2] = 02 06 0A 0E 12 16 1A 1E  22 26 2A 2E 32 36 3A 3E  42 46 4A 4E 52 56 5A 5E  62 66 6A 6E 72 76 7A 7E
     //out[3] = 03 07 0B 0F 13 17 1B 1F  23 27 2B 2F 33 37 3B 3F  43 47 4B 4F 53 57 5B 5F  63 67 6B 6F 73 77 7B 7F
-    out[0] = _mm256_permute2x128_si256(t0, t2, 0x20); //[A0/2:B0/2]
-    out[1] = _mm256_permute2x128_si256(t1, t3, 0x20); //[A0/2:B0/2]
-    out[2] = _mm256_permute2x128_si256(t0, t2, 0x31); //[A1/2:B1/2]
-    out[3] = _mm256_permute2x128_si256(t1, t3, 0x31); //[A1/2:B1/2]
+    out[0] = yy_unpacklo_epi128(t0, t2); //[A0/2:B0/2]
+    out[1] = yy_unpacklo_epi128(t1, t3); //[A0/2:B0/2]
+    out[2] = yy_unpackhi_epi128(t0, t2); //[A1/2:B1/2]
+    out[3] = yy_unpackhi_epi128(t1, t3); //[A1/2:B1/2]
 }
 
 static INLINE void unpack_and_2bcompress_32x4(uint16_t *in16b_buffer, uint8_t *out8b_buffer, uint8_t *out2b_buffer,
@@ -2495,21 +2496,21 @@ static void hadamard_8x8x2_avx2(const int16_t *src_diff, ptrdiff_t src_stride, i
     hadamard_col8x2_avx2(src, 0);
     hadamard_col8x2_avx2(src, 1);
 
-    _mm256_storeu_si256((__m256i *)coeff, _mm256_permute2x128_si256(src[0], src[1], 0x20));
+    _mm256_storeu_si256((__m256i *)coeff, yy_unpacklo_epi128(src[0], src[1]));
     coeff += 16;
-    _mm256_storeu_si256((__m256i *)coeff, _mm256_permute2x128_si256(src[2], src[3], 0x20));
+    _mm256_storeu_si256((__m256i *)coeff, yy_unpacklo_epi128(src[2], src[3]));
     coeff += 16;
-    _mm256_storeu_si256((__m256i *)coeff, _mm256_permute2x128_si256(src[4], src[5], 0x20));
+    _mm256_storeu_si256((__m256i *)coeff, yy_unpacklo_epi128(src[4], src[5]));
     coeff += 16;
-    _mm256_storeu_si256((__m256i *)coeff, _mm256_permute2x128_si256(src[6], src[7], 0x20));
+    _mm256_storeu_si256((__m256i *)coeff, yy_unpacklo_epi128(src[6], src[7]));
     coeff += 16;
-    _mm256_storeu_si256((__m256i *)coeff, _mm256_permute2x128_si256(src[0], src[1], 0x31));
+    _mm256_storeu_si256((__m256i *)coeff, yy_unpackhi_epi128(src[0], src[1]));
     coeff += 16;
-    _mm256_storeu_si256((__m256i *)coeff, _mm256_permute2x128_si256(src[2], src[3], 0x31));
+    _mm256_storeu_si256((__m256i *)coeff, yy_unpackhi_epi128(src[2], src[3]));
     coeff += 16;
-    _mm256_storeu_si256((__m256i *)coeff, _mm256_permute2x128_si256(src[4], src[5], 0x31));
+    _mm256_storeu_si256((__m256i *)coeff, yy_unpackhi_epi128(src[4], src[5]));
     coeff += 16;
-    _mm256_storeu_si256((__m256i *)coeff, _mm256_permute2x128_si256(src[6], src[7], 0x31));
+    _mm256_storeu_si256((__m256i *)coeff, yy_unpackhi_epi128(src[6], src[7]));
 }
 
 static INLINE void hadamard_16x16_avx2(const int16_t *src_diff, ptrdiff_t src_stride, int32_t *coeff, int is_final) {

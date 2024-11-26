@@ -15,8 +15,7 @@
 #include <immintrin.h> // AVX2
 #include "aom_dsp_rtcd.h"
 #include "restoration.h"
-#include "transpose_sse2.h"
-#include "transpose_avx2.h"
+#include "synonyms_avx2.h"
 
 EB_ALIGN(16)
 static const uint8_t mask_8bit[16][16] = {
@@ -176,9 +175,9 @@ static INLINE __m256i hadd_four_64_avx2(const __m256i src0, const __m256i src1, 
     s[1] = _mm256_add_epi64(t[2], t[3]); // 20+21 30+31  22+23 32+33
 
     // 00+01 10+11  20+21 30+31
-    t[0] = _mm256_inserti128_si256(s[0], _mm256_castsi256_si128(s[1]), 1);
+    t[0] = yy_unpacklo_epi128(s[0], s[1]);
     // 02+03 12+13  22+23 32+33
-    t[1] = _mm256_inserti128_si256(s[1], _mm256_extracti128_si256(s[0], 1), 0);
+    t[1] = yy_unpackhi_epi128(s[0], s[1]);
 
     // 00+01+02+03 10+11+12+13  20+21+22+23 30+31+32+33
     return _mm256_add_epi64(t[0], t[1]);

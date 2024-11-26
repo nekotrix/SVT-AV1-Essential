@@ -14,6 +14,7 @@
 
 #include <immintrin.h>
 #include <stdio.h>
+#include "definitions.h"
 
 /**
   * Various reusable shorthands for x86 SIMD intrinsics.
@@ -54,6 +55,11 @@ static INLINE __m256i yy_set_m128i(__m128i hi, __m128i lo) {
     return _mm256_insertf128_si256(_mm256_castsi128_si256(lo), hi, 1);
 }
 
+// Some compilers don't have _mm256_setr_m128i defined in immintrin.h. We
+// therefore define an equivalent function using a different intrinsic.
+// ([ lo ], [ hi ]) -> [ hi ][ lo ]
+static INLINE __m256i yy_setr_m128i(__m128i lo, __m128i hi) { return yy_set_m128i(hi, lo); }
+
 static INLINE __m256i yy_roundn_epu16(__m256i v_val_w, int bits) {
     const __m256i v_s_w = _mm256_srli_epi16(v_val_w, bits - 1);
     return _mm256_avg_epu16(v_s_w, _mm256_setzero_si256());
@@ -68,4 +74,13 @@ static INLINE __m256i yy_loadu2_128(const void *hi, const void *lo) {
     __m128i mlo = _mm_loadu_si128((__m128i *)(lo));
     return yy_set_m128i(mhi, mlo);
 }
+
+static INLINE __m256i yy_unpacklo_epi128(const __m256i in0, const __m256i in1) {
+    return _mm256_inserti128_si256(in0, _mm256_castsi256_si128(in1), 1);
+}
+
+static INLINE __m256i yy_unpackhi_epi128(const __m256i in0, const __m256i in1) {
+    return _mm256_permute2x128_si256(in0, in1, 0x31);
+}
+
 #endif // AOM_DSP_X86_SYNONYMS_AVX2_H_

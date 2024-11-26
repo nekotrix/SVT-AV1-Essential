@@ -1956,25 +1956,25 @@ static void svt_transpose_16b_16x16_stride(const __m256i *const in, __m256i *out
         c[i / 2 + 0] = _mm256_unpacklo_epi64(b[i], b[i + 1]);
         c[i / 2 + 8] = _mm256_unpackhi_epi64(b[i], b[i + 1]);
     }
-    out[(0 + 0) * s] = _mm256_permute2x128_si256(c[0], c[1], 0x20);
-    out[(1 + 0) * s] = _mm256_permute2x128_si256(c[8], c[9], 0x20);
-    out[(2 + 0) * s] = _mm256_permute2x128_si256(c[4], c[5], 0x20);
-    out[(3 + 0) * s] = _mm256_permute2x128_si256(c[12], c[13], 0x20);
+    out[(0 + 0) * s] = yy_unpacklo_epi128(c[0], c[1]);
+    out[(1 + 0) * s] = yy_unpacklo_epi128(c[8], c[9]);
+    out[(2 + 0) * s] = yy_unpacklo_epi128(c[4], c[5]);
+    out[(3 + 0) * s] = yy_unpacklo_epi128(c[12], c[13]);
 
-    out[(0 + 8) * s] = _mm256_permute2x128_si256(c[0], c[1], 0x31);
-    out[(1 + 8) * s] = _mm256_permute2x128_si256(c[8], c[9], 0x31);
-    out[(2 + 8) * s] = _mm256_permute2x128_si256(c[4], c[5], 0x31);
-    out[(3 + 8) * s] = _mm256_permute2x128_si256(c[12], c[13], 0x31);
+    out[(0 + 8) * s] = yy_unpackhi_epi128(c[0], c[1]);
+    out[(1 + 8) * s] = yy_unpackhi_epi128(c[8], c[9]);
+    out[(2 + 8) * s] = yy_unpackhi_epi128(c[4], c[5]);
+    out[(3 + 8) * s] = yy_unpackhi_epi128(c[12], c[13]);
 
-    out[(4 + 0) * s] = _mm256_permute2x128_si256(c[0 + 2], c[1 + 2], 0x20);
-    out[(5 + 0) * s] = _mm256_permute2x128_si256(c[8 + 2], c[9 + 2], 0x20);
-    out[(6 + 0) * s] = _mm256_permute2x128_si256(c[4 + 2], c[5 + 2], 0x20);
-    out[(7 + 0) * s] = _mm256_permute2x128_si256(c[12 + 2], c[13 + 2], 0x20);
+    out[(4 + 0) * s] = yy_unpacklo_epi128(c[0 + 2], c[1 + 2]);
+    out[(5 + 0) * s] = yy_unpacklo_epi128(c[8 + 2], c[9 + 2]);
+    out[(6 + 0) * s] = yy_unpacklo_epi128(c[4 + 2], c[5 + 2]);
+    out[(7 + 0) * s] = yy_unpacklo_epi128(c[12 + 2], c[13 + 2]);
 
-    out[(4 + 8) * s] = _mm256_permute2x128_si256(c[0 + 2], c[1 + 2], 0x31);
-    out[(5 + 8) * s] = _mm256_permute2x128_si256(c[8 + 2], c[9 + 2], 0x31);
-    out[(6 + 8) * s] = _mm256_permute2x128_si256(c[4 + 2], c[5 + 2], 0x31);
-    out[(7 + 8) * s] = _mm256_permute2x128_si256(c[12 + 2], c[13 + 2], 0x31);
+    out[(4 + 8) * s] = yy_unpackhi_epi128(c[0 + 2], c[1 + 2]);
+    out[(5 + 8) * s] = yy_unpackhi_epi128(c[8 + 2], c[9 + 2]);
+    out[(6 + 8) * s] = yy_unpackhi_epi128(c[4 + 2], c[5 + 2]);
+    out[(7 + 8) * s] = yy_unpackhi_epi128(c[12 + 2], c[13 + 2]);
 }
 
 static void svt_pack_and_transpose_32x32(const TranLow *dqcoeff_32, int16_t *dqcoeff_16) {
@@ -2027,10 +2027,10 @@ static void svt_pack_and_transpose_16x4(const TranLow *dqcoeff_32, int16_t *dqco
     tmp[2] = _mm256_unpacklo_epi32(a4, a5);
     tmp[3] = _mm256_unpackhi_epi32(a4, a5);
 
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16), _mm256_permute2x128_si256(tmp[0], tmp[1], 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 16), _mm256_permute2x128_si256(tmp[2], tmp[3], 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 32), _mm256_permute2x128_si256(tmp[0], tmp[1], 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 48), _mm256_permute2x128_si256(tmp[2], tmp[3], 0x31));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16), yy_unpacklo_epi128(tmp[0], tmp[1]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 16), yy_unpacklo_epi128(tmp[2], tmp[3]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 32), yy_unpackhi_epi128(tmp[0], tmp[1]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 48), yy_unpackhi_epi128(tmp[2], tmp[3]));
 }
 
 static void svt_pack_and_transpose_16x8(const TranLow *dqcoeff_32, int16_t *dqcoeff_16) {
@@ -2065,15 +2065,15 @@ static void svt_pack_and_transpose_16x8(const TranLow *dqcoeff_32, int16_t *dqco
     a6 = _mm256_unpacklo_epi64(tmp[3], tmp[7]);
     a7 = _mm256_unpackhi_epi64(tmp[3], tmp[7]);
 
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16), _mm256_permute2x128_si256(a0, a1, 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 16), _mm256_permute2x128_si256(a2, a3, 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 32), _mm256_permute2x128_si256(a4, a5, 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 48), _mm256_permute2x128_si256(a6, a7, 0x20));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16), yy_unpacklo_epi128(a0, a1));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 16), yy_unpacklo_epi128(a2, a3));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 32), yy_unpacklo_epi128(a4, a5));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 48), yy_unpacklo_epi128(a6, a7));
 
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 64), _mm256_permute2x128_si256(a0, a1, 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 80), _mm256_permute2x128_si256(a2, a3, 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 96), _mm256_permute2x128_si256(a4, a5, 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 112), _mm256_permute2x128_si256(a6, a7, 0x31));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 64), yy_unpackhi_epi128(a0, a1));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 80), yy_unpackhi_epi128(a2, a3));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 96), yy_unpackhi_epi128(a4, a5));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 112), yy_unpackhi_epi128(a6, a7));
 }
 
 static void svt_pack_and_transpose_4x16(const TranLow *dqcoeff_32, int16_t *dqcoeff_16) {
@@ -2097,10 +2097,10 @@ static void svt_pack_and_transpose_4x16(const TranLow *dqcoeff_32, int16_t *dqco
     a2 = _mm256_permutevar8x32_epi32(tmp[2], perm);
     a3 = _mm256_permutevar8x32_epi32(tmp[3], perm);
 
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16), _mm256_permute2x128_si256(a0, a1, 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 16), _mm256_permute2x128_si256(a0, a1, 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 32), _mm256_permute2x128_si256(a2, a3, 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 48), _mm256_permute2x128_si256(a2, a3, 0x31));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16), yy_unpacklo_epi128(a0, a1));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 16), yy_unpackhi_epi128(a0, a1));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 32), yy_unpacklo_epi128(a2, a3));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 48), yy_unpackhi_epi128(a2, a3));
 }
 
 static void transpose_16bit_8x8_stride(__m128i *in, int16_t *out, uint32_t s) {
@@ -2197,14 +2197,14 @@ static void svt_pack_and_transpose_32x8(const TranLow *dqcoeff_32, int16_t *dqco
         a[i / 2 + 0] = _mm256_unpacklo_epi64(tmp[i], tmp[i + 1]);
         a[i / 2 + 4] = _mm256_unpackhi_epi64(tmp[i], tmp[i + 1]);
     }
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16), _mm256_permute2x128_si256(a[0], a[4], 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 16), _mm256_permute2x128_si256(a[2], a[6], 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 32), _mm256_permute2x128_si256(a[1], a[5], 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 48), _mm256_permute2x128_si256(a[3], a[7], 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 64), _mm256_permute2x128_si256(a[0], a[4], 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 80), _mm256_permute2x128_si256(a[2], a[6], 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 96), _mm256_permute2x128_si256(a[1], a[5], 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 112), _mm256_permute2x128_si256(a[3], a[7], 0x31));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16), yy_unpacklo_epi128(a[0], a[4]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 16), yy_unpacklo_epi128(a[2], a[6]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 32), yy_unpacklo_epi128(a[1], a[5]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 48), yy_unpacklo_epi128(a[3], a[7]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 64), yy_unpackhi_epi128(a[0], a[4]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 80), yy_unpackhi_epi128(a[2], a[6]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 96), yy_unpackhi_epi128(a[1], a[5]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 112), yy_unpackhi_epi128(a[3], a[7]));
 
     for (int i = 0; i < 8; ++i) tmp[i] = load_32bit_to_16bit_w16_avx2(dqcoeff_32 + i * 32 + 16);
 
@@ -2221,14 +2221,14 @@ static void svt_pack_and_transpose_32x8(const TranLow *dqcoeff_32, int16_t *dqco
         a[i / 2 + 4] = _mm256_unpackhi_epi64(tmp[i], tmp[i + 1]);
     }
     dqcoeff_16 += 16 * 8;
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16), _mm256_permute2x128_si256(a[0], a[4], 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 16), _mm256_permute2x128_si256(a[2], a[6], 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 32), _mm256_permute2x128_si256(a[1], a[5], 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 48), _mm256_permute2x128_si256(a[3], a[7], 0x20));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 64), _mm256_permute2x128_si256(a[0], a[4], 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 80), _mm256_permute2x128_si256(a[2], a[6], 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 96), _mm256_permute2x128_si256(a[1], a[5], 0x31));
-    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 112), _mm256_permute2x128_si256(a[3], a[7], 0x31));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16), yy_unpacklo_epi128(a[0], a[4]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 16), yy_unpacklo_epi128(a[2], a[6]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 32), yy_unpacklo_epi128(a[1], a[5]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 48), yy_unpacklo_epi128(a[3], a[7]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 64), yy_unpackhi_epi128(a[0], a[4]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 80), yy_unpackhi_epi128(a[2], a[6]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 96), yy_unpackhi_epi128(a[1], a[5]));
+    _mm256_storeu_si256((__m256i *)(dqcoeff_16 + 112), yy_unpackhi_epi128(a[3], a[7]));
 }
 
 static void inv_txf_add_4x4_dav1d(int16_t *dqcoeff, uint8_t *dst, int32_t stride, TxType tx_type, int eob) {

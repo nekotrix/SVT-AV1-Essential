@@ -10,6 +10,7 @@
  */
 
 #include <immintrin.h>
+#include "synonyms_avx2.h"
 
 #include "aom_dsp_rtcd.h"
 
@@ -68,15 +69,15 @@ static INLINE void update_qp(int log_scale, __m256i *thr, __m256i *qp) {
     *thr  = _mm256_srai_epi16(qp[2], 1 + log_scale);
 }
 
-#define store_quan(q, addr)                                          \
-    do {                                                             \
-        __m256i sign_bits = _mm256_srai_epi16(q, 15);                \
-        __m256i y0        = _mm256_unpacklo_epi16(q, sign_bits);     \
-        __m256i y1        = _mm256_unpackhi_epi16(q, sign_bits);     \
-        __m256i x0        = _mm256_permute2x128_si256(y0, y1, 0x20); \
-        __m256i x1        = _mm256_permute2x128_si256(y0, y1, 0x31); \
-        _mm256_storeu_si256((__m256i *)addr, x0);                    \
-        _mm256_storeu_si256((__m256i *)addr + 1, x1);                \
+#define store_quan(q, addr)                                      \
+    do {                                                         \
+        __m256i sign_bits = _mm256_srai_epi16(q, 15);            \
+        __m256i y0        = _mm256_unpacklo_epi16(q, sign_bits); \
+        __m256i y1        = _mm256_unpackhi_epi16(q, sign_bits); \
+        __m256i x0        = yy_unpacklo_epi128(y0, y1);          \
+        __m256i x1        = yy_unpackhi_epi128(y0, y1);          \
+        _mm256_storeu_si256((__m256i *)addr, x0);                \
+        _mm256_storeu_si256((__m256i *)addr + 1, x1);            \
     } while (0)
 
 #define store_two_quan(q, addr1, dq, addr2)            \

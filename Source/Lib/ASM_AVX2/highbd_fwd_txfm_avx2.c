@@ -16,6 +16,7 @@
 #include "transforms.h"
 #include <immintrin.h>
 #include "txfm_common_avx2.h"
+#include "synonyms_avx2.h"
 
 void svt_aom_transform_config(TxType tx_type, TxSize tx_size, Txfm2dFlipCfg *cfg);
 
@@ -38,14 +39,14 @@ static INLINE void transpose_8x8_avx2(const __m256i *in, __m256i *out) {
     __m256i out1[8];
     TRANSPOSE_4X4_AVX2(in[0], in[1], in[2], in[3], out1[0], out1[1], out1[4], out1[5]);
     TRANSPOSE_4X4_AVX2(in[4], in[5], in[6], in[7], out1[2], out1[3], out1[6], out1[7]);
-    out[0] = _mm256_permute2x128_si256(out1[0], out1[2], 0x20);
-    out[1] = _mm256_permute2x128_si256(out1[1], out1[3], 0x20);
-    out[2] = _mm256_permute2x128_si256(out1[4], out1[6], 0x20);
-    out[3] = _mm256_permute2x128_si256(out1[5], out1[7], 0x20);
-    out[4] = _mm256_permute2x128_si256(out1[0], out1[2], 0x31);
-    out[5] = _mm256_permute2x128_si256(out1[1], out1[3], 0x31);
-    out[6] = _mm256_permute2x128_si256(out1[4], out1[6], 0x31);
-    out[7] = _mm256_permute2x128_si256(out1[5], out1[7], 0x31);
+    out[0] = yy_unpacklo_epi128(out1[0], out1[2]);
+    out[1] = yy_unpacklo_epi128(out1[1], out1[3]);
+    out[2] = yy_unpacklo_epi128(out1[4], out1[6]);
+    out[3] = yy_unpacklo_epi128(out1[5], out1[7]);
+    out[4] = yy_unpackhi_epi128(out1[0], out1[2]);
+    out[5] = yy_unpackhi_epi128(out1[1], out1[3]);
+    out[6] = yy_unpackhi_epi128(out1[4], out1[6]);
+    out[7] = yy_unpackhi_epi128(out1[5], out1[7]);
 }
 
 static INLINE void transpose_16x16_avx2(const __m256i *in, __m256i *out) {
@@ -59,38 +60,38 @@ static INLINE void transpose_16x16_avx2(const __m256i *in, __m256i *out) {
     TRANSPOSE_4X4_AVX2(in[17], in[19], in[21], in[23], temp[8], temp[10], temp[12], temp[14]);
     TRANSPOSE_4X4_AVX2(in[25], in[27], in[29], in[31], temp[24], temp[26], temp[28], temp[30]);
 
-    out[0]  = _mm256_permute2x128_si256(temp[0], temp[17], 0x20);
-    out[1]  = _mm256_permute2x128_si256(temp[1], temp[9], 0x20);
-    out[2]  = _mm256_permute2x128_si256(temp[2], temp[19], 0x20);
-    out[3]  = _mm256_permute2x128_si256(temp[3], temp[11], 0x20);
-    out[4]  = _mm256_permute2x128_si256(temp[4], temp[21], 0x20);
-    out[5]  = _mm256_permute2x128_si256(temp[5], temp[13], 0x20);
-    out[6]  = _mm256_permute2x128_si256(temp[6], temp[23], 0x20);
-    out[7]  = _mm256_permute2x128_si256(temp[7], temp[15], 0x20);
-    out[8]  = _mm256_permute2x128_si256(temp[0], temp[17], 0x31);
-    out[9]  = _mm256_permute2x128_si256(temp[1], temp[9], 0x31);
-    out[10] = _mm256_permute2x128_si256(temp[2], temp[19], 0x31);
-    out[11] = _mm256_permute2x128_si256(temp[3], temp[11], 0x31);
-    out[12] = _mm256_permute2x128_si256(temp[4], temp[21], 0x31);
-    out[13] = _mm256_permute2x128_si256(temp[5], temp[13], 0x31);
-    out[14] = _mm256_permute2x128_si256(temp[6], temp[23], 0x31);
-    out[15] = _mm256_permute2x128_si256(temp[7], temp[15], 0x31);
-    out[16] = _mm256_permute2x128_si256(temp[16], temp[25], 0x20);
-    out[17] = _mm256_permute2x128_si256(temp[8], temp[24], 0x20);
-    out[18] = _mm256_permute2x128_si256(temp[18], temp[27], 0x20);
-    out[19] = _mm256_permute2x128_si256(temp[10], temp[26], 0x20);
-    out[20] = _mm256_permute2x128_si256(temp[20], temp[29], 0x20);
-    out[21] = _mm256_permute2x128_si256(temp[12], temp[28], 0x20);
-    out[22] = _mm256_permute2x128_si256(temp[22], temp[31], 0x20);
-    out[23] = _mm256_permute2x128_si256(temp[14], temp[30], 0x20);
-    out[24] = _mm256_permute2x128_si256(temp[16], temp[25], 0x31);
-    out[25] = _mm256_permute2x128_si256(temp[8], temp[24], 0x31);
-    out[26] = _mm256_permute2x128_si256(temp[18], temp[27], 0x31);
-    out[27] = _mm256_permute2x128_si256(temp[10], temp[26], 0x31);
-    out[28] = _mm256_permute2x128_si256(temp[20], temp[29], 0x31);
-    out[29] = _mm256_permute2x128_si256(temp[12], temp[28], 0x31);
-    out[30] = _mm256_permute2x128_si256(temp[22], temp[31], 0x31);
-    out[31] = _mm256_permute2x128_si256(temp[14], temp[30], 0x31);
+    out[0]  = yy_unpacklo_epi128(temp[0], temp[17]);
+    out[1]  = yy_unpacklo_epi128(temp[1], temp[9]);
+    out[2]  = yy_unpacklo_epi128(temp[2], temp[19]);
+    out[3]  = yy_unpacklo_epi128(temp[3], temp[11]);
+    out[4]  = yy_unpacklo_epi128(temp[4], temp[21]);
+    out[5]  = yy_unpacklo_epi128(temp[5], temp[13]);
+    out[6]  = yy_unpacklo_epi128(temp[6], temp[23]);
+    out[7]  = yy_unpacklo_epi128(temp[7], temp[15]);
+    out[8]  = yy_unpackhi_epi128(temp[0], temp[17]);
+    out[9]  = yy_unpackhi_epi128(temp[1], temp[9]);
+    out[10] = yy_unpackhi_epi128(temp[2], temp[19]);
+    out[11] = yy_unpackhi_epi128(temp[3], temp[11]);
+    out[12] = yy_unpackhi_epi128(temp[4], temp[21]);
+    out[13] = yy_unpackhi_epi128(temp[5], temp[13]);
+    out[14] = yy_unpackhi_epi128(temp[6], temp[23]);
+    out[15] = yy_unpackhi_epi128(temp[7], temp[15]);
+    out[16] = yy_unpacklo_epi128(temp[16], temp[25]);
+    out[17] = yy_unpacklo_epi128(temp[8], temp[24]);
+    out[18] = yy_unpacklo_epi128(temp[18], temp[27]);
+    out[19] = yy_unpacklo_epi128(temp[10], temp[26]);
+    out[20] = yy_unpacklo_epi128(temp[20], temp[29]);
+    out[21] = yy_unpacklo_epi128(temp[12], temp[28]);
+    out[22] = yy_unpacklo_epi128(temp[22], temp[31]);
+    out[23] = yy_unpacklo_epi128(temp[14], temp[30]);
+    out[24] = yy_unpackhi_epi128(temp[16], temp[25]);
+    out[25] = yy_unpackhi_epi128(temp[8], temp[24]);
+    out[26] = yy_unpackhi_epi128(temp[18], temp[27]);
+    out[27] = yy_unpackhi_epi128(temp[10], temp[26]);
+    out[28] = yy_unpackhi_epi128(temp[20], temp[29]);
+    out[29] = yy_unpackhi_epi128(temp[12], temp[28]);
+    out[30] = yy_unpackhi_epi128(temp[22], temp[31]);
+    out[31] = yy_unpackhi_epi128(temp[14], temp[30]);
 }
 
 static INLINE void transpose_32_8x8_avx2(int32_t stride, const __m256i *in, __m256i *out) {
@@ -113,14 +114,14 @@ static INLINE void transpose_32_8x8_avx2(int32_t stride, const __m256i *in, __m2
     out1[6] = _mm256_unpacklo_epi32(temp5, temp7);
     out1[7] = _mm256_unpackhi_epi32(temp5, temp7);
 
-    out[0 * stride] = _mm256_permute2x128_si256(out1[0], out1[2], 0x20);
-    out[1 * stride] = _mm256_permute2x128_si256(out1[1], out1[3], 0x20);
-    out[2 * stride] = _mm256_permute2x128_si256(out1[4], out1[6], 0x20);
-    out[3 * stride] = _mm256_permute2x128_si256(out1[5], out1[7], 0x20);
-    out[4 * stride] = _mm256_permute2x128_si256(out1[0], out1[2], 0x31);
-    out[5 * stride] = _mm256_permute2x128_si256(out1[1], out1[3], 0x31);
-    out[6 * stride] = _mm256_permute2x128_si256(out1[4], out1[6], 0x31);
-    out[7 * stride] = _mm256_permute2x128_si256(out1[5], out1[7], 0x31);
+    out[0 * stride] = yy_unpacklo_epi128(out1[0], out1[2]);
+    out[1 * stride] = yy_unpacklo_epi128(out1[1], out1[3]);
+    out[2 * stride] = yy_unpacklo_epi128(out1[4], out1[6]);
+    out[3 * stride] = yy_unpacklo_epi128(out1[5], out1[7]);
+    out[4 * stride] = yy_unpackhi_epi128(out1[0], out1[2]);
+    out[5 * stride] = yy_unpackhi_epi128(out1[1], out1[3]);
+    out[6 * stride] = yy_unpackhi_epi128(out1[4], out1[6]);
+    out[7 * stride] = yy_unpackhi_epi128(out1[5], out1[7]);
 }
 
 static INLINE void transpose_32_avx2(int32_t txfm_size, const __m256i *input, __m256i *output) {
@@ -159,14 +160,14 @@ static INLINE void transpose_8nx8n(const __m256i *input, __m256i *output, const 
                                out1[3],
                                out1[6],
                                out1[7]);
-            output[j * height + i + (numcol * 0)] = _mm256_permute2x128_si256(out1[0], out1[2], 0x20);
-            output[j * height + i + (numcol * 1)] = _mm256_permute2x128_si256(out1[1], out1[3], 0x20);
-            output[j * height + i + (numcol * 2)] = _mm256_permute2x128_si256(out1[4], out1[6], 0x20);
-            output[j * height + i + (numcol * 3)] = _mm256_permute2x128_si256(out1[5], out1[7], 0x20);
-            output[j * height + i + (numcol * 4)] = _mm256_permute2x128_si256(out1[0], out1[2], 0x31);
-            output[j * height + i + (numcol * 5)] = _mm256_permute2x128_si256(out1[1], out1[3], 0x31);
-            output[j * height + i + (numcol * 6)] = _mm256_permute2x128_si256(out1[4], out1[6], 0x31);
-            output[j * height + i + (numcol * 7)] = _mm256_permute2x128_si256(out1[5], out1[7], 0x31);
+            output[j * height + i + (numcol * 0)] = yy_unpacklo_epi128(out1[0], out1[2]);
+            output[j * height + i + (numcol * 1)] = yy_unpacklo_epi128(out1[1], out1[3]);
+            output[j * height + i + (numcol * 2)] = yy_unpacklo_epi128(out1[4], out1[6]);
+            output[j * height + i + (numcol * 3)] = yy_unpacklo_epi128(out1[5], out1[7]);
+            output[j * height + i + (numcol * 4)] = yy_unpackhi_epi128(out1[0], out1[2]);
+            output[j * height + i + (numcol * 5)] = yy_unpackhi_epi128(out1[1], out1[3]);
+            output[j * height + i + (numcol * 6)] = yy_unpackhi_epi128(out1[4], out1[6]);
+            output[j * height + i + (numcol * 7)] = yy_unpackhi_epi128(out1[5], out1[7]);
         }
     }
 }
@@ -199,14 +200,14 @@ static INLINE void transpose_8nx8n_N2_half(const __m256i *input, __m256i *output
                                out1[3],
                                out1[6],
                                out1[7]);
-            output[j * height + i + (numcol * 0)] = _mm256_permute2x128_si256(out1[0], out1[2], 0x20);
-            output[j * height + i + (numcol * 1)] = _mm256_permute2x128_si256(out1[1], out1[3], 0x20);
-            output[j * height + i + (numcol * 2)] = _mm256_permute2x128_si256(out1[4], out1[6], 0x20);
-            output[j * height + i + (numcol * 3)] = _mm256_permute2x128_si256(out1[5], out1[7], 0x20);
-            output[j * height + i + (numcol * 4)] = _mm256_permute2x128_si256(out1[0], out1[2], 0x31);
-            output[j * height + i + (numcol * 5)] = _mm256_permute2x128_si256(out1[1], out1[3], 0x31);
-            output[j * height + i + (numcol * 6)] = _mm256_permute2x128_si256(out1[4], out1[6], 0x31);
-            output[j * height + i + (numcol * 7)] = _mm256_permute2x128_si256(out1[5], out1[7], 0x31);
+            output[j * height + i + (numcol * 0)] = yy_unpacklo_epi128(out1[0], out1[2]);
+            output[j * height + i + (numcol * 1)] = yy_unpacklo_epi128(out1[1], out1[3]);
+            output[j * height + i + (numcol * 2)] = yy_unpacklo_epi128(out1[4], out1[6]);
+            output[j * height + i + (numcol * 3)] = yy_unpacklo_epi128(out1[5], out1[7]);
+            output[j * height + i + (numcol * 4)] = yy_unpackhi_epi128(out1[0], out1[2]);
+            output[j * height + i + (numcol * 5)] = yy_unpackhi_epi128(out1[1], out1[3]);
+            output[j * height + i + (numcol * 6)] = yy_unpackhi_epi128(out1[4], out1[6]);
+            output[j * height + i + (numcol * 7)] = yy_unpackhi_epi128(out1[5], out1[7]);
         }
     }
 }
@@ -244,14 +245,14 @@ static INLINE void transpose_8nx8n_N2_quad(const __m256i *input, __m256i *output
                                out1[3],
                                out1[6],
                                out1[7]);
-            output[j * height + i + (numcol * 0)] = _mm256_permute2x128_si256(out1[0], out1[2], 0x20);
-            output[j * height + i + (numcol * 1)] = _mm256_permute2x128_si256(out1[1], out1[3], 0x20);
-            output[j * height + i + (numcol * 2)] = _mm256_permute2x128_si256(out1[4], out1[6], 0x20);
-            output[j * height + i + (numcol * 3)] = _mm256_permute2x128_si256(out1[5], out1[7], 0x20);
-            output[j * height + i + (numcol * 4)] = _mm256_permute2x128_si256(out1[0], out1[2], 0x31);
-            output[j * height + i + (numcol * 5)] = _mm256_permute2x128_si256(out1[1], out1[3], 0x31);
-            output[j * height + i + (numcol * 6)] = _mm256_permute2x128_si256(out1[4], out1[6], 0x31);
-            output[j * height + i + (numcol * 7)] = _mm256_permute2x128_si256(out1[5], out1[7], 0x31);
+            output[j * height + i + (numcol * 0)] = yy_unpacklo_epi128(out1[0], out1[2]);
+            output[j * height + i + (numcol * 1)] = yy_unpacklo_epi128(out1[1], out1[3]);
+            output[j * height + i + (numcol * 2)] = yy_unpacklo_epi128(out1[4], out1[6]);
+            output[j * height + i + (numcol * 3)] = yy_unpacklo_epi128(out1[5], out1[7]);
+            output[j * height + i + (numcol * 4)] = yy_unpackhi_epi128(out1[0], out1[2]);
+            output[j * height + i + (numcol * 5)] = yy_unpackhi_epi128(out1[1], out1[3]);
+            output[j * height + i + (numcol * 6)] = yy_unpackhi_epi128(out1[4], out1[6]);
+            output[j * height + i + (numcol * 7)] = yy_unpackhi_epi128(out1[5], out1[7]);
         }
     }
 }
@@ -1230,10 +1231,10 @@ static INLINE void fdct4x8_row_avx2(__m256i *input, __m256i *output, int32_t bit
     __m256i        v0, v1, v2, v3;
     int32_t        endidx = 3 * num_col;
 
-    in[0] = _mm256_permute2x128_si256(input[0], input[2], 0x20);
-    in[1] = _mm256_permute2x128_si256(input[0], input[2], 0x31);
-    in[2] = _mm256_permute2x128_si256(input[1], input[3], 0x20);
-    in[3] = _mm256_permute2x128_si256(input[1], input[3], 0x31);
+    in[0] = yy_unpacklo_epi128(input[0], input[2]);
+    in[1] = yy_unpackhi_epi128(input[0], input[2]);
+    in[2] = yy_unpacklo_epi128(input[1], input[3]);
+    in[3] = yy_unpackhi_epi128(input[1], input[3]);
 
     s0 = _mm256_add_epi32(in[0], in[endidx]);
     s3 = _mm256_sub_epi32(in[0], in[endidx]);
@@ -1281,10 +1282,10 @@ static INLINE void fdct4x8_row_avx2(__m256i *input, __m256i *output, int32_t bit
     out[2] = _mm256_unpacklo_epi64(v1, v3);
     out[3] = _mm256_unpackhi_epi64(v1, v3);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static INLINE void fdct4x8_col_avx2(__m256i *in, __m256i *output, int32_t bit, const int32_t num_col) {
@@ -1345,10 +1346,10 @@ static INLINE void fdct4x8_col_avx2(__m256i *in, __m256i *output, int32_t bit, c
     out[2] = _mm256_unpacklo_epi64(v1, v3);
     out[3] = _mm256_unpackhi_epi64(v1, v3);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static INLINE void fdct16x4_avx2(__m256i *input, __m256i *output, int32_t bit) {
@@ -2218,10 +2219,10 @@ static INLINE void fadst4x8_row_avx2(__m256i *input, __m256i *output, int32_t bi
     __m256i        in[4];
     __m256i        out[4];
 
-    in[0] = _mm256_permute2x128_si256(input[0], input[2], 0x20);
-    in[1] = _mm256_permute2x128_si256(input[0], input[2], 0x31);
-    in[2] = _mm256_permute2x128_si256(input[1], input[3], 0x20);
-    in[3] = _mm256_permute2x128_si256(input[1], input[3], 0x31);
+    in[0] = yy_unpacklo_epi128(input[0], input[2]);
+    in[1] = yy_unpackhi_epi128(input[0], input[2]);
+    in[2] = yy_unpacklo_epi128(input[1], input[3]);
+    in[3] = yy_unpackhi_epi128(input[1], input[3]);
 
     int32_t idx = 0 * num_col;
     s0          = _mm256_mullo_epi32(in[idx], sinpi1);
@@ -2272,10 +2273,10 @@ static INLINE void fadst4x8_row_avx2(__m256i *input, __m256i *output, int32_t bi
     out[2] = _mm256_unpacklo_epi64(v1, v3);
     out[3] = _mm256_unpackhi_epi64(v1, v3);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static INLINE void fadst4x8_col_avx2(__m256i *in, __m256i *output, int32_t bit, const int32_t num_col) {
@@ -2341,10 +2342,10 @@ static INLINE void fadst4x8_col_avx2(__m256i *in, __m256i *output, int32_t bit, 
     out[2] = _mm256_unpacklo_epi64(v1, v3);
     out[3] = _mm256_unpackhi_epi64(v1, v3);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static INLINE void fdct4x8_avx2(__m256i *input, __m256i *output, int32_t bit) {
@@ -3676,10 +3677,10 @@ static INLINE void fidtx4x8_row_avx2(__m256i *input, __m256i *output, int32_t bi
     __m256i a_low;
     __m256i v[4];
 
-    in[0] = _mm256_permute2x128_si256(input[0], input[2], 0x20);
-    in[1] = _mm256_permute2x128_si256(input[0], input[2], 0x31);
-    in[2] = _mm256_permute2x128_si256(input[1], input[3], 0x20);
-    in[3] = _mm256_permute2x128_si256(input[1], input[3], 0x31);
+    in[0] = yy_unpacklo_epi128(input[0], input[2]);
+    in[1] = yy_unpackhi_epi128(input[0], input[2]);
+    in[2] = yy_unpacklo_epi128(input[1], input[3]);
+    in[3] = yy_unpackhi_epi128(input[1], input[3]);
 
     for (int32_t i = 0; i < 4; i++) {
         a_low  = _mm256_mullo_epi32(in[i * col_num], fact);
@@ -3698,10 +3699,10 @@ static INLINE void fidtx4x8_row_avx2(__m256i *input, __m256i *output, int32_t bi
     out[2] = _mm256_unpacklo_epi64(v[1], v[3]);
     out[3] = _mm256_unpackhi_epi64(v[1], v[3]);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static INLINE void fidtx4x8_col_avx2(__m256i *in, __m256i *output, int32_t bit, int32_t col_num) {
@@ -3729,10 +3730,10 @@ static INLINE void fidtx4x8_col_avx2(__m256i *in, __m256i *output, int32_t bit, 
     out[2] = _mm256_unpacklo_epi64(v[1], v[3]);
     out[3] = _mm256_unpackhi_epi64(v[1], v[3]);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static INLINE void fidtx8x4_avx2(__m256i *in, __m256i *out, int32_t bit) {
@@ -5116,38 +5117,38 @@ static INLINE void transpose_16x16_in_64x64_avx2(const __m256i *in, __m256i *out
     TRANSPOSE_4X4_AVX2(in[65], in[73], in[81], in[89], temp[8], temp[10], temp[12], temp[14]);
     TRANSPOSE_4X4_AVX2(in[97], in[105], in[113], in[121], temp[24], temp[26], temp[28], temp[30]);
 
-    out[0]   = _mm256_permute2x128_si256(temp[0], temp[17], 0x20);
-    out[1]   = _mm256_permute2x128_si256(temp[1], temp[9], 0x20);
-    out[8]   = _mm256_permute2x128_si256(temp[2], temp[19], 0x20);
-    out[9]   = _mm256_permute2x128_si256(temp[3], temp[11], 0x20);
-    out[16]  = _mm256_permute2x128_si256(temp[4], temp[21], 0x20);
-    out[17]  = _mm256_permute2x128_si256(temp[5], temp[13], 0x20);
-    out[24]  = _mm256_permute2x128_si256(temp[6], temp[23], 0x20);
-    out[25]  = _mm256_permute2x128_si256(temp[7], temp[15], 0x20);
-    out[32]  = _mm256_permute2x128_si256(temp[0], temp[17], 0x31);
-    out[33]  = _mm256_permute2x128_si256(temp[1], temp[9], 0x31);
-    out[40]  = _mm256_permute2x128_si256(temp[2], temp[19], 0x31);
-    out[41]  = _mm256_permute2x128_si256(temp[3], temp[11], 0x31);
-    out[48]  = _mm256_permute2x128_si256(temp[4], temp[21], 0x31);
-    out[49]  = _mm256_permute2x128_si256(temp[5], temp[13], 0x31);
-    out[56]  = _mm256_permute2x128_si256(temp[6], temp[23], 0x31);
-    out[57]  = _mm256_permute2x128_si256(temp[7], temp[15], 0x31);
-    out[64]  = _mm256_permute2x128_si256(temp[16], temp[25], 0x20);
-    out[65]  = _mm256_permute2x128_si256(temp[8], temp[24], 0x20);
-    out[72]  = _mm256_permute2x128_si256(temp[18], temp[27], 0x20);
-    out[73]  = _mm256_permute2x128_si256(temp[10], temp[26], 0x20);
-    out[80]  = _mm256_permute2x128_si256(temp[20], temp[29], 0x20);
-    out[81]  = _mm256_permute2x128_si256(temp[12], temp[28], 0x20);
-    out[88]  = _mm256_permute2x128_si256(temp[22], temp[31], 0x20);
-    out[89]  = _mm256_permute2x128_si256(temp[14], temp[30], 0x20);
-    out[96]  = _mm256_permute2x128_si256(temp[16], temp[25], 0x31);
-    out[97]  = _mm256_permute2x128_si256(temp[8], temp[24], 0x31);
-    out[104] = _mm256_permute2x128_si256(temp[18], temp[27], 0x31);
-    out[105] = _mm256_permute2x128_si256(temp[10], temp[26], 0x31);
-    out[112] = _mm256_permute2x128_si256(temp[20], temp[29], 0x31);
-    out[113] = _mm256_permute2x128_si256(temp[12], temp[28], 0x31);
-    out[120] = _mm256_permute2x128_si256(temp[22], temp[31], 0x31);
-    out[121] = _mm256_permute2x128_si256(temp[14], temp[30], 0x31);
+    out[0]   = yy_unpacklo_epi128(temp[0], temp[17]);
+    out[1]   = yy_unpacklo_epi128(temp[1], temp[9]);
+    out[8]   = yy_unpacklo_epi128(temp[2], temp[19]);
+    out[9]   = yy_unpacklo_epi128(temp[3], temp[11]);
+    out[16]  = yy_unpacklo_epi128(temp[4], temp[21]);
+    out[17]  = yy_unpacklo_epi128(temp[5], temp[13]);
+    out[24]  = yy_unpacklo_epi128(temp[6], temp[23]);
+    out[25]  = yy_unpacklo_epi128(temp[7], temp[15]);
+    out[32]  = yy_unpackhi_epi128(temp[0], temp[17]);
+    out[33]  = yy_unpackhi_epi128(temp[1], temp[9]);
+    out[40]  = yy_unpackhi_epi128(temp[2], temp[19]);
+    out[41]  = yy_unpackhi_epi128(temp[3], temp[11]);
+    out[48]  = yy_unpackhi_epi128(temp[4], temp[21]);
+    out[49]  = yy_unpackhi_epi128(temp[5], temp[13]);
+    out[56]  = yy_unpackhi_epi128(temp[6], temp[23]);
+    out[57]  = yy_unpackhi_epi128(temp[7], temp[15]);
+    out[64]  = yy_unpacklo_epi128(temp[16], temp[25]);
+    out[65]  = yy_unpacklo_epi128(temp[8], temp[24]);
+    out[72]  = yy_unpacklo_epi128(temp[18], temp[27]);
+    out[73]  = yy_unpacklo_epi128(temp[10], temp[26]);
+    out[80]  = yy_unpacklo_epi128(temp[20], temp[29]);
+    out[81]  = yy_unpacklo_epi128(temp[12], temp[28]);
+    out[88]  = yy_unpacklo_epi128(temp[22], temp[31]);
+    out[89]  = yy_unpacklo_epi128(temp[14], temp[30]);
+    out[96]  = yy_unpackhi_epi128(temp[16], temp[25]);
+    out[97]  = yy_unpackhi_epi128(temp[8], temp[24]);
+    out[104] = yy_unpackhi_epi128(temp[18], temp[27]);
+    out[105] = yy_unpackhi_epi128(temp[10], temp[26]);
+    out[112] = yy_unpackhi_epi128(temp[20], temp[29]);
+    out[113] = yy_unpackhi_epi128(temp[12], temp[28]);
+    out[120] = yy_unpackhi_epi128(temp[22], temp[31]);
+    out[121] = yy_unpackhi_epi128(temp[14], temp[30]);
 }
 
 static AOM_FORCE_INLINE void transpose_32x32_in_64x64_avx2(const __m256i *in, __m256i *out) {
@@ -5172,38 +5173,38 @@ static INLINE void transpose_16x16_in_32x32_avx2(const __m256i *in, __m256i *out
     TRANSPOSE_4X4_AVX2(in[33], in[37], in[41], in[45], temp[8], temp[10], temp[12], temp[14]);
     TRANSPOSE_4X4_AVX2(in[49], in[53], in[57], in[61], temp[24], temp[26], temp[28], temp[30]);
 
-    out[0]  = _mm256_permute2x128_si256(temp[0], temp[17], 0x20);
-    out[1]  = _mm256_permute2x128_si256(temp[1], temp[9], 0x20);
-    out[4]  = _mm256_permute2x128_si256(temp[2], temp[19], 0x20);
-    out[5]  = _mm256_permute2x128_si256(temp[3], temp[11], 0x20);
-    out[8]  = _mm256_permute2x128_si256(temp[4], temp[21], 0x20);
-    out[9]  = _mm256_permute2x128_si256(temp[5], temp[13], 0x20);
-    out[12] = _mm256_permute2x128_si256(temp[6], temp[23], 0x20);
-    out[13] = _mm256_permute2x128_si256(temp[7], temp[15], 0x20);
-    out[16] = _mm256_permute2x128_si256(temp[0], temp[17], 0x31);
-    out[17] = _mm256_permute2x128_si256(temp[1], temp[9], 0x31);
-    out[20] = _mm256_permute2x128_si256(temp[2], temp[19], 0x31);
-    out[21] = _mm256_permute2x128_si256(temp[3], temp[11], 0x31);
-    out[24] = _mm256_permute2x128_si256(temp[4], temp[21], 0x31);
-    out[25] = _mm256_permute2x128_si256(temp[5], temp[13], 0x31);
-    out[28] = _mm256_permute2x128_si256(temp[6], temp[23], 0x31);
-    out[29] = _mm256_permute2x128_si256(temp[7], temp[15], 0x31);
-    out[32] = _mm256_permute2x128_si256(temp[16], temp[25], 0x20);
-    out[33] = _mm256_permute2x128_si256(temp[8], temp[24], 0x20);
-    out[36] = _mm256_permute2x128_si256(temp[18], temp[27], 0x20);
-    out[37] = _mm256_permute2x128_si256(temp[10], temp[26], 0x20);
-    out[40] = _mm256_permute2x128_si256(temp[20], temp[29], 0x20);
-    out[41] = _mm256_permute2x128_si256(temp[12], temp[28], 0x20);
-    out[44] = _mm256_permute2x128_si256(temp[22], temp[31], 0x20);
-    out[45] = _mm256_permute2x128_si256(temp[14], temp[30], 0x20);
-    out[48] = _mm256_permute2x128_si256(temp[16], temp[25], 0x31);
-    out[49] = _mm256_permute2x128_si256(temp[8], temp[24], 0x31);
-    out[52] = _mm256_permute2x128_si256(temp[18], temp[27], 0x31);
-    out[53] = _mm256_permute2x128_si256(temp[10], temp[26], 0x31);
-    out[56] = _mm256_permute2x128_si256(temp[20], temp[29], 0x31);
-    out[57] = _mm256_permute2x128_si256(temp[12], temp[28], 0x31);
-    out[60] = _mm256_permute2x128_si256(temp[22], temp[31], 0x31);
-    out[61] = _mm256_permute2x128_si256(temp[14], temp[30], 0x31);
+    out[0]  = yy_unpacklo_epi128(temp[0], temp[17]);
+    out[1]  = yy_unpacklo_epi128(temp[1], temp[9]);
+    out[4]  = yy_unpacklo_epi128(temp[2], temp[19]);
+    out[5]  = yy_unpacklo_epi128(temp[3], temp[11]);
+    out[8]  = yy_unpacklo_epi128(temp[4], temp[21]);
+    out[9]  = yy_unpacklo_epi128(temp[5], temp[13]);
+    out[12] = yy_unpacklo_epi128(temp[6], temp[23]);
+    out[13] = yy_unpacklo_epi128(temp[7], temp[15]);
+    out[16] = yy_unpackhi_epi128(temp[0], temp[17]);
+    out[17] = yy_unpackhi_epi128(temp[1], temp[9]);
+    out[20] = yy_unpackhi_epi128(temp[2], temp[19]);
+    out[21] = yy_unpackhi_epi128(temp[3], temp[11]);
+    out[24] = yy_unpackhi_epi128(temp[4], temp[21]);
+    out[25] = yy_unpackhi_epi128(temp[5], temp[13]);
+    out[28] = yy_unpackhi_epi128(temp[6], temp[23]);
+    out[29] = yy_unpackhi_epi128(temp[7], temp[15]);
+    out[32] = yy_unpacklo_epi128(temp[16], temp[25]);
+    out[33] = yy_unpacklo_epi128(temp[8], temp[24]);
+    out[36] = yy_unpacklo_epi128(temp[18], temp[27]);
+    out[37] = yy_unpacklo_epi128(temp[10], temp[26]);
+    out[40] = yy_unpacklo_epi128(temp[20], temp[29]);
+    out[41] = yy_unpacklo_epi128(temp[12], temp[28]);
+    out[44] = yy_unpacklo_epi128(temp[22], temp[31]);
+    out[45] = yy_unpacklo_epi128(temp[14], temp[30]);
+    out[48] = yy_unpackhi_epi128(temp[16], temp[25]);
+    out[49] = yy_unpackhi_epi128(temp[8], temp[24]);
+    out[52] = yy_unpackhi_epi128(temp[18], temp[27]);
+    out[53] = yy_unpackhi_epi128(temp[10], temp[26]);
+    out[56] = yy_unpackhi_epi128(temp[20], temp[29]);
+    out[57] = yy_unpackhi_epi128(temp[12], temp[28]);
+    out[60] = yy_unpackhi_epi128(temp[22], temp[31]);
+    out[61] = yy_unpackhi_epi128(temp[14], temp[30]);
 }
 
 /*
@@ -5214,23 +5215,23 @@ static INLINE void transpose_8x8_in_16x16_avx2(const __m256i *in, __m256i *out) 
     TRANSPOSE_4X4_AVX2(in[0], in[2], in[4], in[6], out1[0], out1[1], out1[4], out1[5]);
     TRANSPOSE_4X4_AVX2(in[8], in[10], in[12], in[14], out1[2], out1[3], out1[6], out1[7]);
 
-    out[0]  = _mm256_permute2x128_si256(out1[0], out1[2], 0x20);
-    out[2]  = _mm256_permute2x128_si256(out1[1], out1[3], 0x20);
-    out[4]  = _mm256_permute2x128_si256(out1[4], out1[6], 0x20);
-    out[6]  = _mm256_permute2x128_si256(out1[5], out1[7], 0x20);
-    out[8]  = _mm256_permute2x128_si256(out1[0], out1[2], 0x31);
-    out[10] = _mm256_permute2x128_si256(out1[1], out1[3], 0x31);
-    out[12] = _mm256_permute2x128_si256(out1[4], out1[6], 0x31);
-    out[14] = _mm256_permute2x128_si256(out1[5], out1[7], 0x31);
+    out[0]  = yy_unpacklo_epi128(out1[0], out1[2]);
+    out[2]  = yy_unpacklo_epi128(out1[1], out1[3]);
+    out[4]  = yy_unpacklo_epi128(out1[4], out1[6]);
+    out[6]  = yy_unpacklo_epi128(out1[5], out1[7]);
+    out[8]  = yy_unpackhi_epi128(out1[0], out1[2]);
+    out[10] = yy_unpackhi_epi128(out1[1], out1[3]);
+    out[12] = yy_unpackhi_epi128(out1[4], out1[6]);
+    out[14] = yy_unpackhi_epi128(out1[5], out1[7]);
 }
 
 static INLINE void transpose_8x8_half_avx2(const __m256i *in, __m256i *out) {
     const __m256i zero = _mm256_setzero_si256();
     TRANSPOSE_4X4_AVX2(in[0], in[1], in[2], in[3], out[0], out[1], out[2], out[3]);
-    out[4] = _mm256_permute2x128_si256(out[0], zero, 0x31);
-    out[5] = _mm256_permute2x128_si256(out[1], zero, 0x31);
-    out[6] = _mm256_permute2x128_si256(out[2], zero, 0x31);
-    out[7] = _mm256_permute2x128_si256(out[3], zero, 0x31);
+    out[4] = yy_unpackhi_epi128(out[0], zero);
+    out[5] = yy_unpackhi_epi128(out[1], zero);
+    out[6] = yy_unpackhi_epi128(out[2], zero);
+    out[7] = yy_unpackhi_epi128(out[3], zero);
 }
 
 static AOM_FORCE_INLINE void transpose_8x8_N2_avx2(const __m256i *in, __m256i *out) {
@@ -7746,10 +7747,10 @@ static void fdct4x8_col_N2_avx2(__m256i *in, __m256i *output, int32_t bit, const
     out[2] = _mm256_unpacklo_epi64(v1, zero);
     out[3] = _mm256_unpackhi_epi64(v1, zero);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static void fadst4x8_col_N2_avx2(__m256i *in, __m256i *output, int32_t bit, const int32_t num_col) {
@@ -7797,10 +7798,10 @@ static void fadst4x8_col_N2_avx2(__m256i *in, __m256i *output, int32_t bit, cons
     out[2] = _mm256_unpacklo_epi64(v1, zero);
     out[3] = _mm256_unpackhi_epi64(v1, zero);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static AOM_FORCE_INLINE void clear_buffer_4x16_N2(__m256i *buff) {
@@ -7840,8 +7841,8 @@ static AOM_FORCE_INLINE void fidtx4x8_N2_perm_avx2(__m256i *in, __m256i *output,
     a_low  = _mm256_add_epi32(a_low, offset);
     out[1] = _mm256_srai_epi32(a_low, new_sqrt2_bits);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
 }
 
 static INLINE void fidtx4x8_row_N2_avx2(__m256i *in, __m256i *output, int32_t bit) {
@@ -7873,10 +7874,10 @@ static void fdct4x8_row_N2_with_round_avx2(__m256i *input, __m256i *output, int3
     __m256i        v0, v1, v2, v3;
     int32_t        endidx = 3 * num_col;
 
-    in[0] = _mm256_permute2x128_si256(input[0], input[2], 0x20);
-    in[1] = _mm256_permute2x128_si256(input[0], input[2], 0x31);
-    in[2] = _mm256_permute2x128_si256(input[1], input[3], 0x20);
-    in[3] = _mm256_permute2x128_si256(input[1], input[3], 0x31);
+    in[0] = yy_unpacklo_epi128(input[0], input[2]);
+    in[1] = yy_unpackhi_epi128(input[0], input[2]);
+    in[2] = yy_unpacklo_epi128(input[1], input[3]);
+    in[3] = yy_unpackhi_epi128(input[1], input[3]);
 
     s0 = _mm256_add_epi32(in[0], in[endidx]);
     s3 = _mm256_sub_epi32(in[0], in[endidx]);
@@ -7916,10 +7917,10 @@ static void fdct4x8_row_N2_with_round_avx2(__m256i *input, __m256i *output, int3
     out[2] = _mm256_unpacklo_epi64(v1, zero);
     out[3] = _mm256_unpackhi_epi64(v1, zero);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static void fadst4x8_row_N2_with_round_avx2(__m256i *input, __m256i *output, int32_t bit, const int32_t num_col,
@@ -7941,10 +7942,10 @@ static void fadst4x8_row_N2_with_round_avx2(__m256i *input, __m256i *output, int
 
     int32_t idx = 0 * num_col;
 
-    in[0] = _mm256_permute2x128_si256(input[0], input[2], 0x20);
-    in[1] = _mm256_permute2x128_si256(input[0], input[2], 0x31);
-    in[2] = _mm256_permute2x128_si256(input[1], input[3], 0x20);
-    in[3] = _mm256_permute2x128_si256(input[1], input[3], 0x31);
+    in[0] = yy_unpacklo_epi128(input[0], input[2]);
+    in[1] = yy_unpackhi_epi128(input[0], input[2]);
+    in[2] = yy_unpacklo_epi128(input[1], input[3]);
+    in[3] = yy_unpackhi_epi128(input[1], input[3]);
 
     s0 = _mm256_mullo_epi32(in[idx], sinpi1);
     u0 = _mm256_add_epi32(in[idx], in[idx + num_col]);
@@ -7982,10 +7983,10 @@ static void fadst4x8_row_N2_with_round_avx2(__m256i *input, __m256i *output, int
     out[2] = _mm256_unpacklo_epi64(v1, zero);
     out[3] = _mm256_unpackhi_epi64(v1, zero);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static INLINE void fidtx4x8_row_N2_with_round_avx2(__m256i *input, __m256i *output, int32_t bit, int32_t shift) {
@@ -7999,8 +8000,8 @@ static INLINE void fidtx4x8_row_N2_with_round_avx2(__m256i *input, __m256i *outp
     __m256i       a_low;
     __m256i       v[4];
 
-    in[0] = _mm256_permute2x128_si256(input[0], input[2], 0x20);
-    in[1] = _mm256_permute2x128_si256(input[0], input[2], 0x31);
+    in[0] = yy_unpacklo_epi128(input[0], input[2]);
+    in[1] = yy_unpackhi_epi128(input[0], input[2]);
 
     for (int32_t i = 0; i < 2; i++) {
         a_low  = _mm256_mullo_epi32(in[i], fact);
@@ -8019,10 +8020,10 @@ static INLINE void fidtx4x8_row_N2_with_round_avx2(__m256i *input, __m256i *outp
     out[2] = _mm256_unpacklo_epi64(v[1], zero);
     out[3] = _mm256_unpackhi_epi64(v[1], zero);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static void fdct4x8_N2_avx2(__m256i *input, __m256i *output, int32_t bit) {
@@ -9951,10 +9952,10 @@ static INLINE void transpose_4x4_in_16x16_avx2(const __m256i *in, __m256i *out) 
     __m256i out1[4];
     __m256i zero = _mm256_setzero_si256();
     TRANSPOSE_4X4_AVX2(in[0], in[2], in[4], in[6], out1[0], out1[1], out1[2], out1[3]);
-    out[0] = _mm256_permute2x128_si256(out1[0], zero, 0x20);
-    out[2] = _mm256_permute2x128_si256(out1[1], zero, 0x20);
-    out[4] = _mm256_permute2x128_si256(out1[2], zero, 0x20);
-    out[6] = _mm256_permute2x128_si256(out1[3], zero, 0x20);
+    out[0] = yy_unpacklo_epi128(out1[0], zero);
+    out[2] = yy_unpacklo_epi128(out1[1], zero);
+    out[4] = yy_unpacklo_epi128(out1[2], zero);
+    out[6] = yy_unpacklo_epi128(out1[3], zero);
 }
 
 static INLINE void transpose_8x8_in_32x32_avx2(const __m256i *in, __m256i *out) {
@@ -9962,14 +9963,14 @@ static INLINE void transpose_8x8_in_32x32_avx2(const __m256i *in, __m256i *out) 
     TRANSPOSE_4X4_AVX2(in[0], in[4], in[8], in[12], temp[0], temp[1], temp[2], temp[3]);
     TRANSPOSE_4X4_AVX2(in[16], in[20], in[24], in[28], temp[4], temp[5], temp[6], temp[7]);
 
-    out[0]  = _mm256_permute2x128_si256(temp[0], temp[4], 0x20);
-    out[4]  = _mm256_permute2x128_si256(temp[1], temp[5], 0x20);
-    out[8]  = _mm256_permute2x128_si256(temp[2], temp[6], 0x20);
-    out[12] = _mm256_permute2x128_si256(temp[3], temp[7], 0x20);
-    out[16] = _mm256_permute2x128_si256(temp[0], temp[4], 0x31);
-    out[20] = _mm256_permute2x128_si256(temp[1], temp[5], 0x31);
-    out[24] = _mm256_permute2x128_si256(temp[2], temp[6], 0x31);
-    out[28] = _mm256_permute2x128_si256(temp[3], temp[7], 0x31);
+    out[0]  = yy_unpacklo_epi128(temp[0], temp[4]);
+    out[4]  = yy_unpacklo_epi128(temp[1], temp[5]);
+    out[8]  = yy_unpacklo_epi128(temp[2], temp[6]);
+    out[12] = yy_unpacklo_epi128(temp[3], temp[7]);
+    out[16] = yy_unpackhi_epi128(temp[0], temp[4]);
+    out[20] = yy_unpackhi_epi128(temp[1], temp[5]);
+    out[24] = yy_unpackhi_epi128(temp[2], temp[6]);
+    out[28] = yy_unpackhi_epi128(temp[3], temp[7]);
 }
 
 static INLINE void transpose_8nx8n_N4_half(const __m256i *input, __m256i *output, const int32_t width,
@@ -10000,14 +10001,14 @@ static INLINE void transpose_8nx8n_N4_half(const __m256i *input, __m256i *output
                                out1[3],
                                out1[6],
                                out1[7]);
-            output[j * height + i + (numcol * 0)] = _mm256_permute2x128_si256(out1[0], out1[2], 0x20);
-            output[j * height + i + (numcol * 1)] = _mm256_permute2x128_si256(out1[1], out1[3], 0x20);
-            output[j * height + i + (numcol * 2)] = _mm256_permute2x128_si256(out1[4], out1[6], 0x20);
-            output[j * height + i + (numcol * 3)] = _mm256_permute2x128_si256(out1[5], out1[7], 0x20);
-            output[j * height + i + (numcol * 4)] = _mm256_permute2x128_si256(out1[0], out1[2], 0x31);
-            output[j * height + i + (numcol * 5)] = _mm256_permute2x128_si256(out1[1], out1[3], 0x31);
-            output[j * height + i + (numcol * 6)] = _mm256_permute2x128_si256(out1[4], out1[6], 0x31);
-            output[j * height + i + (numcol * 7)] = _mm256_permute2x128_si256(out1[5], out1[7], 0x31);
+            output[j * height + i + (numcol * 0)] = yy_unpacklo_epi128(out1[0], out1[2]);
+            output[j * height + i + (numcol * 1)] = yy_unpacklo_epi128(out1[1], out1[3]);
+            output[j * height + i + (numcol * 2)] = yy_unpacklo_epi128(out1[4], out1[6]);
+            output[j * height + i + (numcol * 3)] = yy_unpacklo_epi128(out1[5], out1[7]);
+            output[j * height + i + (numcol * 4)] = yy_unpackhi_epi128(out1[0], out1[2]);
+            output[j * height + i + (numcol * 5)] = yy_unpackhi_epi128(out1[1], out1[3]);
+            output[j * height + i + (numcol * 6)] = yy_unpackhi_epi128(out1[4], out1[6]);
+            output[j * height + i + (numcol * 7)] = yy_unpackhi_epi128(out1[5], out1[7]);
         }
     }
 }
@@ -10045,14 +10046,14 @@ static INLINE void transpose_8nx8n_N4_quad(const __m256i *input, __m256i *output
                                out1[3],
                                out1[6],
                                out1[7]);
-            output[j * height + i + (numcol * 0)] = _mm256_permute2x128_si256(out1[0], out1[2], 0x20);
-            output[j * height + i + (numcol * 1)] = _mm256_permute2x128_si256(out1[1], out1[3], 0x20);
-            output[j * height + i + (numcol * 2)] = _mm256_permute2x128_si256(out1[4], out1[6], 0x20);
-            output[j * height + i + (numcol * 3)] = _mm256_permute2x128_si256(out1[5], out1[7], 0x20);
-            output[j * height + i + (numcol * 4)] = _mm256_permute2x128_si256(out1[0], out1[2], 0x31);
-            output[j * height + i + (numcol * 5)] = _mm256_permute2x128_si256(out1[1], out1[3], 0x31);
-            output[j * height + i + (numcol * 6)] = _mm256_permute2x128_si256(out1[4], out1[6], 0x31);
-            output[j * height + i + (numcol * 7)] = _mm256_permute2x128_si256(out1[5], out1[7], 0x31);
+            output[j * height + i + (numcol * 0)] = yy_unpacklo_epi128(out1[0], out1[2]);
+            output[j * height + i + (numcol * 1)] = yy_unpacklo_epi128(out1[1], out1[3]);
+            output[j * height + i + (numcol * 2)] = yy_unpacklo_epi128(out1[4], out1[6]);
+            output[j * height + i + (numcol * 3)] = yy_unpacklo_epi128(out1[5], out1[7]);
+            output[j * height + i + (numcol * 4)] = yy_unpackhi_epi128(out1[0], out1[2]);
+            output[j * height + i + (numcol * 5)] = yy_unpackhi_epi128(out1[1], out1[3]);
+            output[j * height + i + (numcol * 6)] = yy_unpackhi_epi128(out1[4], out1[6]);
+            output[j * height + i + (numcol * 7)] = yy_unpackhi_epi128(out1[5], out1[7]);
         }
     }
 }
@@ -11933,8 +11934,8 @@ static void fdct4x8_col_N4_avx2(__m256i *in, __m256i *output, int32_t bit, const
     out[2] = _mm256_unpacklo_epi64(v1, zero);
     out[3] = _mm256_unpackhi_epi64(v1, zero);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
 }
 
 static void fdct4x8_row_N4_with_round_avx2(__m256i *input, __m256i *output, int32_t bit, const int32_t num_col,
@@ -11950,10 +11951,10 @@ static void fdct4x8_row_N4_with_round_avx2(__m256i *input, __m256i *output, int3
     __m256i        out[4];
     __m256i        in[4];
 
-    in[0] = _mm256_permute2x128_si256(input[0], input[2], 0x20);
-    in[1] = _mm256_permute2x128_si256(input[0], input[2], 0x31);
-    in[2] = _mm256_permute2x128_si256(input[1], input[3], 0x20);
-    in[3] = _mm256_permute2x128_si256(input[1], input[3], 0x31);
+    in[0] = yy_unpacklo_epi128(input[0], input[2]);
+    in[1] = yy_unpackhi_epi128(input[0], input[2]);
+    in[2] = yy_unpacklo_epi128(input[1], input[3]);
+    in[3] = yy_unpackhi_epi128(input[1], input[3]);
 
     int32_t endidx = 3 * num_col;
     s0             = _mm256_add_epi32(in[0], in[endidx]);
@@ -11981,10 +11982,10 @@ static void fdct4x8_row_N4_with_round_avx2(__m256i *input, __m256i *output, int3
     out[2] = _mm256_unpacklo_epi64(v1, zero);
     out[3] = _mm256_unpackhi_epi64(v1, zero);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static INLINE void fadst4x8_col_N4_avx2(__m256i *in, __m256i *output, int32_t bit, const int32_t num_col) {
@@ -12025,8 +12026,8 @@ static INLINE void fadst4x8_col_N4_avx2(__m256i *in, __m256i *output, int32_t bi
     out[2] = _mm256_unpacklo_epi64(v1, zero);
     out[3] = _mm256_unpackhi_epi64(v1, zero);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
 }
 
 static void fadst4x8_row_N4_with_round_avx2(__m256i *input, __m256i *output, int32_t bit, const int32_t num_col,
@@ -12045,10 +12046,10 @@ static void fadst4x8_row_N4_with_round_avx2(__m256i *input, __m256i *output, int
     __m256i        out[4];
     __m256i        in[4];
 
-    in[0] = _mm256_permute2x128_si256(input[0], input[2], 0x20);
-    in[1] = _mm256_permute2x128_si256(input[0], input[2], 0x31);
-    in[2] = _mm256_permute2x128_si256(input[1], input[3], 0x20);
-    in[3] = _mm256_permute2x128_si256(input[1], input[3], 0x31);
+    in[0] = yy_unpacklo_epi128(input[0], input[2]);
+    in[1] = yy_unpackhi_epi128(input[0], input[2]);
+    in[2] = yy_unpacklo_epi128(input[1], input[3]);
+    in[3] = yy_unpackhi_epi128(input[1], input[3]);
 
     int32_t idx = 0 * num_col;
     s0          = _mm256_mullo_epi32(in[idx], sinpi1);
@@ -12078,10 +12079,10 @@ static void fadst4x8_row_N4_with_round_avx2(__m256i *input, __m256i *output, int
     out[2] = _mm256_unpacklo_epi64(v1, zero);
     out[3] = _mm256_unpackhi_epi64(v1, zero);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static void fadst16x4_N4_avx2(__m256i *input, __m256i *output, int32_t bit) {
@@ -12266,7 +12267,7 @@ static INLINE void fidtx4x8_row_N4_with_round_avx2(__m256i *input, __m256i *outp
     const __m256i rounding = _mm256_set1_epi32(1 << (shift - 1));
     const __m256i zero     = _mm256_setzero_si256();
 
-    a_low = _mm256_permute2x128_si256(input[0], input[2], 0x20);
+    a_low = yy_unpacklo_epi128(input[0], input[2]);
     a_low = _mm256_mullo_epi32(a_low, fact);
     a_low = _mm256_add_epi32(a_low, offset);
     a_low = _mm256_srai_epi32(a_low, new_sqrt2_bits);
@@ -12282,10 +12283,10 @@ static INLINE void fidtx4x8_row_N4_with_round_avx2(__m256i *input, __m256i *outp
     out[2] = _mm256_unpacklo_epi64(v[1], zero);
     out[3] = _mm256_unpackhi_epi64(v[1], zero);
 
-    output[0] = _mm256_permute2x128_si256(out[0], out[1], 0x20);
-    output[1] = _mm256_permute2x128_si256(out[2], out[3], 0x20);
-    output[2] = _mm256_permute2x128_si256(out[0], out[1], 0x31);
-    output[3] = _mm256_permute2x128_si256(out[2], out[3], 0x31);
+    output[0] = yy_unpacklo_epi128(out[0], out[1]);
+    output[1] = yy_unpacklo_epi128(out[2], out[3]);
+    output[2] = yy_unpackhi_epi128(out[0], out[1]);
+    output[3] = yy_unpackhi_epi128(out[2], out[3]);
 }
 
 static INLINE void fidtx4x8_row_N4_avx2(__m256i *in, __m256i *output, int32_t bit) {

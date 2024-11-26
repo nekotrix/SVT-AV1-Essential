@@ -15,14 +15,7 @@
 
 #include <immintrin.h> // AVX2
 #include "definitions.h"
-
-static INLINE __m256i _mm256_unpacklo_epi128(const __m256i in0, const __m256i in1) {
-    return _mm256_inserti128_si256(in0, _mm256_castsi256_si128(in1), 1);
-}
-
-static INLINE __m256i _mm256_unpackhi_epi128(const __m256i in0, const __m256i in1) {
-    return _mm256_inserti128_si256(in1, _mm256_extracti128_si256(in0, 1), 0);
-}
+#include "synonyms_avx2.h"
 
 static INLINE void transpose_32bit_8x8_avx2(const __m256i *const in, __m256i *const out) {
     // Unpack 32 bit elements. Goes from:
@@ -79,14 +72,14 @@ static INLINE void transpose_32bit_8x8_avx2(const __m256i *const in, __m256i *co
     // out[5]: 05 15 25 35  45 55 65 75
     // out[6]: 06 16 26 36  46 56 66 76
     // out[7]: 07 17 27 37  47 57 67 77
-    out[0] = _mm256_unpacklo_epi128(b0, b1);
-    out[1] = _mm256_unpacklo_epi128(b2, b3);
-    out[2] = _mm256_unpacklo_epi128(b4, b5);
-    out[3] = _mm256_unpacklo_epi128(b6, b7);
-    out[4] = _mm256_unpackhi_epi128(b0, b1);
-    out[5] = _mm256_unpackhi_epi128(b2, b3);
-    out[6] = _mm256_unpackhi_epi128(b4, b5);
-    out[7] = _mm256_unpackhi_epi128(b6, b7);
+    out[0] = yy_unpacklo_epi128(b0, b1);
+    out[1] = yy_unpacklo_epi128(b2, b3);
+    out[2] = yy_unpacklo_epi128(b4, b5);
+    out[3] = yy_unpacklo_epi128(b6, b7);
+    out[4] = yy_unpackhi_epi128(b0, b1);
+    out[5] = yy_unpackhi_epi128(b2, b3);
+    out[6] = yy_unpackhi_epi128(b4, b5);
+    out[7] = yy_unpackhi_epi128(b6, b7);
 }
 
 static INLINE void transpose_64bit_4x4_avx2(const __m256i *const in, __m256i *const out) {
@@ -110,10 +103,10 @@ static INLINE void transpose_64bit_4x4_avx2(const __m256i *const in, __m256i *co
     // out[1]: 01 11 21 31
     // out[2]: 02 12 22 32
     // out[3]: 03 13 23 33
-    out[0] = _mm256_inserti128_si256(a0, _mm256_castsi256_si128(a1), 1);
-    out[1] = _mm256_inserti128_si256(a2, _mm256_castsi256_si128(a3), 1);
-    out[2] = _mm256_inserti128_si256(a1, _mm256_extracti128_si256(a0, 1), 0);
-    out[3] = _mm256_inserti128_si256(a3, _mm256_extracti128_si256(a2, 1), 0);
+    out[0] = yy_unpacklo_epi128(a0, a1);
+    out[1] = yy_unpacklo_epi128(a2, a3);
+    out[2] = yy_unpackhi_epi128(a0, a1);
+    out[3] = yy_unpackhi_epi128(a2, a3);
 }
 
 static INLINE void transpose_64bit_4x6_avx2(const __m256i *const in, __m256i *const out) {
@@ -147,14 +140,14 @@ static INLINE void transpose_64bit_4x6_avx2(const __m256i *const in, __m256i *co
     // b5: 42 52  42 52
     // b6: 03 13  23 33
     // b7: 43 53  43 53
-    out[0] = _mm256_unpacklo_epi128(a0, a1);
-    out[1] = _mm256_unpacklo_epi128(a2, a2);
-    out[2] = _mm256_unpacklo_epi128(a4, a5);
-    out[3] = _mm256_unpacklo_epi128(a6, a6);
-    out[4] = _mm256_unpackhi_epi128(a0, a1);
-    out[5] = _mm256_unpackhi_epi128(a2, a2);
-    out[6] = _mm256_unpackhi_epi128(a4, a5);
-    out[7] = _mm256_unpackhi_epi128(a6, a6);
+    out[0] = yy_unpacklo_epi128(a0, a1);
+    out[1] = yy_unpacklo_epi128(a2, a2);
+    out[2] = yy_unpacklo_epi128(a4, a5);
+    out[3] = yy_unpacklo_epi128(a6, a6);
+    out[4] = yy_unpackhi_epi128(a0, a1);
+    out[5] = yy_unpackhi_epi128(a2, a2);
+    out[6] = yy_unpackhi_epi128(a4, a5);
+    out[7] = yy_unpackhi_epi128(a6, a6);
 }
 
 static INLINE void transpose_64bit_4x8_avx2(const __m256i *const in, __m256i *const out) {
@@ -194,14 +187,14 @@ static INLINE void transpose_64bit_4x8_avx2(const __m256i *const in, __m256i *co
     // b5: 42 52  62 72
     // b6: 03 13  23 33
     // b7: 43 53  63 73
-    out[0] = _mm256_unpacklo_epi128(a0, a1);
-    out[1] = _mm256_unpacklo_epi128(a2, a3);
-    out[2] = _mm256_unpacklo_epi128(a4, a5);
-    out[3] = _mm256_unpacklo_epi128(a6, a7);
-    out[4] = _mm256_unpackhi_epi128(a0, a1);
-    out[5] = _mm256_unpackhi_epi128(a2, a3);
-    out[6] = _mm256_unpackhi_epi128(a4, a5);
-    out[7] = _mm256_unpackhi_epi128(a6, a7);
+    out[0] = yy_unpacklo_epi128(a0, a1);
+    out[1] = yy_unpacklo_epi128(a2, a3);
+    out[2] = yy_unpacklo_epi128(a4, a5);
+    out[3] = yy_unpacklo_epi128(a6, a7);
+    out[4] = yy_unpackhi_epi128(a0, a1);
+    out[5] = yy_unpackhi_epi128(a2, a3);
+    out[6] = yy_unpackhi_epi128(a4, a5);
+    out[7] = yy_unpackhi_epi128(a6, a7);
 }
 
 #endif // AOM_DSP_X86_TRANSPOSE_AVX2_H_
