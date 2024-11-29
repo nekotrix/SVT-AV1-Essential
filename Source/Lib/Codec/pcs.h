@@ -558,8 +558,8 @@ typedef enum CorrespondenceMethod {
     MV_64x64 = 0,
     MV_32x32 = 1,
     MV_16x16 = 2,
-    MV_8x8 = 3,
-    CORNERS = 4
+    MV_8x8   = 3,
+    CORNERS  = 4
 } CorrespondenceMethod;
 #endif
 #if OPT_GM_RFN_EARLY_EXIT
@@ -888,8 +888,8 @@ typedef struct PictureParentControlSet {
     double                                  cr_ssim;
     double                                  cb_ssim;
 #if !CLN_UNUSED_GM_SIGS
-    EbPictureBufferDesc                    *quarter_src_pic;
-    EbPictureBufferDesc                    *sixteenth_src_pic;
+    EbPictureBufferDesc *quarter_src_pic;
+    EbPictureBufferDesc *sixteenth_src_pic;
 #endif
     // Pointer array for down scaled pictures
     EbObjectWrapper            *downscaled_pic_wrapper;

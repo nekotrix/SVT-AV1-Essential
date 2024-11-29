@@ -160,18 +160,18 @@ static void improve_correspondence(unsigned char *frm, unsigned char *ref, int w
 #if CLN_GM
 int svt_av1_determine_correspondence(uint8_t *frm, int *frm_corners, int num_frm_corners, uint8_t *ref,
                                      int *ref_corners, int num_ref_corners, int width, int height, int frm_stride,
-                                     int ref_stride, Correspondence* correspondences, uint8_t match_sz) {
-    int             i, j;
+                                     int ref_stride, Correspondence *correspondences, uint8_t match_sz) {
+    int i, j;
 #else
 int svt_av1_determine_correspondence(unsigned char *frm, int *frm_corners, int num_frm_corners, unsigned char *ref,
                                      int *ref_corners, int num_ref_corners, int width, int height, int frm_stride,
                                      int ref_stride, int *correspondence_pts, uint8_t match_sz) {
     int             i, j;
-    Correspondence *correspondences     = (Correspondence *)correspondence_pts;
+    Correspondence *correspondences = (Correspondence *)correspondence_pts;
 #endif
-    int             num_correspondences = 0;
-    const int       thresh              = (width < height ? height : width) >> 4;
-    const int       threshSqr           = thresh * thresh;
+    int       num_correspondences = 0;
+    const int thresh              = (width < height ? height : width) >> 4;
+    const int threshSqr           = thresh * thresh;
     for (i = 0; i < num_frm_corners; ++i) {
         double  best_match_ncc = 0.0;
         int32_t template_norm;

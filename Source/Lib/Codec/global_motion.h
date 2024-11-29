@@ -61,7 +61,7 @@ enum {
 #if CLN_WMMAT
 typedef struct {
     double params[MAX_PARAMDIM];
-    int* inliers;
+    int*   inliers;
     int    num_inliers;
 } MotionModel;
 #else
@@ -74,7 +74,7 @@ typedef struct {
 } MotionModel;
 #endif
 
-void svt_av1_convert_model_to_params(const double *params, EbWarpedMotionParams *model);
+void svt_av1_convert_model_to_params(const double* params, EbWarpedMotionParams* model);
 
 int svt_av1_is_enough_erroradvantage(double best_erroradvantage, int params_cost, int erroradv_type);
 
@@ -82,10 +82,10 @@ int svt_av1_is_enough_erroradvantage(double best_erroradvantage, int params_cost
 // motion params that result from fine-tuning "wm" to "ref". Note that "wm" is
 // modified in place.
 #if OPT_GM_RFN_EARLY_EXIT
-int64_t svt_av1_refine_integerized_param(GmControls* gm_ctrls, EbWarpedMotionParams *wm, TransformationType wmtype, uint8_t *ref, int r_width,
-                                         int r_height, int r_stride, uint8_t *dst, int d_width, int d_height,
-                                         int d_stride, int n_refinements, uint8_t chess_refn, int64_t best_frame_error,
-                                         uint32_t pic_sad, int params_cost);
+int64_t svt_av1_refine_integerized_param(GmControls* gm_ctrls, EbWarpedMotionParams* wm, TransformationType wmtype,
+                                         uint8_t* ref, int r_width, int r_height, int r_stride, uint8_t* dst,
+                                         int d_width, int d_height, int d_stride, int n_refinements, uint8_t chess_refn,
+                                         int64_t best_frame_error, uint32_t pic_sad, int params_cost);
 #else
 int64_t svt_av1_refine_integerized_param(EbWarpedMotionParams *wm, TransformationType wmtype, uint8_t *ref, int r_width,
                                          int r_height, int r_stride, uint8_t *dst, int d_width, int d_height,
@@ -94,15 +94,14 @@ int64_t svt_av1_refine_integerized_param(EbWarpedMotionParams *wm, Transformatio
 
 #if CLN_GM
 #if OPT_GM_CORESP_FROM_MV
-void gm_compute_correspondence(PictureParentControlSet* pcs, uint8_t* frm_buffer,
-    int frm_width, int frm_height, int frm_stride, int* frm_corners,
-    int num_frm_corners, uint8_t* ref, int ref_stride,
-    Correspondence* correspondences, int* num_correspondences, uint8_t list_idx, uint8_t ref_idx);
+void gm_compute_correspondence(PictureParentControlSet* pcs, uint8_t* frm_buffer, int frm_width, int frm_height,
+                               int frm_stride, int* frm_corners, int num_frm_corners, uint8_t* ref, int ref_stride,
+                               Correspondence* correspondences, int* num_correspondences, uint8_t list_idx,
+                               uint8_t ref_idx);
 #else
-void gm_compute_correspondence(GmControls* gm_ctrls, uint8_t* frm_buffer,
-    int frm_width, int frm_height, int frm_stride, int* frm_corners,
-    int num_frm_corners, uint8_t* ref, int ref_stride,
-    Correspondence* correspondences, int* num_correspondences);
+void gm_compute_correspondence(GmControls* gm_ctrls, uint8_t* frm_buffer, int frm_width, int frm_height, int frm_stride,
+                               int* frm_corners, int num_frm_corners, uint8_t* ref, int ref_stride,
+                               Correspondence* correspondences, int* num_correspondences);
 #endif
 /*
   Computes "num_motions" candidate global motion parameters between two frames.
@@ -121,11 +120,11 @@ void gm_compute_correspondence(GmControls* gm_ctrls, uint8_t* frm_buffer,
 */
 void determine_gm_params(TransformationType type,
 #if CLN_RANSAC
-    MotionModel* params_by_motion,
+                         MotionModel* params_by_motion,
 #else
-    int* num_inliers_by_motion, MotionModel* params_by_motion,
+                         int* num_inliers_by_motion, MotionModel* params_by_motion,
 #endif
-    int num_motions, Correspondence* correspondences, int num_correspondences);
+                         int num_motions, Correspondence* correspondences, int num_correspondences);
 #else
 #if CLN_WMMAT
 /*

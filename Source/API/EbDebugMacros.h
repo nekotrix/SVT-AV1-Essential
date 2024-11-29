@@ -78,11 +78,14 @@ extern "C" {
 #define TUNE_M4_2                   1 // M4 tuning
 #define TUNE_M6_3                   0 // Tune M6 feats
 #define TUNE_M9_2                   1 // M9 tuning
-#define TUNE_M10_2                  1 // M10 tuning
-#define TUNE_M11_2                  1 // M11 tuning
+#define TUNE_M10_2                  0 // M10 tuning
+#define TUNE_M11_2                  0 // M11 tuning
 #define OPT_FD_10BIT                1 // Opt fd for 10bit
 #define TUNE_LAMBDA_WEIGHT          1 // Tune lambda weight
 #define FIX_SUPERRES                1 // Fix setting b64_total_count based on SB count in superres path
+#define OPT_FD0_SETTINGS            1 // Unify some fd2 settings into fd0 to improve trade-offs
+#define OPT_LOW_DELAY               1 // Opt Low-delay
+#define FIX_DLF_ONION_RING          1 // Adopt fd0 dlf level in M10/M11 fd1 to preserve onion ring
 
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0

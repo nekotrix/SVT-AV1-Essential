@@ -22,7 +22,7 @@
 
 int svt_av1_determine_correspondence(uint8_t *frm, int *frm_corners, int num_frm_corners, uint8_t *ref,
                                      int *ref_corners, int num_ref_corners, int width, int height, int frm_stride,
-                                     int ref_stride, Correspondence* correspondences, uint8_t match_sz);
+                                     int ref_stride, Correspondence *correspondences, uint8_t match_sz);
 #else
 typedef struct {
     int x, y;

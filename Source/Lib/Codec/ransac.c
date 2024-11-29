@@ -26,7 +26,7 @@
 #if CLN_RANSAC
 #define INLIER_THRESHOLD_SQUARED 1.5625 /*(1.25 * 1.25)*/
 
- // Number of initial models to generate
+// Number of initial models to generate
 #define NUM_TRIALS 20
 
 // Number of times to refine the best model found
@@ -347,9 +347,9 @@ static int get_rand_indices(int npoints, int minpts, int *indices, unsigned int 
 
 #if CLN_RANSAC
 // Return -1 if 'a' is a better motion, 1 if 'b' is better, 0 otherwise.
-static int compare_motions(const void* arg_a, const void* arg_b) {
-    const RANSAC_MOTION* motion_a = (RANSAC_MOTION*)arg_a;
-    const RANSAC_MOTION* motion_b = (RANSAC_MOTION*)arg_b;
+static int compare_motions(const void *arg_a, const void *arg_b) {
+    const RANSAC_MOTION *motion_a = (RANSAC_MOTION *)arg_a;
+    const RANSAC_MOTION *motion_b = (RANSAC_MOTION *)arg_b;
 
     if (motion_a->num_inliers > motion_b->num_inliers)
         return -1;
@@ -400,10 +400,9 @@ static void copy_points_at_indices(double *dest, const double *src, const int *i
 #endif
 
 #if CLN_RANSAC
-static void score_translation(const double* mat, const Correspondence* points,
-    int num_points, RANSAC_MOTION* model) {
+static void score_translation(const double *mat, const Correspondence *points, int num_points, RANSAC_MOTION *model) {
     model->num_inliers = 0;
-    model->sse = 0.0;
+    model->sse         = 0.0;
 
     for (int i = 0; i < num_points; ++i) {
         const double x1 = points[i].x;
@@ -414,8 +413,8 @@ static void score_translation(const double* mat, const Correspondence* points,
         const double proj_x = x1 + mat[0];
         const double proj_y = y1 + mat[1];
 
-        const double dx = proj_x - x2;
-        const double dy = proj_y - y2;
+        const double dx  = proj_x - x2;
+        const double dy  = proj_y - y2;
         const double sse = dx * dx + dy * dy;
 
         if (sse < INLIER_THRESHOLD_SQUARED) {
@@ -425,10 +424,9 @@ static void score_translation(const double* mat, const Correspondence* points,
     }
 }
 
-static void score_affine(const double* mat, const Correspondence* points,
-    int num_points, RANSAC_MOTION* model) {
+static void score_affine(const double *mat, const Correspondence *points, int num_points, RANSAC_MOTION *model) {
     model->num_inliers = 0;
-    model->sse = 0.0;
+    model->sse         = 0.0;
 
     for (int i = 0; i < num_points; ++i) {
         const double x1 = points[i].x;
@@ -439,8 +437,8 @@ static void score_affine(const double* mat, const Correspondence* points,
         const double proj_x = mat[2] * x1 + mat[3] * y1 + mat[0];
         const double proj_y = mat[4] * x1 + mat[5] * y1 + mat[1];
 
-        const double dx = proj_x - x2;
-        const double dy = proj_y - y2;
+        const double dx  = proj_x - x2;
+        const double dy  = proj_y - y2;
         const double sse = dx * dx + dy * dy;
 
         if (sse < INLIER_THRESHOLD_SQUARED) {
@@ -450,17 +448,16 @@ static void score_affine(const double* mat, const Correspondence* points,
     }
 }
 
-static bool find_translation(const Correspondence* points, const int* indices,
-    int num_indices, double* params) {
+static bool find_translation(const Correspondence *points, const int *indices, int num_indices, double *params) {
     double sumx = 0;
     double sumy = 0;
 
     for (int i = 0; i < num_indices; ++i) {
-        int index = indices[i];
-        const double sx = points[index].x;
-        const double sy = points[index].y;
-        const double dx = points[index].rx;
-        const double dy = points[index].ry;
+        int          index = indices[i];
+        const double sx    = points[index].x;
+        const double sy    = points[index].y;
+        const double dx    = points[index].rx;
+        const double dy    = points[index].ry;
 
         sumx += dx - sx;
         sumy += dy - sy;
@@ -475,34 +472,32 @@ static bool find_translation(const Correspondence* points, const int* indices,
     return true;
 }
 
-static bool find_rotzoom(const Correspondence* points, const int* indices,
-    int num_indices, double* params) {
-    const int n = 4;    // Size of least-squares problem
-    double mat[4 * 4];  // Accumulator for A'A
-    double y[4];        // Accumulator for A'b
-    double a[4];        // Single row of A
-    double b;           // Single element of b
+static bool find_rotzoom(const Correspondence *points, const int *indices, int num_indices, double *params) {
+    const int n = 4; // Size of least-squares problem
+    double    mat[4 * 4]; // Accumulator for A'A
+    double    y[4]; // Accumulator for A'b
+    double    a[4]; // Single row of A
 
     least_squares_init(mat, y, n);
     for (int i = 0; i < num_indices; ++i) {
-        int index = indices[i];
-        const double sx = points[index].x;
-        const double sy = points[index].y;
-        const double dx = points[index].rx;
-        const double dy = points[index].ry;
+        int          index = indices[i];
+        const double sx    = points[index].x;
+        const double sy    = points[index].y;
+        const double dx    = points[index].rx;
+        const double dy    = points[index].ry;
 
-        a[0] = 1;
-        a[1] = 0;
-        a[2] = sx;
-        a[3] = sy;
-        b = dx;
+        a[0]     = 1;
+        a[1]     = 0;
+        a[2]     = sx;
+        a[3]     = sy;
+        double b = dx; // Single element of b
         least_squares_accumulate(mat, y, a, b, n);
 
         a[0] = 0;
         a[1] = 1;
         a[2] = sy;
         a[3] = -sx;
-        b = dy;
+        b    = dy;
         least_squares_accumulate(mat, y, a, b, n);
     }
 
@@ -518,8 +513,7 @@ static bool find_rotzoom(const Correspondence* points, const int* indices,
     return true;
 }
 
-static bool find_affine(const Correspondence* points, const int* indices,
-    int num_indices, double* params) {
+static bool find_affine(const Correspondence *points, const int *indices, int num_indices, double *params) {
     // Note: The least squares problem for affine models is 6-dimensional,
     // but it splits into two independent 3-dimensional subproblems.
     // Solving these two subproblems separately and recombining at the end
@@ -530,32 +524,32 @@ static bool find_affine(const Correspondence* points, const int* indices,
     // to the x output of the model, and all the parameters which contribute
     // to the y output, respectively.
 
-    const int n = 3;       // Size of each least-squares problem
-    double mat[2][3 * 3];  // Accumulator for A'A
-    double y[2][3];        // Accumulator for A'b
-    double x[2][3];        // Output vector
-    double a[2][3];        // Single row of A
-    double b[2];           // Single element of b
+    const int n = 3; // Size of each least-squares problem
+    double    mat[2][3 * 3]; // Accumulator for A'A
+    double    y[2][3]; // Accumulator for A'b
+    double    x[2][3]; // Output vector
+    double    a[2][3]; // Single row of A
+    double    b[2]; // Single element of b
 
     least_squares_init(mat[0], y[0], n);
     least_squares_init(mat[1], y[1], n);
     for (int i = 0; i < num_indices; ++i) {
-        int index = indices[i];
-        const double sx = points[index].x;
-        const double sy = points[index].y;
-        const double dx = points[index].rx;
-        const double dy = points[index].ry;
+        int          index = indices[i];
+        const double sx    = points[index].x;
+        const double sy    = points[index].y;
+        const double dx    = points[index].rx;
+        const double dy    = points[index].ry;
 
         a[0][0] = 1;
         a[0][1] = sx;
         a[0][2] = sy;
-        b[0] = dx;
+        b[0]    = dx;
         least_squares_accumulate(mat[0], y[0], a[0], b[0], n);
 
         a[1][0] = 1;
         a[1][1] = sx;
         a[1][2] = sy;
-        b[1] = dy;
+        b[1]    = dy;
         least_squares_accumulate(mat[1], y[1], a[1], b[1], n);
     }
 
@@ -578,24 +572,22 @@ static bool find_affine(const Correspondence* points, const int* indices,
 }
 
 // Returns true on success, false on error
- static bool ransac_internal(const Correspondence* matched_points, int npoints,
-    MotionModel* motion_models, int num_desired_motions,
-    const RansacModelInfo* model_info,
-    bool* mem_alloc_failed) {
+static bool ransac_internal(const Correspondence *matched_points, int npoints, MotionModel *motion_models,
+                            int num_desired_motions, const RansacModelInfo *model_info, bool *mem_alloc_failed) {
     assert(npoints >= 0);
-    int i = 0;
-    int minpts = model_info->minpts;
+    int  i       = 0;
+    int  minpts  = model_info->minpts;
     bool ret_val = true;
 
     unsigned int seed = (unsigned int)npoints;
 
-    int indices[MAX_MINPTS] = { 0 };
+    int indices[MAX_MINPTS] = {0};
 
     // Store information for the num_desired_motions best transformations found
     // and the worst motion among them, as well as the motion currently under
     // consideration.
-    RANSAC_MOTION* motions, * worst_kept_motion = NULL;
-    RANSAC_MOTION current_motion;
+    RANSAC_MOTION *motions, *worst_kept_motion = NULL;
+    RANSAC_MOTION  current_motion;
 
     // Store the parameters and the indices of the inlier points for the motion
     // currently under consideration.
@@ -603,8 +595,7 @@ static bool find_affine(const Correspondence* points, const int* indices,
 
     // Initialize output models, as a fallback in case we can't find a model
     for (i = 0; i < num_desired_motions; i++) {
-        memcpy(motion_models[i].params, kIdentityParams,
-            MAX_PARAMDIM * sizeof(*(motion_models[i].params)));
+        memcpy(motion_models[i].params, kIdentityParams, MAX_PARAMDIM * sizeof(*(motion_models[i].params)));
         motion_models[i].num_inliers = 0;
     }
 
@@ -614,8 +605,7 @@ static bool find_affine(const Correspondence* points, const int* indices,
 
     int min_inliers = AOMMAX((int)(MIN_INLIER_PROB * npoints), minpts);
 
-    motions =
-        (RANSAC_MOTION*)calloc(num_desired_motions, sizeof(RANSAC_MOTION));
+    motions = (RANSAC_MOTION *)calloc(num_desired_motions, sizeof(RANSAC_MOTION));
 
     // Allocate one large buffer which will be carved up to store the inlier
     // indices for the current motion plus the num_desired_motions many
@@ -623,11 +613,10 @@ static bool find_affine(const Correspondence* points, const int* indices,
     // This allows us to keep the allocation/deallocation logic simple, without
     // having to (for example) check that `motions` is non-null before allocating
     // the inlier arrays
-    int* inlier_buffer = (int*)malloc(sizeof(*inlier_buffer) * npoints *
-        (num_desired_motions + 1));
+    int *inlier_buffer = (int *)malloc(sizeof(*inlier_buffer) * npoints * (num_desired_motions + 1));
 
     if (!(motions && inlier_buffer)) {
-        ret_val = false;
+        ret_val           = false;
         *mem_alloc_failed = true;
         goto finish_ransac;
     }
@@ -635,22 +624,18 @@ static bool find_affine(const Correspondence* points, const int* indices,
     // Once all our allocations are known-good, we can fill in our structures
     worst_kept_motion = motions;
 
-    for (i = 0; i < num_desired_motions; ++i) {
-        motions[i].inlier_indices = inlier_buffer + i * npoints;
-    }
+    for (i = 0; i < num_desired_motions; ++i) { motions[i].inlier_indices = inlier_buffer + i * npoints; }
     memset(&current_motion, 0, sizeof(current_motion));
     current_motion.inlier_indices = inlier_buffer + num_desired_motions * npoints;
 
     for (int trial_count = 0; trial_count < NUM_TRIALS; trial_count++) {
         lcg_pick(npoints, minpts, indices, &seed);
 
-        if (!model_info->find_transformation(matched_points, indices, minpts,
-            params_this_motion)) {
+        if (!model_info->find_transformation(matched_points, indices, minpts, params_this_motion)) {
             continue;
         }
 
-        model_info->score_model(params_this_motion, matched_points, npoints,
-            &current_motion);
+        model_info->score_model(params_this_motion, matched_points, npoints, &current_motion);
 
         if (current_motion.num_inliers < min_inliers) {
             // Reject models with too few inliers
@@ -662,7 +647,7 @@ static bool find_affine(const Correspondence* points, const int* indices,
             // the inlier points and sse. The parameters for each kept motion
             // will be recomputed later using only the inliers.
             worst_kept_motion->num_inliers = current_motion.num_inliers;
-            worst_kept_motion->sse = current_motion.sse;
+            worst_kept_motion->sse         = current_motion.sse;
 
             // Rather than copying the (potentially many) inlier indices from
             // current_motion.inlier_indices to worst_kept_motion->inlier_indices,
@@ -672,9 +657,9 @@ static bool find_affine(const Correspondence* points, const int* indices,
             // is used will be in the next trial, where we ignore its previous
             // contents anyway. And both arrays will be deallocated together at the
             // end of this function, so there are no lifetime issues.
-            int* tmp = worst_kept_motion->inlier_indices;
+            int *tmp                          = worst_kept_motion->inlier_indices;
             worst_kept_motion->inlier_indices = current_motion.inlier_indices;
-            current_motion.inlier_indices = tmp;
+            current_motion.inlier_indices     = tmp;
 
             // Determine the new worst kept motion and its num_inliers and sse.
             for (i = 0; i < num_desired_motions; ++i) {
@@ -710,9 +695,8 @@ static bool find_affine(const Correspondence* points, const int* indices,
             int num_inliers = motions[i].num_inliers;
             assert(num_inliers >= min_inliers);
 
-            if (!model_info->find_transformation(matched_points,
-                motions[i].inlier_indices,
-                num_inliers, params_this_motion)) {
+            if (!model_info->find_transformation(
+                    matched_points, motions[i].inlier_indices, num_inliers, params_this_motion)) {
                 // In the unlikely event that this model fitting fails, we don't have a
                 // good fallback. So leave this model set to the identity model
                 bad_model = true;
@@ -720,8 +704,7 @@ static bool find_affine(const Correspondence* points, const int* indices,
             }
 
             // Score the newly generated model
-            model_info->score_model(params_this_motion, matched_points, npoints,
-                &current_motion);
+            model_info->score_model(params_this_motion, matched_points, npoints, &current_motion);
 
             // At this point, there are three possibilities:
             // 1) If we found more inliers, keep refining.
@@ -732,13 +715,12 @@ static bool find_affine(const Correspondence* points, const int* indices,
             //    fewer inliers. If it does happen, we probably just lost a few
             //    borderline inliers. So treat the same as case (2).
             if (current_motion.num_inliers > motions[i].num_inliers) {
-                motions[i].num_inliers = current_motion.num_inliers;
-                motions[i].sse = current_motion.sse;
-                int* tmp = motions[i].inlier_indices;
-                motions[i].inlier_indices = current_motion.inlier_indices;
+                motions[i].num_inliers        = current_motion.num_inliers;
+                motions[i].sse                = current_motion.sse;
+                int *tmp                      = motions[i].inlier_indices;
+                motions[i].inlier_indices     = current_motion.inlier_indices;
                 current_motion.inlier_indices = tmp;
-            }
-            else {
+            } else {
                 // Refined model is no better, so stop
                 // This shouldn't be significantly worse than the previous model,
                 // so it's fine to use the parameters in params_this_motion.
@@ -747,14 +729,14 @@ static bool find_affine(const Correspondence* points, const int* indices,
             }
         }
 
-        if (bad_model) continue;
+        if (bad_model)
+            continue;
 
         // Fill in output struct
-        memcpy(motion_models[i].params, params_this_motion,
-            MAX_PARAMDIM * sizeof(*motion_models[i].params));
+        memcpy(motion_models[i].params, params_this_motion, MAX_PARAMDIM * sizeof(*motion_models[i].params));
         for (int j = 0; j < motions[i].num_inliers; j++) {
-            int index = motions[i].inlier_indices[j];
-            const Correspondence* corr = &matched_points[index];
+            int                   index         = motions[i].inlier_indices[j];
+            const Correspondence *corr          = &matched_points[index];
             motion_models[i].inliers[2 * j + 0] = (int)rint(corr->x);
             motion_models[i].inliers[2 * j + 1] = (int)rint(corr->y);
         }
@@ -770,24 +752,22 @@ finish_ransac:
 
 static const RansacModelInfo ransac_model_info[TRANS_TYPES] = {
     // IDENTITY
-    { NULL, NULL, 0 },
+    {NULL, NULL, 0},
     // TRANSLATION
-    { find_translation, score_translation, 1 },
+    {find_translation, score_translation, 1},
     // ROTZOOM
-    { find_rotzoom, score_affine, 2 },
+    {find_rotzoom, score_affine, 2},
     // AFFINE
-    { find_affine, score_affine, 3 },
+    {find_affine, score_affine, 3},
 };
 
 // Returns true on success, false on error
-bool svt_aom_ransac(const Correspondence* matched_points, int npoints,
-    TransformationType type, MotionModel* motion_models,
-    int num_desired_motions, bool* mem_alloc_failed) {
+bool svt_aom_ransac(const Correspondence *matched_points, int npoints, TransformationType type,
+                    MotionModel *motion_models, int num_desired_motions, bool *mem_alloc_failed) {
     assert(type > IDENTITY && type < TRANS_TYPES);
 
-    return ransac_internal(matched_points, npoints, motion_models,
-        num_desired_motions, &ransac_model_info[type],
-        mem_alloc_failed);
+    return ransac_internal(
+        matched_points, npoints, motion_models, num_desired_motions, &ransac_model_info[type], mem_alloc_failed);
 }
 #else
 static const double k_infinite_variance = 1e12;

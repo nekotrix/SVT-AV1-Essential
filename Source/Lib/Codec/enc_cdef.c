@@ -874,20 +874,20 @@ void finish_cdef_search(PictureControlSet *pcs) {
                 mse[1][i][0] = (factor * mse[1][i][0]) >> 6;
             } else {
 #endif
-            factor = cdef_ctrls->zero_fs_cost_bias;
-            if (mse[0][i][0] > 25000)
-                factor = MIN(factor + 2, 64);
-            else if (mse[0][i][0] > 10000)
-                factor = MIN(factor + 1, 64);
-            mse[0][i][0] = (factor * mse[0][i][0]) >> 6;
+                factor = cdef_ctrls->zero_fs_cost_bias;
+                if (mse[0][i][0] > 25000)
+                    factor = MIN(factor + 2, 64);
+                else if (mse[0][i][0] > 10000)
+                    factor = MIN(factor + 1, 64);
+                mse[0][i][0] = (factor * mse[0][i][0]) >> 6;
 
-            factor = cdef_ctrls->zero_fs_cost_bias;
-            if (mse[1][i][0] > 25000)
-                factor = MIN(factor + 2, 64);
-            else if (mse[1][i][0] > 10000)
-                factor = MIN(factor + 1, 64);
+                factor = cdef_ctrls->zero_fs_cost_bias;
+                if (mse[1][i][0] > 25000)
+                    factor = MIN(factor + 2, 64);
+                else if (mse[1][i][0] > 10000)
+                    factor = MIN(factor + 1, 64);
 
-            mse[1][i][0] = (factor * mse[1][i][0]) >> 6;
+                mse[1][i][0] = (factor * mse[1][i][0]) >> 6;
 #if OPT_FD_10BIT
             }
 #endif
@@ -895,7 +895,6 @@ void finish_cdef_search(PictureControlSet *pcs) {
             mse[0][i][0] = (factor * mse[0][i][0]) >> 6;
             mse[1][i][0] = (factor * mse[1][i][0]) >> 6;
 #endif
-
         }
     }
     /* Search for different number of signalling bits. */

@@ -48,8 +48,7 @@ static INLINE uint32_t lcg_randint(uint32_t* state, uint32_t n) {
 }
 
 // Generate a random number in the range [lo, hi)
-static INLINE uint32_t lcg_randrange(uint32_t* state, uint32_t lo,
-    uint32_t hi) {
+static INLINE uint32_t lcg_randrange(uint32_t* state, uint32_t lo, uint32_t hi) {
     assert(lo < hi);
     return lo + lcg_randint(state, hi - lo);
 }

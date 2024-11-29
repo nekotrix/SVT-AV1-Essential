@@ -39,9 +39,9 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
 
 void svt_aom_sig_deriv_me(SequenceControlSet *scs, PictureParentControlSet *pcs, MeContext *me_ctx);
 
-void    svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, ModeDecisionContext *ctx);
+void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, ModeDecisionContext *ctx);
 #if !CLN_UNUSED_GM_SIGS
-bool    svt_aom_need_gm_ref_info(EncMode enc_mode, bool super_res_off);
+bool svt_aom_need_gm_ref_info(EncMode enc_mode, bool super_res_off);
 #endif
 uint8_t svt_aom_derive_gm_level(PictureParentControlSet *pcs, bool super_res_off);
 

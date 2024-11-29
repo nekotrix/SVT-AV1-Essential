@@ -3767,21 +3767,21 @@ static void derive_vq_params(SequenceControlSet* scs) {
  */
 static void derive_tf_params(SequenceControlSet *scs) {
     const EbInputResolution resolution = scs->input_resolution;
+    const uint32_t hierarchical_levels = scs->static_config.hierarchical_levels;
     // Do not perform TF if LD or 1 Layer or 1st pass
 #if FTR_LOSSLESS_SUPPORT
-    Bool do_tf = scs->static_config.enable_tf && scs->static_config.hierarchical_levels >= 1 && !scs->static_config.lossless;
+    const bool do_tf = scs->static_config.enable_tf && hierarchical_levels >= 1 && !scs->static_config.lossless;
 #else
-    Bool do_tf = scs->static_config.enable_tf && scs->static_config.hierarchical_levels >= 1;
+    const bool do_tf = scs->static_config.enable_tf && hierarchical_levels >= 1;
 #endif
     const EncMode enc_mode = scs->static_config.enc_mode;
-    const uint32_t hierarchical_levels = scs->static_config.hierarchical_levels;
     uint8_t tf_level = 0;
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_P || scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
         if (do_tf == 0)
             tf_level = 0;
         else
             tf_level = scs->static_config.screen_content_mode == 1 ? 0 :
-            enc_mode <= ENC_M8 ? scs->input_resolution >= INPUT_SIZE_720p_RANGE ? 1 : 0 : scs->input_resolution >= INPUT_SIZE_720p_RANGE ? 2 : 0;
+            enc_mode <= ENC_M8 ? resolution >= INPUT_SIZE_720p_RANGE ? 1 : 0 : resolution >= INPUT_SIZE_720p_RANGE ? 2 : 0;
         tf_ld_controls(scs, tf_level);
         return;
     }
@@ -4479,7 +4479,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
                 scs->super_block_size = 128;
         }
         else if (scs->static_config.enc_mode <= ENC_M7) {
+#if OPT_FD0_SETTINGS
+            if (scs->static_config.qp <= 57)
+#else
             if (scs->static_config.qp <= 56 || (scs->static_config.fast_decode >= 2 && scs->static_config.qp <= 57 && !(scs->input_resolution <= INPUT_SIZE_360p_RANGE)))
+#endif
                 scs->super_block_size = 64;
             else
                 scs->super_block_size = 128;

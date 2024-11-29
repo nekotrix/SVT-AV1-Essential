@@ -425,10 +425,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
             }
             break;
 
-        case EB_PIC_REFERENCE:
-
-            scs     = input_pic_demux->scs;
-            enc_ctx = scs->enc_ctx;
+        case EB_PIC_REFERENCE: scs = input_pic_demux->scs; enc_ctx = scs->enc_ctx;
 #if !CLN_UNUSED_GM_SIGS
             ((EbReferenceObject *)input_pic_demux->ref_pic_wrapper->object_ptr)->ds_pics.picture_number =
                 input_pic_demux->picture_number;

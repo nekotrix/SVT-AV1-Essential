@@ -114,26 +114,18 @@ static INLINE int32_t least_squares(int32_t n, double *A, int32_t rows, int32_t 
 // * a, b are the coefficients of each individual equation,
 // * x is the result vector
 // * and n is the problem size
-static INLINE void least_squares_init(double* mat, double* y, int n) {
+static INLINE void least_squares_init(double *mat, double *y, int n) {
     memset(mat, 0, n * n * sizeof(double));
     memset(y, 0, n * sizeof(double));
 }
-static INLINE void least_squares_accumulate(double* mat, double* y,
-    const double* a, double b, int n) {
+static INLINE void least_squares_accumulate(double *mat, double *y, const double *a, double b, int n) {
     for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            mat[i * n + j] += a[i] * a[j];
-        }
+        for (int j = 0; j < n; j++) { mat[i * n + j] += a[i] * a[j]; }
     }
-    for (int i = 0; i < n; i++) {
-        y[i] += a[i] * b;
-    }
+    for (int i = 0; i < n; i++) { y[i] += a[i] * b; }
 }
 
-static INLINE int least_squares_solve(double* mat, double* y, double* x,
-    int n) {
-    return linsolve(n, mat, n, y, x);
-}
+static INLINE int least_squares_solve(double *mat, double *y, double *x, int n) { return linsolve(n, mat, n, y, x); }
 #endif
 
 // Matrix multiply

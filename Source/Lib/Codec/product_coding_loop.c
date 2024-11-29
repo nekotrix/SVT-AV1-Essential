@@ -1437,25 +1437,28 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
     }
 #if OPT_MDS0_EXIT
     if (ctx->mds0_ctrls.pruning_method_th && ctx->pd_pass == PD_PASS_1) {
-
-        if (ctx->mds0_ctrls.pruning_method_th != (uint8_t ) ~0 &&
-           (MIN(ctx->md_me_dist, ctx->md_pme_dist) / (ctx->blk_geom->bwidth * ctx->blk_geom->bheight)) > ctx->mds0_ctrls.pruning_method_th) {
-
+        if (ctx->mds0_ctrls.pruning_method_th != (uint8_t)~0 &&
+            (MIN(ctx->md_me_dist, ctx->md_pme_dist) / (ctx->blk_geom->bwidth * ctx->blk_geom->bheight)) >
+                ctx->mds0_ctrls.pruning_method_th) {
             if (ctx->mds0_ctrls.per_class_dist_to_cost_th[cand_bf->cand->cand_class] != (uint16_t)~0 &&
                 ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class] != (uint64_t)~0) {
-                const uint64_t distortion_cost = RDCOST((ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
+                const uint64_t distortion_cost = RDCOST(
+                    (ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
                     0,
                     luma_fast_dist + chroma_fast_distortion);
-                if ((100 * (int64_t)((int64_t)distortion_cost - (int64_t)ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class])) >
-                    ((int64_t)ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class] * ctx->mds0_ctrls.per_class_dist_to_cost_th[cand_bf->cand->cand_class])) {
+                if ((100 *
+                     (int64_t)((int64_t)distortion_cost -
+                               (int64_t)ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class])) >
+                    ((int64_t)ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class] *
+                     ctx->mds0_ctrls.per_class_dist_to_cost_th[cand_bf->cand->cand_class])) {
                     *(cand_bf->fast_cost) = MAX_MODE_COST;
                     return;
                 }
             }
         } else {
-
             if (ctx->mds0_ctrls.dist_to_cost_th != (uint16_t)~0 && ctx->mds0_best_cost != (uint64_t)~0) {
-                const uint64_t distortion_cost = RDCOST((ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
+                const uint64_t distortion_cost = RDCOST(
+                    (ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
                     0,
                     luma_fast_dist + chroma_fast_distortion);
                 if ((100 * (int64_t)((int64_t)distortion_cost - (int64_t)ctx->mds0_best_cost)) >
@@ -8824,9 +8827,9 @@ static void md_encode_block_light_pd1(PictureControlSet *pcs, ModeDecisionContex
         }
     }
 
-    ctx->md_stage            = MD_STAGE_0;
-    ctx->mds0_best_idx       = 0;
-    ctx->mds0_best_cost      = (uint64_t)~0;
+    ctx->md_stage       = MD_STAGE_0;
+    ctx->mds0_best_idx  = 0;
+    ctx->mds0_best_cost = (uint64_t)~0;
 
     uint8_t perform_md_recon = do_md_recon(pcs->ppcs, ctx);
 
@@ -9249,16 +9252,13 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
     ctx->perform_mds1           = 1;
     ctx->use_tx_shortcuts_mds3  = 0;
 #if OPT_MDS0_EXIT
-    ctx->mds0_best_cost_per_class[CAND_CLASS_0] =
-    ctx->mds0_best_cost_per_class[CAND_CLASS_1] =
-    ctx->mds0_best_cost_per_class[CAND_CLASS_2] =
-    ctx->mds0_best_cost_per_class[CAND_CLASS_3] = (uint64_t)~0;
+    ctx->mds0_best_cost_per_class[CAND_CLASS_0]     = ctx->mds0_best_cost_per_class[CAND_CLASS_1] =
+        ctx->mds0_best_cost_per_class[CAND_CLASS_2] = ctx->mds0_best_cost_per_class[CAND_CLASS_3] = (uint64_t)~0;
 #endif
-    ctx->mds0_best_cost         = (uint64_t)~0;
-    ctx->mds0_best_class        = 0;
-    ctx->mds0_best_class0_cost  = (uint64_t)~0;
+    ctx->mds0_best_cost        = (uint64_t)~0;
+    ctx->mds0_best_class       = 0;
+    ctx->mds0_best_class0_cost = (uint64_t)~0;
     for (cand_class_it = CAND_CLASS_0; cand_class_it < CAND_CLASS_TOTAL; cand_class_it++) {
-
         //number of next level candidates could not exceed number of curr level candidates
         ctx->md_stage_1_count[cand_class_it] = MIN(ctx->md_stage_0_count[cand_class_it],
                                                    ctx->md_stage_1_count[cand_class_it]);
