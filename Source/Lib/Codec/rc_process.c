@@ -1545,7 +1545,11 @@ void svt_aom_sb_qp_derivation_tpl_la(PictureControlSet *pcs) {
     // super res pictures scaled with different sb count, should use sb_total_count for each picture
     uint16_t sb_cnt = scs->sb_total_count;
     if (ppcs_ptr->frame_superres_enabled || ppcs_ptr->frame_resize_enabled)
+#if FIX_SUPERRES
+        sb_cnt = pcs->sb_total_count;
+#else
         sb_cnt = ppcs_ptr->b64_total_count;
+#endif
     if ((ppcs_ptr->r0_based_qps_qpm) && (pcs->ppcs->tpl_is_valid == 1)) {
 #if DEBUG_VAR_BOOST_STATS
         printf("TPL qindex boost, frame %llu, temp. level %i\n", pcs->picture_number, pcs->temporal_layer_index);

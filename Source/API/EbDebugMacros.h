@@ -82,6 +82,8 @@ extern "C" {
 #define TUNE_M11_2                  1 // M11 tuning
 #define OPT_FD_10BIT                1 // Opt fd for 10bit
 #define TUNE_LAMBDA_WEIGHT          1 // Tune lambda weight
+#define FIX_SUPERRES                1 // Fix setting b64_total_count based on SB count in superres path
+
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one

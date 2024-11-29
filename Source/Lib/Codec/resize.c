@@ -1366,7 +1366,14 @@ void scale_pcs_params(SequenceControlSet *scs, PictureParentControlSet *pcs, sup
     pcs->picture_sb_width  = picture_sb_width; // TODO: use this instead of re-computing
     pcs->picture_sb_height = picture_sb_height;
 
+#if FIX_SUPERRES
+    // number of b64s
+    const uint16_t picture_b64_width = (uint16_t)((aligned_width + scs->b64_size - 1) / scs->b64_size);
+    const uint16_t picture_b64_height = (uint16_t)((aligned_height + scs->b64_size - 1) / scs->b64_size);
+    pcs->b64_total_count = picture_b64_width * picture_b64_height;
+#else
     pcs->b64_total_count = picture_sb_width * picture_sb_height;
+#endif
 
     // mi params
     cm->mi_stride = picture_sb_width * (scs->sb_size >> MI_SIZE_LOG2);
