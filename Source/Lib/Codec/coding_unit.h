@@ -177,7 +177,7 @@ typedef struct BlkStruct {
     // svt_aom_d2_inter_depth_block_decision()
     uint64_t     default_cost;
     uint64_t     total_rate;
-    uint32_t     full_dist;
+    uint64_t     full_dist;
     QuantDcData  quant_dc;
     EobData      eob;
     TxType       tx_type[MAX_TXB_COUNT];

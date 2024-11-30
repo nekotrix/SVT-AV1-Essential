@@ -60,6 +60,7 @@ set(all_files
     highbd_fwd_txfm_avx2.c
     highbd_intra_pred_avx2.c
     highbd_inv_txfm_avx2.c
+    highbd_hadamard_avx2.c
     highbd_jnt_convolve_avx2.c
     highbd_quantize_intrin_avx2.c
     highbd_variance_avx2.c

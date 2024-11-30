@@ -20,6 +20,7 @@
 #include "sequence_control_set.h"
 #include "reference_object.h"
 #include "common_utils.h"
+#include "ac_bias.h"
 //#include "svt_log.h"
 #define DLF_MAX_LVL 4
 static const int32_t  inter_frame_multiplier[INPUT_SIZE_COUNT]      = {6017, 6017, 6017, 12034, 12034, 12034, 12034};
@@ -833,8 +834,8 @@ uint64_t picture_sse_calculations(PictureControlSet *pcs, EbPictureBufferDesc *r
                                                      recon_coeff_buffer,
                                                      0,
                                                      recon_ptr->stride_y,
-                                                     input_pic->width,
-                                                     input_pic->height);
+                                                     input_align_width,
+                                                     input_align_height);
         } else if (plane == 1) {
             recon_coeff_buffer = (uint8_t *)&(
                 (recon_ptr
@@ -849,8 +850,8 @@ uint64_t picture_sse_calculations(PictureControlSet *pcs, EbPictureBufferDesc *r
                                                      recon_coeff_buffer,
                                                      0,
                                                      recon_ptr->stride_cb,
-                                                     (input_pic->width + ss_x) >> ss_x,
-                                                     (input_pic->height + ss_y) >> ss_y);
+                                                     (input_align_width + ss_x) >> ss_x,
+                                                     (input_align_height + ss_y) >> ss_y);
         } else if (plane == 2) {
             recon_coeff_buffer = (uint8_t *)&(
                 (recon_ptr
@@ -865,8 +866,8 @@ uint64_t picture_sse_calculations(PictureControlSet *pcs, EbPictureBufferDesc *r
                                                      recon_coeff_buffer,
                                                      0,
                                                      recon_ptr->stride_cr,
-                                                     (input_pic->width + ss_x) >> ss_x,
-                                                     (input_pic->height + ss_y) >> ss_y);
+                                                     (input_align_width + ss_x) >> ss_x,
+                                                     (input_align_height + ss_y) >> ss_y);
         }
         return 0;
     }

@@ -1012,9 +1012,18 @@ typedef struct EbSvtAv1EncConfiguration {
     uint8_t extended_crf_qindex_offset;
 
     // clang-format off
+    /**
+     * @brief Strength of the internal RD metric to bias toward high-frequency error (helps with texture preservation and film grain retention)
+     * 0.00: disable AC bias
+     * 1.00: enable AC bias with a strength of 1.00
+     * Default is 0.00.
+     */
+     double ac_bias;
+
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128 - (sizeof(uint8_t) * 5)
         - (sizeof(bool) * 2)
+        - sizeof(double)
 #if FTR_SFRAME_POSI
         - sizeof(SvtAv1SFramePositions)
 #endif // FTR_SFRAME_POSI

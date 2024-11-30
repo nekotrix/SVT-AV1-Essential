@@ -1531,6 +1531,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         input_data.qp_scale_compress_strength = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.qp_scale_compress_strength;
         input_data.adaptive_film_grain = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.adaptive_film_grain;
         input_data.max_tx_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.max_tx_size;
+        input_data.ac_bias = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.ac_bias;
         input_data.static_config = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config;
         input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
         EB_NEW(
@@ -4659,6 +4660,9 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
 
     // Extended CRF
     scs->static_config.extended_crf_qindex_offset = config_struct->extended_crf_qindex_offset;
+
+    // AC bias
+    scs->static_config.ac_bias = config_struct->ac_bias;
 
     // Override settings for Still IQ tune
     if (scs->static_config.tune == TUNE_IQ) {

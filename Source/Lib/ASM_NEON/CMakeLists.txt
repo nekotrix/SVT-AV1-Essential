@@ -41,6 +41,7 @@ target_sources(
   PUBLIC highbd_convolve_neon.c
   PUBLIC highbd_convolve_scale_neon.c
   PUBLIC highbd_fwd_txfm_neon.c
+  PUBLIC highbd_hadamard_neon.c
   PUBLIC highbd_inter_prediction_neon.c
   PUBLIC highbd_intra_prediction_neon.c
   PUBLIC highbd_inv_txfm_neon.c

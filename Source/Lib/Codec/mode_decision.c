@@ -13,10 +13,12 @@
 /***************************************
 * Includes
 ***************************************/
+#include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 
 #include "common_utils.h"
+#include "definitions.h"
 #include "sequence_control_set.h"
 #include "mode_decision.h"
 #include "md_process.h"
@@ -30,6 +32,7 @@
 #include "svt_log.h"
 #include "resize.h"
 #include "mcomp.h"
+#include "ac_bias.h"
 #include "src_ops_process.h"
 #include "utility.h"
 #include "aom_dsp_rtcd.h"
@@ -4284,21 +4287,48 @@ static double ssim_hbd(const uint16_t* s, uint32_t sp, const uint16_t* r, uint32
         return ssim_4x4_blocks_hbd(s, sp, r, rp, width, height);
     }
 }
-
 uint64_t svt_spatial_full_distortion_ssim_kernel(uint8_t* input, uint32_t input_offset,
                                                    uint32_t input_stride, uint8_t* recon,
                                                    int32_t recon_offset, uint32_t recon_stride,
-                                                   uint32_t area_width, uint32_t area_height, bool hbd) {
-    uint64_t spatial_distortion = 0;
+                                                   uint32_t area_width, uint32_t area_height,
+                                                   bool hbd, double ac_bias) {
+    uint8_t m = 1;
     const uint32_t count = area_width * area_height;
+
+    // SSIM
+    uint64_t spatial_distortion;
     double ssim_score;
+
+    // AC SAD
+    uint64_t psy_distortion = 0;
+
     if (!hbd) {
-        ssim_score = ssim(input + input_offset, input_stride, recon + recon_offset, recon_stride, area_width, area_height);
-        spatial_distortion   = (uint64_t)((1 - ssim_score) * count * 100 * 7);
+        ssim_score = ssim(input + input_offset, input_stride,
+            recon + recon_offset, recon_stride,
+            area_width, area_height);
+        if (ac_bias) {
+            uint64_t ac_distortion = svt_psy_distortion(input + input_offset, input_stride,
+                recon + recon_offset, recon_stride,
+                area_width, area_height);
+            psy_distortion = (uint64_t)(ac_distortion * ac_bias);
+        }
     } else {
-        ssim_score = ssim_hbd((uint16_t *)input + input_offset, input_stride, (uint16_t *)recon + recon_offset, recon_stride, area_width, area_height);
-        spatial_distortion   = (uint64_t)((1 - ssim_score) * count * 100 * 7 * 8);
+        m = 8;
+        ssim_score = ssim_hbd((uint16_t *)input + input_offset, input_stride,
+            (uint16_t *)recon + recon_offset, recon_stride,
+            area_width, area_height);
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+        if (ac_bias) {
+            uint64_t ac_distortion = svt_psy_distortion_hbd((uint16_t *)input + input_offset,
+                input_stride, (uint16_t *)recon + recon_offset, recon_stride,
+                area_width, area_height);
+            psy_distortion = (uint64_t)(ac_distortion * ac_bias);
+        }
+#endif
     }
 
-    return spatial_distortion;
+    spatial_distortion = (uint64_t)((1 - ssim_score) * count * 100 * 7 * m);
+    uint64_t total_distortion = spatial_distortion + psy_distortion;
+
+    return total_distortion;
 }

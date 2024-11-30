@@ -48,6 +48,15 @@ void ReferenceHadamard4x4(const int16_t *a, int a_stride, OutputType *b) {
         Hadamard4x4(input + i, buf + i * 4);
     for (int i = 0; i < 4; ++i)
         Hadamard4x4(buf + i, b + i * 4);
+
+    // Extra transpose to match C and SSE2 behavior(i.e., svt_aom_hadamard_4x4).
+    for (int i = 0; i < 4; i++) {
+        for (int j = i + 1; j < 4; j++) {
+            OutputType temp = b[j * 4 + i];
+            b[j * 4 + i] = b[i * 4 + j];
+            b[i * 4 + j] = temp;
+        }
+    }
 }
 
 template <typename OutputType>
@@ -277,7 +286,8 @@ INSTANTIATE_TEST_SUITE_P(
 #ifdef ARCH_X86_64
 INSTANTIATE_TEST_SUITE_P(
     AVX2, HadamardLowbdTest,
-    ::testing::Values(HadamardFuncWithSize(&svt_aom_hadamard_8x8_sse2, 8),
+    ::testing::Values(HadamardFuncWithSize(&svt_aom_hadamard_4x4_sse2, 4),
+                      HadamardFuncWithSize(&svt_aom_hadamard_8x8_sse2, 8),
                       HadamardFuncWithSize(&svt_aom_hadamard_16x16_avx2, 16),
                       HadamardFuncWithSize(&svt_aom_hadamard_32x32_avx2, 32)));
 #endif  // ARCH_X86_64
@@ -285,8 +295,49 @@ INSTANTIATE_TEST_SUITE_P(
 #ifdef ARCH_AARCH64
 INSTANTIATE_TEST_SUITE_P(
     NEON, HadamardLowbdTest,
-    ::testing::Values(HadamardFuncWithSize(&svt_aom_hadamard_8x8_neon, 8),
+    ::testing::Values(HadamardFuncWithSize(&svt_aom_hadamard_4x4_neon, 4),
+                      HadamardFuncWithSize(&svt_aom_hadamard_8x8_neon, 8),
                       HadamardFuncWithSize(&svt_aom_hadamard_16x16_neon, 16),
                       HadamardFuncWithSize(&svt_aom_hadamard_32x32_neon, 32)));
 #endif  // ARCH_AARCH64
+
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+class HadamardHighbdTest : public HadamardTestBase<int32_t, HadamardFunc> {
+  protected:
+    HadamardHighbdTest() : HadamardTestBase(GetParam()) {
+    }
+    // Use values between -4095 (0xF001) and 4095 (0x0FFF)
+    int16_t Rand() override {
+        int16_t src = rnd_.Rand12();
+        int16_t pred = rnd_.Rand12();
+        return src - pred;
+    }
+};
+
+TEST_P(HadamardHighbdTest, CompareReferenceRandom) {
+    CompareReferenceRandom();
+}
+
+TEST_P(HadamardHighbdTest, VaryStride) {
+    VaryStride();
+}
+
+INSTANTIATE_TEST_SUITE_P(
+    C, HadamardHighbdTest,
+    ::testing::Values(HadamardFuncWithSize(&svt_aom_highbd_hadamard_8x8_c, 8)));
+
+#if ARCH_X86_64
+INSTANTIATE_TEST_SUITE_P(AVX2, HadamardHighbdTest,
+                         ::testing::Values(HadamardFuncWithSize(
+                             &svt_aom_highbd_hadamard_8x8_avx2, 8)));
+#endif  // ARCH_X86_64
+
+#if ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(NEON, HadamardHighbdTest,
+                         ::testing::Values(HadamardFuncWithSize(
+                             &svt_aom_highbd_hadamard_8x8_neon, 8)));
+#endif  // ARCH_AARCH64
+
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
+
 }  // namespace
