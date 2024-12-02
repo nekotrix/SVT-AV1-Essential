@@ -46,9 +46,8 @@ static INLINE uint32_t sad_final_avx512(const __m512i zmm) {
 /*******************************************************************************
 * Requirement: height % 2 = 0
 *******************************************************************************/
-static AOM_FORCE_INLINE uint32_t compute64x_m_sad_avx512_intrin(const uint8_t *src, const uint32_t src_stride,
-                                                                const uint8_t *ref, const uint32_t ref_stride,
-                                                                const uint32_t height) {
+SIMD_INLINE uint32_t compute64x_m_sad_avx512_intrin(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
+                                                    uint32_t ref_stride, uint32_t height) {
     uint32_t y   = height;
     __m512i  zmm = _mm512_setzero_si512();
 
@@ -67,10 +66,10 @@ static AOM_FORCE_INLINE uint32_t compute64x_m_sad_avx512_intrin(const uint8_t *s
 * Requirement: height % 2 = 0
 *******************************************************************************/
 SIMD_INLINE uint32_t compute128x_m_sad_avx512_intrin(const uint8_t *src, // input parameter, source samples Ptr
-                                                     const uint32_t src_stride, // input parameter, source stride
+                                                     uint32_t       src_stride, // input parameter, source stride
                                                      const uint8_t *ref, // input parameter, reference samples Ptr
-                                                     const uint32_t ref_stride, // input parameter, reference stride
-                                                     const uint32_t height) // input parameter, block height (M)
+                                                     uint32_t       ref_stride, // input parameter, reference stride
+                                                     uint32_t       height) // input parameter, block height (M)
 {
     uint32_t y   = height;
     __m512i  zmm = _mm512_setzero_si512();
@@ -4712,4 +4711,44 @@ void svt_sad_loop_kernel_avx512_intrin(uint8_t  *src, // input parameter, source
     *x_search_center = (int16_t)best_x;
     *y_search_center = (int16_t)best_y;
 }
+
+uint32_t svt_nxm_sad_kernel_sub_sampled_helper_avx512(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
+                                                      uint32_t ref_stride, uint32_t height, uint32_t width) {
+    uint32_t nxm_sad = 0;
+
+    switch (width) {
+    case 4: nxm_sad = svt_compute4x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 8: nxm_sad = svt_compute8x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 16: nxm_sad = svt_compute16x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 24: nxm_sad = svt_compute24x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 32: nxm_sad = svt_compute32x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 48: nxm_sad = svt_compute48x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 64: nxm_sad = compute64x_m_sad_avx512_intrin(src, src_stride, ref, ref_stride, height); break;
+    case 128: nxm_sad = compute128x_m_sad_avx512_intrin(src, src_stride, ref, ref_stride, height); break;
+    default: nxm_sad = svt_nxm_sad_kernel_helper_c(src, src_stride, ref, ref_stride, height, width);
+    }
+
+    return nxm_sad;
+};
+
+uint32_t svt_nxm_sad_kernel_helper_avx512(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
+                                          uint32_t ref_stride, uint32_t height, uint32_t width) {
+    uint32_t nxm_sad = 0;
+
+    switch (width) {
+    case 4: nxm_sad = svt_compute4x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 8: nxm_sad = svt_compute8x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 16: nxm_sad = svt_compute16x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 24: nxm_sad = svt_compute24x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 32: nxm_sad = svt_compute32x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 40: nxm_sad = svt_compute40x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 48: nxm_sad = svt_compute48x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 56: nxm_sad = svt_compute56x_m_sad_avx2_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 64: nxm_sad = compute64x_m_sad_avx512_intrin(src, src_stride, ref, ref_stride, height); break;
+    default: nxm_sad = svt_nxm_sad_kernel_helper_c(src, src_stride, ref, ref_stride, height, width);
+    }
+
+    return nxm_sad;
+}
+
 #endif // EN_AVX512_SUPPORT
