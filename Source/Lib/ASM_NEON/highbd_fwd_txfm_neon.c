@@ -2688,6 +2688,165 @@ void svt_av1_fwd_txfm2d_64x64_neon(int16_t *input, int32_t *output, uint32_t str
     }
 }
 
+static AOM_FORCE_INLINE void highbd_fdct4_x4_N4_neon(const int32x4_t *in, int32x4_t *out, int bit) {
+    const int32_t *const cospi = cospi_arr_s32(bit);
+
+    const int32x4_t a0 = vaddq_s32(in[0], in[3]);
+    const int32x4_t a2 = vaddq_s32(in[1], in[2]);
+
+    const int32x4_t b0 = vaddq_s32(a0, a2);
+    const int32x4_t c0 = vmulq_n_s32(b0, cospi[2 * 32]);
+
+    const int32x4_t v_bit = vdupq_n_s32(-bit);
+    out[0]                = vrshlq_s32(c0, v_bit);
+}
+
+static AOM_FORCE_INLINE void highbd_fadst4_x4_N4_neon(const int32x4_t *in, int32x4_t *out, int bit) {
+    const int32x4_t sinpi = vld1q_s32(sinpi_arr(bit) + 1);
+
+    int32x4_t a = vmulq_lane_s32(in[0], vget_low_s32(sinpi), 0);
+    a           = vmlaq_lane_s32(a, in[1], vget_low_s32(sinpi), 1);
+    a           = vmlaq_lane_s32(a, in[3], vget_high_s32(sinpi), 1);
+
+    a = vmlaq_lane_s32(a, in[2], vget_high_s32(sinpi), 0);
+
+    const int32x4_t v_bit = vdupq_n_s32(-bit);
+    out[0]                = vrshlq_s32(a, v_bit);
+}
+
+static AOM_FORCE_INLINE void highbd_fidentity4_x4_N4_neon(const int32x4_t *in, int32x4_t *out, int bit) {
+    (void)bit;
+
+    const int32x4_t a_low = vmulq_n_s32(in[0], new_sqrt2);
+    out[0]                = vrshrq_n_s32(a_low, new_sqrt2_bits);
+}
+
+void svt_av1_fwd_txfm2d_4x4_N4_neon(int16_t *input, int32_t *output, uint32_t input_stride, TxType tx_type,
+                                    uint8_t bd) {
+    (void)bd;
+
+    int ud_flip, lr_flip;
+    get_flip_cfg(tx_type, &ud_flip, &lr_flip);
+    ud_adjust_input_and_stride(ud_flip, &input, &input_stride, 4);
+
+    // Workspace for column/row-wise transforms.
+    int32x4_t buf[4];
+
+    switch (tx_type) {
+    case DCT_DCT:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fdct4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fdct4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case ADST_DCT:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fdct4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case DCT_ADST:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fdct4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case ADST_ADST:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case FLIPADST_DCT:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fdct4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case DCT_FLIPADST:
+        load_buffer_4x4_(input, buf, input_stride, 1);
+        highbd_fdct4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case FLIPADST_FLIPADST:
+        load_buffer_4x4_(input, buf, input_stride, 1);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case ADST_FLIPADST:
+        load_buffer_4x4_(input, buf, input_stride, 1);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case FLIPADST_ADST:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case IDTX:
+        buf[0] = vshll_n_s16(vld1_s16(input), 2);
+        highbd_fidentity4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        highbd_fidentity4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case V_DCT:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fdct4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        highbd_fidentity4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case H_DCT:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fidentity4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fdct4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case V_ADST:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        highbd_fidentity4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case H_ADST:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fidentity4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_col[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case V_FLIPADST:
+        load_buffer_4x4_(input, buf, input_stride, 0);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        highbd_fidentity4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    case H_FLIPADST:
+        load_buffer_4x4_(input, buf, input_stride, 1);
+        highbd_fidentity4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        transpose_arrays_s32_4x4(buf, buf);
+        highbd_fadst4_x4_N4_neon(buf, buf, fwd_cos_bit_row[0][0]);
+        output[0] = vgetq_lane_s32(buf[0], 0);
+        break;
+    default: assert(0);
+    }
+
+    memset(output + 1, 0, 15 * 4);
+}
+
 void svt_aom_transform_config(TxType tx_type, TxSize tx_size, Txfm2dFlipCfg *cfg);
 
 static const int8_t *fwd_txfm_shift_ls[TX_SIZES_ALL] = {
