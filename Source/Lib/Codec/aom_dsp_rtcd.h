@@ -855,7 +855,6 @@ extern "C" {
     RTCD_EXTERN void(*svt_ext_all_sad_calculation_8x8_16x16)(uint8_t* src, uint32_t src_stride, uint8_t* ref, uint32_t ref_stride, uint32_t mv, uint32_t* p_best_sad_8x8, uint32_t* p_best_sad_16x16, uint32_t* p_best_mv8x8, uint32_t* p_best_mv16x16, uint32_t p_eight_sad16x16[16][8], uint32_t p_eight_sad8x8[64][8], Bool sub_sad);
     RTCD_EXTERN void(*svt_ext_eight_sad_calculation_32x32_64x64)(uint32_t p_sad16x16[16][8], uint32_t *p_best_sad_32x32, uint32_t *p_best_sad_64x64, uint32_t *p_best_mv32x32, uint32_t *p_best_mv64x64, uint32_t mv, uint32_t p_sad32x32[4][8]);
     RTCD_EXTERN void(*svt_initialize_buffer_32bits)(uint32_t* pointer, uint32_t count128, uint32_t count32, uint32_t value);
-    RTCD_EXTERN uint32_t(*svt_nxm_sad_kernel_sub_sampled)(const uint8_t *src, uint32_t src_stride, const uint8_t *ref, uint32_t ref_stride, uint32_t height, uint32_t width);
     RTCD_EXTERN uint32_t(*svt_nxm_sad_kernel)(const uint8_t *src, uint32_t src_stride, const uint8_t *ref, uint32_t ref_stride, uint32_t height, uint32_t width);
     RTCD_EXTERN uint32_t(*nxm_sad_avg_kernel)(uint8_t *src, uint32_t src_stride, uint8_t *ref1, uint32_t ref1_stride, uint8_t *ref2, uint32_t ref2_stride, uint32_t height, uint32_t width);
     RTCD_EXTERN uint64_t(*svt_compute_mean_8x8)(uint8_t *input_samples, uint32_t input_stride, uint32_t input_area_width, uint32_t input_area_height);
@@ -2001,21 +2000,12 @@ extern "C" {
         uint32_t       width); // input parameter, block width (N)
     void svt_initialize_buffer_32bits_sse2_intrin(uint32_t *pointer, uint32_t count128,
         uint32_t count32, uint32_t value);
-    uint32_t svt_nxm_sad_kernel_sub_sampled_helper_avx2(const uint8_t *src, uint32_t src_stride,
-        const uint8_t *ref, uint32_t ref_stride,
-        uint32_t height, uint32_t width);
     uint32_t svt_nxm_sad_kernel_helper_avx2(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
         uint32_t ref_stride, uint32_t height, uint32_t width);
-    uint32_t svt_nxm_sad_kernel_sub_sampled_helper_sse4_1(const uint8_t *src, uint32_t src_stride,
-        const uint8_t *ref, uint32_t ref_stride,
-        uint32_t height, uint32_t width);
     uint32_t svt_nxm_sad_kernel_helper_sse4_1(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
         uint32_t ref_stride, uint32_t height, uint32_t width);
     uint32_t nxm_sad_avg_kernel_helper_avx2(uint8_t *src, uint32_t src_stride, uint8_t *ref1,
         uint32_t ref1_stride, uint8_t *ref2, uint32_t ref2_stride,
-        uint32_t height, uint32_t width);
-    uint32_t svt_nxm_sad_kernel_sub_sampled_helper_avx512(const uint8_t *src, uint32_t src_stride,
-        const uint8_t *ref, uint32_t ref_stride,
         uint32_t height, uint32_t width);
     uint32_t svt_nxm_sad_kernel_helper_avx512(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
         uint32_t ref_stride, uint32_t height, uint32_t width);

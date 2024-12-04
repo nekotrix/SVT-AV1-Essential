@@ -3341,7 +3341,7 @@ EbErrorType svt_aom_open_loop_intra_search_mb(PictureParentControlSet *pcs, uint
                 // Distortion
                 int64_t intra_cost;
                 if (pcs->tpl_ctrls.use_sad_in_src_search) {
-                    intra_cost = svt_nxm_sad_kernel_sub_sampled(
+                    intra_cost = svt_nxm_sad_kernel(
                         src, input_ptr->stride_y, predictor, 16, 16, 16);
                 } else {
                     TxSize cost_tx_size = pcs->tpl_ctrls.subsample_tx ? TX_16X8 : TX_16X16;

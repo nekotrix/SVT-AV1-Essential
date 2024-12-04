@@ -656,8 +656,7 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                             predictor,
                             size);
 
-                        best_intra_cost = svt_nxm_sad_kernel_sub_sampled(
-                            src_mb, src_stride, predictor, size, size, size);
+                        best_intra_cost = svt_nxm_sad_kernel(src_mb, src_stride, predictor, size, size, size);
 
                     } else {
                         DECLARE_ALIGNED(MAX_TPL_SIZE, uint8_t, left0_data[MAX_TX_SIZE * 2 + MAX_TPL_SIZE * 2]);
@@ -728,7 +727,7 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                             // Distortion
                             int64_t intra_cost;
                             if (pcs->tpl_ctrls.use_sad_in_src_search) {
-                                intra_cost = svt_nxm_sad_kernel_sub_sampled(
+                                intra_cost = svt_nxm_sad_kernel(
                                     src_mb, input_pic->stride_y, predictor, size, size, size);
                             } else {
                                 svt_aom_subtract_block(size >> tpl_ctrls->subsample_tx,
@@ -850,7 +849,7 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                 }
 
                 if (pcs->tpl_ctrls.use_sad_in_src_search) {
-                    inter_cost = svt_nxm_sad_kernel_sub_sampled(
+                    inter_cost = svt_nxm_sad_kernel(
                         src_mb,
                         input_pic->stride_y,
                         subpel_mv ? compensated_blk : ref_pic_ptr->buffer_y + ref_origin_index,

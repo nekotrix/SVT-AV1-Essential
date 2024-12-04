@@ -1048,12 +1048,12 @@ static void fast_loop_core_light_pd0(ModeDecisionCandidateBuffer *cand_bf, Pictu
         } else {
             assert(ctx->mds0_ctrls.mds0_dist_type == SAD);
             assert((ctx->blk_geom->bwidth >> 3) < 17);
-            *(cand_bf->fast_cost) = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_y + input_origin_index,
-                                                                   input_pic->stride_y,
-                                                                   pred->buffer_y + cu_origin_index,
-                                                                   pred->stride_y,
-                                                                   ctx->blk_geom->bheight,
-                                                                   ctx->blk_geom->bwidth);
+            *(cand_bf->fast_cost) = svt_nxm_sad_kernel(input_pic->buffer_y + input_origin_index,
+                                                       input_pic->stride_y,
+                                                       pred->buffer_y + cu_origin_index,
+                                                       pred->stride_y,
+                                                       ctx->blk_geom->bheight,
+                                                       ctx->blk_geom->bwidth);
         }
     }
 }
@@ -1094,7 +1094,7 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
     } else {
         assert(ctx->mds0_ctrls.mds0_dist_type == SAD);
         assert((ctx->blk_geom->bwidth >> 3) < 17);
-        cand_bf->luma_fast_dist = (uint32_t)(luma_fast_dist = svt_nxm_sad_kernel_sub_sampled(
+        cand_bf->luma_fast_dist = (uint32_t)(luma_fast_dist = svt_nxm_sad_kernel(
                                                  input_pic->buffer_y + loc->input_origin_index,
                                                  input_pic->stride_y,
                                                  pred->buffer_y + loc->blk_origin_index,
@@ -1203,7 +1203,7 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
                 assert(ctx->mds0_ctrls.mds0_dist_type == SAD);
                 assert((ctx->blk_geom->bwidth >> 3) < 17);
                 if (!ctx->hbd_md) {
-                    cand_bf->luma_fast_dist = (uint32_t)(luma_fast_dist = svt_nxm_sad_kernel_sub_sampled(
+                    cand_bf->luma_fast_dist = (uint32_t)(luma_fast_dist = svt_nxm_sad_kernel(
                                                              input_pic->buffer_y + input_origin_index,
                                                              input_pic->stride_y,
                                                              pred->buffer_y + cu_origin_index,
@@ -1244,21 +1244,19 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
                     assert((ctx->blk_geom->bwidth_uv >> 3) < 17);
 
                     if (!ctx->hbd_md) {
-                        chroma_fast_distortion = svt_nxm_sad_kernel_sub_sampled(
-                            input_pic->buffer_cb + input_cb_origin_in_index,
-                            input_pic->stride_cb,
-                            cand_bf->pred->buffer_cb + cu_chroma_origin_index,
-                            pred->stride_cb,
-                            ctx->blk_geom->bheight_uv,
-                            ctx->blk_geom->bwidth_uv);
+                        chroma_fast_distortion = svt_nxm_sad_kernel(input_pic->buffer_cb + input_cb_origin_in_index,
+                                                                    input_pic->stride_cb,
+                                                                    cand_bf->pred->buffer_cb + cu_chroma_origin_index,
+                                                                    pred->stride_cb,
+                                                                    ctx->blk_geom->bheight_uv,
+                                                                    ctx->blk_geom->bwidth_uv);
 
-                        chroma_fast_distortion += svt_nxm_sad_kernel_sub_sampled(
-                            input_pic->buffer_cr + input_cr_origin_in_index,
-                            input_pic->stride_cr,
-                            cand_bf->pred->buffer_cr + cu_chroma_origin_index,
-                            pred->stride_cr,
-                            ctx->blk_geom->bheight_uv,
-                            ctx->blk_geom->bwidth_uv);
+                        chroma_fast_distortion += svt_nxm_sad_kernel(input_pic->buffer_cr + input_cr_origin_in_index,
+                                                                     input_pic->stride_cr,
+                                                                     cand_bf->pred->buffer_cr + cu_chroma_origin_index,
+                                                                     pred->stride_cr,
+                                                                     ctx->blk_geom->bheight_uv,
+                                                                     ctx->blk_geom->bwidth_uv);
                     } else {
                         chroma_fast_distortion = sad_16b_kernel(
                             ((uint16_t *)input_pic->buffer_cb) + input_cb_origin_in_index,
@@ -1363,7 +1361,7 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
         assert(ctx->mds0_ctrls.mds0_dist_type == SAD);
         assert((ctx->blk_geom->bwidth >> 3) < 17);
         if (!ctx->hbd_md) {
-            cand_bf->luma_fast_dist = (uint32_t)(luma_fast_dist = svt_nxm_sad_kernel_sub_sampled(
+            cand_bf->luma_fast_dist = (uint32_t)(luma_fast_dist = svt_nxm_sad_kernel(
                                                      input_pic->buffer_y + input_origin_index,
                                                      input_pic->stride_y,
                                                      pred->buffer_y + cu_origin_index,
@@ -1404,21 +1402,19 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
             assert((ctx->blk_geom->bwidth_uv >> 3) < 17);
 
             if (!ctx->hbd_md) {
-                chroma_fast_distortion = svt_nxm_sad_kernel_sub_sampled(
-                    input_pic->buffer_cb + input_cb_origin_in_index,
-                    input_pic->stride_cb,
-                    cand_bf->pred->buffer_cb + cu_chroma_origin_index,
-                    pred->stride_cb,
-                    ctx->blk_geom->bheight_uv,
-                    ctx->blk_geom->bwidth_uv);
+                chroma_fast_distortion = svt_nxm_sad_kernel(input_pic->buffer_cb + input_cb_origin_in_index,
+                                                            input_pic->stride_cb,
+                                                            cand_bf->pred->buffer_cb + cu_chroma_origin_index,
+                                                            pred->stride_cb,
+                                                            ctx->blk_geom->bheight_uv,
+                                                            ctx->blk_geom->bwidth_uv);
 
-                chroma_fast_distortion += svt_nxm_sad_kernel_sub_sampled(
-                    input_pic->buffer_cr + input_cr_origin_in_index,
-                    input_pic->stride_cr,
-                    cand_bf->pred->buffer_cr + cu_chroma_origin_index,
-                    pred->stride_cr,
-                    ctx->blk_geom->bheight_uv,
-                    ctx->blk_geom->bwidth_uv);
+                chroma_fast_distortion += svt_nxm_sad_kernel(input_pic->buffer_cr + input_cr_origin_in_index,
+                                                             input_pic->stride_cr,
+                                                             cand_bf->pred->buffer_cr + cu_chroma_origin_index,
+                                                             pred->stride_cr,
+                                                             ctx->blk_geom->bheight_uv,
+                                                             ctx->blk_geom->bwidth_uv);
             } else {
                 chroma_fast_distortion = sad_16b_kernel(((uint16_t *)input_pic->buffer_cb) + input_cb_origin_in_index,
                                                         input_pic->stride_cb,
@@ -1912,12 +1908,12 @@ static void md_full_pel_search_large_lbd(MV_COST_PARAMS *mv_cost_params, ModeDec
 
                 assert((ctx->blk_geom->bwidth >> 3) < 17);
 
-                cost = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_y + input_origin_index,
-                                                      input_pic->stride_y,
-                                                      ref_pic->buffer_y + ref_origin_index,
-                                                      ref_pic->stride_y,
-                                                      ctx->blk_geom->bheight,
-                                                      ctx->blk_geom->bwidth);
+                cost = svt_nxm_sad_kernel(input_pic->buffer_y + input_origin_index,
+                                          input_pic->stride_y,
+                                          ref_pic->buffer_y + ref_origin_index,
+                                          ref_pic->stride_y,
+                                          ctx->blk_geom->bheight,
+                                          ctx->blk_geom->bwidth);
 
                 MV best_mv;
                 best_mv.col = mvx + (refinement_pos_x * 8);
@@ -2054,12 +2050,12 @@ static void md_full_pel_search(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                           ctx->blk_geom->bheight,
                                           ctx->blk_geom->bwidth);
                 } else {
-                    cost = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_y + input_origin_index,
-                                                          input_pic->stride_y,
-                                                          ref_pic->buffer_y + ref_origin_index,
-                                                          ref_pic->stride_y,
-                                                          ctx->blk_geom->bheight,
-                                                          ctx->blk_geom->bwidth);
+                    cost = svt_nxm_sad_kernel(input_pic->buffer_y + input_origin_index,
+                                              input_pic->stride_y,
+                                              ref_pic->buffer_y + ref_origin_index,
+                                              ref_pic->stride_y,
+                                              ctx->blk_geom->bheight,
+                                              ctx->blk_geom->bwidth);
                 }
             }
             MV best_mv;
@@ -5770,19 +5766,20 @@ static void full_loop_core_light_pd0(PictureControlSet *pcs, ModeDecisionContext
         ctx->is_subres_safe == (uint8_t)~0 /* only if invalid*/ && ctx->blk_geom->bheight == 64 &&
         ctx->blk_geom->bwidth == 64) {
         uint32_t sad_even, sad_odd;
-        sad_even = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_y + input_origin_index,
-                                                  input_pic->stride_y << 1,
-                                                  cand_bf->pred->buffer_y + blk_origin_index,
-                                                  cand_bf->pred->stride_y << 1,
-                                                  ctx->blk_geom->bheight >> 1,
-                                                  ctx->blk_geom->bwidth);
+        sad_even = svt_nxm_sad_kernel(input_pic->buffer_y + input_origin_index,
+                                      input_pic->stride_y << 1,
+                                      cand_bf->pred->buffer_y + blk_origin_index,
+                                      cand_bf->pred->stride_y << 1,
+                                      ctx->blk_geom->bheight >> 1,
+                                      ctx->blk_geom->bwidth);
 
-        sad_odd       = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_y + input_origin_index + input_pic->stride_y,
-                                                 input_pic->stride_y << 1,
-                                                 cand_bf->pred->buffer_y + blk_origin_index + cand_bf->pred->stride_y,
-                                                 cand_bf->pred->stride_y << 1,
-                                                 ctx->blk_geom->bheight >> 1,
-                                                 ctx->blk_geom->bwidth);
+        sad_odd = svt_nxm_sad_kernel(input_pic->buffer_y + input_origin_index + input_pic->stride_y,
+                                     input_pic->stride_y << 1,
+                                     cand_bf->pred->buffer_y + blk_origin_index + cand_bf->pred->stride_y,
+                                     cand_bf->pred->stride_y << 1,
+                                     ctx->blk_geom->bheight >> 1,
+                                     ctx->blk_geom->bwidth);
+
         int deviation = (int)(((int)MAX(sad_even, 1) - (int)MAX(sad_odd, 1)) * 100) / (int)MAX(sad_odd, 1);
         if (ABS(deviation) <= ctx->subres_ctrls.odd_to_even_deviation_th) {
             ctx->is_subres_safe = 1;
@@ -5862,28 +5859,28 @@ void chroma_complexity_check_pred(ModeDecisionContext *ctx, ModeDecisionCandidat
     shift          = ctx->blk_geom->bheight_uv > 8 ? 2 : ctx->blk_geom->bheight_uv > 4 ? 1 : 0; // no shift for 4x4
 
     if (!ctx->hbd_md) {
-        y_dist = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_y + loc->input_origin_index,
-                                                input_pic->stride_y << shift,
-                                                cand_buffer->pred->buffer_y + loc->blk_origin_index,
-                                                cand_buffer->pred->stride_y << shift,
-                                                ctx->blk_geom->bheight_uv >> shift,
-                                                ctx->blk_geom->bwidth_uv);
+        y_dist = svt_nxm_sad_kernel(input_pic->buffer_y + loc->input_origin_index,
+                                    input_pic->stride_y << shift,
+                                    cand_buffer->pred->buffer_y + loc->blk_origin_index,
+                                    cand_buffer->pred->stride_y << shift,
+                                    ctx->blk_geom->bheight_uv >> shift,
+                                    ctx->blk_geom->bwidth_uv);
         // Only need to check Cb component if not already identified as complex
         if (ctx->chroma_complexity == COMPONENT_LUMA || ctx->chroma_complexity == COMPONENT_CHROMA_CR)
-            cb_dist = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_cb + loc->input_cb_origin_in_index,
-                                                     input_pic->stride_cb << shift,
-                                                     cand_buffer->pred->buffer_cb + loc->blk_chroma_origin_index,
-                                                     cand_buffer->pred->stride_cb << shift,
-                                                     ctx->blk_geom->bheight_uv >> shift,
-                                                     ctx->blk_geom->bwidth_uv);
+            cb_dist = svt_nxm_sad_kernel(input_pic->buffer_cb + loc->input_cb_origin_in_index,
+                                         input_pic->stride_cb << shift,
+                                         cand_buffer->pred->buffer_cb + loc->blk_chroma_origin_index,
+                                         cand_buffer->pred->stride_cb << shift,
+                                         ctx->blk_geom->bheight_uv >> shift,
+                                         ctx->blk_geom->bwidth_uv);
         // Only need to check Cr component if not already identified as complex
         if (ctx->chroma_complexity == COMPONENT_LUMA || ctx->chroma_complexity == COMPONENT_CHROMA_CB)
-            cr_dist = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_cr + loc->input_cb_origin_in_index,
-                                                     input_pic->stride_cr << shift,
-                                                     cand_buffer->pred->buffer_cr + loc->blk_chroma_origin_index,
-                                                     cand_buffer->pred->stride_cr << shift,
-                                                     ctx->blk_geom->bheight_uv >> shift,
-                                                     ctx->blk_geom->bwidth_uv);
+            cr_dist = svt_nxm_sad_kernel(input_pic->buffer_cr + loc->input_cb_origin_in_index,
+                                         input_pic->stride_cr << shift,
+                                         cand_buffer->pred->buffer_cr + loc->blk_chroma_origin_index,
+                                         cand_buffer->pred->stride_cr << shift,
+                                         ctx->blk_geom->bheight_uv >> shift,
+                                         ctx->blk_geom->bwidth_uv);
 
     } else {
         y_dist = sad_16b_kernel(((uint16_t *)input_pic->buffer_y) + loc->input_origin_index,
@@ -6084,26 +6081,26 @@ static COMPONENT_TYPE chroma_complexity_check(PictureControlSet *pcs, ModeDecisi
                                      ctx->blk_geom->bwidth_uv);
         } else {
             // Y dist only computed over UV size so SADs are comparable
-            y_dist = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_y + loc->input_origin_index,
-                                                    input_pic->stride_y << shift,
-                                                    ref_pic->buffer_y + src_y_offset,
-                                                    ref_pic->stride_y << shift,
-                                                    ctx->blk_geom->bheight_uv >> shift,
-                                                    ctx->blk_geom->bwidth_uv);
+            y_dist = svt_nxm_sad_kernel(input_pic->buffer_y + loc->input_origin_index,
+                                        input_pic->stride_y << shift,
+                                        ref_pic->buffer_y + src_y_offset,
+                                        ref_pic->stride_y << shift,
+                                        ctx->blk_geom->bheight_uv >> shift,
+                                        ctx->blk_geom->bwidth_uv);
 
-            cb_dist = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_cb + loc->input_cb_origin_in_index,
-                                                     input_pic->stride_cb << shift,
-                                                     ref_pic->buffer_cb + src_cb_offset,
-                                                     ref_pic->stride_cb << shift,
-                                                     ctx->blk_geom->bheight_uv >> shift,
-                                                     ctx->blk_geom->bwidth_uv);
+            cb_dist = svt_nxm_sad_kernel(input_pic->buffer_cb + loc->input_cb_origin_in_index,
+                                         input_pic->stride_cb << shift,
+                                         ref_pic->buffer_cb + src_cb_offset,
+                                         ref_pic->stride_cb << shift,
+                                         ctx->blk_geom->bheight_uv >> shift,
+                                         ctx->blk_geom->bwidth_uv);
 
-            cr_dist = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_cr + loc->input_cb_origin_in_index,
-                                                     input_pic->stride_cr << shift,
-                                                     ref_pic->buffer_cr + src_cr_offset,
-                                                     ref_pic->stride_cr << shift,
-                                                     ctx->blk_geom->bheight_uv >> shift,
-                                                     ctx->blk_geom->bwidth_uv);
+            cr_dist = svt_nxm_sad_kernel(input_pic->buffer_cr + loc->input_cb_origin_in_index,
+                                         input_pic->stride_cr << shift,
+                                         ref_pic->buffer_cr + src_cr_offset,
+                                         ref_pic->stride_cr << shift,
+                                         ctx->blk_geom->bheight_uv >> shift,
+                                         ctx->blk_geom->bwidth_uv);
         }
         // shift y_dist by to ensure chroma is much higher than luma
         if (ctx->lpd1_tx_ctrls.chroma_detector_level >= 2)
@@ -6545,20 +6542,19 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
         ctx->blk_geom->bwidth == 64) {
         uint32_t sad_even, sad_odd;
         if (!ctx->hbd_md) {
-            sad_even = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_y + input_origin_index,
-                                                      input_pic->stride_y << 1,
-                                                      cand_bf->pred->buffer_y + blk_origin_index,
-                                                      cand_bf->pred->stride_y << 1,
-                                                      ctx->blk_geom->bheight >> 1,
-                                                      ctx->blk_geom->bwidth);
+            sad_even = svt_nxm_sad_kernel(input_pic->buffer_y + input_origin_index,
+                                          input_pic->stride_y << 1,
+                                          cand_bf->pred->buffer_y + blk_origin_index,
+                                          cand_bf->pred->stride_y << 1,
+                                          ctx->blk_geom->bheight >> 1,
+                                          ctx->blk_geom->bwidth);
 
-            sad_odd = svt_nxm_sad_kernel_sub_sampled(
-                input_pic->buffer_y + input_origin_index + input_pic->stride_y,
-                input_pic->stride_y << 1,
-                cand_bf->pred->buffer_y + blk_origin_index + cand_bf->pred->stride_y,
-                cand_bf->pred->stride_y << 1,
-                ctx->blk_geom->bheight >> 1,
-                ctx->blk_geom->bwidth);
+            sad_odd = svt_nxm_sad_kernel(input_pic->buffer_y + input_origin_index + input_pic->stride_y,
+                                         input_pic->stride_y << 1,
+                                         cand_bf->pred->buffer_y + blk_origin_index + cand_bf->pred->stride_y,
+                                         cand_bf->pred->stride_y << 1,
+                                         ctx->blk_geom->bheight >> 1,
+                                         ctx->blk_geom->bwidth);
 
         } else {
             sad_even = sad_16b_kernel(((uint16_t *)input_pic->buffer_y) + input_origin_index,
@@ -7489,19 +7485,19 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
                                            1);
             }
         } else if (!ctx->hbd_md) {
-            chroma_fast_distortion = svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_cb + input_cb_origin_in_index,
-                                                                    input_pic->stride_cb,
-                                                                    cand_bf->pred->buffer_cb + cu_chroma_origin_index,
-                                                                    cand_bf->pred->stride_cb,
-                                                                    ctx->blk_geom->bheight_uv,
-                                                                    ctx->blk_geom->bwidth_uv);
+            chroma_fast_distortion = svt_nxm_sad_kernel(input_pic->buffer_cb + input_cb_origin_in_index,
+                                                        input_pic->stride_cb,
+                                                        cand_bf->pred->buffer_cb + cu_chroma_origin_index,
+                                                        cand_bf->pred->stride_cb,
+                                                        ctx->blk_geom->bheight_uv,
+                                                        ctx->blk_geom->bwidth_uv);
 
-            chroma_fast_distortion += svt_nxm_sad_kernel_sub_sampled(input_pic->buffer_cr + input_cr_origin_in_index,
-                                                                     input_pic->stride_cr,
-                                                                     cand_bf->pred->buffer_cr + cu_chroma_origin_index,
-                                                                     cand_bf->pred->stride_cr,
-                                                                     ctx->blk_geom->bheight_uv,
-                                                                     ctx->blk_geom->bwidth_uv);
+            chroma_fast_distortion += svt_nxm_sad_kernel(input_pic->buffer_cr + input_cr_origin_in_index,
+                                                         input_pic->stride_cr,
+                                                         cand_bf->pred->buffer_cr + cu_chroma_origin_index,
+                                                         cand_bf->pred->stride_cr,
+                                                         ctx->blk_geom->bheight_uv,
+                                                         ctx->blk_geom->bwidth_uv);
         } else {
             chroma_fast_distortion = sad_16b_kernel(((uint16_t *)input_pic->buffer_cb) + input_cb_origin_in_index,
                                                     input_pic->stride_cb,

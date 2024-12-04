@@ -3700,25 +3700,6 @@ uint32_t svt_av1_compute128x_m_sad_sse4_1_intrin(const uint8_t *src, // input pa
     return _mm_cvtsi128_si32(sad);
 }
 
-uint32_t svt_nxm_sad_kernel_sub_sampled_helper_sse4_1(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
-                                                      uint32_t ref_stride, uint32_t height, uint32_t width) {
-    uint32_t nxm_sad = 0;
-
-    switch (width) {
-    case 4: nxm_sad = svt_av1_compute4x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
-    case 8: nxm_sad = svt_av1_compute8x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
-    case 16: nxm_sad = svt_av1_compute16x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
-    case 24: nxm_sad = svt_av1_compute24x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
-    case 32: nxm_sad = svt_av1_compute32x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
-    case 48: nxm_sad = svt_av1_compute48x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
-    case 64: nxm_sad = svt_av1_compute64x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
-    case 128: nxm_sad = svt_av1_compute128x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
-    default: nxm_sad = svt_nxm_sad_kernel_helper_c(src, src_stride, ref, ref_stride, height, width);
-    }
-
-    return nxm_sad;
-};
-
 uint32_t svt_nxm_sad_kernel_helper_sse4_1(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
                                           uint32_t ref_stride, uint32_t height, uint32_t width) {
     uint32_t nxm_sad = 0;
@@ -3733,6 +3714,7 @@ uint32_t svt_nxm_sad_kernel_helper_sse4_1(const uint8_t *src, uint32_t src_strid
     case 48: nxm_sad = svt_av1_compute48x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
     case 56: nxm_sad = svt_av1_compute56x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
     case 64: nxm_sad = svt_av1_compute64x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
+    case 128: nxm_sad = svt_av1_compute128x_m_sad_sse4_1_intrin(src, src_stride, ref, ref_stride, height, width); break;
     default: nxm_sad = svt_nxm_sad_kernel_helper_c(src, src_stride, ref, ref_stride, height, width);
     }
 

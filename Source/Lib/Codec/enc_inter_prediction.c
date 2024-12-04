@@ -4672,7 +4672,7 @@ Bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionConte
         pred0_to_pred1_dist = sad_16b_kernel(
             (uint16_t *)ctx->pred0, bwidth, (uint16_t *)ctx->pred1, bwidth, bheight, bwidth);
     } else {
-        pred0_to_pred1_dist = svt_nxm_sad_kernel_sub_sampled(ctx->pred0, bwidth, ctx->pred1, bwidth, bheight, bwidth);
+        pred0_to_pred1_dist = svt_nxm_sad_kernel(ctx->pred0, bwidth, ctx->pred1, bwidth, bheight, bwidth);
     }
 
     if (pred0_to_pred1_dist < (bheight * bwidth * ctx->inter_comp_ctrls.pred0_to_pred1_mult)) {

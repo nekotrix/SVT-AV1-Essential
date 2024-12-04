@@ -14,8 +14,6 @@
  * @file sad_Test.cc
  *
  * @brief Unit test for SAD functions:
- * - svt_nxm_sad_kernel_sub_sampled_func
- * - svt_nxm_sad_kernel_sub_sampled_helper_func
  * - svt_nxm_sad_kernel_func
  * - svt_sad_loop_kernel_func
  * - svt_ext_ext_all_sad_calculation_8x8_16x16_func
@@ -337,7 +335,7 @@ class SADTestBase : public ::testing::Test {
 };
 
 /**
- * @brief Unit test for svt_nxm_sad_kernel_sub_sampled_helper:
+ * @brief Unit test for svt_nxm_sad_kernel_helper:
  *
  * Test strategy:
  *  This test case combines different width{4-64} x height{4-64} and different
@@ -361,85 +359,6 @@ typedef uint32_t (*nxm_sad_kernel_fn_ptr)(const uint8_t *src,
 
 typedef std::tuple<TestPattern, nxm_sad_kernel_fn_ptr> Testsad_Param_nxm_kernel;
 
-class SADTestSubSample
-    : public ::testing::WithParamInterface<Testsad_Param_nxm_kernel>,
-      public SADTestBase {
-  protected:
-    nxm_sad_kernel_fn_ptr test_func_;
-
-  public:
-    SADTestSubSample() : SADTestBase(TEST_GET_PARAM(0)) {
-        test_func_ = TEST_GET_PARAM(1);
-    }
-
-  protected:
-    void check_sad(int width, int height) {
-        uint32_t ref_sad = 0;
-        uint32_t test_sad = 0;
-
-        prepare_data(width, height);
-
-        ref_sad = svt_nxm_sad_kernel_helper_c(src_aligned_,
-                                              src_stride_,
-                                              ref1_aligned_,
-                                              ref1_stride_,
-                                              height,
-                                              width);
-
-        test_sad = test_func_(src_aligned_,
-                              src_stride_,
-                              ref1_aligned_,
-                              ref1_stride_,
-                              height,
-                              width);
-
-        EXPECT_EQ(ref_sad, test_sad)
-            << "Size: " << width << "x" << height << " " << std::endl
-            << "compare ref_sad(" << ref_sad << ") and test_sad(" << test_sad
-            << ") error";
-    }
-};
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(SADTestSubSample);
-
-TEST_P(SADTestSubSample, SADTestSubSample) {
-    test_sad_sizes(TEST_BLOCK_SIZES,
-                   sizeof(TEST_BLOCK_SIZES) / sizeof(TEST_BLOCK_SIZES[0]));
-    test_sad_size(BlkSize(128, 128));
-}
-
-#ifdef ARCH_X86_64
-
-INSTANTIATE_TEST_SUITE_P(
-    SSE4_1, SADTestSubSample,
-    ::testing::Combine(
-        ::testing::ValuesIn(TEST_PATTERNS),
-        ::testing::Values(svt_nxm_sad_kernel_sub_sampled_helper_sse4_1)));
-
-INSTANTIATE_TEST_SUITE_P(
-    AVX2, SADTestSubSample,
-    ::testing::Combine(
-        ::testing::ValuesIn(TEST_PATTERNS),
-        ::testing::Values(svt_nxm_sad_kernel_sub_sampled_helper_avx2)));
-
-#endif
-
-/**
- * @brief Unit test for svt_nxm_sad_kernel_helper:
- *
- * Test strategy:
- *  This test case combines different width{4-64} x height{4-64} and different
- * test pattern(REF_MAX, SRC_MAX, RANDOM, UNALIGN). Check the result by
- * comparing results from reference function and SIMD function.
- *
- *
- * Expect result:
- *  Results from reference function and SIMD function are equal.
- *
- * Test cases:
- *  Width {4, 8, 16, 24, 32, 48, 64} x height{ 4, 8, 16, 24, 32, 48, 64)
- *  Test vector pattern {REF_MAX, SRC_MAX, RANDOM, UNALIGN}.
- *
- */
 class SADTest : public ::testing::WithParamInterface<Testsad_Param_nxm_kernel>,
                 public SADTestBase {
   protected:
@@ -493,6 +412,13 @@ INSTANTIATE_TEST_SUITE_P(
     AVX2, SADTest,
     ::testing::Combine(::testing::ValuesIn(TEST_PATTERNS),
                        ::testing::Values(svt_nxm_sad_kernel_helper_avx2)));
+
+#if EN_AVX512_SUPPORT
+INSTANTIATE_TEST_SUITE_P(
+    AVX512, SADTest,
+    ::testing::Combine(::testing::ValuesIn(TEST_PATTERNS),
+                       ::testing::Values(svt_nxm_sad_kernel_helper_avx512)));
+#endif
 
 #endif
 
