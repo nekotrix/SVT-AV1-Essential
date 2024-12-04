@@ -86,6 +86,11 @@ extern "C" {
 #define OPT_FD0_SETTINGS            1 // Unify some fd2 settings into fd0 to improve trade-offs
 #define OPT_LOW_DELAY               1 // Opt Low-delay
 #define FIX_DLF_ONION_RING          1 // Adopt fd0 dlf level in M10/M11 fd1 to preserve onion ring
+#define CLN_SHIFT_M8                1 // Shift M8 to M7
+#define CLN_SHIFT_M9                1 // Shift M9 to M8
+#define CLN_SHIFT_M10               1 // Shift M10 to M9
+#define CLN_SHIFT_M11               1 // Shift M11 to M10
+#define FIX_DEFAULT_PRESET          1 // Change default preset to M8 to align with old default
 
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0

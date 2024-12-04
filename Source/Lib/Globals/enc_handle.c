@@ -3781,7 +3781,11 @@ static void derive_tf_params(SequenceControlSet *scs) {
             tf_level = 0;
         else
             tf_level = scs->static_config.screen_content_mode == 1 ? 0 :
+#if CLN_SHIFT_M9
+            enc_mode <= ENC_M7 ? resolution >= INPUT_SIZE_720p_RANGE ? 1 : 0 : resolution >= INPUT_SIZE_720p_RANGE ? 2 : 0;
+#else
             enc_mode <= ENC_M8 ? resolution >= INPUT_SIZE_720p_RANGE ? 1 : 0 : resolution >= INPUT_SIZE_720p_RANGE ? 2 : 0;
+#endif
         tf_ld_controls(scs, tf_level);
         return;
     }
@@ -3802,7 +3806,11 @@ static void derive_tf_params(SequenceControlSet *scs) {
         tf_level = 3;
     }
 #if OPT_TF
+#if CLN_SHIFT_M9
+    else if (enc_mode <= ENC_M7) {
+#else
     else if (enc_mode <= ENC_M8) {
+#endif
         tf_level = 5;
     }
 #else
@@ -3813,7 +3821,11 @@ static void derive_tf_params(SequenceControlSet *scs) {
         tf_level = resolution <= INPUT_SIZE_720p_RANGE && hierarchical_levels <= 4 ? 5 : 6;
     }
 #endif
+#if CLN_SHIFT_M10
+    else if (enc_mode <= ENC_M8) {
+#else
     else if (enc_mode <= ENC_M9) {
+#endif
         tf_level = 8;
     } else {
         tf_level = 9;
@@ -4193,13 +4205,25 @@ void set_multi_pass_params(SequenceControlSet *scs)
             break;
         }
         case ENC_FIRST_PASS: {
+#if CLN_SHIFT_M10
+            if (config->enc_mode <= ENC_M8)
+#else
             if (config->enc_mode <= ENC_M9)
+#endif
                 set_first_pass_ctrls(scs, 0);
             else
                 set_first_pass_ctrls(scs, 1);
             scs->final_pass_preset = config->enc_mode;
+#if CLN_SHIFT_M8
+            if (scs->final_pass_preset <= ENC_M6)
+#else
             if (scs->final_pass_preset <= ENC_M7)
+#endif
+#if CLN_SHIFT_M11
+                scs->static_config.enc_mode = ENC_M9;
+#else
                 scs->static_config.enc_mode = ENC_M10;
+#endif
             else
                 scs->static_config.enc_mode = MAX_ENC_PRESET;
             scs->static_config.rate_control_mode = SVT_AV1_RC_MODE_CQP_OR_CRF;
@@ -4233,7 +4257,11 @@ void set_multi_pass_params(SequenceControlSet *scs)
     if (scs->lap_rc) {
         scs->static_config.intra_refresh_type = SVT_AV1_KF_REFRESH;
     }
+#if CLN_SHIFT_M8
+    if (scs->static_config.pass == ENC_FIRST_PASS && scs->final_pass_preset > ENC_M6)
+#else
     if (scs->static_config.pass == ENC_FIRST_PASS && scs->final_pass_preset > ENC_M7)
+#endif
         scs->rc_stat_gen_pass_mode = 1;
     else
         scs->rc_stat_gen_pass_mode = 0;
@@ -4478,7 +4506,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
             else
                 scs->super_block_size = 128;
         }
+#if CLN_SHIFT_M8
+        else if (scs->static_config.enc_mode <= ENC_M6) {
+#else
         else if (scs->static_config.enc_mode <= ENC_M7) {
+#endif
 #if OPT_FD0_SETTINGS
             if (scs->static_config.qp <= 57)
 #else
@@ -4683,7 +4715,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     if (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR || scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR ||
         scs->input_resolution >= INPUT_SIZE_4K_RANGE ||
         scs->static_config.fast_decode !=0 ||
+#if CLN_SHIFT_M9
+        scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B || scs->static_config.pass != ENC_SINGLE_PASS || scs->static_config.enc_mode >= ENC_M8)
+#else
         scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B || scs->static_config.pass != ENC_SINGLE_PASS || scs->static_config.enc_mode >= ENC_M9)
+#endif
         scs->enable_dg = 0;
     else
         scs->enable_dg = scs->static_config.enable_dg;
@@ -4699,7 +4735,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     uint8_t mrp_level;
 
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
+#if CLN_SHIFT_M11
+        if (scs->static_config.enc_mode <= ENC_M9) {
+#else
         if (scs->static_config.enc_mode <= ENC_M10) {
+#endif
             mrp_level = 10;
         }
         else {
@@ -4733,11 +4773,19 @@ static void set_param_based_on_input(SequenceControlSet *scs)
             else
                 mrp_level = 5;
         }
-        // any changes for preset ENC_M7 and higher should be separated for VBR and CRF in the control structure below
+        // any changes for preset ENC_M5 and higher should be separated for VBR and CRF in the control structure below
         else if (scs->static_config.rate_control_mode != SVT_AV1_RC_MODE_VBR) {
+#if CLN_SHIFT_M9
+            if (scs->static_config.enc_mode <= ENC_M7)
+#else
             if (scs->static_config.enc_mode <= ENC_M8)
+#endif
                 mrp_level = 9;
+#if CLN_SHIFT_M11
+            else if (scs->static_config.enc_mode <= ENC_M9)
+#else
             else if (scs->static_config.enc_mode <= ENC_M10)
+#endif
                 mrp_level = 10;
             else
                 mrp_level = 0;
@@ -4755,10 +4803,14 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->vq_ctrls.sharpness_ctrls.tf == 1                ||
         scs->static_config.enable_variance_boost)
         scs->calculate_variance = 1;
+#if CLN_SHIFT_M8
+    else if (scs->static_config.enc_mode <= ENC_M6)
+#else
 #if TUNE_M7
     else if (scs->static_config.enc_mode <= ENC_M7)
 #else
     else if (scs->static_config.enc_mode <= ENC_M6)
+#endif
 #endif
         scs->calculate_variance = 1;
     else
@@ -4772,7 +4824,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         : 0;
     scs->low_latency_kf = ((scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_P
         || scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) &&
+#if CLN_SHIFT_M10
+        scs->static_config.enc_mode <= ENC_M8)
+#else
         scs->static_config.enc_mode <= ENC_M9)
+#endif
         ? 1
         : 0;
 
@@ -4819,19 +4875,33 @@ static void copy_api_from_app(
     scs->static_config.multiply_keyint = config_struct->multiply_keyint;
     scs->static_config.intra_refresh_type = ((EbSvtAv1EncConfiguration*)config_struct)->intra_refresh_type;
     scs->static_config.enc_mode = ((EbSvtAv1EncConfiguration*)config_struct)->enc_mode;
+#if CLN_SHIFT_M11
+    if (scs->static_config.enc_mode > ENC_M10) {
+        SVT_WARN("Preset M%d is mapped to M10.\n", scs->static_config.enc_mode);
+        scs->static_config.enc_mode = ENC_M10;
+    }
+#else
     if (scs->static_config.enc_mode > ENC_M11) {
         SVT_WARN("Preset M%d is mapped to M11.\n", scs->static_config.enc_mode);
         scs->static_config.enc_mode = ENC_M11;
     }
+#endif
 
     EbInputResolution input_resolution;
     svt_aom_derive_input_resolution(
         &input_resolution,
         scs->max_input_luma_width * scs->max_input_luma_height);
+#if CLN_SHIFT_M11
+    if (scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS && scs->static_config.enc_mode > ENC_M9 && input_resolution >= INPUT_SIZE_4K_RANGE) {
+        scs->static_config.enc_mode = ENC_M9;
+        SVT_WARN("Setting preset to M9 as it is the highest supported preset for 4k and higher resolutions in Random Access mode\n");
+    }
+#else
     if (scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS && scs->static_config.enc_mode > ENC_M10 && input_resolution >= INPUT_SIZE_4K_RANGE) {
         scs->static_config.enc_mode = ENC_M10;
         SVT_WARN("Setting preset to M10 as it is the highest supported preset for 4k and higher resolutions in Random Access mode\n");
     }
+#endif
 
     scs->static_config.use_qp_file = ((EbSvtAv1EncConfiguration*)config_struct)->use_qp_file;
     scs->static_config.use_fixed_qindex_offsets = ((EbSvtAv1EncConfiguration*)config_struct)->use_fixed_qindex_offsets;
@@ -4964,8 +5034,16 @@ static void copy_api_from_app(
             2 :
             scs->static_config.fast_decode != 0 ||
             scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR || scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR ||
+#if CLN_SHIFT_M9
+            (input_resolution >= INPUT_SIZE_1080p_RANGE && scs->static_config.enc_mode >= ENC_M8) ||
+#else
             (input_resolution >= INPUT_SIZE_1080p_RANGE && scs->static_config.enc_mode >= ENC_M9) ||
+#endif
+#if CLN_SHIFT_M10
+            !(scs->static_config.enc_mode <= ENC_M8) || input_resolution >= INPUT_SIZE_8K_RANGE
+#else
             !(scs->static_config.enc_mode <= ENC_M9) || input_resolution >= INPUT_SIZE_8K_RANGE
+#endif
                 ? 4
                 : 5;
     }

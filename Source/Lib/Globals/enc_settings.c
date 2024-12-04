@@ -909,7 +909,11 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->max_qp_allowed               = 63;
     config_ptr->min_qp_allowed               = 4;
     config_ptr->enable_adaptive_quantization = 2;
+#if FIX_DEFAULT_PRESET
+    config_ptr->enc_mode                     = ENC_M8;
+#else
     config_ptr->enc_mode                     = 10;
+#endif
     config_ptr->intra_period_length          = -2;
     config_ptr->multiply_keyint              = FALSE;
     config_ptr->intra_refresh_type           = 2;
