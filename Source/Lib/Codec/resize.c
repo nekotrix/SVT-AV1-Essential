@@ -22,6 +22,9 @@
 #include "md_process.h"
 #include "enc_inter_prediction.h"
 #include "svt_log.h"
+#if CLN_LCG_RAND16
+#include "random.h"
+#endif
 
 #define DIVIDE_AND_ROUND(x, y) (((x) + ((y) >> 1)) / (y))
 
@@ -1052,11 +1055,13 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
     return EB_ErrorNone;
 }
 
+#if !CLN_LCG_RAND16
 // Generate a random number in the range [0, 32768).
 static INLINE unsigned int lcg_rand16(unsigned int *state) {
     *state = (unsigned int)(*state * 1103515245ULL + 12345);
     return *state / 65536 % 32768;
 }
+#endif
 
 // Compute the horizontal frequency components' energy in a frame
 // by calculuating the 16x4 Horizontal DCT. This is to be used to

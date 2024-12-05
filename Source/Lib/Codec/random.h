@@ -16,12 +16,6 @@
 extern "C" {
 #endif
 
-// Generate a random number in the range [0, 32768).
-static INLINE unsigned int lcg_rand16(unsigned int *state) {
-    *state = (unsigned int)(*state * 1103515245ULL + 12345);
-    return *state / 65536 % 32768;
-}
-
 #if CLN_RANSAC
 // Advance the generator to its next state, and generate the next 32-bit output.
 // Note that the low bits of this output are comparatively low-quality, so users
@@ -32,10 +26,8 @@ static INLINE uint32_t lcg_next(uint32_t* state) {
     return *state;
 }
 
-//// Generate a random number in the range [0, 32768).
-//static INLINE uint32_t lcg_rand16(uint32_t* state) {
-//    return (lcg_next(state) / 65536) % 32768;
-//}
+// Generate a random number in the range [0, 32768).
+static INLINE uint32_t lcg_rand16(uint32_t* state) { return (lcg_next(state) / 65536) % 32768; }
 
 // Generate a random number in the range [0, n)
 // This is implemented as (rand() * n) / <range of RNG> rather than
@@ -80,6 +72,12 @@ static INLINE void lcg_pick(int n, int k, int* out, unsigned int* seed) {
         // New v, accept
         out[i] = v;
     }
+}
+#else
+// Generate a random number in the range [0, 32768).
+static INLINE unsigned int lcg_rand16(unsigned int* state) {
+    *state = (unsigned int)(*state * 1103515245ULL + 12345);
+    return *state / 65536 % 32768;
 }
 #endif
 

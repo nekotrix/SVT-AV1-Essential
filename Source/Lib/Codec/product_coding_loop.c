@@ -9252,8 +9252,9 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
     ctx->perform_mds1           = 1;
     ctx->use_tx_shortcuts_mds3  = 0;
 #if OPT_MDS0_EXIT
-    ctx->mds0_best_cost_per_class[CAND_CLASS_0]     = ctx->mds0_best_cost_per_class[CAND_CLASS_1] =
-        ctx->mds0_best_cost_per_class[CAND_CLASS_2] = ctx->mds0_best_cost_per_class[CAND_CLASS_3] = (uint64_t)~0;
+    for (cand_class_it = CAND_CLASS_0; cand_class_it < CAND_CLASS_TOTAL; cand_class_it++) {
+        ctx->mds0_best_cost_per_class[cand_class_it] = (uint64_t)~0;
+    }
 #endif
     ctx->mds0_best_cost        = (uint64_t)~0;
     ctx->mds0_best_class       = 0;

@@ -76,10 +76,7 @@ extern "C" {
 #define TUNE_M5_BDR                 1 // OPT M6 in term of BDR
 #define OPT_LAMBDA                  1 // OPTimized lambda modulation: (1) Expanded the QP bands for lambda - weighting; from 2 to 4 bands, (2) Reduced the intra-percentage threshold
 #define TUNE_M4_2                   1 // M4 tuning
-#define TUNE_M6_3                   0 // Tune M6 feats
 #define TUNE_M9_2                   1 // M9 tuning
-#define TUNE_M10_2                  0 // M10 tuning
-#define TUNE_M11_2                  0 // M11 tuning
 #define OPT_FD_10BIT                1 // Opt fd for 10bit
 #define TUNE_LAMBDA_WEIGHT          1 // Tune lambda weight
 #define FIX_SUPERRES                1 // Fix setting b64_total_count based on SB count in superres path
@@ -91,7 +88,13 @@ extern "C" {
 #define CLN_SHIFT_M10               1 // Shift M10 to M9
 #define CLN_SHIFT_M11               1 // Shift M11 to M10
 #define FIX_DEFAULT_PRESET          1 // Change default preset to M8 to align with old default
-
+#define OPT_LOW_DELAY_2             1 // Opt Low-delay
+#define CLN_LCG_RAND16              1 // Remove duplicate definitions of lcg_rand16()
+#define CLN_LPD0_FUNC               1 // Cleanup set_pic_lpd0_lvl to address style check issue
+#define TUNE_M3_2                   1 // Tune M3
+#define FIX_FAST_PRESET             1 // Tuning for high presets
+#define TUNE_FD0_FEATS              1 // Unify CDEF and DLF levels of fd2/fd0 in M10 and M9
+#define OPT_CDEF_FD1                1 // Opt CDEF for fd1
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one

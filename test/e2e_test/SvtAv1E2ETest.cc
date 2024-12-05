@@ -206,8 +206,8 @@ static const std::vector<EncTestSetting> default_enc_settings = {
 
     // test super resolution mode
     {"SuperResTest1", {{"SuperresMode", "2"}}, default_test_vectors},
-    {"SuperResTest2", {{"SuperresMode", "2"}, {"Obmc", "0"}, {"EncoderMode", "8"}}, default_test_vectors},
-    {"SuperResTest3", {{"SuperresMode", "2"}, {"Obmc", "1"}, {"EncoderMode", "8"}}, default_test_vectors},
+    {"SuperResTest2", {{"SuperresMode", "2"}, {"Obmc", "0"}, {"EncoderMode", "7"}}, default_test_vectors},
+    {"SuperResTest3", {{"SuperresMode", "2"}, {"Obmc", "1"}, {"EncoderMode", "7"}}, default_test_vectors},
 #ifdef ENBALE_16BIT_PIPELINE_TEST
     {"SuperResTest4", {{"SuperresMode", "2"}, {"Obmc", "1"}, {"Encoder16BitPipeline", "1"}}, default_test_vectors},
 #endif // ENBALE_16BIT_PIPELINE_TEST
@@ -216,22 +216,22 @@ static const std::vector<EncTestSetting> default_enc_settings = {
     // test Reference Scaling mode
     { "RefScalingTest1", {{"ResizeMode", "2"}}, default_test_vectors },
     // reference scaling tests with OBMC
-    { "RefScalingTest2", {{"ResizeMode", "2"}, {"Obmc", "0"}, {"EncoderMode", "8"}}, default_test_vectors },
-    { "RefScalingTest3", {{"ResizeMode", "2"}, {"Obmc", "1"}, {"EncoderMode", "8"}}, default_test_vectors },
+    { "RefScalingTest2", {{"ResizeMode", "2"}, {"Obmc", "0"}, {"EncoderMode", "7"}}, default_test_vectors },
+    { "RefScalingTest3", {{"ResizeMode", "2"}, {"Obmc", "1"}, {"EncoderMode", "7"}}, default_test_vectors },
 #ifdef ENBALE_16BIT_PIPELINE_TEST
     { "RefScalingTest4", {{"ResizeMode", "2"}, {"Obmc", "1"}, {"Encoder16BitPipeline", "1"}}, default_test_vectors },
 #endif // ENBALE_16BIT_PIPELINE_TEST
-    { "RefScalingTest5", {{"ResizeMode", "2"}, {"ScreenContentMode", "1"}, {"EncoderMode", "8"}}, screen_test_vectors },
-    { "RefScalingTest6", {{"ResizeMode", "2"}, {"ScreenContentMode", "2"}, {"EncoderMode", "8"}}, screen_test_vectors },
+    { "RefScalingTest5", {{"ResizeMode", "2"}, {"ScreenContentMode", "1"}, {"EncoderMode", "7"}}, screen_test_vectors },
+    { "RefScalingTest6", {{"ResizeMode", "2"}, {"ScreenContentMode", "2"}, {"EncoderMode", "7"}}, screen_test_vectors },
     // reference scaling tests with loop restoration
-    { "RefScalingTest7", {{"ResizeMode", "2"}, {"EnableRestoration", "1"}, {"EncoderMode", "8"}}, default_test_vectors },
+    { "RefScalingTest7", {{"ResizeMode", "2"}, {"EnableRestoration", "1"}, {"EncoderMode", "7"}}, default_test_vectors },
     // reference scaling tests for dynamic mode
 
     // reference scaling tests with super resolution
-    { "SuperResRefScalingTest0", {{"SuperresMode", "2"}, {"ResizeMode", "2"}, {"EncoderMode", "8"}}, default_test_vectors },
+    { "SuperResRefScalingTest0", {{"SuperresMode", "2"}, {"ResizeMode", "2"}, {"EncoderMode", "7"}}, default_test_vectors },
 
     // test by using a dummy source of color bar
-    {"DummySrcTest1", {{"EncoderMode", "8"}}, dummy_test_vectors},
+    {"DummySrcTest1", {{"EncoderMode", "7"}}, dummy_test_vectors},
 
     // only 420 input is supported
     //{"DummySrcTest2", {{"EncoderMode", "8"}, {"Profile", "2"}}, dummy_422_test_vectors},
@@ -256,8 +256,6 @@ static const std::vector<EncTestSetting> overlay_preset_settings = {
     {"OverlayPresetTest9", {{"EncoderMode", "8"}, {"EnableOverlays", "1"}}, default_test_vectors},
     {"OverlayPresetTest10",{{"EncoderMode", "9"}, {"EnableOverlays", "1"}}, default_test_vectors},
     {"OverlayPresetTest11",{{"EncoderMode", "10"},{"EnableOverlays", "1"}}, default_test_vectors},
-    {"OverlayPresetTest12",{{"EncoderMode", "11"},{"EnableOverlays", "1"}}, default_test_vectors},
-    {"OverlayPresetTest13",{{"EncoderMode", "12"},{"EnableOverlays", "1"}}, default_test_vectors},
 };
 
 
@@ -273,8 +271,6 @@ static const std::vector<EncTestSetting> superres_preset_settings = {
     {"SuperResPresetTest9", {{"EncoderMode", "8"}, {"SuperresMode", "2"}}, default_test_vectors},
     {"SuperResPresetTest10",{{"EncoderMode", "9"}, {"SuperresMode", "2"}}, default_test_vectors},
     {"SuperResPresetTest11",{{"EncoderMode", "10"},{"SuperresMode", "2"}}, default_test_vectors},
-    {"SuperResPresetTest12",{{"EncoderMode", "11"},{"SuperresMode", "2"}}, default_test_vectors},
-    {"SuperResPresetTest13",{{"EncoderMode", "12"},{"SuperresMode", "2"}}, default_test_vectors},
 };
 
 static const std::vector<EncTestSetting> sframe_settings = {
@@ -307,26 +303,6 @@ static const std::vector<EncTestSetting> sframe_settings = {
     {"SframeTest25", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
     {"SframeTest26", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
     {"SframeTest27", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-
-    {"SframeTest28", {{"EncoderMode", "11"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest29", {{"EncoderMode", "11"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest30", {{"EncoderMode", "11"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest31", {{"EncoderMode", "11"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest32", {{"EncoderMode", "11"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest33", {{"EncoderMode", "11"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest34", {{"EncoderMode", "11"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest35", {{"EncoderMode", "11"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest36", {{"EncoderMode", "11"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-
-    {"SframeTest37", {{"EncoderMode", "12"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest38", {{"EncoderMode", "12"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest39", {{"EncoderMode", "12"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest40", {{"EncoderMode", "12"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest41", {{"EncoderMode", "12"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest42", {{"EncoderMode", "12"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest43", {{"EncoderMode", "12"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest44", {{"EncoderMode", "12"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-    {"SframeTest45", {{"EncoderMode", "12"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
 };
 
 /* clang-format on */
@@ -786,11 +762,11 @@ static const std::vector<EncTestSetting> generate_aq_mode_1_settings() {
 
     int count = 0;
     static const EncSetting param_vecs[] = {
-        {{"AdaptiveQuantization", "1"}, {"QP", "1"}, {"EncoderMode", "8"}},
-        {{"AdaptiveQuantization", "1"}, {"QP", "63"}, {"EncoderMode", "8"}},
+        {{"AdaptiveQuantization", "1"}, {"QP", "1"}, {"EncoderMode", "7"}},
+        {{"AdaptiveQuantization", "1"}, {"QP", "63"}, {"EncoderMode", "7"}},
         // target M12 to test light PD1 path
-        {{"AdaptiveQuantization", "1"}, {"QP", "1"}, {"EncoderMode", "12"}},
-        {{"AdaptiveQuantization", "1"}, {"QP", "63"}, {"EncoderMode", "12"}}};
+        {{"AdaptiveQuantization", "1"}, {"QP", "1"}, {"EncoderMode", "10"}},
+        {{"AdaptiveQuantization", "1"}, {"QP", "63"}, {"EncoderMode", "10"}}};
     // segment
     for (EncSetting param : param_vecs) {
         string name = test_prefix + std::to_string(count);

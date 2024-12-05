@@ -301,10 +301,13 @@ static uint8_t get_tpl_params_level(int8_t enc_mode, SvtAv1RcMode rc_mode) {
     if (enc_mode <= ENC_M4) {
 #endif
         tpl_params_level = 1;
+
 #if OPT_M6_NEW
 #if OPT_M5_NEW
 #if TUNE_M4_2
+#if !TUNE_M3_2
     } else if (enc_mode <= ENC_M3) {
+#endif
 #else
     } else if (enc_mode <= ENC_M4) {
 #endif
@@ -314,7 +317,9 @@ static uint8_t get_tpl_params_level(int8_t enc_mode, SvtAv1RcMode rc_mode) {
 #else
     } else if (enc_mode <= ENC_M6) {
 #endif
+#if !TUNE_M3_2
         tpl_params_level = 3;
+#endif
 #if CLN_SHIFT_M11
     } else if (enc_mode <= ENC_M8 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M9)) {
 #else

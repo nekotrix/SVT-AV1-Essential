@@ -33,8 +33,8 @@
 #define ERRORADV_BORDER 0
 
 #if OPT_GM_RFN_EARLY_EXIT
-static const double erroradv_tr[]      = {0.65, 0.50, 0.65};
-static const double erroradv_prod_tr[] = {20000, 15000, 16000};
+static const double erroradv_tr[]      = {0.65, 0.50, 0.45};
+static const double erroradv_prod_tr[] = {20000, 15000, 14000};
 #else
 static const double erroradv_tr[]      = {0.65, 0.60, 0.65};
 static const double erroradv_prod_tr[] = {20000, 18000, 16000};
@@ -372,7 +372,10 @@ static void correspondence_from_mvs(PictureParentControlSet* pcs, Correspondence
     const int      block_size        = 64 >> mv_search_lvl;
     const int      blocks_per_line   = 1 << mv_search_lvl;
     const int      num_blocks_per_sb = blocks_per_line * blocks_per_line;
-    const int      starting_n_idx    = mv_search_lvl == 0 ? 0 : mv_search_lvl == 1 ? 1 : mv_search_lvl == 2 ? 5 : 21;
+    const int      starting_n_idx    = mv_search_lvl == MV_64x64 ? 0
+                : mv_search_lvl == MV_32x32                      ? 1
+                : mv_search_lvl == MV_16x16                      ? 5
+                                                                 : 21 /*MV_8x8*/;
     const uint16_t pic_b64_width     = (uint16_t)((pcs->aligned_width + pcs->scs->b64_size - 1) / pcs->scs->b64_size);
     const uint16_t pic_b64_height    = (uint16_t)((pcs->aligned_height + pcs->scs->b64_size - 1) / pcs->scs->b64_size);
     assert(pcs->b64_total_count == pic_b64_width * pic_b64_height);
@@ -441,22 +444,21 @@ static void correspondence_from_mvs(PictureParentControlSet* pcs, Correspondence
                 }
 
                 if (found_mv) {
-                    const int shift                          = pcs->gm_downsample_level == GM_DOWN ? 1
-                                                 : pcs->gm_downsample_level == GM_DOWN16           ? 2
-                                                                                                   : 0;
-                    correspondences[count_correspondences].x = ((b64_x * pcs->scs->b64_size) +
-                                                                (i % blocks_per_line) * block_size) >>
-                        shift; // x
-                    correspondences[count_correspondences].y = ((b64_y * pcs->scs->b64_size) +
-                                                                (i / blocks_per_line) * block_size) >>
-                        shift; // y
-                    correspondences[count_correspondences].rx = ((b64_x * pcs->scs->b64_size) +
-                                                                 (i % blocks_per_line) * block_size + mv.x) >>
-                        shift; // rx
-                    correspondences[count_correspondences].ry = ((b64_y * pcs->scs->b64_size) +
-                                                                 (i / blocks_per_line) * block_size + mv.y) >>
-                        shift; // ry
+                    // clang-format off
+                    const int shift = pcs->gm_downsample_level == GM_DOWN ? 1
+                                    : pcs->gm_downsample_level == GM_DOWN16 ? 2
+                                    : 0;
+                    const uint8_t b64_size = pcs->scs->b64_size;
+                    correspondences[count_correspondences].x =
+                        ((b64_x * b64_size) + (i % blocks_per_line) * block_size) >> shift; // x
+                    correspondences[count_correspondences].y =
+                        ((b64_y * b64_size) + (i / blocks_per_line) * block_size) >> shift; // y
+                    correspondences[count_correspondences].rx =
+                        ((b64_x * b64_size) + (i % blocks_per_line) * block_size + mv.x) >> shift; // rx
+                    correspondences[count_correspondences].ry =
+                        ((b64_y * b64_size) + (i / blocks_per_line) * block_size + mv.y) >> shift; // ry
                     count_correspondences++;
+                    // clang-format on
                 }
             }
         }
@@ -483,6 +485,7 @@ void gm_compute_correspondence(PictureParentControlSet* pcs, uint8_t* frm_buffer
                                     correspondences,
                                     num_correspondences);
     } else {
+        assert(pcs->gm_ctrls.correspondence_method <= MV_8x8 && pcs->gm_ctrls.correspondence_method >= MV_64x64);
         correspondence_from_mvs(pcs, correspondences, num_correspondences, list_idx, ref_idx);
     }
 }
