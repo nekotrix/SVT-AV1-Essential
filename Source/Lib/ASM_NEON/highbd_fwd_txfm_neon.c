@@ -106,8 +106,10 @@ LOAD_BUFFER_4XH(64, 0)
     }
 
 LOAD_BUFFER_WXH(8, 8, 2)
+LOAD_BUFFER_WXH(8, 32, 2)
 LOAD_BUFFER_WXH(16, 16, 2)
 LOAD_BUFFER_WXH(16, 64, 0)
+LOAD_BUFFER_WXH(32, 32, 2)
 LOAD_BUFFER_WXH(32, 64, 0)
 LOAD_BUFFER_WXH(64, 16, 2)
 LOAD_BUFFER_WXH(64, 32, 2)
@@ -3563,6 +3565,272 @@ void svt_av1_fwd_txfm2d_16x16_N4_neon(int16_t *input, int32_t *output, uint32_t 
     }
 }
 
+static INLINE void highbd_fdct32_x4_N4_neon(const int32x4_t *input, int32x4_t *output, int cos_bit) {
+    const int32_t *const cospi     = cospi_arr_s32(cos_bit);
+    const int32x4_t      v_cos_bit = vdupq_n_s32(-cos_bit);
+
+    // Workspaces for intermediate transform steps.
+    int32x4_t buf0[32];
+    int32x4_t buf1[32];
+
+    // stage 1
+    butterfly_dct_pre(input, buf1, 32);
+
+    // stage 2
+    butterfly_dct_pre(buf1, buf0, 16);
+    buf0[16] = buf1[16];
+    buf0[17] = buf1[17];
+    buf0[18] = buf1[18];
+    buf0[19] = buf1[19];
+    butterfly_0112_neon(cospi, 32, buf1[27], buf1[20], &buf0[27], &buf0[20], v_cos_bit);
+    butterfly_0112_neon(cospi, 32, buf1[26], buf1[21], &buf0[26], &buf0[21], v_cos_bit);
+    butterfly_0112_neon(cospi, 32, buf1[25], buf1[22], &buf0[25], &buf0[22], v_cos_bit);
+    butterfly_0112_neon(cospi, 32, buf1[24], buf1[23], &buf0[24], &buf0[23], v_cos_bit);
+    buf0[28] = buf1[28];
+    buf0[29] = buf1[29];
+    buf0[30] = buf1[30];
+    buf0[31] = buf1[31];
+
+    // stage 3
+    butterfly_dct_pre(buf0, buf1, 8);
+    buf1[8] = buf0[8];
+    buf1[9] = buf0[9];
+    butterfly_0112_neon(cospi, 32, buf0[13], buf0[10], &buf1[13], &buf1[10], v_cos_bit);
+    butterfly_0112_neon(cospi, 32, buf0[12], buf0[11], &buf1[12], &buf1[11], v_cos_bit);
+    buf1[14] = buf0[14];
+    buf1[15] = buf0[15];
+    butterfly_dct_post(buf0 + 16, buf0 + 16, buf1 + 16, 16);
+
+    // stage 4
+    butterfly_dct_pre(buf1, buf0, 4);
+    buf0[4] = buf1[4];
+    butterfly_0112_neon(cospi, 32, buf1[6], buf1[5], &buf0[6], &buf0[5], v_cos_bit);
+    buf0[7] = buf1[7];
+    butterfly_dct_post(buf1 + 8, buf1 + 8, buf0 + 8, 8);
+    buf0[16] = buf1[16];
+    buf0[17] = buf1[17];
+    butterfly_0112_neon(cospi, 16, buf1[29], buf1[18], &buf0[29], &buf0[18], v_cos_bit);
+    butterfly_0112_neon(cospi, 16, buf1[28], buf1[19], &buf0[28], &buf0[19], v_cos_bit);
+    butterfly_2312_neon(cospi, 16, buf1[27], buf1[20], &buf0[20], &buf0[27], v_cos_bit);
+    butterfly_2312_neon(cospi, 16, buf1[26], buf1[21], &buf0[21], &buf0[26], v_cos_bit);
+    buf0[22] = buf1[22];
+    buf0[23] = buf1[23];
+    buf0[24] = buf1[24];
+    buf0[25] = buf1[25];
+    buf0[30] = buf1[30];
+    buf0[31] = buf1[31];
+
+    // stage 5
+    butterfly_0112_neon(cospi, 32, buf0[0], buf0[1], &buf1[0], &buf1[1], v_cos_bit);
+    butterfly_dct_post_half(buf0 + 4, buf0 + 4, buf1 + 4, 4);
+    buf1[8] = buf0[8];
+    butterfly_0112_neon(cospi, 16, buf0[14], buf0[9], &buf1[14], &buf1[9], v_cos_bit);
+    butterfly_2312_neon(cospi, 16, buf0[13], buf0[10], &buf1[10], &buf1[13], v_cos_bit);
+    buf1[11] = buf0[11];
+    buf1[12] = buf0[12];
+    buf1[15] = buf0[15];
+    butterfly_dct_post(buf0 + 16, buf0 + 16, buf1 + 16, 8);
+    butterfly_dct_post(buf0 + 24, buf0 + 24, buf1 + 24, 8);
+
+    // stage 6
+    buf0[0] = buf1[0];
+
+    int32x2_t w01 = vld1_s32(cospi + 2 * 8);
+    butterfly_half_neon(w01, 0, 1, buf1[7], buf1[4], &buf0[4], v_cos_bit);
+    butterfly_0112_neon(cospi, 8, buf1[30], buf1[17], &buf0[30], &buf0[17], v_cos_bit);
+    butterfly_2312_neon(cospi, 8, buf1[29], buf1[18], &buf0[18], &buf0[29], v_cos_bit);
+    butterfly_dct_post_half(buf1 + 8, buf1 + 8, buf0 + 8, 4);
+    butterfly_dct_post_half(buf1 + 12, buf1 + 12, buf0 + 12, 4);
+    buf0[16] = buf1[16];
+    buf0[19] = buf1[19];
+    buf0[20] = buf1[20];
+
+    butterfly_0130_neon(cospi, 24, buf1[21], buf1[26], &buf0[26], &buf0[21], v_cos_bit);
+    butterfly_0332_neon(cospi, 24, buf1[25], buf1[22], &buf0[25], &buf0[22], v_cos_bit);
+
+    buf0[23] = buf1[23];
+    buf0[24] = buf1[24];
+    buf0[27] = buf1[27];
+    buf0[28] = buf1[28];
+    buf0[31] = buf1[31];
+
+    // stage 7
+    buf1[0] = buf0[0];
+    buf1[2] = buf0[2];
+    buf1[4] = buf0[4];
+    w01     = vld1_s32(cospi + 2 * 4);
+    butterfly_half_neon(w01, 0, 1, buf0[15], buf0[8], &buf1[8], v_cos_bit);
+    w01 = vld1_s32(cospi + 2 * 12);
+    butterfly_half_neon(w01, 3, 0, buf0[11], buf0[12], &buf1[12], v_cos_bit);
+    butterfly_dct_post_half(buf0 + 16, buf0 + 16, buf1 + 16, 4);
+    butterfly_dct_post_half(buf0 + 20, buf0 + 20, buf1 + 20, 4);
+    butterfly_dct_post_half(buf0 + 24, buf0 + 24, buf1 + 24, 4);
+    butterfly_dct_post_half(buf0 + 28, buf0 + 28, buf1 + 28, 4);
+
+    // stage 8
+    buf0[0]  = buf1[0];
+    buf0[2]  = buf1[2];
+    buf0[4]  = buf1[4];
+    buf0[8]  = buf1[8];
+    buf0[12] = buf1[12];
+    w01      = vld1_s32(cospi + 2 * 2);
+    butterfly_half_neon(w01, 0, 1, buf1[31], buf1[16], &buf0[16], v_cos_bit);
+    w01 = vld1_s32(cospi + 2 * 14);
+    butterfly_half_neon(w01, 3, 0, buf1[19], buf1[28], &buf0[28], v_cos_bit);
+    w01 = vld1_s32(cospi + 2 * 10);
+    butterfly_half_neon(w01, 0, 1, buf1[27], buf1[20], &buf0[20], v_cos_bit);
+    w01 = vld1_s32(cospi + 2 * 6);
+    butterfly_half_neon(w01, 3, 0, buf1[23], buf1[24], &buf0[24], v_cos_bit);
+
+    // stage 9
+    output[0] = buf0[0];
+    output[1] = buf0[16];
+    output[2] = buf0[8];
+    output[3] = buf0[24];
+    output[4] = buf0[4];
+    output[5] = buf0[20];
+    output[6] = buf0[12];
+    output[7] = buf0[28];
+    output[8] = buf0[2];
+}
+
+static INLINE void highbd_fidentity32_x4_N4_neon(const int32x4_t *input, int32x4_t *output, int cos_bit) {
+    (void)cos_bit;
+    for (int i = 0; i < 8; i++) { output[i] = vshlq_n_s32(input[i], 2); }
+}
+
+static INLINE void highbd_fdct32_xn_N4_neon(const int32x4_t *in, int32x4_t *out, int bit, const int howmany) {
+    const int stride = 32;
+    int       i      = 0;
+    do { highbd_fdct32_x4_N4_neon(in + i * stride, out + i * stride, bit); } while (++i < howmany);
+}
+
+static INLINE void highbd_fidentity32_xn_N4_neon(const int32x4_t *in, int32x4_t *out, int bit, int howmany) {
+    const int stride = 32;
+    int       i      = 0;
+    do { highbd_fidentity32_x4_N4_neon(in + i * stride, out + i * stride, bit); } while (++i < howmany);
+}
+
+static INLINE void write_buffer_32x32_N4(const int32x4_t *in, int32_t *output) {
+    const int32x4_t zero = vdupq_n_s32(0);
+
+    for (int i = 0; i < 8; i++) {
+        vst1q_s32(output + i * 32 + 0, in[0 + i]);
+        vst1q_s32(output + i * 32 + 4, in[32 + i]);
+        for (int j = 2; j < 8; j++) { vst1q_s32(output + i * 32 + j * 4, zero); }
+    }
+
+    memset((output + 8 * 32), 0, (24 * 32) * sizeof(int32_t));
+}
+
+static INLINE void shift_right_4_round_s32_x4_N4(int32x4_t *in, int32x4_t *out) {
+    shift_right_4_round_s32_x4(in + 0 * 32, out + 0 * 32, 8);
+    shift_right_4_round_s32_x4(in + 1 * 32, out + 1 * 32, 8);
+    shift_right_4_round_s32_x4(in + 2 * 32, out + 2 * 32, 8);
+    shift_right_4_round_s32_x4(in + 3 * 32, out + 3 * 32, 8);
+    shift_right_4_round_s32_x4(in + 4 * 32, out + 4 * 32, 8);
+    shift_right_4_round_s32_x4(in + 5 * 32, out + 5 * 32, 8);
+    shift_right_4_round_s32_x4(in + 6 * 32, out + 6 * 32, 8);
+    shift_right_4_round_s32_x4(in + 7 * 32, out + 7 * 32, 8);
+}
+
+static INLINE void transpose_32x8_in_32x32(const int32x4_t *in, int32x4_t *out) {
+    for (int i = 0; i < 8; i++) {
+        transpose_elems_s32_4x4(in[0 + i * 32],
+                                in[1 + i * 32],
+                                in[2 + i * 32],
+                                in[3 + i * 32],
+                                &out[0 + i * 4],
+                                &out[1 + i * 4],
+                                &out[2 + i * 4],
+                                &out[3 + i * 4]);
+        transpose_elems_s32_4x4(in[4 + i * 32],
+                                in[5 + i * 32],
+                                in[6 + i * 32],
+                                in[7 + i * 32],
+                                &out[32 + i * 4],
+                                &out[33 + i * 4],
+                                &out[34 + i * 4],
+                                &out[35 + i * 4]);
+    }
+}
+
+static INLINE void transpose_8x8_in_32x32(const int32x4_t *in, int32x4_t *out) {
+    transpose_elems_s32_4x4(in[0], in[1], in[2], in[3], &out[0], &out[1], &out[2], &out[3]);
+    transpose_elems_s32_4x4(in[32], in[33], in[34], in[35], &out[4], &out[5], &out[6], &out[7]);
+    transpose_elems_s32_4x4(in[4], in[5], in[6], in[7], &out[32], &out[33], &out[34], &out[35]);
+    transpose_elems_s32_4x4(in[36], in[37], in[38], in[39], &out[36], &out[37], &out[38], &out[39]);
+}
+
+static INLINE void av1_round_shift_array_32_neon(int32x4_t *restrict input, int32x4_t *restrict output, const int size,
+                                                 const int bit) {
+    const int32x4_t v_bit = vdupq_n_s32(-bit);
+    int             i;
+    for (i = 0; i < size; i++) { output[i] = vrshlq_s32(input[i], v_bit); }
+}
+
+static INLINE void load_buffer_8x8_in_32x32(const int16_t *input, int32x4_t *buf, int stride) {
+    load_buffer_4x4_(input + 0 * stride + 0, buf, stride, 0);
+    load_buffer_4x4_(input + 0 * stride + 4, buf + 32, stride, 0);
+    load_buffer_4x4_(input + 4 * stride + 0, buf + 4, stride, 0);
+    load_buffer_4x4_(input + 4 * stride + 4, buf + 32 + 4, stride, 0);
+}
+
+static INLINE void load_buffer_32x8_in_32x32(const int16_t *input, int32x4_t *buf, int stride) {
+    load_buffer_4x8_(input + 0 * 4, buf + 0 * 32, stride, 0);
+    load_buffer_4x8_(input + 1 * 4, buf + 1 * 32, stride, 0);
+    load_buffer_4x8_(input + 2 * 4, buf + 2 * 32, stride, 0);
+    load_buffer_4x8_(input + 3 * 4, buf + 3 * 32, stride, 0);
+    load_buffer_4x8_(input + 4 * 4, buf + 4 * 32, stride, 0);
+    load_buffer_4x8_(input + 5 * 4, buf + 5 * 32, stride, 0);
+    load_buffer_4x8_(input + 6 * 4, buf + 6 * 32, stride, 0);
+    load_buffer_4x8_(input + 7 * 4, buf + 7 * 32, stride, 0);
+}
+
+void svt_av1_fwd_txfm2d_32x32_N4_neon(int16_t *input, int32_t *output, uint32_t stride, TxType tx_type, uint8_t bd) {
+    (void)bd;
+
+    // Workspaces for column/row-wise transforms.
+    int32x4_t buf0[256], buf1[256];
+
+    switch (tx_type) {
+    case DCT_DCT:
+        load_buffer_32x32_(input, buf0, stride, 0);
+        highbd_fdct32_xn_N4_neon(buf0, buf0, fwd_cos_bit_col[3][3], 8);
+        shift_right_4_round_s32_x4_N4(buf0, buf0);
+        transpose_32x8_in_32x32(buf0, buf1);
+        highbd_fdct32_xn_N4_neon(buf1, buf1, fwd_cos_bit_row[3][3], 2);
+        transpose_8x8_in_32x32(buf1, buf0);
+        write_buffer_32x32_N4(buf0, output);
+        break;
+    case IDTX:
+        load_buffer_8x8_in_32x32(input, buf0, stride);
+        highbd_fidentity32_xn_N4_neon(buf0, buf1, fwd_cos_bit_col[3][3], 2);
+        shift_right_4_round_s32_x4(buf1, buf1, 8);
+        shift_right_4_round_s32_x4(buf1 + 32, buf1 + 32, 8);
+        highbd_fidentity32_xn_N4_neon(buf1, buf0, fwd_cos_bit_row[3][3], 2);
+        write_buffer_32x32_N4(buf0, output);
+        break;
+    case V_DCT:
+        load_buffer_8x32_(input, buf0, stride, 0);
+        highbd_fdct32_xn_N4_neon(buf0, buf0, fwd_cos_bit_col[3][3], 2);
+        shift_right_4_round_s32_x4_N4(buf0, buf0);
+        highbd_fidentity32_xn_N4_neon(buf0, buf0, fwd_cos_bit_row[3][3], 2);
+        write_buffer_32x32_N4(buf0, output);
+        break;
+    case H_DCT:
+        load_buffer_32x8_in_32x32(input, buf0, stride);
+        highbd_fidentity32_xn_N4_neon(buf0, buf0, fwd_cos_bit_col[3][3], 8);
+        shift_right_4_round_s32_x4_N4(buf0, buf0);
+        transpose_32x8_in_32x32(buf0, buf1);
+        highbd_fdct32_xn_N4_neon(buf1, buf1, fwd_cos_bit_row[3][3], 2);
+        transpose_8x8_in_32x32(buf1, buf0);
+        write_buffer_32x32_N4(buf0, output);
+        break;
+    default: assert(0);
+    }
+}
+
 void svt_aom_transform_config(TxType tx_type, TxSize tx_size, Txfm2dFlipCfg *cfg);
 
 static const int8_t *fwd_txfm_shift_ls[TX_SIZES_ALL] = {
@@ -3649,13 +3917,6 @@ static INLINE void load_buffer_32x8n(const int16_t *input, int32x4_t *out, uint3
 typedef void (*fwd_transform_1d_neon)(int32x4_t *in, int32x4_t *out, int bit, const int num_cols);
 
 typedef void (*TxfmFuncNEON)(int32x4_t *input, int32x4_t *output, const int8_t cos_bit, const int8_t *stage_range);
-
-static INLINE void av1_round_shift_array_32_neon(int32x4_t *restrict input, int32x4_t *restrict output, const int size,
-                                                 const int bit) {
-    const int32x4_t v_bit = vdupq_n_s32(-bit);
-    int             i;
-    for (i = 0; i < size; i++) { output[i] = vrshlq_s32(input[i], v_bit); }
-}
 
 #define REVERSE_FLIP_LR_8_NEON(temp, x, y) \
     do {                                   \
@@ -4381,73 +4642,10 @@ void svt_av1_fwd_txfm2d_64x64_N4_neon(int16_t *input, int32_t *output, uint32_t 
     }
 }
 
-static INLINE void load_buffer_8x8_in_32x32_neon(const int16_t *restrict input, int32x4_t *restrict output,
-                                                 int32_t stride) {
-    for (int32_t i = 0; i < 8; ++i) {
-        output[0] = vmovl_s16(vld1_s16(input + 0));
-        output[1] = vmovl_s16(vld1_s16(input + 4));
-
-        input += stride;
-        output += 8;
-    }
-}
-
-static INLINE void av1_round_shift_array_32_N4_neon(int32x4_t *input, int32x4_t *output, const int32_t size,
-                                                    const int32_t bit) {
-    const int32x4_t vbits = vdupq_n_s32(-bit);
-    for (int32_t i = 0; i < size; i += 4) {
-        output[2 * i]     = vrshlq_s32(input[2 * i + 0], vbits);
-        output[2 * i + 1] = vrshlq_s32(input[2 * i + 1], vbits);
-    }
-}
-
 static void fidtx_wxh_N4_neon(const int32x4_t *restrict input, int32x4_t *restrict output, int32_t size, int32_t step) {
     for (int32_t i = 0; i < size; i += step) {
         output[2 * i]     = vshlq_n_s32(input[2 * i], 2);
         output[2 * i + 1] = vshlq_n_s32(input[2 * i + 1], 2);
-    }
-}
-
-static INLINE void write_buffer_32x32_N4(const int32x4_t *res, int32_t *output) {
-    const int32x4_t zero = vdupq_n_s32(0);
-    uint32_t        i;
-
-    for (i = 0; i < 8; i++) {
-        vst1q_s32(output + i * 32 + 0, res[i * 8]);
-        vst1q_s32(output + i * 32 + 4, res[i * 8 + 1]);
-        vst1q_s32(output + i * 32 + 8, zero);
-        vst1q_s32(output + i * 32 + 12, zero);
-        vst1q_s32(output + i * 32 + 16, zero);
-        vst1q_s32(output + i * 32 + 20, zero);
-        vst1q_s32(output + i * 32 + 24, zero);
-        vst1q_s32(output + i * 32 + 28, zero);
-    }
-
-    for (; i < 32; i++) {
-        vst1q_s32(output + i * 32 + 0, zero);
-        vst1q_s32(output + i * 32 + 4, zero);
-        vst1q_s32(output + i * 32 + 8, zero);
-        vst1q_s32(output + i * 32 + 12, zero);
-        vst1q_s32(output + i * 32 + 16, zero);
-        vst1q_s32(output + i * 32 + 20, zero);
-        vst1q_s32(output + i * 32 + 24, zero);
-        vst1q_s32(output + i * 32 + 28, zero);
-    }
-}
-
-static INLINE void load_buffer_32x32_neon(const int16_t *restrict input, int32x4_t *restrict output, int32_t stride) {
-    for (int32_t i = 0; i < 32; ++i) {
-        output[0] = vmovl_s16(vld1_s16(input + 0 * 4));
-        output[1] = vmovl_s16(vld1_s16(input + 1 * 4));
-        output[2] = vmovl_s16(vld1_s16(input + 2 * 4));
-        output[3] = vmovl_s16(vld1_s16(input + 3 * 4));
-        output[4] = vmovl_s16(vld1_s16(input + 4 * 4));
-        output[5] = vmovl_s16(vld1_s16(input + 5 * 4));
-        output[6] = vmovl_s16(vld1_s16(input + 6 * 4));
-        output[7] = vmovl_s16(vld1_s16(input + 7 * 4));
-
-        input += stride;
-        output += 8;
     }
 }
 
@@ -4693,115 +4891,6 @@ static void av1_fdct32_new_N4_neon(const int32x4_t *input, int32x4_t *output, in
         out[2 * 5 * stride] = buf0[20];
         out[2 * 6 * stride] = buf0[12];
         out[2 * 7 * stride] = buf0[28];
-    }
-}
-
-static AOM_FORCE_INLINE void fdct32x32_N4_col_neon(const int32x4_t *input, int32x4_t *output, const int8_t cos_bit) {
-    const int32_t txfm_size   = 32;
-    const int32_t num_per_256 = 8;
-    int32_t       col_num     = txfm_size / num_per_256;
-    av1_fdct32_new_N4_neon(input, output, cos_bit, txfm_size, col_num);
-}
-
-static INLINE void transpose_8x8_in_32x32_neon(const int32x4_t *restrict in, int32x4_t *restrict out) {
-    TRANSPOSE_2X4X4_NEON(in, 0, 8, 16, 24, out, 0, 32, 8, 40, 16, 48, 24, 56);
-    TRANSPOSE_2X4X4_NEON(in, 32, 40, 48, 56, out, 1, 33, 9, 41, 17, 49, 25, 57);
-}
-
-static AOM_FORCE_INLINE void fdct32x32_N4_row_neon(const int32x4_t *restrict input, int32x4_t *restrict output,
-                                                   const int8_t cos_bit) {
-    const int32_t txfm_size   = 32;
-    const int32_t num_per_256 = 8;
-    int32_t       col_num     = txfm_size / num_per_256;
-    av1_fdct32_new_N4_neon(input, output, cos_bit, txfm_size / 4, col_num);
-}
-
-static INLINE void load_buffer_8x32_in_32x32_neon(const int16_t *restrict input, int32x4_t *restrict output,
-                                                  int32_t stride) {
-    for (int32_t i = 0; i < 32; ++i) {
-        output[0] = vmovl_s16(vld1_s16(input + 0));
-        output[1] = vmovl_s16(vld1_s16(input + 4));
-
-        input += stride;
-        output += 8;
-    }
-}
-
-static INLINE void load_buffer_32x8_in_32x32_neon(const int16_t *restrict input, int32x4_t *restrict output,
-                                                  int32_t stride) {
-    for (int32_t i = 0; i < 8; ++i) {
-        output[0] = vmovl_s16(vld1_s16(input + 0 * 4));
-        output[1] = vmovl_s16(vld1_s16(input + 1 * 4));
-        output[2] = vmovl_s16(vld1_s16(input + 2 * 4));
-        output[3] = vmovl_s16(vld1_s16(input + 3 * 4));
-        output[4] = vmovl_s16(vld1_s16(input + 4 * 4));
-        output[5] = vmovl_s16(vld1_s16(input + 5 * 4));
-        output[6] = vmovl_s16(vld1_s16(input + 6 * 4));
-        output[7] = vmovl_s16(vld1_s16(input + 7 * 4));
-
-        input += stride;
-        output += 8;
-    }
-}
-
-void svt_av1_fwd_txfm2d_32x32_N4_neon(int16_t *input, int32_t *output, uint32_t stride, TxType tx_type, uint8_t bd) {
-    const int8_t *shift           = fwd_txfm_shift_ls[TX_32X32];
-    const int32_t txw_idx         = tx_size_wide_log2[TX_32X32] - tx_size_wide_log2[0];
-    const int32_t txh_idx         = tx_size_high_log2[TX_32X32] - tx_size_high_log2[0];
-    const int8_t  cos_bit_col     = fwd_cos_bit_col[txw_idx][txh_idx];
-    const int8_t  cos_bit_row     = fwd_cos_bit_row[txw_idx][txh_idx];
-    const int32_t txfm2d_size_128 = 32 * 32 / 4;
-    int32x4_t     buf[256];
-    int32x4_t    *out = (int32x4_t *)output;
-    (void)bd;
-    switch (tx_type) {
-    case IDTX:
-        load_buffer_8x8_in_32x32_neon(input, buf, stride);
-        av1_round_shift_array_32_N4_neon(buf, out, 32, -shift[0]);
-        fidtx_wxh_N4_neon(out, buf, 32, 4);
-        av1_round_shift_array_32_N4_neon(buf, out, 32, -shift[1]);
-        fidtx_wxh_N4_neon(out, buf, 32, 4);
-        av1_round_shift_array_32_N4_neon(buf, buf, 32, -shift[2]);
-        write_buffer_32x32_N4(buf, output);
-        break;
-    case DCT_DCT:
-        load_buffer_32x32_neon(input, buf, stride);
-        av1_round_shift_array_32_neon(buf, out, txfm2d_size_128, -shift[0]);
-        fdct32x32_N4_col_neon(out, buf, cos_bit_col);
-        av1_round_shift_array_32_neon(buf, out, txfm2d_size_128 / 4, -shift[1]);
-        transpose_8x8_in_32x32_neon(out, buf);
-        transpose_8x8_in_32x32_neon(out + 2, buf + 64);
-        transpose_8x8_in_32x32_neon(out + 4, buf + 128);
-        transpose_8x8_in_32x32_neon(out + 6, buf + 192);
-        fdct32x32_N4_row_neon(buf, out, cos_bit_row);
-        av1_round_shift_array_32_N4_neon(out, out, 32, -shift[2]);
-        transpose_8x8_in_32x32_neon(out, buf);
-        write_buffer_32x32_N4(buf, output);
-        break;
-    case V_DCT:
-        load_buffer_8x32_in_32x32_neon(input, buf, stride);
-        av1_round_shift_array_32_neon(buf, out, txfm2d_size_128, -shift[0]);
-        fdct32x32_N4_row_neon(out, buf, cos_bit_col);
-        av1_round_shift_array_32_N4_neon(buf, out, 32, -shift[1]);
-        fidtx_wxh_N4_neon(out, buf, 32, 4);
-        av1_round_shift_array_32_N4_neon(buf, buf, 32, -shift[2]);
-        write_buffer_32x32_N4(buf, output);
-        break;
-    case H_DCT:
-        load_buffer_32x8_in_32x32_neon(input, buf, stride);
-        av1_round_shift_array_32_neon(buf, out, txfm2d_size_128 / 4, -shift[0]);
-        fidtx_wxh_N4_neon(out, buf, 32, 1);
-        av1_round_shift_array_32_neon(buf, out, txfm2d_size_128 / 4, -shift[1]);
-        transpose_8x8_in_32x32_neon(out, buf);
-        transpose_8x8_in_32x32_neon(out + 2, buf + 64);
-        transpose_8x8_in_32x32_neon(out + 4, buf + 128);
-        transpose_8x8_in_32x32_neon(out + 6, buf + 192);
-        fdct32x32_N4_row_neon(buf, out, cos_bit_row);
-        av1_round_shift_array_32_N4_neon(out, out, 32, -shift[2]);
-        transpose_8x8_in_32x32_neon(out, buf);
-        write_buffer_32x32_N4(buf, output);
-        break;
-    default: assert(0);
     }
 }
 
