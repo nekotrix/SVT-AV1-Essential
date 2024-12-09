@@ -221,7 +221,6 @@ class HbdLoopFilterTest
         lpf_ref_(start_ref_, p, blimit, limit, thresh, bd);
     }
 };
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(HbdLoopFilterTest);
 
 TEST_P(HbdLoopFilterTest, MatchTestRandomData) {
     run_test();
@@ -318,5 +317,15 @@ const LdbLpfTestParam kLoop8Test6[] = {
 
 INSTANTIATE_TEST_SUITE_P(NEON, LbdLoopFilterTest,
                          ::testing::ValuesIn(kLoop8Test6));
+
+const HbdLpfTestParam kHbdLoop8Test6[] = {
+    make_tuple(&svt_aom_highbd_lpf_horizontal_4_neon,
+               &svt_aom_highbd_lpf_horizontal_4_c, 8),
+
+    make_tuple(&svt_aom_highbd_lpf_horizontal_4_neon,
+               &svt_aom_highbd_lpf_horizontal_4_c, 10)};
+
+INSTANTIATE_TEST_SUITE_P(NEON, HbdLoopFilterTest,
+                         ::testing::ValuesIn(kHbdLoop8Test6));
 #endif  // ARCH_AARCH64
 }  // namespace
