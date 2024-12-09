@@ -151,3 +151,144 @@ void svt_aom_highbd_lpf_horizontal_4_neon(uint16_t *s, int pitch, const uint8_t 
                   vget_high_u16(p0q0_output),
                   vget_high_u16(p1q1_output));
 }
+
+// abs(p1 - p0) <= flat_thresh && abs(q1 - q0) <= flat_thresh &&
+//   abs(p2 - p0) <= flat_thresh && abs(q2 - q0) <= flat_thresh
+// |flat_thresh| == 4 for 10 bit decode.
+static INLINE uint16x4_t is_flat3(const uint16x8_t abd_p0p1_q0q1, const uint16x8_t abd_p0p2_q0q2, const int bitdepth) {
+    const int        flat_thresh = 1 << (bitdepth - 8);
+    const uint16x8_t a           = vmaxq_u16(abd_p0p1_q0q1, abd_p0p2_q0q2);
+    const uint16x8_t b           = vcleq_u16(a, vdupq_n_u16(flat_thresh));
+    return vand_u16(vget_low_u16(b), vget_high_u16(b));
+}
+
+// abs(p2 - p1) <= inner_thresh && abs(p1 - p0) <= inner_thresh &&
+//   abs(q1 - q0) <= inner_thresh && abs(q2 - q1) <= inner_thresh &&
+//   outer_threshold()
+static INLINE uint16x4_t needs_filter6(const uint16x8_t abd_p0p1_q0q1, const uint16x8_t abd_p1p2_q1q2,
+                                       const uint16_t inner_thresh, const uint16x4_t outer_mask) {
+    const uint16x8_t a          = vmaxq_u16(abd_p0p1_q0q1, abd_p1p2_q1q2);
+    const uint16x8_t b          = vcleq_u16(a, vdupq_n_u16(inner_thresh));
+    const uint16x4_t inner_mask = vand_u16(vget_low_u16(b), vget_high_u16(b));
+    return vand_u16(inner_mask, outer_mask);
+}
+
+static INLINE void filter6_masks(const uint16x8_t p2q2, const uint16x8_t p1q1, const uint16x8_t p0q0,
+                                 const uint16_t hev_thresh, const uint16x4_t outer_mask, const uint16_t inner_thresh,
+                                 const int bitdepth, uint16x4_t *const needs_filter6_mask,
+                                 uint16x4_t *const is_flat3_mask, uint16x4_t *const hev_mask) {
+    const uint16x8_t abd_p0p1_q0q1 = vabdq_u16(p0q0, p1q1);
+    *hev_mask                      = hev(abd_p0p1_q0q1, hev_thresh);
+    *is_flat3_mask                 = is_flat3(abd_p0p1_q0q1, vabdq_u16(p0q0, p2q2), bitdepth);
+    *needs_filter6_mask            = needs_filter6(abd_p0p1_q0q1, vabdq_u16(p1q1, p2q2), inner_thresh, outer_mask);
+}
+
+static INLINE void filter6(const uint16x8_t p2q2, const uint16x8_t p1q1, const uint16x8_t p0q0,
+                           uint16x8_t *const p1q1_output, uint16x8_t *const p0q0_output) {
+    // Sum p1 and q1 output from opposite directions.
+    // The formula is regrouped to allow 3 doubling operations to be combined.
+    //
+    // p1 = (3 * p2) + (2 * p1) + (2 * p0) + q0
+    //      ^^^^^^^^
+    // q1 = p0 + (2 * q0) + (2 * q1) + (3 * q2)
+    //                                 ^^^^^^^^
+    // p1q1 = p2q2 + 2 * (p2q2 + p1q1 + p0q0) + q0p0
+    //                    ^^^^^^^^^^^
+    uint16x8_t sum = vaddq_u16(p2q2, p1q1);
+
+    // p1q1 = p2q2 + 2 * (p2q2 + p1q1 + p0q0) + q0p0
+    //                                ^^^^^^
+    sum = vaddq_u16(sum, p0q0);
+
+    // p1q1 = p2q2 + 2 * (p2q2 + p1q1 + p0q0) + q0p0
+    //        ^^^^^^                          ^^^^^^
+    // Should dual issue with the left shift.
+    const uint16x8_t q0p0      = vextq_u16(p0q0, p0q0, 4);
+    const uint16x8_t outer_sum = vaddq_u16(p2q2, q0p0);
+    // p1q1 = p2q2 + 2 * (p2q2 + p1q1 + p0q0) + q0p0
+    //        ^^^^^^^^^^^                       ^^^^
+    sum = vmlaq_n_u16(outer_sum, sum, 2);
+
+    *p1q1_output = vrshrq_n_u16(sum, 3);
+
+    // Convert to p0 and q0 output:
+    // p0 = p1 - (2 * p2) + q0 + q1
+    // q0 = q1 - (2 * q2) + p0 + p1
+    // p0q0 = p1q1 - (2 * p2q2) + q0p0 + q1p1
+    //        ^^^^^^^^^^^^^^^^^
+    sum                   = vmlsq_n_u16(sum, p2q2, 2);
+    const uint16x8_t q1p1 = vextq_u16(p1q1, p1q1, 4);
+    sum                   = vaddq_u16(sum, vaddq_u16(q0p0, q1p1));
+
+    *p0q0_output = vrshrq_n_u16(sum, 3);
+}
+
+void svt_aom_highbd_lpf_horizontal_6_neon(uint16_t *s, int pitch, const uint8_t *blimit, const uint8_t *limit,
+                                          const uint8_t *thresh, int bd) {
+    uint16x4_t src[6];
+    load_u16_4x6(s - 3 * pitch, pitch, &src[0], &src[1], &src[2], &src[3], &src[4], &src[5]);
+
+    // Adjust thresholds to bitdepth.
+    const int        outer_thresh = *blimit << (bd - 8);
+    const int        inner_thresh = *limit << (bd - 8);
+    const int        hev_thresh   = *thresh << (bd - 8);
+    const uint16x4_t outer_mask   = outer_threshold(src[1], src[2], src[3], src[4], outer_thresh);
+    uint16x4_t       hev_mask;
+    uint16x4_t       needs_filter_mask;
+    uint16x4_t       is_flat3_mask;
+    const uint16x8_t p0q0 = vcombine_u16(src[2], src[3]);
+    const uint16x8_t p1q1 = vcombine_u16(src[1], src[4]);
+    const uint16x8_t p2q2 = vcombine_u16(src[0], src[5]);
+    filter6_masks(
+        p2q2, p1q1, p0q0, hev_thresh, outer_mask, inner_thresh, bd, &needs_filter_mask, &is_flat3_mask, &hev_mask);
+
+    if (vget_lane_u64(vreinterpret_u64_u16(needs_filter_mask), 0) == 0) {
+        // None of the values will be filtered.
+        return;
+    }
+
+    uint16x8_t p0q0_output, p1q1_output;
+    uint16x8_t f6_p1q1, f6_p0q0;
+    // Not needing filter4() at all is a very common case, so isolate it to avoid needlessly computing filter4().
+    if (vaddlv_u16(vand_u16(is_flat3_mask, needs_filter_mask)) == (1 << 18) - 4) {
+        filter6(p2q2, p1q1, p0q0, &f6_p1q1, &f6_p0q0);
+        p1q1_output = f6_p1q1;
+        p0q0_output = f6_p0q0;
+    } else {
+        // Copy the masks to the high bits for packed comparisons later.
+        const uint16x8_t hev_mask_8          = vcombine_u16(hev_mask, hev_mask);
+        const uint16x8_t is_flat3_mask_8     = vcombine_u16(is_flat3_mask, is_flat3_mask);
+        const uint16x8_t needs_filter_mask_8 = vcombine_u16(needs_filter_mask, needs_filter_mask);
+
+        uint16x8_t       f4_p1q1;
+        uint16x8_t       f4_p0q0;
+        const uint16x8_t p0q1 = vcombine_u16(src[2], src[4]);
+        filter4(p0q0, p0q1, p1q1, hev_mask, bd, &f4_p1q1, &f4_p0q0);
+        f4_p1q1 = vbslq_u16(hev_mask_8, p1q1, f4_p1q1);
+
+        // Because we did not return after testing |needs_filter_mask| we know it is
+        // nonzero. |is_flat3_mask| controls whether the needed filter is filter4 or
+        // filter6. Therefore if it is false when |needs_filter_mask| is true, filter6
+        // output is not used.
+        const uint64x1_t need_filter6 = vreinterpret_u64_u16(is_flat3_mask);
+        if (vget_lane_u64(need_filter6, 0) == 0) {
+            // filter6() does not apply, but filter4() applies to one or more values.
+            p0q0_output = p0q0;
+            p1q1_output = vbslq_u16(needs_filter_mask_8, f4_p1q1, p1q1);
+            p0q0_output = vbslq_u16(needs_filter_mask_8, f4_p0q0, p0q0);
+        } else {
+            filter6(p2q2, p1q1, p0q0, &f6_p1q1, &f6_p0q0);
+            p1q1_output = vbslq_u16(is_flat3_mask_8, f6_p1q1, f4_p1q1);
+            p1q1_output = vbslq_u16(needs_filter_mask_8, p1q1_output, p1q1);
+            p0q0_output = vbslq_u16(is_flat3_mask_8, f6_p0q0, f4_p0q0);
+            p0q0_output = vbslq_u16(needs_filter_mask_8, p0q0_output, p0q0);
+        }
+    }
+
+    store_u16_4x4(s - 2 * pitch,
+                  pitch,
+                  vget_low_u16(p1q1_output),
+                  vget_low_u16(p0q0_output),
+                  vget_high_u16(p0q0_output),
+                  vget_high_u16(p1q1_output));
+}
