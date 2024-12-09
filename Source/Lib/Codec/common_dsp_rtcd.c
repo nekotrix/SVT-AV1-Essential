@@ -1346,7 +1346,7 @@ void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
 
     SET_NEON(svt_aom_highbd_lpf_horizontal_4, svt_aom_highbd_lpf_horizontal_4_c, svt_aom_highbd_lpf_horizontal_4_neon);
     SET_NEON(svt_aom_highbd_lpf_horizontal_6, svt_aom_highbd_lpf_horizontal_6_c, svt_aom_highbd_lpf_horizontal_6_neon);
-    SET_ONLY_C(svt_aom_highbd_lpf_horizontal_8, svt_aom_highbd_lpf_horizontal_8_c);
+    SET_NEON(svt_aom_highbd_lpf_horizontal_8, svt_aom_highbd_lpf_horizontal_8_c, svt_aom_highbd_lpf_horizontal_8_neon);
     SET_ONLY_C(svt_aom_highbd_lpf_horizontal_14, svt_aom_highbd_lpf_horizontal_14_c);
     SET_ONLY_C(svt_aom_highbd_lpf_vertical_4, svt_aom_highbd_lpf_vertical_4_c);
     SET_ONLY_C(svt_aom_highbd_lpf_vertical_6, svt_aom_highbd_lpf_vertical_6_c);
