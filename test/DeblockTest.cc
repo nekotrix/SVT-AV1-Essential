@@ -330,6 +330,8 @@ const HbdLpfTestParam kHbdLoop8Test6[] = {
 
     make_tuple(&svt_aom_highbd_lpf_vertical_4_neon,
                &svt_aom_highbd_lpf_vertical_4_c, 8),
+    make_tuple(&svt_aom_highbd_lpf_vertical_6_neon,
+               &svt_aom_highbd_lpf_vertical_6_c, 8),
 
     make_tuple(&svt_aom_highbd_lpf_horizontal_4_neon,
                &svt_aom_highbd_lpf_horizontal_4_c, 10),
@@ -341,7 +343,9 @@ const HbdLpfTestParam kHbdLoop8Test6[] = {
                &svt_aom_highbd_lpf_horizontal_14_c, 10),
 
     make_tuple(&svt_aom_highbd_lpf_vertical_4_neon,
-               &svt_aom_highbd_lpf_vertical_4_c, 10)};
+               &svt_aom_highbd_lpf_vertical_4_c, 10),
+    make_tuple(&svt_aom_highbd_lpf_vertical_6_neon,
+               &svt_aom_highbd_lpf_vertical_6_c, 10)};
 
 INSTANTIATE_TEST_SUITE_P(NEON, HbdLoopFilterTest,
                          ::testing::ValuesIn(kHbdLoop8Test6));

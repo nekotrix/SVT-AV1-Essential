@@ -1422,6 +1422,7 @@ extern "C" {
     void svt_aom_highbd_lpf_horizontal_8_neon(uint16_t *s, int32_t pitch, const uint8_t *blimit, const uint8_t *limit, const uint8_t *thresh, int32_t bd);
     void svt_aom_highbd_lpf_horizontal_14_neon(uint16_t *s, int32_t pitch, const uint8_t *blimit, const uint8_t *limit, const uint8_t *thresh, int32_t bd);
     void svt_aom_highbd_lpf_vertical_4_neon(uint16_t *s, int32_t pitch, const uint8_t *blimit, const uint8_t *limit, const uint8_t *thresh, int32_t bd);
+    void svt_aom_highbd_lpf_vertical_6_neon(uint16_t *s, int32_t pitch, const uint8_t *blimit, const uint8_t *limit, const uint8_t *thresh, int32_t bd);
 
     void svt_aom_dc_predictor_4x4_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *above, const uint8_t *left);
     void svt_aom_dc_predictor_4x8_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *above, const uint8_t *left);

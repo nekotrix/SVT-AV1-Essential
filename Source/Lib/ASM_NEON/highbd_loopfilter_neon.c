@@ -344,6 +344,92 @@ void svt_aom_highbd_lpf_horizontal_6_neon(uint16_t *s, int pitch, const uint8_t 
                   vget_high_u16(p1q1_output));
 }
 
+void svt_aom_highbd_lpf_vertical_6_neon(uint16_t *s, int pitch, const uint8_t *blimit, const uint8_t *limit,
+                                        const uint8_t *thresh, int bd) {
+    // Overread by 2 values. These overreads become the high halves of src_raw[2]
+    // and src_raw[3] after transpose.
+    uint16x8_t src_raw[4];
+    load_u16_8x4(s - 3, pitch, &src_raw[0], &src_raw[1], &src_raw[2], &src_raw[3]);
+
+    transpose_array_inplace_u16_4x8(src_raw);
+    // p2, p1, p0, q0, q1, q2
+    const uint16x4_t src[6] = {
+        vget_low_u16(src_raw[0]),
+        vget_low_u16(src_raw[1]),
+        vget_low_u16(src_raw[2]),
+        vget_low_u16(src_raw[3]),
+        vget_high_u16(src_raw[0]),
+        vget_high_u16(src_raw[1]),
+    };
+
+    // Adjust thresholds to bitdepth.
+    const int        outer_thresh = *blimit << (bd - 8);
+    const int        inner_thresh = *limit << (bd - 8);
+    const int        hev_thresh   = *thresh << (bd - 8);
+    const uint16x4_t outer_mask   = outer_threshold(src[1], src[2], src[3], src[4], outer_thresh);
+    uint16x4_t       hev_mask;
+    uint16x4_t       needs_filter_mask;
+    uint16x4_t       is_flat3_mask;
+    const uint16x8_t p0q0 = vcombine_u16(src[2], src[3]);
+    const uint16x8_t p1q1 = vcombine_u16(src[1], src[4]);
+    const uint16x8_t p2q2 = vcombine_u16(src[0], src[5]);
+    filter6_masks(
+        p2q2, p1q1, p0q0, hev_thresh, outer_mask, inner_thresh, bd, &needs_filter_mask, &is_flat3_mask, &hev_mask);
+
+    if (vaddv_u16(needs_filter_mask) == 0) {
+        // None of the values will be filtered.
+        return;
+    }
+
+    uint16x8_t p0q0_output, p1q1_output;
+    // Because we did not return after testing |needs_filter_mask| we know it is
+    // nonzero. |is_flat3_mask| controls whether the needed filter is filter4 or
+    // filter6. Therefore if it is false when |needs_filter_mask| is true, filter6
+    // output is not used.
+    uint16x8_t       f6_p1q1, f6_p0q0;
+    const uint64x1_t need_filter6 = vreinterpret_u64_u16(is_flat3_mask);
+    // Not needing filter4() at all is a very common case, so isolate it to avoid needlessly computing filter4().
+    if (vaddlv_u16(vand_u16(is_flat3_mask, needs_filter_mask)) == (1 << 18) - 4) {
+        filter6(p2q2, p1q1, p0q0, &f6_p1q1, &f6_p0q0);
+        p1q1_output = f6_p1q1;
+        p0q0_output = f6_p0q0;
+    } else {
+        // Copy the masks to the high bits for packed comparisons later.
+        const uint16x8_t hev_mask_8          = vcombine_u16(hev_mask, hev_mask);
+        const uint16x8_t is_flat3_mask_8     = vcombine_u16(is_flat3_mask, is_flat3_mask);
+        const uint16x8_t needs_filter_mask_8 = vcombine_u16(needs_filter_mask, needs_filter_mask);
+
+        uint16x8_t f4_p1q1;
+        uint16x8_t f4_p0q0;
+        // ZIP1 p0q0, p1q1 may perform better here.
+        const uint16x8_t p0q1 = vcombine_u16(src[2], src[4]);
+        filter4(p0q0, p0q1, p1q1, hev_mask, bd, &f4_p1q1, &f4_p0q0);
+        f4_p1q1 = vbslq_u16(hev_mask_8, p1q1, f4_p1q1);
+        if (vget_lane_u64(need_filter6, 0) == 0) {
+            // filter6() does not apply, but filter4() applies to one or more values.
+            p0q0_output = p0q0;
+            p1q1_output = vbslq_u16(needs_filter_mask_8, f4_p1q1, p1q1);
+            p0q0_output = vbslq_u16(needs_filter_mask_8, f4_p0q0, p0q0);
+        } else {
+            filter6(p2q2, p1q1, p0q0, &f6_p1q1, &f6_p0q0);
+            p1q1_output = vbslq_u16(is_flat3_mask_8, f6_p1q1, f4_p1q1);
+            p1q1_output = vbslq_u16(needs_filter_mask_8, p1q1_output, p1q1);
+            p0q0_output = vbslq_u16(is_flat3_mask_8, f6_p0q0, f4_p0q0);
+            p0q0_output = vbslq_u16(needs_filter_mask_8, p0q0_output, p0q0);
+        }
+    }
+
+    uint16x4_t output[4] = {
+        vget_low_u16(p1q1_output),
+        vget_low_u16(p0q0_output),
+        vget_high_u16(p0q0_output),
+        vget_high_u16(p1q1_output),
+    };
+    transpose_array_inplace_u16_4x4(output);
+
+    store_u16_4x4(s - 2, pitch, output[0], output[1], output[2], output[3]);
+}
+
 // abs(p3 - p2) <= inner_thresh && abs(p2 - p1) <= inner_thresh &&
 //   abs(p1 - p0) <= inner_thresh && abs(q1 - q0) <= inner_thresh &&
 //   abs(q2 - q1) <= inner_thresh && abs(q3 - q2) <= inner_thresh
