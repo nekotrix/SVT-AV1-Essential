@@ -244,9 +244,30 @@ static const FwdTxfm2dFunc fwd_txfm_2d_N4_neon_func[TX_SIZES_ALL] = {
     NULL,
 };
 
+static const FwdTxfm2dFunc fwd_txfm_2d_N2_neon_func[TX_SIZES_ALL] = {
+    svt_av1_fwd_txfm2d_4x4_N2_neon,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+};
+
 #endif /* ARCH_AARCH64*/
 
-#ifdef ARCH_X86_64
 static const FwdTxfm2dFunc fwd_txfm_2d_N2_c_func[TX_SIZES_ALL] = {
     svt_aom_transform_two_d_4x4_N2_c,   svt_aom_transform_two_d_8x8_N2_c,
     svt_aom_transform_two_d_16x16_N2_c, svt_aom_transform_two_d_32x32_N2_c,
@@ -259,7 +280,6 @@ static const FwdTxfm2dFunc fwd_txfm_2d_N2_c_func[TX_SIZES_ALL] = {
     svt_av1_fwd_txfm2d_32x8_N2_c,       svt_av1_fwd_txfm2d_16x64_N2_c,
     svt_av1_fwd_txfm2d_64x16_N2_c,
 };
-#endif
 
 static const FwdTxfm2dFunc fwd_txfm_2d_N4_c_func[TX_SIZES_ALL] = {
     svt_aom_transform_two_d_4x4_N4_c,   svt_aom_transform_two_d_8x8_N4_c,
@@ -626,5 +646,15 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(N4_SHAPE),
                        ::testing::Values(fwd_txfm_2d_N4_c_func),
                        ::testing::Values(fwd_txfm_2d_N4_neon_func)));
+
+INSTANTIATE_TEST_SUITE_P(
+    N2_NEON, FwdTxfm2dAsmTest,
+    ::testing::Combine(::testing::Range(static_cast<int>(TX_4X4),
+                                        static_cast<int>(TX_SIZES_ALL), 1),
+                       ::testing::Values(static_cast<int>(EB_EIGHT_BIT),
+                                         static_cast<int>(EB_TEN_BIT)),
+                       ::testing::Values(N2_SHAPE),
+                       ::testing::Values(fwd_txfm_2d_N2_c_func),
+                       ::testing::Values(fwd_txfm_2d_N2_neon_func)));
 #endif
 }  // namespace
