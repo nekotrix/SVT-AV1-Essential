@@ -17,6 +17,7 @@ add_library(ASM_NEON OBJECT)
 target_sources(
   ASM_NEON
   PUBLIC aom_convolve8_neon.c
+  PUBLIC aom_sum_squares_neon.c
   PUBLIC av1_inv_txfm_neon.c
   PUBLIC av1_inv_txfm_neon.c
   PUBLIC av1_quantize_neon.c
