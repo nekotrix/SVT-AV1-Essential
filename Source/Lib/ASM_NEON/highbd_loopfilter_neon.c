@@ -473,3 +473,255 @@ void svt_aom_highbd_lpf_horizontal_8_neon(uint16_t *s, int pitch, const uint8_t 
                   vget_high_u16(p1q1_output),
                   vget_high_u16(p2q2_output));
 }
+
+static INLINE void filter14(const uint16x8_t p6q6, const uint16x8_t p5q5, const uint16x8_t p4q4, const uint16x8_t p3q3,
+                            const uint16x8_t p2q2, const uint16x8_t p1q1, const uint16x8_t p0q0,
+                            uint16x8_t *const p5q5_output, uint16x8_t *const p4q4_output, uint16x8_t *const p3q3_output,
+                            uint16x8_t *const p2q2_output, uint16x8_t *const p1q1_output,
+                            uint16x8_t *const p0q0_output) {
+    // Sum p5 and q5 output from opposite directions.
+    // p5 = (7 * p6) + (2 * p5) + (2 * p4) + p3 + p2 + p1 + p0 + q0
+    //      ^^^^^^^^
+    // q5 = p0 + q0 + q1 + q2 + q3 + (2 * q4) + (2 * q5) + (7 * q6)
+    //                                                     ^^^^^^^^
+    const uint16x8_t p6q6_x7 = vsubq_u16(vshlq_n_u16(p6q6, 3), p6q6);
+
+    // p5 = (7 * p6) + (2 * p5) + (2 * p4) + p3 + p2 + p1 + p0 + q0
+    //                 ^^^^^^^^^^^^^^^^^^^
+    // q5 = p0 + q0 + q1 + q2 + q3 + (2 * q4) + (2 * q5) + (7 * q6)
+    //                               ^^^^^^^^^^^^^^^^^^^
+    const uint16x8_t p45q45 = vaddq_u16(p5q5, p4q4);
+    uint16x8_t       sum    = vmlaq_n_u16(p6q6_x7, p45q45, 2);
+
+    // p5 = (7 * p6) + (2 * p5) + (2 * p4) + p3 + p2 + p1 + p0 + q0
+    //                                       ^^^^^^^
+    // q5 = p0 + q0 + q1 + q2 + q3 + (2 * q4) + (2 * q5) + (7 * q6)
+    //                     ^^^^^^^
+    sum = vaddq_u16(vaddq_u16(p3q3, p2q2), sum);
+
+    // p5 = (7 * p6) + (2 * p5) + (2 * p4) + p3 + p2 + p1 + p0 + q0
+    //                                                 ^^^^^^^
+    // q5 = p0 + q0 + q1 + q2 + q3 + (2 * q4) + (2 * q5) + (7 * q6)
+    //           ^^^^^^^
+    sum = vaddq_u16(vaddq_u16(p1q1, p0q0), sum);
+
+    // p5 = (7 * p6) + (2 * p5) + (2 * p4) + p3 + p2 + p1 + p0 + q0
+    //                                                           ^^
+    // q5 = p0 + q0 + q1 + q2 + q3 + (2 * q4) + (2 * q5) + (7 * q6)
+    //      ^^
+    const uint16x8_t q0p0 = vextq_u16(p0q0, p0q0, 4);
+    sum                   = vaddq_u16(sum, q0p0);
+
+    *p5q5_output = vrshrq_n_u16(sum, 4);
+
+    // Convert to p4 and q4 output:
+    // p4 = p5 - (2 * p6) + p3 + q1
+    // q4 = q5 - (2 * q6) + q3 + p1
+    sum                   = vsubq_u16(sum, vshlq_n_u16(p6q6, 1));
+    const uint16x8_t q1p1 = vextq_u16(p1q1, p1q1, 4);
+    sum                   = vaddq_u16(vaddq_u16(p3q3, q1p1), sum);
+
+    *p4q4_output = vrshrq_n_u16(sum, 4);
+
+    // Convert to p3 and q3 output:
+    // p3 = p4 - p6 - p5 + p2 + q2
+    // q3 = q4 - q6 - q5 + q2 + p2
+    sum                   = vsubq_u16(sum, vaddq_u16(p6q6, p5q5));
+    const uint16x8_t q2p2 = vextq_u16(p2q2, p2q2, 4);
+    sum                   = vaddq_u16(vaddq_u16(p2q2, q2p2), sum);
+
+    *p3q3_output = vrshrq_n_u16(sum, 4);
+
+    // Convert to p2 and q2 output:
+    // p2 = p3 - p6 - p4 + p1 + q3
+    // q2 = q3 - q6 - q4 + q1 + p3
+    sum                   = vsubq_u16(sum, vaddq_u16(p6q6, p4q4));
+    const uint16x8_t q3p3 = vextq_u16(p3q3, p3q3, 4);
+    sum                   = vaddq_u16(vaddq_u16(p1q1, q3p3), sum);
+
+    *p2q2_output = vrshrq_n_u16(sum, 4);
+
+    // Convert to p1 and q1 output:
+    // p1 = p2 - p6 - p3 + p0 + q4
+    // q1 = q2 - q6 - q3 + q0 + p4
+    sum                   = vsubq_u16(sum, vaddq_u16(p6q6, p3q3));
+    const uint16x8_t q4p4 = vextq_u16(p4q4, p4q4, 4);
+    sum                   = vaddq_u16(vaddq_u16(p0q0, q4p4), sum);
+
+    *p1q1_output = vrshrq_n_u16(sum, 4);
+
+    // Convert to p0 and q0 output:
+    // p0 = p1 - p6 - p2 + q0 + q5
+    // q0 = q1 - q6 - q2 + p0 + p5
+    sum                   = vsubq_u16(sum, vaddq_u16(p6q6, p2q2));
+    const uint16x8_t q5p5 = vextq_u16(p5q5, p5q5, 4);
+    sum                   = vaddq_u16(vaddq_u16(q0p0, q5p5), sum);
+
+    *p0q0_output = vrshrq_n_u16(sum, 4);
+}
+
+void svt_aom_highbd_lpf_horizontal_14_neon(uint16_t *s, int pitch, const uint8_t *blimit, const uint8_t *limit,
+                                           const uint8_t *thresh, int bd) {
+    uint16x4_t src[14];
+    load_u16_4x14(s - 7 * pitch,
+                  pitch,
+                  &src[0],
+                  &src[1],
+                  &src[2],
+                  &src[3],
+                  &src[4],
+                  &src[5],
+                  &src[6],
+                  &src[7],
+                  &src[8],
+                  &src[9],
+                  &src[10],
+                  &src[11],
+                  &src[12],
+                  &src[13]);
+
+    // Adjust thresholds to bitdepth.
+    const int        outer_thresh = *blimit << (bd - 8);
+    const int        inner_thresh = *limit << (bd - 8);
+    const int        hev_thresh   = *thresh << (bd - 8);
+    const uint16x4_t outer_mask   = outer_threshold(src[5], src[6], src[7], src[8], outer_thresh);
+    uint16x4_t       hev_mask;
+    uint16x4_t       needs_filter_mask;
+    uint16x4_t       is_flat4_mask;
+    const uint16x8_t p0q0 = vcombine_u16(src[6], src[7]);
+    const uint16x8_t p1q1 = vcombine_u16(src[5], src[8]);
+    const uint16x8_t p2q2 = vcombine_u16(src[4], src[9]);
+    const uint16x8_t p3q3 = vcombine_u16(src[3], src[10]);
+    filter8_masks(p3q3,
+                  p2q2,
+                  p1q1,
+                  p0q0,
+                  hev_thresh,
+                  outer_mask,
+                  inner_thresh,
+                  bd,
+                  &needs_filter_mask,
+                  &is_flat4_mask,
+                  &hev_mask);
+
+    if (vget_lane_u64(vreinterpret_u64_u16(needs_filter_mask), 0) == 0) {
+        // None of the values will be filtered.
+        return;
+    }
+    const uint16x8_t p4q4 = vcombine_u16(src[2], src[11]);
+    const uint16x8_t p5q5 = vcombine_u16(src[1], src[12]);
+    const uint16x8_t p6q6 = vcombine_u16(src[0], src[13]);
+    // Mask to choose between the outputs of filter8 and filter14.
+    // As with the derivation of |is_flat4_mask|, the question of whether to use
+    // filter14 is only raised where |is_flat4_mask| is true.
+    const uint16x4_t is_flat4_outer_mask = vand_u16(
+        is_flat4_mask, is_flat4(vabdq_u16(p0q0, p4q4), vabdq_u16(p0q0, p5q5), vabdq_u16(p0q0, p6q6), bd));
+
+    uint16x8_t p0q0_output, p1q1_output, p2q2_output, p3q3_output, p4q4_output, p5q5_output;
+    uint16x8_t f8_p2q2, f8_p1q1, f8_p0q0;
+    uint16x8_t f14_p5q5, f14_p4q4, f14_p3q3, f14_p2q2, f14_p1q1, f14_p0q0;
+    if ((vaddlv_u16(is_flat4_outer_mask) == (1 << 18) - 4)) {
+        // filter14() applies to all values.
+        filter14(
+            p6q6, p5q5, p4q4, p3q3, p2q2, p1q1, p0q0, &f14_p5q5, &f14_p4q4, &f14_p3q3, &f14_p2q2, &f14_p1q1, &f14_p0q0);
+        p5q5_output = f14_p5q5;
+        p4q4_output = f14_p4q4;
+        p3q3_output = f14_p3q3;
+        p2q2_output = f14_p2q2;
+        p1q1_output = f14_p1q1;
+        p0q0_output = f14_p0q0;
+    } else if ((vaddlv_u16(is_flat4_mask) == (1 << 18) - 4)) {
+        // filter8() applies to all values.
+        filter8(p3q3, p2q2, p1q1, p0q0, &f8_p2q2, &f8_p1q1, &f8_p0q0);
+        p5q5_output = p5q5;
+        p4q4_output = p4q4;
+        p3q3_output = p3q3;
+        p2q2_output = f8_p2q2;
+        p1q1_output = f8_p1q1;
+        p0q0_output = f8_p0q0;
+    } else {
+        // Copy the masks to the high bits for packed comparisons later.
+        const uint16x8_t hev_mask_8          = vcombine_u16(hev_mask, hev_mask);
+        const uint16x8_t needs_filter_mask_8 = vcombine_u16(needs_filter_mask, needs_filter_mask);
+
+        uint16x8_t       f4_p1q1;
+        uint16x8_t       f4_p0q0;
+        const uint16x8_t p0q1 = vcombine_u16(src[6], src[8]);
+        filter4(p0q0, p0q1, p1q1, hev_mask, bd, &f4_p1q1, &f4_p0q0);
+        f4_p1q1 = vbslq_u16(hev_mask_8, p1q1, f4_p1q1);
+        // Because we did not return after testing |needs_filter_mask| we know it is
+        // nonzero. |is_flat4_mask| controls whether the needed filter is filter4 or
+        // filter8. Therefore if it is false when |needs_filter_mask| is true, filter8
+        // output is not used.
+        const uint64x1_t need_filter8 = vreinterpret_u64_u16(is_flat4_mask);
+        if (vget_lane_u64(need_filter8, 0) == 0) {
+            // filter8() and filter14() do not apply, but filter4() applies to one or
+            // more values.
+            p5q5_output = p5q5;
+            p4q4_output = p4q4;
+            p3q3_output = p3q3;
+            p2q2_output = p2q2;
+            p1q1_output = vbslq_u16(needs_filter_mask_8, f4_p1q1, p1q1);
+            p0q0_output = vbslq_u16(needs_filter_mask_8, f4_p0q0, p0q0);
+        } else {
+            const uint16x8_t use_filter8_mask = vcombine_u16(is_flat4_mask, is_flat4_mask);
+            filter8(p3q3, p2q2, p1q1, p0q0, &f8_p2q2, &f8_p1q1, &f8_p0q0);
+            const uint64x1_t need_filter14 = vreinterpret_u64_u16(is_flat4_outer_mask);
+            if (vget_lane_u64(need_filter14, 0) == 0) {
+                // filter14() does not apply, but filter8() and filter4() apply to one or
+                // more values.
+                p5q5_output = p5q5;
+                p4q4_output = p4q4;
+                p3q3_output = p3q3;
+                p2q2_output = vbslq_u16(use_filter8_mask, f8_p2q2, p2q2);
+                p1q1_output = vbslq_u16(use_filter8_mask, f8_p1q1, f4_p1q1);
+                p1q1_output = vbslq_u16(needs_filter_mask_8, p1q1_output, p1q1);
+                p0q0_output = vbslq_u16(use_filter8_mask, f8_p0q0, f4_p0q0);
+                p0q0_output = vbslq_u16(needs_filter_mask_8, p0q0_output, p0q0);
+            } else {
+                // All filters may contribute values to final outputs.
+                const uint16x8_t use_filter14_mask = vcombine_u16(is_flat4_outer_mask, is_flat4_outer_mask);
+                filter14(p6q6,
+                         p5q5,
+                         p4q4,
+                         p3q3,
+                         p2q2,
+                         p1q1,
+                         p0q0,
+                         &f14_p5q5,
+                         &f14_p4q4,
+                         &f14_p3q3,
+                         &f14_p2q2,
+                         &f14_p1q1,
+                         &f14_p0q0);
+                p5q5_output = vbslq_u16(use_filter14_mask, f14_p5q5, p5q5);
+                p4q4_output = vbslq_u16(use_filter14_mask, f14_p4q4, p4q4);
+                p3q3_output = vbslq_u16(use_filter14_mask, f14_p3q3, p3q3);
+                p2q2_output = vbslq_u16(use_filter14_mask, f14_p2q2, f8_p2q2);
+                p2q2_output = vbslq_u16(use_filter8_mask, p2q2_output, p2q2);
+                p2q2_output = vbslq_u16(needs_filter_mask_8, p2q2_output, p2q2);
+                p1q1_output = vbslq_u16(use_filter14_mask, f14_p1q1, f8_p1q1);
+                p1q1_output = vbslq_u16(use_filter8_mask, p1q1_output, f4_p1q1);
+                p1q1_output = vbslq_u16(needs_filter_mask_8, p1q1_output, p1q1);
+                p0q0_output = vbslq_u16(use_filter14_mask, f14_p0q0, f8_p0q0);
+                p0q0_output = vbslq_u16(use_filter8_mask, p0q0_output, f4_p0q0);
+                p0q0_output = vbslq_u16(needs_filter_mask_8, p0q0_output, p0q0);
+            }
+        }
+    }
+
+    store_u16_4x12(s - 6 * pitch,
+                   pitch,
+                   vget_low_u16(p5q5_output),
+                   vget_low_u16(p4q4_output),
+                   vget_low_u16(p3q3_output),
+                   vget_low_u16(p2q2_output),
+                   vget_low_u16(p1q1_output),
+                   vget_low_u16(p0q0_output),
+                   vget_high_u16(p0q0_output),
+                   vget_high_u16(p1q1_output),
+                   vget_high_u16(p2q2_output),
+                   vget_high_u16(p3q3_output),
+                   vget_high_u16(p4q4_output),
+                   vget_high_u16(p5q5_output));
+}
