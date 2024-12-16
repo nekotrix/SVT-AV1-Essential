@@ -14,6 +14,7 @@
 #include "common_dsp_rtcd.h"
 #include "definitions.h"
 #include "mem_neon.h"
+#include "transpose_neon.h"
 
 static INLINE int16x4_t clip3_s16(const int16x4_t val, const int16x4_t low, const int16x4_t high) {
     return vmin_s16(vmax_s16(val, low), high);
@@ -150,6 +151,56 @@ void svt_aom_highbd_lpf_horizontal_4_neon(uint16_t *s, int pitch, const uint8_t 
                   vget_low_u16(p0q0_output),
                   vget_high_u16(p0q0_output),
                   vget_high_u16(p1q1_output));
+}
+void svt_aom_highbd_lpf_vertical_4_neon(uint16_t *s, int pitch, const uint8_t *blimit, const uint8_t *limit,
+                                        const uint8_t *thresh, int bd) {
+    // Offset by 2 uint16_t values to load from first p1 position.
+    uint16x4_t src[4];
+    load_u16_4x4(s - 2, pitch, &src[0], &src[1], &src[2], &src[3]);
+    transpose_array_inplace_u16_4x4(src);
+
+    // Adjust thresholds to bitdepth.
+    const int        outer_thresh = *blimit << (bd - 8);
+    const int        inner_thresh = *limit << (bd - 8);
+    const int        hev_thresh   = *thresh << (bd - 8);
+    const uint16x4_t outer_mask   = outer_threshold(src[0], src[1], src[2], src[3], outer_thresh);
+    uint16x4_t       hev_mask;
+    uint16x4_t       needs_filter4_mask;
+    const uint16x8_t p0q0 = vcombine_u16(src[1], src[2]);
+    const uint16x8_t p1q1 = vcombine_u16(src[0], src[3]);
+    filter4_masks(p0q0, p1q1, hev_thresh, outer_mask, inner_thresh, &hev_mask, &needs_filter4_mask);
+
+    if (vget_lane_u64(vreinterpret_u64_u16(needs_filter4_mask), 0) == 0) {
+        // None of the values will be filtered.
+        return;
+    }
+
+    // Copy the masks to the high bits for packed comparisons later.
+    const uint16x8_t hev_mask_8           = vcombine_u16(hev_mask, hev_mask);
+    const uint16x8_t needs_filter4_mask_8 = vcombine_u16(needs_filter4_mask, needs_filter4_mask);
+
+    uint16x8_t       f_p1q1;
+    uint16x8_t       f_p0q0;
+    const uint16x8_t p0q1 = vcombine_u16(src[1], src[3]);
+    filter4(p0q0, p0q1, p1q1, hev_mask, bd, &f_p1q1, &f_p0q0);
+
+    // Already integrated the hev mask when calculating the filtered values.
+    const uint16x8_t p0q0_output = vbslq_u16(needs_filter4_mask_8, f_p0q0, p0q0);
+
+    // p1/q1 are unmodified if only hev() is true. This works because it was and'd
+    // with |needs_filter4_mask| previously.
+    const uint16x8_t p1q1_mask   = veorq_u16(hev_mask_8, needs_filter4_mask_8);
+    const uint16x8_t p1q1_output = vbslq_u16(p1q1_mask, f_p1q1, p1q1);
+
+    uint16x4_t output[4] = {
+        vget_low_u16(p1q1_output),
+        vget_low_u16(p0q0_output),
+        vget_high_u16(p0q0_output),
+        vget_high_u16(p1q1_output),
+    };
+    transpose_array_inplace_u16_4x4(output);
+
+    store_u16_4x4(s - 2, pitch, output[0], output[1], output[2], output[3]);
 }
 
 // abs(p1 - p0) <= flat_thresh && abs(q1 - q0) <= flat_thresh &&
