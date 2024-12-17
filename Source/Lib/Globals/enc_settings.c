@@ -840,7 +840,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
 
     if (config->variance_boost_curve > 2) {
         SVT_ERROR("Instance %u: Variance boost curve must be between 0 and 2\n", channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
 
+    if (config->luminance_qp_bias > 100) {
+        SVT_ERROR("Instance %u: Luminance-based QP bias value must be between 0 and 100\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
 
@@ -989,6 +993,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->variance_octile                   = 6;
     config_ptr->tf_strength                       = 3;
     config_ptr->variance_boost_curve              = 0;
+    config_ptr->luminance_qp_bias                 = 0;
     return return_error;
 }
 static const char *tier_to_str(unsigned in) {
@@ -1105,6 +1110,8 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                      config->film_grain_denoise_apply,
                      config->film_grain_denoise_strength);
         }
+        SVT_INFO("SVT [config]: luminance-based QP bias \t\t\t\t\t: %d\n", config->luminance_qp_bias);
+        SVT_INFO("");
 
         switch (config->enable_tf) {
         case 1:
@@ -1955,6 +1962,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"variance-octile", &config_struct->variance_octile},
         {"variance-boost-curve", &config_struct->variance_boost_curve},
         {"fast-decode", &config_struct->fast_decode},
+        {"luminance-qp-bias", &config_struct->luminance_qp_bias},
         {"enable-tf", &config_struct->enable_tf},
         {"tf-strength", &config_struct->tf_strength},
     };

@@ -915,6 +915,13 @@ typedef struct EbSvtAv1EncConfiguration {
      *  Default is 0. */
     uint8_t variance_boost_curve;
 
+    /* @brief Frame-level luminance-based QP bias to improve quality in low luma scenarios
+     * Works by adjusting frame-level QP based on average luminance across a frame
+     *  0: Disable luminance-based QP bias
+     *  1-100: Enable frame-level luminance-based QP bias. Higher values strengthen the bias
+     *  Default is 0 (disabled). */
+    uint8_t luminance_qp_bias;
+
     /* @brief Signal to the library to enable losless coding
      *
      * Default is false.

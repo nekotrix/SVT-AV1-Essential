@@ -4555,6 +4555,8 @@ static void copy_api_from_app(
     // Temporal filtering strength
     scs->static_config.tf_strength = config_struct->tf_strength;
 
+    // Frame-level luminance-based QP bias
+    scs->static_config.luminance_qp_bias = config_struct->luminance_qp_bias;
     return;
 }
 

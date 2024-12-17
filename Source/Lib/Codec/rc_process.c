@@ -3269,11 +3269,28 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                                 : frm_hdr->quantization_params
                                       .base_q_idx; // do not shut the auto QPS if use_fixed_qindex_offsets 2
 
-                            if (!frame_is_intra_only(pcs->ppcs)) {
+                            if (!frame_is_intra_only(pcs->ppcs))
                                 qindex += scs->static_config.qindex_offsets[pcs->temporal_layer_index];
-                            } else {
+                            else
                                 qindex += scs->static_config.key_frame_qindex_offset;
-                            }
+
+                            qindex = CLIP3(quantizer_to_qindex[scs->static_config.min_qp_allowed],
+                                           quantizer_to_qindex[scs->static_config.max_qp_allowed],
+                                           qindex);
+
+                            frm_hdr->quantization_params.base_q_idx = qindex;
+                        }
+
+                        if (scs->static_config.luminance_qp_bias) {
+                            int32_t qindex = frm_hdr->quantization_params.base_q_idx;
+
+                            // Frame-level luma adjustment; gives more bitrate to darker scenes.
+                            qindex += (int32_t)rint(-pow((255 - pcs->ppcs->avg_luma) /
+                                                             (1024.0 /
+                                                              (pcs->temporal_layer_index * 4 *
+                                                               (0.01 * scs->static_config.luminance_qp_bias))),
+                                                         0.5) *
+                                                    (qindex / 8.0));
 
                             qindex = CLIP3(quantizer_to_qindex[scs->static_config.min_qp_allowed],
                                            quantizer_to_qindex[scs->static_config.max_qp_allowed],

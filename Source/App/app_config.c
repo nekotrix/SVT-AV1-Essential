@@ -193,6 +193,7 @@
 #define VARIANCE_OCTILE_TOKEN "--variance-octile"
 #define TF_STRENGTH_FILTER_TOKEN "--tf-strength"
 #define VARIANCE_BOOST_CURVE_TOKEN "--variance-boost-curve"
+#define LUMINANCE_QP_BIAS_TOKEN "--luminance-qp-bias"
 #define LOSSLESS_TOKEN "--lossless"
 #define AVIF_TOKEN "--avif"
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
@@ -923,6 +924,11 @@ ConfigEntry config_entry_rc[] = {
      TF_STRENGTH_FILTER_TOKEN,
      "[PSY] Adjust temporal filtering strength, default is 1 [0-4]",
      set_cfg_generic_token},
+    // Frame-level luminance-based QP bias
+    {SINGLE_INPUT,
+     LUMINANCE_QP_BIAS_TOKEN,
+     "Adjusts a frame's QP based on its average luma value, default is 0 [0-100]",
+     set_cfg_generic_token},
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};
 
@@ -1357,6 +1363,9 @@ ConfigEntry config_entry[] = {
 
     // TF Strength
     {SINGLE_INPUT, TF_STRENGTH_FILTER_TOKEN, "TemporalFilteringStrength", set_cfg_generic_token},
+
+    // Frame-level luminance-based QP bias
+    {SINGLE_INPUT, LUMINANCE_QP_BIAS_TOKEN, "LuminanceQpBias", set_cfg_generic_token},
 
     // Lossless coding
     {SINGLE_INPUT, LOSSLESS_TOKEN, "Lossless", set_cfg_generic_token},
