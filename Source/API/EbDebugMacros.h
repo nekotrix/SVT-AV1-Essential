@@ -37,6 +37,7 @@ extern "C" {
 #define CLN_LP_LVLS             1 // Change --lp input to represent the levels of parallelization that are actually implemented in the code
 #define FTR_LOSSLESS_SUPPORT    1 // Losless coding support
 #define FTR_STILL_PICTURE       1 // Still picture support
+#define FTR_STARTUP_QP          1 // Add the ability to add an offset to the input-qp for the startup GOP prior to the picture-qp derivation
 
 #define TUNE_MFMV_FD2               1 // Disable MFMV in fd2
 #define TUNE_SB64_FD2               1 // Change QP check for SB64 in fd2

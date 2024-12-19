@@ -256,6 +256,9 @@ EbErrorType svt_aom_picture_decision_context_ctor(
     pd_ctx->sframe_due = 0;
     pd_ctx->last_long_base_pic = 0;
     pd_ctx->enable_startup_mg = false;
+#if FTR_STARTUP_QP
+    pd_ctx->is_startup_gop = false;
+#endif
     return EB_ErrorNone;
 }
 static Bool scene_transition_detector(
@@ -965,6 +968,15 @@ static void get_pred_struct_for_all_frames(
                    ctx->enable_startup_mg = false;
                }
            }
+#if FTR_STARTUP_QP
+           if (pcs->idr_flag && pcs->picture_number == 0) {
+               ctx->is_startup_gop = true;
+           }
+           else if (pcs->idr_flag || pcs->cra_flag) {
+               ctx->is_startup_gop = false;
+           }
+           pcs->is_startup_gop = ctx->is_startup_gop;
+#endif
         }
     }
 }

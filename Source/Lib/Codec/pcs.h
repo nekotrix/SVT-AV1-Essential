@@ -1227,6 +1227,10 @@ typedef struct PictureParentControlSet {
     bool     seq_param_changed;
     uint64_t norm_me_dist;
     uint8_t  tpl_params_ready;
+#if FTR_STARTUP_QP
+    bool is_startup_gop;
+#endif
+
 } PictureParentControlSet;
 
 typedef struct TplDispResults {

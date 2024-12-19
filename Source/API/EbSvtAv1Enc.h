@@ -940,6 +940,18 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint8_t startup_mg_size;
 
+#if FTR_STARTUP_QP
+    /**
+     * @brief startup_qp_offset
+     *
+     * When enabled, an offset will be added to the input-qp of the startup GOP prior to the picture-qp derivation
+     *
+     * Min value is -63.
+     * Max value is 63.
+     * Default is 0.
+     */
+    int8_t startup_qp_offset;
+#endif
     /* @brief reference scaling events for random access mode (resize-mode = 4)
      *
      * evt_num:          total count of events
@@ -996,7 +1008,11 @@ typedef struct EbSvtAv1EncConfiguration {
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
 #if CLN_LP_LVLS
 #if FTR_STILL_PICTURE
+#if FTR_STARTUP_QP
+    uint8_t padding[128 - 3 * sizeof(Bool) - 2 * sizeof(uint8_t) - sizeof(uint32_t) - sizeof(int8_t)];
+#else
     uint8_t padding[128 - 3 * sizeof(Bool) - 2 * sizeof(uint8_t) - sizeof(uint32_t)];
+#endif
 #else
     uint8_t padding[128 - 2 * sizeof(Bool) - 2 * sizeof(uint8_t) - sizeof(uint32_t)];
 #endif

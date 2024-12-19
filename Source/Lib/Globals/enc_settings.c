@@ -405,7 +405,15 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             return_error = EB_ErrorBadParameter;
         }
     }
-
+#if FTR_STARTUP_QP
+    if (config->startup_qp_offset < -63 || config->startup_qp_offset > 63) {
+        SVT_ERROR(
+            "Instance %u : Invalid startup_qp_offset. startup_qp_offset must be [-63 - "
+            "63]\n",
+            channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
+#endif
     if (config->stat_report == 1) {
         SVT_WARN("Instances %u: Enabling StatReport can decrease encoding speed\n", channel_number + 1);
     }
@@ -846,6 +854,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Startup MG size feature only supports CRF/CQP rate control mode\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if FTR_STARTUP_QP
+    if (config->startup_qp_offset != 0 && config->rate_control_mode != 0) {
+        SVT_ERROR("Instance %u: Startup QP offset only supports CRF/CQP rate control mode\n", channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
+#endif
 
     if (config->variance_boost_strength < 1 || config->variance_boost_strength > 4) {
         SVT_ERROR("Instance %u: Variance boost strength must be between 1 and 4\n", channel_number + 1);
@@ -1012,7 +1026,10 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->min_qm_level = 8;
     config_ptr->max_qm_level = 15;
 
-    config_ptr->startup_mg_size                   = 0;
+    config_ptr->startup_mg_size = 0;
+#if FTR_STARTUP_QP
+    config_ptr->startup_qp_offset = 0;
+#endif
     config_ptr->frame_scale_evts.evt_num          = 0;
     config_ptr->frame_scale_evts.resize_denoms    = NULL;
     config_ptr->frame_scale_evts.resize_kf_denoms = NULL;
@@ -2073,6 +2090,9 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         int8_t     *out;
     } int8_opts[] = {
         {"preset", &config_struct->enc_mode},
+#if FTR_STARTUP_QP
+        {"startup-qp-offset", &config_struct->startup_qp_offset},
+#endif
     };
     const size_t int8_opts_size = sizeof(int8_opts) / sizeof(int8_opts[0]);
 

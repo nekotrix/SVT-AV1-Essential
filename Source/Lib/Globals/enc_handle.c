@@ -5266,6 +5266,9 @@ static void copy_api_from_app(
     }
 #endif
     scs->static_config.startup_mg_size = config_struct->startup_mg_size;
+#if FTR_STARTUP_QP
+    scs->static_config.startup_qp_offset = config_struct->startup_qp_offset;
+#endif
     scs->static_config.enable_roi_map = config_struct->enable_roi_map;
 
     // Variance boost

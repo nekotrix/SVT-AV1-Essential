@@ -190,7 +190,9 @@
 #define MAX_QM_LEVEL_TOKEN "--qm-max"
 
 #define STARTUP_MG_SIZE_TOKEN "--startup-mg-size"
-
+#if FTR_STARTUP_QP
+#define STARTUP_QP_OFFSET_TOKEN "--startup-qp-offset"
+#endif
 #define ROI_MAP_FILE_TOKEN "--roi-map-file"
 
 #define ENABLE_VARIANCE_BOOST_TOKEN "--enable-variance-boost"
@@ -999,6 +1001,13 @@ ConfigEntry config_entry_intra_refresh[] = {
      "is 0 [0: OFF, "
      "2: 3 temporal layers, 3: 4 temporal layers, 4: 5 temporal layers]",
      set_cfg_generic_token},
+#if FTR_STARTUP_QP
+    {SINGLE_INPUT,
+     STARTUP_QP_OFFSET_TOKEN,
+     "Specify an offset to the input-qp of the startup GOP prior to the picture-qp derivation, default "
+     "is 0 [-63,63]",
+     set_cfg_generic_token},
+#endif
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};
 
@@ -1314,7 +1323,9 @@ ConfigEntry config_entry[] = {
     {SINGLE_INPUT, PRED_STRUCT_TOKEN, "PredStructure", set_cfg_generic_token},
     {SINGLE_INPUT, FORCE_KEY_FRAMES_TOKEN, "ForceKeyFrames", set_cfg_force_key_frames},
     {SINGLE_INPUT, STARTUP_MG_SIZE_TOKEN, "StartupMgSize", set_cfg_generic_token},
-
+#if FTR_STARTUP_QP
+    {SINGLE_INPUT, STARTUP_QP_OFFSET_TOKEN, "StartupGopQpOffset", set_cfg_generic_token},
+#endif
     // AV1 Specific Options
     {SINGLE_INPUT, TILE_ROW_TOKEN, "TileRow", set_cfg_generic_token},
     {SINGLE_INPUT, TILE_COL_TOKEN, "TileCol", set_cfg_generic_token},
