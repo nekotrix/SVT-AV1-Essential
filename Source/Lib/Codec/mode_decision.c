@@ -4802,6 +4802,8 @@ static int get_superblock_tpl_column_end(PictureParentControlSet* ppcs, int mi_c
 
 void aom_av1_set_ssim_rdmult(struct ModeDecisionContext *ctx, PictureControlSet *pcs,
                          const int mi_row, const int mi_col) {
+  if (!pcs->ppcs->scs->static_config.enable_tpl_la) // tuning rdmult with SSIM requires TPL ME data
+    return;
   const AV1_COMMON *const cm = pcs->ppcs->av1_cm;
   BlockSize bsize = ctx->blk_geom->bsize;
 
@@ -5122,4 +5124,3 @@ uint64_t svt_spatial_full_distortion_ssim_kernel(uint8_t* input, uint32_t input_
 
     return spatial_distortion;
 }
-

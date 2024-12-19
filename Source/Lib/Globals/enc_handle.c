@@ -522,16 +522,16 @@ static uint32_t get_max_wavefronts(uint32_t width, uint32_t height, uint32_t blk
     // return ((height + blk_size / 2) / blk_size) < ((width  + blk_size / 2) / blk_size) ? ((height + blk_size / 2) / blk_size) : ((width  + blk_size / 2) / blk_size);
     UNUSED(width);
 
-    return (height + blk_size / 2) / blk_size;
+    return MAX(1, (height + blk_size / 2) / blk_size);
 }
 /*
-* When the picture width is a single SB, must use a single segment (EncDec segments
+* When the picture dimension is a single SB, must use a single segment (EncDec segments
 * assume a width of at least 2 SBs)
 *
-* Return true if the pic width is a single SB width
+* Return true if the pic dimension is a single SB width
 */
-static Bool is_pic_width_single_sb(uint32_t sb_size, uint16_t pic_width) {
-    return ((pic_width + (sb_size >> 1)) / sb_size) == 1;
+static Bool is_pic_dimension_single_sb(uint32_t sb_size, uint16_t pic_dimension) {
+    return ((pic_dimension + sb_size - 1) / sb_size) == 1;
 }
 /*********************************************************************************
 * set_segments_numbers: Set the segment numbers for difference processes
@@ -541,7 +541,7 @@ void set_segments_numbers(SequenceControlSet* scs) {
 
     const uint32_t lp = scs->lp;
 
-    const uint32_t enc_dec_seg_h = (lp == PARALLEL_LEVEL_1 || is_pic_width_single_sb(scs->super_block_size, scs->max_input_luma_width)) ? 1 :
+    const uint32_t enc_dec_seg_h = (lp == PARALLEL_LEVEL_1 || is_pic_dimension_single_sb(scs->super_block_size, scs->max_input_luma_width)) ? 1 :
         (scs->super_block_size == 128) ?
         ((scs->max_input_luma_height + 64) / 128) :
         ((scs->max_input_luma_height + 32) / 64);
@@ -606,7 +606,7 @@ void set_segments_numbers(SequenceControlSet* scs) {
     scs->enc_dec_segment_col_count_array[5] = enc_dec_seg_w;
 
     // TPL processed in 64x64 blocks, so check width against 64x64 block size (even if SB is 128x128)
-    const uint32_t tpl_seg_h = (lp == PARALLEL_LEVEL_1 || is_pic_width_single_sb(64, scs->max_input_luma_width)) ? 1 :
+    const uint32_t tpl_seg_h = (lp == PARALLEL_LEVEL_1 || is_pic_dimension_single_sb(64, scs->max_input_luma_width)) ? 1 :
         ((scs->max_input_luma_height + 32) / 64);
 
     const uint32_t tpl_seg_w = (lp == PARALLEL_LEVEL_1) ? 1 :
@@ -639,11 +639,11 @@ void set_segments_numbers(SequenceControlSet    *scs) {
     uint32_t me_seg_h, me_seg_w;
     unsigned int core_count = scs->core_count;
 
-    uint32_t enc_dec_seg_h = (core_count == SINGLE_CORE_COUNT || is_pic_width_single_sb(scs->super_block_size, scs->max_input_luma_width)) ? 1 :
+    uint32_t enc_dec_seg_h = (core_count == SINGLE_CORE_COUNT || is_pic_dimension_single_sb(scs->super_block_size, scs->max_input_luma_width)) ? 1 :
         (scs->super_block_size == 128) ?
         ((scs->max_input_luma_height + 64) / 128) :
         ((scs->max_input_luma_height + 32) / 64);
-    uint32_t enc_dec_seg_w = (core_count == SINGLE_CORE_COUNT) ? 1 :
+    uint32_t enc_dec_seg_w = (core_count == SINGLE_CORE_COUNT) || is_pic_dimension_single_sb(scs->super_block_size, scs->max_input_luma_height) ? 1 :
         (scs->super_block_size == 128) ?
         ((scs->max_input_luma_width + 64) / 128) :
         ((scs->max_input_luma_width + 32) / 64);
@@ -704,7 +704,7 @@ void set_segments_numbers(SequenceControlSet    *scs) {
     scs->enc_dec_segment_col_count_array[5] = enc_dec_seg_w;
 
     // TPL processed in 64x64 blocks, so check width against 64x64 block size (even if SB is 128x128)
-    uint32_t tpl_seg_h = (core_count == SINGLE_CORE_COUNT || is_pic_width_single_sb(64, scs->max_input_luma_width)) ? 1 :
+    uint32_t tpl_seg_h = (core_count == SINGLE_CORE_COUNT || is_pic_dimension_single_sb(64, scs->max_input_luma_width)) ? 1 :
         ((scs->max_input_luma_height + 32) / 64);
 
     uint32_t tpl_seg_w = (core_count == SINGLE_CORE_COUNT) ? 1 :
@@ -4866,9 +4866,9 @@ static void copy_api_from_app(
 #endif
     // Set Picture Parameters for statistics gathering
     scs->picture_analysis_number_of_regions_per_width =
-        HIGHER_THAN_CLASS_1_REGION_SPLIT_PER_WIDTH;
+        scs->max_input_luma_width >= 64 ? HIGHER_THAN_CLASS_1_REGION_SPLIT_PER_WIDTH : 1;
     scs->picture_analysis_number_of_regions_per_height =
-        HIGHER_THAN_CLASS_1_REGION_SPLIT_PER_HEIGHT;
+        scs->max_input_luma_height >= 64 ? HIGHER_THAN_CLASS_1_REGION_SPLIT_PER_WIDTH : 1;
 
     scs->pic_based_rate_est = FALSE;
     scs->block_mean_calc_prec        = BLOCK_MEAN_PREC_SUB;

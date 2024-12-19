@@ -55,10 +55,10 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 
 | **Configuration file parameter** | **Command line**            | **Range**                      | **Default** | **Description**                                                                                               |
 |----------------------------------|-----------------------------|--------------------------------|-------------|---------------------------------------------------------------------------------------------------------------|
-| **SourceWidth**                  | -w                          | [64-16384]                     | None        | Frame width in pixels, inferred if y4m.                                                                       |
-| **SourceHeight**                 | -h                          | [64-8704]                      | None        | Frame height in pixels, inferred if y4m.                                                                      |
-| **ForcedMaximumFrameWidth**      | --forced-max-frame-width    | [64-16384]                     | None        | Maximum frame width value to force.                                                                           |
-| **ForcedMaximumFrameheight**     | --forced-max-frame-height   | [64-8704]                      | None        | Maximum frame height value to force.                                                                          |
+| **SourceWidth**                  | -w                          | [4-16384]                     | None        | Frame width in pixels, inferred if y4m.                                                                       |
+| **SourceHeight**                 | -h                          | [4-8704]                      | None        | Frame height in pixels, inferred if y4m.                                                                      |
+| **ForcedMaximumFrameWidth**      | --forced-max-frame-width    | [4-16384]                     | None        | Maximum frame width value to force.                                                                           |
+| **ForcedMaximumFrameheight**     | --forced-max-frame-height   | [4-8704]                      | None        | Maximum frame height value to force.                                                                          |
 | **FrameToBeEncoded**             | -n                          | [0-`(2^63)-1`]                 | 0           | Number of frames to encode. If `n` is larger than the input, the encoder will loop back and continue encoding |
 | **FrameToBeSkipped**             | --skip                      | [0-`(2^63)-1`]                 | 0           | Number of frames to skip. |
 | **BufferedInput**                | --nb                        | [-1, 1-`(2^31)-1`]             | -1          | Buffer `n` input frames into memory and use them to encode. Only buffered frames will be encoded.             |
