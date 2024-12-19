@@ -1594,7 +1594,7 @@ static void pad_2b_compressed_input_picture(uint8_t *src_pic, uint32_t src_strid
                 last_byte &= 0xc0;
                 last_pixel = (last_byte >> 6) & 0x03;
 
-                new_byte = last_byte | (last_pixel << 4) | (last_pixel << 2) | last_pixel;
+                new_byte                             = last_byte | (last_pixel << 4) | (last_pixel << 2) | last_pixel;
                 src_pic[last_col + row * src_stride] = new_byte;
 
                 new_byte = (last_pixel << 6) | (last_pixel << 4) | (last_pixel << 2) | last_pixel;
@@ -1606,7 +1606,7 @@ static void pad_2b_compressed_input_picture(uint8_t *src_pic, uint32_t src_strid
                 last_byte &= 0xf0;
                 last_pixel = (last_byte >> 4) & 0x03;
 
-                new_byte = last_byte | (last_pixel << 2) | last_pixel;
+                new_byte                             = last_byte | (last_pixel << 2) | last_pixel;
                 src_pic[last_col + row * src_stride] = new_byte;
 
                 new_byte = (last_pixel << 6) | (last_pixel << 4) | (last_pixel << 2) | last_pixel;
@@ -1618,7 +1618,7 @@ static void pad_2b_compressed_input_picture(uint8_t *src_pic, uint32_t src_strid
                 last_byte &= 0xfc;
                 last_pixel = (last_byte >> 2) & 0x03;
 
-                new_byte = last_byte | last_pixel;
+                new_byte                             = last_byte | last_pixel;
                 src_pic[last_col + row * src_stride] = new_byte;
 
                 new_byte = (last_pixel << 6) | (last_pixel << 4) | (last_pixel << 2) | last_pixel;
@@ -1638,7 +1638,7 @@ static void pad_2b_compressed_input_picture(uint8_t *src_pic, uint32_t src_strid
                 last_byte &= 0xc0;
                 last_pixel = (last_byte >> 6) & 0x03;
 
-                new_byte = last_byte | (last_pixel << 4) | (last_pixel << 2) | last_pixel;
+                new_byte                             = last_byte | (last_pixel << 4) | (last_pixel << 2) | last_pixel;
                 src_pic[last_col + row * src_stride] = new_byte;
             }
         } else if (pad_right == 2) {
@@ -1647,7 +1647,7 @@ static void pad_2b_compressed_input_picture(uint8_t *src_pic, uint32_t src_strid
                 last_byte &= 0xf0;
                 last_pixel = (last_byte >> 4) & 0x03;
 
-                new_byte = last_byte | (last_pixel << 2) | last_pixel;
+                new_byte                             = last_byte | (last_pixel << 2) | last_pixel;
                 src_pic[last_col + row * src_stride] = new_byte;
             }
         } else if (pad_right == 1) {
@@ -1656,7 +1656,7 @@ static void pad_2b_compressed_input_picture(uint8_t *src_pic, uint32_t src_strid
                 last_byte &= 0xfc;
                 last_pixel = (last_byte >> 2) & 0x03;
 
-                new_byte = last_byte | last_pixel;
+                new_byte                             = last_byte | last_pixel;
                 src_pic[last_col + row * src_stride] = new_byte;
             }
         } else {

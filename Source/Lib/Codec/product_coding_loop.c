@@ -9953,7 +9953,7 @@ static EbPictureBufferDesc *pad_hbd_pictures(SequenceControlSet *scs, PictureCon
                                         scs->sb_size - sb_width,
                                         scs->sb_size - sb_height);
 
-        uint32_t chroma_pad_width = (scs->sb_size - sb_width) >> 1;
+        uint32_t chroma_pad_width  = (scs->sb_size - sb_width) >> 1;
         uint32_t chroma_pad_height = (scs->sb_size - sb_height) >> 1;
 
         svt_aom_pad_input_picture_16bit((uint16_t *)ctx->input_sample16bit_buffer->buffer_cb,

@@ -421,7 +421,7 @@ static void svt_av1_add_film_grain(EbPictureBufferDesc *src, EbPictureBufferDesc
                           dst->height,
                           use_high_bit_depth);
 
-    const uint64_t chroma_width = (dst->width + chroma_subsamp_x) >> chroma_subsamp_x;
+    const uint64_t chroma_width  = (dst->width + chroma_subsamp_x) >> chroma_subsamp_x;
     const uint64_t chroma_height = (dst->width + chroma_subsamp_y) >> chroma_subsamp_y;
 
     svt_aom_fgn_copy_rect(src->buffer_cb +

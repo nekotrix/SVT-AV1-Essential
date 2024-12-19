@@ -569,10 +569,10 @@ static void mmap_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBuffer
     const uint32_t input_padded_height = app_cfg->input_padded_height;
     EbSvtIOFormat *input_ptr           = (EbSvtIOFormat *)header_ptr->p_buffer;
 
-    const uint8_t color_format  = app_cfg->config.encoder_color_format;
-    const uint8_t subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint8_t subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
-    const uint64_t chroma_width = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
+    const uint8_t  color_format  = app_cfg->config.encoder_color_format;
+    const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
+    const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
+    const uint64_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
     const uint64_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
 
     input_ptr->y_stride  = input_padded_width;
@@ -587,7 +587,7 @@ static void mmap_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBuffer
     }
     size_t luma_read_size   = (size_t)input_padded_width * input_padded_height << is_16bit;
     size_t chroma_read_size = ((size_t)chroma_width * chroma_height << is_16bit);
-    size_t read_size = luma_read_size + 2 * chroma_read_size;
+    size_t read_size        = luma_read_size + 2 * chroma_read_size;
 
     app_cfg->mmap.cur_offset += app_cfg->mmap.y4m_frm_hdr;
     input_ptr->luma = svt_mmap(&app_cfg->mmap, app_cfg->mmap.cur_offset, luma_read_size);
@@ -628,10 +628,10 @@ static void normal_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBuff
     FILE          *input_file          = app_cfg->input_file;
     EbSvtIOFormat *input_ptr           = (EbSvtIOFormat *)header_ptr->p_buffer;
 
-    const uint8_t color_format  = app_cfg->config.encoder_color_format;
-    const uint8_t subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint8_t subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
-    const uint64_t chroma_width = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
+    const uint8_t  color_format  = app_cfg->config.encoder_color_format;
+    const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
+    const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
+    const uint64_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
     const uint64_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
 
     input_ptr->y_stride  = input_padded_width;
@@ -644,11 +644,11 @@ static void normal_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBuff
         /* if input is a y4m file, read next line which contains "FRAME" */
         read_y4m_frame_delimiter(app_cfg->input_file, app_cfg->error_log_file);
     }
-    uint64_t luma_read_size = (uint64_t)input_padded_width * input_padded_height << is_16bit;
+    uint64_t luma_read_size   = (uint64_t)input_padded_width * input_padded_height << is_16bit;
     uint64_t chroma_read_size = chroma_width * chroma_height << is_16bit;
-    uint64_t read_size = luma_read_size + 2 * chroma_read_size;
+    uint64_t read_size        = luma_read_size + 2 * chroma_read_size;
 
-    uint8_t *eb_input_ptr   = input_ptr->luma;
+    uint8_t *eb_input_ptr = input_ptr->luma;
     if (!app_cfg->y4m_input && app_cfg->processed_frame_count == 0 &&
         (app_cfg->input_file == stdin || app_cfg->input_file_is_fifo)) {
         /* 9 bytes were already buffered during the the YUV4MPEG2 header probe */
@@ -694,10 +694,10 @@ static void buffered_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBu
     const uint32_t input_padded_height = app_cfg->input_padded_height;
     EbSvtIOFormat *input_ptr           = (EbSvtIOFormat *)header_ptr->p_buffer;
 
-    const uint8_t color_format  = app_cfg->config.encoder_color_format;
-    const uint8_t subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint8_t subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
-    const uint64_t chroma_width = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
+    const uint8_t  color_format  = app_cfg->config.encoder_color_format;
+    const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
+    const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
+    const uint64_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
     const uint64_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
 
     input_ptr->y_stride  = input_padded_width;
