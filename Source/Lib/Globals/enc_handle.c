@@ -1540,6 +1540,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         input_data.enable_variance_boost = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enable_variance_boost;
         input_data.variance_boost_strength = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.variance_boost_strength;
         input_data.variance_octile = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.variance_octile;
+        input_data.tf_strength = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.tf_strength;
         input_data.static_config = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config;
 
         EB_NEW(
@@ -4549,6 +4550,9 @@ static void copy_api_from_app(
     scs->static_config.enable_variance_boost = config_struct->enable_variance_boost;
     scs->static_config.variance_boost_strength = config_struct->variance_boost_strength;
     scs->static_config.variance_octile = config_struct->variance_octile;
+
+    // Temporal filtering strength
+    scs->static_config.tf_strength = config_struct->tf_strength;
 
     return;
 }

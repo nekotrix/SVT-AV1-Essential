@@ -191,6 +191,7 @@
 #define ENABLE_VARIANCE_BOOST_TOKEN "--enable-variance-boost"
 #define VARIANCE_BOOST_STRENGTH_TOKEN "--variance-boost-strength"
 #define VARIANCE_OCTILE_TOKEN "--variance-octile"
+#define TF_STRENGTH_FILTER_TOKEN "--tf-strength"
 #define LOSSLESS_TOKEN "--lossless"
 #define AVIF_TOKEN "--avif"
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
@@ -916,6 +917,11 @@ ConfigEntry config_entry_rc[] = {
      ROI_MAP_FILE_TOKEN,
      "Enable Region Of Interest and specify a picture based QP Offset map file, default is off",
      set_cfg_roi_map_file},
+    // TF Strength
+    {SINGLE_INPUT,
+     TF_STRENGTH_FILTER_TOKEN,
+     "[PSY] Adjust temporal filtering strength, default is 1 [0-4]",
+     set_cfg_generic_token},
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};
 
@@ -1026,7 +1032,7 @@ ConfigEntry config_entry_specific[] = {
     // --- start: ALTREF_FILTERING_SUPPORT
     {SINGLE_INPUT,
      ENABLE_TF_TOKEN,
-     "Enable ALT-REF (temporally filtered) frames, default is 1 [0-1]",
+     "Enable ALT-REF (temporally filtered) frames, default is 1 [0-2]",
      set_cfg_generic_token},
 
     {SINGLE_INPUT,
@@ -1345,6 +1351,9 @@ ConfigEntry config_entry[] = {
     {SINGLE_INPUT, ENABLE_VARIANCE_BOOST_TOKEN, "EnableVarianceBoost", set_cfg_generic_token},
     {SINGLE_INPUT, VARIANCE_BOOST_STRENGTH_TOKEN, "VarianceBoostStrength", set_cfg_generic_token},
     {SINGLE_INPUT, VARIANCE_OCTILE_TOKEN, "VarianceOctile", set_cfg_generic_token},
+
+    // TF Strength
+    {SINGLE_INPUT, TF_STRENGTH_FILTER_TOKEN, "TemporalFilteringStrength", set_cfg_generic_token},
 
     // Lossless coding
     {SINGLE_INPUT, LOSSLESS_TOKEN, "Lossless", set_cfg_generic_token},

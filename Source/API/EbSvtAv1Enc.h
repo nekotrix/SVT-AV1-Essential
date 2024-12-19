@@ -656,10 +656,11 @@ typedef struct EbSvtAv1EncConfiguration {
 
     /**
      * @brief Enable use of ALT-REF (temporally filtered) frames.
-     *
-     * Default is true.
-     */
-    bool enable_tf;
+     * 0 = off
+     * 1 = on
+     * 2 = adaptive
+     * Default is 1. */
+    uint8_t enable_tf;
 
     bool enable_overlays;
     /**
@@ -874,6 +875,15 @@ typedef struct EbSvtAv1EncConfiguration {
     * 1 = enable ROI
     *  Default is 0. */
     bool enable_roi_map;
+
+    /* Manually adjust temporal filtering strength
+     * 10 + (4 - 0) = 14 (8x weaker)
+     * 10 + (4 - 1) = 13 (4x weaker, PSY default)
+     * 10 + (4 - 2) = 12 (2x weaker)
+     * 10 + (4 - 3) = 11 (mainline default)
+     * 10 + (4 - 4) = 10 (2x stronger) */
+    uint8_t tf_strength;
+
     /* Stores the optional film grain synthesis info */
     AomFilmGrain *fgs_table;
 
@@ -902,11 +912,13 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is false.
      */
     bool lossless;
+
     /* @brief Signal to the library to enable still-picture coding
      *
      * Default is false.
      */
     bool avif;
+
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128];
 } EbSvtAv1EncConfiguration;

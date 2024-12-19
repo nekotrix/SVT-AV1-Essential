@@ -832,6 +832,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Variance boost octile must be between 1 and 8\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+
+    if (config->tf_strength > 4) {
+        SVT_ERROR("Instance %u: Temporal filtering strength must be between 0 and 4\n", channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
+
     return return_error;
 }
 
@@ -929,7 +935,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->recon_enabled = 0;
 
     // Alt-Ref default values
-    config_ptr->enable_tf       = TRUE;
+    config_ptr->enable_tf       = 1;
     config_ptr->enable_overlays = FALSE;
     config_ptr->tune            = 1;
     // Super-resolution default values
@@ -975,6 +981,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->enable_variance_boost             = FALSE;
     config_ptr->variance_boost_strength           = 2;
     config_ptr->variance_octile                   = 6;
+    config_ptr->tf_strength                       = 3;
     return return_error;
 }
 static const char *tier_to_str(unsigned in) {
@@ -1089,6 +1096,15 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                      1,
                      config->film_grain_denoise_apply,
                      config->film_grain_denoise_strength);
+        }
+
+        switch (config->enable_tf) {
+        case 1:
+            if (config->tf_strength != 3)
+                SVT_INFO("SVT [config]: temporal filtering strength \t\t\t\t\t: %d\n", config->tf_strength);
+            break;
+        case 2: SVT_INFO("SVT [config]: temporal filtering strength \t\t\t\t\t: auto\n"); break;
+        default: break;
         }
     }
 #ifdef DEBUG_BUFFERS
@@ -1930,6 +1946,8 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"variance-boost-strength", &config_struct->variance_boost_strength},
         {"variance-octile", &config_struct->variance_octile},
         {"fast-decode", &config_struct->fast_decode},
+        {"enable-tf", &config_struct->enable_tf},
+        {"tf-strength", &config_struct->tf_strength},
     };
     const size_t uint8_opts_size = sizeof(uint8_opts) / sizeof(uint8_opts[0]);
 
@@ -2025,7 +2043,6 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
     } bool_opts[] = {
         {"use-q-file", &config_struct->use_qp_file},
         {"enable-dlf", &config_struct->enable_dlf_flag},
-        {"enable-tf", &config_struct->enable_tf},
         {"enable-overlays", &config_struct->enable_overlays},
         {"enable-force-key-frames", &config_struct->force_key_frames},
         {"enable-qm", &config_struct->enable_qm},

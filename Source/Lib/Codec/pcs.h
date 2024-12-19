@@ -1258,6 +1258,7 @@ typedef struct PictureControlSetInitData {
     Bool    enable_variance_boost;
     uint8_t variance_boost_strength;
     uint8_t variance_octile;
+    uint8_t tf_strength;
 } PictureControlSetInitData;
 
 typedef struct Av1Comp {

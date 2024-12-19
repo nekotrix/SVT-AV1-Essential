@@ -57,13 +57,7 @@
 //    motion search error can be large and uncontrollable, we will simply
 //    normalize it before using it to compute the filtering weight.
 #define TF_SEARCH_ERROR_NORM_WEIGHT 20
-// 4. Threshold for using `arnr_strength` to adjust the filtering strength.
-//    Concretely, users can use `arnr_strength` arguments to control the
-//    strength of temporal filtering. When `arnr_strength` is small enough (
-//    i.e., smaller than this threshold), we will adjust the filtering weight
-//    based on the strength value.
-#define TF_STRENGTH_THRESHOLD 4
-// 5. Threshold for using motion search distance to adjust the filtering weight.
+// 4. Threshold for using motion search distance to adjust the filtering weight.
 //    Concretely, larger motion search vector leads to a higher probability of
 //    unreliable search. Hence, we would like to reduce the filtering strength
 //    when the distance is large enough. Considering that the distance actually
@@ -72,7 +66,7 @@
 //    then the actual threshold will be 720 * 0.1 = 72. Similarly, the threshold
 //    for 360p videos will be 360 * 0.1 = 36.
 #define TF_SEARCH_DISTANCE_THRESHOLD 0.1
-// 6. Threshold to identify if the q is in a relative high range.
+// 5. Threshold to identify if the q is in a relative high range.
 //    Above this cutoff q, a stronger filtering is applied.
 //    For a high q, the quantization throws away more information, and thus a
 //    stronger filtering is less likely to distort the encoded quality, while a
@@ -81,7 +75,6 @@
 //    more conservative.
 #define TF_QINDEX_CUTOFF 128
 
-#define TF_FILTER_STRENGTH 5
 #define N_8X8_BLOCKS 64
 #define N_16X16_BLOCKS 16
 #define N_32X32_BLOCKS 4
@@ -97,6 +90,9 @@
 #define THRES_HIGH 20000
 #define THRES_DIFF_LOW 6000
 #define THRES_DIFF_HIGH 12000
+
+#define LOW_ERROR_THRESHOLD 200
+#define MED_ERROR_THRESHOLD 2000
 
 #define OD_DIVU_DMAX (1024)
 #ifdef __cplusplus
