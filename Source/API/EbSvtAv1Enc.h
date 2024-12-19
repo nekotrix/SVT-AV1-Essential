@@ -907,6 +907,14 @@ typedef struct EbSvtAv1EncConfiguration {
      *  Default is 6 */
     uint8_t variance_octile;
 
+    /* @brief Enable the user to configure which curve variance boost uses.
+     * Curve 1 emphasizes boosting low-medium contrast regions at a modest bitrate increase over the default curve
+     *  0: default curve
+     *  1: low-medium contrast boost curve
+     *  2: still picture curve, tuned for SSIMULACRA2 performance on the CID22 Validation Set
+     *  Default is 0. */
+    uint8_t variance_boost_curve;
+
     /* @brief Signal to the library to enable losless coding
      *
      * Default is false.

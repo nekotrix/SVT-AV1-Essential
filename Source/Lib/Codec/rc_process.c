@@ -1350,7 +1350,7 @@ int variance_comp_int(const void *a, const void *b) { return (int)*(uint16_t *)a
 #define VAR_BOOST_MAX_QSTEP_RATIO_BOOST 8
 
 static int av1_get_deltaq_sb_variance_boost(uint8_t base_q_idx, uint16_t *variances, uint8_t strength,
-                                            EbBitDepth bit_depth, uint8_t octile) {
+                                            EbBitDepth bit_depth, uint8_t octile, uint8_t curve) {
     // boost q_index based on empirical visual testing, strength 2
     // variance     qstep_ratio boost (@ base_q_idx 255)
     // 256          1
@@ -1394,25 +1394,40 @@ static int av1_get_deltaq_sb_variance_boost(uint8_t base_q_idx, uint16_t *varian
 
     // variance = 0 areas are either completely flat patches or very fine gradients
     // SVT-AV1 doesn't have enough resolution to tell them apart, so let's assume they're not flat and boost them
-    if (variance == 0) {
+    if (variance == 0)
         variance = 1;
-    }
 
     // compute a boost based on a fast-growing formula
     // high and medium variance sbs essentially get no boost, while increasingly lower variance sbs get stronger boosts
     assert(strength >= 1 && strength <= 4);
-    double qstep_ratio = 0;
+    double       qstep_ratio = 0;
+    const double strengths[] = {0, 0.65, 1.1, 1.6, 2.5};
 
-    // regular q step ratio curve
-    double strengths[] = {0, 0.65, 1.1, 1.6, 2.5};
-    qstep_ratio        = pow(1.018, strengths[strength] * (-10 * log2((double)variance) + 80));
-
+    switch (curve) {
+    case 1: /* 1: low-medium contrast boosting curve */
+        qstep_ratio = 0.25 * strength * (-log2((double)variance) + 8) + 1;
+        break;
+    case 2: /* 2: still picture curve, tuned for SSIMULACRA2 performance on CID22 */
+        qstep_ratio = 0.15 * strength * (-log2((double)variance) + 10) + 1;
+        break;
+    default: /* 0: default q step ratio curve */
+        qstep_ratio = pow(1.018, strengths[strength] * (-10 * log2((double)variance) + 80));
+        break;
+    }
     qstep_ratio = CLIP3(1, VAR_BOOST_MAX_QSTEP_RATIO_BOOST, qstep_ratio);
 
     int32_t base_q   = svt_av1_convert_qindex_to_q_fp8(base_q_idx, bit_depth);
     int32_t target_q = (int32_t)(base_q / qstep_ratio);
-    int32_t boost = (int32_t)((base_q_idx + 40) * -svt_av1_compute_qdelta_fp(base_q, target_q, bit_depth) / (255 + 40));
+    int32_t boost    = 0;
 
+    switch (curve) {
+    case 2: /* still picture boost, tuned for SSIMULACRA2 performance on CID22 */
+        boost = (int32_t)((base_q_idx + 496) * -svt_av1_compute_qdelta_fp(base_q, target_q, bit_depth) / (255 + 1024));
+        break;
+    default: /* curve 0 & 1 boost (default) */
+        boost = (int32_t)((base_q_idx + 40) * -svt_av1_compute_qdelta_fp(base_q, target_q, bit_depth) / (255 + 40));
+        break;
+    }
     boost = AOMMIN(VAR_BOOST_MAX_DELTAQ_RANGE, boost);
 
 #if DEBUG_VAR_BOOST
@@ -1468,7 +1483,8 @@ void svt_variance_adjust_qp(PictureControlSet *pcs) {
                                                  ppcs_ptr->variance[sb_addr],
                                                  scs->static_config.variance_boost_strength,
                                                  scs->static_config.encoder_bit_depth,
-                                                 scs->static_config.variance_octile);
+                                                 scs->static_config.variance_octile,
+                                                 scs->static_config.variance_boost_curve);
 #if DEBUG_VAR_BOOST_STATS
         printf("%4d ", boost);
 

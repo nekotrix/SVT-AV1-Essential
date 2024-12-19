@@ -838,6 +838,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+    if (config->variance_boost_curve > 2) {
+        SVT_ERROR("Instance %u: Variance boost curve must be between 0 and 2\n", channel_number + 1);
+
+        return_error = EB_ErrorBadParameter;
+    }
+
     return return_error;
 }
 
@@ -982,6 +988,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->variance_boost_strength           = 2;
     config_ptr->variance_octile                   = 6;
     config_ptr->tf_strength                       = 3;
+    config_ptr->variance_boost_curve              = 0;
     return return_error;
 }
 static const char *tier_to_str(unsigned in) {
@@ -1084,10 +1091,11 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                          config->enable_adaptive_quantization,
                          config->enable_variance_boost);
             } else {
-                SVT_INFO("SVT [config]: AQ mode / variance boost strength / octile \t\t\t: %d / %d / %d\n",
+                SVT_INFO("SVT [config]: AQ mode / variance boost strength / octile / curve \t\t: %d / %d / %d / %d\n",
                          config->enable_adaptive_quantization,
                          config->variance_boost_strength,
-                         config->variance_octile);
+                         config->variance_octile,
+                         config->variance_boost_curve);
             }
         }
 
@@ -1945,6 +1953,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"startup-mg-size", &config_struct->startup_mg_size},
         {"variance-boost-strength", &config_struct->variance_boost_strength},
         {"variance-octile", &config_struct->variance_octile},
+        {"variance-boost-curve", &config_struct->variance_boost_curve},
         {"fast-decode", &config_struct->fast_decode},
         {"enable-tf", &config_struct->enable_tf},
         {"tf-strength", &config_struct->tf_strength},

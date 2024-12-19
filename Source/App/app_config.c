@@ -192,6 +192,7 @@
 #define VARIANCE_BOOST_STRENGTH_TOKEN "--variance-boost-strength"
 #define VARIANCE_OCTILE_TOKEN "--variance-octile"
 #define TF_STRENGTH_FILTER_TOKEN "--tf-strength"
+#define VARIANCE_BOOST_CURVE_TOKEN "--variance-boost-curve"
 #define LOSSLESS_TOKEN "--lossless"
 #define AVIF_TOKEN "--avif"
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
@@ -1177,6 +1178,7 @@ ConfigEntry config_entry_variance_boost[] = {
     {SINGLE_INPUT, ENABLE_VARIANCE_BOOST_TOKEN, "Enable variance boost, default is 0 [0-1]", set_cfg_generic_token},
     {SINGLE_INPUT, VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 2 [1-4]", set_cfg_generic_token},
     {SINGLE_INPUT, VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 6 [1-8]", set_cfg_generic_token},
+    {SINGLE_INPUT, VARIANCE_BOOST_CURVE_TOKEN, "Curve for variance boost, default is 0 [0-2]", set_cfg_generic_token},
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};
 
@@ -1351,6 +1353,7 @@ ConfigEntry config_entry[] = {
     {SINGLE_INPUT, ENABLE_VARIANCE_BOOST_TOKEN, "EnableVarianceBoost", set_cfg_generic_token},
     {SINGLE_INPUT, VARIANCE_BOOST_STRENGTH_TOKEN, "VarianceBoostStrength", set_cfg_generic_token},
     {SINGLE_INPUT, VARIANCE_OCTILE_TOKEN, "VarianceOctile", set_cfg_generic_token},
+    {SINGLE_INPUT, VARIANCE_BOOST_CURVE_TOKEN, "VarianceBoostCurve", set_cfg_generic_token},
 
     // TF Strength
     {SINGLE_INPUT, TF_STRENGTH_FILTER_TOKEN, "TemporalFilteringStrength", set_cfg_generic_token},
