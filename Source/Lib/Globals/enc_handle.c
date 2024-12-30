@@ -6331,7 +6331,11 @@ EB_API void svt_av1_print_version(void) {
     SVT_INFO("-------------------------------------------\n");
     SVT_INFO("SVT [version]:\tSVT-AV1 Encoder Lib %s\n", SVT_AV1_CVS_VERSION);
     const char *compiler =
-#if defined( _MSC_VER ) && (_MSC_VER >= 1930)
+#if defined(__clang__)
+    __VERSION__ "\t"
+#elif defined(__GNUC__)
+    "GCC " __VERSION__ "\t"
+#elif defined( _MSC_VER ) && (_MSC_VER >= 1930)
     "Visual Studio 2022"
 #elif defined( _MSC_VER ) && (_MSC_VER >= 1920)
     "Visual Studio 2019"
@@ -6341,10 +6345,6 @@ EB_API void svt_av1_print_version(void) {
     "Visual Studio 2015"
 #elif defined( _MSC_VER )
     "Visual Studio (old)"
-#elif defined(__clang__)
-    __VERSION__ "\t"
-#elif defined(__GNUC__)
-    "GCC " __VERSION__ "\t"
 #else
     "unknown compiler"
 #endif
