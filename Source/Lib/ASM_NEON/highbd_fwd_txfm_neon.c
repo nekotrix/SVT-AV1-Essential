@@ -23,7 +23,7 @@
 //   f(i,j) = (int)round(cos(PI*j/128) * (1<<(cos_bit_min+i)))
 // and then in memory we store 4-tuples of constants together as:
 //   f2(i,j) = [ f(i,j), f(i,64-j) ]
-const int32_t av1_cospi_arr_s32_data[4][66] = {
+static const int32_t av1_cospi_arr_s32_data[4][66] = {
     {
         1024, 0,   1024, 25,  1023, 50,  1021, 75,  1019, 100, 1016, 125, 1013, 150, 1009, 175, 1004,
         200,  999, 224,  993, 249,  987, 273,  980, 297,  972, 321,  964, 345,  955, 369,  946, 392,
