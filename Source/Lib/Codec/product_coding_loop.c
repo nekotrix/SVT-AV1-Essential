@@ -8853,9 +8853,15 @@ static void md_encode_block_light_pd1(PictureControlSet *pcs, ModeDecisionContex
         *(cand_bf->fast_cost)       = 0;
         cand_bf->fast_luma_rate     = 0;
         cand_bf->fast_chroma_rate   = 0;
-        cand_bf->cand->tx_depth     = 0;
-        ctx->use_tx_shortcuts_mds3  = 1;
-        ctx->lpd1_allow_skipping_tx = 1;
+
+        /* If the interpolation filter type is assigned at the picture level, use that value, OW use regular.
+         * NB intra_bc always uses BILINEAR, but IBC is not allowed in LPD1. */
+        cand_bf->cand->interp_filters = (pcs->ppcs->frm_hdr.interpolation_filter == SWITCHABLE)
+            ? 0
+            : av1_broadcast_interp_filter(pcs->ppcs->frm_hdr.interpolation_filter);
+        cand_bf->cand->tx_depth       = 0;
+        ctx->use_tx_shortcuts_mds3    = 1;
+        ctx->lpd1_allow_skipping_tx   = 1;
     }
     // For 10bit content, when recon is not needed, hbd_md can stay =0,
     // and the 8bit prediction is used to produce the residual (with 8bit source).

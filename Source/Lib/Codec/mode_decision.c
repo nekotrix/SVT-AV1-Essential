@@ -4429,6 +4429,7 @@ void svt_aom_product_full_mode_decision_light_pd1(
     if (cand->skip_mode_allowed == TRUE) {
         blk_ptr->skip_mode |= !blk_ptr->block_has_coeff;
     }
+    assert(IMPLIES(pcs->ppcs->frm_hdr.interpolation_filter == SWITCHABLE && blk_ptr->skip_mode, cand->interp_filters == 0));
     if (blk_ptr->skip_mode) {
         blk_ptr->block_has_coeff = 0;
         cand_bf->y_has_coeff = 0;
