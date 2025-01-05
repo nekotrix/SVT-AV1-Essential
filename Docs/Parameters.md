@@ -16,6 +16,7 @@ The encoder parameters are listed in this table below along with their
 | **Configuration file parameter**   | **Command line**     | **Range**    | **Default**   | **Description**                                                                                                   |
 | ---------------------------------- | -------------------- | ------------ | ------------- | ----------------------------------------------------------------------------------------------------------------- |
 |                                    | --help               |              |               | Shows the command line options currently available                                                                |
+|                                    | --color-help         |              |               | Reproduces Appendix A.2 of the SVT-AV1 User Guide for AV1 metadata                                                                 |
 |                                    | --version            |              |               | Shows the version of the library that's linked to the library                                                     |
 | **InputFile**                      | -i                   | any string   | None          | Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe                                     |
 | **StreamFile**                     | -b                   | any string   | None          | Output compressed (ivf) file path, use `stdout` or `-` to write to pipe                                           |
