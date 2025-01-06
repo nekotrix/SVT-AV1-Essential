@@ -100,6 +100,7 @@ void VideoSource::deinit_frame_buffer() {
 
     free(frame_buffer_);
     frame_buffer_ = nullptr;
+    frame_size_ = 0;
 }
 
 EbErrorType VideoSource::init_frame_buffer() {

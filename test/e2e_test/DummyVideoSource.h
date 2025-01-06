@@ -132,7 +132,7 @@ class DummyVideoSource : public VideoSource {
         if (width_downsize_ > 0)
             luma_offset -= luma_offset % 2;
         luma_offset *= bytes_per_sample_;
-        uint32_t width_in_byte = width_with_padding_ * bytes_per_sample_;
+        const uint32_t width_in_byte = width_with_padding_ * bytes_per_sample_;
 
         // luma
         src_p = frame_buffer_->luma;
@@ -167,6 +167,9 @@ class DummyVideoSource : public VideoSource {
             memcpy(src_p, frame_buffer_->cr, chroma_width_in_byte);
             src_p += chroma_width_in_byte;
         }
+
+        frame_size_ = (width_in_byte * height_with_padding_) +
+                      2 * (chroma_width_in_byte * chroma_height);
     }
 
   protected:
