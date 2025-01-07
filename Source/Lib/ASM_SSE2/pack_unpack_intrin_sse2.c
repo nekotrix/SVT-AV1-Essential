@@ -26,6 +26,9 @@ void svt_enc_msb_un_pack2d_sse2_intrin(uint16_t *in16_bit_buffer, uint32_t in_st
         in_pixel0_shft_r_2_u8, in_pixel0_shft_r_2, in_pixel1_shft_r_2;
     __m128i temp_pixel0_u8, temp_pixel1_u8;
 
+    temp_pixel0_u8 = _mm_setzero_si128(); // Initialize to avoid warning.
+    temp_pixel1_u8 = _mm_setzero_si128(); // Initialize to avoid warning.
+
     xmm_3    = _mm_set1_epi16(0x0003);
     xmm_00ff = _mm_set1_epi16(0x00FF);
 

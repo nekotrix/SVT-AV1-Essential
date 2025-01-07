@@ -1842,6 +1842,8 @@ static INLINE void compute_stats_win5_avx2(const int16_t *const d, const int32_t
             __m256i        deltas[2 * WIENER_WIN_CHROMA - 1] = {_mm256_setzero_si256()};
             __m256i        dd[WIENER_WIN_CHROMA], ds[WIENER_WIN_CHROMA];
 
+            delta4 = _mm_setzero_si128(); // Initialize to avoid warning.
+
             dd[0] = _mm256_setzero_si256(); // Initialize to avoid warning.
             ds[0] = _mm256_setzero_si256(); // Initialize to avoid warning.
 
