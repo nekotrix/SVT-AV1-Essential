@@ -445,7 +445,7 @@ static EbErrorType set_cfg_force_key_frames(EbConfig *cfg, const char *token, co
     const char *p = value;
     while (p) {
         const size_t len       = strcspn(p, ",");
-        char        *specifier = (char *)calloc(sizeof(*specifier), len + 1);
+        char        *specifier = (char *)calloc(len + 1, sizeof(*specifier));
         if (!specifier)
             goto err;
         memcpy(specifier, p, len);
@@ -464,7 +464,7 @@ static EbErrorType set_cfg_force_key_frames(EbConfig *cfg, const char *token, co
     if (!fkf.count)
         goto err;
 
-    fkf.frames = (uint64_t *)calloc(sizeof(*fkf.frames), fkf.count);
+    fkf.frames = (uint64_t *)calloc(fkf.count, sizeof(*fkf.frames));
     if (!fkf.frames)
         goto err;
     for (size_t i = 0; i < cfg->forced_keyframes.count; ++i) free(cfg->forced_keyframes.specifiers[i]);
