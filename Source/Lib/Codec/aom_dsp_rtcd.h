@@ -1172,7 +1172,7 @@ extern "C" {
     unsigned int svt_aom_obmc_sub_pixel_variance128x128_neon(const uint8_t *pre, int pre_stride, int xoffset, int yoffset, const int32_t *wsrc, const int32_t *mask, unsigned int *sse);
 
     uint32_t svt_nxm_sad_kernel_helper_neon(const uint8_t *src, uint32_t src_stride, const uint8_t *ref, uint32_t ref_stride, uint32_t height, uint32_t width);
-
+    void svt_get_proj_subspace_neon(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride, const uint8_t *dat8, int32_t dat_stride, int32_t use_highbitdepth, int32_t *flt0, int32_t flt0_stride, int32_t *flt1, int32_t flt1_stride, int32_t *xq, const SgrParamsType *params);
     uint64_t svt_handle_transform16x64_neon(int32_t *output);
     uint64_t svt_handle_transform32x64_neon(int32_t *output);
     uint64_t svt_handle_transform64x16_neon(int32_t *output);

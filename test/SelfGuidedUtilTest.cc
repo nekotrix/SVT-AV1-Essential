@@ -555,9 +555,6 @@ class GetProjSubspaceTest
 using GetProjSubspaceTestLbd = GetProjSubspaceTest<uint8_t>;
 using GetProjSubspaceTestHbd = GetProjSubspaceTest<uint16_t>;
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GetProjSubspaceTestLbd);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GetProjSubspaceTestHbd);
-
 TEST_P(GetProjSubspaceTestLbd, MatchTest) {
     run_test();
 }
@@ -572,5 +569,12 @@ INSTANTIATE_TEST_SUITE_P(AVX2, GetProjSubspaceTestLbd,
 INSTANTIATE_TEST_SUITE_P(AVX2, GetProjSubspaceTestHbd,
                          ::testing::Values(svt_get_proj_subspace_avx2));
 #endif  // ARCH_X86_64
+
+#if ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(NEON, GetProjSubspaceTestLbd,
+                         ::testing::Values(svt_get_proj_subspace_neon));
+INSTANTIATE_TEST_SUITE_P(NEON, GetProjSubspaceTestHbd,
+                         ::testing::Values(svt_get_proj_subspace_neon));
+#endif  // ARCH_AARCH64
 
 }  // namespace

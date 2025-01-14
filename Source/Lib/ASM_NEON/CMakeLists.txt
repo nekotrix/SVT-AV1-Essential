@@ -58,6 +58,7 @@ target_sources(
   PUBLIC pack_unpack_intrin_neon.c
   PUBLIC pickrst_neon.c
   PUBLIC picture_operators_intrinsic_neon.c
+  PUBLIC restoration_pick_neon.c
   PUBLIC sad_neon.c
   PUBLIC selfguided_neon.c
   PUBLIC sse_neon.c
