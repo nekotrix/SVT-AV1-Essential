@@ -301,7 +301,8 @@ void svt_aom_highbd_lpf_horizontal_6_neon(uint16_t *s, int pitch, const uint8_t 
     uint16x8_t p0q0_output, p1q1_output;
     uint16x8_t f6_p1q1, f6_p0q0;
     // Not needing filter4() at all is a very common case, so isolate it to avoid needlessly computing filter4().
-    if (vaddlv_u16(vand_u16(is_flat3_mask, needs_filter_mask)) == (1 << 18) - 4) {
+    if (vget_lane_s64(vreinterpret_s64_u16(is_flat3_mask), 0) == -1 &&
+        vget_lane_s64(vreinterpret_s64_u16(needs_filter_mask), 0) == -1) {
         filter6(p2q2, p1q1, p0q0, &f6_p1q1, &f6_p0q0);
         p1q1_output = f6_p1q1;
         p0q0_output = f6_p0q0;
@@ -376,7 +377,7 @@ void svt_aom_highbd_lpf_vertical_6_neon(uint16_t *s, int pitch, const uint8_t *b
     filter6_masks(
         p2q2, p1q1, p0q0, hev_thresh, outer_mask, inner_thresh, bd, &needs_filter_mask, &is_flat3_mask, &hev_mask);
 
-    if (vaddv_u16(needs_filter_mask) == 0) {
+    if (vget_lane_u64(vreinterpret_u64_u16(needs_filter_mask), 0) == 0) {
         // None of the values will be filtered.
         return;
     }
@@ -389,7 +390,8 @@ void svt_aom_highbd_lpf_vertical_6_neon(uint16_t *s, int pitch, const uint8_t *b
     uint16x8_t       f6_p1q1, f6_p0q0;
     const uint64x1_t need_filter6 = vreinterpret_u64_u16(is_flat3_mask);
     // Not needing filter4() at all is a very common case, so isolate it to avoid needlessly computing filter4().
-    if (vaddlv_u16(vand_u16(is_flat3_mask, needs_filter_mask)) == (1 << 18) - 4) {
+    if (vget_lane_s64(vreinterpret_s64_u16(is_flat3_mask), 0) == -1 &&
+        vget_lane_s64(vreinterpret_s64_u16(needs_filter_mask), 0) == -1) {
         filter6(p2q2, p1q1, p0q0, &f6_p1q1, &f6_p0q0);
         p1q1_output = f6_p1q1;
         p0q0_output = f6_p0q0;
@@ -564,7 +566,8 @@ void svt_aom_highbd_lpf_horizontal_8_neon(uint16_t *s, int pitch, const uint8_t 
     uint16x8_t p0q0_output, p1q1_output, p2q2_output;
     uint16x8_t f8_p2q2, f8_p1q1, f8_p0q0;
     // Not needing filter4() at all is a very common case, so isolate it to avoid needlessly computing filter4().
-    if (vaddlv_u16(vand_u16(is_flat4_mask, needs_filter_mask)) == (1 << 18) - 4) {
+    if (vget_lane_s64(vreinterpret_s64_u16(is_flat4_mask), 0) == -1 &&
+        vget_lane_s64(vreinterpret_s64_u16(needs_filter_mask), 0) == -1) {
         filter8(p3q3, p2q2, p1q1, p0q0, &f8_p2q2, &f8_p1q1, &f8_p0q0);
         p2q2_output = f8_p2q2;
         p1q1_output = f8_p1q1;
@@ -664,7 +667,8 @@ void svt_aom_highbd_lpf_vertical_8_neon(uint16_t *s, int pitch, const uint8_t *b
     uint16x8_t p0q0_output, p1q1_output, p2q2_output;
     uint16x8_t f8_p2q2, f8_p1q1, f8_p0q0;
     // Not needing filter4() at all is a very common case, so isolate it to avoid needlessly computing filter4().
-    if (vaddlv_u16(vand_u16(is_flat4_mask, needs_filter_mask)) == (1 << 18) - 4) {
+    if (vget_lane_s64(vreinterpret_s64_u16(is_flat4_mask), 0) == -1 &&
+        vget_lane_s64(vreinterpret_s64_u16(needs_filter_mask), 0) == -1) {
         filter8(p3q3, p2q2, p1q1, p0q0, &f8_p2q2, &f8_p1q1, &f8_p0q0);
         p2q2_output = f8_p2q2;
         p1q1_output = f8_p1q1;
@@ -862,7 +866,7 @@ void svt_aom_highbd_lpf_horizontal_14_neon(uint16_t *s, int pitch, const uint8_t
     uint16x8_t p0q0_output, p1q1_output, p2q2_output, p3q3_output, p4q4_output, p5q5_output;
     uint16x8_t f8_p2q2, f8_p1q1, f8_p0q0;
     uint16x8_t f14_p5q5, f14_p4q4, f14_p3q3, f14_p2q2, f14_p1q1, f14_p0q0;
-    if ((vaddlv_u16(is_flat4_outer_mask) == (1 << 18) - 4)) {
+    if (vget_lane_s64(vreinterpret_s64_u16(is_flat4_outer_mask), 0) == -1) {
         // filter14() applies to all values.
         filter14(
             p6q6, p5q5, p4q4, p3q3, p2q2, p1q1, p0q0, &f14_p5q5, &f14_p4q4, &f14_p3q3, &f14_p2q2, &f14_p1q1, &f14_p0q0);
@@ -872,7 +876,8 @@ void svt_aom_highbd_lpf_horizontal_14_neon(uint16_t *s, int pitch, const uint8_t
         p2q2_output = f14_p2q2;
         p1q1_output = f14_p1q1;
         p0q0_output = f14_p0q0;
-    } else if ((vaddlv_u16(is_flat4_mask) == (1 << 18) - 4)) {
+    } else if (vget_lane_s64(vreinterpret_s64_u16(is_flat4_mask), 0) == -1 &&
+               vget_lane_u64(vreinterpret_u64_u16(is_flat4_outer_mask), 0) == 0) {
         // filter8() applies to all values.
         filter8(p3q3, p2q2, p1q1, p0q0, &f8_p2q2, &f8_p1q1, &f8_p0q0);
         p5q5_output = p5q5;
@@ -1036,7 +1041,7 @@ void svt_aom_highbd_lpf_vertical_14_neon(uint16_t *s, int pitch, const uint8_t *
     uint16x8_t p0q0_output, p1q1_output, p2q2_output, p3q3_output, p4q4_output, p5q5_output;
     uint16x8_t f8_p2q2, f8_p1q1, f8_p0q0;
     uint16x8_t f14_p5q5, f14_p4q4, f14_p3q3, f14_p2q2, f14_p1q1, f14_p0q0;
-    if ((vaddlv_u16(is_flat4_outer_mask) == (1 << 18) - 4)) {
+    if (vget_lane_s64(vreinterpret_s64_u16(is_flat4_outer_mask), 0) == -1) {
         // filter14() applies to all values.
         filter14(
             p6q6, p5q5, p4q4, p3q3, p2q2, p1q1, p0q0, &f14_p5q5, &f14_p4q4, &f14_p3q3, &f14_p2q2, &f14_p1q1, &f14_p0q0);
@@ -1046,7 +1051,8 @@ void svt_aom_highbd_lpf_vertical_14_neon(uint16_t *s, int pitch, const uint8_t *
         p2q2_output = f14_p2q2;
         p1q1_output = f14_p1q1;
         p0q0_output = f14_p0q0;
-    } else if ((vaddlv_u16(is_flat4_mask) == (1 << 18) - 4)) {
+    } else if (vget_lane_s64(vreinterpret_s64_u16(is_flat4_mask), 0) == -1 &&
+               vget_lane_u64(vreinterpret_u64_u16(is_flat4_outer_mask), 0) == 0) {
         // filter8() applies to all values.
         filter8(p3q3, p2q2, p1q1, p0q0, &f8_p2q2, &f8_p1q1, &f8_p0q0);
         p5q5_output = p5q5;
