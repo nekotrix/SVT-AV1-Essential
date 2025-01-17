@@ -180,7 +180,6 @@ class HbdCflPredTest : public CflPredTest<uint16_t, CFL_PRED_HBD> {
         common_init();
     }
 };
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(HbdCflPredTest);
 
 TEST_P(HbdCflPredTest, MatchTest) {
     RunAllTest();
@@ -190,6 +189,11 @@ TEST_P(HbdCflPredTest, MatchTest) {
 INSTANTIATE_TEST_SUITE_P(AVX2, HbdCflPredTest,
                          ::testing::Values(svt_cfl_predict_hbd_avx2));
 #endif  // ARCH_X86_64
+
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(NEON, HbdCflPredTest,
+                         ::testing::Values(svt_cfl_predict_hbd_neon));
+#endif  // ARCH_AARCH64
 
 typedef void (*AomUpsampledPredFunc)(MacroBlockD *,
                                      const struct AV1Common *const, int, int,
