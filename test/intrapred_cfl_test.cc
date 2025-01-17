@@ -71,8 +71,11 @@ class CflPredTest : public ::testing::TestWithParam<FuncType> {
         SVTRandom pred_rnd(bd_ + 3 + 1, true);
         SVTRandom dst_rnd(8, false);
         for (int tx = TX_4X4; tx < TX_SIZES_ALL; ++tx) {
-            const int c_w = tx_size_wide[tx] >> 1;
-            const int c_h = tx_size_high[tx] >> 1;
+            const int c_w = tx_size_wide[tx];
+            const int c_h = tx_size_high[tx];
+            if (c_w > 32 || c_h > 32) {
+                continue;
+            }
             const int c_stride = CFL_BUF_LINE;
             memset(pred_buf_q3, 0, sizeof(pred_buf_q3));
             memset(dst_buf_ref_data_, 0, sizeof(dst_buf_ref_data_));
