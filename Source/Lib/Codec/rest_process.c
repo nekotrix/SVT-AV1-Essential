@@ -468,6 +468,9 @@ static void copy_statistics_to_ref_obj_ect(PictureControlSet *pcs, SequenceContr
     obj->intra_coded_area                   = (uint8_t)(pcs->intra_coded_area);
     obj->skip_coded_area                    = (uint8_t)(pcs->skip_coded_area);
     obj->hp_coded_area                      = (uint8_t)(pcs->hp_coded_area);
+#if OPT_MFMV
+    obj->is_mfmv_used = pcs->ppcs->frm_hdr.use_ref_frame_mvs;
+#endif
     struct PictureParentControlSet *ppcs    = pcs->ppcs;
     FrameHeader                    *frm_hdr = &ppcs->frm_hdr;
 

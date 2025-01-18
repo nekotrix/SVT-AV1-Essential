@@ -4698,7 +4698,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     uint8_t list0_only_base_lvl = 0;
     if (scs->static_config.enc_mode <= ENC_M3)
         list0_only_base_lvl = 0;
+#if TUNE_M5_SVT14
+    else if (scs->static_config.enc_mode <= ENC_M4)
+#else
     else if (scs->static_config.enc_mode <= ENC_M5)
+#endif
         list0_only_base_lvl = 3;
     else if (scs->static_config.enc_mode <= ENC_M6)
         list0_only_base_lvl = 4;

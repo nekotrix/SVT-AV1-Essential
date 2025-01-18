@@ -121,6 +121,8 @@ extern "C" {
 #define OPT_M5_CDEF                 1 // Tune M5 CDEF level
 #define OPT_FD2                     1 // cdef-subpel-mfmv
 #define OPT_FRAME_DLF               1 // Optimize the frame-level DLF search
+#define TUNE_M5_SVT14               1 // Tune M5
+#define OPT_MFMV                    1 // Use r0 for mfmv derivation
 
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0

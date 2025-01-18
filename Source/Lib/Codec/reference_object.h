@@ -39,6 +39,9 @@ typedef struct EbReferenceObject {
     uint8_t              intra_coded_area; //percentage of intra coded area 0-100%
     uint8_t              skip_coded_area;
     uint8_t              hp_coded_area;
+#if OPT_MFMV
+    uint8_t              is_mfmv_used;
+#endif
     uint8_t              tmp_layer_idx;
     Bool                 is_scene_change;
     uint16_t             pic_avg_variance;
