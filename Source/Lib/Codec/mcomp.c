@@ -177,10 +177,12 @@ static INLINE int svt_estimated_pref_error(const MV *this_mv, const SUBPEL_SEARC
     //        sse, second_pred);
     //}
 }
+#if !OPT_FP_BIAS
 #if OPT_FD2
 #define BIAS_FP_WEIGHT 104
 #else
 #define BIAS_FP_WEIGHT 110
+#endif
 #endif
 // Estimates whether this_mv is better than best_mv. This function incorporates
 // both prediction error and residue into account. It is suffixed "fast" because
@@ -210,7 +212,11 @@ static INLINE unsigned int svt_check_better_fast(MacroBlockD *xd, const struct A
         cost += thismse;
         int weight = 100;
         if (var_params->bias_fp && (*best_mv).col % 8 == 0 && (*best_mv).row % 8 == 0)
+#if OPT_FP_BIAS
+            weight = var_params->bias_fp;
+#else
             weight = BIAS_FP_WEIGHT;
+#endif
         if (((cost * weight) / 100) < *besterr) {
             *besterr    = cost;
             *best_mv    = *this_mv;
@@ -240,7 +246,11 @@ static AOM_FORCE_INLINE unsigned int svt_check_better(MacroBlockD *xd, const str
         cost += thismse;
         int weight = 100;
         if (var_params->bias_fp && (*best_mv).col % 8 == 0 && (*best_mv).row % 8 == 0)
+#if OPT_FP_BIAS
+            weight = var_params->bias_fp;
+#else
             weight = BIAS_FP_WEIGHT;
+#endif
         if (((cost * weight) / 100) < *besterr) {
             *besterr    = cost;
             *best_mv    = *this_mv;

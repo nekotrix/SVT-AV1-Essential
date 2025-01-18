@@ -118,12 +118,12 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
     const uint32_t y_b64_start_idx = SEGMENT_START_IDX(y_seg_idx, b64_pic_height, pcs->cdef_segments_row_count);
     const uint32_t y_b64_end_idx   = SEGMENT_END_IDX(y_seg_idx, b64_pic_height, pcs->cdef_segments_row_count);
 
-    const int32_t mi_rows                    = cm->mi_rows;
-    const int32_t mi_cols                    = cm->mi_cols;
+    const int32_t mi_rows = cm->mi_rows;
+    const int32_t mi_cols = cm->mi_cols;
 #if CLN_CDEF_LVLS
-    CdefSearchControls *cdef_ctrls           = &ppcs->cdef_search_ctrls;
+    CdefSearchControls *cdef_ctrls = &ppcs->cdef_search_ctrls;
 #else
-    CdefControls *cdef_ctrls                 = &ppcs->cdef_ctrls;
+    CdefControls *cdef_ctrls = &ppcs->cdef_ctrls;
 #endif
     const int     first_pass_fs_num          = cdef_ctrls->first_pass_fs_num;
     const int     default_second_pass_fs_num = cdef_ctrls->default_second_pass_fs_num;
@@ -353,19 +353,18 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
 }
 
 #if OPT_CDEF_ME_INFO
-const uint32_t disable_cdef_th[4][INPUT_SIZE_COUNT] = { {0, 0, 0, 0, 0, 0, 0},
-                                                     {100, 200, 500, 800, 1000, 1000, 1000},
-                                                     {900, 1000, 2000, 3000, 4000, 4000, 4000},
-                                                     {6000, 7000, 8000, 9000, 10000, 10000, 10000} };
-static void me_based_cdef_skip(PictureControlSet* pcs, uint16_t prev_cdef_dist_th, bool* do_cdef) {
-
+const uint32_t disable_cdef_th[4][INPUT_SIZE_COUNT] = {{0, 0, 0, 0, 0, 0, 0},
+                                                       {100, 200, 500, 800, 1000, 1000, 1000},
+                                                       {900, 1000, 2000, 3000, 4000, 4000, 4000},
+                                                       {6000, 7000, 8000, 9000, 10000, 10000, 10000}};
+static void    me_based_cdef_skip(PictureControlSet *pcs, uint16_t prev_cdef_dist_th, bool *do_cdef) {
     *do_cdef = true;
     if (pcs->slice_type == I_SLICE)
         return;
 
-    const uint8_t in_res = pcs->ppcs->input_resolution;
-    const uint32_t use_zero_strength_th = disable_cdef_th[pcs->ppcs->cdef_recon_ctrls.zero_filter_strength_lvl][in_res] *
-        (pcs->temporal_layer_index + 1);
+    const uint8_t  in_res = pcs->ppcs->input_resolution;
+    const uint32_t use_zero_strength_th =
+        disable_cdef_th[pcs->ppcs->cdef_recon_ctrls.zero_filter_strength_lvl][in_res] * (pcs->temporal_layer_index + 1);
     if (!use_zero_strength_th)
         return;
 
@@ -385,8 +384,8 @@ static void me_based_cdef_skip(PictureControlSet* pcs, uint16_t prev_cdef_dist_t
 
             if (rf[1] == NONE_FRAME) {
                 uint8_t            list_idx = get_list_idx(rf[0]);
-                uint8_t            ref_idx = get_ref_frame_idx(rf[0]);
-                EbReferenceObject* ref_obj = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+                uint8_t            ref_idx  = get_ref_frame_idx(rf[0]);
+                EbReferenceObject *ref_obj  = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
 
                 if (ref_obj->cdef_dist_dev >= 0) {
                     prev_cdef_dist += ref_obj->cdef_dist_dev;
@@ -436,18 +435,18 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
         PictureParentControlSet *ppcs = pcs->ppcs;
         scs                           = pcs->scs;
 
-        Bool       is_16bit      = scs->is_16bit_pipeline;
-        Av1Common *cm            = pcs->ppcs->av1_cm;
-        frm_hdr                  = &pcs->ppcs->frm_hdr;
+        Bool       is_16bit = scs->is_16bit_pipeline;
+        Av1Common *cm       = pcs->ppcs->av1_cm;
+        frm_hdr             = &pcs->ppcs->frm_hdr;
 #if OPT_CDEF_ME_INFO
         pcs->cdef_dist_dev = -1;
-        bool do_cdef = true;
+        bool do_cdef       = true;
         me_based_cdef_skip(pcs, pcs->ppcs->cdef_recon_ctrls.prev_cdef_dist_th, &do_cdef);
         if (!do_cdef)
             pcs->ppcs->cdef_level = 0;
 #endif
 #if CLN_CDEF_LVLS
-        CdefSearchControls* cdef_search_ctrls = &pcs->ppcs->cdef_search_ctrls;
+        CdefSearchControls *cdef_search_ctrls = &pcs->ppcs->cdef_search_ctrls;
         if (!cdef_search_ctrls->use_reference_cdef_fs) {
 #else
         CdefControls *cdef_ctrls = &pcs->ppcs->cdef_ctrls;
@@ -480,8 +479,7 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
             }
 
 #if OPT_CDEF_ME_INFO
-            if (pcs->ppcs->nb_cdef_strengths == 1 &&
-                frm_hdr->cdef_params.cdef_y_strength[0] == 0 &&
+            if (pcs->ppcs->nb_cdef_strengths == 1 && frm_hdr->cdef_params.cdef_y_strength[0] == 0 &&
                 frm_hdr->cdef_params.cdef_uv_strength[0] == 0) {
                 pcs->cdef_dist_dev = 0;
             }

@@ -743,10 +743,10 @@ void finish_cdef_search(PictureControlSet *pcs) {
     int32_t  nhfb = (mi_cols + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
     //CDEF Settings
 #if CLN_CDEF_LVLS
-    CdefSearchControls* cdef_search_ctrls    = &pcs->ppcs->cdef_search_ctrls;
-    CdefReconControls* cdef_recon_ctrls      = &pcs->ppcs->cdef_recon_ctrls;
-    const int     first_pass_fs_num          = cdef_search_ctrls->first_pass_fs_num;
-    const int     default_second_pass_fs_num = cdef_search_ctrls->default_second_pass_fs_num;
+    CdefSearchControls *cdef_search_ctrls          = &pcs->ppcs->cdef_search_ctrls;
+    CdefReconControls  *cdef_recon_ctrls           = &pcs->ppcs->cdef_recon_ctrls;
+    const int           first_pass_fs_num          = cdef_search_ctrls->first_pass_fs_num;
+    const int           default_second_pass_fs_num = cdef_search_ctrls->default_second_pass_fs_num;
     if (cdef_search_ctrls->use_reference_cdef_fs) {
 #else
     CdefControls *cdef_ctrls                 = &pcs->ppcs->cdef_ctrls;
@@ -798,8 +798,8 @@ void finish_cdef_search(PictureControlSet *pcs) {
         frm_hdr->cdef_params.cdef_bits = 0;
         ppcs->nb_cdef_strengths        = 1;
         //cdef_pri_damping & cdef_sec_damping consolidated to cdef_damping
-        int32_t pri_damping                      = 3 + (frm_hdr->quantization_params.base_q_idx >> 6);
-        frm_hdr->cdef_params.cdef_damping        = pri_damping;
+        int32_t pri_damping               = 3 + (frm_hdr->quantization_params.base_q_idx >> 6);
+        frm_hdr->cdef_params.cdef_damping = pri_damping;
 #if CLN_CDEF_LVLS
         frm_hdr->cdef_params.cdef_y_strength[0]  = cdef_search_ctrls->pred_y_f;
         frm_hdr->cdef_params.cdef_uv_strength[0] = cdef_search_ctrls->pred_uv_f;
@@ -906,7 +906,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
 #if CLN_CDEF_LVLS
                 factor = cdef_recon_ctrls->zero_fs_cost_bias;
 #else
-                factor = cdef_ctrls->zero_fs_cost_bias;
+            factor = cdef_ctrls->zero_fs_cost_bias;
 #endif
                 if (mse[0][i][0] > 25000)
                     factor = MIN(factor + 2, 64);
@@ -917,7 +917,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
 #if CLN_CDEF_LVLS
                 factor = cdef_recon_ctrls->zero_fs_cost_bias;
 #else
-                factor = cdef_ctrls->zero_fs_cost_bias;
+            factor = cdef_ctrls->zero_fs_cost_bias;
 #endif
                 if (mse[1][i][0] > 25000)
                     factor = MIN(factor + 2, 64);
@@ -937,9 +937,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
 #if OPT_CDEF_ME_INFO
     // Compute cost of off to use in deriving pcs->cdef_dist_dev
     int64_t zero_dist = 0;
-    for (i = 0; i < sb_count; i++) {
-        zero_dist += mse[0][i][0] + mse[1][i][0];
-    }
+    for (i = 0; i < sb_count; i++) { zero_dist += mse[0][i][0] + mse[1][i][0]; }
     uint64_t zero_cost = RDCOST(lambda, av1_cost_literal(CDEF_STRENGTH_BITS * 2), zero_dist << 4);
 #endif
     /* Search for different number of signalling bits. */
@@ -964,9 +962,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
         }
     }
 #if OPT_CDEF_ME_INFO
-    pcs->cdef_dist_dev =
-        zero_cost == 0 ?
-        0 : 1000 - ((1000 * best_tot_mse) / zero_cost);
+    pcs->cdef_dist_dev = zero_cost == 0 ? 0 : 1000 - ((1000 * best_tot_mse) / zero_cost);
 #endif
     nb_strengths = 1 << nb_strength_bits;
 

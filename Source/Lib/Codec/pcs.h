@@ -1234,7 +1234,7 @@ typedef struct PictureParentControlSet {
     bool         gm_pp_detected; //gm detection enabled at the pre-processing level
 #if CLN_CDEF_LVLS
     CdefSearchControls cdef_search_ctrls;
-    CdefReconControls cdef_recon_ctrls;
+    CdefReconControls  cdef_recon_ctrls;
 #else
     CdefControls cdef_ctrls;
 #endif

@@ -76,7 +76,11 @@ typedef struct {
     MSBuffers ms_buffers;
 
     int w, h;
+#if OPT_FP_BIAS
+    int32_t
+#else
     bool
+#endif
         bias_fp; // Bias towards fpel at the MD subpel-search: apply a penalty to the cost of fractional positions during the subpel-search each time we check against a full-pel MV
 } SUBPEL_SEARCH_VAR_PARAMS;
 

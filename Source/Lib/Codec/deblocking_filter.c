@@ -714,7 +714,7 @@ void svt_copy_buffer(EbPictureBufferDesc *srcBuffer, EbPictureBufferDesc *dstBuf
     }
 }
 #if OPT_FRAME_DLF
-uint64_t picture_sse_calculations(PictureControlSet* pcs, EbPictureBufferDesc* recon_ptr, int32_t plane) {
+uint64_t picture_sse_calculations(PictureControlSet *pcs, EbPictureBufferDesc *recon_ptr, int32_t plane) {
 #else
 static uint64_t picture_sse_calculations(PictureControlSet *pcs, EbPictureBufferDesc *recon_ptr, int32_t plane)
 
@@ -1018,14 +1018,13 @@ static int32_t search_filter_level(
     return filt_best;
 }
 #if OPT_FRAME_DLF
-static void me_based_dlf_skip(PictureControlSet* pcs, uint16_t prev_dlf_dist_th, bool* do_y, bool* do_uv) {
-
-    *do_y = true;
+static void me_based_dlf_skip(PictureControlSet *pcs, uint16_t prev_dlf_dist_th, bool *do_y, bool *do_uv) {
+    *do_y  = true;
     *do_uv = true;
     if (pcs->slice_type == I_SLICE)
         return;
 
-    const uint8_t in_res = pcs->ppcs->input_resolution;
+    const uint8_t  in_res               = pcs->ppcs->input_resolution;
     const uint32_t use_zero_strength_th = disable_dlf_th[pcs->ppcs->dlf_ctrls.zero_filter_strength_lvl][in_res] *
         (pcs->temporal_layer_index + 1);
     if (!use_zero_strength_th)
@@ -1047,8 +1046,8 @@ static void me_based_dlf_skip(PictureControlSet* pcs, uint16_t prev_dlf_dist_th,
 
             if (rf[1] == NONE_FRAME) {
                 uint8_t            list_idx = get_list_idx(rf[0]);
-                uint8_t            ref_idx = get_ref_frame_idx(rf[0]);
-                EbReferenceObject* ref_obj = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+                uint8_t            ref_idx  = get_ref_frame_idx(rf[0]);
+                EbReferenceObject *ref_obj  = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
 
                 if (ref_obj->dlf_dist_dev >= 0) {
                     prev_dlf_dist += ref_obj->dlf_dist_dev;
@@ -1302,24 +1301,22 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
             lf->filter_level[0], lf->filter_level[1], lf->filter_level_u, lf->filter_level_v};
         EbPictureBufferDesc *temp_lf_recon_buffer = scs->is_16bit_pipeline ? pcs->temp_lf_recon_pic_16bit
                                                                            : pcs->temp_lf_recon_pic;
-        
+
 #if OPT_FRAME_DLF
         if (!do_y) {
             lf->filter_level[0] = lf->filter_level[1] = 0;
-        }
-        else if (!pcs->ppcs->dlf_ctrls.use_ref_avg_y || pcs->ppcs->tot_ref_frame_types == 0) {
+        } else if (!pcs->ppcs->dlf_ctrls.use_ref_avg_y || pcs->ppcs->tot_ref_frame_types == 0) {
             lf->filter_level[0] = lf->filter_level[1] = search_filter_level(srcBuffer,
-                temp_lf_recon_buffer,
-                pcs,
-                method == LPF_PICK_FROM_SUBIMAGE,
-                last_frame_filter_level,
-                NULL,
-                0,
-                2);
-        }
-        else if (last_frame_filter_level[0] || last_frame_filter_level[1]) {
+                                                                            temp_lf_recon_buffer,
+                                                                            pcs,
+                                                                            method == LPF_PICK_FROM_SUBIMAGE,
+                                                                            last_frame_filter_level,
+                                                                            NULL,
+                                                                            0,
+                                                                            2);
+        } else if (last_frame_filter_level[0] || last_frame_filter_level[1]) {
             int32_t prev_dlf_dist = 0;
-            int32_t tot_refs = 0;
+            int32_t tot_refs      = 0;
             for (uint32_t ref_it = 0; ref_it < pcs->ppcs->tot_ref_frame_types; ++ref_it) {
                 MvReferenceFrame ref_pair = pcs->ppcs->ref_frame_type_arr[ref_it];
                 MvReferenceFrame rf[2];
@@ -1327,8 +1324,8 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
 
                 if (rf[1] == NONE_FRAME) {
                     uint8_t            list_idx = get_list_idx(rf[0]);
-                    uint8_t            ref_idx = get_ref_frame_idx(rf[0]);
-                    EbReferenceObject* ref_obj = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+                    uint8_t            ref_idx  = get_ref_frame_idx(rf[0]);
+                    EbReferenceObject *ref_obj  = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
 
                     if (ref_obj->dlf_dist_dev >= 0) {
                         prev_dlf_dist += ref_obj->dlf_dist_dev;
@@ -1349,29 +1346,27 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
             // chroma filtering not allowed if luma filters off
             lf->filter_level_u = 0;
             lf->filter_level_v = 0;
-        }
-        else if (pcs->ppcs->dlf_ctrls.use_ref_avg_uv && pcs->ppcs->tot_ref_frame_types > 0) {
+        } else if (pcs->ppcs->dlf_ctrls.use_ref_avg_uv && pcs->ppcs->tot_ref_frame_types > 0) {
             //use avg-ref for chroma
             lf->filter_level_u = last_frame_filter_level[2];
             lf->filter_level_v = last_frame_filter_level[3];
-        }
-        else {
+        } else {
             lf->filter_level_u = search_filter_level(srcBuffer,
-                temp_lf_recon_buffer,
-                pcs,
-                method == LPF_PICK_FROM_SUBIMAGE,
-                last_frame_filter_level,
-                NULL,
-                1,
-                0);
+                                                     temp_lf_recon_buffer,
+                                                     pcs,
+                                                     method == LPF_PICK_FROM_SUBIMAGE,
+                                                     last_frame_filter_level,
+                                                     NULL,
+                                                     1,
+                                                     0);
             lf->filter_level_v = search_filter_level(srcBuffer,
-                temp_lf_recon_buffer,
-                pcs,
-                method == LPF_PICK_FROM_SUBIMAGE,
-                last_frame_filter_level,
-                NULL,
-                2,
-                0);
+                                                     temp_lf_recon_buffer,
+                                                     pcs,
+                                                     method == LPF_PICK_FROM_SUBIMAGE,
+                                                     last_frame_filter_level,
+                                                     NULL,
+                                                     2,
+                                                     0);
         }
 #else
         lf->filter_level[0] = lf->filter_level[1] = search_filter_level(srcBuffer,
