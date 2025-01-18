@@ -809,7 +809,11 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
 
             svt_av1_init3smotion_compensation(&pcs->ss_cfg, pcs->ppcs->enhanced_pic->stride_y);
         }
+#if CLN_CDEF_LVLS
+        CdefSearchControls* cdef_ctrls = &pcs->ppcs->cdef_search_ctrls;
+#else
         CdefControls *cdef_ctrls = &pcs->ppcs->cdef_ctrls;
+#endif
         uint8_t       skip_perc  = pcs->ref_skip_percentage;
         if ((skip_perc > 75 && cdef_ctrls->use_skip_detector) ||
             (scs->vq_ctrls.sharpness_ctrls.cdef && pcs->ppcs->is_noise_level))

@@ -5864,8 +5864,13 @@ static uint8_t do_md_recon(PictureParentControlSet *pcs, ModeDecisionContext *ct
     uint8_t need_md_rec_for_ref        = (pcs->is_ref || pcs->scs->static_config.recon_enabled) &&
         encdec_bypass; // for inter prediction of future frame or if recon is being output
     uint8_t need_md_rec_for_dlf_search  = pcs->dlf_ctrls.enabled; // for DLF levels
+#if CLN_CDEF_LVLS
+    uint8_t need_md_rec_for_cdef_search = pcs->cdef_search_ctrls.enabled &&
+        !pcs->cdef_search_ctrls.use_reference_cdef_fs; // CDEF search levels needing the recon samples
+#else
     uint8_t need_md_rec_for_cdef_search = pcs->cdef_ctrls.enabled &&
         !pcs->cdef_ctrls.use_reference_cdef_fs; // CDEF search levels needing the recon samples
+#endif
     uint8_t need_md_rec_for_restoration_search = pcs->enable_restoration; // any resoration search level
     uint8_t need_md_rec_for_stat_report        = pcs->scs->static_config.stat_report &&
         (ctxt->pd_pass == PD_PASS_1); // stat report needs recon samples for metrics

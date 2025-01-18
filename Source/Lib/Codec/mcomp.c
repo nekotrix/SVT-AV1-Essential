@@ -177,7 +177,11 @@ static INLINE int svt_estimated_pref_error(const MV *this_mv, const SUBPEL_SEARC
     //        sse, second_pred);
     //}
 }
+#if OPT_FD2
+#define BIAS_FP_WEIGHT 104
+#else
 #define BIAS_FP_WEIGHT 110
+#endif
 // Estimates whether this_mv is better than best_mv. This function incorporates
 // both prediction error and residue into account. It is suffixed "fast" because
 // it uses bilinear filter to estimate the prediction.

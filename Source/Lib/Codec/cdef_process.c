@@ -120,7 +120,11 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
 
     const int32_t mi_rows                    = cm->mi_rows;
     const int32_t mi_cols                    = cm->mi_cols;
+#if CLN_CDEF_LVLS
+    CdefSearchControls *cdef_ctrls           = &ppcs->cdef_search_ctrls;
+#else
     CdefControls *cdef_ctrls                 = &ppcs->cdef_ctrls;
+#endif
     const int     first_pass_fs_num          = cdef_ctrls->first_pass_fs_num;
     const int     default_second_pass_fs_num = cdef_ctrls->default_second_pass_fs_num;
     EbByte        src[3];
@@ -382,8 +386,13 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
         Bool       is_16bit      = scs->is_16bit_pipeline;
         Av1Common *cm            = pcs->ppcs->av1_cm;
         frm_hdr                  = &pcs->ppcs->frm_hdr;
+#if CLN_CDEF_LVLS
+        CdefSearchControls* cdef_search_ctrls = &pcs->ppcs->cdef_search_ctrls;
+        if (!cdef_search_ctrls->use_reference_cdef_fs) {
+#else
         CdefControls *cdef_ctrls = &pcs->ppcs->cdef_ctrls;
         if (!cdef_ctrls->use_reference_cdef_fs) {
+#endif
             if (scs->seq_header.cdef_level && pcs->ppcs->cdef_level) {
                 cdef_seg_search(pcs, scs, dlf_results->segment_index);
             }
