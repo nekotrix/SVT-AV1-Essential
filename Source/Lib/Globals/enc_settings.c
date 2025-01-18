@@ -68,13 +68,14 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Multi-passes is not support with Low Delay mode \n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if !FIX_VBR_BIAS_PCT
 #if !SVT_AV1_CHECK_VERSION(2, 0, 0)
     if (config->vbr_bias_pct != 100) {
         SVT_WARN("Instance %u: The bias percentage is being ignored and will be deprecated in the up coming release \n",
                  channel_number + 1);
     }
 #endif
-
+#endif
     if (config->maximum_buffer_size_ms < 20 || config->maximum_buffer_size_ms > 10000) {
         SVT_ERROR("Instance %u: The maximum buffer size must be between [20, 10000]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
@@ -142,17 +143,19 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-
+#if !FIX_BOOL
     if (config->gop_constraint_rc > 1) {
         SVT_ERROR("Instance %u: Invalid gop_constraint_rc. gop_constraint_rc must be [0 - 1]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#endif
     if (config->gop_constraint_rc)
         SVT_WARN(
             "Instance %u: The GoP constraint RC mode is a work-in-progress project, and is only "
             "available for demos, experimentation, and further development uses and should not be "
             "used for benchmarking until fully implemented.\n",
             channel_number + 1);
+
     if (config->force_key_frames &&
         (config->rate_control_mode == SVT_AV1_RC_MODE_CBR || config->pred_structure != SVT_AV1_PRED_RANDOM_ACCESS)) {
         SVT_WARN(
@@ -253,12 +256,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Invalid intra Refresh Type [1-2]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-
+#if !FIX_BOOL
     if (config->enable_dlf_flag > 1) {
         SVT_ERROR("Instance %u: Invalid LoopFilterEnable. LoopFilterEnable must be [0 - 1]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-
+#endif
     if (config->rate_control_mode > SVT_AV1_RC_MODE_CBR &&
         (config->pass == ENC_FIRST_PASS || config->rc_stats_buffer.buf)) {
         SVT_ERROR("Instance %u: Only rate control mode 0~2 are supported for 2-pass \n", channel_number + 1);
@@ -308,11 +311,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: MaxTiles is 128 and MaxTileCols is 16 (Annex A.3) \n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if !FIX_BOOL
     if (config->restricted_motion_vector > 1) {
         SVT_ERROR("Instance %u : Invalid Restricted Motion Vector flag [0 - 1]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-
+#endif
     if (config->max_qp_allowed > MAX_QP_VALUE) {
         SVT_ERROR("Instance %u: MaxQpAllowed must be [1 - %d]\n", channel_number + 1, MAX_QP_VALUE);
         return_error = EB_ErrorBadParameter;
@@ -330,10 +334,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
 #endif
     }
+#if !FIX_BOOL
     if (config->use_qp_file > 1) {
         SVT_ERROR("Instance %u : Invalid use_qp_file. use_qp_file must be [0 - 1]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#endif
     if (config->use_fixed_qindex_offsets > 2) {
         SVT_ERROR("Instance %u: The use_fixed_qindex_offsets must be [0 - 2] \n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
@@ -422,13 +428,13 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u : Invalid StatReport. StatReport must be [0 - 1]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-
+#if !FIX_HIGH_DYNAMIC_RANGE_INPUT
     if (config->high_dynamic_range_input > 1) {
         SVT_ERROR("Instance %u : Invalid HighDynamicRangeInput. HighDynamicRangeInput must be [0 - 1]\n",
                   channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-
+#endif
     if (config->screen_content_mode > 2) {
         SVT_ERROR("Instance %u : Invalid screen_content_mode. screen_content_mode must be [0 - 2]\n",
                   channel_number + 1);
@@ -521,7 +527,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             config->enable_mfmv);
         return_error = EB_ErrorBadParameter;
     }
-
+#if !FIX_BOOL
     if (config->enable_dg > 1) {
         SVT_ERROR(
             "Instance %u: Invalid dynamic GoP flag [0 - 1], your "
@@ -530,6 +536,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             config->enable_dg);
         return_error = EB_ErrorBadParameter;
     }
+#endif
     if (config->fast_decode > 2) {
         SVT_ERROR(
             "Instance %u: Invalid fast decode flag [0 - 2, 0 for no decoder-targeted optimization], your "
@@ -849,8 +856,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Startup MG size must less than Hierarchical Levels\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-
+#if FIX_RATE_CONTROL_MODE
+    if (config->startup_mg_size != 0 && config->rate_control_mode != SVT_AV1_RC_MODE_CQP_OR_CRF) {
+#else
     if (config->startup_mg_size != 0 && config->rate_control_mode != 0) {
+#endif
         SVT_ERROR("Instance %u: Startup MG size feature only supports CRF/CQP rate control mode\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
@@ -870,11 +880,13 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Variance boost octile must be between 1 and 8\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if !FIX_BOOL
 #if FTR_STILL_PICTURE
     if ((int8_t)config->avif < 0 || (int8_t)config->avif > 1) {
         SVT_ERROR("Instance %u: avif must be either 0 or 1\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#endif
 #endif
     return return_error;
 }
@@ -942,8 +954,10 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->encoder_color_format         = EB_YUV420;
     // Rate control options
     // Set the default value toward more flexible rate allocation
+#if !FIX_VBR_BIAS_PCT
 #if !SVT_AV1_CHECK_VERSION(2, 0, 0)
     config_ptr->vbr_bias_pct = 100;
+#endif
 #endif
     config_ptr->vbr_min_section_pct      = 0;
     config_ptr->vbr_max_section_pct      = 2000;
@@ -956,9 +970,10 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->optimal_buffer_level_ms  = 600; // default settings for CBR
     config_ptr->recode_loop              = ALLOW_RECODE_DEFAULT;
     config_ptr->restricted_motion_vector = FALSE;
-
+#if !FIX_HIGH_DYNAMIC_RANGE_INPUT
     config_ptr->high_dynamic_range_input = 0;
-    config_ptr->screen_content_mode      = 2;
+#endif
+    config_ptr->screen_content_mode = 2;
 
     // Annex A parameters
     config_ptr->profile = 0;
@@ -974,8 +989,10 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
 
     // Channel info
 #if CLN_LP_LVLS
+#if !FIX_SVT_AV1_CHECK_VERSION
 #if !SVT_AV1_CHECK_VERSION(3, 0, 0)
     config_ptr->logical_processors = 0;
+#endif
 #endif
     config_ptr->level_of_parallelism = 0;
 #else
@@ -1006,7 +1023,9 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->resize_kf_denom = SCALE_NUMERATOR;
 
     // Color description default values
+#if !FIX_COLOR_DESCRIPTION_PRESENT_FLAG
     config_ptr->color_description_present_flag = FALSE;
+#endif
     config_ptr->color_primaries                = 2;
     config_ptr->transfer_characteristics       = 2;
     config_ptr->matrix_coefficients            = 2;
@@ -1041,7 +1060,6 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->variance_octile                   = 6;
     return return_error;
 }
-
 static const char *tier_to_str(unsigned in) {
     if (!in)
         return "(auto)";
@@ -1390,10 +1408,13 @@ static uint32_t count_params(const char *nptr) {
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
 #endif
-
+#if FIX_BOOL
+static EbErrorType str_to_bool(const char *nptr, bool *out) {
+    bool val;
+#else
 static EbErrorType str_to_bool(const char *nptr, Bool *out) {
     Bool val;
-
+#endif
     if (!strcmp(nptr, "1") || !strcasecmp(nptr, "true") || !strcasecmp(nptr, "yes"))
         val = TRUE;
     else if (!strcmp(nptr, "0") || !strcasecmp(nptr, "false") || !strcasecmp(nptr, "no"))
@@ -1748,8 +1769,11 @@ static EbErrorType str_to_sframe_mode(const char *nptr, EbSFrameMode *out) {
 
     return EB_ErrorBadParameter;
 }
-
+#if FIX_RATE_CONTROL_MODE
+static EbErrorType str_to_rc_mode(const char *nptr, uint8_t *out, uint8_t *aq_mode) {
+#else
 static EbErrorType str_to_rc_mode(const char *nptr, uint32_t *out, uint8_t *aq_mode) {
+#endif
     // separate rc mode enum to distinguish between cqp and crf modes
     enum rc_modes {
         RC_MODE_ZERO = 0, // unique mode in case user passes a literal 0
@@ -1950,10 +1974,14 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"tier", &config_struct->tier},
         {"level", &config_struct->level},
 #if CLN_LP_LVLS
+#if FIX_SVT_AV1_CHECK_VERSION
+        {"lp", &config_struct->level_of_parallelism},
+#else
 #if SVT_AV1_CHECK_VERSION(3, 0, 0)
         {"lp", &config_struct->level_of_parallelism},
 #else
         {"lp", &config_struct->logical_processors},
+#endif
 #endif
 #else
         {"lp", &config_struct->logical_processors},
@@ -1965,8 +1993,10 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"scd", &config_struct->scene_change_detection},
         {"max-qp", &config_struct->max_qp_allowed},
         {"min-qp", &config_struct->min_qp_allowed},
+#if !FIX_VBR_BIAS_PCT
 #if !SVT_AV1_CHECK_VERSION(2, 0, 0)
         {"bias-pct", &config_struct->vbr_bias_pct},
+#endif
 #endif
         {"minsection-pct", &config_struct->vbr_min_section_pct},
         {"maxsection-pct", &config_struct->vbr_max_section_pct},
@@ -2003,7 +2033,9 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"superres-kf-denom", &config_struct->superres_kf_denom},
         {"tune", &config_struct->tune},
         {"film-grain-denoise", &config_struct->film_grain_denoise_apply},
+#if !FIX_HIGH_DYNAMIC_RANGE_INPUT
         {"enable-hdr", &config_struct->high_dynamic_range_input},
+#endif
         {"resize-mode", &config_struct->resize_mode},
         {"resize-denom", &config_struct->resize_denom},
         {"resize-kf-denom", &config_struct->resize_kf_denom},
@@ -2014,11 +2046,13 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"variance-boost-strength", &config_struct->variance_boost_strength},
         {"variance-octile", &config_struct->variance_octile},
         {"fast-decode", &config_struct->fast_decode},
+#if !FIX_BOOL
 #if FTR_LOSSLESS_SUPPORT
         {"lossless", &config_struct->lossless},
 #endif
 #if FTR_STILL_PICTURE
         {"avif", &config_struct->avif},
+#endif
 #endif
     };
     const size_t uint8_opts_size = sizeof(uint8_opts) / sizeof(uint8_opts[0]);
@@ -2113,7 +2147,11 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
     // Bool fields
     const struct {
         const char *name;
-        Bool       *out;
+#if FIX_BOOL
+        bool *out;
+#else
+        Bool *out;
+#endif
     } bool_opts[] = {
         {"use-q-file", &config_struct->use_qp_file},
         {"enable-dlf", &config_struct->enable_dlf_flag},
@@ -2125,6 +2163,14 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"enable-dg", &config_struct->enable_dg},
         {"gop-constraint-rc", &config_struct->gop_constraint_rc},
         {"enable-variance-boost", &config_struct->enable_variance_boost},
+#if FIX_BOOL
+#if FTR_LOSSLESS_SUPPORT
+        {"lossless", &config_struct->lossless},
+#endif
+#if FTR_STILL_PICTURE
+        {"avif", &config_struct->avif},
+#endif
+#endif
     };
     const size_t bool_opts_size = sizeof(bool_opts) / sizeof(bool_opts[0]);
 

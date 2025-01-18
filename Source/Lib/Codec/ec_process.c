@@ -254,6 +254,7 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
             reset_entropy_coding_picture(context_ptr, pcs, scs);
         }
         svt_release_mutex(pcs->entropy_coding_pic_mutex);
+
         if (!svt_aom_is_pic_skipped(pcs->ppcs)) {
             for (uint32_t y_sb_index = 0; y_sb_index < tile_height_in_sb; ++y_sb_index) {
                 for (uint32_t x_sb_index = 0; x_sb_index < tile_width_in_sb; ++x_sb_index) {
@@ -310,6 +311,10 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
         }
 
         if (frame_entropy_done) {
+#if FTR_SIGNAL_AVERAGE_QP
+            if (pcs->ppcs->valid_qindex_area)
+                pcs->ppcs->avg_qp = ((pcs->ppcs->tot_qindex / pcs->ppcs->valid_qindex_area) + 2) >> 2;
+#endif
             // Get Empty Entropy Coding Results
             svt_get_empty_object(context_ptr->entropy_coding_output_fifo_ptr, &entropy_coding_results_wrapper_ptr);
             entropy_coding_results_ptr = (EntropyCodingResults *)entropy_coding_results_wrapper_ptr->object_ptr;

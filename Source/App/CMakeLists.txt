@@ -19,7 +19,6 @@ set(all_files
     ../API/EbSvtAv1.h
     ../API/EbSvtAv1Enc.h
     ../API/EbSvtAv1ErrorCodes.h
-    ../API/EbSvtAv1ExtFrameBuf.h
     ../API/EbSvtAv1Formats.h
     ../API/EbSvtAv1Metadata.h
     app_config.c

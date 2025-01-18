@@ -1099,7 +1099,11 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 if (pcs->stat_struct.poc != pcs->picture_number)
                     SVT_LOG("Error reading data in multi pass encoding\n");
             }
+#if FIX_BOOL
+            if (scs->static_config.use_qp_file) {
+#else
             if (scs->static_config.use_qp_file == 1) {
+#endif
                 pcs->qp_on_the_fly = TRUE;
                 if (pcs->input_ptr->qp > MAX_QP_VALUE) {
                     SVT_WARN("INPUT QP/CRF OUTSIDE OF RANGE\n");
@@ -1110,7 +1114,11 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 pcs->qp_on_the_fly = FALSE;
                 pcs->picture_qp    = (uint8_t)scs->static_config.qp;
             }
-
+#if FTR_SIGNAL_AVERAGE_QP
+            // Initialize variables for calculating the average QP
+            pcs->tot_qindex        = 0;
+            pcs->valid_qindex_area = 0;
+#endif
             pcs->ts_duration              = (double)10000000 * (1 << 16) / scs->frame_rate;
             scs->enc_ctx->initial_picture = FALSE;
 

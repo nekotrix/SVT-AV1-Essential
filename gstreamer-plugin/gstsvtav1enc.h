@@ -43,7 +43,11 @@ typedef struct _GstSvtAv1Enc {
     guint  maximum_buffer_size;
     gint   intra_period_length;
     gint   intra_refresh_type;
-    gint   logical_processors;
+#if FIX_SVT_AV1_CHECK_VERSION
+    gint level_of_parallelism;
+#else
+    gint logical_processors;
+#endif
     gint   target_socket;
     gchar *parameters_string;
 

@@ -96,10 +96,31 @@ extern "C" {
 #define FIX_FAST_PRESET             1 // Tuning for high presets
 #define TUNE_FD0_FEATS              1 // Unify CDEF and DLF levels of fd2/fd0 in M10 and M9
 #define OPT_CDEF_FD1                1 // Opt CDEF for fd1
+#define FIX_PUBLIC_HEADER           1
+#if FIX_PUBLIC_HEADER
+// EbSvtAv1Enc.h
+#define FIX_BOOL                           1 // Replace Bool with the standard bool
+#define FIX_HIGH_DYNAMIC_RANGE_INPUT       1 // Remove high_dynamic_range_input as hdr is not supported
+#define FIX_COLOR_DESCRIPTION_PRESENT_FLAG 1 // Remove color_description_present_flag as adding color description information is not supported
+#define FIX_RATE_CONTROL_MODE              1 // Use SvtAv1RcMode instead of uint32_t
+#define FIX_VBV_BUFSIZE                    1 // Remove vbv_bufsize as not used
+#define FIX_VBR_BIAS_PCT                   1 // Remove vbr_bias_pct as not used
+#define FIX_PRED_STRUCT                    1 // Remove the unused pred_struct signals
+// EbSvtAv1.h
+#define FIX_EB_SVT_IO_FORMAT               1 // Remove the unused EbSvtIOFormat fields
+#define FIX_P_APP_DATA                     1 // Remove p_application_private as not used
+#define FTR_SIGNAL_LAYER                   1 // Output the temporal layer index of the encoded picture
+#define FTR_SIGNAL_AVERAGE_QP              1 // Output the mean QP across all blocks for the encoded picture
+#endif
+#define FIX_SVT_AV1_CHECK_VERSION          1 // Remove the SVT_AV1_CHECK_VERSION instances
+#define FIX_NO_ENCDEC                      1 // Remove REMOVE_LP1_LPN_DIFF as not used
+#define FIX_REMOVE_LP1_LPN_DIFF            1 // remove NO_ENCDEC as not used
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one
+#if !FIX_NO_ENCDEC
 #define NO_ENCDEC               0 // bypass encDec to test cmpliance of MD. complained achieved when skip_flag is OFF. Port sample code from VCI-SW_AV1_Candidate1 branch
+#endif
 #define DEBUG_TPL               0 // Prints to debug TPL
 #define DETAILED_FRAME_OUTPUT   0 // Prints detailed frame output from the library for debugging
 #define TUNE_CHROMA_SSIM        0 // Allows for Chroma and SSIM BDR-based Tuning
@@ -110,6 +131,13 @@ extern "C" {
 #define LAD_MG_PRINT            0 // Report LAD
 #define RC_NO_R2R               0 // This is a debugging flag for RC and makes encoder to run with no R2R in RC mode
                                   // Note that the speed might impacted significantly
+#if FIX_REMOVE_LP1_LPN_DIFF
+#if !RC_NO_R2R
+#define FTR_KF_ON_FLY_SAMPLE      0 // Sample code to signal KF
+#define FTR_RES_ON_FLY_SAMPLE     0 // Sample functions to change the resolution on the fly
+#define FTR_RATE_ON_FLY_SAMPLE     0 // Sample functions to change bit rate
+#endif
+#else
 #if RC_NO_R2R
 #define REMOVE_LP1_LPN_DIFF     1 // Disallow single-thread/multi-thread differences
 #else
@@ -117,6 +145,7 @@ extern "C" {
 #define FTR_KF_ON_FLY_SAMPLE      0 // Sample code to signal KF
 #define FTR_RES_ON_FLY_SAMPLE     0 // Sample functions to change the resolution on the fly
 #define FTR_RATE_ON_FLY_SAMPLE    0 // Sample functions to change bit rate
+#endif
 #endif
 // Super-resolution debugging code
 #define DEBUG_SCALING           0

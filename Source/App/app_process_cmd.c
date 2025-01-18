@@ -182,8 +182,11 @@ static long get_next_qp_from_qp_file(FILE *const qp_file, int *const qp_read_fro
         *qp_read_from_file = 1;
     return qp;
 }
-
+#if FIX_BOOL
+static unsigned char send_qp_on_the_fly(FILE *const qp_file, bool *use_qp_file) {
+#else
 static unsigned char send_qp_on_the_fly(FILE *const qp_file, Bool *use_qp_file) {
+#endif
     long tmp_qp            = 0;
     int  qp_read_from_file = 0;
 
@@ -722,6 +725,12 @@ void init_reader(EbConfig *app_cfg) {
 ***************************************/
 void process_output_statistics_buffer(EbBufferHeaderType *header_ptr, EbConfig *app_cfg) {
     uint32_t max_luma_value = (app_cfg->config.encoder_bit_depth == 8) ? 255 : 1023;
+#if FTR_SIGNAL_LAYER
+    uint8_t temporal_layer_index;
+#endif
+#if FTR_SIGNAL_AVERAGE_QP
+    uint32_t avg_qp;
+#endif
     uint64_t picture_stream_size, luma_sse, cr_sse, cb_sse, picture_number, picture_qp;
     double   luma_ssim, cr_ssim, cb_ssim;
     double   temp_var, luma_psnr, cb_psnr, cr_psnr;
@@ -733,10 +742,16 @@ void process_output_statistics_buffer(EbBufferHeaderType *header_ptr, EbConfig *
     cr_sse              = header_ptr->cr_sse;
     cb_sse              = header_ptr->cb_sse;
     picture_number      = header_ptr->pts;
-    picture_qp          = header_ptr->qp;
-    luma_ssim           = header_ptr->luma_ssim;
-    cr_ssim             = header_ptr->cr_ssim;
-    cb_ssim             = header_ptr->cb_ssim;
+#if FTR_SIGNAL_LAYER
+    temporal_layer_index = header_ptr->temporal_layer_index;
+#endif
+    picture_qp = header_ptr->qp;
+#if FTR_SIGNAL_AVERAGE_QP
+    avg_qp = header_ptr->avg_qp;
+#endif
+    luma_ssim = header_ptr->luma_ssim;
+    cr_ssim   = header_ptr->cr_ssim;
+    cb_ssim   = header_ptr->cb_ssim;
 
     temp_var = (double)max_luma_value * max_luma_value * (source_width * source_height);
 
@@ -764,13 +779,27 @@ void process_output_statistics_buffer(EbBufferHeaderType *header_ptr, EbConfig *
     // Write statistic Data to file
     if (app_cfg->stat_file) {
         fprintf(app_cfg->stat_file,
+#if FTR_SIGNAL_LAYER
+#if FTR_SIGNAL_AVERAGE_QP
+                "Picture Number: %4d\tTemporal Layer Index: %4d\t QP: %4d\t Average QP: %4d  [ "
+#else
+                "Picture Number: %4d\tTemporal Layer Index: %4d\t QP: %4d  [ "
+#endif
+#else
                 "Picture Number: %4d\t QP: %4d  [ "
+#endif
                 "PSNR-Y: %.2f dB,\tPSNR-U: %.2f dB,\tPSNR-V: %.2f "
                 "dB,\tMSE-Y: %.2f,\tMSE-U: %.2f,\tMSE-V: %.2f,\t"
                 "SSIM-Y: %.5f,\tSSIM-U: %.5f,\tSSIM-V: %.5f"
                 " ]\t %6d bytes\n",
                 (int)picture_number,
+#if FTR_SIGNAL_LAYER
+                (int)temporal_layer_index,
+#endif
                 (int)picture_qp,
+#if FTR_SIGNAL_AVERAGE_QP
+                (int)avg_qp,
+#endif
                 luma_psnr,
                 cb_psnr,
                 cr_psnr,

@@ -20,7 +20,9 @@ extern "C" {
 #include "EbSvtAv1.h"
 #include <stdlib.h>
 #include <stdio.h>
-
+#if FIX_BOOL
+#include <stdbool.h>
+#endif
 /**
  * @brief SVT-AV1 encoder ABI version
  *
@@ -330,14 +332,14 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is YUV420.
      */
     EbColorFormat encoder_color_format;
-
+#if !FIX_HIGH_DYNAMIC_RANGE_INPUT
     /**
      * @brief Currently unused.
      *
      * Default is 0.
      */
     uint8_t high_dynamic_range_input;
-
+#endif
     /**
      * @brief Bitstream profile to use.
      * 0: main, 1: high, 2: professional.
@@ -354,7 +356,6 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is 0. */
     uint32_t tier;
-
     /**
      * @brief Bitstream level.
      * 0: autodetect from bitstream, 20: level 2.0, 63: level 6.3, only levels 2.0-6.3 are properly defined.
@@ -366,7 +367,7 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is 0.
      */
     uint32_t level;
-
+#if !FIX_COLOR_DESCRIPTION_PRESENT_FLAG
     /* Color description present flag
     *
     * It is not necessary to set this parameter manually.
@@ -375,6 +376,7 @@ typedef struct EbSvtAv1EncConfiguration {
     *
     Default is false. */
     Bool color_description_present_flag;
+#endif
     /* Color primaries
     * values are from EbColorPrimaries
     Default is 2 (CP_UNSPECIFIED). */
@@ -416,8 +418,11 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Refer to the SvtAv1RcMode enum for valid values
      * Default is 0. */
+#if FIX_RATE_CONTROL_MODE
+    uint8_t rate_control_mode;
+#else
     uint32_t rate_control_mode;
-
+#endif
     // Rate control tuning
 
     // Quantization
@@ -430,8 +435,11 @@ typedef struct EbSvtAv1EncConfiguration {
     /* force qp values for every picture that are passed in the header pointer
     *
     * Default is 0.*/
+#if FIX_BOOL
+    bool use_qp_file;
+#else
     Bool use_qp_file;
-
+#endif
     /* Target bitrate in bits/second, only applicable when rate control mode is
      * set to 1 (VBR) or 2 (CBR).
      *
@@ -442,12 +450,12 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is 0. */
     uint32_t max_bit_rate;
-
+#if !FIX_VBV_BUFSIZE
 #if !SVT_AV1_CHECK_VERSION(1, 5, 0)
     /* DEPRECATED: to be removed in 1.5.0. */
     uint32_t vbv_bufsize;
 #endif
-
+#endif
     /* Maxium QP value allowed for rate control use, only applicable when rate
      * control mode is set to 1. It has to be greater or equal to minQpAllowed.
      *
@@ -458,7 +466,7 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is 4. */
     uint32_t min_qp_allowed;
-
+#if !FIX_VBR_BIAS_PCT
     // DATARATE CONTROL OPTIONS
 #if !SVT_AV1_CHECK_VERSION(2, 0, 0)
     /* DEPRECATED: to be removed in 2.0.0. */
@@ -475,7 +483,7 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint32_t vbr_bias_pct;
 #endif
-
+#endif
     /**
      * @brief Variable Bit Rate Minimum Section Percentage
      *
@@ -617,8 +625,11 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is true.
      */
+#if FIX_BOOL
+    bool enable_dlf_flag;
+#else
     Bool enable_dlf_flag;
-
+#endif
     /* Film grain denoising the input picture
     * Flag to enable the denoising
     *
@@ -663,8 +674,11 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is false.
      */
+#if FIX_BOOL
+    bool restricted_motion_vector;
+#else
     Bool restricted_motion_vector;
-
+#endif
     /* Log 2 Tile Rows and columns . 0 means no tiling,1 means that we split the dimension
         * into 2
         * Default is 0. */
@@ -711,9 +725,15 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is true.
      */
+#if FIX_BOOL
+    bool enable_tf;
+
+    bool enable_overlays;
+#else
     Bool enable_tf;
 
     Bool enable_overlays;
+#endif
     /**
      * @brief Tune for a particular metric; 0: VQ, 1: PSNR, 2: SSIM.
      *
@@ -728,7 +748,7 @@ typedef struct EbSvtAv1EncConfiguration {
     uint8_t superres_qthres;
     uint8_t superres_kf_qthres;
     uint8_t superres_auto_search_type;
-
+#if !FIX_PRED_STRUCT
 #if !SVT_AV1_CHECK_VERSION(1, 5, 0)
     /* DEPRECATED: to be removed in 1.5.0. */
     PredictionStructureConfigEntry pred_struct[1 << (MAX_HIERARCHICAL_LEVEL - 1)];
@@ -738,6 +758,7 @@ typedef struct EbSvtAv1EncConfiguration {
 
     /* DEPRECATED: to be removed in 1.5.0. */
     int32_t manual_pred_struct_entry_num;
+#endif
 #endif
     /* Decoder-speed-targeted encoder optimization level (produce bitstreams that can be decoded faster).
     * 0: No decoder-targeted speed optimization
@@ -782,6 +803,7 @@ typedef struct EbSvtAv1EncConfiguration {
     // Threads management
 
 #if CLN_LP_LVLS
+#if !FIX_SVT_AV1_CHECK_VERSION
 #if !SVT_AV1_CHECK_VERSION(3, 0, 0)
     /* logical_processors refers to how much parallelization the encoder will perform
      * by setting the number of threads and pictures that can be handled simultaneously. If
@@ -791,7 +813,7 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint32_t logical_processors;
 #endif
-
+#endif
     /* The level of parallelism refers to how much parallelization the encoder will perform
      * by setting the number of threads and pictures that can be handled simultaneously. If
      * the value is 0, a deafult level will be chosen based on the number of cores on the
@@ -846,6 +868,22 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is false.
      */
+#if FIX_BOOL
+    bool recon_enabled;
+    // 1.0.0: Any additional fields shall go after here
+
+    /**
+     * @brief Signal that force-key-frames is enabled.
+     *
+     */
+    bool force_key_frames;
+
+    /**
+     * @brief Signal to the library to treat intra_period_length as seconds and
+     * multiply by fps_num/fps_den.
+     */
+    uint8_t multiply_keyint;
+#else
     Bool recon_enabled;
     // 1.0.0: Any additional fields shall go after here
 
@@ -860,7 +898,7 @@ typedef struct EbSvtAv1EncConfiguration {
      * multiply by fps_num/fps_den.
      */
     Bool multiply_keyint;
-
+#endif
     // reference scaling parameters
     /**
      * @brief Reference scaling mode
@@ -884,7 +922,11 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is false.
      */
+#if FIX_BOOL
+    bool enable_qm;
+#else
     Bool enable_qm;
+#endif
     /**
      * @brief Min quant matrix flatness. Applicable when enable_qm is true.
      * Min value is 0.
@@ -911,8 +953,11 @@ typedef struct EbSvtAv1EncConfiguration {
      * 1: on
      * Default is 0.
      */
+#if FIX_BOOL
+    bool gop_constraint_rc;
+#else
     Bool gop_constraint_rc;
-
+#endif
     /**
      * @brief scale factors for lambda value for different frame update types
      * factor >> 7 (/ 128) is the actual value in float
@@ -924,8 +969,11 @@ typedef struct EbSvtAv1EncConfiguration {
     * 0 = disable Dynamic GoP
     * 1 = enable Dynamic GoP
     *  Default is 1. */
+#if FIX_BOOL
+    bool enable_dg;
+#else
     Bool enable_dg;
-
+#endif
     /**
      * @brief startup_mg_size
      *
@@ -966,8 +1014,11 @@ typedef struct EbSvtAv1EncConfiguration {
     * 0 = disable ROI
     * 1 = enable ROI
     *  Default is 0. */
+#if FIX_BOOL
+    bool enable_roi_map;
+#else
     Bool enable_roi_map;
-
+#endif
     /* Stores the optional film grain synthesis info */
     AomFilmGrain *fgs_table;
 
@@ -978,8 +1029,11 @@ typedef struct EbSvtAv1EncConfiguration {
      * false = disable variance boost
      * true = enable variance boost
      * Default is false. */
+#if FIX_BOOL
+    bool enable_variance_boost;
+#else
     Bool enable_variance_boost;
-
+#endif
     /* @brief Selects the curve strength to boost low variance regions according to a fast-growing formula
      * Default is 2 */
     uint8_t variance_boost_strength;
@@ -997,19 +1051,31 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is false.
      */
+#if FIX_BOOL
+    bool lossless;
+#else
     Bool lossless;
+#endif
 #if FTR_STILL_PICTURE
     /* @brief Signal to the library to enable still-picture coding
      *
      * Default is false.
      */
+#if FIX_BOOL
+    bool avif;
+#else
     Bool avif;
+#endif
 #endif
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
 #if CLN_LP_LVLS
 #if FTR_STILL_PICTURE
 #if FTR_STARTUP_QP
+#if FIX_PUBLIC_HEADER
+    uint8_t padding[128];
+#else
     uint8_t padding[128 - 3 * sizeof(Bool) - 2 * sizeof(uint8_t) - sizeof(uint32_t) - sizeof(int8_t)];
+#endif
 #else
     uint8_t padding[128 - 3 * sizeof(Bool) - 2 * sizeof(uint8_t) - sizeof(uint32_t)];
 #endif
@@ -1054,7 +1120,11 @@ EB_API void svt_av1_print_version(void);
      * @ *config_ptr     Pointer passed back to the client during callbacks, it will be
      *                  loaded with default params from the library. */
 EB_API EbErrorType svt_av1_enc_init_handle(
+#if FIX_P_APP_DATA
+    EbComponentType **p_handle,
+#else
     EbComponentType **p_handle, void *p_app_data,
+#endif
     EbSvtAv1EncConfiguration *config_ptr); // config_ptr will be loaded with default params from the library
 
 /* STEP 2: Set all configuration parameters.

@@ -2804,7 +2804,9 @@ static EbErrorType init_svt_av1_encoder_handle(
 **********************************/
 EB_API EbErrorType svt_av1_enc_init_handle(
     EbComponentType** p_handle,               // Function to be called in the future for manipulating the component
+#if !FIX_P_APP_DATA
     void*              p_app_data,
+#endif
     EbSvtAv1EncConfiguration  *config_ptr)              // pointer passed back to the client during callbacks
 
 {
@@ -2828,7 +2830,9 @@ EB_API EbErrorType svt_av1_enc_init_handle(
     EbErrorType return_error = init_svt_av1_encoder_handle(*p_handle);
 
     if (return_error == EB_ErrorNone) {
+#if !FIX_P_APP_DATA
         ((EbComponentType*)(*p_handle))->p_application_private = p_app_data;
+#endif
         return_error = svt_av1_set_default_params(config_ptr);
     }
     if (return_error != EB_ErrorNone) {
@@ -5091,8 +5095,10 @@ static void copy_api_from_app(
         ((EbSvtAv1EncConfiguration*)config_struct)->min_qp_allowed : 1 :
         1; // lossless coding not supported
 #endif
+#if !FIX_VBR_BIAS_PCT
 #if !SVT_AV1_CHECK_VERSION(2, 0, 0)
     scs->static_config.vbr_bias_pct        = ((EbSvtAv1EncConfiguration*)config_struct)->vbr_bias_pct;
+#endif
 #endif
     scs->static_config.vbr_min_section_pct = ((EbSvtAv1EncConfiguration*)config_struct)->vbr_min_section_pct;
     scs->static_config.vbr_max_section_pct = ((EbSvtAv1EncConfiguration*)config_struct)->vbr_max_section_pct;
@@ -5138,7 +5144,9 @@ static void copy_api_from_app(
     scs->subsampling_x = (scs->chroma_format_idc == EB_YUV444 ? 1 : 2) - 1;
     scs->subsampling_y = (scs->chroma_format_idc >= EB_YUV422 ? 1 : 2) - 1;
     // Thresholds
+#if !FIX_HIGH_DYNAMIC_RANGE_INPUT
     scs->static_config.high_dynamic_range_input = ((EbSvtAv1EncConfiguration*)config_struct)->high_dynamic_range_input;
+#endif
     scs->static_config.screen_content_mode = ((EbSvtAv1EncConfiguration*)config_struct)->screen_content_mode;
 
     // Annex A parameters
@@ -5153,6 +5161,9 @@ static void copy_api_from_app(
     scs->static_config.channel_id = ((EbSvtAv1EncConfiguration*)config_struct)->channel_id;
     scs->static_config.active_channel_count = ((EbSvtAv1EncConfiguration*)config_struct)->active_channel_count;
 #if CLN_LP_LVLS
+#if FIX_SVT_AV1_CHECK_VERSION
+    scs->static_config.level_of_parallelism = ((EbSvtAv1EncConfiguration*)config_struct)->level_of_parallelism;
+#else
 #if SVT_AV1_CHECK_VERSION(3, 0, 0)
     scs->static_config.level_of_parallelism = ((EbSvtAv1EncConfiguration*)config_struct)->level_of_parallelism;
 #else
@@ -5160,6 +5171,7 @@ static void copy_api_from_app(
     scs->static_config.level_of_parallelism = ((EbSvtAv1EncConfiguration*)config_struct)->logical_processors;
     if (scs->static_config.level_of_parallelism)
         SVT_WARN("logical_processors will be deprecated in v3.0. Use level_of_parallelism instead. Input mapped to level_of_parallelism.\n");
+#endif
 #endif
     if (scs->static_config.level_of_parallelism >= PARALLEL_LEVEL_COUNT) {
         SVT_WARN("Level of parallelism supports levels [0-%d]. Setting maximum parallelism level.\n", PARALLEL_LEVEL_COUNT - 1);
@@ -5235,7 +5247,9 @@ static void copy_api_from_app(
     scs->static_config.frame_scale_evts.evt_num = config_struct->frame_scale_evts.evt_num;
 
     // Color description
+#if !FIX_COLOR_DESCRIPTION_PRESENT_FLAG
     scs->static_config.color_description_present_flag = config_struct->color_description_present_flag;
+#endif
     scs->static_config.color_primaries = config_struct->color_primaries;
     scs->static_config.transfer_characteristics = config_struct->transfer_characteristics;
     scs->static_config.matrix_coefficients = config_struct->matrix_coefficients;

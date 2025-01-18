@@ -5313,6 +5313,12 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
             }
         }
     }
+#if FTR_SIGNAL_AVERAGE_QP
+    svt_block_on_mutex(pcs->entropy_coding_pic_mutex);
+    pcs->ppcs->tot_qindex += blk_ptr->qindex * blk_geom->bwidth * blk_geom->bheight;
+    pcs->ppcs->valid_qindex_area += blk_geom->bwidth * blk_geom->bheight;
+    svt_release_mutex(pcs->entropy_coding_pic_mutex);
+#endif
     // Update the neighbors
     ec_update_neighbors(pcs, ec_ctx, blk_org_x, blk_org_y, blk_ptr, tile_idx, bsize, coeff_ptr);
 
@@ -5516,7 +5522,6 @@ EB_EXTERN EbErrorType svt_aom_write_sb(EntropyCodingContext *ec_ctx, SuperBlock 
                 break;
             default: assert(0);
             }
-
             if (tb_ptr->cu_partition_array[blk_index] != PARTITION_SPLIT) {
                 final_blk_index++;
                 blk_index += blk_geom->ns_depth_offset;

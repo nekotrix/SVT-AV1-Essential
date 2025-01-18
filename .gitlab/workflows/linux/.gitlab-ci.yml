@@ -433,6 +433,7 @@ Linux libavif (Static):
     - git clone $PWD svtav1-src
     - git clone https://github.com/AOMediaCodec/libavif.git libavif-src
     - git clone https://code.videolan.org/videolan/dav1d.git dav1d-src
+    - git -C libavif-src apply $PWD/.gitlab/workflows/linux/libavif_api_job_fix.patch
     - !reference [.ffmpeg-before-script-export]
     - apt update && apt install -yyy libpng-dev libjpeg-dev
   script:
@@ -467,6 +468,7 @@ Linux FFmpeg (n7.0.2, Static):
     - !reference [.ffmpeg-before-script-git-setup]
     - !reference [.ffmpeg-before-script-clone]
     - git -C ffmpeg-src checkout n7.0.2
+    - git -C ffmpeg-src apply $PWD/.gitlab/workflows/linux/ffmpeg_n7_fix.patch
     - !reference [.ffmpeg-before-script-export]
   script:
     - !reference [.ffmpeg-svtav1-script]
@@ -510,6 +512,7 @@ Linux FFmpeg (n5.0, Static):
     - !reference [.ffmpeg-before-script-clone]
     - git -C ffmpeg-src checkout n5.0
     - git -C ffmpeg-src am -3 "$PWD/ffmpeg_plugin/n5.0/"*.patch
+    - git -C ffmpeg-src apply $PWD/.gitlab/workflows/linux/ffmpeg_n5_fix.patch
     - !reference [.ffmpeg-before-script-export]
   script:
     - !reference [.ffmpeg-svtav1-script]

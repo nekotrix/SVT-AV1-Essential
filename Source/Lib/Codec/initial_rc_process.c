@@ -285,7 +285,11 @@ uint8_t svt_aom_set_tpl_group(PictureParentControlSet *pcs, uint8_t tpl_group_le
                                                           : 1.6;
         }
     }
+#if FIX_RATE_CONTROL_MODE
+    if (pcs->scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR) {
+#else
     if (pcs->scs->static_config.rate_control_mode == 1) {
+#endif
         tpl_ctrls->r0_adjust_factor *= 1.25;
         tpl_ctrls->r0_adjust_factor = MIN(3, tpl_ctrls->r0_adjust_factor);
     }
