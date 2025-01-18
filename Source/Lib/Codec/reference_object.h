@@ -54,6 +54,9 @@ typedef struct EbReferenceObject {
     int32_t              filter_level[2];
     int32_t              filter_level_u;
     int32_t              filter_level_v;
+#if OPT_FRAME_DLF
+    int32_t              dlf_dist_dev;
+#endif
     uint32_t             ref_cdef_strengths_num;
     uint8_t              ref_cdef_strengths[2][TOTAL_STRENGTHS];
     uint8_t             *sb_intra;

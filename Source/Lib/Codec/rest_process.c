@@ -477,6 +477,9 @@ static void copy_statistics_to_ref_obj_ect(PictureControlSet *pcs, SequenceContr
     obj->filter_level[1] = lf->filter_level[1];
     obj->filter_level_u  = lf->filter_level_u;
     obj->filter_level_v  = lf->filter_level_v;
+#if OPT_FRAME_DLF
+    obj->dlf_dist_dev = pcs->dlf_dist_dev;
+#endif
 
     obj->ref_cdef_strengths_num = ppcs->nb_cdef_strengths;
     for (int i = 0; i < ppcs->nb_cdef_strengths; i++) {

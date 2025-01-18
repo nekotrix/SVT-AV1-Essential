@@ -1995,25 +1995,132 @@ static void dlf_level_modulation(PictureControlSet *pcs, uint8_t *default_dlf_le
     uint8_t dlf_level = *default_dlf_level;
 
     if (modulation_mode == 1 || modulation_mode == 2) {
+#if OPT_FRAME_DLF
+        if (pcs->ref_skip_percentage < 25) {
+            dlf_level = dlf_level == 0 ? 6 : dlf_level > 5 ? MAX(5, dlf_level - 2) : dlf_level;
+        }
+        else if (pcs->ref_skip_percentage < 50) {
+            dlf_level = dlf_level == 0 ? 7 : dlf_level > 5 ? dlf_level - 1 : dlf_level;
+        }
+#else
         if (pcs->ref_skip_percentage < 25) {
             dlf_level = dlf_level == 0 ? 4 : dlf_level > 3 ? MAX(3, dlf_level - 2) : dlf_level;
         } else if (pcs->ref_skip_percentage < 50) {
             dlf_level = dlf_level == 0 ? 5 : dlf_level > 3 ? dlf_level - 1 : dlf_level;
         }
+#endif
     }
 
     if (modulation_mode == 2 || modulation_mode == 3) {
+#if OPT_FRAME_DLF
+        if (dlf_level > 4) {
+            if (pcs->ref_skip_percentage > 95) {
+                dlf_level = dlf_level >= 6 ? 0 : dlf_level + 2;
+            }
+            else if (pcs->ref_skip_percentage > 75) {
+                dlf_level = dlf_level == 7 ? 0 : dlf_level + 1;
+            }
+#else
         if (dlf_level > 2) {
             if (pcs->ref_skip_percentage > 95) {
                 dlf_level = dlf_level >= 4 ? 0 : dlf_level + 2;
             } else if (pcs->ref_skip_percentage > 75) {
                 dlf_level = dlf_level == 5 ? 0 : dlf_level + 1;
             }
+#endif
         }
     }
 
     *default_dlf_level = dlf_level;
 }
+#if OPT_FRAME_DLF
+static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t is_not_last_layer, uint8_t fast_decode,
+                             EbInputResolution resolution, bool rtc_tune, int is_base) {
+    uint8_t dlf_level       = 0;
+    uint8_t modulation_mode = 0; // 0: off, 1: only towards bd-rate, 2: both sides; , 3: only towards speed
+    if (rtc_tune) {
+        if (enc_mode <= ENC_M7) {
+            if (resolution <= INPUT_SIZE_360p_RANGE)
+                dlf_level = 5;
+            else {
+                dlf_level = is_base ? 5 : 6;
+            }
+            modulation_mode = 2;
+        } else if (enc_mode <= ENC_M9) {
+            dlf_level       = is_base ? 5 : is_not_last_layer ? 7 : 0;
+            modulation_mode = 3;
+        } else {
+            dlf_level = is_not_last_layer ? 7 : 0;
+        }
+    }
+    // Don't disable DLF for low resolutions when fast-decode is used
+    else if (fast_decode == 0 || resolution <= INPUT_SIZE_360p_RANGE) {
+        if (enc_mode <= ENC_M3)
+            dlf_level = 1;
+        else if (enc_mode <= ENC_M4) {
+            dlf_level = 2;
+        } else if (enc_mode <= ENC_M6) {
+            dlf_level = 3;
+        } else if (enc_mode <= ENC_M7) {
+            dlf_level = is_not_last_layer ? 3 : 6;
+        } else if (enc_mode <= ENC_M8) {
+            if (resolution <= INPUT_SIZE_360p_RANGE)
+                dlf_level = 5;
+            else {
+                dlf_level = is_base ? 5 : is_not_last_layer ? 6 : 0;
+            }
+            modulation_mode = 2;
+        } else if (enc_mode <= ENC_M9) {
+            if (resolution <= INPUT_SIZE_360p_RANGE)
+                dlf_level = is_base ? 5 : is_not_last_layer ? 6 : 0;
+            else {
+                if (pcs->coeff_lvl == HIGH_LVL)
+                    dlf_level = is_base ? 6 : 0;
+                else
+                    dlf_level = is_base ? 5 : is_not_last_layer ? 7 : 0;
+            }
+            modulation_mode = 3;
+        } else {
+            if (pcs->coeff_lvl == HIGH_LVL)
+                dlf_level = is_base ? 6 : 0;
+            else
+                dlf_level = is_base ? 5 : is_not_last_layer ? 7 : 0;
+            modulation_mode = 3;
+        }
+    } else {
+        if (enc_mode <= ENC_M6) {
+            dlf_level = 4;
+        } else if (enc_mode <= ENC_M7) {
+            dlf_level = is_not_last_layer ? 4 : 6;
+        } else if (enc_mode <= ENC_M8) {
+            if (fast_decode <= 1) {
+                if (pcs->coeff_lvl == HIGH_LVL)
+                    dlf_level = is_base ? 6 : is_not_last_layer ? 7 : 0;
+                else
+                    dlf_level = is_base ? 5 : is_not_last_layer ? 6 : 0;
+                modulation_mode = 2;
+            } else {
+                if (pcs->coeff_lvl == HIGH_LVL)
+                    dlf_level = is_base ? 6 : 0;
+                else
+                    dlf_level = is_base ? 5 : is_not_last_layer ? 7 : 0;
+                modulation_mode = 3;
+            }
+        } else {
+            if (pcs->coeff_lvl == HIGH_LVL)
+                dlf_level = is_base ? 6 : 0;
+            else
+                dlf_level = is_base ? 5 : is_not_last_layer ? 7 : 0;
+            modulation_mode = 3;
+        }
+    }
+
+    if (!is_base)
+        dlf_level_modulation(pcs, &dlf_level, modulation_mode);
+
+    return dlf_level;
+}
+#else
 #if OPT_LOW_DELAY
 static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t is_not_last_layer, uint8_t fast_decode,
                              EbInputResolution resolution, bool rtc_tune, int is_base) {
@@ -2236,59 +2343,143 @@ static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t i
         dlf_level_modulation(pcs, &dlf_level, modulation_mode);
     return dlf_level;
 }
+#endif
 
 static void svt_aom_set_dlf_controls(PictureParentControlSet *pcs, uint8_t dlf_level) {
     DlfCtrls *ctrls = &pcs->dlf_ctrls;
+#if OPT_FRAME_DLF
+    bool is_base = pcs->temporal_layer_index == 0;
+#endif
 
     switch (dlf_level) {
     case 0:
         ctrls->enabled                  = 0;
         ctrls->sb_based_dlf             = 0;
         ctrls->dlf_avg                  = 0;
+#if OPT_FRAME_DLF
+        ctrls->use_ref_avg_y            = 0;
+        ctrls->use_ref_avg_uv           = 0;
+#else
         ctrls->dlf_avg_uv               = 0;
+#endif
         ctrls->early_exit_convergence   = 0;
         ctrls->zero_filter_strength_lvl = 0;
+#if OPT_FRAME_DLF
+        ctrls->prev_dlf_dist_th         = 0;
+#endif
         break;
     case 1:
         ctrls->enabled                  = 1;
         ctrls->sb_based_dlf             = 0;
         ctrls->dlf_avg                  = 0;
+#if OPT_FRAME_DLF
+        ctrls->use_ref_avg_y            = 0;
+        ctrls->use_ref_avg_uv           = 0;
+#else
         ctrls->dlf_avg_uv               = 0;
+#endif
         ctrls->early_exit_convergence   = 0;
         ctrls->zero_filter_strength_lvl = 0;
+#if OPT_FRAME_DLF
+        ctrls->prev_dlf_dist_th         = 0;
+#endif
         break;
     case 2:
         ctrls->enabled                  = 1;
         ctrls->sb_based_dlf             = 0;
         ctrls->dlf_avg                  = 1;
+#if OPT_FRAME_DLF
+        ctrls->use_ref_avg_y            = 0;
+        ctrls->use_ref_avg_uv           = is_base ? 0 : 1;
+#else
         ctrls->dlf_avg_uv               = 1;
+#endif
         ctrls->early_exit_convergence   = 1;
         ctrls->zero_filter_strength_lvl = 0;
+#if OPT_FRAME_DLF
+        ctrls->prev_dlf_dist_th         = 0;
+#endif
         break;
+#if OPT_FRAME_DLF
     case 3:
+        ctrls->enabled                  = 1;
+        ctrls->sb_based_dlf             = 0;
+        ctrls->dlf_avg                  = 1;
+        ctrls->use_ref_avg_y            = is_base ? 0 : 1;
+        ctrls->use_ref_avg_uv           = is_base ? 0 : 1;
+        ctrls->early_exit_convergence   = 1;
+        ctrls->zero_filter_strength_lvl = 0;
+        ctrls->prev_dlf_dist_th         = 0;
+        break;
+    case 4:
+        ctrls->enabled                  = 1;
+        ctrls->sb_based_dlf             = 0;
+        ctrls->dlf_avg                  = 1;
+        ctrls->use_ref_avg_y            = is_base ? 0 : 1;
+        ctrls->use_ref_avg_uv           = is_base ? 0 : 1;
+        ctrls->early_exit_convergence   = 1;
+        ctrls->zero_filter_strength_lvl = 2;
+        ctrls->prev_dlf_dist_th         = 10;
+        break;
+    case 5:
+#else
+    case 3:
+#endif
         ctrls->enabled      = 1;
         ctrls->sb_based_dlf = 1;
 
         ctrls->dlf_avg                  = 0;
+#if OPT_FRAME_DLF
+        ctrls->use_ref_avg_y            = 0;
+        ctrls->use_ref_avg_uv           = 0;
+#else
         ctrls->dlf_avg_uv               = 0;
+#endif
         ctrls->early_exit_convergence   = 0;
         ctrls->zero_filter_strength_lvl = 1;
+#if OPT_FRAME_DLF
+        ctrls->prev_dlf_dist_th         = 0;
+#endif
         break;
+#if OPT_FRAME_DLF
+    case 6:
+#else
     case 4:
+#endif
         ctrls->enabled                  = 1;
         ctrls->sb_based_dlf             = 1;
         ctrls->dlf_avg                  = 0;
+#if OPT_FRAME_DLF
+        ctrls->use_ref_avg_y            = 0;
+        ctrls->use_ref_avg_uv           = 0;
+#else
         ctrls->dlf_avg_uv               = 0;
+#endif
         ctrls->early_exit_convergence   = 0;
         ctrls->zero_filter_strength_lvl = 2;
+#if OPT_FRAME_DLF
+        ctrls->prev_dlf_dist_th         = 0;
+#endif
         break;
+#if OPT_FRAME_DLF
+    case 7:
+#else
     case 5:
+#endif
         ctrls->enabled                  = 1;
         ctrls->sb_based_dlf             = 1;
         ctrls->dlf_avg                  = 0;
+#if OPT_FRAME_DLF
+        ctrls->use_ref_avg_y            = 0;
+        ctrls->use_ref_avg_uv           = 0;
+#else
         ctrls->dlf_avg_uv               = 0;
+#endif
         ctrls->early_exit_convergence   = 0;
         ctrls->zero_filter_strength_lvl = 3;
+#if OPT_FRAME_DLF
+        ctrls->prev_dlf_dist_th         = 0;
+#endif
         break;
     default: assert(0); break;
     }

@@ -446,6 +446,11 @@ typedef struct PictureControlSet {
     Bool lossless[MAX_SEGMENTS];
     Bool mimic_only_tx_4x4;
 #endif
+#if OPT_FRAME_DLF
+    int64_t zero_filt_sse;
+    int64_t best_filt_sse;
+    int32_t dlf_dist_dev;
+#endif
 } PictureControlSet;
 
 // To optimize based on the max input size
@@ -763,12 +768,28 @@ typedef struct DlfCtrls {
     uint8_t sb_based_dlf;
     // Start search from average DLF instead of 0
     bool dlf_avg;
+#if OPT_FRAME_DLF
+    // If true, use average filter strength of ref frames for the current frame (no search). For luma, the filters
+    // may be set to 0 if the SSE improvement from DLF in the ref frames if very small
+    bool use_ref_avg_y;
+    bool use_ref_avg_uv;
+#else
     // Use average DLF as a starting point for qp based filter strength selection for Chroma planes
     bool dlf_avg_uv;
+#endif
     // Number of convergence points before exiting the filter search, 1 = exit on first convergence point, 2 = exit on second, 0 = off
     uint8_t early_exit_convergence;
+#if OPT_FRAME_DLF
+    // Threshold used to set filter strength to zero based on ME distortion, there are four levels of thresholds [0..3], 0 = off
+    uint8_t zero_filter_strength_lvl;
+    // For frame-based DLF search, only use zero_filter_strength_lvl if the DLF improvement of the ref frames is below prev_dlf_dist_th.
+    // prev_dlf_dist_th is a percent times 10 (e.g. a value of 50 corresponds to 5% improvement in the ref frames). This TH is not used
+    // for SB-based DLF because we do not currently compute the SSE for SB-based DLF.
+    uint16_t prev_dlf_dist_th;
+#else
     // Threshold used when sb_based_dlf is used to use filter strength zero, there are four levels of thresholds [0..3], 0 = off
     uint8_t zero_filter_strength_lvl;
+#endif
 } DlfCtrls;
 typedef struct IntraBCCtrls {
     // Shift for full_pixel_exhaustive search threshold:   0: No Shift   1:Shift to left by 1

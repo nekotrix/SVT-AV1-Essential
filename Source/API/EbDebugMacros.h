@@ -120,6 +120,7 @@ extern "C" {
 #define CLN_CDEF_LVLS               1 // Cleanup CDEF levels
 #define OPT_M5_CDEF                 1 // Tune M5 CDEF level
 #define OPT_FD2                     1 // cdef-subpel-mfmv
+#define OPT_FRAME_DLF               1 // Optimize the frame-level DLF search
 
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0

@@ -713,9 +713,13 @@ void svt_copy_buffer(EbPictureBufferDesc *srcBuffer, EbPictureBufferDesc *dstBuf
         }
     }
 }
+#if OPT_FRAME_DLF
+uint64_t picture_sse_calculations(PictureControlSet* pcs, EbPictureBufferDesc* recon_ptr, int32_t plane) {
+#else
 static uint64_t picture_sse_calculations(PictureControlSet *pcs, EbPictureBufferDesc *recon_ptr, int32_t plane)
 
 {
+#endif
     SequenceControlSet *scs      = pcs->ppcs->scs;
     Bool                is_16bit = scs->is_16bit_pipeline;
 
@@ -873,9 +877,16 @@ static int64_t try_filter_frame(
 
     filt_err = picture_sse_calculations(pcs, recon_buffer, plane);
 
+#if OPT_FRAME_DLF
+    // Re-instate the unfiltered frame; if both filters are off, no need to copy as there was no change to the pic
+    if (filter_level[0] || filter_level[1])
+        svt_copy_buffer(
+            temp_lf_recon_buffer /*cpi->last_frame_uf*/, recon_buffer /*cm->frame_to_show*/, pcs, (uint8_t)plane);
+#else
     // Re-instate the unfiltered frame
     svt_copy_buffer(
         temp_lf_recon_buffer /*cpi->last_frame_uf*/, recon_buffer /*cm->frame_to_show*/, pcs, (uint8_t)plane);
+#endif
 
     return filt_err;
 }
@@ -901,8 +912,13 @@ static int32_t search_filter_level(
     int32_t lvl;
     switch (plane) {
     case 0:
+#if OPT_FRAME_DLF
+        if (dir > 1)
+            lvl = (last_frame_filter_level[0] + last_frame_filter_level[1] + 1) >> 1;
+#else
         if (pcs->ppcs->dlf_ctrls.dlf_avg)
             lvl = last_frame_filter_level[0];
+#endif
         else
             lvl = last_frame_filter_level[dir];
         break;
@@ -985,10 +1001,73 @@ static int32_t search_filter_level(
     // Update best error
     best_err = ss_err[filt_best];
 
+#if OPT_FRAME_DLF
+    if (plane == 0) {
+        if (ss_err[0] >= 0) {
+            pcs->zero_filt_sse = ss_err[0];
+        }
+
+        if (ss_err[filt_best] >= 0) {
+            pcs->best_filt_sse = best_err;
+        }
+    }
+#endif
+
     if (best_cost_ret)
         *best_cost_ret = (double)best_err; //RDCOST_DBL(x->rdmult, 0, best_err);
     return filt_best;
 }
+#if OPT_FRAME_DLF
+static void me_based_dlf_skip(PictureControlSet* pcs, uint16_t prev_dlf_dist_th, bool* do_y, bool* do_uv) {
+
+    *do_y = true;
+    *do_uv = true;
+    if (pcs->slice_type == I_SLICE)
+        return;
+
+    const uint8_t in_res = pcs->ppcs->input_resolution;
+    const uint32_t use_zero_strength_th = disable_dlf_th[pcs->ppcs->dlf_ctrls.zero_filter_strength_lvl][in_res] *
+        (pcs->temporal_layer_index + 1);
+    if (!use_zero_strength_th)
+        return;
+
+    uint32_t total_me_sad = 0;
+    for (uint16_t b64_index = 0; b64_index < pcs->b64_total_count; ++b64_index) {
+        total_me_sad += pcs->ppcs->rc_me_distortion[b64_index];
+    }
+    uint32_t average_me_sad = total_me_sad / pcs->b64_total_count;
+
+    int32_t prev_dlf_dist = 0;
+    if (prev_dlf_dist_th) {
+        int32_t tot_refs = 0;
+        for (uint32_t ref_it = 0; ref_it < pcs->ppcs->tot_ref_frame_types; ++ref_it) {
+            MvReferenceFrame ref_pair = pcs->ppcs->ref_frame_type_arr[ref_it];
+            MvReferenceFrame rf[2];
+            av1_set_ref_frame(rf, ref_pair);
+
+            if (rf[1] == NONE_FRAME) {
+                uint8_t            list_idx = get_list_idx(rf[0]);
+                uint8_t            ref_idx = get_ref_frame_idx(rf[0]);
+                EbReferenceObject* ref_obj = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+
+                if (ref_obj->dlf_dist_dev >= 0) {
+                    prev_dlf_dist += ref_obj->dlf_dist_dev;
+                    tot_refs++;
+                }
+            }
+        }
+        if (tot_refs)
+            prev_dlf_dist /= tot_refs;
+    }
+
+    if (!prev_dlf_dist_th || (prev_dlf_dist < prev_dlf_dist_th * (pcs->temporal_layer_index + 1))) {
+        if (average_me_sad < use_zero_strength_th)
+            *do_y = false;
+        if (average_me_sad < (use_zero_strength_th * 2))
+            *do_uv = false;
+    }
+}
+#else
 EbErrorType qp_based_dlf_param(PictureControlSet *pcs, int32_t *filter_level_y, int32_t *filter_level_uv) {
     SequenceControlSet *scs     = pcs->scs;
     FrameHeader        *frm_hdr = &pcs->ppcs->frm_hdr;
@@ -1029,6 +1108,7 @@ EbErrorType qp_based_dlf_param(PictureControlSet *pcs, int32_t *filter_level_y, 
 
     return EB_ErrorNone;
 }
+#endif
 /*************************************************************************************************
 * svt_av1_pick_filter_level_by_q
 * Choose the optimal loop filter levels by qindex
@@ -1089,6 +1169,16 @@ void svt_av1_pick_filter_level_by_q(PictureControlSet *pcs, uint8_t qindex, int3
         filt_guess -= 4;
 
     int32_t filt_guess_chroma = filt_guess / 2;
+#if OPT_FRAME_DLF
+    bool do_y = true, do_uv = true;
+    // Don't use prev_dlf_dist_th b/c deriving the filter strength from QP is mainly used for SB-based DLF and we do not compute the
+    // SSE in that path.
+    me_based_dlf_skip(pcs, 0, &do_y, &do_uv);
+    if (!do_y)
+        filt_guess = 0;
+    if (!do_uv)
+        filt_guess_chroma = 0;
+#else
     if (pcs->slice_type != I_SLICE) {
         const uint32_t use_zero_strength_th = disable_dlf_th[pcs->ppcs->dlf_ctrls.zero_filter_strength_lvl][in_res] *
             (pcs->temporal_layer_index + 1);
@@ -1105,6 +1195,7 @@ void svt_av1_pick_filter_level_by_q(PictureControlSet *pcs, uint8_t qindex, int3
                 filt_guess_chroma = 0;
         }
     }
+#endif
     // Force filter_level to 0 if loop-filter is shut for 1 (or many) of the sub-layer reference frame(s)
     filter_level[0] = min_ref_filter_level[0] || !pcs->ppcs->temporal_layer_index
         ? clamp(filt_guess, min_filter_level, max_filter_level)
@@ -1202,12 +1293,87 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
             lf->filter_level_u  = tot_ref_filter_level_u / tot_refs;
             lf->filter_level_v  = tot_ref_filter_level_v / tot_refs;
         }
+#if OPT_FRAME_DLF
+        bool do_y = true, do_uv = true;
+        me_based_dlf_skip(pcs, pcs->ppcs->dlf_ctrls.prev_dlf_dist_th, &do_y, &do_uv);
+#endif
 
         const int32_t last_frame_filter_level[4] = {
             lf->filter_level[0], lf->filter_level[1], lf->filter_level_u, lf->filter_level_v};
         EbPictureBufferDesc *temp_lf_recon_buffer = scs->is_16bit_pipeline ? pcs->temp_lf_recon_pic_16bit
                                                                            : pcs->temp_lf_recon_pic;
+        
+#if OPT_FRAME_DLF
+        if (!do_y) {
+            lf->filter_level[0] = lf->filter_level[1] = 0;
+        }
+        else if (!pcs->ppcs->dlf_ctrls.use_ref_avg_y || pcs->ppcs->tot_ref_frame_types == 0) {
+            lf->filter_level[0] = lf->filter_level[1] = search_filter_level(srcBuffer,
+                temp_lf_recon_buffer,
+                pcs,
+                method == LPF_PICK_FROM_SUBIMAGE,
+                last_frame_filter_level,
+                NULL,
+                0,
+                2);
+        }
+        else if (last_frame_filter_level[0] || last_frame_filter_level[1]) {
+            int32_t prev_dlf_dist = 0;
+            int32_t tot_refs = 0;
+            for (uint32_t ref_it = 0; ref_it < pcs->ppcs->tot_ref_frame_types; ++ref_it) {
+                MvReferenceFrame ref_pair = pcs->ppcs->ref_frame_type_arr[ref_it];
+                MvReferenceFrame rf[2];
+                av1_set_ref_frame(rf, ref_pair);
 
+                if (rf[1] == NONE_FRAME) {
+                    uint8_t            list_idx = get_list_idx(rf[0]);
+                    uint8_t            ref_idx = get_ref_frame_idx(rf[0]);
+                    EbReferenceObject* ref_obj = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+
+                    if (ref_obj->dlf_dist_dev >= 0) {
+                        prev_dlf_dist += ref_obj->dlf_dist_dev;
+                        tot_refs++;
+                    }
+                }
+            }
+            if (tot_refs)
+                prev_dlf_dist /= tot_refs;
+
+            // If improvement from DLF of ref frames is small, disable DLF for the current frame
+            if (tot_refs && prev_dlf_dist < 5) {
+                lf->filter_level[0] = lf->filter_level[1] = 0;
+            }
+        }
+
+        if (!do_uv || (lf->filter_level[0] == 0 && lf->filter_level[1] == 0)) {
+            // chroma filtering not allowed if luma filters off
+            lf->filter_level_u = 0;
+            lf->filter_level_v = 0;
+        }
+        else if (pcs->ppcs->dlf_ctrls.use_ref_avg_uv && pcs->ppcs->tot_ref_frame_types > 0) {
+            //use avg-ref for chroma
+            lf->filter_level_u = last_frame_filter_level[2];
+            lf->filter_level_v = last_frame_filter_level[3];
+        }
+        else {
+            lf->filter_level_u = search_filter_level(srcBuffer,
+                temp_lf_recon_buffer,
+                pcs,
+                method == LPF_PICK_FROM_SUBIMAGE,
+                last_frame_filter_level,
+                NULL,
+                1,
+                0);
+            lf->filter_level_v = search_filter_level(srcBuffer,
+                temp_lf_recon_buffer,
+                pcs,
+                method == LPF_PICK_FROM_SUBIMAGE,
+                last_frame_filter_level,
+                NULL,
+                2,
+                0);
+        }
+#else
         lf->filter_level[0] = lf->filter_level[1] = search_filter_level(srcBuffer,
                                                                         temp_lf_recon_buffer,
                                                                         pcs,
@@ -1244,6 +1410,7 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
                                                      2,
                                                      0);
         }
+#endif
         EB_DELETE(pcs->temp_lf_recon_pic);
         EB_DELETE(pcs->temp_lf_recon_pic_16bit);
     }
