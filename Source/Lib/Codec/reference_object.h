@@ -60,6 +60,9 @@ typedef struct EbReferenceObject {
 #if OPT_FRAME_DLF
     int32_t              dlf_dist_dev;
 #endif
+#if OPT_CDEF_ME_INFO
+    int32_t              cdef_dist_dev;
+#endif
     uint32_t             ref_cdef_strengths_num;
     uint8_t              ref_cdef_strengths[2][TOTAL_STRENGTHS];
     uint8_t             *sb_intra;

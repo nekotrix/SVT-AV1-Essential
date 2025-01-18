@@ -934,6 +934,14 @@ void finish_cdef_search(PictureControlSet *pcs) {
 #endif
         }
     }
+#if OPT_CDEF_ME_INFO
+    // Compute cost of off to use in deriving pcs->cdef_dist_dev
+    int64_t zero_dist = 0;
+    for (i = 0; i < sb_count; i++) {
+        zero_dist += mse[0][i][0] + mse[1][i][0];
+    }
+    uint64_t zero_cost = RDCOST(lambda, av1_cost_literal(CDEF_STRENGTH_BITS * 2), zero_dist << 4);
+#endif
     /* Search for different number of signalling bits. */
     for (i = 0; i <= 3; i++) {
         int32_t best_lev0[CDEF_MAX_STRENGTHS] = {0};
@@ -955,6 +963,11 @@ void finish_cdef_search(PictureControlSet *pcs) {
             }
         }
     }
+#if OPT_CDEF_ME_INFO
+    pcs->cdef_dist_dev =
+        zero_cost == 0 ?
+        0 : 1000 - ((1000 * best_tot_mse) / zero_cost);
+#endif
     nb_strengths = 1 << nb_strength_bits;
 
     frm_hdr->cdef_params.cdef_bits = nb_strength_bits;

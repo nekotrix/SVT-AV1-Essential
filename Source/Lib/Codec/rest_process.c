@@ -483,6 +483,9 @@ static void copy_statistics_to_ref_obj_ect(PictureControlSet *pcs, SequenceContr
 #if OPT_FRAME_DLF
     obj->dlf_dist_dev = pcs->dlf_dist_dev;
 #endif
+#if OPT_CDEF_ME_INFO
+    obj->cdef_dist_dev = pcs->cdef_dist_dev;
+#endif
 
     obj->ref_cdef_strengths_num = ppcs->nb_cdef_strengths;
     for (int i = 0; i < ppcs->nb_cdef_strengths; i++) {

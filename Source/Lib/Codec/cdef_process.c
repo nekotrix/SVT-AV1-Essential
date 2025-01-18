@@ -352,6 +352,59 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
     }
 }
 
+#if OPT_CDEF_ME_INFO
+const uint32_t disable_cdef_th[4][INPUT_SIZE_COUNT] = { {0, 0, 0, 0, 0, 0, 0},
+                                                     {100, 200, 500, 800, 1000, 1000, 1000},
+                                                     {900, 1000, 2000, 3000, 4000, 4000, 4000},
+                                                     {6000, 7000, 8000, 9000, 10000, 10000, 10000} };
+static void me_based_cdef_skip(PictureControlSet* pcs, uint16_t prev_cdef_dist_th, bool* do_cdef) {
+
+    *do_cdef = true;
+    if (pcs->slice_type == I_SLICE)
+        return;
+
+    const uint8_t in_res = pcs->ppcs->input_resolution;
+    const uint32_t use_zero_strength_th = disable_cdef_th[pcs->ppcs->cdef_recon_ctrls.zero_filter_strength_lvl][in_res] *
+        (pcs->temporal_layer_index + 1);
+    if (!use_zero_strength_th)
+        return;
+
+    uint32_t total_me_sad = 0;
+    for (uint16_t b64_index = 0; b64_index < pcs->b64_total_count; ++b64_index) {
+        total_me_sad += pcs->ppcs->rc_me_distortion[b64_index];
+    }
+    uint32_t average_me_sad = total_me_sad / pcs->b64_total_count;
+
+    int32_t prev_cdef_dist = 0;
+    if (prev_cdef_dist_th) {
+        int32_t tot_refs = 0;
+        for (uint32_t ref_it = 0; ref_it < pcs->ppcs->tot_ref_frame_types; ++ref_it) {
+            MvReferenceFrame ref_pair = pcs->ppcs->ref_frame_type_arr[ref_it];
+            MvReferenceFrame rf[2];
+            av1_set_ref_frame(rf, ref_pair);
+
+            if (rf[1] == NONE_FRAME) {
+                uint8_t            list_idx = get_list_idx(rf[0]);
+                uint8_t            ref_idx = get_ref_frame_idx(rf[0]);
+                EbReferenceObject* ref_obj = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+
+                if (ref_obj->cdef_dist_dev >= 0) {
+                    prev_cdef_dist += ref_obj->cdef_dist_dev;
+                    tot_refs++;
+                }
+            }
+        }
+        if (tot_refs)
+            prev_cdef_dist /= tot_refs;
+    }
+
+    if (!prev_cdef_dist_th || (prev_cdef_dist < prev_cdef_dist_th * (pcs->temporal_layer_index + 1))) {
+        if (average_me_sad < use_zero_strength_th)
+            *do_cdef = false;
+    }
+}
+#endif
+
 /******************************************************
  * CDEF Kernel
  ******************************************************/
@@ -386,6 +439,13 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
         Bool       is_16bit      = scs->is_16bit_pipeline;
         Av1Common *cm            = pcs->ppcs->av1_cm;
         frm_hdr                  = &pcs->ppcs->frm_hdr;
+#if OPT_CDEF_ME_INFO
+        pcs->cdef_dist_dev = -1;
+        bool do_cdef = true;
+        me_based_cdef_skip(pcs, pcs->ppcs->cdef_recon_ctrls.prev_cdef_dist_th, &do_cdef);
+        if (!do_cdef)
+            pcs->ppcs->cdef_level = 0;
+#endif
 #if CLN_CDEF_LVLS
         CdefSearchControls* cdef_search_ctrls = &pcs->ppcs->cdef_search_ctrls;
         if (!cdef_search_ctrls->use_reference_cdef_fs) {
@@ -418,6 +478,14 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
                 pcs->ppcs->nb_cdef_strengths             = 1;
                 frm_hdr->cdef_params.cdef_uv_strength[0] = 0;
             }
+
+#if OPT_CDEF_ME_INFO
+            if (pcs->ppcs->nb_cdef_strengths == 1 &&
+                frm_hdr->cdef_params.cdef_y_strength[0] == 0 &&
+                frm_hdr->cdef_params.cdef_uv_strength[0] == 0) {
+                pcs->cdef_dist_dev = 0;
+            }
+#endif
 
             //restoration prep
             Bool is_lr = ppcs->enable_restoration && frm_hdr->allow_intrabc == 0;

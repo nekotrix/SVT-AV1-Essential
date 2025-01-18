@@ -451,6 +451,9 @@ typedef struct PictureControlSet {
     int64_t best_filt_sse;
     int32_t dlf_dist_dev;
 #endif
+#if OPT_CDEF_ME_INFO
+    int32_t cdef_dist_dev;
+#endif
 } PictureControlSet;
 
 // To optimize based on the max input size
