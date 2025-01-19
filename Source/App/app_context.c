@@ -37,8 +37,8 @@ static EbErrorType allocate_frame_buffer(EbConfig *app_cfg, EbSvtIOFormat *input
 
     // Chroma subsampling
     const EbColorFormat color_format  = (EbColorFormat)cfg->encoder_color_format;
-    const uint8_t       subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint8_t       subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
+    const uint8_t       subsampling_x = color_format == EB_YUV444 ? 0 : 1;
+    const uint8_t       subsampling_y = (color_format == EB_YUV444 || color_format == EB_YUV422) ? 0 : 1;
 
     // Determine size of each plane
     const size_t luma_8bit_size = app_cfg->input_padded_width * app_cfg->input_padded_height *
@@ -109,12 +109,11 @@ static EbErrorType allocate_input_buffers(EbConfig *app_cfg) {
 }
 
 static EbErrorType allocate_output_recon_buffers(EbConfig *app_cfg) {
-    const uint8_t subsampling_x = (app_cfg->config.encoder_color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint8_t subsampling_y = ((app_cfg->config.encoder_color_format == EB_YUV444 ||
-                                    app_cfg->config.encoder_color_format == EB_YUV422)
-                                       ? 1
-                                       : 2) -
-        1;
+    const uint8_t subsampling_x = app_cfg->config.encoder_color_format == EB_YUV444 ? 0 : 1;
+    const uint8_t subsampling_y = (app_cfg->config.encoder_color_format == EB_YUV444 ||
+                                   app_cfg->config.encoder_color_format == EB_YUV422)
+        ? 0
+        : 1;
 
     const size_t ten_bit       = (app_cfg->config.encoder_bit_depth > 8);
     const size_t luma_size     = app_cfg->input_padded_width * app_cfg->input_padded_height;
@@ -155,7 +154,7 @@ static EbErrorType preload_frames_info_ram(EbConfig *app_cfg) {
     int32_t             input_padded_width  = app_cfg->input_padded_width;
     int32_t             input_padded_height = app_cfg->input_padded_height;
     size_t              read_size;
-    const uint8_t       subsampling_x = (app_cfg->config.encoder_color_format == EB_YUV444 ? 1 : 2) - 1;
+    const uint8_t       subsampling_x = (app_cfg->config.encoder_color_format == EB_YUV444 ? 0 : 1);
     const uint8_t       subsampling_y = ((app_cfg->config.encoder_color_format == EB_YUV444 ||
                                     app_cfg->config.encoder_color_format == EB_YUV422)
                                              ? 1

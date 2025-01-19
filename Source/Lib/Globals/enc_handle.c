@@ -5139,8 +5139,8 @@ static void copy_api_from_app(
     scs->encoder_bit_depth = (uint32_t)(scs->static_config.encoder_bit_depth);
     //16bit pipeline
     scs->is_16bit_pipeline = ((((EbSvtAv1EncConfiguration*)config_struct)->encoder_bit_depth) > EB_EIGHT_BIT) ? TRUE: FALSE;
-    scs->subsampling_x = (scs->chroma_format_idc == EB_YUV444 ? 1 : 2) - 1;
-    scs->subsampling_y = (scs->chroma_format_idc >= EB_YUV422 ? 1 : 2) - 1;
+    scs->subsampling_x = (scs->chroma_format_idc == EB_YUV444 ? 0 : 1);
+    scs->subsampling_y = (scs->chroma_format_idc >= EB_YUV422 ? 0 : 1);
     // Thresholds
 #if !FIX_HIGH_DYNAMIC_RANGE_INPUT
     scs->static_config.high_dynamic_range_input = ((EbSvtAv1EncConfiguration*)config_struct)->high_dynamic_range_input;
@@ -5512,8 +5512,8 @@ static EbErrorType downsample_copy_frame_buffer(
         uint16_t     source_luma_stride = (uint16_t)(input_ptr->y_stride);
         uint16_t     source_cr_stride = (uint16_t)(input_ptr->cr_stride);
         uint16_t     source_cb_stride = (uint16_t)(input_ptr->cb_stride);
-        const uint8_t  subsampling_x = (input_pic->color_format == EB_YUV444 ? 1 : 2) - 1;
-        const uint8_t  subsampling_y = ((input_pic->color_format == EB_YUV444 || input_pic->color_format == EB_YUV422) ? 1 : 2) - 1;
+        const uint8_t  subsampling_x = (input_pic->color_format == EB_YUV444 ? 0 : 1);
+        const uint8_t  subsampling_y = ((input_pic->color_format == EB_YUV444 || input_pic->color_format == EB_YUV422) ? 0 : 1);
         const uint64_t chroma_width = (luma_width + subsampling_x) >> subsampling_x;
         const uint64_t chroma_height = (luma_height + subsampling_y) >> subsampling_y;
 
@@ -5564,8 +5564,8 @@ static EbErrorType downsample_copy_frame_buffer(
         uint16_t source_luma_stride = (uint16_t)(input_ptr->y_stride);
         uint16_t source_cr_stride = (uint16_t)(input_ptr->cr_stride);
         uint16_t source_cb_stride = (uint16_t)(input_ptr->cb_stride);
-        const uint8_t  subsampling_x = (input_pic->color_format == EB_YUV444 ? 1 : 2) - 1;
-        const uint8_t  subsampling_y = ((input_pic->color_format == EB_YUV444 || input_pic->color_format == EB_YUV422) ? 1 : 2) - 1;
+        const uint8_t  subsampling_x = (input_pic->color_format == EB_YUV444 ? 0 : 1);
+        const uint8_t  subsampling_y = ((input_pic->color_format == EB_YUV444 || input_pic->color_format == EB_YUV422) ? 0 : 1);
         const uint64_t chroma_width = (luma_width + subsampling_x) >> subsampling_x;
         const uint64_t chroma_height = (luma_height + subsampling_y) >> subsampling_y;
 
@@ -5641,8 +5641,8 @@ static EbErrorType copy_frame_buffer(
         uint16_t     source_cr_stride = (uint16_t)(input_ptr->cr_stride);
         uint16_t     source_cb_stride = (uint16_t)(input_ptr->cb_stride);
 
-        const uint8_t subsampling_x = (input_pic->color_format == EB_YUV444 ? 1 : 2) - 1;
-        const uint8_t subsampling_y = ((input_pic->color_format == EB_YUV444 || input_pic->color_format == EB_YUV422) ? 1 : 2) - 1;
+        const uint8_t subsampling_x = (input_pic->color_format == EB_YUV444 ? 0 : 1);
+        const uint8_t subsampling_y = ((input_pic->color_format == EB_YUV444 || input_pic->color_format == EB_YUV422) ? 0 : 1);
         const uint64_t source_chroma_width = (luma_width + subsampling_x) >> subsampling_x;
         const uint64_t source_chroma_height = (luma_height + subsampling_y) >> subsampling_y;
 
@@ -5681,8 +5681,8 @@ static EbErrorType copy_frame_buffer(
         uint16_t source_cr_stride = (uint16_t)(input_ptr->cr_stride);
         uint16_t source_cb_stride = (uint16_t)(input_ptr->cb_stride);
 
-        const uint8_t subsampling_x = (input_pic->color_format == EB_YUV444 ? 1 : 2) - 1;
-        const uint8_t subsampling_y = ((input_pic->color_format == EB_YUV444 || input_pic->color_format == EB_YUV422) ? 1 : 2) - 1;
+        const uint8_t subsampling_x = (input_pic->color_format == EB_YUV444 ? 0 : 1);
+        const uint8_t subsampling_y = ((input_pic->color_format == EB_YUV444 || input_pic->color_format == EB_YUV422) ? 0 : 1);
         const uint64_t chroma_width = (luma_width + subsampling_x) >> subsampling_x;
         const uint64_t chroma_height = (luma_height + subsampling_y) >> subsampling_y;
 
@@ -5874,8 +5874,8 @@ static void memset_input_buffer(SequenceControlSet* scs, EbBufferHeaderType* dst
             EbPictureBufferDesc* input_pic = (EbPictureBufferDesc*)dst->p_buffer;
             EbSvtAv1EncConfiguration* config = &scs->static_config;
             Bool is_16bit_input = (Bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
-            const uint8_t subsampling_x = (config->encoder_color_format == EB_YUV444 ? 1 : 2) - 1;
-            const uint8_t subsampling_y = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 1 : 2) - 1;
+            const uint8_t subsampling_x = (config->encoder_color_format == EB_YUV444 ? 0 : 1);
+            const uint8_t subsampling_y = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 0 : 1);
             const size_t chroma_width = (input_pic->max_width + subsampling_x) >> subsampling_x;
             const size_t chroma_height = (input_pic->max_height + subsampling_y) >> subsampling_y;
             const size_t chroma_org_x = (input_pic->org_x + subsampling_x) >> subsampling_x;
@@ -5904,8 +5904,8 @@ static void memset_input_buffer(SequenceControlSet* scs, EbBufferHeaderType* dst
             EbPictureBufferDesc* input_pic = (EbPictureBufferDesc*)dst->p_buffer;
             EbSvtAv1EncConfiguration* config = &scs->static_config;
             Bool is_16bit_input = (Bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
-            const uint8_t subsampling_x = (config->encoder_color_format == EB_YUV444 ? 1 : 2) - 1;
-            const uint8_t subsampling_y = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 1 : 2) - 1;
+            const uint8_t subsampling_x = (config->encoder_color_format == EB_YUV444 ? 0 : 1);
+            const uint8_t subsampling_y = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 0 : 1);
             const size_t chroma_width = (input_pic->max_width + subsampling_x) >> subsampling_x;
             const size_t chroma_height = (input_pic->max_height + subsampling_y) >> subsampling_y;
             const size_t chroma_org_x = (input_pic->org_x + subsampling_x) >> subsampling_x;
@@ -6156,8 +6156,8 @@ EB_API EbErrorType svt_av1_enc_send_picture(
         EbSvtAv1EncConfiguration* config = &scs->static_config;
         Bool is_16bit_input = (Bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
 
-        const uint8_t subsampling_x = (config->encoder_color_format == EB_YUV444 ? 1 : 2) - 1;
-        const uint8_t subsampling_y = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 1 : 2) - 1;
+        const uint8_t subsampling_x = (config->encoder_color_format == EB_YUV444 ? 0 : 1);
+        const uint8_t subsampling_y = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 0 : 1);
         const size_t luma_width = input_pic->width - scs->max_input_pad_right;
         const size_t luma_height = input_pic->height - scs->max_input_pad_bottom;
         const size_t chroma_width = (luma_width + subsampling_x) >> subsampling_x;

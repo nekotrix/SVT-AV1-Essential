@@ -64,12 +64,12 @@ EbErrorType svt_aom_picture_analysis_context_ctor(EbThreadContext *thread_ctx, c
 }
 void svt_aom_down_sample_chroma(EbPictureBufferDesc *input_pic, EbPictureBufferDesc *outputPicturePtr) {
     uint32_t       input_color_format  = input_pic->color_format;
-    const uint16_t input_subsampling_x = (input_color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t input_subsampling_y = (input_color_format >= EB_YUV422 ? 1 : 2) - 1;
+    const uint16_t input_subsampling_x = (input_color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t input_subsampling_y = (input_color_format >= EB_YUV422 ? 0 : 1);
 
     uint32_t       output_color_format  = outputPicturePtr->color_format;
-    const uint16_t output_subsampling_x = (output_color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t output_subsampling_y = (output_color_format >= EB_YUV422 ? 1 : 2) - 1;
+    const uint16_t output_subsampling_x = (output_color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t output_subsampling_y = (output_color_format >= EB_YUV422 ? 0 : 1);
 
     uint32_t stride_in, stride_out;
     uint32_t input_origin_index, output_origin_index;
@@ -1682,8 +1682,8 @@ void svt_aom_pad_picture_to_multiple_of_min_blk_size_dimensions(SequenceControlS
     Bool is16_bit_input = (Bool)(scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
 
     uint32_t       color_format  = input_pic->color_format;
-    const uint16_t subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t subsampling_y = (color_format >= EB_YUV422 ? 1 : 2) - 1;
+    const uint16_t subsampling_x = (color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t subsampling_y = (color_format >= EB_YUV422 ? 0 : 1);
 
     // Input Picture Padding
     pad_input_picture(&input_pic->buffer_y[input_pic->org_x + (input_pic->org_y * input_pic->stride_y)],
@@ -1756,8 +1756,8 @@ void svt_aom_pad_picture_to_multiple_of_min_blk_size_dimensions_16bit(SequenceCo
     assert(scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
 
     uint32_t      color_format  = input_pic->color_format;
-    const uint8_t subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint8_t subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
+    const uint8_t subsampling_x = (color_format == EB_YUV444 ? 0 : 1);
+    const uint8_t subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 0 : 1);
 
     // Input Picture Padding
     uint16_t *buffer_y = (uint16_t *)(input_pic->buffer_y) + input_pic->org_x + input_pic->org_y * input_pic->stride_y;

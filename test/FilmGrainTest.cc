@@ -371,8 +371,8 @@ class DenoiseModelRunTest : public ::testing::Test {
         pbd_init_data.split_mode = FALSE;
         pbd_init_data.is_16bit_pipeline = FALSE;
 
-        subsampling_x_ = (pbd_init_data.color_format == EB_YUV444 ? 1 : 2) - 1;
-        subsampling_y_ = (pbd_init_data.color_format >= EB_YUV422 ? 1 : 2) - 1;
+        subsampling_x_ = (pbd_init_data.color_format == EB_YUV444 ? 0 : 1);
+        subsampling_y_ = (pbd_init_data.color_format >= EB_YUV422 ? 0 : 1);
 
         EbErrorType err =
             svt_picture_buffer_desc_ctor(&in_pic_, &pbd_init_data);

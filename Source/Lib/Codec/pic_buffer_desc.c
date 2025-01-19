@@ -43,8 +43,8 @@ EbErrorType svt_picture_buffer_desc_ctor_noy8b(EbPictureBufferDesc *pictureBuffe
 
     //for 10bit we force split mode + 2b-compressed
     uint32_t       bytes_per_pixel = 1;
-    const uint16_t subsampling_x   = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t subsampling_y   = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
+    const uint16_t subsampling_x   = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t subsampling_y   = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
 
     pictureBufferDescPtr->dctor = svt_picture_buffer_desc_dctor;
 
@@ -129,8 +129,8 @@ EbErrorType svt_picture_buffer_desc_noy8b_update(EbPictureBufferDesc *pictureBuf
     const EbPictureBufferDescInitData *picture_buffer_desc_init_data_ptr = (EbPictureBufferDescInitData *)
         object_init_data_ptr;
 
-    const uint16_t subsampling_x = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t subsampling_y = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
+    const uint16_t subsampling_x = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t subsampling_y = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
 
     // Set the Picture Buffer Static variables
     pictureBufferDescPtr->max_width         = picture_buffer_desc_init_data_ptr->max_width;
@@ -180,8 +180,8 @@ EbErrorType svt_picture_buffer_desc_update(EbPictureBufferDesc *pictureBufferDes
     const EbPictureBufferDescInitData *picture_buffer_desc_init_data_ptr = (EbPictureBufferDescInitData *)
         object_init_data_ptr;
 
-    const uint16_t subsampling_x = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t subsampling_y = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
+    const uint16_t subsampling_x = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t subsampling_y = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
 
     // Set the Picture Buffer Static variables
     pictureBufferDescPtr->max_width  = picture_buffer_desc_init_data_ptr->max_width;
@@ -221,8 +221,8 @@ EbErrorType svt_picture_buffer_desc_ctor(EbPictureBufferDesc *pictureBufferDescP
     uint32_t       bytes_per_pixel = (picture_buffer_desc_init_data_ptr->bit_depth == EB_EIGHT_BIT) ? 1
               : (picture_buffer_desc_init_data_ptr->bit_depth <= EB_SIXTEEN_BIT)                    ? 2
                                                                                                     : 4;
-    const uint16_t subsampling_x   = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t subsampling_y   = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
+    const uint16_t subsampling_x   = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t subsampling_y   = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
 
     pictureBufferDescPtr->dctor = svt_picture_buffer_desc_dctor;
 
@@ -313,8 +313,8 @@ EbErrorType svt_recon_picture_buffer_desc_update(EbPictureBufferDesc *pictureBuf
                                                  EbPtr                object_init_data_ptr) {
     EbPictureBufferDescInitData *picture_buffer_desc_init_data_ptr = (EbPictureBufferDescInitData *)
         object_init_data_ptr;
-    const uint16_t subsampling_x = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t subsampling_y = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
+    const uint16_t subsampling_x = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t subsampling_y = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
 
     // Set the Picture Buffer Static variables
     pictureBufferDescPtr->max_width    = picture_buffer_desc_init_data_ptr->max_width;
@@ -354,8 +354,8 @@ EbErrorType svt_recon_picture_buffer_desc_update(EbPictureBufferDesc *pictureBuf
 EbErrorType svt_recon_picture_buffer_desc_ctor(EbPictureBufferDesc *pictureBufferDescPtr, EbPtr object_init_data_ptr) {
     EbPictureBufferDescInitData *picture_buffer_desc_init_data_ptr = (EbPictureBufferDescInitData *)
         object_init_data_ptr;
-    const uint16_t subsampling_x = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t subsampling_y = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
+    const uint16_t subsampling_x = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t subsampling_y = (picture_buffer_desc_init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
 
     uint32_t bytes_per_pixel = (picture_buffer_desc_init_data_ptr->bit_depth == EB_EIGHT_BIT) ? 1 : 2;
 

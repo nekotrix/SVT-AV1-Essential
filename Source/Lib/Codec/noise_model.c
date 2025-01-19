@@ -2124,8 +2124,8 @@ EbErrorType svt_aom_denoise_and_model_ctor(AomDenoiseAndModel *object_ptr, EbPtr
     uint32_t                 use_highbd    = init_data_ptr->encoder_bit_depth > EB_EIGHT_BIT ? 1 : 0;
 
     int32_t chroma_sub_log2[2] = {1, 1}; //todo: send chroma subsampling
-    chroma_sub_log2[0]         = (init_data_ptr->encoder_color_format == EB_YUV444 ? 1 : 2) - 1;
-    chroma_sub_log2[1]         = (init_data_ptr->encoder_color_format >= EB_YUV422 ? 1 : 2) - 1;
+    chroma_sub_log2[0]         = (init_data_ptr->encoder_color_format == EB_YUV444 ? 0 : 1);
+    chroma_sub_log2[1]         = (init_data_ptr->encoder_color_format >= EB_YUV422 ? 0 : 1);
 
     object_ptr->dctor = denoise_and_model_dctor;
 

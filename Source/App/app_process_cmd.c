@@ -570,8 +570,8 @@ static void mmap_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBuffer
     EbSvtIOFormat *input_ptr           = (EbSvtIOFormat *)header_ptr->p_buffer;
 
     const uint8_t  color_format  = app_cfg->config.encoder_color_format;
-    const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
+    const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 0 : 1);
+    const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 0 : 1);
     const uint64_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
     const uint64_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
 
@@ -629,8 +629,8 @@ static void normal_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBuff
     EbSvtIOFormat *input_ptr           = (EbSvtIOFormat *)header_ptr->p_buffer;
 
     const uint8_t  color_format  = app_cfg->config.encoder_color_format;
-    const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
+    const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 0 : 1);
+    const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 0 : 1);
     const uint64_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
     const uint64_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
 
@@ -695,8 +695,8 @@ static void buffered_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBu
     EbSvtIOFormat *input_ptr           = (EbSvtIOFormat *)header_ptr->p_buffer;
 
     const uint8_t  color_format  = app_cfg->config.encoder_color_format;
-    const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 1 : 2) - 1;
+    const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 0 : 1);
+    const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 0 : 1);
     const uint64_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
     const uint64_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
 

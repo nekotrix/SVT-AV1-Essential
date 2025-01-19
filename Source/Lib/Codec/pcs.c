@@ -460,8 +460,8 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     EbErrorType    return_error;
 
     Bool           is_16bit      = init_data_ptr->bit_depth > 8 ? TRUE : FALSE;
-    const uint16_t subsampling_x = (init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t subsampling_y = (init_data_ptr->color_format >= EB_YUV422 ? 1 : 2) - 1;
+    const uint16_t subsampling_x = (init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t subsampling_y = (init_data_ptr->color_format >= EB_YUV422 ? 0 : 1);
 
     uint32_t total_tile_cnt = init_data_ptr->tile_row_count * init_data_ptr->tile_column_count;
     uint32_t tile_idx       = 0;
@@ -1264,8 +1264,8 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
                                                  init_data_ptr->b64_size);
     const uint16_t picture_sb_height = (uint16_t)((init_data_ptr->picture_height + init_data_ptr->b64_size - 1) /
                                                   init_data_ptr->b64_size);
-    const uint16_t subsampling_x     = (init_data_ptr->color_format == EB_YUV444 ? 1 : 2) - 1;
-    const uint16_t subsampling_y     = (init_data_ptr->color_format >= EB_YUV422 ? 1 : 2) - 1;
+    const uint16_t subsampling_x     = (init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t subsampling_y     = (init_data_ptr->color_format >= EB_YUV422 ? 0 : 1);
 
     object_ptr->dctor = picture_parent_control_set_dctor;
 
