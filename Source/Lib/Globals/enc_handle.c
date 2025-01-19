@@ -517,12 +517,8 @@ int32_t set_parent_pcs(EbSvtAv1EncConfiguration*   config, uint32_t core_count, 
 
 //return max wavefronts in a given picture
 static uint32_t get_max_wavefronts(uint32_t width, uint32_t height, uint32_t blk_size) {
-
-    // possible code, needs to be tested
-    // return ((height + blk_size / 2) / blk_size) < ((width  + blk_size / 2) / blk_size) ? ((height + blk_size / 2) / blk_size) : ((width  + blk_size / 2) / blk_size);
-    UNUSED(width);
-
-    return MAX(1, (height + blk_size / 2) / blk_size);
+    assert(width > 0 && height > 0);
+    return (MIN(width, height) + (blk_size - 1)) / blk_size;
 }
 /*
 * When the picture dimension is a single SB, must use a single segment (EncDec segments

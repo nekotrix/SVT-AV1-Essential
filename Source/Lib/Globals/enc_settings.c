@@ -215,7 +215,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
-    if ((scs->max_input_luma_width < 64) || (scs->max_input_luma_height < 64)) {
+    if ((scs->max_input_luma_width >= 4 && scs->max_input_luma_width < 64) ||
+        (scs->max_input_luma_height >= 4 && scs->max_input_luma_height < 64)) {
         if (config->enable_adaptive_quantization != 0) {
             SVT_WARN("Instance %u: AQ mode %i is unsupported with source dimensions (%i / %i), setting AQ mode to 0\n",
                 channel_number + 1, config->enable_adaptive_quantization, scs->max_input_luma_width, scs->max_input_luma_height);
