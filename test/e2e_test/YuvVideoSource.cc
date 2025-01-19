@@ -20,7 +20,6 @@
  ******************************************************************************/
 #include "YuvVideoSource.h"
 using namespace svt_av1_video_source;
-#define SIZE_OF_ONE_FRAME_IN_BYTES(width, height) (((width) * (height)*3) >> 1)
 
 YuvVideoSource::YuvVideoSource(const std::string &file_name,
                                const VideoColorFormat format,

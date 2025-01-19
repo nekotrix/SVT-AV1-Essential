@@ -76,12 +76,6 @@
 #include "aom_dsp_rtcd.h"
 #include "common_dsp_rtcd.h"
 
-/***************************************
- * Macros
- ***************************************/
-#define SIZE_OF_ONE_FRAME_IN_BYTES(width, height, csp, is_16bit) \
-    ((((width) * (height)) + 2 * (((width) * (height)) >> (3 - csp))) << is_16bit)
-
  /**************************************
   * Defines
   **************************************/
