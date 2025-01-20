@@ -215,6 +215,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+    // This is not an AV1 spec limitation, but an implementation limitation in the encoder
+    // This check will stay in place until restoration filtering can handle these dimensions
     if ((scs->max_input_luma_width >= 4 && scs->max_input_luma_width < 64) ||
         (scs->max_input_luma_height >= 4 && scs->max_input_luma_height < 64)) {
         if (config->enable_adaptive_quantization != 0) {
