@@ -117,7 +117,6 @@ class UpsampleTest : public ::testing::TestWithParam<UPSAMPLE_LBD> {
     int numPx_;
     int bd_;
 };
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(UpsampleTest);
 
 TEST_P(UpsampleTest, RunTest) {
     RunTest();
@@ -127,6 +126,11 @@ TEST_P(UpsampleTest, RunTest) {
 INSTANTIATE_TEST_SUITE_P(SSE4_1, UpsampleTest,
                          ::testing::Values(svt_av1_upsample_intra_edge_sse4_1));
 #endif  // ARCH_X86_64
+
+#if ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(NEON, UpsampleTest,
+                         ::testing::Values(svt_av1_upsample_intra_edge_neon));
+#endif  // ARCH_AARCH64
 
 // -----------------------------------------------------------------------------
 // Filter edge Tests

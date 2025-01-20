@@ -1171,6 +1171,7 @@ extern "C" {
 
     void svt_av1_filter_intra_edge_neon(uint8_t *p, int32_t sz, int32_t strength);
     void svt_av1_filter_intra_edge_high_neon(uint16_t *p, int32_t sz, int32_t strength);
+    void svt_av1_upsample_intra_edge_neon(uint8_t *p, int32_t sz);
 
     void svt_av1_dr_prediction_z1_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, int32_t bh, const uint8_t *above, const uint8_t *left,int32_t upsample_above, int32_t dx, int32_t dy);
     void svt_av1_dr_prediction_z2_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, int32_t bh, const uint8_t *above, const uint8_t *left, int32_t upsample_above, int32_t upsample_left, int32_t dx,int32_t dy);
