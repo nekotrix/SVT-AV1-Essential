@@ -374,6 +374,14 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::Values(svt_cfl_luma_subsampling_420_lbd_avx2)));
 #endif
 
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, CflLumaSubsamplingLbdTest,
+    ::testing::Combine(
+        ::testing::Range(BLOCK_4X4, BlockSizeS_ALL),
+        ::testing::Values(svt_cfl_luma_subsampling_420_lbd_neon)));
+#endif
+
 typedef void (*CflLumaSubsamplingHbdFunc)(const uint16_t *, int32_t, int16_t *,
                                           int32_t, int32_t);
 typedef ::testing::tuple<BlockSize, CflLumaSubsamplingHbdFunc>
