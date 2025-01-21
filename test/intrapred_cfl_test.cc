@@ -449,4 +449,12 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::Values(svt_cfl_luma_subsampling_420_hbd_avx2)));
 #endif  // ARCH_X86_64
 
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, CflLumaSubsamplingHbdTest,
+    ::testing::Combine(
+        ::testing::Range(BLOCK_4X4, BlockSizeS_ALL),
+        ::testing::Values(svt_cfl_luma_subsampling_420_hbd_neon)));
+#endif  // ARCH_AARCH64
+
 }  // namespace

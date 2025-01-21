@@ -1204,6 +1204,7 @@ extern "C" {
     void svt_cfl_predict_hbd_neon(const int16_t *pred_buf_q3, uint16_t *pred, int32_t pred_stride, uint16_t *dst, int32_t dst_stride, int32_t alpha_q3, int32_t bit_depth, int32_t width, int32_t height);
 
     void svt_cfl_luma_subsampling_420_lbd_neon(const uint8_t *input, int32_t input_stride, int16_t *output_q3, int32_t width, int32_t height);
+    void svt_cfl_luma_subsampling_420_hbd_neon(const uint16_t *input, int32_t input_stride, int16_t *output_q3, int32_t width, int32_t height);
 
     void svt_aom_hadamard_8x8_neon(const int16_t *src_diff, ptrdiff_t src_stride, int32_t *coeff);
     void svt_aom_hadamard_16x16_neon(const int16_t *src_diff, ptrdiff_t src_stride, int32_t *coeff);
