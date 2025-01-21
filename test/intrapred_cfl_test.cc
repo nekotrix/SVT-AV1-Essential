@@ -327,12 +327,11 @@ class CflLumaSubsamplingLbdTest
         const int block_size = TEST_GET_PARAM(0);
         CflLumaSubsamplingLbdFunc test_impl = TEST_GET_PARAM(1);
         const int width = block_size_wide[block_size];
-        // Output width is defined by CFL_BUF_LINE(32),
-        // it lead to assumption that input width cannot be larger than 64,
-        // otherwise computation will overwrite line "n" by line "n+1"
-        if (width > 64)
-            return;
         const int height = block_size_high[block_size];
+        // CFL prediction only operates on blocks where
+        // max(width, height) <= 32.
+        if (width > 32 || height > 32)
+            return;
         DECLARE_ALIGNED(16, uint8_t, input[MAX_SB_SQUARE]);
         DECLARE_ALIGNED(16, int16_t, output_q3_ref_[MAX_SB_SQUARE]);
         DECLARE_ALIGNED(16, int16_t, output_q3_tst_[MAX_SB_SQUARE]);
@@ -395,12 +394,11 @@ class CflLumaSubsamplingHbdTest
         const int block_size = TEST_GET_PARAM(0);
         CflLumaSubsamplingHbdFunc test_impl = TEST_GET_PARAM(1);
         const int width = block_size_wide[block_size];
-        // Output width is defined by CFL_BUF_LINE(32),
-        // it lead to assumption that input width cannot be larger than 64,
-        // otherwise computation will overwrite line "n" by line "n+1"
-        if (width > 64)
-            return;
         const int height = block_size_high[block_size];
+        // CFL prediction only operates on blocks where
+        // max(width, height) <= 32.
+        if (width > 32 || height > 32)
+            return;
         DECLARE_ALIGNED(16, uint16_t, input[MAX_SB_SQUARE]);
         DECLARE_ALIGNED(16, int16_t, output_q3_ref_[MAX_SB_SQUARE]);
         DECLARE_ALIGNED(16, int16_t, output_q3_tst_[MAX_SB_SQUARE]);
