@@ -120,7 +120,13 @@ EbCpuFlags svt_aom_get_cpu_flags() {
     flags |= cpuinfo_has_x86_avx512bw() ? EB_CPU_FLAGS_AVX512BW : 0;
     flags |= cpuinfo_has_x86_avx512vl() ? EB_CPU_FLAGS_AVX512VL : 0;
 
+#if FIX_AVX512_ICL_RTCD
+    EbCpuFlags avx512_skylake_flags = EB_CPU_FLAGS_AVX512F | EB_CPU_FLAGS_AVX512DQ | EB_CPU_FLAGS_AVX512CD |
+        EB_CPU_FLAGS_AVX512BW | EB_CPU_FLAGS_AVX512VL;
+#else
     EbCpuFlags avx512_skylake_flags = (EB_CPU_FLAGS_AVX512VL << 1) - EB_CPU_FLAGS_AVX512F;
+#endif
+
     if ((flags & avx512_skylake_flags) == avx512_skylake_flags) {
         if (cpuinfo_has_x86_avx512ifma() && cpuinfo_has_x86_avx512vbmi() && cpuinfo_has_x86_avx512vpopcntdq() &&
             cpuinfo_has_x86_avx512vnni() && cpuinfo_has_x86_avx512vbmi2() && cpuinfo_has_x86_avx512bitalg() &&

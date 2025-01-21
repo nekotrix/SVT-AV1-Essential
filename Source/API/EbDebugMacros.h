@@ -116,7 +116,6 @@ extern "C" {
 #define FIX_SVT_AV1_CHECK_VERSION          1 // Remove the SVT_AV1_CHECK_VERSION instances
 #define FIX_NO_ENCDEC                      1 // Remove REMOVE_LP1_LPN_DIFF as not used
 #define FIX_REMOVE_LP1_LPN_DIFF            1 // remove NO_ENCDEC as not used
-
 #define CLN_CDEF_LVLS               1 // Cleanup CDEF levels
 #define OPT_M5_CDEF                 1 // Tune M5 CDEF level
 #define OPT_FD2                     1 // cdef-subpel-mfmv
@@ -143,7 +142,7 @@ extern "C" {
 #define TUNE_FD1_LVL                1 // Position fd1 between fd0 and fd2
 #define TUNE_M10_SVT_14             1 // Tune M10 (VLITT)
 #define CLN_REM_RMV                 1 // Remove support for rmv (--rmv)
-
+#define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one
