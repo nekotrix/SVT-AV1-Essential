@@ -1215,6 +1215,8 @@ extern "C" {
 
     int64_t svt_av1_lowbd_pixel_proj_error_neon(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride, const uint8_t *dat8, int32_t dat_stride, int32_t *flt0, int32_t flt0_stride, int32_t *flt1, int32_t flt1_stride, int32_t xq[2], const SgrParamsType *params);
 
+    void svt_subtract_average_neon(int16_t *pred_buf_q3, int32_t width, int32_t height, int32_t round_offset, int32_t num_pel_log2);
+
     void svt_aom_downsample_2d_neon(uint8_t *input_samples, uint32_t input_stride, uint32_t input_area_width, uint32_t input_area_height, uint8_t *decim_samples, uint32_t decim_stride, uint32_t decim_step);
 
     void svt_av1_txb_init_levels_neon(const TranLow *const coeff, const int32_t width, const int32_t height, uint8_t *const levels);

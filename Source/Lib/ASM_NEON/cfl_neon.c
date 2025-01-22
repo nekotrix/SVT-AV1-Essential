@@ -11,6 +11,7 @@
 #include <arm_neon.h>
 
 #include "definitions.h"
+#include "intra_prediction.h"
 #include "mem_neon.h"
 
 /* Store half of a vector. */
@@ -328,5 +329,199 @@ void svt_cfl_luma_subsampling_420_hbd_neon(const uint16_t *input, int input_stri
             input += luma_stride;
             pred_buf_q3 += CFL_BUF_LINE;
         } while (pred_buf_q3 < end);
+    }
+}
+
+void svt_subtract_average_neon(int16_t *pred_buf_q3, int width, int height, int round_offset, const int num_pel_log2) {
+    const uint16_t *end = (uint16_t *)pred_buf_q3 + height * CFL_BUF_LINE;
+
+    // Round offset is not needed, because Neon will handle the rounding.
+    (void)round_offset;
+
+    // To optimize the use of the CPU pipeline, we process 4 rows per iteration
+    const int step = 4 * CFL_BUF_LINE;
+
+    // At this stage, the prediction buffer contains scaled reconstructed luma
+    // pixels, which are positive integer and only require 15 bits. By using
+    // unsigned integer for the sum, we can do one addition operation inside 16
+    // bits (8 lanes) before having to convert to 32 bits (4 lanes).
+    const uint16_t *sum_buf = (uint16_t *)pred_buf_q3;
+    uint32x4_t      sum     = vdupq_n_u32(0);
+
+    if (width == 4) {
+        do {
+            uint16x4_t a0, a1, a2, a3;
+            load_u16_4x4(sum_buf, CFL_BUF_LINE, &a0, &a1, &a2, &a3);
+
+            uint16x4_t a01 = vadd_u16(a0, a1);
+            uint16x4_t a23 = vadd_u16(a2, a3);
+
+            sum = vaddq_u32(sum, vaddl_u16(a01, a23));
+            sum_buf += step;
+        } while (sum_buf < end);
+    } else if (width == 8) {
+        do {
+            uint16x8_t a0, a1, a2, a3;
+            load_u16_8x4(sum_buf, CFL_BUF_LINE, &a0, &a1, &a2, &a3);
+
+            uint16x8_t a01 = vaddq_u16(a0, a1);
+            uint16x8_t a23 = vaddq_u16(a2, a3);
+
+            sum = vpadalq_u16(sum, a01);
+            sum = vpadalq_u16(sum, a23);
+            sum_buf += step;
+        } while (sum_buf < end);
+    } else if (width == 16) {
+        do {
+            uint16x8_t a0, a1, a2, a3, a4, a5, a6, a7;
+            load_u16_8x4(sum_buf + 0, CFL_BUF_LINE, &a0, &a1, &a2, &a3);
+            load_u16_8x4(sum_buf + 8, CFL_BUF_LINE, &a4, &a5, &a6, &a7);
+
+            uint16x8_t a01 = vaddq_u16(a0, a1);
+            uint16x8_t a23 = vaddq_u16(a2, a3);
+            uint16x8_t a45 = vaddq_u16(a4, a5);
+            uint16x8_t a67 = vaddq_u16(a6, a7);
+
+            sum = vpadalq_u16(sum, a01);
+            sum = vpadalq_u16(sum, a23);
+            sum = vpadalq_u16(sum, a45);
+            sum = vpadalq_u16(sum, a67);
+
+            sum_buf += step;
+        } while (sum_buf < end);
+    } else {
+        uint32x4_t sum0 = vdupq_n_u32(0);
+        uint32x4_t sum1 = vdupq_n_u32(0);
+        do {
+            uint16x8_t a[4], b[4], c[4], d[4];
+            load_u16_8x4(sum_buf + 0, CFL_BUF_LINE, &a[0], &a[1], &a[2], &a[3]);
+            load_u16_8x4(sum_buf + 8, CFL_BUF_LINE, &b[0], &b[1], &b[2], &b[3]);
+            load_u16_8x4(sum_buf + 16, CFL_BUF_LINE, &c[0], &c[1], &c[2], &c[3]);
+            load_u16_8x4(sum_buf + 24, CFL_BUF_LINE, &d[0], &d[1], &d[2], &d[3]);
+
+            uint16x8_t a01 = vaddq_u16(a[0], a[1]);
+            uint16x8_t a23 = vaddq_u16(a[2], a[3]);
+            uint16x8_t b01 = vaddq_u16(b[0], b[1]);
+            uint16x8_t b23 = vaddq_u16(b[2], b[3]);
+            uint16x8_t c01 = vaddq_u16(c[0], c[1]);
+            uint16x8_t c23 = vaddq_u16(c[2], c[3]);
+            uint16x8_t d01 = vaddq_u16(d[0], d[1]);
+            uint16x8_t d23 = vaddq_u16(d[2], d[3]);
+
+            sum0 = vpadalq_u16(sum0, a01);
+            sum0 = vpadalq_u16(sum0, b01);
+            sum0 = vpadalq_u16(sum0, c01);
+            sum0 = vpadalq_u16(sum0, d01);
+
+            sum1 = vpadalq_u16(sum1, a23);
+            sum1 = vpadalq_u16(sum1, b23);
+            sum1 = vpadalq_u16(sum1, c23);
+            sum1 = vpadalq_u16(sum1, d23);
+
+            sum_buf += step;
+        } while (sum_buf < end);
+        sum = vaddq_u32(sum0, sum1);
+    }
+
+    // Permute and add in such a way that each lane contains the block sum.
+    // [A+C+B+D, B+D+A+C, C+A+D+B, D+B+C+A]
+    sum = vpaddq_u32(sum, sum);
+    sum = vpaddq_u32(sum, sum);
+
+    // Computing the average could be done using scalars, but getting off the Neon
+    // engine introduces latency, so we use vrshlq_u32.
+    uint32x4_t avg_32   = vrshlq_u32(sum, vdupq_n_s32(-num_pel_log2));
+    int16x4_t  avg_16x4 = vreinterpret_s16_u16(vmovn_u32(avg_32));
+
+    if (width == 4) {
+        do {
+            int16x4_t a0 = vld1_s16(pred_buf_q3);
+            vst1_s16(pred_buf_q3, vsub_s16(a0, avg_16x4));
+
+            pred_buf_q3 += CFL_BUF_LINE;
+        } while ((uint16_t *)pred_buf_q3 < end);
+    } else if (width == 8) {
+        const int16x8_t avg_16x8 = vcombine_s16(avg_16x4, avg_16x4);
+        do {
+            int16x8_t a0, a1, a2, a3;
+            load_s16_8x4(pred_buf_q3, CFL_BUF_LINE, &a0, &a1, &a2, &a3);
+
+            int16x8_t a0_avg = vsubq_s16(a0, avg_16x8);
+            int16x8_t a1_avg = vsubq_s16(a1, avg_16x8);
+            int16x8_t a2_avg = vsubq_s16(a2, avg_16x8);
+            int16x8_t a3_avg = vsubq_s16(a3, avg_16x8);
+
+            store_s16_8x4(pred_buf_q3, CFL_BUF_LINE, a0_avg, a1_avg, a2_avg, a3_avg);
+
+            pred_buf_q3 += step;
+        } while ((uint16_t *)pred_buf_q3 < end);
+    } else if (width == 16) {
+        const int16x8_t avg_16x8 = vcombine_s16(avg_16x4, avg_16x4);
+        do {
+            int16x8_t a0, a1, a2, a3;
+            load_s16_8x4(pred_buf_q3, CFL_BUF_LINE, &a0, &a1, &a2, &a3);
+
+            int16x8_t a0_avg = vsubq_s16(a0, avg_16x8);
+            int16x8_t a1_avg = vsubq_s16(a1, avg_16x8);
+            int16x8_t a2_avg = vsubq_s16(a2, avg_16x8);
+            int16x8_t a3_avg = vsubq_s16(a3, avg_16x8);
+
+            store_s16_8x4(pred_buf_q3, CFL_BUF_LINE, a0_avg, a1_avg, a2_avg, a3_avg);
+
+            int16x8_t a4, a5, a6, a7;
+            load_s16_8x4(pred_buf_q3 + 8, CFL_BUF_LINE, &a4, &a5, &a6, &a7);
+
+            int16x8_t a4_avg = vsubq_s16(a4, avg_16x8);
+            int16x8_t a5_avg = vsubq_s16(a5, avg_16x8);
+            int16x8_t a6_avg = vsubq_s16(a6, avg_16x8);
+            int16x8_t a7_avg = vsubq_s16(a7, avg_16x8);
+
+            store_s16_8x4(pred_buf_q3 + 8, CFL_BUF_LINE, a4_avg, a5_avg, a6_avg, a7_avg);
+            pred_buf_q3 += step;
+        } while ((uint16_t *)pred_buf_q3 < end);
+    } else if (width == 32) {
+        const int16x8_t avg_16x8 = vcombine_s16(avg_16x4, avg_16x4);
+        do {
+            int16x8_t a0, a1, a2, a3;
+            load_s16_8x4(pred_buf_q3, CFL_BUF_LINE, &a0, &a1, &a2, &a3);
+
+            int16x8_t a0_avg = vsubq_s16(a0, avg_16x8);
+            int16x8_t a1_avg = vsubq_s16(a1, avg_16x8);
+            int16x8_t a2_avg = vsubq_s16(a2, avg_16x8);
+            int16x8_t a3_avg = vsubq_s16(a3, avg_16x8);
+
+            store_s16_8x4(pred_buf_q3, CFL_BUF_LINE, a0_avg, a1_avg, a2_avg, a3_avg);
+
+            int16x8_t a4, a5, a6, a7;
+            load_s16_8x4(pred_buf_q3 + 8, CFL_BUF_LINE, &a4, &a5, &a6, &a7);
+
+            int16x8_t a4_avg = vsubq_s16(a4, avg_16x8);
+            int16x8_t a5_avg = vsubq_s16(a5, avg_16x8);
+            int16x8_t a6_avg = vsubq_s16(a6, avg_16x8);
+            int16x8_t a7_avg = vsubq_s16(a7, avg_16x8);
+
+            store_s16_8x4(pred_buf_q3 + 8, CFL_BUF_LINE, a4_avg, a5_avg, a6_avg, a7_avg);
+
+            int16x8_t a8, a9, a10, a11;
+            load_s16_8x4(pred_buf_q3 + 16, CFL_BUF_LINE, &a8, &a9, &a10, &a11);
+
+            int16x8_t a8_avg  = vsubq_s16(a8, avg_16x8);
+            int16x8_t a9_avg  = vsubq_s16(a9, avg_16x8);
+            int16x8_t a10_avg = vsubq_s16(a10, avg_16x8);
+            int16x8_t a11_avg = vsubq_s16(a11, avg_16x8);
+
+            store_s16_8x4(pred_buf_q3 + 16, CFL_BUF_LINE, a8_avg, a9_avg, a10_avg, a11_avg);
+
+            int16x8_t a12, a13, a14, a15;
+            load_s16_8x4(pred_buf_q3 + 24, CFL_BUF_LINE, &a12, &a13, &a14, &a15);
+
+            int16x8_t a12_avg = vsubq_s16(a12, avg_16x8);
+            int16x8_t a13_avg = vsubq_s16(a13, avg_16x8);
+            int16x8_t a14_avg = vsubq_s16(a14, avg_16x8);
+            int16x8_t a15_avg = vsubq_s16(a15, avg_16x8);
+
+            store_s16_8x4(pred_buf_q3 + 24, CFL_BUF_LINE, a12_avg, a13_avg, a14_avg, a15_avg);
+            pred_buf_q3 += step;
+        } while ((uint16_t *)pred_buf_q3 < end);
     }
 }

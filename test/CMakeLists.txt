@@ -114,6 +114,7 @@ set(multi_arch_files
     intrapred_test.cc
     quantize_func_test.cc
     selfguided_filter_test.cc
+    subtract_avg_cfl_test.cc
     warp_filter_test.cc
     warp_filter_test_util.cc
     warp_filter_test_util.h
@@ -136,8 +137,7 @@ if(HAVE_X86_PLATFORM)
       compute_mean_test.cc
       corner_match_test.cc
       dwt_test.cc
-      frame_error_test.cc
-      subtract_avg_cfl_test.cc)
+      frame_error_test.cc)
 endif()
 
 if(HAVE_ARM_PLATFORM)

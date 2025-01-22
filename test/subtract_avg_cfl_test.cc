@@ -69,10 +69,6 @@ typedef CflSubtractAverageFn (*get_sub_avg_fn)(TxSize tx_size);
 
 typedef std::tuple<TxSize, get_sub_avg_fn> CflSubAvgParam;
 
-/** CFL_SUB_AVG_FN is a wrapper for subtract_average_avx2 to setup function
- * arguments easier, defines it to enable AVX2 subtract average functions */
-CFL_SUB_AVG_FN(avx2)
-
 class CflSubAvgTest : public ::testing::TestWithParam<CflSubAvgParam> {
   public:
     CflSubAvgTest() : tx_size_(TEST_GET_PARAM(0)) {
@@ -155,8 +151,23 @@ TEST_P(CflSubAvgTest, subtract_average_asm_test) {
     run_asm_compare_test(1000);
 }
 
+#ifdef ARCH_X86_64
+/* CFL_SUB_AVG_FN is a wrapper for subtract_average_avx2 to setup function
+   arguments easier, defines it to enable AVX2 subtract average functions. */
+CFL_SUB_AVG_FN(avx2)
+
 INSTANTIATE_TEST_SUITE_P(
     AVX2, CflSubAvgTest,
     ::testing::Combine(::testing::ValuesIn(TEST_PARAMS),
                        ::testing::Values(svt_get_subtract_average_fn_avx2)));
+#endif  // ARCH_X86_64
+
+#ifdef ARCH_AARCH64
+CFL_SUB_AVG_FN(neon)
+
+INSTANTIATE_TEST_SUITE_P(
+    NEON, CflSubAvgTest,
+    ::testing::Combine(::testing::ValuesIn(TEST_PARAMS),
+                       ::testing::Values(svt_get_subtract_average_fn_neon)));
+#endif  // ARCH_AARCH64
 }  // namespace
