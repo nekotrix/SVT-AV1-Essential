@@ -67,20 +67,22 @@ static TxSize TEST_PARAMS[] = {TX_4X4,
 
 typedef CflSubtractAverageFn (*get_sub_avg_fn)(TxSize tx_size);
 
+typedef std::tuple<TxSize, get_sub_avg_fn> CflSubAvgParam;
+
 /** CFL_SUB_AVG_FN is a wrapper for subtract_average_avx2 to setup function
  * arguments easier, defines it to enable AVX2 subtract average functions */
 CFL_SUB_AVG_FN(avx2)
 
-class CflSubAvgTest : public ::testing::TestWithParam<TxSize> {
+class CflSubAvgTest : public ::testing::TestWithParam<CflSubAvgParam> {
   public:
-    CflSubAvgTest() : tx_size_(GetParam()) {
+    CflSubAvgTest() : tx_size_(TEST_GET_PARAM(0)) {
         width_ = tx_size_wide[tx_size_];
         height_ = tx_size_high[tx_size_];
         memset(data_tst_, 0, sizeof(data_tst_));
         memset(data_ref_, 0, sizeof(data_ref_));
 
         /** get test and reference function */
-        sub_avg_tst_ = svt_get_subtract_average_fn_avx2(tx_size_);
+        sub_avg_tst_ = TEST_GET_PARAM(1)(tx_size_);
         sub_avg_ref_ = svt_get_subtract_average_fn_c(tx_size_);
     }
 
@@ -153,6 +155,8 @@ TEST_P(CflSubAvgTest, subtract_average_asm_test) {
     run_asm_compare_test(1000);
 }
 
-INSTANTIATE_TEST_SUITE_P(AVX2, CflSubAvgTest, ::testing::ValuesIn(TEST_PARAMS));
-
+INSTANTIATE_TEST_SUITE_P(
+    AVX2, CflSubAvgTest,
+    ::testing::Combine(::testing::ValuesIn(TEST_PARAMS),
+                       ::testing::Values(svt_get_subtract_average_fn_avx2)));
 }  // namespace
