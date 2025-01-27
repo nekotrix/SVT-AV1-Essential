@@ -156,11 +156,11 @@ static EbErrorType preload_frames_info_ram(EbConfig *app_cfg) {
     size_t              read_size;
     const uint8_t       subsampling_x = (app_cfg->config.encoder_color_format == EB_YUV444 ? 0 : 1);
     const uint8_t       subsampling_y = (app_cfg->config.encoder_color_format == EB_YUV444 ||
-                                    app_cfg->config.encoder_color_format == EB_YUV422)
-                                             ? 0
-                                             : 1;
-    const size_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
-    const size_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
+                                   app_cfg->config.encoder_color_format == EB_YUV422)
+              ? 0
+              : 1;
+    const size_t        chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
+    const size_t        chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
 
     read_size = input_padded_width * input_padded_height; //Luma
     read_size += 2 * chroma_width * chroma_height; // Add Chroma
