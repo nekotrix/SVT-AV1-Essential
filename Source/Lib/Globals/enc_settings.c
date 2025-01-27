@@ -221,12 +221,19 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         (scs->max_input_luma_height >= 4 && scs->max_input_luma_height < 64)) {
         if (config->enable_adaptive_quantization != 0) {
             SVT_WARN("Instance %u: AQ mode %i is unsupported with source dimensions (%i / %i), setting AQ mode to 0\n",
-                channel_number + 1, config->enable_adaptive_quantization, scs->max_input_luma_width, scs->max_input_luma_height);
+                     channel_number + 1,
+                     config->enable_adaptive_quantization,
+                     scs->max_input_luma_width,
+                     scs->max_input_luma_height);
             config->enable_adaptive_quantization = 0;
         }
         if (config->enable_restoration_filtering != 0) {
-            SVT_WARN("Instance %u: Restoration Filtering is unsupported with source dimensions (%i / %i), disabling Restoration Filtering\n",
-                channel_number + 1, scs->max_input_luma_width, scs->max_input_luma_height);
+            SVT_WARN(
+                "Instance %u: Restoration Filtering is unsupported with source dimensions (%i / %i), disabling "
+                "Restoration Filtering\n",
+                channel_number + 1,
+                scs->max_input_luma_width,
+                scs->max_input_luma_height);
             config->enable_restoration_filtering = 0;
         }
         config->enable_tpl_la = 0;
