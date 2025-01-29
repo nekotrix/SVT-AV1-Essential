@@ -4556,11 +4556,13 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     if (scs->static_config.variance_boost_strength >= 4) {
         SVT_WARN("Aggressive variance boost strength used. This is a curve that's only useful under specific situations. Use with caution!\n");
     }
+#if !CLN_REM_RMV
     // scs->static_config.hierarchical_levels = (scs->static_config.rate_control_mode > 1) ? 3 : scs->static_config.hierarchical_levels;
     if (scs->static_config.restricted_motion_vector && scs->super_block_size == 128) {
         scs->static_config.restricted_motion_vector = FALSE;
         SVT_WARN("Restricted_motion_vector and SB 128x128 not supoorted, setting rmv to false\n");
     }
+#endif
     if (scs->static_config.intra_refresh_type == SVT_AV1_FWDKF_REFRESH && scs->static_config.hierarchical_levels != 4){
         scs->static_config.hierarchical_levels = 4;
         SVT_WARN("Fwd key frame is only supported for hierarchical levels 4 at this point. Hierarchical levels are set to 4\n");
@@ -5008,8 +5010,9 @@ static void copy_api_from_app(
             }
         }
     }
-
+#if !CLN_REM_RMV
     scs->static_config.restricted_motion_vector = ((EbSvtAv1EncConfiguration*)config_struct)->restricted_motion_vector;
+#endif
 
     // Rate Control
     scs->static_config.scene_change_detection = ((EbSvtAv1EncConfiguration*)config_struct)->scene_change_detection;

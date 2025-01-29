@@ -145,7 +145,9 @@
 #define THREAD_MGMNT "--lp"
 #define PIN_TOKEN "--pin"
 #define TARGET_SOCKET "--ss"
+#if !CLN_REM_RMV
 #define RESTRICTED_MOTION_VECTOR "--rmv"
+#endif
 
 //double dash
 #define PRESET_TOKEN "--preset"
@@ -1094,12 +1096,13 @@ ConfigEntry config_entry_specific[] = {
      SCREEN_CONTENT_TOKEN,
      "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive]",
      set_cfg_generic_token},
+#if !CLN_REM_RMV
     // Optional Features
     {SINGLE_INPUT,
      RESTRICTED_MOTION_VECTOR,
      "Restrict motion vectors from reaching outside the picture boundary, default is 0 [0-1]",
      set_cfg_generic_token},
-
+#endif
     // Annex A parameters
     {SINGLE_INPUT,
      FILM_GRAIN_TOKEN,
@@ -1375,7 +1378,9 @@ ConfigEntry config_entry[] = {
     {SINGLE_INPUT, ENABLE_TF_TOKEN, "EnableTf", set_cfg_generic_token},
     {SINGLE_INPUT, ENABLE_OVERLAYS, "EnableOverlays", set_cfg_generic_token},
     {SINGLE_INPUT, SCREEN_CONTENT_TOKEN, "ScreenContentMode", set_cfg_generic_token},
+#if !CLN_REM_RMV
     {SINGLE_INPUT, RESTRICTED_MOTION_VECTOR, "RestrictedMotionVector", set_cfg_generic_token},
+#endif
     {SINGLE_INPUT, FILM_GRAIN_TOKEN, "FilmGrain", set_cfg_generic_token},
     {SINGLE_INPUT, FILM_GRAIN_DENOISE_APPLY_TOKEN, "FilmGrainDenoise", set_cfg_generic_token},
     {SINGLE_INPUT, FGS_TABLE_TOKEN, "FilmGrainTable", set_cfg_fgs_table_path},

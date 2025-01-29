@@ -1909,6 +1909,7 @@ int svt_aom_is_dv_valid(const MV dv, const MacroBlockD *xd, int mi_row, int mi_c
     return 1;
 }
 
+#if !CLN_REM_RMV
 int svt_aom_is_inside_tile_boundary(TileInfo *tile, int16_t mvx, int16_t mvy, int mi_col, int mi_row, BlockSize bsize) {
     const int bw             = block_size_wide[bsize];
     const int bh             = block_size_high[bsize];
@@ -1933,6 +1934,7 @@ int svt_aom_is_inside_tile_boundary(TileInfo *tile, int16_t mvx, int16_t mvy, in
 
     return 1;
 }
+#endif
 
 IntMv svt_av1_get_ref_mv_from_stack(int ref_idx, const MvReferenceFrame *ref_frame, int ref_mv_idx,
                                     CandidateMv ref_mv_stack[][MAX_REF_MV_STACK_SIZE], MacroBlockD *xd

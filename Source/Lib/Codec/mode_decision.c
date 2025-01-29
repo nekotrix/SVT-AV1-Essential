@@ -66,12 +66,13 @@ static Bool check_mv_validity(int16_t x_mv, int16_t y_mv, uint8_t need_shift) {
     }
     return TRUE;
 }
-
+#if !CLN_REM_RMV
 static INLINE int32_t derive_rmv_setting(const SequenceControlSet *scs, const PictureParentControlSet *ppcs) {
     // force RMV on to fix quality issue caused by MVs out of picture boundary
     int32_t rmv = scs->static_config.restricted_motion_vector ? 1 : ppcs->frm_hdr.frame_type == S_FRAME ? 1 : 0;
     return rmv;
 }
+#endif
 int svt_is_interintra_allowed(uint8_t enable_inter_intra, BlockSize bsize, PredictionMode mode,
                               const MvReferenceFrame ref_frame[2]) {
     return enable_inter_intra && svt_aom_is_interintra_allowed_bsize((const BlockSize)bsize) &&
@@ -961,8 +962,13 @@ static void inj_non_simple_modes(PictureControlSet *pcs, struct ModeDecisionCont
     *total_cand_count = cand_count;
 }
 
+#if CLN_REM_RMV
+static void unipred_3x3_candidates_injection(PictureControlSet *pcs, ModeDecisionContext *ctx,
+                                             uint32_t *candidate_total_cnt) {
+#else
 void unipred_3x3_candidates_injection(const SequenceControlSet *scs, PictureControlSet *pcs, ModeDecisionContext *ctx,
                                       uint32_t *candidate_total_cnt) {
+#endif
     uint32_t               bipred_index;
     uint32_t               cand_total_cnt   = (*candidate_total_cnt);
     FrameHeader           *frm_hdr          = &pcs->ppcs->frm_hdr;
@@ -971,11 +977,13 @@ void unipred_3x3_candidates_injection(const SequenceControlSet *scs, PictureCont
     const MeCandidate     *me_block_results = &me_results->me_candidate_array[ctx->me_cand_offset];
     ModeDecisionCandidate *cand_array       = ctx->fast_cand_array;
     IntMv                  best_pred_mv[2]  = {{0}, {0}};
-    int                    inside_tile      = 1;
-    MacroBlockD           *xd               = ctx->blk_ptr->av1xd;
-    int                    umv0tile         = derive_rmv_setting(scs, pcs->ppcs);
-    uint32_t               mi_row           = ctx->blk_org_y >> MI_SIZE_LOG2;
-    uint32_t               mi_col           = ctx->blk_org_x >> MI_SIZE_LOG2;
+#if !CLN_REM_RMV
+    int          inside_tile = 1;
+    MacroBlockD *xd          = ctx->blk_ptr->av1xd;
+    int          umv0tile    = derive_rmv_setting(scs, pcs->ppcs);
+    uint32_t     mi_row      = ctx->blk_org_y >> MI_SIZE_LOG2;
+    uint32_t     mi_col      = ctx->blk_org_x >> MI_SIZE_LOG2;
+#endif
 
     // (8 Best_L0 neighbors)
     for (uint8_t me_candidate_index = 0; me_candidate_index < total_me_cnt; ++me_candidate_index) {
@@ -990,8 +998,8 @@ void unipred_3x3_candidates_injection(const SequenceControlSet *scs, PictureCont
                 continue;
             for (bipred_index = 0; bipred_index < BIPRED_3x3_REFINMENT_POSITIONS; ++bipred_index) {
                 /**************
-        NEWMV L0
-        ************* */
+                NEWMV L0
+                ************* */
                 if (ctx->unipred3x3_injection >= 2) {
                     if (allow_refinement_flag[bipred_index] == 0)
                         continue;
@@ -1007,17 +1015,23 @@ void unipred_3x3_candidates_injection(const SequenceControlSet *scs, PictureCont
                 }
                 uint8_t to_inject_ref_type = svt_get_ref_frame_type(list_idx, ref_idx);
 
+#if !CLN_REM_RMV
                 inside_tile = 1;
                 if (umv0tile)
                     inside_tile = svt_aom_is_inside_tile_boundary(
                         &(xd->tile), to_inject_mv_x, to_inject_mv_y, mi_col, mi_row, ctx->blk_geom->bsize);
                 uint8_t skip_cand = (!inside_tile);
+#endif
 
                 MvReferenceFrame rf[2];
                 rf[0]        = to_inject_ref_type;
                 rf[1]        = -1;
                 Mv to_inj_mv = {{to_inject_mv_x, to_inject_mv_y}};
+#if CLN_REM_RMV
+                if (
+#else
                 if (!skip_cand &&
+#endif
                     (ctx->injected_mv_count == 0 ||
                      mv_is_already_injected(ctx, to_inj_mv, to_inj_mv, to_inject_ref_type) == FALSE)) {
                     uint8_t drl_index = 0;
@@ -1091,8 +1105,13 @@ void unipred_3x3_candidates_injection(const SequenceControlSet *scs, PictureCont
 
     return;
 }
+#if CLN_REM_RMV
+static void bipred_3x3_candidates_injection(PictureControlSet *pcs, ModeDecisionContext *ctx,
+                                            uint32_t *candidate_total_cnt) {
+#else
 static void bipred_3x3_candidates_injection(const SequenceControlSet *scs, PictureControlSet *pcs,
                                             ModeDecisionContext *ctx, uint32_t *candidate_total_cnt) {
+#endif
     uint32_t               cand_total_cnt      = (*candidate_total_cnt);
     const FrameHeader     *frm_hdr             = &pcs->ppcs->frm_hdr;
     const MeSbResults     *me_results          = pcs->ppcs->pa_me_data->me_results[ctx->me_sb_addr];
@@ -1101,10 +1120,12 @@ static void bipred_3x3_candidates_injection(const SequenceControlSet *scs, Pictu
     ModeDecisionCandidate *cand_array          = ctx->fast_cand_array;
     Bool                   is_compound_enabled = (frm_hdr->reference_mode == SINGLE_REFERENCE) ? 0 : 1;
     IntMv                  best_pred_mv[2]     = {{0}, {0}};
-    MacroBlockD           *xd                  = ctx->blk_ptr->av1xd;
-    int                    umv0tile            = derive_rmv_setting(scs, pcs->ppcs);
-    uint32_t               mi_row              = ctx->blk_org_y >> MI_SIZE_LOG2;
-    uint32_t               mi_col              = ctx->blk_org_x >> MI_SIZE_LOG2;
+#if !CLN_REM_RMV
+    MacroBlockD *xd       = ctx->blk_ptr->av1xd;
+    int          umv0tile = derive_rmv_setting(scs, pcs->ppcs);
+    uint32_t     mi_row   = ctx->blk_org_y >> MI_SIZE_LOG2;
+    uint32_t     mi_col   = ctx->blk_org_x >> MI_SIZE_LOG2;
+#endif
 
     if (is_compound_enabled) {
         MD_COMP_TYPE tot_comp_types = get_tot_comp_types_bsize(
@@ -1174,6 +1195,7 @@ static void bipred_3x3_candidates_injection(const SequenceControlSet *scs, Pictu
                             svt_get_ref_frame_type(me_block_results_ptr->ref0_list, list0_ref_index),
                             svt_get_ref_frame_type(me_block_results_ptr->ref1_list, list1_ref_index)});
 
+#if !CLN_REM_RMV
                         int     inside_tile = umv0tile ? svt_aom_is_inside_tile_boundary(&(xd->tile),
                                                                                      to_inject_mv_x_l0,
                                                                                      to_inject_mv_y_l0,
@@ -1182,9 +1204,14 @@ static void bipred_3x3_candidates_injection(const SequenceControlSet *scs, Pictu
                                                                                      ctx->blk_geom->bsize)
                                                        : 1;
                         uint8_t skip_cand   = (!inside_tile);
-                        Mv      to_inj_mv0  = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
-                        Mv      to_inj_mv1  = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
+#endif
+                        Mv to_inj_mv0 = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
+                        Mv to_inj_mv1 = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
+#if CLN_REM_RMV
+                        if (
+#else
                         if (!skip_cand &&
+#endif
                             (ctx->injected_mv_count == 0 ||
                              mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, to_inject_ref_type) == FALSE)) {
                             uint8_t drl_index = 0;
@@ -1288,6 +1315,7 @@ static void bipred_3x3_candidates_injection(const SequenceControlSet *scs, Pictu
                             svt_get_ref_frame_type(me_block_results_ptr->ref0_list, list0_ref_index),
                             svt_get_ref_frame_type(me_block_results_ptr->ref1_list, list1_ref_index)});
 
+#if !CLN_REM_RMV
                         int     inside_tile = umv0tile ? svt_aom_is_inside_tile_boundary(&(xd->tile),
                                                                                      to_inject_mv_x_l0,
                                                                                      to_inject_mv_y_l0,
@@ -1302,9 +1330,14 @@ static void bipred_3x3_candidates_injection(const SequenceControlSet *scs, Pictu
                                                                 ctx->blk_geom->bsize)
                                                        : 1;
                         uint8_t skip_cand   = (!inside_tile);
-                        Mv      to_inj_mv0  = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
-                        Mv      to_inj_mv1  = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
+#endif
+                        Mv to_inj_mv0 = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
+                        Mv to_inj_mv1 = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
+#if CLN_REM_RMV
+                        if (
+#else
                         if (!skip_cand &&
+#endif
                             (ctx->injected_mv_count == 0 ||
                              mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, to_inject_ref_type) == FALSE)) {
                             uint8_t drl_index = 0;
@@ -1601,17 +1634,22 @@ static void inject_mvp_candidates_ii(const SequenceControlSet *scs, PictureContr
                            ctx->blk_geom->bheight == 4)
                 ? FALSE
                 : TRUE;
-    uint8_t      inj_mv;
-    uint32_t     cand_idx             = *candTotCnt;
+
+    uint8_t                inj_mv;
+    uint32_t               cand_idx   = *candTotCnt;
     ModeDecisionCandidate *cand_array = ctx->fast_cand_array;
-    MacroBlockD           *xd         = blk_ptr->av1xd;
-    uint8_t                drli, max_drl_index;
-    IntMv                  nearestmv[2], nearmv[2], ref_mv[2];
-    int                    inside_tile = 1;
-    int                    umv0tile    = derive_rmv_setting(scs, pcs->ppcs);
-    uint32_t               mi_row      = ctx->blk_org_y >> MI_SIZE_LOG2;
-    uint32_t               mi_col      = ctx->blk_org_x >> MI_SIZE_LOG2;
-    BlockSize              bsize       = ctx->blk_geom->bsize; // bloc size
+
+    MacroBlockD *xd = blk_ptr->av1xd;
+    uint8_t      drli, max_drl_index;
+    IntMv        nearestmv[2], nearmv[2], ref_mv[2];
+
+#if !CLN_REM_RMV
+    int      inside_tile = 1;
+    int      umv0tile    = derive_rmv_setting(scs, pcs->ppcs);
+    uint32_t mi_row      = ctx->blk_org_y >> MI_SIZE_LOG2;
+    uint32_t mi_col      = ctx->blk_org_x >> MI_SIZE_LOG2;
+#endif
+    BlockSize bsize = ctx->blk_geom->bsize; // bloc size
     //all of ref pairs: (1)single-ref List0  (2)single-ref List1  (3)compound Bi-Dir List0-List1  (4)compound Uni-Dir List0-List0  (5)compound Uni-Dir List1-List1
 
     int is_blk_flat = 0;
@@ -1642,10 +1680,12 @@ static void inject_mvp_candidates_ii(const SequenceControlSet *scs, PictureContr
             Mv to_inj_mv = {{to_inject_mv_x, to_inject_mv_y}};
             inj_mv       = (ctx->injected_mv_count == 0 ||
                       mv_is_already_injected(ctx, to_inj_mv, to_inj_mv, frame_type) == FALSE);
+#if !CLN_REM_RMV
             if (umv0tile)
                 inside_tile = svt_aom_is_inside_tile_boundary(
                     &(xd->tile), to_inject_mv_x, to_inject_mv_y, mi_col, mi_row, ctx->blk_geom->bsize);
             inj_mv = inj_mv && inside_tile;
+#endif
             if (inj_mv) {
                 const uint8_t is_ii_allowed = svt_is_interintra_allowed(
                                                   ctx->inter_intra_comp_ctrls.enabled, bsize, NEARESTMV, rf) &&
@@ -1693,10 +1733,12 @@ static void inject_mvp_candidates_ii(const SequenceControlSet *scs, PictureContr
                 to_inj_mv = (Mv){{to_inject_mv_x, to_inject_mv_y}};
                 inj_mv    = (ctx->injected_mv_count == 0 ||
                           mv_is_already_injected(ctx, to_inj_mv, to_inj_mv, frame_type) == FALSE);
+#if !CLN_REM_RMV
                 if (umv0tile)
                     inside_tile = svt_aom_is_inside_tile_boundary(
                         &(xd->tile), to_inject_mv_x, to_inject_mv_y, mi_col, mi_row, ctx->blk_geom->bsize);
                 inj_mv = inj_mv && inside_tile;
+#endif
                 if (inj_mv) {
                     const uint8_t is_ii_allowed = svt_is_interintra_allowed(
                                                       ctx->inter_intra_comp_ctrls.enabled, bsize, NEARMV, rf) &&
@@ -1762,6 +1804,7 @@ static void inject_mvp_candidates_ii(const SequenceControlSet *scs, PictureContr
                 Mv      to_inj_mv1        = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
                 inj_mv                    = (ctx->injected_mv_count == 0 ||
                           mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
+#if !CLN_REM_RMV
                 if (umv0tile) {
                     inside_tile =
                         svt_aom_is_inside_tile_boundary(
@@ -1770,6 +1813,7 @@ static void inject_mvp_candidates_ii(const SequenceControlSet *scs, PictureContr
                             &(xd->tile), to_inject_mv_x_l1, to_inject_mv_y_l1, mi_col, mi_row, ctx->blk_geom->bsize);
                 }
                 inj_mv = inj_mv && inside_tile;
+#endif
                 if (inj_mv) {
                     const bool is_skip_mode = frm_hdr->skip_mode_params.skip_mode_flag &&
                         (rf[0] == frm_hdr->skip_mode_params.ref_frame_idx_0) &&
@@ -1851,6 +1895,7 @@ static void inject_mvp_candidates_ii(const SequenceControlSet *scs, PictureContr
                     inj_mv     = (ctx->injected_mv_count == 0 ||
                               mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
 
+#if !CLN_REM_RMV
                     if (umv0tile) {
                         inside_tile = svt_aom_is_inside_tile_boundary(&(xd->tile),
                                                                       to_inject_mv_x_l0,
@@ -1866,6 +1911,7 @@ static void inject_mvp_candidates_ii(const SequenceControlSet *scs, PictureContr
                                                             ctx->blk_geom->bsize);
                     }
                     inj_mv = inj_mv && inside_tile;
+#endif
                     if (inj_mv) {
                         Bool mask_done = 0;
                         for (MD_COMP_TYPE cur_type = MD_COMP_AVG; cur_type < tot_comp_types; cur_type++) {
@@ -1914,15 +1960,22 @@ static void inject_mvp_candidates_ii(const SequenceControlSet *scs, PictureContr
     *candTotCnt = cand_idx;
 }
 
+#if CLN_REM_RMV
+static void inject_new_nearest_new_comb_candidates(PictureControlSet *pcs, ModeDecisionContext *ctx,
+                                                   uint32_t *candTotCnt) {
+#else
 static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs, PictureControlSet *pcs,
                                                    ModeDecisionContext *ctx, uint32_t *candTotCnt) {
+#endif
     uint32_t               cand_idx   = *candTotCnt;
     ModeDecisionCandidate *cand_array = ctx->fast_cand_array;
     MacroBlockD           *xd         = ctx->blk_ptr->av1xd;
     IntMv                  nearestmv[2], nearmv[2], ref_mv[2];
-    int                    umv0tile = derive_rmv_setting(scs, pcs->ppcs);
-    uint32_t               mi_row   = ctx->blk_org_y >> MI_SIZE_LOG2;
-    uint32_t               mi_col   = ctx->blk_org_x >> MI_SIZE_LOG2;
+#if !CLN_REM_RMV
+    int      umv0tile = derive_rmv_setting(scs, pcs->ppcs);
+    uint32_t mi_row   = ctx->blk_org_y >> MI_SIZE_LOG2;
+    uint32_t mi_col   = ctx->blk_org_x >> MI_SIZE_LOG2;
+#endif
 
     MD_COMP_TYPE tot_comp_types = get_tot_comp_types_bsize(
         (ctx->inter_comp_ctrls.do_nearest_near_new == 0) ? MD_COMP_DIST : ctx->inter_comp_ctrls.tot_comp_types,
@@ -1958,8 +2011,9 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                     Mv      to_inj_mv1        = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
                     uint8_t inj_mv            = (ctx->injected_mv_count == 0 ||
                                       mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
-                    int     inside_tile       = umv0tile
-                                  ? svt_aom_is_inside_tile_boundary(&(xd->tile),
+#if !CLN_REM_RMV
+                    int inside_tile = umv0tile
+                        ? svt_aom_is_inside_tile_boundary(&(xd->tile),
                                                           to_inject_mv_x_l0,
                                                           to_inject_mv_y_l0,
                                                           mi_col,
@@ -1967,9 +2021,10 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                                                           ctx->blk_geom->bsize) &&
                             svt_aom_is_inside_tile_boundary(
                                 &(xd->tile), to_inject_mv_x_l1, to_inject_mv_y_l1, mi_col, mi_row, ctx->blk_geom->bsize)
-                                  : 1;
-                    inj_mv                    = inj_mv && inside_tile;
-                    inj_mv                    = inj_mv &&
+                        : 1;
+                    inj_mv          = inj_mv && inside_tile;
+#endif
+                    inj_mv = inj_mv &&
                         svt_aom_is_me_data_present(
                                  ctx->me_block_offset, ctx->me_cand_offset, me_results, get_list_idx(rf[1]), ref_idx_1);
                     if (inj_mv) {
@@ -2032,8 +2087,9 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                     Mv      to_inj_mv1  = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
                     uint8_t inj_mv      = (ctx->injected_mv_count == 0 ||
                                       mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
-                    int     inside_tile = umv0tile
-                            ? svt_aom_is_inside_tile_boundary(&(xd->tile),
+#if !CLN_REM_RMV
+                    int inside_tile = umv0tile
+                        ? svt_aom_is_inside_tile_boundary(&(xd->tile),
                                                           to_inject_mv_x_l0,
                                                           to_inject_mv_y_l0,
                                                           mi_col,
@@ -2041,9 +2097,10 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                                                           ctx->blk_geom->bsize) &&
                             svt_aom_is_inside_tile_boundary(
                                 &(xd->tile), to_inject_mv_x_l1, to_inject_mv_y_l1, mi_col, mi_row, ctx->blk_geom->bsize)
-                            : 1;
-                    inj_mv              = inj_mv && inside_tile;
-                    inj_mv              = inj_mv &&
+                        : 1;
+                    inj_mv          = inj_mv && inside_tile;
+#endif
+                    inj_mv = inj_mv &&
                         svt_aom_is_me_data_present(ctx->me_block_offset, ctx->me_cand_offset, me_results, 0, ref_idx_0);
                     if (inj_mv) {
                         ctx->cmp_store.pred0_cnt = 0;
@@ -2115,6 +2172,7 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                         inj_mv             = inj_mv &&
                             svt_aom_is_me_data_present(
                                      ctx->me_block_offset, ctx->me_cand_offset, me_results, 0, ref_idx_0);
+#if !CLN_REM_RMV
 #if FIX_CHECK_RMV_NEW_NR
                         const int inside_tile = umv0tile ? svt_aom_is_inside_tile_boundary(&(xd->tile),
                                                                                            to_inject_mv_x_l0,
@@ -2130,6 +2188,7 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                                                                 ctx->blk_geom->bsize)
                                                          : 1;
                         inj_mv                = inj_mv && inside_tile;
+#endif
 #endif
                         if (inj_mv) {
                             ctx->cmp_store.pred0_cnt = 0;
@@ -2196,6 +2255,7 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                                                        get_list_idx(rf[1]),
                                                        ref_idx_1);
 
+#if !CLN_REM_RMV
 #if FIX_CHECK_RMV_NEW_NR
                         const int inside_tile = umv0tile ? svt_aom_is_inside_tile_boundary(&(xd->tile),
                                                                                            to_inject_mv_x_l0,
@@ -2211,6 +2271,7 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                                                                 ctx->blk_geom->bsize)
                                                          : 1;
                         inj_mv                = inj_mv && inside_tile;
+#endif
 #endif
                         if (inj_mv) {
                             ctx->cmp_store.pred0_cnt = 0;
@@ -2428,6 +2489,9 @@ uint8_t svt_aom_wm_motion_refinement(PictureControlSet *pcs, ModeDecisionContext
 #else
         is_valid_mv_diff(best_pred_mv, best_mv, best_mv, 0, ppcs->frm_hdr.allow_high_precision_mv)) {
 #endif
+#if CLN_REM_RMV
+        return 1;
+#else
         int umv0_tile   = derive_rmv_setting(pcs->scs, ppcs);
         int inside_tile = 1;
         if (umv0_tile) {
@@ -2438,6 +2502,7 @@ uint8_t svt_aom_wm_motion_refinement(PictureControlSet *pcs, ModeDecisionContext
                 &(xd->tile), best_mv.x, best_mv.y, mi_col, mi_row, ctx->blk_geom->bsize);
         }
         return inside_tile;
+#endif
     }
 
     return 0;
@@ -2690,6 +2755,9 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
                          0,
                          pcs->ppcs->frm_hdr.allow_high_precision_mv)) {
 #endif
+#if CLN_REM_RMV
+        return 1;
+#else
         int umv0_tile   = derive_rmv_setting(pcs->scs, pcs->ppcs);
         int inside_tile = 1;
         if (umv0_tile) {
@@ -2701,6 +2769,7 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
                                                           ctx->blk_geom->bsize);
         }
         return inside_tile;
+#endif
     }
 
     return 0;
@@ -2993,22 +3062,30 @@ static void inject_new_candidates_light_pd1(PictureControlSet *pcs, struct ModeD
     // update the total number of candidates injected
     (*candidate_total_cnt) = cand_total_cnt;
 }
+#if CLN_REM_RMV
+static void inject_new_candidates(PictureControlSet *pcs, ModeDecisionContext *ctx, Bool is_compound_enabled,
+                                  Bool allow_bipred, uint32_t me_sb_addr, uint32_t me_block_offset,
+                                  uint32_t *candidate_total_cnt) {
+#else
 static void inject_new_candidates(const SequenceControlSet *scs, struct ModeDecisionContext *ctx,
                                   PictureControlSet *pcs, Bool is_compound_enabled, Bool allow_bipred,
                                   uint32_t me_sb_addr, uint32_t me_block_offset, uint32_t *candidate_total_cnt) {
+#endif
     ModeDecisionCandidate *cand_array       = ctx->fast_cand_array;
     IntMv                  best_pred_mv[2]  = {{0}, {0}};
     uint32_t               cand_total_cnt   = (*candidate_total_cnt);
     const MeSbResults     *me_results       = pcs->ppcs->pa_me_data->me_results[me_sb_addr];
     uint8_t                total_me_cnt     = me_results->total_me_candidate_index[me_block_offset];
     const MeCandidate     *me_block_results = &me_results->me_candidate_array[ctx->me_cand_offset];
-    MacroBlockD           *xd               = ctx->blk_ptr->av1xd;
-    int                    inside_tile      = 1;
-    int                    umv0tile         = derive_rmv_setting(scs, pcs->ppcs);
-    uint32_t               mi_row           = ctx->blk_org_y >> MI_SIZE_LOG2;
-    uint32_t               mi_col           = ctx->blk_org_x >> MI_SIZE_LOG2;
-    BlockSize              bsize            = ctx->blk_geom->bsize; // bloc size
-    MD_COMP_TYPE           tot_comp_types   = get_tot_comp_types_bsize(
+#if !CLN_REM_RMV
+    MacroBlockD *xd          = ctx->blk_ptr->av1xd;
+    int          inside_tile = 1;
+    int          umv0tile    = derive_rmv_setting(scs, pcs->ppcs);
+    uint32_t     mi_row      = ctx->blk_org_y >> MI_SIZE_LOG2;
+    uint32_t     mi_col      = ctx->blk_org_x >> MI_SIZE_LOG2;
+#endif
+    BlockSize    bsize          = ctx->blk_geom->bsize; // bloc size
+    MD_COMP_TYPE tot_comp_types = get_tot_comp_types_bsize(
         (ctx->inter_comp_ctrls.do_me == 0) ? MD_COMP_DIST : ctx->inter_comp_ctrls.tot_comp_types, ctx->blk_geom->bsize);
     for (uint8_t me_candidate_index = 0; me_candidate_index < total_me_cnt; ++me_candidate_index) {
         const MeCandidate *me_block_results_ptr = &me_block_results[me_candidate_index];
@@ -3031,13 +3108,19 @@ static void inject_new_candidates(const SequenceControlSet *scs, struct ModeDeci
             int16_t to_inject_mv_x     = ctx->sb_me_mv[list_idx][ref_idx][0];
             int16_t to_inject_mv_y     = ctx->sb_me_mv[list_idx][ref_idx][1];
             uint8_t to_inject_ref_type = svt_get_ref_frame_type(list_idx, ref_idx);
-            inside_tile                = 1;
+#if !CLN_REM_RMV
+            inside_tile = 1;
             if (umv0tile)
                 inside_tile = svt_aom_is_inside_tile_boundary(
                     &(xd->tile), to_inject_mv_x, to_inject_mv_y, mi_col, mi_row, ctx->blk_geom->bsize);
             uint8_t skip_cand = (!inside_tile);
-            Mv      to_inj_mv = {{to_inject_mv_x, to_inject_mv_y}};
+#endif
+            Mv to_inj_mv = {{to_inject_mv_x, to_inject_mv_y}};
+#if CLN_REM_RMV
+            if (
+#else
             if (!skip_cand &&
+#endif
                 (ctx->injected_mv_count == 0 ||
                  mv_is_already_injected(ctx, to_inj_mv, to_inj_mv, to_inject_ref_type) == FALSE)) {
                 uint8_t drl_index = 0;
@@ -3126,6 +3209,7 @@ static void inject_new_candidates(const SequenceControlSet *scs, struct ModeDeci
                         svt_get_ref_frame_type(me_block_results_ptr->ref0_list, list0_ref_index),
                         svt_get_ref_frame_type(me_block_results_ptr->ref1_list, list1_ref_index)});
 
+#if !CLN_REM_RMV
                     inside_tile = 1;
                     if (umv0tile) {
                         inside_tile = svt_aom_is_inside_tile_boundary(&(xd->tile),
@@ -3141,10 +3225,15 @@ static void inject_new_candidates(const SequenceControlSet *scs, struct ModeDeci
                                                             mi_row,
                                                             ctx->blk_geom->bsize);
                     }
-                    uint8_t skip_cand  = (!inside_tile);
-                    Mv      to_inj_mv0 = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
-                    Mv      to_inj_mv1 = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
+                    uint8_t skip_cand = (!inside_tile);
+#endif
+                    Mv to_inj_mv0 = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
+                    Mv to_inj_mv1 = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
+#if CLN_REM_RMV
+                    if (
+#else
                     if (!skip_cand &&
+#endif
                         (ctx->injected_mv_count == 0 ||
                          mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, to_inject_ref_type) == FALSE)) {
                         uint8_t drl_index = 0;
@@ -3222,18 +3311,25 @@ static void inject_new_candidates(const SequenceControlSet *scs, struct ModeDeci
     // update the total number of candidates injected
     (*candidate_total_cnt) = cand_total_cnt;
 }
+#if CLN_REM_RMV
+static void inject_global_candidates(PictureControlSet *pcs, ModeDecisionContext *ctx, Bool is_compound_enabled,
+                                     Bool allow_bipred, uint32_t *candidate_total_cnt) {
+#else
 static void inject_global_candidates(const SequenceControlSet *scs, struct ModeDecisionContext *ctx,
                                      PictureControlSet *pcs, Bool is_compound_enabled, Bool allow_bipred,
                                      uint32_t *candidate_total_cnt) {
+#endif
     ModeDecisionCandidate *cand_array     = ctx->fast_cand_array;
     uint32_t               cand_total_cnt = (*candidate_total_cnt);
-    uint8_t                inj_mv;
-    int                    inside_tile = 1;
-    MacroBlockD           *xd          = ctx->blk_ptr->av1xd;
-    int                    umv0tile    = derive_rmv_setting(scs, pcs->ppcs);
-    uint32_t               mi_row      = ctx->blk_org_y >> MI_SIZE_LOG2;
-    uint32_t               mi_col      = ctx->blk_org_x >> MI_SIZE_LOG2;
-    BlockSize              bsize       = ctx->blk_geom->bsize; // bloc size
+#if !CLN_REM_RMV
+    uint8_t      inj_mv;
+    int          inside_tile = 1;
+    MacroBlockD *xd          = ctx->blk_ptr->av1xd;
+    int          umv0tile    = derive_rmv_setting(scs, pcs->ppcs);
+#endif
+    uint32_t  mi_row = ctx->blk_org_y >> MI_SIZE_LOG2;
+    uint32_t  mi_col = ctx->blk_org_x >> MI_SIZE_LOG2;
+    BlockSize bsize  = ctx->blk_geom->bsize; // bloc size
 
     for (uint32_t ref_it = 0; ref_it < ctx->tot_ref_frame_types; ++ref_it) {
         MvReferenceFrame ref_pair = ctx->ref_frame_type_arr[ref_it];
@@ -3263,6 +3359,9 @@ static void inject_global_candidates(const SequenceControlSet *scs, struct ModeD
             int16_t to_inject_mv_x = mv.as_mv.col;
             int16_t to_inject_mv_y = mv.as_mv.row;
 
+#if CLN_REM_RMV
+            if (
+#else
             inj_mv = 1; // Always test GLOBAL even if MV already injected as rate diff might be significant
             if (umv0tile)
                 inside_tile = svt_aom_is_inside_tile_boundary(
@@ -3271,6 +3370,7 @@ static void inject_global_candidates(const SequenceControlSet *scs, struct ModeD
             inj_mv = inj_mv && inside_tile;
 
             if (inj_mv &&
+#endif
                 (((gm_params->wmtype > TRANSLATION && ctx->blk_geom->bwidth >= 8 && ctx->blk_geom->bheight >= 8) ||
                   gm_params->wmtype <= TRANSLATION))) {
                 const uint8_t is_ii_allowed = svt_is_interintra_allowed(
@@ -3344,6 +3444,9 @@ static void inject_global_candidates(const SequenceControlSet *scs, struct ModeD
             int16_t to_inject_mv_x_l1 = mv_1.as_mv.col;
             int16_t to_inject_mv_y_l1 = mv_1.as_mv.row;
 
+#if CLN_REM_RMV
+            if (gm_params_0->wmtype > TRANSLATION && gm_params_1->wmtype > TRANSLATION) {
+#else
             inj_mv = 1; // Always test GLOBAL-GLOBAL even if MV already injected as rate diff might be significant
             if (umv0tile) {
                 inside_tile =
@@ -3356,6 +3459,7 @@ static void inject_global_candidates(const SequenceControlSet *scs, struct ModeD
             inj_mv = inj_mv && inside_tile;
 
             if (inj_mv && gm_params_0->wmtype > TRANSLATION && gm_params_1->wmtype > TRANSLATION) {
+#endif
                 uint8_t to_inject_ref_type = av1_ref_frame_type(rf);
 
                 for (MD_COMP_TYPE cur_type = MD_COMP_AVG; cur_type < tot_comp_types; cur_type++) {
@@ -3393,10 +3497,15 @@ static void inject_global_candidates(const SequenceControlSet *scs, struct ModeD
     // update the total number of candidates injected
     (*candidate_total_cnt) = cand_total_cnt;
 }
+#if CLN_REM_RMV
+static void inject_pme_candidates(PictureControlSet *pcs, ModeDecisionContext *ctx, Bool is_compound_enabled,
+                                  Bool allow_bipred, uint32_t *candidate_total_cnt) {
+#else
 static void inject_pme_candidates(
     //const SequenceControlSet   *scs,
     struct ModeDecisionContext *ctx, PictureControlSet *pcs, Bool is_compound_enabled, Bool allow_bipred,
     uint32_t *candidate_total_cnt) {
+#endif
     ModeDecisionCandidate *cand_array      = ctx->fast_cand_array;
     IntMv                  best_pred_mv[2] = {{0}, {0}};
     uint32_t               cand_total_cnt  = (*candidate_total_cnt);
@@ -3404,10 +3513,12 @@ static void inject_pme_candidates(
     MD_COMP_TYPE           tot_comp_types  = get_tot_comp_types_bsize(
         (ctx->inter_comp_ctrls.do_pme == 0) ? MD_COMP_DIST : ctx->inter_comp_ctrls.tot_comp_types,
         ctx->blk_geom->bsize);
+#if !CLN_REM_RMV
     MacroBlockD *xd       = ctx->blk_ptr->av1xd;
     int32_t      umv0tile = derive_rmv_setting(pcs->ppcs->scs, pcs->ppcs);
     uint32_t     mi_row   = ctx->blk_org_y >> MI_SIZE_LOG2;
     uint32_t     mi_col   = ctx->blk_org_x >> MI_SIZE_LOG2;
+#endif
     for (uint32_t ref_it = 0; ref_it < ctx->tot_ref_frame_types; ++ref_it) {
         MvReferenceFrame ref_pair = ctx->ref_frame_type_arr[ref_it];
         MvReferenceFrame rf[2];
@@ -3426,11 +3537,13 @@ static void inject_pme_candidates(
                 Mv      to_inj_mv = {{to_inject_mv_x, to_inject_mv_y}};
                 uint8_t inj_mv    = (ctx->injected_mv_count == 0 ||
                                   mv_is_already_injected(ctx, to_inj_mv, to_inj_mv, frame_type) == FALSE);
-                int     inside_tile =
+#if !CLN_REM_RMV
+                int inside_tile =
                     (!umv0tile) ||
                     svt_aom_is_inside_tile_boundary(
                         &(xd->tile), to_inject_mv_x, to_inject_mv_y, mi_col, mi_row, ctx->blk_geom->bsize);
                 inj_mv = inj_mv && inside_tile;
+#endif
                 if (inj_mv) {
                     uint8_t drl_index = 0;
                     svt_aom_choose_best_av1_mv_pred(ctx,
@@ -3506,6 +3619,7 @@ static void inject_pme_candidates(
                 int16_t to_inject_mv_x_l1 = ctx->best_pme_mv[list_idx_1][ref_idx_1][0];
                 int16_t to_inject_mv_y_l1 = ctx->best_pme_mv[list_idx_1][ref_idx_1][1];
 
+#if !CLN_REM_RMV
                 uint8_t inj_mv = 1;
                 if (umv0tile) {
                     inj_mv =
@@ -3514,7 +3628,9 @@ static void inject_pme_candidates(
                         svt_aom_is_inside_tile_boundary(
                             &(xd->tile), to_inject_mv_x_l1, to_inject_mv_y_l1, mi_col, mi_row, ctx->blk_geom->bsize);
                 }
+
                 if (inj_mv) {
+#endif
                     uint8_t to_inject_ref_type = av1_ref_frame_type((const MvReferenceFrame[]){
                         svt_get_ref_frame_type(list_idx_0, ref_idx_0),
                         svt_get_ref_frame_type(list_idx_1, ref_idx_1),
@@ -3540,8 +3656,8 @@ static void inject_pme_candidates(
 #if FIX_MV_PREC_CHECK
                             is_valid_mv_diff(best_pred_mv, to_inj_mv0, to_inj_mv1, 1)) {
 #else
-                            is_valid_mv_diff(
-                                best_pred_mv, to_inj_mv0, to_inj_mv1, 1, pcs->ppcs->frm_hdr.allow_high_precision_mv)) {
+                        is_valid_mv_diff(
+                            best_pred_mv, to_inj_mv0, to_inj_mv1, 1, pcs->ppcs->frm_hdr.allow_high_precision_mv)) {
 #endif
                             ctx->cmp_store.pred0_cnt = 0;
                             ctx->cmp_store.pred1_cnt = 0;
@@ -3585,7 +3701,9 @@ static void inject_pme_candidates(
                             ++ctx->injected_mv_count;
                         }
                     }
+#if !CLN_REM_RMV
                 }
+#endif
             }
         }
     }
@@ -3664,25 +3782,50 @@ static void svt_aom_inject_inter_candidates(PictureControlSet *pcs, ModeDecision
         const Bool allow_compound = frm_hdr->reference_mode != SINGLE_REFERENCE && ctx->blk_geom->bwidth != 4 &&
             ctx->blk_geom->bheight != 4;
         if (allow_compound) {
+#if CLN_REM_RMV
+            inject_new_nearest_new_comb_candidates(pcs, ctx, &cand_total_cnt);
+#else
             inject_new_nearest_new_comb_candidates(scs, pcs, ctx, &cand_total_cnt);
+#endif
         }
     }
     if (ctx->inject_new_me)
+#if CLN_REM_RMV
+        inject_new_candidates(
+            pcs, ctx, is_compound_enabled, allow_bipred, ctx->me_sb_addr, ctx->me_block_offset, &cand_total_cnt);
+#else
         inject_new_candidates(
             scs, ctx, pcs, is_compound_enabled, allow_bipred, ctx->me_sb_addr, ctx->me_block_offset, &cand_total_cnt);
+#endif
     if (ctx->global_mv_injection) {
+#if CLN_REM_RMV
+        inject_global_candidates(pcs, ctx, is_compound_enabled, allow_bipred, &cand_total_cnt);
+#else
         inject_global_candidates(scs, ctx, pcs, is_compound_enabled, allow_bipred, &cand_total_cnt);
+#endif
     }
     if (is_compound_enabled) {
         if (ctx->bipred3x3_ctrls.enabled && allow_bipred && pcs->slice_type == B_SLICE)
+#if CLN_REM_RMV
+            bipred_3x3_candidates_injection(pcs, ctx, &cand_total_cnt);
+#else
             bipred_3x3_candidates_injection(scs, pcs, ctx, &cand_total_cnt);
+#endif
 
         if (ctx->unipred3x3_injection > 0 && pcs->slice_type != I_SLICE)
+#if CLN_REM_RMV
+            unipred_3x3_candidates_injection(pcs, ctx, &cand_total_cnt);
+#else
             unipred_3x3_candidates_injection(scs, pcs, ctx, &cand_total_cnt);
+#endif
     }
     // determine when to inject pme candidates based on size and resolution of block
     if (ctx->inject_new_pme && ctx->updated_enable_pme)
+#if CLN_REM_RMV
+        inject_pme_candidates(pcs, ctx, is_compound_enabled, allow_bipred, &cand_total_cnt);
+#else
         inject_pme_candidates(ctx, pcs, is_compound_enabled, allow_bipred, &cand_total_cnt);
+#endif
 
     // update the total number of candidates injected
     *candidate_total_cnt = cand_total_cnt;

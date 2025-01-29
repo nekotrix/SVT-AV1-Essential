@@ -143,6 +143,7 @@ extern "C" {
 #define TUNE_M3_SVT_14_1            1 // Tune M3
 #define TUNE_FD1_LVL                1 // Position fd1 between fd0 and fd2
 #define TUNE_M10_SVT_14             1 // Tune M10 (VLITT)
+#define CLN_REM_RMV                 1 // Remove support for rmv (--rmv)
 
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0

@@ -985,7 +985,9 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->starting_buffer_level_ms = 600; // default settings for CBR
     config_ptr->optimal_buffer_level_ms  = 600; // default settings for CBR
     config_ptr->recode_loop              = ALLOW_RECODE_DEFAULT;
+#if !CLN_REM_RMV
     config_ptr->restricted_motion_vector = FALSE;
+#endif
 #if !FIX_HIGH_DYNAMIC_RANGE_INPUT
     config_ptr->high_dynamic_range_input = 0;
 #endif
@@ -2171,7 +2173,9 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
     } bool_opts[] = {
         {"use-q-file", &config_struct->use_qp_file},
         {"enable-dlf", &config_struct->enable_dlf_flag},
+#if !CLN_REM_RMV
         {"rmv", &config_struct->restricted_motion_vector},
+#endif
         {"enable-tf", &config_struct->enable_tf},
         {"enable-overlays", &config_struct->enable_overlays},
         {"enable-force-key-frames", &config_struct->force_key_frames},

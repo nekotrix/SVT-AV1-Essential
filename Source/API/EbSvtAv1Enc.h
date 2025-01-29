@@ -669,6 +669,7 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is 1. */
     uint32_t scene_change_detection;
 
+#if !CLN_REM_RMV
     /**
      * @brief API signal to constrain motion vectors.
      *
@@ -678,6 +679,7 @@ typedef struct EbSvtAv1EncConfiguration {
     bool restricted_motion_vector;
 #else
     Bool restricted_motion_vector;
+#endif
 #endif
     /* Log 2 Tile Rows and columns . 0 means no tiling,1 means that we split the dimension
         * into 2

@@ -1139,6 +1139,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 // y8b follows longest life cycle of pa ref and input. so it needs to build on top of live count of pa ref
                 svt_object_inc_live_count(pcs->y8b_wrapper, 1);
             }
+#if !CLN_REM_RMV
             if (scs->static_config.restricted_motion_vector) {
                 struct PictureParentControlSet *ppcs = pcs;
                 Av1Common *const                cm   = ppcs->av1_cm;
@@ -1205,6 +1206,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 }
 #endif
             }
+#endif
 #if OPT_LD_LATENCY2
             // Get Empty Output Results Object
             // For the low delay mode, buffering for receiving EOS does not happen
