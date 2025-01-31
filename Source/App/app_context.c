@@ -43,9 +43,9 @@ static EbErrorType allocate_frame_buffer(EbConfig *app_cfg, EbSvtIOFormat *input
     // Determine size of each plane
     const size_t luma_8bit_size = app_cfg->input_padded_width * app_cfg->input_padded_height *
         (1 << ten_bit_packed_mode);
-    const size_t chroma_width     = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
-    const size_t chroma_height    = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
-    const size_t chroma_8bit_size = chroma_width * chroma_height * (1 << ten_bit_packed_mode);
+    const uint32_t chroma_width     = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
+    const uint32_t chroma_height    = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
+    const uint32_t chroma_8bit_size = chroma_width * chroma_height * (1 << ten_bit_packed_mode);
 
     // Determine
     input_ptr->y_stride  = app_cfg->input_padded_width;

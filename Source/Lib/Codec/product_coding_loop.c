@@ -74,7 +74,7 @@ static void determine_best_references(PictureControlSet *pcs, ModeDecisionContex
     uint8_t is_bwd_added      = 0;
     uint8_t is_last_bwd_added = 0;
 
-    uint16_t ri = 0;
+    uint8_t ri = 0;
     for (uint8_t me_index = 0; me_index < total_me_cnt; ++me_index) {
         const MeCandidate *cand = &me_results[me_index];
         if (cand->direction == 0) {

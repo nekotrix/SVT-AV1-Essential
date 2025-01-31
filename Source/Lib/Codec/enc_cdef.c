@@ -962,7 +962,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
         }
     }
 #if OPT_CDEF_ME_INFO
-    pcs->cdef_dist_dev = zero_cost == 0 ? 0 : 1000 - ((1000 * best_tot_mse) / zero_cost);
+    pcs->cdef_dist_dev = zero_cost == 0 ? 0 : (int32_t)(1000 - ((1000 * best_tot_mse) / zero_cost));
 #endif
     nb_strengths = 1 << nb_strength_bits;
 

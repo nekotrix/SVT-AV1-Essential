@@ -2311,16 +2311,12 @@ typedef struct EbMemoryMapEntry
         } \
     } while (0)
 
-#ifndef _ERRNO_T_DEFINED
-#define _ERRNO_T_DEFINED
-typedef int32_t errno_t;
-#endif  /* _ERRNO_T_DEFINED */
 
 extern void
-    svt_memcpy_app(void  *dst_ptr, const void  *src_ptr, size_t size);
+svt_memcpy_intrin_sse(void* dst_ptr, const void* src_ptr, size_t size);
 #ifdef ARCH_X86_64
 #define EB_MEMCPY(dst, src, size) \
-    svt_memcpy_app(dst, src, size)
+    svt_memcpy_intrin_sse(dst, src, size)
 #else
 #define EB_MEMCPY(dst, src, size) \
     memcpy(dst, src, size)

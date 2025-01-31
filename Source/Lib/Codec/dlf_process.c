@@ -132,7 +132,7 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
             pcs->dlf_dist_dev = pcs->zero_filt_sse == 0 ||
                     !(frm_hdr->loop_filter_params.filter_level[0] || frm_hdr->loop_filter_params.filter_level[1])
                 ? 0
-                : 1000 - ((1000 * pcs->best_filt_sse) / pcs->zero_filt_sse);
+                : (int32_t)(1000 - ((1000 * pcs->best_filt_sse) / pcs->zero_filt_sse));
 #endif
         }
 

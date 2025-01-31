@@ -572,8 +572,8 @@ static void mmap_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBuffer
     const uint8_t  color_format  = app_cfg->config.encoder_color_format;
     const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 0 : 1);
     const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 0 : 1);
-    const uint64_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
-    const uint64_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
+    const uint32_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
+    const uint32_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
 
     input_ptr->y_stride  = input_padded_width;
     input_ptr->cr_stride = chroma_width;
@@ -631,8 +631,8 @@ static void normal_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBuff
     const uint8_t  color_format  = app_cfg->config.encoder_color_format;
     const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 0 : 1);
     const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 0 : 1);
-    const uint64_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
-    const uint64_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
+    const uint32_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
+    const uint32_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
 
     input_ptr->y_stride  = input_padded_width;
     input_ptr->cr_stride = chroma_width;
@@ -697,8 +697,8 @@ static void buffered_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBu
     const uint8_t  color_format  = app_cfg->config.encoder_color_format;
     const uint8_t  subsampling_x = (color_format == EB_YUV444 ? 0 : 1);
     const uint8_t  subsampling_y = ((color_format == EB_YUV444 || color_format == EB_YUV422) ? 0 : 1);
-    const uint64_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
-    const uint64_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
+    const uint32_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
+    const uint32_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
 
     input_ptr->y_stride  = input_padded_width;
     input_ptr->cr_stride = chroma_width;
