@@ -132,7 +132,6 @@ extern "C" {
 #define TUNE_LAMBDA_WEIGHT_M10      1 // Enable lambda weight in M10
 #define TUNE_MFMV_FD1               1 // Tune MFMV level for fd1
 #define TUNE_M6_SVT_14              1 // Tune M6
-#define TUNE_M7_SVT_14              1 // Tune M7 (VLITT)
 #define TUNE_4K                     1 // Enable MFMV in 4K and tune M9 lpd1 level
 #define TUNE_LD_SVT_14              1 // Tune LD
 #define FIX_MOTION_REFN             1 // Check that refined motion modes are valid

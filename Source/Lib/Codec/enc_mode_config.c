@@ -980,11 +980,7 @@ void svt_aom_sig_deriv_me(SequenceControlSet *scs, PictureParentControlSet *pcs,
     uint8_t me_8x8_var_lvl = 2;
     svt_aom_set_me_8x8_var_ctrls(me_ctx, me_8x8_var_lvl);
 #if TUNE_M6_BDR_2
-#if TUNE_M7_SVT_14 // prune_me_candidates_th
-    if (enc_mode <= ENC_M7)
-#else
     if (enc_mode <= ENC_M6)
-#endif
 #else
     if (enc_mode <= ENC_M5)
 #endif
@@ -2170,22 +2166,8 @@ static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t i
         if (enc_mode <= ENC_M6) {
 #endif
             dlf_level = 4;
-#if TUNE_FD1_LVL
-        } else if (enc_mode <= ENC_M7) {
-            if (fast_decode <= 1) {
-                dlf_level = is_not_last_layer ? 4 : 6;
-            } else {
-                if (pcs->coeff_lvl == HIGH_LVL)
-                    dlf_level = is_base ? 6 : 0;
-                else
-                    dlf_level = is_base ? 5 : is_not_last_layer ? 7 : 0;
-                modulation_mode = 3;
-            }
-#endif
-#if !TUNE_M7_SVT_14 // dlf_level
         } else if (enc_mode <= ENC_M7) {
             dlf_level = is_not_last_layer ? 4 : 6;
-#endif
         } else if (enc_mode <= ENC_M8) {
             if (fast_decode <= 1) {
 #if TUNE_FD1_LVL
@@ -5647,17 +5629,12 @@ uint8_t svt_aom_get_nic_level(EncMode enc_mode, uint8_t is_base, uint32_t qp, ui
 #endif
         nic_level = 15;
 #if TUNE_M9_2
-#if TUNE_M7_SVT_14 // nic_level
-    else if (enc_mode <= ENC_M6)
-        nic_level = 16;
-#else
 #if CLN_SHIFT_M9
     else if (enc_mode <= ENC_M7)
 #else
     else if (enc_mode <= ENC_M8)
 #endif
         nic_level = 16;
-#endif
 #if CLN_SHIFT_M10
     else if (enc_mode <= ENC_M8)
 #else
@@ -9862,16 +9839,11 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
         else if (enc_mode <= ENC_M5)
 #endif
             pcs->pic_lpd0_lvl = 1;
-#if TUNE_M7_SVT_14 // pic_lpd0_lvl
-        else if (enc_mode <= ENC_M7) {
-#else
         else if (enc_mode <= ENC_M6) {
-#endif
             if (input_resolution <= INPUT_SIZE_360p_RANGE)
                 pcs->pic_lpd0_lvl = 3;
             else
                 pcs->pic_lpd0_lvl = (is_base || transition_present) ? 3 : 5;
-#if !TUNE_M7_SVT_14
         } else if (enc_mode <= ENC_M7) {
             if (input_resolution <= INPUT_SIZE_360p_RANGE)
                 pcs->pic_lpd0_lvl = 3;
@@ -9885,7 +9857,6 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
                 else
                     pcs->pic_lpd0_lvl = (is_base || transition_present) ? 3 : 5;
             }
-#endif
 #if FIX_FAST_PRESET
 #if TUNE_M9_SVT_14_2
         } else if (enc_mode <= ENC_M9) {
@@ -10608,11 +10579,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         }
     }
     if (hierarchical_levels <= 2) {
-#if TUNE_M7_SVT_14 // wm_level
-        pcs->wm_level = enc_mode <= ENC_M7 ? pcs->wm_level : 0;
-#else
         pcs->wm_level = enc_mode <= ENC_M6 ? pcs->wm_level : 0;
-#endif
     }
 #if CLN_SHIFT_M9
     if (enc_mode <= ENC_M7 && scs->seq_qp_mod) {
@@ -11015,11 +10982,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         } else if (enc_mode <= ENC_M3) {
 #endif
         pcs->txs_level = 3;
-#if TUNE_M7_SVT_14 // txs_level
-    } else if (enc_mode <= ENC_M7) {
-#else
-        } else if (enc_mode <= ENC_M6) {
-#endif
+    } else if (enc_mode <= ENC_M6) {
         pcs->txs_level = is_base ? 3 : 0;
 #if CLN_SHIFT_M11
     } else if (enc_mode <= ENC_M9) {
@@ -11066,11 +11029,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     else if (enc_mode <= ENC_M2)
         pcs->md_pme_level = 2;
 #if CLN_SHIFT_M8
-#if TUNE_M7_SVT_14 // md_pme_level
-    else if (enc_mode <= ENC_M7)
-#else
     else if (enc_mode <= ENC_M6)
-#endif
 #else
     else if (enc_mode <= ENC_M7)
 #endif
