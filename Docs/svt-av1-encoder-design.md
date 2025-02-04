@@ -153,7 +153,7 @@ processing is shown in Figure 5.
 <a name = "figure-4"></a>
 ##### Figure 4. Detailed encoder process dataflow.
 
-![image5](./img/image5.svg)
+![image5](./img/image5.png)
 <a name = "figure-5"></a>
 ##### Figure 5. Illustration of segment-based processing. The squares in the picture represent segments. Light yellow segments have already been processed. Dark yellow segments are being processed in a parallel manner.
 
