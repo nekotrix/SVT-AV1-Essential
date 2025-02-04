@@ -381,7 +381,6 @@ class PixelProjErrorHbdTest : public PixelProjErrorTest<uint16_t> {
   private:
     SVTRandom rnd12_;
 };
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(PixelProjErrorHbdTest);
 
 TEST_P(PixelProjErrorHbdTest, MatchTestWithRandomValue) {
     run_random_test(50, true);
@@ -404,6 +403,13 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(make_tuple(svt_av1_highbd_pixel_proj_error_avx2,
                                  svt_av1_highbd_pixel_proj_error_c)));
 #endif  // ARCH_X86_64
+
+#if ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, PixelProjErrorHbdTest,
+    ::testing::Values(make_tuple(svt_av1_highbd_pixel_proj_error_neon,
+                                 svt_av1_highbd_pixel_proj_error_c)));
+#endif  // ARCH_AARCH64
 
 typedef void (*GetProjSubspaceFunc)(const uint8_t *src8, int32_t width,
                                     int32_t height, int32_t src_stride,
