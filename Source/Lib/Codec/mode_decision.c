@@ -1985,7 +1985,7 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
         MvReferenceFrame ref_pair = ctx->ref_frame_type_arr[ref_it];
         MvReferenceFrame rf[2];
         av1_set_ref_frame(rf, ref_pair);
-        {
+        if (rf[1] != NONE_FRAME) {
             uint8_t ref_idx_0  = get_ref_frame_idx(rf[0]);
             uint8_t ref_idx_1  = get_ref_frame_idx(rf[1]);
             uint8_t list_idx_0 = get_list_idx(rf[0]);
@@ -1998,97 +1998,174 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                 if (!svt_aom_is_valid_unipred_ref(
                         ctx, MIN(TOT_INTER_GROUP - 1, NRST_NEW_NEAR_GROUP), list_idx_1, ref_idx_1))
                     continue;
-            if (rf[1] != NONE_FRAME) {
-                {
-                    //NEAREST_NEWMV
-                    const MeSbResults *me_results = pcs->ppcs->pa_me_data->me_results[ctx->me_sb_addr];
 
-                    int16_t to_inject_mv_x_l0 = ctx->ref_mv_stack[ref_pair][0].this_mv.as_mv.col;
-                    int16_t to_inject_mv_y_l0 = ctx->ref_mv_stack[ref_pair][0].this_mv.as_mv.row;
-                    int16_t to_inject_mv_x_l1 = ctx->sb_me_mv[get_list_idx(rf[1])][ref_idx_1][0];
-                    int16_t to_inject_mv_y_l1 = ctx->sb_me_mv[get_list_idx(rf[1])][ref_idx_1][1];
-                    Mv      to_inj_mv0        = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
-                    Mv      to_inj_mv1        = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
-                    uint8_t inj_mv            = (ctx->injected_mv_count == 0 ||
-                                      mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
+            {
+                //NEAREST_NEWMV
+                const MeSbResults *me_results = pcs->ppcs->pa_me_data->me_results[ctx->me_sb_addr];
+
+                int16_t to_inject_mv_x_l0 = ctx->ref_mv_stack[ref_pair][0].this_mv.as_mv.col;
+                int16_t to_inject_mv_y_l0 = ctx->ref_mv_stack[ref_pair][0].this_mv.as_mv.row;
+                int16_t to_inject_mv_x_l1 = ctx->sb_me_mv[get_list_idx(rf[1])][ref_idx_1][0];
+                int16_t to_inject_mv_y_l1 = ctx->sb_me_mv[get_list_idx(rf[1])][ref_idx_1][1];
+                Mv      to_inj_mv0        = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
+                Mv      to_inj_mv1        = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
+                uint8_t inj_mv            = (ctx->injected_mv_count == 0 ||
+                                  mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
 #if !CLN_REM_RMV
-                    int inside_tile = umv0tile
-                        ? svt_aom_is_inside_tile_boundary(&(xd->tile),
-                                                          to_inject_mv_x_l0,
-                                                          to_inject_mv_y_l0,
-                                                          mi_col,
-                                                          mi_row,
-                                                          ctx->blk_geom->bsize) &&
-                            svt_aom_is_inside_tile_boundary(
-                                &(xd->tile), to_inject_mv_x_l1, to_inject_mv_y_l1, mi_col, mi_row, ctx->blk_geom->bsize)
-                        : 1;
-                    inj_mv          = inj_mv && inside_tile;
+                int inside_tile = umv0tile
+                    ? svt_aom_is_inside_tile_boundary(
+                          &(xd->tile), to_inject_mv_x_l0, to_inject_mv_y_l0, mi_col, mi_row, ctx->blk_geom->bsize) &&
+                        svt_aom_is_inside_tile_boundary(
+                            &(xd->tile), to_inject_mv_x_l1, to_inject_mv_y_l1, mi_col, mi_row, ctx->blk_geom->bsize)
+                    : 1;
+                inj_mv          = inj_mv && inside_tile;
 #endif
-                    inj_mv = inj_mv &&
-                        svt_aom_is_me_data_present(
-                                 ctx->me_block_offset, ctx->me_cand_offset, me_results, get_list_idx(rf[1]), ref_idx_1);
-                    if (inj_mv) {
-                        ctx->cmp_store.pred0_cnt = 0;
-                        ctx->cmp_store.pred1_cnt = 0;
-                        Bool mask_done           = 0;
-                        for (MD_COMP_TYPE cur_type = MD_COMP_AVG; cur_type < tot_comp_types; cur_type++) {
-                            if (ctx->inter_comp_ctrls.no_sym_dist && cur_type == MD_COMP_DIST && ref_idx_0 == 0 &&
-                                ref_idx_1 == 0)
-                                continue;
-                            if (!is_valid_bi_type(ctx, cur_type, list_idx_0, ref_idx_0, list_idx_1, ref_idx_1))
-                                continue;
-                            cand_array[cand_idx].pred_mode          = NEAREST_NEWMV;
-                            cand_array[cand_idx].motion_mode        = SIMPLE_TRANSLATION;
-                            cand_array[cand_idx].is_interintra_used = 0;
-                            cand_array[cand_idx].use_intrabc        = 0;
+                inj_mv = inj_mv &&
+                    svt_aom_is_me_data_present(
+                             ctx->me_block_offset, ctx->me_cand_offset, me_results, get_list_idx(rf[1]), ref_idx_1);
+                if (inj_mv) {
+                    ctx->cmp_store.pred0_cnt = 0;
+                    ctx->cmp_store.pred1_cnt = 0;
+                    Bool mask_done           = 0;
+                    for (MD_COMP_TYPE cur_type = MD_COMP_AVG; cur_type < tot_comp_types; cur_type++) {
+                        if (ctx->inter_comp_ctrls.no_sym_dist && cur_type == MD_COMP_DIST && ref_idx_0 == 0 &&
+                            ref_idx_1 == 0)
+                            continue;
+                        if (!is_valid_bi_type(ctx, cur_type, list_idx_0, ref_idx_0, list_idx_1, ref_idx_1))
+                            continue;
+                        cand_array[cand_idx].pred_mode          = NEAREST_NEWMV;
+                        cand_array[cand_idx].motion_mode        = SIMPLE_TRANSLATION;
+                        cand_array[cand_idx].is_interintra_used = 0;
+                        cand_array[cand_idx].use_intrabc        = 0;
 
-                            cand_array[cand_idx].skip_mode_allowed     = FALSE;
-                            cand_array[cand_idx].mv[REF_LIST_0].as_int = to_inj_mv0.as_int;
-                            cand_array[cand_idx].mv[REF_LIST_1].as_int = to_inj_mv1.as_int;
-                            cand_array[cand_idx].drl_index             = 0;
-                            cand_array[cand_idx].ref_frame_type        = ref_pair;
-                            svt_aom_get_av1_mv_pred_drl(ctx,
-                                                        ctx->blk_ptr,
-                                                        cand_array[cand_idx].ref_frame_type,
-                                                        1, // is_compound
-                                                        NEAREST_NEWMV,
-                                                        0, //not needed drli,
-                                                        nearestmv,
-                                                        nearmv,
-                                                        ref_mv);
-                            cand_array[cand_idx].pred_mv[REF_LIST_1] = (Mv){{ref_mv[1].as_mv.col, ref_mv[1].as_mv.row}};
-                            //NRST_N
-                            if (cur_type > MD_COMP_AVG) {
-                                if (mask_done != 1) {
-                                    if (svt_aom_calc_pred_masked_compound(pcs, ctx, &cand_array[cand_idx]))
-                                        break;
-                                    mask_done = 1;
-                                }
+                        cand_array[cand_idx].skip_mode_allowed     = FALSE;
+                        cand_array[cand_idx].mv[REF_LIST_0].as_int = to_inj_mv0.as_int;
+                        cand_array[cand_idx].mv[REF_LIST_1].as_int = to_inj_mv1.as_int;
+                        cand_array[cand_idx].drl_index             = 0;
+                        cand_array[cand_idx].ref_frame_type        = ref_pair;
+                        svt_aom_get_av1_mv_pred_drl(ctx,
+                                                    ctx->blk_ptr,
+                                                    cand_array[cand_idx].ref_frame_type,
+                                                    1, // is_compound
+                                                    NEAREST_NEWMV,
+                                                    0, //not needed drli,
+                                                    nearestmv,
+                                                    nearmv,
+                                                    ref_mv);
+                        cand_array[cand_idx].pred_mv[REF_LIST_1] = (Mv){{ref_mv[1].as_mv.col, ref_mv[1].as_mv.row}};
+                        //NRST_N
+                        if (cur_type > MD_COMP_AVG) {
+                            if (mask_done != 1) {
+                                if (svt_aom_calc_pred_masked_compound(pcs, ctx, &cand_array[cand_idx]))
+                                    break;
+                                mask_done = 1;
                             }
-                            determine_compound_mode(pcs, ctx, &cand_array[cand_idx], cur_type);
-                            INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
                         }
-                        ctx->injected_mvs[ctx->injected_mv_count][0].as_int = to_inj_mv0.as_int;
-                        ctx->injected_mvs[ctx->injected_mv_count][1].as_int = to_inj_mv1.as_int;
-                        ctx->injected_ref_types[ctx->injected_mv_count]     = ref_pair;
-                        ++ctx->injected_mv_count;
+                        determine_compound_mode(pcs, ctx, &cand_array[cand_idx], cur_type);
+                        INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
                     }
+                    ctx->injected_mvs[ctx->injected_mv_count][0].as_int = to_inj_mv0.as_int;
+                    ctx->injected_mvs[ctx->injected_mv_count][1].as_int = to_inj_mv1.as_int;
+                    ctx->injected_ref_types[ctx->injected_mv_count]     = ref_pair;
+                    ++ctx->injected_mv_count;
                 }
+            }
 
-                {
-                    //NEW_NEARESTMV
+            {
+                //NEW_NEARESTMV
+                const MeSbResults *me_results        = pcs->ppcs->pa_me_data->me_results[ctx->me_sb_addr];
+                int16_t            to_inject_mv_x_l0 = ctx->sb_me_mv[REF_LIST_0][ref_idx_0][0];
+                int16_t            to_inject_mv_y_l0 = ctx->sb_me_mv[REF_LIST_0][ref_idx_0][1];
+                int16_t            to_inject_mv_x_l1 = ctx->ref_mv_stack[ref_pair][0].comp_mv.as_mv.col;
+                int16_t            to_inject_mv_y_l1 = ctx->ref_mv_stack[ref_pair][0].comp_mv.as_mv.row;
+
+                Mv      to_inj_mv0 = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
+                Mv      to_inj_mv1 = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
+                uint8_t inj_mv     = (ctx->injected_mv_count == 0 ||
+                                  mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
+#if !CLN_REM_RMV
+                int inside_tile = umv0tile
+                    ? svt_aom_is_inside_tile_boundary(
+                          &(xd->tile), to_inject_mv_x_l0, to_inject_mv_y_l0, mi_col, mi_row, ctx->blk_geom->bsize) &&
+                        svt_aom_is_inside_tile_boundary(
+                            &(xd->tile), to_inject_mv_x_l1, to_inject_mv_y_l1, mi_col, mi_row, ctx->blk_geom->bsize)
+                    : 1;
+                inj_mv          = inj_mv && inside_tile;
+#endif
+                inj_mv = inj_mv &&
+                    svt_aom_is_me_data_present(ctx->me_block_offset, ctx->me_cand_offset, me_results, 0, ref_idx_0);
+                if (inj_mv) {
+                    ctx->cmp_store.pred0_cnt = 0;
+                    ctx->cmp_store.pred1_cnt = 0;
+                    Bool mask_done           = 0;
+                    for (MD_COMP_TYPE cur_type = MD_COMP_AVG; cur_type < tot_comp_types; cur_type++) {
+                        if (ctx->inter_comp_ctrls.no_sym_dist && cur_type == MD_COMP_DIST && ref_idx_0 == 0 &&
+                            ref_idx_1 == 0)
+                            continue;
+                        if (!is_valid_bi_type(ctx, cur_type, list_idx_0, ref_idx_0, list_idx_1, ref_idx_1))
+                            continue;
+                        cand_array[cand_idx].pred_mode             = NEW_NEARESTMV;
+                        cand_array[cand_idx].motion_mode           = SIMPLE_TRANSLATION;
+                        cand_array[cand_idx].is_interintra_used    = 0;
+                        cand_array[cand_idx].use_intrabc           = 0;
+                        cand_array[cand_idx].skip_mode_allowed     = FALSE;
+                        cand_array[cand_idx].mv[REF_LIST_0].as_int = to_inj_mv0.as_int;
+                        cand_array[cand_idx].mv[REF_LIST_1].as_int = to_inj_mv1.as_int;
+                        cand_array[cand_idx].drl_index             = 0;
+                        cand_array[cand_idx].ref_frame_type        = ref_pair;
+                        svt_aom_get_av1_mv_pred_drl(ctx,
+                                                    ctx->blk_ptr,
+                                                    cand_array[cand_idx].ref_frame_type,
+                                                    1, // is_compound
+                                                    NEW_NEARESTMV,
+                                                    0, //not needed drli,
+                                                    nearestmv,
+                                                    nearmv,
+                                                    ref_mv);
+                        cand_array[cand_idx].pred_mv[REF_LIST_0] = (Mv){{ref_mv[0].as_mv.col, ref_mv[0].as_mv.row}};
+                        if (cur_type > MD_COMP_AVG) {
+                            if (mask_done != 1) {
+                                if (svt_aom_calc_pred_masked_compound(pcs, ctx, &cand_array[cand_idx]))
+                                    break;
+                                mask_done = 1;
+                            }
+                        }
+                        determine_compound_mode(pcs, ctx, &cand_array[cand_idx], cur_type);
+                        INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
+                    }
+                    ctx->injected_mvs[ctx->injected_mv_count][0].as_int = to_inj_mv0.as_int;
+                    ctx->injected_mvs[ctx->injected_mv_count][1].as_int = to_inj_mv1.as_int;
+                    ctx->injected_ref_types[ctx->injected_mv_count]     = ref_pair;
+                    ++ctx->injected_mv_count;
+                }
+            }
+            // For level 2, only inject NEAREST_NEW/NEW_NEAREST candidates
+            if (ctx->new_nearest_near_comb_injection >= 2)
+                continue;
+            //NEW_NEARMV
+            {
+                uint8_t max_drl_index = svt_aom_get_max_drl_index(xd->ref_mv_count[ref_pair], NEW_NEARMV);
+
+                for (uint8_t drli = 0; drli < max_drl_index; drli++) {
+                    svt_aom_get_av1_mv_pred_drl(
+                        ctx, ctx->blk_ptr, ref_pair, 1, NEW_NEARMV, drli, nearestmv, nearmv, ref_mv);
+
+                    //NEW_NEARMV
                     const MeSbResults *me_results        = pcs->ppcs->pa_me_data->me_results[ctx->me_sb_addr];
                     int16_t            to_inject_mv_x_l0 = ctx->sb_me_mv[REF_LIST_0][ref_idx_0][0];
                     int16_t            to_inject_mv_y_l0 = ctx->sb_me_mv[REF_LIST_0][ref_idx_0][1];
-                    int16_t            to_inject_mv_x_l1 = ctx->ref_mv_stack[ref_pair][0].comp_mv.as_mv.col;
-                    int16_t            to_inject_mv_y_l1 = ctx->ref_mv_stack[ref_pair][0].comp_mv.as_mv.row;
+                    int16_t            to_inject_mv_x_l1 = nearmv[1].as_mv.col;
+                    int16_t            to_inject_mv_y_l1 = nearmv[1].as_mv.row;
 
-                    Mv      to_inj_mv0  = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
-                    Mv      to_inj_mv1  = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
-                    uint8_t inj_mv      = (ctx->injected_mv_count == 0 ||
+                    Mv      to_inj_mv0 = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
+                    Mv      to_inj_mv1 = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
+                    uint8_t inj_mv     = (ctx->injected_mv_count == 0 ||
                                       mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
+                    inj_mv             = inj_mv &&
+                        svt_aom_is_me_data_present(ctx->me_block_offset, ctx->me_cand_offset, me_results, 0, ref_idx_0);
 #if !CLN_REM_RMV
-                    int inside_tile = umv0tile
+#if FIX_CHECK_RMV_NEW_NR
+                    const int inside_tile = umv0tile
                         ? svt_aom_is_inside_tile_boundary(&(xd->tile),
                                                           to_inject_mv_x_l0,
                                                           to_inject_mv_y_l0,
@@ -2098,10 +2175,9 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                             svt_aom_is_inside_tile_boundary(
                                 &(xd->tile), to_inject_mv_x_l1, to_inject_mv_y_l1, mi_col, mi_row, ctx->blk_geom->bsize)
                         : 1;
-                    inj_mv          = inj_mv && inside_tile;
+                    inj_mv                = inj_mv && inside_tile;
 #endif
-                    inj_mv = inj_mv &&
-                        svt_aom_is_me_data_present(ctx->me_block_offset, ctx->me_cand_offset, me_results, 0, ref_idx_0);
+#endif
                     if (inj_mv) {
                         ctx->cmp_store.pred0_cnt = 0;
                         ctx->cmp_store.pred1_cnt = 0;
@@ -2112,24 +2188,15 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                                 continue;
                             if (!is_valid_bi_type(ctx, cur_type, list_idx_0, ref_idx_0, list_idx_1, ref_idx_1))
                                 continue;
-                            cand_array[cand_idx].pred_mode             = NEW_NEARESTMV;
+                            cand_array[cand_idx].pred_mode             = NEW_NEARMV;
                             cand_array[cand_idx].motion_mode           = SIMPLE_TRANSLATION;
                             cand_array[cand_idx].is_interintra_used    = 0;
                             cand_array[cand_idx].use_intrabc           = 0;
                             cand_array[cand_idx].skip_mode_allowed     = FALSE;
                             cand_array[cand_idx].mv[REF_LIST_0].as_int = to_inj_mv0.as_int;
                             cand_array[cand_idx].mv[REF_LIST_1].as_int = to_inj_mv1.as_int;
-                            cand_array[cand_idx].drl_index             = 0;
+                            cand_array[cand_idx].drl_index             = drli;
                             cand_array[cand_idx].ref_frame_type        = ref_pair;
-                            svt_aom_get_av1_mv_pred_drl(ctx,
-                                                        ctx->blk_ptr,
-                                                        cand_array[cand_idx].ref_frame_type,
-                                                        1, // is_compound
-                                                        NEW_NEARESTMV,
-                                                        0, //not needed drli,
-                                                        nearestmv,
-                                                        nearmv,
-                                                        ref_mv);
                             cand_array[cand_idx].pred_mv[REF_LIST_0] = (Mv){{ref_mv[0].as_mv.col, ref_mv[0].as_mv.row}};
                             if (cur_type > MD_COMP_AVG) {
                                 if (mask_done != 1) {
@@ -2139,6 +2206,7 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                                 }
                             }
                             determine_compound_mode(pcs, ctx, &cand_array[cand_idx], cur_type);
+
                             INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
                         }
                         ctx->injected_mvs[ctx->injected_mv_count][0].as_int = to_inj_mv0.as_int;
@@ -2147,168 +2215,79 @@ static void inject_new_nearest_new_comb_candidates(const SequenceControlSet *scs
                         ++ctx->injected_mv_count;
                     }
                 }
-                // For level 2, only inject NEAREST_NEW/NEW_NEAREST candidates
-                if (ctx->new_nearest_near_comb_injection >= 2)
-                    continue;
-                //NEW_NEARMV
-                {
-                    uint8_t max_drl_index = svt_aom_get_max_drl_index(xd->ref_mv_count[ref_pair], NEW_NEARMV);
+            }
+            //NEAR_NEWMV
+            {
+                uint8_t max_drl_index = svt_aom_get_max_drl_index(xd->ref_mv_count[ref_pair], NEAR_NEWMV);
 
-                    for (uint8_t drli = 0; drli < max_drl_index; drli++) {
-                        svt_aom_get_av1_mv_pred_drl(
-                            ctx, ctx->blk_ptr, ref_pair, 1, NEW_NEARMV, drli, nearestmv, nearmv, ref_mv);
+                for (uint8_t drli = 0; drli < max_drl_index; drli++) {
+                    svt_aom_get_av1_mv_pred_drl(
+                        ctx, ctx->blk_ptr, ref_pair, 1, NEAR_NEWMV, drli, nearestmv, nearmv, ref_mv);
 
-                        //NEW_NEARMV
-                        const MeSbResults *me_results        = pcs->ppcs->pa_me_data->me_results[ctx->me_sb_addr];
-                        int16_t            to_inject_mv_x_l0 = ctx->sb_me_mv[REF_LIST_0][ref_idx_0][0];
-                        int16_t            to_inject_mv_y_l0 = ctx->sb_me_mv[REF_LIST_0][ref_idx_0][1];
-                        int16_t            to_inject_mv_x_l1 = nearmv[1].as_mv.col;
-                        int16_t            to_inject_mv_y_l1 = nearmv[1].as_mv.row;
+                    //NEAR_NEWMV
+                    const MeSbResults *me_results = pcs->ppcs->pa_me_data->me_results[ctx->me_sb_addr];
 
-                        Mv      to_inj_mv0 = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
-                        Mv      to_inj_mv1 = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
-                        uint8_t inj_mv     = (ctx->injected_mv_count == 0 ||
-                                          mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
-                        inj_mv             = inj_mv &&
-                            svt_aom_is_me_data_present(
-                                     ctx->me_block_offset, ctx->me_cand_offset, me_results, 0, ref_idx_0);
-#if !CLN_REM_RMV
-#if FIX_CHECK_RMV_NEW_NR
-                        const int inside_tile = umv0tile ? svt_aom_is_inside_tile_boundary(&(xd->tile),
-                                                                                           to_inject_mv_x_l0,
-                                                                                           to_inject_mv_y_l0,
-                                                                                           mi_col,
-                                                                                           mi_row,
-                                                                                           ctx->blk_geom->bsize) &&
-                                svt_aom_is_inside_tile_boundary(&(xd->tile),
-                                                                to_inject_mv_x_l1,
-                                                                to_inject_mv_y_l1,
-                                                                mi_col,
-                                                                mi_row,
-                                                                ctx->blk_geom->bsize)
-                                                         : 1;
-                        inj_mv                = inj_mv && inside_tile;
-#endif
-#endif
-                        if (inj_mv) {
-                            ctx->cmp_store.pred0_cnt = 0;
-                            ctx->cmp_store.pred1_cnt = 0;
-                            Bool mask_done           = 0;
-                            for (MD_COMP_TYPE cur_type = MD_COMP_AVG; cur_type < tot_comp_types; cur_type++) {
-                                if (ctx->inter_comp_ctrls.no_sym_dist && cur_type == MD_COMP_DIST && ref_idx_0 == 0 &&
-                                    ref_idx_1 == 0)
-                                    continue;
-                                if (!is_valid_bi_type(ctx, cur_type, list_idx_0, ref_idx_0, list_idx_1, ref_idx_1))
-                                    continue;
-                                cand_array[cand_idx].pred_mode             = NEW_NEARMV;
-                                cand_array[cand_idx].motion_mode           = SIMPLE_TRANSLATION;
-                                cand_array[cand_idx].is_interintra_used    = 0;
-                                cand_array[cand_idx].use_intrabc           = 0;
-                                cand_array[cand_idx].skip_mode_allowed     = FALSE;
-                                cand_array[cand_idx].mv[REF_LIST_0].as_int = to_inj_mv0.as_int;
-                                cand_array[cand_idx].mv[REF_LIST_1].as_int = to_inj_mv1.as_int;
-                                cand_array[cand_idx].drl_index             = drli;
-                                cand_array[cand_idx].ref_frame_type        = ref_pair;
-                                cand_array[cand_idx].pred_mv[REF_LIST_0]   = (Mv){
-                                    {ref_mv[0].as_mv.col, ref_mv[0].as_mv.row}};
-                                if (cur_type > MD_COMP_AVG) {
-                                    if (mask_done != 1) {
-                                        if (svt_aom_calc_pred_masked_compound(pcs, ctx, &cand_array[cand_idx]))
-                                            break;
-                                        mask_done = 1;
-                                    }
-                                }
-                                determine_compound_mode(pcs, ctx, &cand_array[cand_idx], cur_type);
-
-                                INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
-                            }
-                            ctx->injected_mvs[ctx->injected_mv_count][0].as_int = to_inj_mv0.as_int;
-                            ctx->injected_mvs[ctx->injected_mv_count][1].as_int = to_inj_mv1.as_int;
-                            ctx->injected_ref_types[ctx->injected_mv_count]     = ref_pair;
-                            ++ctx->injected_mv_count;
-                        }
-                    }
-                }
-                //NEAR_NEWMV
-                {
-                    uint8_t max_drl_index = svt_aom_get_max_drl_index(xd->ref_mv_count[ref_pair], NEAR_NEWMV);
-
-                    for (uint8_t drli = 0; drli < max_drl_index; drli++) {
-                        svt_aom_get_av1_mv_pred_drl(
-                            ctx, ctx->blk_ptr, ref_pair, 1, NEAR_NEWMV, drli, nearestmv, nearmv, ref_mv);
-
-                        //NEAR_NEWMV
-                        const MeSbResults *me_results = pcs->ppcs->pa_me_data->me_results[ctx->me_sb_addr];
-
-                        int16_t to_inject_mv_x_l0 = nearmv[0].as_mv.col;
-                        int16_t to_inject_mv_y_l0 = nearmv[0].as_mv.row;
-                        int16_t to_inject_mv_x_l1 = ctx->sb_me_mv[get_list_idx(rf[1])][ref_idx_1][0];
-                        int16_t to_inject_mv_y_l1 = ctx->sb_me_mv[get_list_idx(rf[1])][ref_idx_1][1];
-                        Mv      to_inj_mv0        = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
-                        Mv      to_inj_mv1        = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
-                        uint8_t inj_mv            = (ctx->injected_mv_count == 0 ||
-                                          mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
-                        inj_mv                    = inj_mv &&
-                            svt_aom_is_me_data_present(ctx->me_block_offset,
-                                                       ctx->me_cand_offset,
-                                                       me_results,
-                                                       get_list_idx(rf[1]),
-                                                       ref_idx_1);
+                    int16_t to_inject_mv_x_l0 = nearmv[0].as_mv.col;
+                    int16_t to_inject_mv_y_l0 = nearmv[0].as_mv.row;
+                    int16_t to_inject_mv_x_l1 = ctx->sb_me_mv[get_list_idx(rf[1])][ref_idx_1][0];
+                    int16_t to_inject_mv_y_l1 = ctx->sb_me_mv[get_list_idx(rf[1])][ref_idx_1][1];
+                    Mv      to_inj_mv0        = {{to_inject_mv_x_l0, to_inject_mv_y_l0}};
+                    Mv      to_inj_mv1        = {{to_inject_mv_x_l1, to_inject_mv_y_l1}};
+                    uint8_t inj_mv            = (ctx->injected_mv_count == 0 ||
+                                      mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == FALSE);
+                    inj_mv                    = inj_mv &&
+                        svt_aom_is_me_data_present(
+                                 ctx->me_block_offset, ctx->me_cand_offset, me_results, get_list_idx(rf[1]), ref_idx_1);
 
 #if !CLN_REM_RMV
 #if FIX_CHECK_RMV_NEW_NR
-                        const int inside_tile = umv0tile ? svt_aom_is_inside_tile_boundary(&(xd->tile),
-                                                                                           to_inject_mv_x_l0,
-                                                                                           to_inject_mv_y_l0,
-                                                                                           mi_col,
-                                                                                           mi_row,
-                                                                                           ctx->blk_geom->bsize) &&
-                                svt_aom_is_inside_tile_boundary(&(xd->tile),
-                                                                to_inject_mv_x_l1,
-                                                                to_inject_mv_y_l1,
-                                                                mi_col,
-                                                                mi_row,
-                                                                ctx->blk_geom->bsize)
-                                                         : 1;
-                        inj_mv                = inj_mv && inside_tile;
+                    const int inside_tile = umv0tile
+                        ? svt_aom_is_inside_tile_boundary(&(xd->tile),
+                                                          to_inject_mv_x_l0,
+                                                          to_inject_mv_y_l0,
+                                                          mi_col,
+                                                          mi_row,
+                                                          ctx->blk_geom->bsize) &&
+                            svt_aom_is_inside_tile_boundary(
+                                &(xd->tile), to_inject_mv_x_l1, to_inject_mv_y_l1, mi_col, mi_row, ctx->blk_geom->bsize)
+                        : 1;
+                    inj_mv                = inj_mv && inside_tile;
 #endif
 #endif
-                        if (inj_mv) {
-                            ctx->cmp_store.pred0_cnt = 0;
-                            ctx->cmp_store.pred1_cnt = 0;
-                            Bool mask_done           = 0;
-                            for (MD_COMP_TYPE cur_type = MD_COMP_AVG; cur_type < tot_comp_types; cur_type++) {
-                                if (ctx->inter_comp_ctrls.no_sym_dist && cur_type == MD_COMP_DIST && ref_idx_0 == 0 &&
-                                    ref_idx_1 == 0)
-                                    continue;
-                                if (!is_valid_bi_type(ctx, cur_type, list_idx_0, ref_idx_0, list_idx_1, ref_idx_1))
-                                    continue;
-                                cand_array[cand_idx].pred_mode             = NEAR_NEWMV;
-                                cand_array[cand_idx].motion_mode           = SIMPLE_TRANSLATION;
-                                cand_array[cand_idx].is_interintra_used    = 0;
-                                cand_array[cand_idx].use_intrabc           = 0;
-                                cand_array[cand_idx].skip_mode_allowed     = FALSE;
-                                cand_array[cand_idx].mv[REF_LIST_0].as_int = to_inj_mv0.as_int;
-                                cand_array[cand_idx].mv[REF_LIST_1].as_int = to_inj_mv1.as_int;
-                                cand_array[cand_idx].drl_index             = drli;
-                                cand_array[cand_idx].ref_frame_type        = ref_pair;
-                                cand_array[cand_idx].pred_mv[REF_LIST_1]   = (Mv){
-                                    {ref_mv[1].as_mv.col, ref_mv[1].as_mv.row}};
-                                if (cur_type > MD_COMP_AVG) {
-                                    if (mask_done != 1) {
-                                        if (svt_aom_calc_pred_masked_compound(pcs, ctx, &cand_array[cand_idx]))
-                                            break;
-                                        mask_done = 1;
-                                    }
+                    if (inj_mv) {
+                        ctx->cmp_store.pred0_cnt = 0;
+                        ctx->cmp_store.pred1_cnt = 0;
+                        Bool mask_done           = 0;
+                        for (MD_COMP_TYPE cur_type = MD_COMP_AVG; cur_type < tot_comp_types; cur_type++) {
+                            if (ctx->inter_comp_ctrls.no_sym_dist && cur_type == MD_COMP_DIST && ref_idx_0 == 0 &&
+                                ref_idx_1 == 0)
+                                continue;
+                            if (!is_valid_bi_type(ctx, cur_type, list_idx_0, ref_idx_0, list_idx_1, ref_idx_1))
+                                continue;
+                            cand_array[cand_idx].pred_mode             = NEAR_NEWMV;
+                            cand_array[cand_idx].motion_mode           = SIMPLE_TRANSLATION;
+                            cand_array[cand_idx].is_interintra_used    = 0;
+                            cand_array[cand_idx].use_intrabc           = 0;
+                            cand_array[cand_idx].skip_mode_allowed     = FALSE;
+                            cand_array[cand_idx].mv[REF_LIST_0].as_int = to_inj_mv0.as_int;
+                            cand_array[cand_idx].mv[REF_LIST_1].as_int = to_inj_mv1.as_int;
+                            cand_array[cand_idx].drl_index             = drli;
+                            cand_array[cand_idx].ref_frame_type        = ref_pair;
+                            cand_array[cand_idx].pred_mv[REF_LIST_1] = (Mv){{ref_mv[1].as_mv.col, ref_mv[1].as_mv.row}};
+                            if (cur_type > MD_COMP_AVG) {
+                                if (mask_done != 1) {
+                                    if (svt_aom_calc_pred_masked_compound(pcs, ctx, &cand_array[cand_idx]))
+                                        break;
+                                    mask_done = 1;
                                 }
-                                determine_compound_mode(pcs, ctx, &cand_array[cand_idx], cur_type);
-                                INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
                             }
-                            ctx->injected_mvs[ctx->injected_mv_count][0].as_int = to_inj_mv0.as_int;
-                            ctx->injected_mvs[ctx->injected_mv_count][1].as_int = to_inj_mv1.as_int;
-                            ctx->injected_ref_types[ctx->injected_mv_count]     = ref_pair;
-                            ++ctx->injected_mv_count;
+                            determine_compound_mode(pcs, ctx, &cand_array[cand_idx], cur_type);
+                            INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
                         }
+                        ctx->injected_mvs[ctx->injected_mv_count][0].as_int = to_inj_mv0.as_int;
+                        ctx->injected_mvs[ctx->injected_mv_count][1].as_int = to_inj_mv1.as_int;
+                        ctx->injected_ref_types[ctx->injected_mv_count]     = ref_pair;
+                        ++ctx->injected_mv_count;
                     }
                 }
             }
