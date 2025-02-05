@@ -466,9 +466,6 @@ static int find_affine_int(int np, const int *pts1, const int *pts2, BlockSize b
     wm->wmmat[0] = clamp(vx, -WARPEDMODEL_TRANS_CLAMP, WARPEDMODEL_TRANS_CLAMP - 1);
     wm->wmmat[1] = clamp(vy, -WARPEDMODEL_TRANS_CLAMP, WARPEDMODEL_TRANS_CLAMP - 1);
 
-#if !CLN_WMMAT
-    wm->wmmat[6] = wm->wmmat[7] = 0;
-#endif
     return 0;
 }
 

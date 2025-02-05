@@ -196,11 +196,7 @@ static const std::vector<EncTestSetting> default_enc_settings = {
 
     // test overlay frame
     {"OverlayTest1", {{"EnableOverlays", "1"}}, default_test_vectors},
-#if FIX_SVT_AV1_CHECK_VERSION
     {"OverlayTest2", {{"EnableOverlays", "1"}, {"LevelOfParallelism", "1"}}, default_test_vectors},
-#else
-    {"OverlayTest2", {{"EnableOverlays", "1"}, {"LogicalProcessors", "1"}}, default_test_vectors},
-#endif
     {"OverlayTest3", {{"EnableOverlays", "1"}, {"EncoderMode", "5"}}, default_test_vectors},
 
 #ifdef ENBALE_16BIT_PIPELINE_TEST

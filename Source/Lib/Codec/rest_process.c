@@ -465,12 +465,10 @@ static void copy_statistics_to_ref_obj_ect(PictureControlSet *pcs, SequenceContr
     pcs->hp_coded_area    = (100 * pcs->hp_coded_area) / (pcs->ppcs->aligned_width * pcs->ppcs->aligned_height);
     if (pcs->slice_type == I_SLICE)
         pcs->intra_coded_area = 0;
-    obj->intra_coded_area = (uint8_t)(pcs->intra_coded_area);
-    obj->skip_coded_area  = (uint8_t)(pcs->skip_coded_area);
-    obj->hp_coded_area    = (uint8_t)(pcs->hp_coded_area);
-#if OPT_MFMV
-    obj->is_mfmv_used = pcs->ppcs->frm_hdr.use_ref_frame_mvs;
-#endif
+    obj->intra_coded_area                   = (uint8_t)(pcs->intra_coded_area);
+    obj->skip_coded_area                    = (uint8_t)(pcs->skip_coded_area);
+    obj->hp_coded_area                      = (uint8_t)(pcs->hp_coded_area);
+    obj->is_mfmv_used                       = pcs->ppcs->frm_hdr.use_ref_frame_mvs;
     struct PictureParentControlSet *ppcs    = pcs->ppcs;
     FrameHeader                    *frm_hdr = &ppcs->frm_hdr;
 
@@ -480,12 +478,8 @@ static void copy_statistics_to_ref_obj_ect(PictureControlSet *pcs, SequenceContr
     obj->filter_level[1] = lf->filter_level[1];
     obj->filter_level_u  = lf->filter_level_u;
     obj->filter_level_v  = lf->filter_level_v;
-#if OPT_FRAME_DLF
-    obj->dlf_dist_dev = pcs->dlf_dist_dev;
-#endif
-#if OPT_CDEF_ME_INFO
-    obj->cdef_dist_dev = pcs->cdef_dist_dev;
-#endif
+    obj->dlf_dist_dev    = pcs->dlf_dist_dev;
+    obj->cdef_dist_dev   = pcs->cdef_dist_dev;
 
     obj->ref_cdef_strengths_num = ppcs->nb_cdef_strengths;
     for (int i = 0; i < ppcs->nb_cdef_strengths; i++) {

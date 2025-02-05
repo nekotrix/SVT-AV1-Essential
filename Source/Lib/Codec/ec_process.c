@@ -311,10 +311,8 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
         }
 
         if (frame_entropy_done) {
-#if FTR_SIGNAL_AVERAGE_QP
             if (pcs->ppcs->valid_qindex_area)
                 pcs->ppcs->avg_qp = ((pcs->ppcs->tot_qindex / pcs->ppcs->valid_qindex_area) + 2) >> 2;
-#endif
             // Get Empty Entropy Coding Results
             svt_get_empty_object(context_ptr->entropy_coding_output_fifo_ptr, &entropy_coding_results_wrapper_ptr);
             entropy_coding_results_ptr = (EntropyCodingResults *)entropy_coding_results_wrapper_ptr->object_ptr;

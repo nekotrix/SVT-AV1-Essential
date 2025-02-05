@@ -22,9 +22,7 @@
 #include "md_process.h"
 #include "enc_inter_prediction.h"
 #include "svt_log.h"
-#if CLN_LCG_RAND16
 #include "random.h"
-#endif
 
 #define DIVIDE_AND_ROUND(x, y) (((x) + ((y) >> 1)) / (y))
 
@@ -1055,14 +1053,6 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
     return EB_ErrorNone;
 }
 
-#if !CLN_LCG_RAND16
-// Generate a random number in the range [0, 32768).
-static INLINE unsigned int lcg_rand16(unsigned int *state) {
-    *state = (unsigned int)(*state * 1103515245ULL + 12345);
-    return *state / 65536 % 32768;
-}
-#endif
-
 // Compute the horizontal frequency components' energy in a frame
 // by calculuating the 16x4 Horizontal DCT. This is to be used to
 // decide the superresolution parameters.
@@ -1371,14 +1361,10 @@ void scale_pcs_params(SequenceControlSet *scs, PictureParentControlSet *pcs, sup
     pcs->picture_sb_width  = picture_sb_width; // TODO: use this instead of re-computing
     pcs->picture_sb_height = picture_sb_height;
 
-#if FIX_SUPERRES
     // number of b64s
-    const uint16_t picture_b64_width = (uint16_t)((aligned_width + scs->b64_size - 1) / scs->b64_size);
+    const uint16_t picture_b64_width  = (uint16_t)((aligned_width + scs->b64_size - 1) / scs->b64_size);
     const uint16_t picture_b64_height = (uint16_t)((aligned_height + scs->b64_size - 1) / scs->b64_size);
-    pcs->b64_total_count = picture_b64_width * picture_b64_height;
-#else
-    pcs->b64_total_count = picture_sb_width * picture_sb_height;
-#endif
+    pcs->b64_total_count              = picture_b64_width * picture_b64_height;
 
     // mi params
     cm->mi_stride = picture_sb_width * (scs->sb_size >> MI_SIZE_LOG2);

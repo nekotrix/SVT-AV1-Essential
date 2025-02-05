@@ -17,14 +17,6 @@
 
 #define DIVIDE_AND_ROUND(x, y) (((x) + ((y) >> 1)) / (y))
 
-#if !CLN_LCG_RAND16
-// Generate a random number in the range [0, 32768).
-static INLINE unsigned int lcg_rand16(unsigned int *state) {
-    *state = (unsigned int)(*state * 1103515245ULL + 12345);
-    return *state / 65536 % 32768;
-}
-#endif
-
 #define AV1_K_MEANS_RENAME(func, dim) func##_dim##dim##_c
 
 void AV1_K_MEANS_RENAME(svt_av1_calc_indices, 1)(const int *data, const int *centroids, uint8_t *indices, int n, int k);

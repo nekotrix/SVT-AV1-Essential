@@ -1562,12 +1562,8 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
     Bool perform_rdoq;
 
     // If rdoq_level is specified in the command line instruction, set perform_rdoq accordingly.
-#if FTR_LOSSLESS_SUPPORT
     perform_rdoq = !svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) &&
         ((ctx->mds_skip_rdoq == FALSE || is_encode_pass) && ctx->rdoq_level);
-#else
-    perform_rdoq = ((ctx->mds_skip_rdoq == FALSE || is_encode_pass) && ctx->rdoq_level);
-#endif
     const int dequant_shift = ctx->hbd_md ? pcs->ppcs->enhanced_pic->bit_depth - 5 : 3;
     const int qstep         = candidate_plane.dequant_qtx[1] /*[AC]*/ >> dequant_shift;
     if (!is_encode_pass) {
@@ -1688,15 +1684,11 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
     // Derive cul_level
     return svt_av1_compute_cul_level(scan_order->scan, quant_coeff, eob);
 }
-#if FTR_LOSSLESS_SUPPORT
 void svt_aom_inv_transform_recon_wrapper(PictureControlSet *pcs, ModeDecisionContext *ctx, uint8_t *pred_buffer,
-                                         uint32_t pred_offset, uint32_t pred_stride,
-#else
-void svt_aom_inv_transform_recon_wrapper(uint8_t *pred_buffer, uint32_t pred_offset, uint32_t pred_stride,
-#endif
-                                         uint8_t *rec_buffer, uint32_t rec_offset, uint32_t rec_stride,
-                                         int32_t *rec_coeff_buffer, uint32_t coeff_offset, Bool hbd, TxSize txsize,
-                                         TxType transform_type, PlaneType component_type, uint32_t eob) {
+                                         uint32_t pred_offset, uint32_t pred_stride, uint8_t *rec_buffer,
+                                         uint32_t rec_offset, uint32_t rec_stride, int32_t *rec_coeff_buffer,
+                                         uint32_t coeff_offset, Bool hbd, TxSize txsize, TxType transform_type,
+                                         PlaneType component_type, uint32_t eob) {
     if (hbd) {
         svt_aom_inv_transform_recon(rec_coeff_buffer + coeff_offset,
                                     CONVERT_TO_BYTEPTR(((uint16_t *)pred_buffer) + pred_offset),
@@ -1708,11 +1700,7 @@ void svt_aom_inv_transform_recon_wrapper(uint8_t *pred_buffer, uint32_t pred_off
                                     transform_type,
                                     component_type,
                                     eob,
-#if FTR_LOSSLESS_SUPPORT
                                     svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id));
-#else
-                                    0 /*lossless*/);
-#endif
     } else {
         svt_aom_inv_transform_recon8bit(rec_coeff_buffer + coeff_offset,
                                         pred_buffer + pred_offset,
@@ -1723,11 +1711,7 @@ void svt_aom_inv_transform_recon_wrapper(uint8_t *pred_buffer, uint32_t pred_off
                                         transform_type,
                                         component_type,
                                         eob,
-#if FTR_LOSSLESS_SUPPORT
                                         svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id));
-#else
-                                        0 /*lossless*/);
-#endif
     }
 }
 /*
@@ -1781,13 +1765,9 @@ void svt_aom_full_loop_chroma_light_pd1(PictureControlSet *pcs, ModeDecisionCont
                                 ctx->blk_geom->bheight_uv);
 
         // Cb Transform
-#if FTR_LOSSLESS_SUPPORT
         svt_aom_estimate_transform(pcs,
                                    ctx,
                                    &(((int16_t *)cand_bf->residual->buffer_cb)[blk_chroma_origin_index]),
-#else
-        svt_aom_estimate_transform(&(((int16_t *)cand_bf->residual->buffer_cb)[blk_chroma_origin_index]),
-#endif
                                    cand_bf->residual->stride_cb,
                                    &(((int32_t *)ctx->tx_coeffs->buffer_cb)[0]),
                                    NOT_USED_VALUE,
@@ -1866,13 +1846,9 @@ void svt_aom_full_loop_chroma_light_pd1(PictureControlSet *pcs, ModeDecisionCont
                                 ctx->blk_geom->bwidth_uv,
                                 ctx->blk_geom->bheight_uv);
         // Cr Transform
-#if FTR_LOSSLESS_SUPPORT
         svt_aom_estimate_transform(pcs,
                                    ctx,
                                    &(((int16_t *)cand_bf->residual->buffer_cr)[blk_chroma_origin_index]),
-#else
-        svt_aom_estimate_transform(&(((int16_t *)cand_bf->residual->buffer_cr)[blk_chroma_origin_index]),
-#endif
                                    cand_bf->residual->stride_cr,
                                    &(((int32_t *)ctx->tx_coeffs->buffer_cr)[0]),
                                    NOT_USED_VALUE,
@@ -2021,13 +1997,9 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                 &(((int16_t *)cand_bf->residual->buffer_cb)[tu_cb_origin_index]);
 
             // Cb Transform
-#if FTR_LOSSLESS_SUPPORT
             svt_aom_estimate_transform(pcs,
                                        ctx,
                                        chroma_residual_ptr,
-#else
-            svt_aom_estimate_transform(chroma_residual_ptr,
-#endif
                                        cand_bf->residual->stride_cb,
                                        &(((int32_t *)ctx->tx_coeffs->buffer_cb)[txb_1d_offset]),
                                        NOT_USED_VALUE,
@@ -2064,13 +2036,9 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                 uint32_t cb_has_coeff = cand_bf->eob.u[txb_itr] > 0;
 
                 if (cb_has_coeff)
-#if FTR_LOSSLESS_SUPPORT
                     svt_aom_inv_transform_recon_wrapper(pcs,
                                                         ctx,
                                                         cand_bf->pred->buffer_cb,
-#else
-                    svt_aom_inv_transform_recon_wrapper(cand_bf->pred->buffer_cb,
-#endif
                                                         tu_cb_origin_index,
                                                         cand_bf->pred->stride_cb,
                                                         cand_bf->recon->buffer_cb,
@@ -2213,13 +2181,9 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                 &(((int16_t *)cand_bf->residual->buffer_cr)[tu_cr_origin_index]);
 
             // Cr Transform
-#if FTR_LOSSLESS_SUPPORT
             svt_aom_estimate_transform(pcs,
                                        ctx,
                                        chroma_residual_ptr,
-#else
-            svt_aom_estimate_transform(chroma_residual_ptr,
-#endif
                                        cand_bf->residual->stride_cr,
                                        &(((int32_t *)ctx->tx_coeffs->buffer_cr)[txb_1d_offset]),
                                        NOT_USED_VALUE,
@@ -2254,13 +2218,9 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                 uint32_t cr_has_coeff = cand_bf->eob.v[txb_itr] > 0;
 
                 if (cr_has_coeff)
-#if FTR_LOSSLESS_SUPPORT
                     svt_aom_inv_transform_recon_wrapper(pcs,
                                                         ctx,
                                                         cand_bf->pred->buffer_cr,
-#else
-                    svt_aom_inv_transform_recon_wrapper(cand_bf->pred->buffer_cr,
-#endif
                                                         tu_cr_origin_index,
                                                         cand_bf->pred->stride_cr,
                                                         cand_bf->recon->buffer_cr,

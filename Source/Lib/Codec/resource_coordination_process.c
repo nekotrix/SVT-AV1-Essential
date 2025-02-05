@@ -1099,11 +1099,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 if (pcs->stat_struct.poc != pcs->picture_number)
                     SVT_LOG("Error reading data in multi pass encoding\n");
             }
-#if FIX_BOOL
             if (scs->static_config.use_qp_file) {
-#else
-            if (scs->static_config.use_qp_file == 1) {
-#endif
                 pcs->qp_on_the_fly = TRUE;
                 if (pcs->input_ptr->qp > MAX_QP_VALUE) {
                     SVT_WARN("INPUT QP/CRF OUTSIDE OF RANGE\n");
@@ -1114,11 +1110,9 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 pcs->qp_on_the_fly = FALSE;
                 pcs->picture_qp    = (uint8_t)scs->static_config.qp;
             }
-#if FTR_SIGNAL_AVERAGE_QP
             // Initialize variables for calculating the average QP
-            pcs->tot_qindex        = 0;
-            pcs->valid_qindex_area = 0;
-#endif
+            pcs->tot_qindex               = 0;
+            pcs->valid_qindex_area        = 0;
             pcs->ts_duration              = (double)10000000 * (1 << 16) / scs->frame_rate;
             scs->enc_ctx->initial_picture = FALSE;
 
@@ -1139,74 +1133,6 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 // y8b follows longest life cycle of pa ref and input. so it needs to build on top of live count of pa ref
                 svt_object_inc_live_count(pcs->y8b_wrapper, 1);
             }
-#if !CLN_REM_RMV
-            if (scs->static_config.restricted_motion_vector) {
-                struct PictureParentControlSet *ppcs = pcs;
-                Av1Common *const                cm   = ppcs->av1_cm;
-#if FIX_RMV_SB128
-                const uint8_t pic_width_in_b64 = (uint8_t)((pcs->aligned_width + scs->b64_size - 1) / scs->b64_size);
-                const int     tile_cols        = cm->tiles_info.tile_cols;
-                const int     tile_rows        = cm->tiles_info.tile_rows;
-                TileInfo      tile_info;
-                const int     b64_mi_size_log2 = 4; // see setting of scs->seq_header.sb_size_log2 for SB64x64
-                //Tile Loop
-                for (int tile_row = 0; tile_row < tile_rows; tile_row++) {
-                    svt_av1_tile_set_row(&tile_info, &cm->tiles_info, cm->mi_rows, tile_row);
-
-                    for (int tile_col = 0; tile_col < tile_cols; tile_col++) {
-                        svt_av1_tile_set_col(&tile_info, &cm->tiles_info, cm->mi_cols, tile_col);
-
-                        for (uint32_t y_b64_index = cm->tiles_info.tile_row_start_mi[tile_row] >> b64_mi_size_log2;
-                             y_b64_index <
-                             ((uint32_t)cm->tiles_info.tile_row_start_mi[tile_row + 1] >> b64_mi_size_log2);
-                             y_b64_index++) {
-                            for (uint32_t x_b64_index = cm->tiles_info.tile_col_start_mi[tile_col] >> b64_mi_size_log2;
-                                 x_b64_index <
-                                 ((uint32_t)cm->tiles_info.tile_col_start_mi[tile_col + 1] >> b64_mi_size_log2);
-                                 x_b64_index++) {
-                                int b64_index = (uint16_t)(x_b64_index + y_b64_index * pic_width_in_b64);
-                                scs->b64_geom[b64_index].tile_start_x = 4 * tile_info.mi_col_start;
-                                scs->b64_geom[b64_index].tile_end_x   = 4 * tile_info.mi_col_end;
-                                scs->b64_geom[b64_index].tile_start_y = 4 * tile_info.mi_row_start;
-                                scs->b64_geom[b64_index].tile_end_y   = 4 * tile_info.mi_row_end;
-                            }
-                        }
-                    }
-                }
-#else
-                uint8_t   pic_width_in_sb = (uint8_t)((pcs->aligned_width + scs->sb_size - 1) / scs->sb_size);
-                int       tile_row, tile_col;
-                uint32_t  x_sb_index, y_sb_index;
-                const int tile_cols = cm->tiles_info.tile_cols;
-                const int tile_rows = cm->tiles_info.tile_rows;
-                TileInfo  tile_info;
-                int       sb_size_log2 = scs->seq_header.sb_size_log2;
-                //Tile Loop
-                for (tile_row = 0; tile_row < tile_rows; tile_row++) {
-                    svt_av1_tile_set_row(&tile_info, &cm->tiles_info, cm->mi_rows, tile_row);
-
-                    for (tile_col = 0; tile_col < tile_cols; tile_col++) {
-                        svt_av1_tile_set_col(&tile_info, &cm->tiles_info, cm->mi_cols, tile_col);
-
-                        for ((y_sb_index = cm->tiles_info.tile_row_start_mi[tile_row] >> sb_size_log2);
-                             (y_sb_index < ((uint32_t)cm->tiles_info.tile_row_start_mi[tile_row + 1] >> sb_size_log2));
-                             y_sb_index++) {
-                            for ((x_sb_index = cm->tiles_info.tile_col_start_mi[tile_col] >> sb_size_log2);
-                                 (x_sb_index <
-                                  ((uint32_t)cm->tiles_info.tile_col_start_mi[tile_col + 1] >> sb_size_log2));
-                                 x_sb_index++) {
-                                int sb_index = (uint16_t)(x_sb_index + y_sb_index * pic_width_in_sb);
-                                scs->b64_geom[sb_index].tile_start_x = 4 * tile_info.mi_col_start;
-                                scs->b64_geom[sb_index].tile_end_x   = 4 * tile_info.mi_col_end;
-                                scs->b64_geom[sb_index].tile_start_y = 4 * tile_info.mi_row_start;
-                                scs->b64_geom[sb_index].tile_end_y   = 4 * tile_info.mi_row_end;
-                            }
-                        }
-                    }
-                }
-#endif
-            }
-#endif
 #if OPT_LD_LATENCY2
             // Get Empty Output Results Object
             // For the low delay mode, buffering for receiving EOS does not happen

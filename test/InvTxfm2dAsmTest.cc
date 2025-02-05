@@ -94,8 +94,8 @@ class InvTxfm2dAsmTestBase : public ::testing::Test {
     // some tx_size;
     void populate_with_random(const int width, const int height,
                               const TxType tx_type, const TxSize tx_size) {
-        using FwdTxfm2dFunc = void (*)(int16_t *input,
-                                       int32_t *output,
+        using FwdTxfm2dFunc = void (*)(int16_t * input,
+                                       int32_t * output,
                                        uint32_t stride,
                                        TxType tx_type,
                                        uint8_t bd);

@@ -13,9 +13,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "utility.h"
-#if CLN_LCG_RAND16
 #include "random.h"
-#endif
 
 #ifndef AV1_K_MEANS_DIM
 #error "This template requires AV1_K_MEANS_DIM to be defined"

@@ -3092,7 +3092,6 @@ static EbErrorType av1_estimate_transform_default(int16_t *residual_buffer, uint
 
     return return_error;
 }
-#if FTR_LOSSLESS_SUPPORT
 /* 4-point reversible, orthonormal Walsh-Hadamard in 3.5 adds, 0.5 shifts per
    pixel.
    Shared for both high and low bit depth.
@@ -3150,21 +3149,16 @@ void svt_av1_fwht4x4_c(int16_t *input, int32_t *output, uint32_t stride) {
         op++;
     }
 }
-#endif
 
 /*********************************************************************
 * Transform
 *   Note there is an implicit assumption that TU Size <= PU Size,
 *   which is different than the HEVC requirements.
 *********************************************************************/
-#if FTR_LOSSLESS_SUPPORT
 EbErrorType svt_aom_estimate_transform(PictureControlSet *pcs, ModeDecisionContext *ctx, int16_t *residual_buffer,
-                                       uint32_t residual_stride, int32_t *coeff_buffer,
-#else
-EbErrorType svt_aom_estimate_transform(int16_t *residual_buffer, uint32_t residual_stride, int32_t *coeff_buffer,
-#endif
-                                       uint32_t coeff_stride, TxSize transform_size, uint64_t *three_quad_energy,
-                                       uint32_t bit_depth, TxType transform_type, PlaneType component_type,
+                                       uint32_t residual_stride, int32_t *coeff_buffer, uint32_t coeff_stride,
+                                       TxSize transform_size, uint64_t *three_quad_energy, uint32_t bit_depth,
+                                       TxType transform_type, PlaneType component_type,
                                        EB_TRANS_COEFF_SHAPE trans_coeff_shape)
 
 {
@@ -3172,7 +3166,6 @@ EbErrorType svt_aom_estimate_transform(int16_t *residual_buffer, uint32_t residu
     (void)coeff_stride;
     (void)component_type;
 
-#if FTR_LOSSLESS_SUPPORT
     if (svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id)) {
         assert(transform_type == DCT_DCT);
         int32_t dst[16];
@@ -3183,7 +3176,6 @@ EbErrorType svt_aom_estimate_transform(int16_t *residual_buffer, uint32_t residu
         }
         return EB_ErrorNone;
     }
-#endif
 
     switch (trans_coeff_shape) {
     case DEFAULT_SHAPE:

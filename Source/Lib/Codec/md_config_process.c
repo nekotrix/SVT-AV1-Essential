@@ -65,29 +65,18 @@ void set_global_motion_field(PictureControlSet *pcs) {
         pcs->ppcs->global_motion[frame_index].wmmat[3] = 0;
         pcs->ppcs->global_motion[frame_index].wmmat[4] = 0;
         pcs->ppcs->global_motion[frame_index].wmmat[5] = (1 << WARPEDMODEL_PREC_BITS);
-#if !CLN_WMMAT
-        pcs->ppcs->global_motion[frame_index].wmmat[6] = 0;
-        pcs->ppcs->global_motion[frame_index].wmmat[7] = 0;
-#endif
     }
 
     //Update MV
     PictureParentControlSet *ppcs = pcs->ppcs;
     for (frame_index = INTRA_FRAME; frame_index <= ALTREF_FRAME; ++frame_index) {
-#if FIX_GM_TRANS
         const uint8_t list_idx = get_list_idx(frame_index);
         const uint8_t ref_idx  = get_ref_frame_idx(frame_index);
         if (!ppcs->is_global_motion[list_idx][ref_idx])
             continue;
         ppcs->global_motion[frame_index] = ppcs->svt_aom_global_motion_estimation[list_idx][ref_idx];
-#else
-        if (ppcs->is_global_motion[get_list_idx(frame_index)][get_ref_frame_idx(frame_index)])
-            ppcs->global_motion[frame_index] =
-                ppcs->svt_aom_global_motion_estimation[get_list_idx(frame_index)][get_ref_frame_idx(frame_index)];
-#endif
         uint8_t sf = ppcs->gm_downsample_level == GM_DOWN ? 2 : ppcs->gm_downsample_level == GM_DOWN16 ? 4 : 1;
         svt_aom_upscale_wm_params(&ppcs->global_motion[frame_index], sf);
-#if FIX_GM_TRANS
         if (ppcs->global_motion[frame_index].wmtype == TRANSLATION) {
             // The offset to derive the translation is different when the wmtype is TRANSLATION. Therefore,
             // for translation convert the param to the correct offset.
@@ -116,7 +105,6 @@ void set_global_motion_field(PictureControlSet *pcs) {
             ppcs->global_motion[frame_index].wmmat[1] = ppcs->global_motion[frame_index].wmmat[0];
             ppcs->global_motion[frame_index].wmmat[0] = temp_wm1;
         }
-#endif
     }
 }
 
@@ -697,12 +685,6 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         // Init block selection
         // Set reference sg ep
         set_reference_sg_ep(pcs);
-#if !CLN_UNUSED_GM_SIGS
-        if (pcs->ppcs->gm_ctrls.use_ref_info) {
-            assert(pcs->slice_type != I_SLICE);
-            svt_aom_global_motion_estimation(pcs->ppcs, pcs->ppcs->enhanced_pic);
-        }
-#endif
         set_global_motion_field(pcs);
 
         svt_av1_qm_init(pcs->ppcs);
@@ -809,12 +791,8 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
 
             svt_av1_init3smotion_compensation(&pcs->ss_cfg, pcs->ppcs->enhanced_pic->stride_y);
         }
-#if CLN_CDEF_LVLS
         CdefSearchControls *cdef_ctrls = &pcs->ppcs->cdef_search_ctrls;
-#else
-        CdefControls *cdef_ctrls = &pcs->ppcs->cdef_ctrls;
-#endif
-        uint8_t skip_perc = pcs->ref_skip_percentage;
+        uint8_t             skip_perc  = pcs->ref_skip_percentage;
         if ((skip_perc > 75 && cdef_ctrls->use_skip_detector) ||
             (scs->vq_ctrls.sharpness_ctrls.cdef && pcs->ppcs->is_noise_level))
             pcs->ppcs->cdef_level = 0;
@@ -921,7 +899,6 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             pcs->ppcs->enable_restoration = 0;
         }
 
-#if FTR_LOSSLESS_SUPPORT // ---
         pcs->mimic_only_tx_4x4 = 0;
         if (frm_hdr->segmentation_params.segmentation_enabled) {
             Bool has_lossless_segment = 0;
@@ -985,7 +962,6 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             pcs->pic_lpd0_lvl                           = 0;
             pcs->pic_lpd1_lvl                           = 0;
         }
-#endif
         // Post the results to the MD processes
         uint16_t tg_count = pcs->ppcs->tile_group_cols * pcs->ppcs->tile_group_rows;
         for (uint16_t tile_group_idx = 0; tile_group_idx < tg_count; tile_group_idx++) {

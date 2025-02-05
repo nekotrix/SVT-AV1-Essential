@@ -126,9 +126,7 @@ typedef struct PictureDecisionContext {
     bool     enable_startup_mg;
     uint32_t filt_to_unfilt_diff;
     bool     list0_only;
-#if FTR_STARTUP_QP
-    bool is_startup_gop;
-#endif
+    bool     is_startup_gop;
 } PictureDecisionContext;
 
 #endif // EbPictureDecision_h

@@ -90,7 +90,6 @@ static INLINE int32_t least_squares(int32_t n, double *A, int32_t rows, int32_t 
     return ret;
 }
 
-#if CLN_RANSAC
 // Least-squares
 // Solves for n-dim x in a least squares sense to minimize |Ax - b|^2
 // The solution is simply x = (A'A)^-1 A'b or simply the solution for
@@ -126,7 +125,6 @@ static INLINE void least_squares_accumulate(double *mat, double *y, const double
 }
 
 static INLINE int least_squares_solve(double *mat, double *y, double *x, int n) { return linsolve(n, mat, n, y, x); }
-#endif
 
 // Matrix multiply
 static INLINE void multiply_mat(const double *m1, const double *m2, double *res, const int32_t m1_rows,

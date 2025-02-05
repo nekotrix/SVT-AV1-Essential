@@ -118,12 +118,6 @@
 #define MAX_BIT_RATE_TOKEN "--mbr"
 #define MAX_QP_TOKEN "--max-qp"
 #define MIN_QP_TOKEN "--min-qp"
-#if !FIX_VBR_BIAS_PCT
-#if !SVT_AV1_CHECK_VERSION(2, 0, 0)
-/* DEPRECATED: to be removed in 2.0.0. */
-#define VBR_BIAS_PCT_TOKEN "--bias-pct"
-#endif
-#endif
 #define VBR_MIN_SECTION_PCT_TOKEN "--minsection-pct"
 #define VBR_MAX_SECTION_PCT_TOKEN "--maxsection-pct"
 #define UNDER_SHOOT_PCT_TOKEN "--undershoot-pct"
@@ -145,9 +139,6 @@
 #define THREAD_MGMNT "--lp"
 #define PIN_TOKEN "--pin"
 #define TARGET_SOCKET "--ss"
-#if !CLN_REM_RMV
-#define RESTRICTED_MOTION_VECTOR "--rmv"
-#endif
 
 //double dash
 #define PRESET_TOKEN "--preset"
@@ -162,9 +153,6 @@
 #define MFMV_ENABLE_NEW_TOKEN "--enable-mfmv"
 #define DG_ENABLE_NEW_TOKEN "--enable-dg"
 #define FAST_DECODE_TOKEN "--fast-decode"
-#if !FIX_HIGH_DYNAMIC_RANGE_INPUT
-#define HDR_INPUT_NEW_TOKEN "--enable-hdr"
-#endif
 #define ADAPTIVE_QP_ENABLE_NEW_TOKEN "--aq-mode"
 #define INPUT_FILE_LONG_TOKEN "--input"
 #define OUTPUT_BITSTREAM_LONG_TOKEN "--output"
@@ -197,20 +185,14 @@
 #define MAX_QM_LEVEL_TOKEN "--qm-max"
 
 #define STARTUP_MG_SIZE_TOKEN "--startup-mg-size"
-#if FTR_STARTUP_QP
 #define STARTUP_QP_OFFSET_TOKEN "--startup-qp-offset"
-#endif
 #define ROI_MAP_FILE_TOKEN "--roi-map-file"
 
 #define ENABLE_VARIANCE_BOOST_TOKEN "--enable-variance-boost"
 #define VARIANCE_BOOST_STRENGTH_TOKEN "--variance-boost-strength"
 #define VARIANCE_OCTILE_TOKEN "--variance-octile"
-#if FTR_LOSSLESS_SUPPORT
 #define LOSSLESS_TOKEN "--lossless"
-#endif
-#if FTR_STILL_PICTURE
 #define AVIF_TOKEN "--avif"
-#endif
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -747,12 +729,6 @@ ConfigEntry config_entry_global_options[] = {
      "Bitstream level, defined in A.3 of the av1 spec, default is 0 [0: autodetect from input, "
      "2.0-7.3]",
      set_level},
-#if !FIX_HIGH_DYNAMIC_RANGE_INPUT
-    {SINGLE_INPUT,
-     HDR_INPUT_NEW_TOKEN,
-     "Enable writing of HDR metadata in the bitstream, default is 0 [0-1]",
-     set_cfg_generic_token},
-#endif
     {SINGLE_INPUT,
      FRAME_RATE_TOKEN,
      "Input video frame rate, integer values only, inferred if y4m, default is 60 [1-240]",
@@ -789,7 +765,6 @@ ConfigEntry config_entry_global_options[] = {
      "Limit assembly instruction set, only applicable to x86, default is max [c, mmx, sse, sse2, "
      "sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512, max]",
      set_cfg_generic_token},
-#if FIX_SVT_AV1_CHECK_VERSION
     {SINGLE_INPUT,
      THREAD_MGMNT,
      "Amount of parallelism to use. 0 means choose the level based on machine core count. Refer to Appendix A.1 "
@@ -802,20 +777,6 @@ ConfigEntry config_entry_global_options[] = {
      "Appendix "
      "A.1 of the user guide, default is 0 [0, core count of the machine]",
      set_cfg_generic_token},
-#else
-    {SINGLE_INPUT,
-     THREAD_MGMNT,
-     "Target (best effort) number of logical cores to be used. 0 means all. Refer to Appendix A.1 "
-     "of the user "
-     "guide, default is 0 [0, core count of the machine]",
-     set_cfg_generic_token},
-    {SINGLE_INPUT,
-     PIN_TOKEN,
-     "Pin the execution to the first --lp cores. Overwritten to 1 when `--ss` is set. Refer to "
-     "Appendix "
-     "A.1 of the user guide, default is 0 [0-1]",
-     set_cfg_generic_token},
-#endif
     {SINGLE_INPUT,
      TARGET_SOCKET,
      "Specifies which socket to run on, assumes a max of two sockets. Refer to Appendix A.1 of the "
@@ -940,15 +901,6 @@ ConfigEntry config_entry_rc[] = {
      "Recode loop level, refer to \"Recode loop level table\" in the user guide for more info [0: "
      "off, 4: preset based]",
      set_cfg_generic_token},
-#if !FIX_VBR_BIAS_PCT
-#if !SVT_AV1_CHECK_VERSION(2, 0, 0)
-    /* DEPRECATED: to be removed in 2.0.0. */
-    {SINGLE_INPUT,
-     VBR_BIAS_PCT_TOKEN,
-     "CBR/VBR bias, default is 50 [0: CBR-like, 1-99, 100: VBR-like] DEPRECATED: to be removed in 2.0.0",
-     set_cfg_generic_token},
-#endif
-#endif
     {SINGLE_INPUT,
      VBR_MIN_SECTION_PCT_TOKEN,
      "GOP min bitrate (expressed as a percentage of the target rate), default is 0 [0-100]",
@@ -1028,13 +980,11 @@ ConfigEntry config_entry_intra_refresh[] = {
      "is 0 [0: OFF, "
      "2: 3 temporal layers, 3: 4 temporal layers, 4: 5 temporal layers]",
      set_cfg_generic_token},
-#if FTR_STARTUP_QP
     {SINGLE_INPUT,
      STARTUP_QP_OFFSET_TOKEN,
      "Specify an offset to the input-qp of the startup GOP prior to the picture-qp derivation, default "
      "is 0 [-63,63]",
      set_cfg_generic_token},
-#endif
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};
 
@@ -1096,13 +1046,6 @@ ConfigEntry config_entry_specific[] = {
      SCREEN_CONTENT_TOKEN,
      "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive]",
      set_cfg_generic_token},
-#if !CLN_REM_RMV
-    // Optional Features
-    {SINGLE_INPUT,
-     RESTRICTED_MOTION_VECTOR,
-     "Restrict motion vectors from reaching outside the picture boundary, default is 0 [0-1]",
-     set_cfg_generic_token},
-#endif
     // Annex A parameters
     {SINGLE_INPUT,
      FILM_GRAIN_TOKEN,
@@ -1179,13 +1122,9 @@ ConfigEntry config_entry_specific[] = {
      RESIZE_FRAME_DENOMS,
      "Resize denominator in event, in a list separated by ',', only applicable for mode == 4",
      set_cfg_generic_token},
-// --- end: REFERENCE SCALING SUPPORT
-#if FTR_LOSSLESS_SUPPORT
+    // --- end: REFERENCE SCALING SUPPORT
     {SINGLE_INPUT, LOSSLESS_TOKEN, "Enable lossless coding, default is 0 [0-1]", set_cfg_generic_token},
-#endif
-#if FTR_STILL_PICTURE
     {SINGLE_INPUT, AVIF_TOKEN, "Enable still-picture coding, default is 0 [0-1]", set_cfg_generic_token},
-#endif
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};
 
@@ -1270,9 +1209,6 @@ ConfigEntry config_entry[] = {
     {SINGLE_INPUT, ENCODER_COLOR_FORMAT, "EncoderColorFormat", set_cfg_generic_token},
     {SINGLE_INPUT, PROFILE_TOKEN, "Profile", set_cfg_generic_token},
     {SINGLE_INPUT, LEVEL_TOKEN, "Level", set_level},
-#if !FIX_HIGH_DYNAMIC_RANGE_INPUT
-    {SINGLE_INPUT, HDR_INPUT_NEW_TOKEN, "HighDynamicRangeInput", set_cfg_generic_token},
-#endif
     //   Frame Rate tokens
     {SINGLE_INPUT, FRAME_RATE_TOKEN, "FrameRate", set_frame_rate},
     {SINGLE_INPUT, FRAME_RATE_NUMERATOR_TOKEN, "FrameRateNumerator", set_cfg_generic_token},
@@ -1290,12 +1226,8 @@ ConfigEntry config_entry[] = {
     //   Asm Type
     {SINGLE_INPUT, ASM_TYPE_TOKEN, "Asm", set_cfg_generic_token},
 
-//   Thread Management
-#if FIX_SVT_AV1_CHECK_VERSION
+    //   Thread Management
     {SINGLE_INPUT, THREAD_MGMNT, "LevelOfParallelism", set_cfg_generic_token},
-#else
-    {SINGLE_INPUT, THREAD_MGMNT, "LogicalProcessors", set_cfg_generic_token},
-#endif
     {SINGLE_INPUT, PIN_TOKEN, "PinnedExecution", set_cfg_generic_token},
     {SINGLE_INPUT, TARGET_SOCKET, "TargetSocket", set_cfg_generic_token},
 
@@ -1335,12 +1267,6 @@ ConfigEntry config_entry[] = {
     {SINGLE_INPUT, BUFFER_INITIAL_SIZE_TOKEN, "BufInitialSz", set_cfg_generic_token},
     {SINGLE_INPUT, BUFFER_OPTIMAL_SIZE_TOKEN, "BufOptimalSz", set_cfg_generic_token},
     {SINGLE_INPUT, RECODE_LOOP_TOKEN, "RecodeLoop", set_cfg_generic_token},
-#if !FIX_VBR_BIAS_PCT
-#if !SVT_AV1_CHECK_VERSION(2, 0, 0)
-    /* DEPRECATED: to be removed in 2.0.0. */
-    {SINGLE_INPUT, VBR_BIAS_PCT_TOKEN, "VBRBiasPct", set_cfg_generic_token},
-#endif
-#endif
     {SINGLE_INPUT, VBR_MIN_SECTION_PCT_TOKEN, "MinSectionPct", set_cfg_generic_token},
     {SINGLE_INPUT, VBR_MAX_SECTION_PCT_TOKEN, "MaxSectionPct", set_cfg_generic_token},
 
@@ -1360,9 +1286,7 @@ ConfigEntry config_entry[] = {
     {SINGLE_INPUT, PRED_STRUCT_TOKEN, "PredStructure", set_cfg_generic_token},
     {SINGLE_INPUT, FORCE_KEY_FRAMES_TOKEN, "ForceKeyFrames", set_cfg_force_key_frames},
     {SINGLE_INPUT, STARTUP_MG_SIZE_TOKEN, "StartupMgSize", set_cfg_generic_token},
-#if FTR_STARTUP_QP
     {SINGLE_INPUT, STARTUP_QP_OFFSET_TOKEN, "StartupGopQpOffset", set_cfg_generic_token},
-#endif
     // AV1 Specific Options
     {SINGLE_INPUT, TILE_ROW_TOKEN, "TileRow", set_cfg_generic_token},
     {SINGLE_INPUT, TILE_COL_TOKEN, "TileCol", set_cfg_generic_token},
@@ -1378,9 +1302,6 @@ ConfigEntry config_entry[] = {
     {SINGLE_INPUT, ENABLE_TF_TOKEN, "EnableTf", set_cfg_generic_token},
     {SINGLE_INPUT, ENABLE_OVERLAYS, "EnableOverlays", set_cfg_generic_token},
     {SINGLE_INPUT, SCREEN_CONTENT_TOKEN, "ScreenContentMode", set_cfg_generic_token},
-#if !CLN_REM_RMV
-    {SINGLE_INPUT, RESTRICTED_MOTION_VECTOR, "RestrictedMotionVector", set_cfg_generic_token},
-#endif
     {SINGLE_INPUT, FILM_GRAIN_TOKEN, "FilmGrain", set_cfg_generic_token},
     {SINGLE_INPUT, FILM_GRAIN_DENOISE_APPLY_TOKEN, "FilmGrainDenoise", set_cfg_generic_token},
     {SINGLE_INPUT, FGS_TABLE_TOKEN, "FilmGrainTable", set_cfg_fgs_table_path},
@@ -1425,13 +1346,9 @@ ConfigEntry config_entry[] = {
     {SINGLE_INPUT, VARIANCE_BOOST_STRENGTH_TOKEN, "VarianceBoostStrength", set_cfg_generic_token},
     {SINGLE_INPUT, VARIANCE_OCTILE_TOKEN, "VarianceOctile", set_cfg_generic_token},
 
-#if FTR_LOSSLESS_SUPPORT
     // Lossless coding
     {SINGLE_INPUT, LOSSLESS_TOKEN, "Lossless", set_cfg_generic_token},
-#endif
-#if FTR_STILL_PICTURE
     {SINGLE_INPUT, AVIF_TOKEN, "Avif", set_cfg_generic_token},
-#endif
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};
 
@@ -1525,11 +1442,7 @@ EbErrorType enc_channel_ctor(EncChannel *c) {
     c->exit_cond_recon  = APP_ExitConditionError;
     c->exit_cond_input  = APP_ExitConditionError;
     c->active           = FALSE;
-#if FIX_P_APP_DATA
     return svt_av1_enc_init_handle(&c->app_cfg->svt_encoder_handle, &c->app_cfg->config);
-#else
-    return svt_av1_enc_init_handle(&c->app_cfg->svt_encoder_handle, c->app_cfg, &c->app_cfg->config);
-#endif
 }
 
 void enc_channel_dctor(EncChannel *c, uint32_t inst_cnt) {
@@ -2402,13 +2315,8 @@ uint32_t get_passes(int32_t argc, char *const argv[], EncPass enc_pass[MAX_ENC_P
         if (passes == 1)
             multi_pass_mode = SINGLE_PASS;
         else if (passes > 1) {
-#if CLN_SHIFT_M11
             // M11, M12, and M13 are mapped to M10, so treat M11, M12, and M13 the same as M10
             if (enc_mode > ENC_M9) {
-#else
-            // M12 and M13 are mapped to M11, so treat M12 and M13 the same as M11
-            if (enc_mode > ENC_M10) {
-#endif
                 fprintf(stderr, "[SVT-Error]:  Multipass VBR is not supported for preset %d.\n\n", enc_mode);
                 return 0;
             } else {
@@ -2482,9 +2390,6 @@ static Bool warn_legacy_token(const char *const token) {
         {"-adaptive-quantization", ADAPTIVE_QP_ENABLE_NEW_TOKEN},
         {"-bit-depth", INPUT_DEPTH_TOKEN},
         {"-enc-mode", PRESET_TOKEN},
-#if !FIX_HIGH_DYNAMIC_RANGE_INPUT
-        {"-hdr", HDR_INPUT_NEW_TOKEN},
-#endif
         {"-intra-period", KEYINT_TOKEN},
         {"-lad", LOOKAHEAD_NEW_TOKEN},
         {"-mfmv", MFMV_ENABLE_NEW_TOKEN},

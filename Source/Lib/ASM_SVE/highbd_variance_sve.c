@@ -135,7 +135,7 @@ static INLINE void highbd_variance_128xh_sve(const uint16_t *src, int src_stride
         highbd_variance_##w##xh_sve(src, src_stride, ref, ref_stride, h, &sse_long, &sum_long);          \
         *sse        = (uint32_t)ROUND_POWER_OF_TWO(sse_long, 4);                                         \
         int     sum = (int)ROUND_POWER_OF_TWO(sum_long, 2);                                              \
-        int64_t var = (int64_t) * sse - (int64_t)sum * sum / (w * h);                                    \
+        int64_t var = (int64_t)*sse - (int64_t)sum * sum / (w * h);                                      \
         return var >= 0 ? (uint32_t)var : 0;                                                             \
     }
 

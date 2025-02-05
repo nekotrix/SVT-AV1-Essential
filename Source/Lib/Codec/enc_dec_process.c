@@ -1764,37 +1764,6 @@ void pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *scs) {
     // set up the Slice Type
     ref_object->slice_type = pcs->ppcs->slice_type;
     ref_object->r0         = pcs->ppcs->r0;
-#if !CLN_UNUSED_GM_SIGS
-    if (pcs->ppcs->gm_ctrls.enabled && pcs->ppcs->gm_ctrls.use_ref_info) {
-        bool gm_need_full, gm_need_quart, gm_need_sixteen;
-
-        svt_aom_get_gm_needed_resolutions(
-            +pcs->ppcs->gm_ctrls.downsample_level, &gm_need_full, &gm_need_quart, &gm_need_sixteen);
-
-        if (gm_need_full) {
-            EbPictureBufferDesc *inp = pcs->ppcs->enhanced_pic;
-            uint8_t             *src = inp->buffer_y + inp->org_x + inp->org_y * inp->stride_y;
-
-            EbPictureBufferDesc *ref = ref_object->input_picture;
-            uint8_t             *dst = ref->buffer_y + ref->org_x + ref->org_y * ref->stride_y;
-
-            svt_aom_assert_err(inp->max_height == ref->max_height, "ERR BUF");
-            svt_aom_assert_err(inp->max_width == ref->max_width, "ERR BUF");
-            for (int j = 0; j < inp->max_height; j++)
-                memcpy(dst + j * ref->stride_y, src + j * inp->stride_y, inp->max_width);
-        }
-        if (gm_need_quart) {
-            EbPictureBufferDesc *ref = ref_object->quarter_reference_picture;
-            svt_aom_assert_err(pcs->ppcs->quarter_src_pic->luma_size == ref->luma_size, "ERR BUF");
-            memcpy(ref->buffer_y, pcs->ppcs->quarter_src_pic->buffer_y, ref->luma_size);
-        }
-        if (gm_need_sixteen) {
-            EbPictureBufferDesc *ref = ref_object->sixteenth_reference_picture;
-            svt_aom_assert_err(pcs->ppcs->sixteenth_src_pic->luma_size == ref->luma_size, "ERR BUF");
-            memcpy(ref->buffer_y, pcs->ppcs->sixteenth_src_pic->buffer_y, ref->luma_size);
-        }
-    }
-#endif
 }
 /*
  * Generate depth removal settings
@@ -2237,10 +2206,8 @@ static void build_cand_block_array(SequenceControlSet *scs, PictureControlSet *p
                 (blk_geom->sq_size < min_sq_size)
             ? 0
             : 1;
-#if FTR_LOSSLESS_SUPPORT
         // Only 8x8 and 16x16 block(s) are supported if lossless
         is_block_tagged = pcs->mimic_only_tx_4x4 && blk_geom->sq_size > 8 ? 0 : is_block_tagged;
-#endif
         // SQ/NSQ block(s) filter based on the block validity
         if (is_block_tagged) {
             if (first_stage || results_ptr->consider_block[blk_index]) {

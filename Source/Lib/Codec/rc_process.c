@@ -1545,11 +1545,7 @@ void svt_aom_sb_qp_derivation_tpl_la(PictureControlSet *pcs) {
     // super res pictures scaled with different sb count, should use sb_total_count for each picture
     uint16_t sb_cnt = scs->sb_total_count;
     if (ppcs_ptr->frame_superres_enabled || ppcs_ptr->frame_resize_enabled)
-#if FIX_SUPERRES
         sb_cnt = pcs->sb_total_count;
-#else
-        sb_cnt = ppcs_ptr->b64_total_count;
-#endif
     if ((ppcs_ptr->r0_based_qps_qpm) && (pcs->ppcs->tpl_is_valid == 1)) {
 #if DEBUG_VAR_BOOST_STATS
         printf("TPL qindex boost, frame %llu, temp. level %i\n", pcs->picture_number, pcs->temporal_layer_index);
@@ -3214,22 +3210,16 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                 }
 
                 if (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF) {
-#if FTR_STARTUP_QP
                     uint8_t scs_qp = scs->static_config.startup_qp_offset != 0 && pcs->ppcs->is_startup_gop
                         ? (uint8_t)CLIP3((int8_t)scs->static_config.min_qp_allowed,
                                          (int8_t)scs->static_config.max_qp_allowed,
                                          (int8_t)scs->static_config.qp + scs->static_config.startup_qp_offset)
                         : (uint8_t)scs->static_config.qp;
-#endif
                     // if RC mode is 0,  fixed QP is used
                     // QP scaling based on POC number for Flat IPPP structure
                     // make sure no run to run is cause
                     if (pcs->ppcs->seq_param_changed)
-#if FTR_STARTUP_QP
                         rc->active_worst_quality = quantizer_to_qindex[scs_qp];
-#else
-                        rc->active_worst_quality = quantizer_to_qindex[(uint8_t)scs->static_config.qp];
-#endif
                     frm_hdr->quantization_params.base_q_idx = quantizer_to_qindex[pcs->picture_qp];
                     if (pcs->ppcs->qp_on_the_fly == TRUE) {
                         pcs->picture_qp = (uint8_t)CLIP3((int32_t)scs->static_config.min_qp_allowed,
@@ -3239,21 +3229,13 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
 
                     } else {
                         if (scs->enable_qp_scaling_flag) {
-#if FTR_STARTUP_QP
                             const int32_t qindex = quantizer_to_qindex[scs_qp];
-#else
-                            const int32_t qindex = quantizer_to_qindex[(uint8_t)scs->static_config.qp];
-#endif
                             // if there are need enough pictures in the LAD/SlidingWindow, the adaptive QP scaling is not used
                             int32_t new_qindex;
                             // if CRF
                             if (pcs->ppcs->tpl_ctrls.enable) {
                                 if (pcs->picture_number == 0) {
-#if FTR_STARTUP_QP
                                     rc->active_worst_quality = quantizer_to_qindex[scs_qp];
-#else
-                                    rc->active_worst_quality = quantizer_to_qindex[(uint8_t)scs->static_config.qp];
-#endif
                                     av1_rc_init(scs);
                                 }
                                 new_qindex = crf_qindex_calc(pcs, rc, rc->active_worst_quality);
@@ -3267,11 +3249,7 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
 
                         if (scs->static_config.use_fixed_qindex_offsets) {
                             int32_t qindex = scs->static_config.use_fixed_qindex_offsets == 1
-#if FTR_STARTUP_QP
                                 ? quantizer_to_qindex[scs_qp]
-#else
-                                ? quantizer_to_qindex[(uint8_t)scs->static_config.qp]
-#endif
                                 : frm_hdr->quantization_params
                                       .base_q_idx; // do not shut the auto QPS if use_fixed_qindex_offsets 2
 

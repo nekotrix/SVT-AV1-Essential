@@ -723,18 +723,14 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
         output_stream_ptr->n_filled_len = 0;
         output_stream_ptr->pts          = pcs->ppcs->input_ptr->pts;
         // we output one temporal unit a time, so dts alwasy equals to pts.
-        output_stream_ptr->dts           = output_stream_ptr->pts;
-        output_stream_ptr->pic_type      = pcs->ppcs->is_ref
-                 ? pcs->ppcs->idr_flag ? EB_AV1_KEY_PICTURE : (EbAv1PictureType)pcs->slice_type
-                 : EB_AV1_NON_REF_PICTURE;
-        output_stream_ptr->p_app_private = pcs->ppcs->input_ptr->p_app_private;
-#if FTR_SIGNAL_LAYER
+        output_stream_ptr->dts                  = output_stream_ptr->pts;
+        output_stream_ptr->pic_type             = pcs->ppcs->is_ref
+                        ? pcs->ppcs->idr_flag ? EB_AV1_KEY_PICTURE : (EbAv1PictureType)pcs->slice_type
+                        : EB_AV1_NON_REF_PICTURE;
+        output_stream_ptr->p_app_private        = pcs->ppcs->input_ptr->p_app_private;
         output_stream_ptr->temporal_layer_index = pcs->ppcs->temporal_layer_index;
-#endif
-        output_stream_ptr->qp = pcs->ppcs->picture_qp;
-#if FTR_SIGNAL_AVERAGE_QP
-        output_stream_ptr->avg_qp = pcs->ppcs->avg_qp;
-#endif
+        output_stream_ptr->qp                   = pcs->ppcs->picture_qp;
+        output_stream_ptr->avg_qp               = pcs->ppcs->avg_qp;
         if (scs->static_config.stat_report) {
             output_stream_ptr->luma_sse  = pcs->ppcs->luma_sse;
             output_stream_ptr->cr_sse    = pcs->ppcs->cr_sse;
@@ -990,14 +986,12 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
             svt_post_full_object(tmp_out_str_wrp);
             release_references_eos(scs);
 
-#if FTR_STILL_PICTURE
             // Print a suggestion if a single picture is detected without using --avif 1
             if (!scs->static_config.avif && enc_ctx->terminating_picture_number == 0) {
                 SVT_ERROR(
                     "A single picture was detected. Consider using --avif 1 for improved efficiency and reduced memory "
                     "usage.\n");
             }
-#endif
         }
         svt_release_mutex(enc_ctx->total_number_of_shown_frames_mutex);
 #endif

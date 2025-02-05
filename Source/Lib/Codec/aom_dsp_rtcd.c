@@ -271,9 +271,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_AVX2_AVX512(svt_aom_sad128x64, svt_aom_sad128x64_c, svt_aom_sad128x64_avx2, svt_aom_sad128x64_avx512);
     SET_AVX2_AVX512(svt_aom_sad128x64x4d, svt_aom_sad128x64x4d_c, svt_aom_sad128x64x4d_avx2, svt_aom_sad128x64x4d_avx512);
     SET_SSE41_AVX2_AVX512(svt_av1_txb_init_levels, svt_av1_txb_init_levels_c, svt_av1_txb_init_levels_sse4_1, svt_av1_txb_init_levels_avx2, svt_av1_txb_init_levels_avx512);
-#if FTR_LOSSLESS_SUPPORT
     SET_SSE41(svt_av1_fwht4x4, svt_av1_fwht4x4_c, svt_av1_fwht4x4_sse4_1);
-#endif
     SET_AVX2(svt_aom_satd, svt_aom_satd_c, svt_aom_satd_avx2);
     SET_AVX2(svt_av1_block_error, svt_av1_block_error_c, svt_av1_block_error_avx2);
     SET_SSE2(svt_aom_upsampled_pred, svt_aom_upsampled_pred_c, svt_aom_upsampled_pred_sse2);
@@ -836,9 +834,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_av1_fwd_txfm2d_64x16_N4, svt_av1_fwd_txfm2d_64x16_N4_c);
     SET_ONLY_C(svt_av1_fwd_txfm2d_64x32_N4, svt_av1_fwd_txfm2d_64x32_N4_c);
     SET_NEON(svt_av1_fwd_txfm2d_64x64_N4, svt_aom_transform_two_d_64x64_N4_c, svt_av1_fwd_txfm2d_64x64_N4_neon);
-#if FTR_LOSSLESS_SUPPORT
     SET_ONLY_C(svt_av1_fwht4x4, svt_av1_fwht4x4_c);
-#endif
     SET_ONLY_C(svt_aom_fft2x2_float, svt_aom_fft2x2_float_c);
     SET_ONLY_C(svt_aom_fft4x4_float, svt_aom_fft4x4_float_c);
     SET_ONLY_C(svt_aom_fft16x16_float, svt_aom_fft16x16_float_c);
@@ -1187,9 +1183,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_av1_fwd_txfm2d_64x16_N4, svt_av1_fwd_txfm2d_64x16_N4_c);
     SET_ONLY_C(svt_av1_fwd_txfm2d_64x32_N4, svt_av1_fwd_txfm2d_64x32_N4_c);
     SET_ONLY_C(svt_av1_fwd_txfm2d_64x64_N4, svt_aom_transform_two_d_64x64_N4_c);
-#if FTR_LOSSLESS_SUPPORT
     SET_ONLY_C(svt_av1_fwht4x4, svt_av1_fwht4x4_c);
-#endif
     SET_ONLY_C(svt_aom_fft2x2_float, svt_aom_fft2x2_float_c);
     SET_ONLY_C(svt_aom_fft4x4_float, svt_aom_fft4x4_float_c);
     SET_ONLY_C(svt_aom_fft16x16_float, svt_aom_fft16x16_float_c);

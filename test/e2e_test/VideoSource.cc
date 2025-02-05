@@ -116,12 +116,6 @@ EbErrorType VideoSource::init_frame_buffer() {
     }
 
     memset(frame_buffer_, 0, sizeof(EbSvtIOFormat));
-#if !FIX_EB_SVT_IO_FORMAT
-    frame_buffer_->width = width_with_padding_;
-    frame_buffer_->height = height_with_padding_;
-    frame_buffer_->org_x = 0;
-    frame_buffer_->org_y = 0;
-#endif
     // SVT-AV1 use pixel size as stride?
     frame_buffer_->y_stride = width_with_padding_;
     frame_buffer_->cb_stride = (width_with_padding_ >> width_downsize_);

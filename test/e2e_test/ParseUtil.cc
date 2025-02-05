@@ -176,23 +176,9 @@ static void read_color_config(Bitstrm *bs, EbColorConfig *color_info,
     color_info->mono_chrome = (seq_header->seq_profile != HIGH_PROFILE)
                                   ? svt_aom_dec_get_bits(bs, 1)
                                   : 0;
-#if !FIX_COLOR_DESCRIPTION_PRESENT_FLAG
-    color_info->color_description_present_flag = svt_aom_dec_get_bits(bs, 1);
-    if (color_info->color_description_present_flag) {
-        color_info->color_primaries =
-            (EbColorPrimaries)svt_aom_dec_get_bits(bs, 8);
-        color_info->transfer_characteristics =
-            (EbTransferCharacteristics)svt_aom_dec_get_bits(bs, 8);
-        color_info->matrix_coefficients =
-            (EbMatrixCoefficients)svt_aom_dec_get_bits(bs, 8);
-    } else {
-#endif
-        color_info->color_primaries = EB_CICP_CP_UNSPECIFIED;
-        color_info->transfer_characteristics = EB_CICP_TC_UNSPECIFIED;
-        color_info->matrix_coefficients = EB_CICP_MC_UNSPECIFIED;
-#if !FIX_COLOR_DESCRIPTION_PRESENT_FLAG
-    }
-#endif
+    color_info->color_primaries = EB_CICP_CP_UNSPECIFIED;
+    color_info->transfer_characteristics = EB_CICP_TC_UNSPECIFIED;
+    color_info->matrix_coefficients = EB_CICP_MC_UNSPECIFIED;
     if (color_info->mono_chrome) {
         color_info->color_range = (EbColorRange)svt_aom_dec_get_bits(bs, 1);
         color_info->subsampling_y = color_info->subsampling_x = 1;

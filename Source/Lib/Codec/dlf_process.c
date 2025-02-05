@@ -93,14 +93,12 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
                     recon_pic, recon_picture_16bit_ptr, pcs->ppcs->scs->subsampling_x, pcs->ppcs->scs->subsampling_y);
             }
         }
-#if OPT_FRAME_DLF
         // Initialize dev to negative value to indicate it was not computed.
         // SB-based DLF does not compute the distortion
-        pcs->zero_filt_sse   = -1;
-        pcs->best_filt_sse   = -1;
-        pcs->dlf_dist_dev    = -1;
-        FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
-#endif
+        pcs->zero_filt_sse             = -1;
+        pcs->best_filt_sse             = -1;
+        pcs->dlf_dist_dev              = -1;
+        FrameHeader   *frm_hdr         = &pcs->ppcs->frm_hdr;
         Bool           dlf_enable_flag = (Bool)pcs->ppcs->dlf_ctrls.enabled;
         const uint16_t tg_count        = pcs->ppcs->tile_group_cols * pcs->ppcs->tile_group_rows;
         // Move sb level lf to here if tile_parallel
@@ -110,7 +108,6 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
             svt_aom_get_recon_pic(pcs, &recon_buffer, is_16bit);
             svt_av1_loop_filter_init(pcs);
             svt_av1_pick_filter_level((EbPictureBufferDesc *)pcs->ppcs->enhanced_pic, pcs, LPF_PICK_FROM_FULL_IMAGE);
-#if OPT_FRAME_DLF
             if (pcs->zero_filt_sse == -1 &&
                 (frm_hdr->loop_filter_params.filter_level[0] || frm_hdr->loop_filter_params.filter_level[1])) {
                 pcs->zero_filt_sse = picture_sse_calculations(pcs, recon_buffer, /*plane*/ 0);
@@ -121,10 +118,8 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
                     frm_hdr->loop_filter_params.filter_level_v  = 0;
                 }
             }
-#endif
 
             svt_av1_loop_filter_frame(recon_buffer, pcs, 0, 3);
-#if OPT_FRAME_DLF
             if (pcs->best_filt_sse == -1 &&
                 (frm_hdr->loop_filter_params.filter_level[0] || frm_hdr->loop_filter_params.filter_level[1])) {
                 pcs->best_filt_sse = picture_sse_calculations(pcs, recon_buffer, /*plane*/ 0);
@@ -133,7 +128,6 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
                     !(frm_hdr->loop_filter_params.filter_level[0] || frm_hdr->loop_filter_params.filter_level[1])
                 ? 0
                 : (int32_t)(1000 - ((1000 * pcs->best_filt_sse) / pcs->zero_filt_sse));
-#endif
         }
 
         //pre-cdef prep

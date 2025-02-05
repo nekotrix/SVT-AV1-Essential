@@ -14727,7 +14727,6 @@ void svt_av1_fwd_txfm2d_64x16_N4_sse4_1(int16_t *input, int32_t *output, uint32_
     clear_buffer_wxh_N4(outcoeff, num_col, txfm_size_row);
     (void)bd;
 }
-#if FTR_LOSSLESS_SUPPORT
 static inline void transpose_32bit_4x4(const __m128i *const in, __m128i *const out) {
     // Unpack 32 bit elements. Goes from:
     // in[0]: 00 01 02 03
@@ -14806,4 +14805,3 @@ void svt_av1_fwht4x4_sse4_1(int16_t *input, int32_t *output, uint32_t stride) {
     _mm_storeu_si128((__m128i *)(output + 8), op[2]);
     _mm_storeu_si128((__m128i *)(output + 12), op[3]);
 }
-#endif

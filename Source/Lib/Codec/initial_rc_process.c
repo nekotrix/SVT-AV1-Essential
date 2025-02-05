@@ -185,20 +185,8 @@ uint8_t svt_aom_get_tpl_group_level(uint8_t tpl, int8_t enc_mode, SvtAv1RcMode r
         tpl_group_level = 0;
     else if (enc_mode <= ENC_M5)
         tpl_group_level = 1;
-#if !OPT_M6_NEW
-    else if (enc_mode <= ENC_M6)
-        tpl_group_level = 2;
-#endif
 
-#if CLN_SHIFT_M11
     else if (enc_mode <= ENC_M8 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M9))
-#else
-#if CLN_SHIFT_M10
-    else if (enc_mode <= ENC_M8 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M10))
-#else
-    else if (enc_mode <= ENC_M9 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M10))
-#endif
-#endif
         tpl_group_level = 3;
     else
         tpl_group_level = 4;
@@ -285,11 +273,7 @@ uint8_t svt_aom_set_tpl_group(PictureParentControlSet *pcs, uint8_t tpl_group_le
                                                           : 1.6;
         }
     }
-#if FIX_RATE_CONTROL_MODE
     if (pcs->scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR) {
-#else
-    if (pcs->scs->static_config.rate_control_mode == 1) {
-#endif
         tpl_ctrls->r0_adjust_factor *= 1.25;
         tpl_ctrls->r0_adjust_factor = MIN(3, tpl_ctrls->r0_adjust_factor);
     }
@@ -299,40 +283,10 @@ uint8_t svt_aom_set_tpl_group(PictureParentControlSet *pcs, uint8_t tpl_group_le
 
 static uint8_t get_tpl_params_level(int8_t enc_mode, SvtAv1RcMode rc_mode) {
     uint8_t tpl_params_level;
-#if TUNE_M4_2
     if (enc_mode <= ENC_M2) {
-#else
-    if (enc_mode <= ENC_M4) {
-#endif
         tpl_params_level = 1;
 
-#if OPT_M6_NEW
-#if OPT_M5_NEW
-#if TUNE_M4_2
-#if !TUNE_M3_2
-    } else if (enc_mode <= ENC_M3) {
-#endif
-#else
-    } else if (enc_mode <= ENC_M4) {
-#endif
-#else
-    } else if (enc_mode <= ENC_M5) {
-#endif
-#else
-    } else if (enc_mode <= ENC_M6) {
-#endif
-#if !TUNE_M3_2
-        tpl_params_level = 3;
-#endif
-#if CLN_SHIFT_M11
     } else if (enc_mode <= ENC_M8 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M9)) {
-#else
-#if CLN_SHIFT_M10
-    } else if (enc_mode <= ENC_M8 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M10)) {
-#else
-    } else if (enc_mode <= ENC_M9 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M10)) {
-#endif
-#endif
         tpl_params_level = 4;
     } else {
         tpl_params_level = 5;

@@ -1246,15 +1246,8 @@ uint16_t svt_aom_get_scaled_picture_distance(uint16_t dist) {
  *   performs integer search motion estimation for
  all avaiable references frames
  *******************************************/
-#if CLN_REM_RMV
 static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
     uint32_t b64_origin_x, uint32_t b64_origin_y, EbPictureBufferDesc *input_ptr) {
-#else
-static void integer_search_b64(PictureParentControlSet *pcs, uint32_t b64_index, uint32_t b64_origin_x,
-    uint32_t b64_origin_y, MeContext *me_ctx,
-    EbPictureBufferDesc *input_ptr) {
-    SequenceControlSet *scs        = pcs->scs;
-#endif
     int16_t             picture_width  = pcs->aligned_width;
     int16_t             picture_height = pcs->aligned_height;
     uint32_t            b64_width      = me_ctx->b64_width;
@@ -1447,7 +1440,6 @@ static void integer_search_b64(PictureParentControlSet *pcs, uint32_t b64_index,
             x_search_area_origin = x_search_center - (search_area_width >> 1);
             y_search_area_origin = y_search_center - (search_area_height >> 1);
 
-#if CLN_REM_RMV
             // Correct the left edge of the Search Area if it is not on the
             // reference Picture
             x_search_area_origin = ((org_x + x_search_area_origin) < -pad_width)
@@ -1497,126 +1489,6 @@ static void integer_search_b64(PictureParentControlSet *pcs, uint32_t b64_index,
                     ((org_y + y_search_area_origin + search_area_height) -
                         picture_height))
                 : search_area_height;
-#else
-            if (scs->static_config.restricted_motion_vector) {
-                // b64_geom in scs and ppcs are different when super-res is enabled
-                // ME_OPEN_LOOP is performed on downscaled frames while others (ME_MCTF and ME_FIRST_PASS) are performed on unscaled frames
-                B64Geom *b64_geom = me_ctx->me_type != ME_OPEN_LOOP
-                    ? scs->b64_geom
-                    : pcs->b64_geom;
-
-                int       tile_start_x    = b64_geom[b64_index].tile_start_x;
-                int       tile_end_x      = b64_geom[b64_index].tile_end_x;
-
-                // Correct the left edge of the Search Area if it is not on the
-                // reference Picture
-                x_search_area_origin = ((org_x + x_search_area_origin) < tile_start_x)
-                    ? tile_start_x - org_x
-                    : x_search_area_origin;
-                search_area_width    = ((org_x + x_search_area_origin) < tile_start_x)
-                       ? search_area_width - (tile_start_x - (org_x + x_search_area_origin))
-                       : search_area_width;
-                // Correct the right edge of the Search Area if its not on the
-                // reference Picture
-                x_search_area_origin = ((org_x + x_search_area_origin) > tile_end_x - 1)
-                    ? x_search_area_origin - ((org_x + x_search_area_origin) - (tile_end_x - 1))
-                    : x_search_area_origin;
-                search_area_width    = ((org_x + x_search_area_origin + search_area_width) >
-                                     tile_end_x)
-                       ? MAX(1,
-                          search_area_width -
-                              ((org_x + x_search_area_origin + search_area_width) - tile_end_x))
-                       : search_area_width;
-                // Constrain x_ME to be a multiple of 8 (round down as cropping
-                // already performed)
-                search_area_width = (search_area_width < 8) ? search_area_width
-                                                            : search_area_width & ~0x07;
-            } else {
-                // Correct the left edge of the Search Area if it is not on the
-                // reference Picture
-                x_search_area_origin = ((org_x + x_search_area_origin) < -pad_width)
-                    ? -pad_width - org_x
-                    : x_search_area_origin;
-                search_area_width    = ((org_x + x_search_area_origin) < -pad_width)
-                       ? search_area_width - (-pad_width - (org_x + x_search_area_origin))
-                       : search_area_width;
-                // Correct the right edge of the Search Area if its not on the
-                // reference Picture
-                x_search_area_origin = ((org_x + x_search_area_origin) > picture_width - 1)
-                    ? x_search_area_origin -
-                        ((org_x + x_search_area_origin) - (picture_width - 1))
-                    : x_search_area_origin;
-
-                search_area_width = ((org_x + x_search_area_origin + search_area_width) >
-                                     picture_width)
-                    ? MAX(1,
-                          search_area_width -
-                              ((org_x + x_search_area_origin + search_area_width) -
-                               picture_width))
-                    : search_area_width;
-
-                // Constrain x_ME to be a multiple of 8 (round down as cropping
-                // already performed)
-                search_area_width = (search_area_width < 8) ? search_area_width
-                                                            : search_area_width & ~0x07;
-            }
-
-            if (scs->static_config.restricted_motion_vector) {
-                // b64_geom in scs and ppcs are different when super-res is enabled
-                // ME_OPEN_LOOP is performed on downscaled frames while others (ME_MCTF and ME_FIRST_PASS) are performed on unscaled frames
-                B64Geom *b64_geom = me_ctx->me_type != ME_OPEN_LOOP
-                    ? scs->b64_geom
-                    : pcs->b64_geom;
-
-                int       tile_start_y    = b64_geom[b64_index].tile_start_y;
-                int       tile_end_y      = b64_geom[b64_index].tile_end_y;
-
-                // Correct the top edge of the Search Area if it is not on the
-                // reference Picture
-                y_search_area_origin = ((org_y + y_search_area_origin) < tile_start_y)
-                    ? tile_start_y - org_y
-                    : y_search_area_origin;
-
-                search_area_height = ((org_y + y_search_area_origin) < tile_start_y)
-                    ? search_area_height - (tile_start_y - (org_y + y_search_area_origin))
-                    : search_area_height;
-
-                // Correct the bottom edge of the Search Area if its not on the
-                // reference Picture
-                y_search_area_origin = ((org_y + y_search_area_origin) > tile_end_y - 1)
-                    ? y_search_area_origin - ((org_y + y_search_area_origin) - (tile_end_y - 1))
-                    : y_search_area_origin;
-
-                search_area_height = (org_y + y_search_area_origin + search_area_height >
-                                      tile_end_y)
-                    ? MAX(1,
-                          search_area_height -
-                              ((org_y + y_search_area_origin + search_area_height) - tile_end_y))
-                    : search_area_height;
-            } else {
-                // Correct the top edge of the Search Area if it is not on the
-                // reference Picture
-                y_search_area_origin = ((org_y + y_search_area_origin) < -pad_height)
-                    ? -pad_height - org_y
-                    : y_search_area_origin;
-                search_area_height   = ((org_y + y_search_area_origin) < -pad_height)
-                      ? search_area_height - (-pad_height - (org_y + y_search_area_origin))
-                      : search_area_height;
-                // Correct the bottom edge of the Search Area if its not on the
-                // reference Picture
-                y_search_area_origin = ((org_y + y_search_area_origin) > picture_height - 1)
-                    ? y_search_area_origin -
-                        ((org_y + y_search_area_origin) - (picture_height - 1))
-                    : y_search_area_origin;
-                search_area_height   = (org_y + y_search_area_origin + search_area_height >
-                                      picture_height)
-                      ? MAX(1,
-                          search_area_height -
-                              ((org_y + y_search_area_origin + search_area_height) -
-                               picture_height))
-                      : search_area_height;
-            }
-#endif
 
             x_top_left_search_region            = (int16_t)(ref_pic_ptr->org_x + b64_origin_x) -
                 (ME_FILTER_TAP >> 1) + x_search_area_origin;
@@ -3244,11 +3116,7 @@ EbErrorType svt_aom_motion_estimation_b64(
         hme_prune_ref_and_adjust_sr(me_ctx);
     }
     // Full pel: Perform the Integer Motion Estimation on the allowed refrence frames.
-#if CLN_REM_RMV
     integer_search_b64(pcs, me_ctx, b64_origin_x, b64_origin_y, input_ptr);
-#else
-    integer_search_b64(pcs, b64_index, b64_origin_x, b64_origin_y, me_ctx, input_ptr);
-#endif
 
     // prune the refrence frames
     if (prune_ref && me_ctx->me_hme_prune_ctrls.enable_me_hme_ref_pruning) {

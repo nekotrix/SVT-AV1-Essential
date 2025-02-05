@@ -43,10 +43,8 @@ static GType gst_svtav1enc_intra_refresh_type_get_type(void) {
 }
 
 /* prototypes */
-static void gst_svtav1enc_set_property(GObject *object, guint property_id, const GValue *value,
-                                       GParamSpec *pspec);
-static void gst_svtav1enc_get_property(GObject *object, guint property_id, GValue *value,
-                                       GParamSpec *pspec);
+static void gst_svtav1enc_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec);
+static void gst_svtav1enc_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec);
 static void gst_svtav1enc_finalize(GObject *object);
 
 static void          gst_svtav1enc_allocate_svt_buffers(GstSvtAv1Enc *svtav1enc);
@@ -54,17 +52,15 @@ static void          gst_svtav1enc_deallocate_svt_buffers(GstSvtAv1Enc *svtav1en
 static gboolean      gst_svtav1enc_configure_svt(GstSvtAv1Enc *svtav1enc);
 static GstFlowReturn gst_svtav1enc_encode(GstSvtAv1Enc *svtav1enc, GstVideoCodecFrame *frame);
 static gboolean      gst_svtav1enc_send_eos(GstSvtAv1Enc *svtav1enc);
-static GstFlowReturn gst_svtav1enc_dequeue_encoded_frames(GstSvtAv1Enc *svtav1enc,
-                                                          gboolean      closing_encoder,
-                                                          gboolean      output_frames);
+static GstFlowReturn gst_svtav1enc_dequeue_encoded_frames(GstSvtAv1Enc *svtav1enc, gboolean closing_encoder,
+                                                          gboolean output_frames);
 
 static gboolean      gst_svtav1enc_open(GstVideoEncoder *encoder);
 static gboolean      gst_svtav1enc_close(GstVideoEncoder *encoder);
 static gboolean      gst_svtav1enc_start(GstVideoEncoder *encoder);
 static gboolean      gst_svtav1enc_stop(GstVideoEncoder *encoder);
 static gboolean      gst_svtav1enc_set_format(GstVideoEncoder *encoder, GstVideoCodecState *state);
-static GstFlowReturn gst_svtav1enc_handle_frame(GstVideoEncoder    *encoder,
-                                                GstVideoCodecFrame *frame);
+static GstFlowReturn gst_svtav1enc_handle_frame(GstVideoEncoder *encoder, GstVideoCodecFrame *frame);
 static GstFlowReturn gst_svtav1enc_finish(GstVideoEncoder *encoder);
 static gboolean      gst_svtav1enc_propose_allocation(GstVideoEncoder *encoder, GstQuery *query);
 static gboolean      gst_svtav1enc_flush(GstVideoEncoder *encoder);
@@ -83,11 +79,7 @@ enum {
     PROP_MAXIMUM_BUFFER_SIZE,
     PROP_INTRA_PERIOD_LENGTH,
     PROP_INTRA_REFRESH_TYPE,
-#if FIX_SVT_AV1_CHECK_VERSION
     PROP_LEVEL_OF_PARALLELISM,
-#else
-    PROP_LOGICAL_PROCESSORS,
-#endif
     PROP_TARGET_SOCKET,
     PROP_PARAMETERS_STRING,
 };
@@ -102,11 +94,7 @@ enum {
 #define PROP_MAXIMUM_BUFFER_SIZE_DEFAULT 1000
 #define PROP_INTRA_PERIOD_LENGTH_DEFAULT -2
 #define PROP_INTRA_REFRESH_TYPE_DEFAULT SVT_AV1_KF_REFRESH
-#if FIX_SVT_AV1_CHECK_VERSION
 #define PROP_LEVEL_OF_PARALLELISM_DEFAULT 0
-#else
-#define PROP_LOGICAL_PROCESSORS_DEFAULT 0
-#endif
 #define PROP_TARGET_SOCKET_DEFAULT -1
 #define PROP_PARAMETERS_STRING_DEFAULT NULL
 
@@ -146,18 +134,15 @@ static void gst_svtav1enc_class_init(GstSvtAv1EncClass *klass) {
     GObjectClass         *gobject_class       = G_OBJECT_CLASS(klass);
     GstVideoEncoderClass *video_encoder_class = GST_VIDEO_ENCODER_CLASS(klass);
 
-    gst_element_class_add_static_pad_template(GST_ELEMENT_CLASS(klass),
-                                              &gst_svtav1enc_src_pad_template);
+    gst_element_class_add_static_pad_template(GST_ELEMENT_CLASS(klass), &gst_svtav1enc_src_pad_template);
 
-    gst_element_class_add_static_pad_template(GST_ELEMENT_CLASS(klass),
-                                              &gst_svtav1enc_sink_pad_template);
+    gst_element_class_add_static_pad_template(GST_ELEMENT_CLASS(klass), &gst_svtav1enc_sink_pad_template);
 
-    gst_element_class_set_static_metadata(
-        GST_ELEMENT_CLASS(klass),
-        "SvtAv1Enc",
-        "Codec/Encoder/Video",
-        "Scalable Video Technology for AV1 Encoder (SVT-AV1 Encoder)",
-        "Jun Tian <jun.tian@intel.com> Xavier Hallade <xavier.hallade@intel.com>");
+    gst_element_class_set_static_metadata(GST_ELEMENT_CLASS(klass),
+                                          "SvtAv1Enc",
+                                          "Codec/Encoder/Video",
+                                          "Scalable Video Technology for AV1 Encoder (SVT-AV1 Encoder)",
+                                          "Jun Tian <jun.tian@intel.com> Xavier Hallade <xavier.hallade@intel.com>");
 
     gobject_class->set_property             = gst_svtav1enc_set_property;
     gobject_class->get_property             = gst_svtav1enc_get_property;
@@ -172,29 +157,27 @@ static void gst_svtav1enc_class_init(GstSvtAv1EncClass *klass) {
     video_encoder_class->propose_allocation = GST_DEBUG_FUNCPTR(gst_svtav1enc_propose_allocation);
     video_encoder_class->flush              = GST_DEBUG_FUNCPTR(gst_svtav1enc_flush);
 
-    g_object_class_install_property(
-        gobject_class,
-        PROP_PRESET,
-        g_param_spec_uint("preset",
-                          "Preset",
-                          "Quality vs density tradeoff point"
-                          " that the encoding is to be performed at"
-                          " (0 is the highest quality, 13 is the highest speed) ",
-                          0,
-                          13,
-                          PROP_PRESET_DEFAULT,
-                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+    g_object_class_install_property(gobject_class,
+                                    PROP_PRESET,
+                                    g_param_spec_uint("preset",
+                                                      "Preset",
+                                                      "Quality vs density tradeoff point"
+                                                      " that the encoding is to be performed at"
+                                                      " (0 is the highest quality, 13 is the highest speed) ",
+                                                      0,
+                                                      13,
+                                                      PROP_PRESET_DEFAULT,
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-    g_object_class_install_property(
-        gobject_class,
-        PROP_TARGET_BITRATE,
-        g_param_spec_uint("target-bitrate",
-                          "Target bitrate",
-                          "Target bitrate in kbits/sec. Enables CBR or VBR mode",
-                          0,
-                          100000,
-                          PROP_TARGET_BITRATE_DEFAULT,
-                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+    g_object_class_install_property(gobject_class,
+                                    PROP_TARGET_BITRATE,
+                                    g_param_spec_uint("target-bitrate",
+                                                      "Target bitrate",
+                                                      "Target bitrate in kbits/sec. Enables CBR or VBR mode",
+                                                      0,
+                                                      100000,
+                                                      PROP_TARGET_BITRATE_DEFAULT,
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
     g_object_class_install_property(
         gobject_class,
@@ -208,51 +191,47 @@ static void gst_svtav1enc_class_init(GstSvtAv1EncClass *klass) {
                           PROP_MAX_BITRATE_DEFAULT,
                           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_MUTABLE_PLAYING));
 
-    g_object_class_install_property(
-        gobject_class,
-        PROP_MAX_QP_ALLOWED,
-        g_param_spec_uint("max-qp-allowed",
-                          "Max Quantization parameter",
-                          "Maximum QP value allowed for rate control use"
-                          " Only used in CBR and VBR mode.",
-                          0,
-                          63,
-                          PROP_MAX_QP_ALLOWED,
-                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+    g_object_class_install_property(gobject_class,
+                                    PROP_MAX_QP_ALLOWED,
+                                    g_param_spec_uint("max-qp-allowed",
+                                                      "Max Quantization parameter",
+                                                      "Maximum QP value allowed for rate control use"
+                                                      " Only used in CBR and VBR mode.",
+                                                      0,
+                                                      63,
+                                                      PROP_MAX_QP_ALLOWED,
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-    g_object_class_install_property(
-        gobject_class,
-        PROP_MIN_QP_ALLOWED,
-        g_param_spec_uint("min-qp-allowed",
-                          "Min Quantization parameter",
-                          "Minimum QP value allowed for rate control use"
-                          " Only used in CBR and VBR mode.",
-                          0,
-                          63,
-                          PROP_MIN_QP_ALLOWED,
-                          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+    g_object_class_install_property(gobject_class,
+                                    PROP_MIN_QP_ALLOWED,
+                                    g_param_spec_uint("min-qp-allowed",
+                                                      "Min Quantization parameter",
+                                                      "Minimum QP value allowed for rate control use"
+                                                      " Only used in CBR and VBR mode.",
+                                                      0,
+                                                      63,
+                                                      PROP_MIN_QP_ALLOWED,
+                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-    g_object_class_install_property(
-        gobject_class,
-        PROP_CQP,
-        g_param_spec_int("cqp",
-                         "Quantization parameter",
-                         "Quantization parameter used in CQP mode (-1 is disabled)",
-                         -1,
-                         63,
-                         PROP_CQP_DEFAULT,
-                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+    g_object_class_install_property(gobject_class,
+                                    PROP_CQP,
+                                    g_param_spec_int("cqp",
+                                                     "Quantization parameter",
+                                                     "Quantization parameter used in CQP mode (-1 is disabled)",
+                                                     -1,
+                                                     63,
+                                                     PROP_CQP_DEFAULT,
+                                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-    g_object_class_install_property(
-        gobject_class,
-        PROP_CRF,
-        g_param_spec_int("crf",
-                         "Constant Rate Factor",
-                         "Quantization parameter used in CRF mode (-1 is disabled)",
-                         -1,
-                         63,
-                         PROP_CRF_DEFAULT,
-                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+    g_object_class_install_property(gobject_class,
+                                    PROP_CRF,
+                                    g_param_spec_int("crf",
+                                                     "Constant Rate Factor",
+                                                     "Quantization parameter used in CRF mode (-1 is disabled)",
+                                                     -1,
+                                                     63,
+                                                     PROP_CRF_DEFAULT,
+                                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
     g_object_class_install_property(gobject_class,
                                     PROP_MAXIMUM_BUFFER_SIZE,
@@ -265,16 +244,15 @@ static void gst_svtav1enc_class_init(GstSvtAv1EncClass *klass) {
                                                       PROP_MAXIMUM_BUFFER_SIZE_DEFAULT,
                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-    g_object_class_install_property(
-        gobject_class,
-        PROP_INTRA_PERIOD_LENGTH,
-        g_param_spec_int("intra-period-length",
-                         "Intra Period Length",
-                         "Period of Intra Frames insertion (-2 is auto, -1 no updates)",
-                         -2,
-                         G_MAXINT,
-                         PROP_INTRA_PERIOD_LENGTH_DEFAULT,
-                         G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+    g_object_class_install_property(gobject_class,
+                                    PROP_INTRA_PERIOD_LENGTH,
+                                    g_param_spec_int("intra-period-length",
+                                                     "Intra Period Length",
+                                                     "Period of Intra Frames insertion (-2 is auto, -1 no updates)",
+                                                     -2,
+                                                     G_MAXINT,
+                                                     PROP_INTRA_PERIOD_LENGTH_DEFAULT,
+                                                     G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
     g_object_class_install_property(gobject_class,
                                     PROP_INTRA_REFRESH_TYPE,
@@ -285,7 +263,6 @@ static void gst_svtav1enc_class_init(GstSvtAv1EncClass *klass) {
                                                       GST_SVTAV1ENC_TYPE_INTRA_REFRESH_TYPE,
                                                       PROP_INTRA_REFRESH_TYPE_DEFAULT,
                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-#if FIX_SVT_AV1_CHECK_VERSION
     g_object_class_install_property(gobject_class,
                                     PROP_LEVEL_OF_PARALLELISM,
                                     g_param_spec_uint("logical-processors",
@@ -295,17 +272,6 @@ static void gst_svtav1enc_class_init(GstSvtAv1EncClass *klass) {
                                                       G_MAXUINT,
                                                       PROP_LEVEL_OF_PARALLELISM_DEFAULT,
                                                       G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-#else
-    g_object_class_install_property(gobject_class,
-                                    PROP_LOGICAL_PROCESSORS,
-                                    g_param_spec_uint("logical-processors",
-                                                      "Logical Processors",
-                                                      "Number of logical CPU cores to be used. 0: auto",
-                                                      0,
-                                                      G_MAXUINT,
-                                                      PROP_LOGICAL_PROCESSORS_DEFAULT,
-                                                      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-#endif
 
     g_object_class_install_property(gobject_class,
                                     PROP_TARGET_SOCKET,
@@ -328,24 +294,20 @@ static void gst_svtav1enc_class_init(GstSvtAv1EncClass *klass) {
 }
 
 static void gst_svtav1enc_init(GstSvtAv1Enc *svtav1enc) {
-    svtav1enc->svt_config          = g_new0(EbSvtAv1EncConfiguration, 1);
-    svtav1enc->preset              = PROP_PRESET_DEFAULT;
-    svtav1enc->target_bitrate      = PROP_TARGET_BITRATE_DEFAULT;
-    svtav1enc->max_bitrate         = PROP_MAX_BITRATE_DEFAULT;
-    svtav1enc->max_qp_allowed      = PROP_QP_MAX_QP_ALLOWED_DEFAULT;
-    svtav1enc->min_qp_allowed      = PROP_QP_MIN_QP_ALLOWED_DEFAULT;
-    svtav1enc->cqp                 = PROP_CQP_DEFAULT;
-    svtav1enc->crf                 = PROP_CRF_DEFAULT;
-    svtav1enc->maximum_buffer_size = PROP_MAXIMUM_BUFFER_SIZE_DEFAULT;
-    svtav1enc->intra_period_length = PROP_INTRA_PERIOD_LENGTH_DEFAULT;
-    svtav1enc->intra_refresh_type  = PROP_INTRA_REFRESH_TYPE_DEFAULT;
-#if FIX_SVT_AV1_CHECK_VERSION
+    svtav1enc->svt_config           = g_new0(EbSvtAv1EncConfiguration, 1);
+    svtav1enc->preset               = PROP_PRESET_DEFAULT;
+    svtav1enc->target_bitrate       = PROP_TARGET_BITRATE_DEFAULT;
+    svtav1enc->max_bitrate          = PROP_MAX_BITRATE_DEFAULT;
+    svtav1enc->max_qp_allowed       = PROP_QP_MAX_QP_ALLOWED_DEFAULT;
+    svtav1enc->min_qp_allowed       = PROP_QP_MIN_QP_ALLOWED_DEFAULT;
+    svtav1enc->cqp                  = PROP_CQP_DEFAULT;
+    svtav1enc->crf                  = PROP_CRF_DEFAULT;
+    svtav1enc->maximum_buffer_size  = PROP_MAXIMUM_BUFFER_SIZE_DEFAULT;
+    svtav1enc->intra_period_length  = PROP_INTRA_PERIOD_LENGTH_DEFAULT;
+    svtav1enc->intra_refresh_type   = PROP_INTRA_REFRESH_TYPE_DEFAULT;
     svtav1enc->level_of_parallelism = PROP_LEVEL_OF_PARALLELISM_DEFAULT;
-#else
-    svtav1enc->logical_processors = PROP_LOGICAL_PROCESSORS_DEFAULT;
-#endif
-    svtav1enc->target_socket     = PROP_TARGET_SOCKET_DEFAULT;
-    svtav1enc->parameters_string = PROP_PARAMETERS_STRING_DEFAULT;
+    svtav1enc->target_socket        = PROP_TARGET_SOCKET_DEFAULT;
+    svtav1enc->parameters_string    = PROP_PARAMETERS_STRING_DEFAULT;
 }
 
 static void gst_svtav1enc_set_property(GObject *object, guint property_id, const GValue *value, GParamSpec *pspec) {
@@ -353,8 +315,7 @@ static void gst_svtav1enc_set_property(GObject *object, guint property_id, const
 
     /* TODO: support reconfiguring on the fly when possible */
     if (svtav1enc->state) {
-        GST_ERROR_OBJECT(svtav1enc,
-                         "encoder state has been set before properties, this isn't supported yet.");
+        GST_ERROR_OBJECT(svtav1enc, "encoder state has been set before properties, this isn't supported yet.");
         return;
     }
 
@@ -371,11 +332,7 @@ static void gst_svtav1enc_set_property(GObject *object, guint property_id, const
     case PROP_MAXIMUM_BUFFER_SIZE: svtav1enc->maximum_buffer_size = g_value_get_uint(value); break;
     case PROP_INTRA_PERIOD_LENGTH: svtav1enc->intra_period_length = g_value_get_int(value); break;
     case PROP_INTRA_REFRESH_TYPE: svtav1enc->intra_refresh_type = g_value_get_enum(value); break;
-#if FIX_SVT_AV1_CHECK_VERSION
     case PROP_LEVEL_OF_PARALLELISM: svtav1enc->level_of_parallelism = g_value_get_uint(value); break;
-#else
-    case PROP_LOGICAL_PROCESSORS: svtav1enc->logical_processors = g_value_get_uint(value); break;
-#endif
     case PROP_TARGET_SOCKET: svtav1enc->target_socket = g_value_get_int(value); break;
     case PROP_PARAMETERS_STRING: {
         g_free(svtav1enc->parameters_string);
@@ -386,8 +343,7 @@ static void gst_svtav1enc_set_property(GObject *object, guint property_id, const
     }
 }
 
-static void gst_svtav1enc_get_property(GObject *object, guint property_id, GValue *value,
-                                       GParamSpec *pspec) {
+static void gst_svtav1enc_get_property(GObject *object, guint property_id, GValue *value, GParamSpec *pspec) {
     GstSvtAv1Enc *svtav1enc = GST_SVTAV1ENC(object);
 
     GST_LOG_OBJECT(svtav1enc, "getting property %u", property_id);
@@ -403,11 +359,7 @@ static void gst_svtav1enc_get_property(GObject *object, guint property_id, GValu
     case PROP_MAXIMUM_BUFFER_SIZE: g_value_set_uint(value, svtav1enc->maximum_buffer_size); break;
     case PROP_INTRA_PERIOD_LENGTH: g_value_set_int(value, svtav1enc->intra_period_length); break;
     case PROP_INTRA_REFRESH_TYPE: g_value_set_enum(value, svtav1enc->intra_refresh_type); break;
-#if FIX_SVT_AV1_CHECK_VERSION
     case PROP_LEVEL_OF_PARALLELISM: g_value_set_uint(value, svtav1enc->level_of_parallelism); break;
-#else
-    case PROP_LOGICAL_PROCESSORS: g_value_set_uint(value, svtav1enc->logical_processors); break;
-#endif
     case PROP_TARGET_SOCKET: g_value_set_int(value, svtav1enc->target_socket); break;
     case PROP_PARAMETERS_STRING: g_value_set_string(value, svtav1enc->parameters_string); break;
     default: G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec); break;
@@ -487,14 +439,10 @@ static gboolean gst_svtav1enc_configure_svt(GstSvtAv1Enc *svtav1enc) {
     } else {
         GST_DEBUG_OBJECT(svtav1enc, "Using default rate control settings");
     }
-    svtav1enc->svt_config->intra_period_length = svtav1enc->intra_period_length;
-    svtav1enc->svt_config->intra_refresh_type  = svtav1enc->intra_refresh_type;
-#if FIX_SVT_AV1_CHECK_VERSION
+    svtav1enc->svt_config->intra_period_length  = svtav1enc->intra_period_length;
+    svtav1enc->svt_config->intra_refresh_type   = svtav1enc->intra_refresh_type;
     svtav1enc->svt_config->level_of_parallelism = svtav1enc->level_of_parallelism;
-#else
-    svtav1enc->svt_config->logical_processors = svtav1enc->logical_processors;
-#endif
-    svtav1enc->svt_config->target_socket = svtav1enc->target_socket;
+    svtav1enc->svt_config->target_socket        = svtav1enc->target_socket;
     gst_svtav1enc_parse_parameters_string(svtav1enc);
 
     /* set properties out of GstVideoInfo */
@@ -502,12 +450,8 @@ static gboolean gst_svtav1enc_configure_svt(GstSvtAv1Enc *svtav1enc) {
     svtav1enc->svt_config->encoder_bit_depth      = GST_VIDEO_INFO_COMP_DEPTH(info, 0);
     svtav1enc->svt_config->source_width           = GST_VIDEO_INFO_WIDTH(info);
     svtav1enc->svt_config->source_height          = GST_VIDEO_INFO_HEIGHT(info);
-    svtav1enc->svt_config->frame_rate_numerator   = GST_VIDEO_INFO_FPS_N(info) > 0
-          ? GST_VIDEO_INFO_FPS_N(info)
-          : 1;
-    svtav1enc->svt_config->frame_rate_denominator = GST_VIDEO_INFO_FPS_D(info) > 0
-        ? GST_VIDEO_INFO_FPS_D(info)
-        : 1;
+    svtav1enc->svt_config->frame_rate_numerator   = GST_VIDEO_INFO_FPS_N(info) > 0 ? GST_VIDEO_INFO_FPS_N(info) : 1;
+    svtav1enc->svt_config->frame_rate_denominator = GST_VIDEO_INFO_FPS_D(info) > 0 ? GST_VIDEO_INFO_FPS_D(info) : 1;
     GST_LOG_OBJECT(svtav1enc,
                    "width %d, height %d, framerate %d/%d",
                    svtav1enc->svt_config->source_width,
@@ -516,66 +460,30 @@ static gboolean gst_svtav1enc_configure_svt(GstSvtAv1Enc *svtav1enc) {
                    svtav1enc->svt_config->frame_rate_denominator);
 
     switch (GST_VIDEO_INFO_COLORIMETRY(info).primaries) {
-    case GST_VIDEO_COLOR_PRIMARIES_BT709:
-        svtav1enc->svt_config->color_primaries = EB_CICP_CP_BT_709;
-        break;
-    case GST_VIDEO_COLOR_PRIMARIES_BT470M:
-        svtav1enc->svt_config->color_primaries = EB_CICP_CP_BT_470_M;
-        break;
-    case GST_VIDEO_COLOR_PRIMARIES_BT470BG:
-        svtav1enc->svt_config->color_primaries = EB_CICP_CP_BT_470_B_G;
-        break;
-    case GST_VIDEO_COLOR_PRIMARIES_SMPTE170M:
-        svtav1enc->svt_config->color_primaries = EB_CICP_CP_BT_601;
-        break;
-    case GST_VIDEO_COLOR_PRIMARIES_SMPTE240M:
-        svtav1enc->svt_config->color_primaries = EB_CICP_CP_SMPTE_240;
-        break;
-    case GST_VIDEO_COLOR_PRIMARIES_FILM:
-        svtav1enc->svt_config->color_primaries = EB_CICP_CP_GENERIC_FILM;
-        break;
-    case GST_VIDEO_COLOR_PRIMARIES_BT2020:
-        svtav1enc->svt_config->color_primaries = EB_CICP_CP_BT_2020;
-        break;
-    case GST_VIDEO_COLOR_PRIMARIES_SMPTERP431:
-        svtav1enc->svt_config->color_primaries = EB_CICP_CP_SMPTE_431;
-        break;
-    case GST_VIDEO_COLOR_PRIMARIES_SMPTEEG432:
-        svtav1enc->svt_config->color_primaries = EB_CICP_CP_SMPTE_432;
-        break;
-    case GST_VIDEO_COLOR_PRIMARIES_EBU3213:
-        svtav1enc->svt_config->color_primaries = EB_CICP_CP_EBU_3213;
-        break;
+    case GST_VIDEO_COLOR_PRIMARIES_BT709: svtav1enc->svt_config->color_primaries = EB_CICP_CP_BT_709; break;
+    case GST_VIDEO_COLOR_PRIMARIES_BT470M: svtav1enc->svt_config->color_primaries = EB_CICP_CP_BT_470_M; break;
+    case GST_VIDEO_COLOR_PRIMARIES_BT470BG: svtav1enc->svt_config->color_primaries = EB_CICP_CP_BT_470_B_G; break;
+    case GST_VIDEO_COLOR_PRIMARIES_SMPTE170M: svtav1enc->svt_config->color_primaries = EB_CICP_CP_BT_601; break;
+    case GST_VIDEO_COLOR_PRIMARIES_SMPTE240M: svtav1enc->svt_config->color_primaries = EB_CICP_CP_SMPTE_240; break;
+    case GST_VIDEO_COLOR_PRIMARIES_FILM: svtav1enc->svt_config->color_primaries = EB_CICP_CP_GENERIC_FILM; break;
+    case GST_VIDEO_COLOR_PRIMARIES_BT2020: svtav1enc->svt_config->color_primaries = EB_CICP_CP_BT_2020; break;
+    case GST_VIDEO_COLOR_PRIMARIES_SMPTERP431: svtav1enc->svt_config->color_primaries = EB_CICP_CP_SMPTE_431; break;
+    case GST_VIDEO_COLOR_PRIMARIES_SMPTEEG432: svtav1enc->svt_config->color_primaries = EB_CICP_CP_SMPTE_432; break;
+    case GST_VIDEO_COLOR_PRIMARIES_EBU3213: svtav1enc->svt_config->color_primaries = EB_CICP_CP_EBU_3213; break;
     default: svtav1enc->svt_config->color_primaries = EB_CICP_CP_UNSPECIFIED; break;
     }
 
     switch (GST_VIDEO_INFO_COLORIMETRY(info).transfer) {
-    case GST_VIDEO_TRANSFER_BT709:
-        svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_BT_709;
-        break;
-    case GST_VIDEO_TRANSFER_GAMMA28:
-        svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_BT_470_B_G;
-        break;
+    case GST_VIDEO_TRANSFER_BT709: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_BT_709; break;
+    case GST_VIDEO_TRANSFER_GAMMA28: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_BT_470_B_G; break;
 #if GST_CHECK_VERSION(1, 18, 0)
-    case GST_VIDEO_TRANSFER_BT601:
-        svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_BT_601;
-        break;
+    case GST_VIDEO_TRANSFER_BT601: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_BT_601; break;
 #endif
-    case GST_VIDEO_TRANSFER_SMPTE240M:
-        svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_SMPTE_240;
-        break;
-    case GST_VIDEO_TRANSFER_GAMMA10:
-        svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_LINEAR;
-        break;
-    case GST_VIDEO_TRANSFER_LOG100:
-        svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_LOG_100;
-        break;
-    case GST_VIDEO_TRANSFER_LOG316:
-        svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_LOG_100_SQRT10;
-        break;
-    case GST_VIDEO_TRANSFER_SRGB:
-        svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_SRGB;
-        break;
+    case GST_VIDEO_TRANSFER_SMPTE240M: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_SMPTE_240; break;
+    case GST_VIDEO_TRANSFER_GAMMA10: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_LINEAR; break;
+    case GST_VIDEO_TRANSFER_LOG100: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_LOG_100; break;
+    case GST_VIDEO_TRANSFER_LOG316: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_LOG_100_SQRT10; break;
+    case GST_VIDEO_TRANSFER_SRGB: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_SRGB; break;
 #if GST_CHECK_VERSION(1, 18, 0)
     case GST_VIDEO_TRANSFER_BT2020_10:
         svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_BT_2020_10_BIT;
@@ -585,35 +493,19 @@ static gboolean gst_svtav1enc_configure_svt(GstSvtAv1Enc *svtav1enc) {
         svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_BT_2020_12_BIT;
         break;
 #if GST_CHECK_VERSION(1, 18, 0)
-    case GST_VIDEO_TRANSFER_SMPTE2084:
-        svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_SMPTE_2084;
-        break;
-    case GST_VIDEO_TRANSFER_ARIB_STD_B67:
-        svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_HLG;
-        break;
+    case GST_VIDEO_TRANSFER_SMPTE2084: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_SMPTE_2084; break;
+    case GST_VIDEO_TRANSFER_ARIB_STD_B67: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_HLG; break;
 #endif
     default: svtav1enc->svt_config->transfer_characteristics = EB_CICP_TC_UNSPECIFIED; break;
     }
 
     switch (GST_VIDEO_INFO_COLORIMETRY(info).matrix) {
-    case GST_VIDEO_COLOR_MATRIX_RGB:
-        svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_IDENTITY;
-        break;
-    case GST_VIDEO_COLOR_MATRIX_BT709:
-        svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_BT_709;
-        break;
-    case GST_VIDEO_COLOR_MATRIX_FCC:
-        svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_FCC;
-        break;
-    case GST_VIDEO_COLOR_MATRIX_BT601:
-        svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_BT_601;
-        break;
-    case GST_VIDEO_COLOR_MATRIX_SMPTE240M:
-        svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_SMPTE_240;
-        break;
-    case GST_VIDEO_COLOR_MATRIX_BT2020:
-        svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_BT_2020_NCL;
-        break;
+    case GST_VIDEO_COLOR_MATRIX_RGB: svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_IDENTITY; break;
+    case GST_VIDEO_COLOR_MATRIX_BT709: svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_BT_709; break;
+    case GST_VIDEO_COLOR_MATRIX_FCC: svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_FCC; break;
+    case GST_VIDEO_COLOR_MATRIX_BT601: svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_BT_601; break;
+    case GST_VIDEO_COLOR_MATRIX_SMPTE240M: svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_SMPTE_240; break;
+    case GST_VIDEO_COLOR_MATRIX_BT2020: svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_BT_2020_NCL; break;
 
     default: svtav1enc->svt_config->matrix_coefficients = EB_CICP_MC_UNSPECIFIED; break;
     }
@@ -625,58 +517,42 @@ static gboolean gst_svtav1enc_configure_svt(GstSvtAv1Enc *svtav1enc) {
     }
 
     switch (GST_VIDEO_INFO_CHROMA_SITE(info)) {
-    case GST_VIDEO_CHROMA_SITE_V_COSITED:
-        svtav1enc->svt_config->chroma_sample_position = EB_CSP_VERTICAL;
-        break;
-    case GST_VIDEO_CHROMA_SITE_COSITED:
-        svtav1enc->svt_config->chroma_sample_position = EB_CSP_COLOCATED;
-        break;
+    case GST_VIDEO_CHROMA_SITE_V_COSITED: svtav1enc->svt_config->chroma_sample_position = EB_CSP_VERTICAL; break;
+    case GST_VIDEO_CHROMA_SITE_COSITED: svtav1enc->svt_config->chroma_sample_position = EB_CSP_COLOCATED; break;
     default: svtav1enc->svt_config->chroma_sample_position = EB_CSP_UNKNOWN;
     }
 
 #if GST_CHECK_VERSION(1, 18, 0)
     GstVideoMasteringDisplayInfo master_display_info;
     if (gst_video_mastering_display_info_from_caps(&master_display_info, svtav1enc->state->caps)) {
-        svtav1enc->svt_config->mastering_display.r.x = master_display_info.display_primaries[0].x;
-        svtav1enc->svt_config->mastering_display.r.y = master_display_info.display_primaries[0].y;
-        svtav1enc->svt_config->mastering_display.g.x = master_display_info.display_primaries[1].x;
-        svtav1enc->svt_config->mastering_display.g.y = master_display_info.display_primaries[1].y;
-        svtav1enc->svt_config->mastering_display.b.x = master_display_info.display_primaries[2].x;
-        svtav1enc->svt_config->mastering_display.b.y = master_display_info.display_primaries[2].y;
+        svtav1enc->svt_config->mastering_display.r.x           = master_display_info.display_primaries[0].x;
+        svtav1enc->svt_config->mastering_display.r.y           = master_display_info.display_primaries[0].y;
+        svtav1enc->svt_config->mastering_display.g.x           = master_display_info.display_primaries[1].x;
+        svtav1enc->svt_config->mastering_display.g.y           = master_display_info.display_primaries[1].y;
+        svtav1enc->svt_config->mastering_display.b.x           = master_display_info.display_primaries[2].x;
+        svtav1enc->svt_config->mastering_display.b.y           = master_display_info.display_primaries[2].y;
         svtav1enc->svt_config->mastering_display.white_point.x = master_display_info.white_point.x;
         svtav1enc->svt_config->mastering_display.white_point.y = master_display_info.white_point.y;
-        svtav1enc->svt_config->mastering_display.max_luma =
-            master_display_info.max_display_mastering_luminance;
-        svtav1enc->svt_config->mastering_display.min_luma =
-            master_display_info.min_display_mastering_luminance;
-        svtav1enc->svt_config->high_dynamic_range_input = TRUE;
+        svtav1enc->svt_config->mastering_display.max_luma      = master_display_info.max_display_mastering_luminance;
+        svtav1enc->svt_config->mastering_display.min_luma      = master_display_info.min_display_mastering_luminance;
+        svtav1enc->svt_config->high_dynamic_range_input        = TRUE;
     } else {
-        memset(&svtav1enc->svt_config->mastering_display,
-               0,
-               sizeof(svtav1enc->svt_config->mastering_display));
+        memset(&svtav1enc->svt_config->mastering_display, 0, sizeof(svtav1enc->svt_config->mastering_display));
         svtav1enc->svt_config->high_dynamic_range_input = FALSE;
     }
 
     GstVideoContentLightLevel content_light_level;
     if (gst_video_content_light_level_from_caps(&content_light_level, svtav1enc->state->caps)) {
-        svtav1enc->svt_config->content_light_level.max_cll =
-            content_light_level.max_content_light_level;
-        svtav1enc->svt_config->content_light_level.max_fall =
-            content_light_level.max_frame_average_light_level;
+        svtav1enc->svt_config->content_light_level.max_cll  = content_light_level.max_content_light_level;
+        svtav1enc->svt_config->content_light_level.max_fall = content_light_level.max_frame_average_light_level;
     } else {
-        memset(&svtav1enc->svt_config->content_light_level,
-               0,
-               sizeof(svtav1enc->svt_config->content_light_level));
+        memset(&svtav1enc->svt_config->content_light_level, 0, sizeof(svtav1enc->svt_config->content_light_level));
     }
 #endif
 
     EbErrorType res = svt_av1_enc_set_parameter(svtav1enc->svt_encoder, svtav1enc->svt_config);
     if (res != EB_ErrorNone) {
-        GST_ELEMENT_ERROR(svtav1enc,
-                          LIBRARY,
-                          INIT,
-                          (NULL),
-                          ("svt_av1_enc_set_parameter failed with error %d", res));
+        GST_ELEMENT_ERROR(svtav1enc, LIBRARY, INIT, (NULL), ("svt_av1_enc_set_parameter failed with error %d", res));
         return FALSE;
     }
     return TRUE;
@@ -688,8 +564,7 @@ static gboolean gst_svtav1enc_start_svt(GstSvtAv1Enc *svtav1enc) {
     G_UNLOCK(init_mutex);
 
     if (res != EB_ErrorNone) {
-        GST_ELEMENT_ERROR(
-            svtav1enc, LIBRARY, INIT, (NULL), ("svt_av1_enc_init failed with error %d", res));
+        GST_ELEMENT_ERROR(svtav1enc, LIBRARY, INIT, (NULL), ("svt_av1_enc_init failed with error %d", res));
         return FALSE;
     }
     return TRUE;
@@ -702,8 +577,7 @@ static GstFlowReturn gst_svtav1enc_encode(GstSvtAv1Enc *svtav1enc, GstVideoCodec
     EbSvtIOFormat      *input_picture_buffer = (EbSvtIOFormat *)svtav1enc->input_buf->p_buffer;
     GstVideoFrame       video_frame;
 
-    if (!gst_video_frame_map(
-            &video_frame, &svtav1enc->state->info, frame->input_buffer, GST_MAP_READ)) {
+    if (!gst_video_frame_map(&video_frame, &svtav1enc->state->info, frame->input_buffer, GST_MAP_READ)) {
         GST_ELEMENT_ERROR(svtav1enc, LIBRARY, ENCODE, (NULL), ("couldn't map input frame"));
         return GST_FLOW_ERROR;
     }
@@ -735,8 +609,7 @@ static GstFlowReturn gst_svtav1enc_encode(GstSvtAv1Enc *svtav1enc, GstVideoCodec
 
     res = svt_av1_enc_send_picture(svtav1enc->svt_encoder, input_buffer);
     if (res != EB_ErrorNone) {
-        GST_ELEMENT_ERROR(
-            svtav1enc, LIBRARY, ENCODE, (NULL), ("error in sending picture to encoder"));
+        GST_ELEMENT_ERROR(svtav1enc, LIBRARY, ENCODE, (NULL), ("error in sending picture to encoder"));
         ret = GST_FLOW_ERROR;
     }
     gst_video_frame_unmap(&video_frame);
@@ -772,9 +645,8 @@ static gboolean gst_svtav1enc_flush(GstVideoEncoder *encoder) {
     return (ret != GST_FLOW_ERROR);
 }
 
-static GstFlowReturn gst_svtav1enc_dequeue_encoded_frames(GstSvtAv1Enc *svtav1enc,
-                                                          gboolean      done_sending_pics,
-                                                          gboolean      output_frames) {
+static GstFlowReturn gst_svtav1enc_dequeue_encoded_frames(GstSvtAv1Enc *svtav1enc, gboolean done_sending_pics,
+                                                          gboolean output_frames) {
     GstFlowReturn ret           = GST_FLOW_OK;
     EbErrorType   res           = EB_ErrorNone;
     gboolean      encode_at_eos = FALSE;
@@ -796,20 +668,17 @@ static GstFlowReturn gst_svtav1enc_dequeue_encoded_frames(GstSvtAv1Enc *svtav1en
         } else if (res != EB_NoErrorEmptyQueue && output_frames && output_buf) {
             // AV1 has no frame re-ordering so always get the oldest frame
             frame = gst_video_encoder_get_oldest_frame(GST_VIDEO_ENCODER(svtav1enc));
-            if (output_buf->pic_type == EB_AV1_KEY_PICTURE ||
-                output_buf->pic_type == EB_AV1_INTRA_ONLY_PICTURE) {
+            if (output_buf->pic_type == EB_AV1_KEY_PICTURE || output_buf->pic_type == EB_AV1_INTRA_ONLY_PICTURE) {
                 GST_VIDEO_CODEC_FRAME_SET_SYNC_POINT(frame);
             }
 
             if ((ret = gst_video_encoder_allocate_output_frame(
-                     GST_VIDEO_ENCODER(svtav1enc), frame, output_buf->n_filled_len)) !=
-                GST_FLOW_OK) {
+                     GST_VIDEO_ENCODER(svtav1enc), frame, output_buf->n_filled_len)) != GST_FLOW_OK) {
                 svt_av1_enc_release_out_buffer(&output_buf);
                 gst_video_codec_frame_unref(frame);
                 return ret;
             }
-            gst_buffer_fill(
-                frame->output_buffer, 0, output_buf->p_buffer, output_buf->n_filled_len);
+            gst_buffer_fill(frame->output_buffer, 0, output_buf->p_buffer, output_buf->n_filled_len);
 
             frame->pts = frame->output_buffer->pts = output_buf->pts;
 
@@ -834,11 +703,7 @@ static gboolean gst_svtav1enc_open(GstVideoEncoder *encoder) {
     GstSvtAv1Enc *svtav1enc = GST_SVTAV1ENC(encoder);
 
     GST_DEBUG_OBJECT(svtav1enc, "open");
-#if FIX_P_APP_DATA
     EbErrorType res = svt_av1_enc_init_handle(&svtav1enc->svt_encoder, svtav1enc->svt_config);
-#else
-    EbErrorType res = svt_av1_enc_init_handle(&svtav1enc->svt_encoder, NULL, svtav1enc->svt_config);
-#endif
     if (res != EB_ErrorNone) {
         GST_ELEMENT_ERROR(svtav1enc, LIBRARY, INIT, (NULL), ("svt_av1_enc_init_handle failed with error %d", res));
         return FALSE;
@@ -901,22 +766,20 @@ static gboolean gst_svtav1enc_set_format(GstVideoEncoder *encoder, GstVideoCodec
     if (!gst_svtav1enc_start_svt(svtav1enc))
         return FALSE;
 
-    guint32 fps = svtav1enc->svt_config->frame_rate_numerator /
-        svtav1enc->svt_config->frame_rate_denominator;
-    fps = fps > 120 ? 120 : fps;
-    fps = fps < 24 ? 24 : fps;
+    guint32 fps = svtav1enc->svt_config->frame_rate_numerator / svtav1enc->svt_config->frame_rate_denominator;
+    fps         = fps > 120 ? 120 : fps;
+    fps         = fps < 24 ? 24 : fps;
 
     min_latency_frames = ((fps * 5) >> 2);
 
-    gst_video_encoder_set_latency(encoder,
-                                  min_latency_frames * GST_SECOND /
-                                      (svtav1enc->svt_config->frame_rate_numerator /
-                                       svtav1enc->svt_config->frame_rate_denominator),
-                                  -1);
+    gst_video_encoder_set_latency(
+        encoder,
+        min_latency_frames * GST_SECOND /
+            (svtav1enc->svt_config->frame_rate_numerator / svtav1enc->svt_config->frame_rate_denominator),
+        -1);
 
     src_caps     = gst_static_pad_template_get_caps(&gst_svtav1enc_src_pad_template);
-    output_state = gst_video_encoder_set_output_state(
-        GST_VIDEO_ENCODER(encoder), src_caps, svtav1enc->state);
+    output_state = gst_video_encoder_set_output_state(GST_VIDEO_ENCODER(encoder), src_caps, svtav1enc->state);
     gst_video_codec_state_unref(output_state);
 
     GST_DEBUG_OBJECT(svtav1enc, "output caps: %" GST_PTR_FORMAT, svtav1enc->state->caps);
@@ -924,8 +787,7 @@ static gboolean gst_svtav1enc_set_format(GstVideoEncoder *encoder, GstVideoCodec
     return gst_video_encoder_negotiate(encoder);
 }
 
-static GstFlowReturn gst_svtav1enc_handle_frame(GstVideoEncoder    *encoder,
-                                                GstVideoCodecFrame *frame) {
+static GstFlowReturn gst_svtav1enc_handle_frame(GstVideoEncoder *encoder, GstVideoCodecFrame *frame) {
     GstSvtAv1Enc *svtav1enc = GST_SVTAV1ENC(encoder);
     GstFlowReturn ret       = GST_FLOW_OK;
 
@@ -1012,5 +874,5 @@ static gboolean plugin_init(GstPlugin *plugin) {
 #endif
 
 GST_PLUGIN_DEFINE(GST_VERSION_MAJOR, GST_VERSION_MINOR, svtav1enc,
-                  "Scalable Video Technology for AV1 Encoder (SVT-AV1 Encoder)", plugin_init,
-                  VERSION, "LGPL", PACKAGE_NAME, GST_PACKAGE_ORIGIN)
+                  "Scalable Video Technology for AV1 Encoder (SVT-AV1 Encoder)", plugin_init, VERSION, "LGPL",
+                  PACKAGE_NAME, GST_PACKAGE_ORIGIN)

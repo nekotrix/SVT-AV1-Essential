@@ -24,12 +24,8 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
                            EbPictureBufferDesc *input_pic, //src frame for refinement
                            EbPictureBufferDesc *ref_pic, //ref frame for refinement
                            uint8_t              sf, //downsacle factor between det and refinement
-#if OPT_GM_CORESP_FROM_MV
                            uint8_t chess_refn, EbWarpedMotionParams *best_wm, int allow_high_precision_mv,
                            uint8_t list_idx, uint8_t ref_idx);
-#else
-                           uint8_t chess_refn, EbWarpedMotionParams *best_wm, int allow_high_precision_mv);
-#endif
 
 void                    svt_aom_upscale_wm_params(EbWarpedMotionParams *wm_params, uint8_t scale_factor);
 extern MvReferenceFrame svt_get_ref_frame_type(uint8_t list, uint8_t ref_idx);

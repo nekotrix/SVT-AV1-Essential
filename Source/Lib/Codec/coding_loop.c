@@ -402,13 +402,9 @@ static void av1_encode_loop(PictureControlSet *pcs, EncDecContext *ed_ctx, Super
                                     is_16bit, // hbd
                                     blk_geom->tx_width[blk_ptr->tx_depth],
                                     blk_geom->tx_height[blk_ptr->tx_depth]);
-#if FTR_LOSSLESS_SUPPORT
             svt_aom_estimate_transform(pcs,
                                        ed_ctx->md_ctx,
                                        ((int16_t *)residual16bit->buffer_y) + scratch_luma_offset,
-#else
-            svt_aom_estimate_transform(((int16_t *)residual16bit->buffer_y) + scratch_luma_offset,
-#endif
                                        residual16bit->stride_y,
                                        ((TranLow *)transform16bit->buffer_y) + ed_ctx->coded_area_sb,
                                        NOT_USED_VALUE,
@@ -484,13 +480,9 @@ static void av1_encode_loop(PictureControlSet *pcs, EncDecContext *ed_ctx, Super
                                     is_16bit, // hbd
                                     blk_geom->tx_width_uv[blk_ptr->tx_depth],
                                     blk_geom->tx_height_uv[blk_ptr->tx_depth]);
-#if FTR_LOSSLESS_SUPPORT
             svt_aom_estimate_transform(pcs,
                                        ed_ctx->md_ctx,
                                        ((int16_t *)residual16bit->buffer_cb) + scratch_cb_offset,
-#else
-            svt_aom_estimate_transform(((int16_t *)residual16bit->buffer_cb) + scratch_cb_offset,
-#endif
                                        residual16bit->stride_cb,
                                        ((TranLow *)transform16bit->buffer_cb) + ed_ctx->coded_area_sb_uv,
                                        NOT_USED_VALUE,
@@ -535,13 +527,9 @@ static void av1_encode_loop(PictureControlSet *pcs, EncDecContext *ed_ctx, Super
                                     is_16bit, // hbd
                                     blk_geom->tx_width_uv[blk_ptr->tx_depth],
                                     blk_geom->tx_height_uv[blk_ptr->tx_depth]);
-#if FTR_LOSSLESS_SUPPORT
             svt_aom_estimate_transform(pcs,
                                        ed_ctx->md_ctx,
                                        ((int16_t *)residual16bit->buffer_cr) + scratch_cb_offset,
-#else
-            svt_aom_estimate_transform(((int16_t *)residual16bit->buffer_cr) + scratch_cb_offset,
-#endif
                                        residual16bit->stride_cr,
                                        ((TranLow *)transform16bit->buffer_cr) + ed_ctx->coded_area_sb_uv,
                                        NOT_USED_VALUE,
@@ -600,11 +588,7 @@ static void av1_encode_loop(PictureControlSet *pcs, EncDecContext *ed_ctx, Super
 *   Recon  (position independent)
 *
 **********************************************************/
-#if FTR_LOSSLESS_SUPPORT
 static void av1_encode_generate_recon(PictureControlSet *pcs, EncDecContext *ed_ctx, uint32_t org_x, uint32_t org_y,
-#else
-static void av1_encode_generate_recon(EncDecContext *ed_ctx, uint32_t org_x, uint32_t org_y,
-#endif
                                       EbPictureBufferDesc *pred_samples, // no basis/offset
                                       EbPictureBufferDesc *residual16bit, // no basis/offset
                                       uint32_t component_mask, uint16_t *eob) {
@@ -617,13 +601,9 @@ static void av1_encode_generate_recon(EncDecContext *ed_ctx, uint32_t org_x, uin
         if ((blk_ptr->y_has_coeff & (1 << ed_ctx->txb_itr)) && blk_ptr->skip_mode == FALSE) {
             const uint32_t pred_luma_offset = (pred_samples->org_y + org_y) * pred_samples->stride_y +
                 (pred_samples->org_x + org_x);
-#if FTR_LOSSLESS_SUPPORT
             svt_aom_inv_transform_recon_wrapper(pcs,
                                                 ed_ctx->md_ctx,
                                                 pred_samples->buffer_y,
-#else
-            svt_aom_inv_transform_recon_wrapper(pred_samples->buffer_y,
-#endif
                                                 pred_luma_offset,
                                                 pred_samples->stride_y,
                                                 pred_samples->buffer_y,
@@ -652,13 +632,9 @@ static void av1_encode_generate_recon(EncDecContext *ed_ctx, uint32_t org_x, uin
         if ((blk_ptr->u_has_coeff & (1 << ed_ctx->txb_itr)) && blk_ptr->skip_mode == FALSE) {
             const uint32_t pred_offset_cb = (((pred_samples->org_y + round_origin_y) >> 1) * pred_samples->stride_cb) +
                 ((pred_samples->org_x + round_origin_x) >> 1);
-#if FTR_LOSSLESS_SUPPORT
             svt_aom_inv_transform_recon_wrapper(pcs,
                                                 ed_ctx->md_ctx,
                                                 pred_samples->buffer_cb,
-#else
-            svt_aom_inv_transform_recon_wrapper(pred_samples->buffer_cb,
-#endif
                                                 pred_offset_cb,
                                                 pred_samples->stride_cb,
                                                 pred_samples->buffer_cb,
@@ -679,13 +655,9 @@ static void av1_encode_generate_recon(EncDecContext *ed_ctx, uint32_t org_x, uin
         if ((blk_ptr->v_has_coeff & (1 << ed_ctx->txb_itr)) && blk_ptr->skip_mode == FALSE) {
             const uint32_t pred_offset_cr = (((pred_samples->org_y + round_origin_y) >> 1) * pred_samples->stride_cr) +
                 ((pred_samples->org_x + round_origin_x) >> 1);
-#if FTR_LOSSLESS_SUPPORT
             svt_aom_inv_transform_recon_wrapper(pcs,
                                                 ed_ctx->md_ctx,
                                                 pred_samples->buffer_cr,
-#else
-            svt_aom_inv_transform_recon_wrapper(pred_samples->buffer_cr,
-#endif
                                                 pred_offset_cr,
                                                 pred_samples->stride_cr,
                                                 pred_samples->buffer_cr,
@@ -910,12 +882,8 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
                         inverse_quant_buffer,
                         PICTURE_BUFFER_DESC_LUMA_MASK,
                         eobs[ed_ctx->txb_itr]);
-#if FTR_LOSSLESS_SUPPORT
         av1_encode_generate_recon(pcs,
                                   ed_ctx,
-#else
-        av1_encode_generate_recon(ed_ctx,
-#endif
                                   txb_origin_x,
                                   txb_origin_y,
                                   recon_buffer,
@@ -1182,12 +1150,8 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
                         inverse_quant_buffer,
                         PICTURE_BUFFER_DESC_CHROMA_MASK,
                         eobs[ed_ctx->txb_itr]);
-#if FTR_LOSSLESS_SUPPORT
         av1_encode_generate_recon(pcs,
                                   ed_ctx,
-#else
-        av1_encode_generate_recon(ed_ctx,
-#endif
                                   txb_origin_x,
                                   txb_origin_y,
                                   recon_buffer,
@@ -1529,9 +1493,7 @@ static void perform_inter_coding_loop(SequenceControlSet *scs, PictureControlSet
 
         //inter mode
         av1_encode_generate_recon(
-#if FTR_LOSSLESS_SUPPORT
             pcs,
-#endif
             ctx,
             txb_origin_x, //pic offset
             txb_origin_y,
@@ -2254,13 +2216,9 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
                     pcs->ep_txfm_context_na[tile_idx]->top_array[txfm_context_above_index]);
                 blk_ptr->av1xd->left_txfm_context = &(
                     pcs->ep_txfm_context_na[tile_idx]->left_array[txfm_context_left_index]);
-#if FTR_LOSSLESS_SUPPORT
                 svt_aom_tx_size_bits(pcs,
                                      ctx->blk_ptr->segment_id,
                                      md_ctx->md_rate_est_ctx,
-#else
-                svt_aom_tx_size_bits(md_ctx->md_rate_est_ctx,
-#endif
                                      blk_ptr->av1xd,
                                      &(blk_ptr->av1xd->mi[0]->mbmi),
                                      blk_geom->txsize[blk_ptr->tx_depth],

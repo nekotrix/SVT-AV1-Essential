@@ -17,8 +17,7 @@
 G_BEGIN_DECLS
 #define GST_TYPE_SVTAV1ENC (gst_svtav1enc_get_type())
 #define GST_SVTAV1ENC(obj) (G_TYPE_CHECK_INSTANCE_CAST((obj), GST_TYPE_SVTAV1ENC, GstSvtAv1Enc))
-#define GST_SVTAV1ENC_CLASS(klass) \
-    (G_TYPE_CHECK_CLASS_CAST((klass), GST_TYPE_SVTAV1ENC, GstSvtHevcEncClass))
+#define GST_SVTAV1ENC_CLASS(klass) (G_TYPE_CHECK_CLASS_CAST((klass), GST_TYPE_SVTAV1ENC, GstSvtHevcEncClass))
 #define GST_IS_SVTAV1ENC(obj) (G_TYPE_CHECK_INSTANCE_TYPE((obj), GST_TYPE_SVTAV1ENC))
 #define GST_IS_SVTAV1ENC_CLASS(obj) (G_TYPE_CHECK_CLASS_TYPE((klass), GST_TYPE_SVTAV1ENC))
 
@@ -43,11 +42,7 @@ typedef struct _GstSvtAv1Enc {
     guint  maximum_buffer_size;
     gint   intra_period_length;
     gint   intra_refresh_type;
-#if FIX_SVT_AV1_CHECK_VERSION
-    gint level_of_parallelism;
-#else
-    gint logical_processors;
-#endif
+    gint   level_of_parallelism;
     gint   target_socket;
     gchar *parameters_string;
 

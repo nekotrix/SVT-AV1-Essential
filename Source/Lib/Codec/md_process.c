@@ -149,29 +149,16 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
     // determine MAX_NICS for a given preset
     // get the min scaling level (the smallest scaling level is the most conservative)
     uint8_t min_nic_scaling_level = NICS_SCALING_LEVELS - 1;
-#if TUNE_LD_SVT_14
     for (uint8_t rtc_itr = 0; rtc_itr < 2; rtc_itr++) {
         bool rtc_tune = (bool)rtc_itr;
-#endif
         for (uint8_t is_base = 0; is_base < 2; is_base++) {
-#if FTR_LOSSLESS_SUPPORT
             for (uint8_t qp = MIN_QP_VALUE; qp <= MAX_QP_VALUE; qp++) {
-#else
-        // min QP is 1 b/c 0 is lossless and is not supported
-        for (uint8_t qp = 1; qp <= MAX_QP_VALUE; qp++) {
-#endif
-#if TUNE_LD_SVT_14
-                uint8_t nic_level = svt_aom_get_nic_level(enc_mode, is_base, qp, seq_qp_mod, rtc_tune);
-#else
-            uint8_t nic_level = svt_aom_get_nic_level(enc_mode, is_base, qp, seq_qp_mod);
-#endif
+                uint8_t nic_level         = svt_aom_get_nic_level(enc_mode, is_base, qp, seq_qp_mod, rtc_tune);
                 uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
                 min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
             }
         }
-#if TUNE_LD_SVT_14
     }
-#endif
     uint8_t stage1_scaling_num = MD_STAGE_NICS_SCAL_NUM[min_nic_scaling_level][MD_STAGE_1];
 
     // scale max_nics
@@ -247,12 +234,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
     // Allocate buffers for obmc prediction
     uint8_t obmc_allowed = 0;
     for (uint8_t is_base = 0; is_base < 2; is_base++) {
-#if FTR_LOSSLESS_SUPPORT
         for (uint8_t qp = MIN_QP_VALUE; qp <= MAX_QP_VALUE; qp++) {
-#else
-        // min QP is 1 b/c 0 is lossless and is not supported
-        for (uint8_t qp = 1; qp <= MAX_QP_VALUE; qp++) {
-#endif
             if (obmc_allowed)
                 break;
             obmc_allowed |= svt_aom_get_obmc_level(enc_mode, qp, is_base, seq_qp_mod);
@@ -532,13 +514,8 @@ void svt_aom_reset_mode_decision_neighbor_arrays(PictureControlSet *pcs, uint16_
     return;
 }
 // If the ref intra percentage is below the TH, applying modulation to the MD lambda
-#if OPT_LAMBDA
 #define LAMBDA_MOD_INTRA_TH 50
 #define LAMBDA_MOD_INTRA_SCALING_FACTOR 138
-#else
-#define LAMBDA_MOD_INTRA_TH 65
-#define LAMBDA_MOD_SCALING_FACTOR 138
-#endif
 // Set the lambda for each sb.
 // When lambda tuning is on (blk_lambda_tuning), lambda of each block is set separately (full_lambda_md/fast_lambda_md)
 // later in svt_aom_set_tuned_blk_lambda
@@ -551,21 +528,12 @@ static void av1_lambda_assign_md(PictureControlSet *pcs, ModeDecisionContext *ct
 
     if (pcs->scs->stats_based_sb_lambda_modulation) {
         if (pcs->temporal_layer_index > 0) {
-#if OPT_LAMBDA
             if (pcs->ref_intra_percentage < LAMBDA_MOD_INTRA_TH) {
                 ctx->full_lambda_md[0] = (ctx->full_lambda_md[0] * LAMBDA_MOD_INTRA_SCALING_FACTOR) >> 7;
                 ctx->fast_lambda_md[0] = (ctx->fast_lambda_md[0] * LAMBDA_MOD_INTRA_SCALING_FACTOR) >> 7;
                 ctx->full_lambda_md[1] = (ctx->full_lambda_md[1] * LAMBDA_MOD_INTRA_SCALING_FACTOR) >> 7;
                 ctx->fast_lambda_md[1] = (ctx->fast_lambda_md[1] * LAMBDA_MOD_INTRA_SCALING_FACTOR) >> 7;
             }
-#else
-            if (pcs->ref_intra_percentage < LAMBDA_MOD_INTRA_TH) {
-                ctx->full_lambda_md[0] = (ctx->full_lambda_md[0] * LAMBDA_MOD_SCALING_FACTOR) >> 7;
-                ctx->fast_lambda_md[0] = (ctx->fast_lambda_md[0] * LAMBDA_MOD_SCALING_FACTOR) >> 7;
-                ctx->full_lambda_md[1] = (ctx->full_lambda_md[1] * LAMBDA_MOD_SCALING_FACTOR) >> 7;
-                ctx->fast_lambda_md[1] = (ctx->fast_lambda_md[1] * LAMBDA_MOD_SCALING_FACTOR) >> 7;
-            }
-#endif
         }
     }
     if (pcs->lambda_weight) {

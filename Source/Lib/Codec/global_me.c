@@ -22,11 +22,7 @@
 #include "corner_detect.h"
 #include "aom_dsp_rtcd.h"
 // Normalized distortion-based thresholds
-#if CLN_UNUSED_GM_SIGS
 #define GMV_ME_SAD_TH_0 1
-#else
-#define GMV_ME_SAD_TH_0 0
-#endif
 #define GMV_ME_SAD_TH_1 5
 #define GMV_ME_SAD_TH_2 10
 #define GMV_PIC_VAR_TH 750
@@ -40,14 +36,10 @@ void svt_aom_gm_pre_processor(PictureParentControlSet *pcs, PictureParentControl
 
     //fill gm controls to be used locally for the preprocessor gm pass.
     //final gm controls will be set later for the final gm detection pass.
-    pcs->gm_ctrls.enabled      = 1;
-    pcs->gm_ctrls.identiy_exit = 1;
-#if OPT_GM_LVLS
-    pcs->gm_ctrls.search_start_model = TRANSLATION;
-    pcs->gm_ctrls.search_end_model   = ROTZOOM;
-#else
-    pcs->gm_ctrls.rotzoom_model_only = 1;
-#endif
+    pcs->gm_ctrls.enabled                      = 1;
+    pcs->gm_ctrls.identiy_exit                 = 1;
+    pcs->gm_ctrls.search_start_model           = TRANSLATION;
+    pcs->gm_ctrls.search_end_model             = ROTZOOM;
     pcs->gm_ctrls.bipred_only                  = 0;
     pcs->gm_ctrls.bypass_based_on_me           = 1;
     pcs->gm_ctrls.use_stationary_block         = 0;
@@ -58,17 +50,8 @@ void svt_aom_gm_pre_processor(PictureParentControlSet *pcs, PictureParentControl
     pcs->gm_ctrls.chess_rfn                    = 1;
     pcs->gm_ctrls.match_sz                     = 7;
     pcs->gm_ctrls.inj_psq_glb                  = TRUE;
-#if !CLN_UNUSED_GM_SIGS
-    pcs->gm_ctrls.use_ref_info = 0;
-    pcs->gm_ctrls.layer_offset = 0;
-#endif
-#if OPT_GM_RFN_EARLY_EXIT
-    pcs->gm_ctrls.rfn_early_exit = 1;
-#endif
-#if OPT_GM_CORESP_FROM_MV
-    pcs->gm_ctrls.correspondence_method = CORNERS;
-
-#endif
+    pcs->gm_ctrls.rfn_early_exit               = 1;
+    pcs->gm_ctrls.correspondence_method        = CORNERS;
 
     PictureParentControlSet *ref_pcs_list[2];
     PictureParentControlSet *cur_pcs   = pcs_list[0];
@@ -134,19 +117,11 @@ void svt_aom_gm_pre_processor(PictureParentControlSet *pcs, PictureParentControl
             detect_refn_scale_factor,
             pcs->gm_ctrls.chess_rfn,
             &wm_tmp[0],
-#if OPT_GM_CORESP_FROM_MV
             pcs->frm_hdr.allow_high_precision_mv,
             0, //list_idx/ref_idx used for generating correspondences when correspondence_method is MV-based. That is incompatable with pp, so just send 0; it won't be used
             0);
-#else
-            pcs->frm_hdr.allow_high_precision_mv);
-#endif
 
-#if FIX_GM_TRANS
         if (wm_tmp[0].wmtype != IDENTITY) {
-#else
-        if (wm_tmp[0].wmtype > TRANSLATION) {
-#endif
             pcs->gm_pp_detected = true;
             break;
         }
@@ -159,17 +134,9 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
     EbPictureBufferDesc *quarter_picture_ptr;
     EbPictureBufferDesc *sixteenth_ref_pic_ptr;
     EbPictureBufferDesc *sixteenth_picture_ptr;
-    pa_reference_object   = (EbPaReferenceObject *)pcs->pa_ref_pic_wrapper->object_ptr;
-    quarter_picture_ptr   = (EbPictureBufferDesc *)pa_reference_object->quarter_downsampled_picture_ptr;
-    sixteenth_picture_ptr = (EbPictureBufferDesc *)pa_reference_object->sixteenth_downsampled_picture_ptr;
-#if !CLN_UNUSED_GM_SIGS
-    PictureControlSet *cpcs;
-    cpcs = pcs->child_pcs;
-    if (pcs->gm_ctrls.use_ref_info) {
-        quarter_picture_ptr   = pcs->quarter_src_pic;
-        sixteenth_picture_ptr = pcs->sixteenth_src_pic;
-    }
-#endif
+    pa_reference_object            = (EbPaReferenceObject *)pcs->pa_ref_pic_wrapper->object_ptr;
+    quarter_picture_ptr            = (EbPictureBufferDesc *)pa_reference_object->quarter_downsampled_picture_ptr;
+    sixteenth_picture_ptr          = (EbPictureBufferDesc *)pa_reference_object->sixteenth_downsampled_picture_ptr;
     uint32_t num_of_list_to_search = (pcs->slice_type == P_SLICE) ? 1 /*List 0 only*/ : 2 /*List 0 + 1*/;
     // Initilize global motion to be OFF for all references frames.
     memset(pcs->is_global_motion, FALSE, MAX_NUM_OF_REF_PIC_LIST * REF_LIST_MAX_DEPTH);
@@ -199,7 +166,6 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
     // 1: use up to 1 ref per list @ the GMV params derivation
     // 2: use up to 2 ref per list @ the GMV params derivation
     // 3: all refs @ the GMV params derivation
-#if CLN_UNUSED_GM_SIGS
     if (average_me_sad < (GMV_ME_SAD_TH_0))
         global_motion_estimation_level = 0;
     else if (average_me_sad < (GMV_ME_SAD_TH_1))
@@ -208,18 +174,6 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
         global_motion_estimation_level = 2;
     else
         global_motion_estimation_level = 3;
-#else
-    uint32_t offset = pcs->gm_ctrls.qp_offset ? CLIP3(0, 5, (int)(90 - ((int)2 * pcs->scs->static_config.qp))) : 0;
-
-    if (average_me_sad <= (GMV_ME_SAD_TH_0 + offset))
-        global_motion_estimation_level = 0;
-    else if (average_me_sad < (GMV_ME_SAD_TH_1 + offset))
-        global_motion_estimation_level = 1;
-    else if (average_me_sad < (GMV_ME_SAD_TH_2 + offset))
-        global_motion_estimation_level = 2;
-    else
-        global_motion_estimation_level = 3;
-#endif
     if (pcs->gm_ctrls.downsample_level == GM_ADAPT_0) {
         pcs->gm_downsample_level = (average_me_sad < GMV_ME_SAD_TH_1) ? GM_DOWN : GM_FULL;
     } else if (pcs->gm_ctrls.downsample_level == GM_ADAPT_1) {
@@ -239,34 +193,6 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                                                100)))) // if more than 5% of SB(s) have stationary block(s) then shut gm
             global_motion_estimation_level = 0;
     }
-#if !CLN_UNUSED_GM_SIGS
-    if (pcs->gm_ctrls.use_ref_info) {
-        svt_aom_assert_err(pcs->gm_ctrls.layer_offset < 4, "gm_layer_invalid");
-        uint8_t layer_offset      = pcs->gm_ctrls.layer_offset - 1;
-        uint8_t use_ref_to_bypass = pcs->gm_ctrls.layer_offset == 0
-            ? 0
-            : (pcs->temporal_layer_index >= pcs->hierarchical_levels - layer_offset);
-
-        if (use_ref_to_bypass) {
-            uint8_t non_id_cnt = 0;
-            for (uint32_t list = REF_LIST_0; list < num_of_list_to_search; ++list) {
-                uint32_t all_refs = (list == REF_LIST_0) ? pcs->ref_list0_count_try : pcs->ref_list1_count_try;
-
-                for (uint32_t ref = 0; ref < all_refs; ++ref) {
-                    EbReferenceObject    *ref_obj = (EbReferenceObject *)cpcs->ref_pic_ptr_array[list][ref]->object_ptr;
-                    MvReferenceFrame      ref_frame = svt_get_ref_frame_type(list, ref);
-                    EbWarpedMotionParams *wm        = &ref_obj->global_motion[ref_frame];
-
-                    if (wm->wmtype > IDENTITY)
-                        non_id_cnt++;
-                }
-            }
-
-            if (non_id_cnt == 0)
-                global_motion_estimation_level = 0;
-        }
-    }
-#endif
     if (global_motion_estimation_level) {
         EbPictureBufferDesc *input_detection, *input_refinement;
         if (pcs->gm_downsample_level == GM_DOWN16) {
@@ -281,7 +207,6 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
         }
 
         int frm_corners[2 * MAX_CORNERS];
-#if OPT_GM_CORESP_FROM_MV
         int num_frm_corners = 0;
         // If generating the correspondences from corners, search for the current frame's corners outside the loop over all ref pics
         if (pcs->gm_ctrls.correspondence_method == CORNERS)
@@ -292,15 +217,6 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                 input_detection->stride_y,
                 frm_corners,
                 MAX_CORNERS);
-#else
-        int num_frm_corners = svt_av1_fast_corner_detect(
-            input_detection->buffer_y + input_detection->org_x + input_detection->org_y * input_detection->stride_y,
-            input_detection->width,
-            input_detection->height,
-            input_detection->stride_y,
-            frm_corners,
-            MAX_CORNERS);
-#endif
         for (uint32_t list_index = REF_LIST_0; list_index < num_of_list_to_search; ++list_index) {
             uint32_t num_of_ref_pic_to_search;
             num_of_ref_pic_to_search = pcs->slice_type == P_SLICE ? pcs->ref_list0_count_try
@@ -323,7 +239,6 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                 uint8_t              detect_refine_scale_factor;
                 EbPictureBufferDesc *ref_detection, *ref_refinement;
                 uint8_t              chess_refn;
-#if CLN_UNUSED_GM_SIGS
                 ref_picture_ptr       = ref_object->input_padded_pic;
                 quarter_ref_pic_ptr   = ref_object->quarter_downsampled_picture_ptr;
                 sixteenth_ref_pic_ptr = ref_object->sixteenth_downsampled_picture_ptr;
@@ -356,80 +271,6 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                     detect_refine_scale_factor = 1;
                     chess_refn                 = pcs->gm_ctrls.chess_rfn;
                 }
-#else
-                if (pcs->gm_ctrls.use_ref_info) {
-                    cpcs = pcs->child_pcs;
-                    EbReferenceObject *ref_obj =
-                        (EbReferenceObject *)cpcs->ref_pic_ptr_array[list_index][ref_pic_index]->object_ptr;
-
-                    ref_picture_ptr       = ref_obj->input_picture;
-                    quarter_ref_pic_ptr   = ref_obj->quarter_reference_picture;
-                    sixteenth_ref_pic_ptr = ref_obj->sixteenth_reference_picture;
-
-                    if (pcs->gm_downsample_level == GM_DOWN16) {
-                        input_detection = sixteenth_picture_ptr;
-                        ref_detection   = sixteenth_ref_pic_ptr;
-
-                        input_refinement = sixteenth_picture_ptr;
-                        ref_refinement   = sixteenth_ref_pic_ptr;
-
-                        detect_refine_scale_factor = 1;
-                        chess_refn                 = 0;
-                    } else if (pcs->gm_downsample_level == GM_DOWN) {
-                        input_detection = quarter_picture_ptr;
-                        ref_detection   = quarter_ref_pic_ptr;
-
-                        input_refinement = quarter_picture_ptr;
-                        ref_refinement   = quarter_ref_pic_ptr;
-
-                        detect_refine_scale_factor = 1;
-                        chess_refn                 = GM_ADAPT_1 ? pcs->gm_ctrls.chess_rfn : 0;
-                    } else {
-                        input_detection = input_pic;
-                        ref_detection   = ref_picture_ptr;
-
-                        input_refinement = input_pic;
-                        ref_refinement   = ref_picture_ptr;
-
-                        detect_refine_scale_factor = 1;
-                        chess_refn                 = pcs->gm_ctrls.chess_rfn;
-                    }
-
-                } else {
-                    ref_picture_ptr       = ref_object->input_padded_pic;
-                    quarter_ref_pic_ptr   = ref_object->quarter_downsampled_picture_ptr;
-                    sixteenth_ref_pic_ptr = ref_object->sixteenth_downsampled_picture_ptr;
-
-                    if (pcs->gm_downsample_level == GM_DOWN16) {
-                        input_detection = sixteenth_picture_ptr;
-                        ref_detection   = sixteenth_ref_pic_ptr;
-
-                        input_refinement = sixteenth_picture_ptr;
-                        ref_refinement   = sixteenth_ref_pic_ptr;
-
-                        detect_refine_scale_factor = 1;
-                        chess_refn                 = 0;
-                    } else if (pcs->gm_downsample_level == GM_DOWN) {
-                        input_detection = quarter_picture_ptr;
-                        ref_detection   = quarter_ref_pic_ptr;
-
-                        input_refinement = quarter_picture_ptr;
-                        ref_refinement   = quarter_ref_pic_ptr;
-
-                        detect_refine_scale_factor = 1;
-                        chess_refn                 = GM_ADAPT_1 ? pcs->gm_ctrls.chess_rfn : 0;
-                    } else {
-                        input_detection = input_pic;
-                        ref_detection   = ref_picture_ptr;
-
-                        input_refinement = input_pic;
-                        ref_refinement   = ref_picture_ptr;
-
-                        detect_refine_scale_factor = 1;
-                        chess_refn                 = pcs->gm_ctrls.chess_rfn;
-                    }
-                }
-#endif
                 compute_global_motion(pcs,
                                       frm_corners,
                                       num_frm_corners,
@@ -440,13 +281,9 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                                       detect_refine_scale_factor,
                                       chess_refn,
                                       &pcs->svt_aom_global_motion_estimation[list_index][ref_pic_index],
-#if OPT_GM_CORESP_FROM_MV
                                       pcs->frm_hdr.allow_high_precision_mv,
                                       list_index,
                                       ref_pic_index);
-#else
-                                      pcs->frm_hdr.allow_high_precision_mv);
-#endif
             }
 
             if (pcs->gm_ctrls.identiy_exit) {
@@ -468,11 +305,7 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
         // Ref Picture Loop
         for (uint32_t ref_pic_index = 0; ref_pic_index < num_of_ref_pic_to_search; ++ref_pic_index) {
             pcs->is_global_motion[list_index][ref_pic_index] = FALSE;
-#if FIX_GM_TRANS
             if (pcs->svt_aom_global_motion_estimation[list_index][ref_pic_index].wmtype != IDENTITY) {
-#else
-            if (pcs->svt_aom_global_motion_estimation[list_index][ref_pic_index].wmtype > TRANSLATION) {
-#endif
                 pcs->is_global_motion[list_index][ref_pic_index] = TRUE;
 
                 pcs->is_gm_on = 1;
@@ -496,28 +329,14 @@ void svt_aom_upscale_wm_params(EbWarpedMotionParams *wm_params, uint8_t scale_fa
     }
 }
 
-#if !CLN_RANSAC
-#if CLN_WMMAT
-// clang-format off
-static const double k_indentity_params[MAX_PARAMDIM] = {
-    0.0, 0.0, 1.0, 0.0, 0.0, 1.0
-};
-// clang-format on
-#endif
-#endif
-#if CLN_GM
 void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int num_frm_corners,
                            EbPictureBufferDesc *det_input_pic, //src frame for detection
                            EbPictureBufferDesc *det_ref_pic, //ref frame for detection
                            EbPictureBufferDesc *input_pic, //src frame for refinement
                            EbPictureBufferDesc *ref_pic, //ref frame for refinement
                            uint8_t              sf, //downsacle factor between det and refinement
-#if OPT_GM_CORESP_FROM_MV
                            uint8_t chess_refn, EbWarpedMotionParams *best_wm, int allow_high_precision_mv,
                            uint8_t list_idx, uint8_t ref_idx) {
-#else
-                           uint8_t chess_refn, EbWarpedMotionParams *best_wm, int allow_high_precision_mv) {
-#endif
     EbWarpedMotionParams        global_motion = default_warp_params;
     const EbWarpedMotionParams *ref_params    = &default_warp_params;
     unsigned char *frm_buffer = input_pic->buffer_y + input_pic->org_x + input_pic->org_y * input_pic->stride_y;
@@ -536,7 +355,6 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
     unsigned char *det_ref_buffer = det_ref_pic->buffer_y + det_ref_pic->org_x +
         det_ref_pic->org_y * det_ref_pic->stride_y;
 
-#if OPT_GM_CORESP_FROM_MV
     int size_correspondence = num_frm_corners;
     if (pcs->gm_ctrls.correspondence_method < CORNERS) {
         const int mv_search_lvl     = pcs->gm_ctrls.correspondence_method;
@@ -546,83 +364,39 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
     }
     int             num_correspondences = 0;
     Correspondence *correspondences     = (Correspondence *)malloc(size_correspondence * sizeof(Correspondence));
-#else
-    int             size_correspondence = num_frm_corners;
-    int             num_correspondences = 0;
-    Correspondence *correspondences     = (Correspondence *)malloc(size_correspondence * sizeof(Correspondence));
-#endif
-    gm_compute_correspondence(
-#if OPT_GM_CORESP_FROM_MV
-        pcs,
-#else
-        &pcs->gm_ctrls,
-#endif
-        det_frm_buffer,
-        det_input_pic->width,
-        det_input_pic->height,
-        det_input_pic->stride_y,
-        frm_corners,
-        num_frm_corners,
-        det_ref_buffer,
-        det_ref_pic->stride_y,
-        correspondences,
-#if OPT_GM_CORESP_FROM_MV
-        &num_correspondences,
-        list_idx,
-        ref_idx);
-#else
-        &num_correspondences);
-#endif
+    gm_compute_correspondence(pcs,
+                              det_frm_buffer,
+                              det_input_pic->width,
+                              det_input_pic->height,
+                              det_input_pic->stride_y,
+                              frm_corners,
+                              num_frm_corners,
+                              det_ref_buffer,
+                              det_ref_pic->stride_y,
+                              correspondences,
+                              &num_correspondences,
+                              list_idx,
+                              ref_idx);
 
-#if !CLN_RANSAC
-    int inliers_by_motion[RANSAC_NUM_MOTIONS];
-#endif
     MotionModel params_by_motion[RANSAC_NUM_MOTIONS];
     for (int m = 0; m < RANSAC_NUM_MOTIONS; m++) {
         memset(&params_by_motion[m], 0, sizeof(params_by_motion[m]));
-#if OPT_GM_CORESP_FROM_MV
         params_by_motion[m].inliers = malloc(sizeof(*(params_by_motion[m].inliers)) * 2 * size_correspondence);
-#else
-        params_by_motion[m].inliers = malloc(sizeof(*(params_by_motion[m].inliers)) * 2 * MAX_CORNERS);
-#endif
     }
 
-#if OPT_GM_LVLS
     assert(pcs->gm_ctrls.search_start_model > IDENTITY);
     assert(pcs->gm_ctrls.search_end_model <= AFFINE);
     assert(pcs->gm_ctrls.search_start_model <= pcs->gm_ctrls.search_end_model);
     for (TransformationType model = pcs->gm_ctrls.search_start_model; model <= pcs->gm_ctrls.search_end_model;
          ++model) {
-#else
-    for (TransformationType model = ROTZOOM; model <= (pcs->gm_ctrls.rotzoom_model_only ? ROTZOOM : AFFINE); ++model) {
-#endif
         int64_t best_warp_error = INT64_MAX;
-#if !CLN_RANSAC // done inside ransac() now
-        // Initially set all params to identity.
-        for (unsigned i = 0; i < RANSAC_NUM_MOTIONS; ++i) {
-            svt_memcpy(
-                params_by_motion[i].params, k_indentity_params, MAX_PARAMDIM * sizeof(*(params_by_motion[i].params)));
-            params_by_motion[i].num_inliers = 0;
-        }
-#endif
 
         // Take the pre-computed correspondences (between cur frame/ref frame) and
         // determine the parameters for the current GM model
-        determine_gm_params(model,
-#if !CLN_RANSAC
-                            inliers_by_motion,
-#endif
-                            params_by_motion,
-                            RANSAC_NUM_MOTIONS,
-                            correspondences,
-                            num_correspondences);
+        determine_gm_params(model, params_by_motion, RANSAC_NUM_MOTIONS, correspondences, num_correspondences);
 
         for (unsigned i = 0; i < RANSAC_NUM_MOTIONS; ++i) {
-#if CLN_RANSAC
             if (params_by_motion[i].num_inliers == 0)
-#else
-            if (inliers_by_motion[i] == 0)
-#endif
                 continue;
             EbWarpedMotionParams tmp_wm_params;
             svt_av1_convert_model_to_params(params_by_motion[i].params, &tmp_wm_params);
@@ -630,14 +404,10 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
             //upscale the param before doing refinement
             svt_aom_upscale_wm_params(&tmp_wm_params, sf);
             if (tmp_wm_params.wmtype != IDENTITY) {
-#if OPT_GM_RFN_EARLY_EXIT
                 const int params_cost = svt_aom_gm_get_params_cost(&tmp_wm_params, ref_params, allow_high_precision_mv);
 
                 const int64_t warp_error = svt_av1_refine_integerized_param(&pcs->gm_ctrls,
                                                                             &tmp_wm_params,
-#else
-                const int64_t warp_error = svt_av1_refine_integerized_param(&tmp_wm_params,
-#endif
                                                                             tmp_wm_params.wmtype,
                                                                             ref_buffer,
                                                                             ref_pic->width,
@@ -648,15 +418,10 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
                                                                             input_pic->height,
                                                                             input_pic->stride_y,
                                                                             pcs->gm_ctrls.params_refinement_steps,
-#if OPT_GM_RFN_EARLY_EXIT
                                                                             chess_refn,
                                                                             best_warp_error,
                                                                             ref_sad_error,
                                                                             params_cost);
-#else
-                                                                            chess_refn,
-                                                                            best_warp_error);
-#endif
                 if (warp_error < best_warp_error) {
                     best_warp_error = warp_error;
                     // Save the wm_params modified by
@@ -690,156 +455,3 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
 
     for (int m = 0; m < RANSAC_NUM_MOTIONS; m++) { free(params_by_motion[m].inliers); }
 }
-#else
-void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int num_frm_corners,
-                           EbPictureBufferDesc *det_input_pic, //src frame for detection
-                           EbPictureBufferDesc *det_ref_pic, //ref frame for detection
-                           EbPictureBufferDesc *input_pic, //src frame for refinement
-                           EbPictureBufferDesc *ref_pic, //ref frame for refinement
-                           uint8_t              sf, //downsacle factor between det and refinement
-                           uint8_t chess_refn, EbWarpedMotionParams *best_wm, int allow_high_precision_mv) {
-    MotionModel params_by_motion[RANSAC_NUM_MOTIONS];
-    for (int m = 0; m < RANSAC_NUM_MOTIONS; m++) {
-        memset(&params_by_motion[m], 0, sizeof(params_by_motion[m]));
-        params_by_motion[m].inliers = malloc(sizeof(*(params_by_motion[m].inliers)) * 2 * MAX_CORNERS);
-    }
-
-#if !CLN_WMMAT
-    // clang-format off
-    static const double k_indentity_params[MAX_PARAMDIM - 1] = {
-        0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0
-    };
-    // clang-format on
-#endif
-
-    unsigned char *frm_buffer = input_pic->buffer_y + input_pic->org_x + input_pic->org_y * input_pic->stride_y;
-    unsigned char *ref_buffer = ref_pic->buffer_y + ref_pic->org_x + ref_pic->org_y * ref_pic->stride_y;
-
-    unsigned char *det_frm_buffer = det_input_pic->buffer_y + det_input_pic->org_x +
-        det_input_pic->org_y * det_input_pic->stride_y;
-    unsigned char *det_ref_buffer = det_ref_pic->buffer_y + det_ref_pic->org_x +
-        det_ref_pic->org_y * det_ref_pic->stride_y;
-
-    EbWarpedMotionParams global_motion = default_warp_params;
-
-    // TODO: check ref_params
-    const EbWarpedMotionParams *ref_params = &default_warp_params;
-    {
-        int inliers_by_motion[RANSAC_NUM_MOTIONS];
-
-        num_frm_corners = num_frm_corners * pcs->gm_ctrls.corners / 4;
-
-        TransformationType   model;
-        EbWarpedMotionParams tmp_wm_params;
-#define GLOBAL_TRANS_TYPES_ENC 3
-
-        const GlobalMotionEstimationType gm_estimation_type = GLOBAL_MOTION_FEATURE_BASED;
-        for (model = ROTZOOM; model <= (pcs->gm_ctrls.rotzoom_model_only ? ROTZOOM : GLOBAL_TRANS_TYPES_ENC); ++model) {
-            int64_t best_warp_error = INT64_MAX;
-            // Initially set all params to identity.
-            for (unsigned i = 0; i < RANSAC_NUM_MOTIONS; ++i) {
-#if CLN_WMMAT
-                svt_memcpy(params_by_motion[i].params,
-                           k_indentity_params,
-                           MAX_PARAMDIM * sizeof(*(params_by_motion[i].params)));
-#else
-                svt_memcpy(params_by_motion[i].params,
-                           k_indentity_params,
-                           (MAX_PARAMDIM - 1) * sizeof(*(params_by_motion[i].params)));
-#endif
-                params_by_motion[i].num_inliers = 0;
-            }
-
-            svt_av1_compute_global_motion(model,
-                                          pcs->gm_ctrls.corners,
-                                          det_frm_buffer,
-                                          det_input_pic->width,
-                                          det_input_pic->height,
-                                          det_input_pic->stride_y,
-                                          frm_corners,
-                                          num_frm_corners,
-                                          det_ref_buffer,
-                                          det_ref_pic->stride_y,
-                                          EB_EIGHT_BIT,
-                                          gm_estimation_type,
-                                          inliers_by_motion,
-                                          params_by_motion,
-                                          RANSAC_NUM_MOTIONS,
-                                          pcs->gm_ctrls.match_sz);
-
-            for (unsigned i = 0; i < RANSAC_NUM_MOTIONS; ++i) {
-                if (inliers_by_motion[i] == 0)
-                    continue;
-                svt_av1_convert_model_to_params(params_by_motion[i].params, &tmp_wm_params);
-
-                //upscale the param before doing refinement
-                svt_aom_upscale_wm_params(&tmp_wm_params, sf);
-                if (tmp_wm_params.wmtype != IDENTITY) {
-                    const int64_t warp_error = svt_av1_refine_integerized_param(&tmp_wm_params,
-                                                                                tmp_wm_params.wmtype,
-                                                                                ref_buffer,
-                                                                                ref_pic->width,
-                                                                                ref_pic->height,
-                                                                                ref_pic->stride_y,
-                                                                                frm_buffer,
-                                                                                input_pic->width,
-                                                                                input_pic->height,
-                                                                                input_pic->stride_y,
-                                                                                pcs->gm_ctrls.params_refinement_steps,
-                                                                                chess_refn,
-                                                                                best_warp_error);
-                    if (warp_error < best_warp_error) {
-                        best_warp_error = warp_error;
-                        // Save the wm_params modified by
-                        // svt_av1_refine_integerized_param() rather than motion index to
-                        // avoid rerunning refine() below.
-                        svt_memcpy(&global_motion, &tmp_wm_params, sizeof(EbWarpedMotionParams));
-                    }
-                }
-            }
-#if FIX_GM_TRANS
-            if (!svt_get_shear_params(&global_motion) || global_motion.wmtype != model)
-                global_motion = default_warp_params;
-#else
-            if (global_motion.wmtype <= AFFINE)
-                if (!svt_get_shear_params(&global_motion))
-                    global_motion = default_warp_params;
-#endif
-
-#if !FIX_GM_TRANS // Moved to closed loop b/c allow_high_precision_mv unavailable in open loop
-            if (global_motion.wmtype == TRANSLATION) {
-                global_motion.wmmat[0] = convert_to_trans_prec(allow_high_precision_mv, global_motion.wmmat[0]) *
-                    GM_TRANS_ONLY_DECODE_FACTOR;
-                global_motion.wmmat[1] = convert_to_trans_prec(allow_high_precision_mv, global_motion.wmmat[1]) *
-                    GM_TRANS_ONLY_DECODE_FACTOR;
-            }
-#endif
-
-            if (global_motion.wmtype == IDENTITY)
-                continue;
-
-            const uint32_t ref_sad_error = svt_nxm_sad_kernel(
-                ref_buffer, ref_pic->stride_y, frm_buffer, input_pic->stride_y, input_pic->height, input_pic->width);
-
-            if (ref_sad_error == 0)
-                continue;
-
-            // If the best error advantage found doesn't meet the threshold for
-            // this motion type, revert to IDENTITY.
-            if (!svt_av1_is_enough_erroradvantage(
-                    (double)best_warp_error / ref_sad_error,
-                    svt_aom_gm_get_params_cost(&global_motion, ref_params, allow_high_precision_mv),
-                    GM_ERRORADV_TR_0 /* TODO: check error advantage */)) {
-                global_motion = default_warp_params;
-            }
-            if (global_motion.wmtype != IDENTITY) {
-                break;
-            }
-        }
-    }
-
-    *best_wm = global_motion;
-
-    for (int m = 0; m < RANSAC_NUM_MOTIONS; m++) { free(params_by_motion[m].inliers); }
-}
-#endif

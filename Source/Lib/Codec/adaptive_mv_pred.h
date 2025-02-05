@@ -58,9 +58,6 @@ void svt_av1_find_best_ref_mvs_from_stack(int allow_hp, CandidateMv ref_mv_stack
                                           MacroBlockD *xd, MvReferenceFrame ref_frame, IntMv *nearest_mv,
                                           IntMv *near_mv, int is_integer);
 int svt_aom_is_dv_valid(const MV dv, const MacroBlockD *xd, int mi_row, int mi_col, BlockSize bsize, int mib_size_log2);
-#if !CLN_REM_RMV
-int svt_aom_is_inside_tile_boundary(TileInfo *tile, int16_t mvx, int16_t mvy, int mi_col, int mi_row, BlockSize bsize);
-#endif
 
 IntMv svt_aom_gm_get_motion_vector_enc(const EbWarpedMotionParams *gm, int32_t allow_hp, BlockSize bsize,
                                        int32_t mi_col, int32_t mi_row, int32_t is_integer);

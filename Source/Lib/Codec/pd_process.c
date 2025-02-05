@@ -256,9 +256,7 @@ EbErrorType svt_aom_picture_decision_context_ctor(
     pd_ctx->sframe_due = 0;
     pd_ctx->last_long_base_pic = 0;
     pd_ctx->enable_startup_mg = false;
-#if FTR_STARTUP_QP
     pd_ctx->is_startup_gop = false;
-#endif
     return EB_ErrorNone;
 }
 static Bool scene_transition_detector(
@@ -968,7 +966,6 @@ static void get_pred_struct_for_all_frames(
                    ctx->enable_startup_mg = false;
                }
            }
-#if FTR_STARTUP_QP
            if (pcs->idr_flag && pcs->picture_number == 0) {
                ctx->is_startup_gop = true;
            }
@@ -976,7 +973,6 @@ static void get_pred_struct_for_all_frames(
                ctx->is_startup_gop = false;
            }
            pcs->is_startup_gop = ctx->is_startup_gop;
-#endif
         }
     }
 }
@@ -3946,11 +3942,7 @@ static void perform_sc_detection(SequenceControlSet* scs, PictureParentControlSe
 
     if (pcs->slice_type == I_SLICE) {
         // If running multi-threaded mode, perform SC detection in svt_aom_picture_analysis_kernel, else in svt_aom_picture_decision_kernel
-#if CLN_LP_LVLS
         if (scs->static_config.level_of_parallelism == 1) {
-#else
-        if (scs->static_config.logical_processors == 1) {
-#endif
                 if (scs->static_config.screen_content_mode == 2) // auto detect
             {
                 // SC Detection is OFF for 4K and higher

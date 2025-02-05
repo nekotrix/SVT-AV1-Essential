@@ -12,17 +12,8 @@
 #include <immintrin.h>
 #include "definitions.h"
 #include "common_dsp_rtcd.h"
-#if CLN_LCG_RAND16
 #include "random.h"
-#endif
 #define DIVIDE_AND_ROUND(x, y) (((x) + ((y) >> 1)) / (y))
-
-#if !CLN_LCG_RAND16
-static INLINE unsigned int lcg_rand16(unsigned int *state) {
-    *state = (unsigned int)(*state * 1103515245ULL + 12345);
-    return *state / 65536 % 32768;
-}
-#endif
 
 /* That same calculation as: av1_calc_indices_dist_dim1_avx2(),
    but not calculate sum at the end. */

@@ -441,19 +441,13 @@ typedef struct PictureControlSet {
     // different with input frame when reference scaling is enabled
     EbPictureBufferDesc *scaled_input_pic;
     bool                 rtc_tune;
-#if FTR_LOSSLESS_SUPPORT
     // lossless[s] is true if segment 's' is coded losslessly.
-    Bool lossless[MAX_SEGMENTS];
-    Bool mimic_only_tx_4x4;
-#endif
-#if OPT_FRAME_DLF
+    Bool    lossless[MAX_SEGMENTS];
+    Bool    mimic_only_tx_4x4;
     int64_t zero_filt_sse;
     int64_t best_filt_sse;
     int32_t dlf_dist_dev;
-#endif
-#if OPT_CDEF_ME_INFO
     int32_t cdef_dist_dev;
-#endif
 } PictureControlSet;
 
 // To optimize based on the max input size
@@ -561,7 +555,6 @@ typedef struct {
     Bool                            is_ref;
     EbDownScaledBufDescPtrArray     tpl_ref_ds_ptr_array[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
 } TPLData;
-#if OPT_GM_CORESP_FROM_MV
 typedef enum CorrespondenceMethod {
     MV_64x64 = 0,
     MV_32x32 = 1,
@@ -569,24 +562,17 @@ typedef enum CorrespondenceMethod {
     MV_8x8   = 3,
     CORNERS  = 4
 } CorrespondenceMethod;
-#endif
-#if OPT_GM_RFN_EARLY_EXIT
 typedef struct GmControls {
     // 0: disable GM, 1: Enable GM
     uint8_t enabled;
     // 0: generate GM params for both list_0 and list_1, 1: do not generate GM params for list_1 if
     // list_0/ref_idx_0 is id
     uint8_t identiy_exit;
-#if OPT_GM_LVLS
     // GM supports three models: TRANSLATION, ROTZOOM, AFFINE. Set the start and end models to be searched
     // Set the starting model to be searched for GM (TRANSLATION, ROTZOOM, AFFINE)
     uint8_t search_start_model;
     // Set the end model to be searched for GM (TRANSLATION, ROTZOOM, AFFINE)
     uint8_t search_end_model;
-#else
-    // 0: use both rotzoom and affine models, 1:use rotzoom model only
-    uint8_t rotzoom_model_only;
-#endif
     // 0: Inject both unipred and bipred global candidates in MD, 1: test bipred only
     uint8_t bipred_only;
     // 0: Do not bypass GM search based on the uniformity of motion estimation MVs. 1 : Enable bypass of GM search on ME MVs
@@ -605,12 +591,6 @@ typedef struct GmControls {
     // GM_ADAPT_0: Downsampling is done adaptively (GM_FULL or GM_DOWN) based on the average ME distortion.
     // GM_ADAPT_1: Downsampling is done adaptively (GM_DOWN or GM_DOWN16) based on the average ME distortion and the picture variance.
     uint8_t downsample_level;
-#if !CLN_UNUSED_GM_SIGS
-    // do GM in the closed loop instead of the open loop and use reference information 0: off 1: on
-    bool use_ref_info;
-    // do the detection bypass for last layer pictures   0:off     1:last layer     2:last 2 layers 3: last 3 layers
-    uint8_t layer_offset;
-#endif
     //use a fraction of corner points for computing correspondences for RANSAC in detection. 1:1/4   2:2/4   3:3/4   4:all
     uint8_t corners;
     //skip global motion refinement using a chess pattern to skip blocks
@@ -623,61 +603,12 @@ typedef struct GmControls {
     bool pp_enabled;
     //limit the search to ref index = 0 only
     bool ref_idx0_only;
-#if !CLN_UNUSED_GM_SIGS
-    // if true, apply an offset to the segments of the me-dist based modulation
-    uint8_t qp_offset;
-#endif
     // 0: off, 1: enable early exit from parameter refinement
     uint8_t rfn_early_exit;
-#if OPT_GM_CORESP_FROM_MV
     // 0: Generate correspondence points using corners; 1: Generate correspondence points using ME MVs
     // When using level 1, corners and match_sz signals will not be used, and pp_enabled must be 0
     CorrespondenceMethod correspondence_method;
-#endif
 } GmControls;
-#else
-typedef struct GmControls {
-    // 0: generate GM params for both list_0 and list_1, 1: do not generate GM params for list_1 if
-    // list_0/ref_idx_0 is id
-    uint8_t enabled;
-    // 0: use both rotzoom and affine models, 1:use rotzoom model only
-    uint8_t identiy_exit;
-    // 0: test both unipred and bipred, 1: test bipred only
-    uint8_t rotzoom_model_only;
-    uint8_t bipred_only;
-    // 0: do not consider stationary_block info @ me-based bypass, 1: consider stationary_block info
-    // @ me-based bypass (only if bypass_based_on_me=1)
-    uint8_t bypass_based_on_me;
-    // 0: used default active_th,1: increase active_th baed on distance to ref (only if
-    // bypass_based_on_me=1)
-    uint8_t use_stationary_block;
-    // The number of refinement steps to use in the GM params refinement
-    uint8_t use_distance_based_active_th;
-    // GM_FULL: Exhaustive search mode; GM_DOWN: Downsampled resolution with a downsampling factor
-    // of 2 in each dimension; GM_TRAN_ONLY: Translation only using ME MV.
-    uint8_t params_refinement_steps;
-    uint8_t downsample_level;
-    // do GM in the closed loop instead of the open loop and use reference information 0: off 1: on
-    bool use_ref_info;
-    // do the detection bypass for last layer pictures   0:off     1:last layer     2:last 2 layers 3: last 3 layers
-    uint8_t layer_offset;
-    //use a fraction of corner points for computing correspondences for RANSAC in detection. 1:1/4   2:2/4   3:3/4   4:all
-    uint8_t corners;
-    //skip global motion refinement using a chess pattern to skip blocks
-    uint8_t chess_rfn;
-    //change the window size for correlation calculations. must be odd. N: NxN window size goes from 1 to 15
-    uint8_t match_sz;
-    //Inject global only if Parent SQ is global
-    bool inj_psq_glb;
-    //enable Pre-processor for GM
-    bool pp_enabled;
-    //limit the search to  ref index = 0 only
-    bool ref_idx0_only;
-    // if true, apply an offset to the segments of the me-dist based modulation
-    uint8_t qp_offset;
-} GmControls;
-#endif
-#if CLN_CDEF_LVLS
 typedef struct CdefSearchControls {
     uint8_t enabled;
     uint8_t number_of_prim_in_second_loop[2];
@@ -717,53 +648,12 @@ typedef struct CdefSearchControls {
 typedef struct CdefReconControls {
     // 0: OFF, higher is safer. Scaling factor to decrease the zero filter strength cost: : <x>/64
     uint16_t zero_fs_cost_bias;
-#if OPT_CDEF_ME_INFO
     // Threshold used to disable based on ME distortion, there are four levels of thresholds [0..3], 0 = off
     uint8_t zero_filter_strength_lvl;
     // Only use zero_filter_strength_lvl if the CDEF improvement of the ref frames is below prev_cdef_dist_th.
     // prev_cdef_dist_th is a percent times 10 (e.g. a value of 50 corresponds to 5% improvement in the ref frames).
     uint16_t prev_cdef_dist_th;
-#endif
 } CdefReconControls;
-#else
-typedef struct CdefControls {
-    uint8_t enabled;
-    uint8_t number_of_prim_in_second_loop[2];
-    // Number of primary filters considered in the first pass. (luma and chroma)
-    uint8_t first_pass_fs_num;
-    // Primary filter strengths to consider in the first pass.
-    uint8_t default_first_pass_fs[TOTAL_STRENGTHS];
-    // Number of secondary filters considered in the second pass. (luma and chroma)
-    uint8_t default_second_pass_fs_num;
-    // Secondary filter strengths to consider in the second pass.
-    uint8_t default_second_pass_fs[TOTAL_STRENGTHS];
-    // Mask for primary filters to be considered for chroma and indicates a subset of the primary
-    // filter strengths considered in default_first_pass_fs[64]
-    int8_t default_first_pass_fs_uv[TOTAL_STRENGTHS];
-    // Mask for secondary filters to be considered for chroma and indicates a subset of the
-    // secondary filter strengths considered in default_second_pass_fs[64]
-    int8_t default_second_pass_fs_uv[TOTAL_STRENGTHS];
-    // Flag to indicate the use of reference frames' filter strengths.
-    int8_t use_reference_cdef_fs;
-    // Predicted filter strength pair index for the luma component based on reference picture filter
-    // strength pairs.
-    int8_t pred_y_f;
-    // Predicted filter strength pair index for the chroma component based on reference picture
-    // filter strength pairs.
-    int8_t pred_uv_f;
-    // Allowable levels: [1,2,4] ---> 1: no subsampling; 2: process every 2nd row; 4: process every
-    // 4th row for 8x8 blocks, every 2nd row for smaller sizes.
-    uint8_t subsampling_factor;
-    // NB subsampling is capped for certain block sizes, based on how many points the intrinsics can
-    // process at once. Only search best filter strengths of the nearest ref frames (skips the
-    // search if the filters of list0/list1 are the same).
-    uint8_t search_best_ref_fs;
-    // 0: OFF, higher is safer. Scaling factor to decrease the zero filter strength cost: : <x>/64
-    uint16_t zero_fs_cost_bias;
-    // Shut CDEF at the picture level based on the skip area of the nearest reference frames.
-    uint8_t use_skip_detector;
-} CdefControls;
-#endif
 typedef struct DlfCtrls {
     uint8_t enabled; // if true, perform DLF per SB, not per picture
     // when DLF filter level is selected from QP, if the filter level is less than or equal to this
@@ -771,28 +661,18 @@ typedef struct DlfCtrls {
     uint8_t sb_based_dlf;
     // Start search from average DLF instead of 0
     bool dlf_avg;
-#if OPT_FRAME_DLF
     // If true, use average filter strength of ref frames for the current frame (no search). For luma, the filters
     // may be set to 0 if the SSE improvement from DLF in the ref frames if very small
     bool use_ref_avg_y;
     bool use_ref_avg_uv;
-#else
-    // Use average DLF as a starting point for qp based filter strength selection for Chroma planes
-    bool dlf_avg_uv;
-#endif
     // Number of convergence points before exiting the filter search, 1 = exit on first convergence point, 2 = exit on second, 0 = off
     uint8_t early_exit_convergence;
-#if OPT_FRAME_DLF
     // Threshold used to set filter strength to zero based on ME distortion, there are four levels of thresholds [0..3], 0 = off
     uint8_t zero_filter_strength_lvl;
     // For frame-based DLF search, only use zero_filter_strength_lvl if the DLF improvement of the ref frames is below prev_dlf_dist_th.
     // prev_dlf_dist_th is a percent times 10 (e.g. a value of 50 corresponds to 5% improvement in the ref frames). This TH is not used
     // for SB-based DLF because we do not currently compute the SSE for SB-based DLF.
     uint16_t prev_dlf_dist_th;
-#else
-    // Threshold used when sb_based_dlf is used to use filter strength zero, there are four levels of thresholds [0..3], 0 = off
-    uint8_t zero_filter_strength_lvl;
-#endif
 } DlfCtrls;
 typedef struct IntraBCCtrls {
     // Shift for full_pixel_exhaustive search threshold:   0: No Shift   1:Shift to left by 1
@@ -915,11 +795,9 @@ typedef struct PictureParentControlSet {
     int8_t    transition_present; // -1: not computed
     Bool      end_of_sequence_flag;
     uint8_t   picture_qp;
-#if FTR_SIGNAL_AVERAGE_QP
-    uint32_t tot_qindex;
-    uint32_t valid_qindex_area;
-    uint8_t  avg_qp;
-#endif
+    uint32_t  tot_qindex;
+    uint32_t  valid_qindex_area;
+    uint8_t   avg_qp;
     uint64_t  picture_number;
     uint32_t  cur_order_hint;
     uint32_t  ref_order_hint[INTER_REFS_PER_FRAME];
@@ -966,10 +844,6 @@ typedef struct PictureParentControlSet {
     double                                  luma_ssim;
     double                                  cr_ssim;
     double                                  cb_ssim;
-#if !CLN_UNUSED_GM_SIGS
-    EbPictureBufferDesc *quarter_src_pic;
-    EbPictureBufferDesc *sixteenth_src_pic;
-#endif
     // Pointer array for down scaled pictures
     EbObjectWrapper            *downscaled_pic_wrapper;
     EbDownScaledBufDescPtrArray ds_pics;
@@ -1225,19 +1099,15 @@ typedef struct PictureParentControlSet {
     uint8_t used_tpl_frame_num;
 
     // Tune TPL for better chroma.Only for 240P
-    uint8_t      tune_tpl_for_chroma;
-    uint8_t      is_not_scaled;
-    TfControls   tf_ctrls;
-    GmControls   gm_ctrls;
-    GM_LEVEL     gm_downsample_level;
-    bool         gm_pp_enabled;
-    bool         gm_pp_detected; //gm detection enabled at the pre-processing level
-#if CLN_CDEF_LVLS
+    uint8_t            tune_tpl_for_chroma;
+    uint8_t            is_not_scaled;
+    TfControls         tf_ctrls;
+    GmControls         gm_ctrls;
+    GM_LEVEL           gm_downsample_level;
+    bool               gm_pp_enabled;
+    bool               gm_pp_detected; //gm detection enabled at the pre-processing level
     CdefSearchControls cdef_search_ctrls;
     CdefReconControls  cdef_recon_ctrls;
-#else
-    CdefControls cdef_ctrls;
-#endif
     // RC related variables
     int         q_low;
     int         q_high;
@@ -1311,9 +1181,7 @@ typedef struct PictureParentControlSet {
     bool     seq_param_changed;
     uint64_t norm_me_dist;
     uint8_t  tpl_params_ready;
-#if FTR_STARTUP_QP
-    bool is_startup_gop;
-#endif
+    bool     is_startup_gop;
 
 } PictureParentControlSet;
 

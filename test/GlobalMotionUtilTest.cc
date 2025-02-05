@@ -83,11 +83,7 @@ static const int PointCountMin = 15; /**< 3*MINPTS_MULTIPLIER */
  * should be less than threshold
  *
  */
-#if CLN_RANSAC
 template <typename Sample>
-#else
-template <typename Sample, typename FuncType>
-#endif
 class RansacTest : public ::testing::TestWithParam<TransformationType> {
   protected:
     RansacTest() : rnd_(0, CoordinateMax) {
@@ -136,9 +132,6 @@ class RansacTest : public ::testing::TestWithParam<TransformationType> {
     }
 
     virtual void prepare_input(Sample *input, int npoints) = 0;
-#if !CLN_RANSAC
-    virtual FuncType get_ransac_func(TransformationType type) = 0;
-#endif
 
     void do_ransac_check() {
         const int npoints = (int)data_.size();
@@ -160,24 +153,17 @@ class RansacTest : public ::testing::TestWithParam<TransformationType> {
             memset(motions[i].inliers, 0, sizeof(int) * 2 * npoints);
         }
 
-#if CLN_RANSAC
         bool mem_alloc_failed = false;
-        bool ret = svt_aom_ransac(
-            (Correspondence*)points, npoints, GetParam(), motions, num_motions, &mem_alloc_failed);
+        bool ret = svt_aom_ransac((Correspondence *)points,
+                                  npoints,
+                                  GetParam(),
+                                  motions,
+                                  num_motions,
+                                  &mem_alloc_failed);
         ASSERT_EQ(ret, true);
 
         /** check for the number of inlier */
         ASSERT_NE(motions[0].num_inliers, 0);
-#else
-        FuncType ransac_func = (FuncType)get_ransac_func(GetParam());
-        ASSERT_NE(ransac_func, nullptr);
-        int ret = ransac_func(
-            points, npoints, num_inliers_by_motion, motions, num_motions);
-        ASSERT_EQ(ret, 0);
-
-        /** check for the number of inlier */
-        ASSERT_NE(num_inliers_by_motion[0], 0);
-#endif
 
         /** check for the transform matrix of motion */
         check_transform_matrix(mat_, motions[0].params);
@@ -341,11 +327,7 @@ class RansacTest : public ::testing::TestWithParam<TransformationType> {
     AffineMat mat_;
 };
 
-#if CLN_RANSAC
 class RansacIntTest : public RansacTest<int> {
-#else
-class RansacIntTest : public RansacTest<int, RansacFunc> {
-#endif
   protected:
     void prepare_input(int *input, int npoints) {
         for (int i = 0; i < npoints; i++) {
@@ -355,11 +337,6 @@ class RansacIntTest : public RansacTest<int, RansacFunc> {
             input[4 * i + 3] = (int)round(ref_.at(i).y);
         }
     }
-#if !CLN_RANSAC
-    RansacFunc get_ransac_func(TransformationType type) {
-        return svt_av1_get_ransac_type(type);
-    }
-#endif
 };
 
 static const TransformationType transform_table[] = {

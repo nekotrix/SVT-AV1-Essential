@@ -47,13 +47,8 @@ TEST(EncApiDeathTest, set_parameter_null_pointer) {
     memset(&context, 0, sizeof(context));
 
     // initialize encoder and get handle
-#if FIX_P_APP_DATA
     EXPECT_EQ(EB_ErrorBadParameter,
               svt_av1_enc_init_handle(&context.enc_handle, nullptr));
-#else
-    EXPECT_EQ(EB_ErrorBadParameter,
-              svt_av1_enc_init_handle(&context.enc_handle, nullptr, nullptr));
-#endif
     // watch out, function down
     EXPECT_EQ(EB_ErrorBadParameter,
               svt_av1_enc_set_parameter(context.enc_handle, nullptr));
@@ -80,20 +75,11 @@ TEST(EncApiTest, check_null_pointer) {
     SvtAv1Context context;
     memset(&context, 0, sizeof(context));
 
-#if FIX_P_APP_DATA
     // initialize encoder and with all null pointer
     EXPECT_EQ(EB_ErrorBadParameter, svt_av1_enc_init_handle(nullptr, nullptr));
     // initialize encoder and with all null pointer and get handle
     EXPECT_EQ(EB_ErrorBadParameter,
               svt_av1_enc_init_handle(&context.enc_handle, nullptr));
-#else
-    // initialize encoder and with all null pointer
-    EXPECT_EQ(EB_ErrorBadParameter,
-              svt_av1_enc_init_handle(nullptr, nullptr, nullptr));
-    // initialize encoder and with all null pointer and get handle
-    EXPECT_EQ(EB_ErrorBadParameter,
-              svt_av1_enc_init_handle(&context.enc_handle, nullptr, nullptr));
-#endif
     // setup encoder parameters with null pointer
     EXPECT_EQ(EB_ErrorBadParameter,
               svt_av1_enc_set_parameter(nullptr, nullptr));
@@ -145,16 +131,9 @@ TEST(EncApiTest, DISABLED_check_normal_setup) {
     const int height = 720;
 
     // initialize encoder and get handle
-#if FIX_P_APP_DATA
     EXPECT_EQ(EB_ErrorNone,
               svt_av1_enc_init_handle(&context.enc_handle, &context.enc_params))
         << "svt_av1_enc_init_handle failed";
-#else
-    EXPECT_EQ(EB_ErrorNone,
-              svt_av1_enc_init_handle(
-                  &context.enc_handle, &context, &context.enc_params))
-        << "svt_av1_enc_init_handle failed";
-#endif
     // setup source width/height with default value
     context.enc_params.source_width = width;
     context.enc_params.source_height = height;
@@ -200,17 +179,10 @@ TEST(EncApiTest, DISABLED_repeat_normal_setup) {
 
     for (size_t i = 0; i < 500; ++i) {
         // initialize encoder and get handle
-#if FIX_P_APP_DATA
         ASSERT_EQ(
             EB_ErrorNone,
             svt_av1_enc_init_handle(&context.enc_handle, &context.enc_params))
             << "svt_av1_enc_init_handle failed at " << i << " times";
-#else
-        ASSERT_EQ(EB_ErrorNone,
-                  svt_av1_enc_init_handle(
-                      &context.enc_handle, &context, &context.enc_params))
-            << "svt_av1_enc_init_handle failed at " << i << " times";
-#endif
         // setup source width/height with default value
         context.enc_params.source_width = width;
         context.enc_params.source_height = height;

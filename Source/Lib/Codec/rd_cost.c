@@ -1886,23 +1886,13 @@ static uint64_t cost_selected_tx_size(const MacroBlockD *xd, MdRateEstimationCon
 
 /* Get the TXS rate and update the txfm context.  If allow_update_cdf is true, the TX size CDFs will
 be updated. */
-#if FTR_LOSSLESS_SUPPORT
 uint64_t svt_aom_tx_size_bits(PictureControlSet *pcs, uint8_t segment_id, MdRateEstimationContext *md_rate_est_ctx,
                               MacroBlockD *xd, const MbModeInfo *mbmi, TxSize tx_size, TxMode tx_mode, BlockSize bsize,
                               uint8_t skip, FRAME_CONTEXT *ec_ctx, uint8_t allow_update_cdf) {
-#else
-uint64_t svt_aom_tx_size_bits(MdRateEstimationContext *md_rate_est_ctx, MacroBlockD *xd, const MbModeInfo *mbmi,
-                              TxSize tx_size, TxMode tx_mode, BlockSize bsize, uint8_t skip, FRAME_CONTEXT *ec_ctx,
-                              uint8_t allow_update_cdf) {
-#endif
     uint64_t bits        = 0;
     int      is_inter_tx = is_inter_block(&mbmi->block_mi);
-    if (tx_mode == TX_MODE_SELECT && block_signals_txsize(bsize) &&
-#if FTR_LOSSLESS_SUPPORT
-        !(is_inter_tx && skip) && !svt_av1_is_lossless_segment(pcs, segment_id)) {
-#else
-        !(is_inter_tx && skip) /*&& !xd->lossless[segment_id]*/) {
-#endif
+    if (tx_mode == TX_MODE_SELECT && block_signals_txsize(bsize) && !(is_inter_tx && skip) &&
+        !svt_av1_is_lossless_segment(pcs, segment_id)) {
         if (is_inter_tx) { // This implies skip flag is 0.
             const TxSize max_tx_size = get_vartx_max_txsize(/*xd,*/ bsize, 0);
             const int    txbh        = tx_size_high_unit[max_tx_size];
@@ -1952,22 +1942,17 @@ uint64_t svt_aom_get_tx_size_bits(ModeDecisionCandidateBuffer *candidateBuffer, 
     mbmi->block_mi.ref_frame[0] = candidateBuffer->cand->ref_frame_type;
     mbmi->block_mi.tx_depth     = tx_depth;
 
-    const uint64_t bits = svt_aom_tx_size_bits(
-#if FTR_LOSSLESS_SUPPORT
-        pcs,
-        ctx->blk_ptr->segment_id,
-        ctx->md_rate_est_ctx,
-        xd,
-        mbmi,
-        ctx->blk_geom->txsize[tx_depth],
-        tx_mode,
-        bsize,
-        !block_has_coeff,
-        NULL,
-        0);
-#else
-        ctx->md_rate_est_ctx, xd, mbmi, ctx->blk_geom->txsize[tx_depth], tx_mode, bsize, !block_has_coeff, NULL, 0);
-#endif
+    const uint64_t bits = svt_aom_tx_size_bits(pcs,
+                                               ctx->blk_ptr->segment_id,
+                                               ctx->md_rate_est_ctx,
+                                               xd,
+                                               mbmi,
+                                               ctx->blk_geom->txsize[tx_depth],
+                                               tx_mode,
+                                               bsize,
+                                               !block_has_coeff,
+                                               NULL,
+                                               0);
     return bits;
 }
 

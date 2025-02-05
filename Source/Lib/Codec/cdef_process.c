@@ -118,32 +118,28 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
     const uint32_t y_b64_start_idx = SEGMENT_START_IDX(y_seg_idx, b64_pic_height, pcs->cdef_segments_row_count);
     const uint32_t y_b64_end_idx   = SEGMENT_END_IDX(y_seg_idx, b64_pic_height, pcs->cdef_segments_row_count);
 
-    const int32_t mi_rows = cm->mi_rows;
-    const int32_t mi_cols = cm->mi_cols;
-#if CLN_CDEF_LVLS
-    CdefSearchControls *cdef_ctrls = &ppcs->cdef_search_ctrls;
-#else
-    CdefControls *cdef_ctrls = &ppcs->cdef_ctrls;
-#endif
-    const int     first_pass_fs_num          = cdef_ctrls->first_pass_fs_num;
-    const int     default_second_pass_fs_num = cdef_ctrls->default_second_pass_fs_num;
-    EbByte        src[3];
-    EbByte        ref[3];
-    int32_t       stride_src[3];
-    int32_t       stride_ref[3];
-    int32_t       plane_bsize[3];
-    int32_t       mi_wide_l2[3];
-    int32_t       mi_high_l2[3];
-    int32_t       xdec[3];
-    int32_t       ydec[3];
-    int32_t       cdef_count;
-    const int32_t coeff_shift = AOMMAX(scs->static_config.encoder_bit_depth - 8, 0);
-    const int32_t nvfb        = (mi_rows + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
-    const int32_t nhfb        = (mi_cols + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
-    const int32_t pri_damping = 3 + (frm_hdr->quantization_params.base_q_idx >> 6);
-    const int32_t sec_damping = pri_damping;
-    const int32_t num_planes  = 3;
-    CdefList      dlist[MI_SIZE_128X128 * MI_SIZE_128X128];
+    const int32_t       mi_rows                    = cm->mi_rows;
+    const int32_t       mi_cols                    = cm->mi_cols;
+    CdefSearchControls *cdef_ctrls                 = &ppcs->cdef_search_ctrls;
+    const int           first_pass_fs_num          = cdef_ctrls->first_pass_fs_num;
+    const int           default_second_pass_fs_num = cdef_ctrls->default_second_pass_fs_num;
+    EbByte              src[3];
+    EbByte              ref[3];
+    int32_t             stride_src[3];
+    int32_t             stride_ref[3];
+    int32_t             plane_bsize[3];
+    int32_t             mi_wide_l2[3];
+    int32_t             mi_high_l2[3];
+    int32_t             xdec[3];
+    int32_t             ydec[3];
+    int32_t             cdef_count;
+    const int32_t       coeff_shift = AOMMAX(scs->static_config.encoder_bit_depth - 8, 0);
+    const int32_t       nvfb        = (mi_rows + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
+    const int32_t       nhfb        = (mi_cols + MI_SIZE_64X64 - 1) / MI_SIZE_64X64;
+    const int32_t       pri_damping = 3 + (frm_hdr->quantization_params.base_q_idx >> 6);
+    const int32_t       sec_damping = pri_damping;
+    const int32_t       num_planes  = 3;
+    CdefList            dlist[MI_SIZE_128X128 * MI_SIZE_128X128];
 
     DECLARE_ALIGNED(32, uint16_t, inbuf[CDEF_INBUF_SIZE]);
     uint16_t *in = inbuf + CDEF_VBORDER * CDEF_BSTRIDE + CDEF_HBORDER;
@@ -352,7 +348,6 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
     }
 }
 
-#if OPT_CDEF_ME_INFO
 const uint32_t disable_cdef_th[4][INPUT_SIZE_COUNT] = {{0, 0, 0, 0, 0, 0, 0},
                                                        {100, 200, 500, 800, 1000, 1000, 1000},
                                                        {900, 1000, 2000, 3000, 4000, 4000, 4000},
@@ -402,7 +397,6 @@ static void    me_based_cdef_skip(PictureControlSet *pcs, uint16_t prev_cdef_dis
             *do_cdef = false;
     }
 }
-#endif
 
 /******************************************************
  * CDEF Kernel
@@ -438,20 +432,13 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
         Bool       is_16bit = scs->is_16bit_pipeline;
         Av1Common *cm       = pcs->ppcs->av1_cm;
         frm_hdr             = &pcs->ppcs->frm_hdr;
-#if OPT_CDEF_ME_INFO
-        pcs->cdef_dist_dev = -1;
-        bool do_cdef       = true;
+        pcs->cdef_dist_dev  = -1;
+        bool do_cdef        = true;
         me_based_cdef_skip(pcs, pcs->ppcs->cdef_recon_ctrls.prev_cdef_dist_th, &do_cdef);
         if (!do_cdef)
             pcs->ppcs->cdef_level = 0;
-#endif
-#if CLN_CDEF_LVLS
         CdefSearchControls *cdef_search_ctrls = &pcs->ppcs->cdef_search_ctrls;
         if (!cdef_search_ctrls->use_reference_cdef_fs) {
-#else
-        CdefControls *cdef_ctrls = &pcs->ppcs->cdef_ctrls;
-        if (!cdef_ctrls->use_reference_cdef_fs) {
-#endif
             if (scs->seq_header.cdef_level && pcs->ppcs->cdef_level) {
                 cdef_seg_search(pcs, scs, dlf_results->segment_index);
             }
@@ -478,12 +465,10 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
                 frm_hdr->cdef_params.cdef_uv_strength[0] = 0;
             }
 
-#if OPT_CDEF_ME_INFO
             if (pcs->ppcs->nb_cdef_strengths == 1 && frm_hdr->cdef_params.cdef_y_strength[0] == 0 &&
                 frm_hdr->cdef_params.cdef_uv_strength[0] == 0) {
                 pcs->cdef_dist_dev = 0;
             }
-#endif
 
             //restoration prep
             Bool is_lr = ppcs->enable_restoration && frm_hdr->allow_intrabc == 0;
