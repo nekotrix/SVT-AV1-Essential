@@ -19,7 +19,7 @@
 #include "svt_log.h"
 #include "rd_cost.h"
 
-void                   svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, Bool is_highbd);
+void                   svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
 static INLINE uint64_t dist_8xn_16bit_c(const uint16_t *src, const uint16_t *dst, const int32_t dstride,
                                         const int32_t coeff_shift, int8_t height, uint8_t subsampling_factor) {
     uint64_t svar   = 0;
@@ -285,7 +285,7 @@ void svt_av1_cdef_frame(SequenceControlSet *scs, PictureControlSet *pcs) {
     struct PictureParentControlSet *ppcs     = pcs->ppcs;
     Av1Common                      *cm       = ppcs->av1_cm;
     FrameHeader                    *frm_hdr  = &ppcs->frm_hdr;
-    Bool                            is_16bit = scs->is_16bit_pipeline;
+    bool                            is_16bit = scs->is_16bit_pipeline;
 
     EbPictureBufferDesc *recon_pic;
     svt_aom_get_recon_pic(pcs, &recon_pic, is_16bit);
@@ -812,7 +812,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
         &full_lambda,
         (uint8_t)pcs->ppcs->enhanced_pic->bit_depth,
         pcs->ppcs->frm_hdr.quantization_params.base_q_idx,
-        FALSE);
+        false);
     lambda   = full_lambda;
     mse[0]   = (uint64_t **)malloc(sizeof(*mse) * nvfb * nhfb);
     mse[1]   = (uint64_t **)malloc(sizeof(*mse) * nvfb * nhfb);
@@ -844,7 +844,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
     // Scale down the cost of the (0,0) filter strength to bias selection towards off.
     // When off, can save the cost of the application.
     if (cdef_recon_ctrls->zero_fs_cost_bias) {
-        const Bool is_16bit = (pcs->scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
+        const bool is_16bit = (pcs->scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
         uint16_t   factor;
         for (i = 0; i < sb_count; i++) {
             if (is_16bit) {

@@ -366,14 +366,14 @@ static const vector<uint32_t> invalid_qp = {
 /* force qp values for every picture that are passed in the header pointer
  *
  * Default is 0.*/
-static const vector<Bool> default_use_qp_file = {
-    FALSE,
+static const vector<bool> default_use_qp_file = {
+    false,
 };
-static const vector<Bool> valid_use_qp_file = {
-    FALSE,
-    TRUE,
+static const vector<bool> valid_use_qp_file = {
+    false,
+    true,
 };
-static const vector<Bool> invalid_use_qp_file = {
+static const vector<bool> invalid_use_qp_file = {
     // none
 };
 
@@ -381,14 +381,14 @@ static const vector<Bool> invalid_use_qp_file = {
 /* Flag to enable the Deblocking Loop Filtering.
  *
  * Default is true. */
-static const vector<Bool> default_enable_dlf_flag = {
-    TRUE,
+static const vector<bool> default_enable_dlf_flag = {
+    true,
 };
-static const vector<Bool> valid_enable_dlf_flag = {
-    FALSE,
-    TRUE,
+static const vector<bool> valid_enable_dlf_flag = {
+    false,
+    true,
 };
-static const vector<Bool> invalid_enable_dlf_flag = {
+static const vector<bool> invalid_enable_dlf_flag = {
     // none
 };
 
@@ -397,13 +397,13 @@ static const vector<Bool> invalid_enable_dlf_flag = {
  *
  * Default is 0. */
 // TODO: the description of this parameter is incorrect, refer to source code,
-// it should be a Bool
+// it should be a bool
 static const vector<uint32_t> default_film_grain_denoise_strength = {
-    FALSE,
+    false,
 };
 static const vector<uint32_t> valid_film_grain_denoise_strength = {
-    FALSE,
-    TRUE,
+    false,
+    true,
 };
 static const vector<uint32_t> invalid_film_grain_denoise_strength = {
     // none
@@ -412,70 +412,70 @@ static const vector<uint32_t> invalid_film_grain_denoise_strength = {
 /* Warped motion
  *
  * Default is 0. */
-static const vector<Bool> default_enable_warped_motion = {
-    TRUE,
+static const vector<bool> default_enable_warped_motion = {
+    true,
 };
-static const vector<Bool> valid_enable_warped_motion = {
-    FALSE,
-    TRUE,
+static const vector<bool> valid_enable_warped_motion = {
+    false,
+    true,
 };
-static const vector<Bool> invalid_enable_warped_motion = {
+static const vector<bool> invalid_enable_warped_motion = {
     // none
 };
 
 /* Global motion
  *
  * Default is 1. */
-static const vector<Bool> default_enable_global_motion = {
-    TRUE,
+static const vector<bool> default_enable_global_motion = {
+    true,
 };
-static const vector<Bool> valid_enable_global_motion = {
-    FALSE,
-    TRUE,
+static const vector<bool> valid_enable_global_motion = {
+    false,
+    true,
 };
-static const vector<Bool> invalid_enable_global_motion = {
+static const vector<bool> invalid_enable_global_motion = {
     // none
 };
 
 /* Flag to enable the use of default ME HME parameters.
  *
  * Default is 1. */
-static const vector<Bool> default_use_default_me_hme = {
-    TRUE,
+static const vector<bool> default_use_default_me_hme = {
+    true,
 };
-static const vector<Bool> valid_use_default_me_hme = {
-    FALSE,
-    TRUE,
+static const vector<bool> valid_use_default_me_hme = {
+    false,
+    true,
 };
-static const vector<Bool> invalid_use_default_me_hme = {
+static const vector<bool> invalid_use_default_me_hme = {
     // none
 };
 
 /* Flag to enable Hierarchical Motion Estimation.
  *
  * Default is 1. */
-static const vector<Bool> default_enable_hme_flag = {
-    TRUE,
+static const vector<bool> default_enable_hme_flag = {
+    true,
 };
-static const vector<Bool> valid_enable_hme_flag = {
-    FALSE,
-    TRUE,
+static const vector<bool> valid_enable_hme_flag = {
+    false,
+    true,
 };
-static const vector<Bool> invalid_enable_hme_flag = {
+static const vector<bool> invalid_enable_hme_flag = {
     // none
 };
 
 /* Flag to enable the use of non-swaure partitions
  *
  * Default is 0. */
-static const vector<Bool> default_ext_block_flag = {
-    FALSE,
+static const vector<bool> default_ext_block_flag = {
+    false,
 };
-static const vector<Bool> valid_ext_block_flag = {
-    FALSE,
-    TRUE,
+static const vector<bool> valid_ext_block_flag = {
+    false,
+    true,
 };
-static const vector<Bool> invalid_ext_block_flag = {
+static const vector<bool> invalid_ext_block_flag = {
     // none
 };
 
@@ -526,14 +526,14 @@ static const vector<int32_t> invalid_palette_level = {-2, 7};
  * parameter sets in the elementary streams .
  *
  * Default is 0. */
-static const vector<Bool> default_constrained_intra = {
-    FALSE,
+static const vector<bool> default_constrained_intra = {
+    false,
 };
-static const vector<Bool> valid_constrained_intra = {
-    FALSE,
-    TRUE,
+static const vector<bool> valid_constrained_intra = {
+    false,
+    true,
 };
-static const vector<Bool> invalid_constrained_intra = {
+static const vector<bool> invalid_constrained_intra = {
     // none
 };
 
@@ -853,8 +853,8 @@ static const vector<int32_t> invalid_target_socket = {
  * ReconFile token (-o) and using the feature will affect the speed of encoder.
  *
  * Default is 0. */
-static const vector<uint32_t> default_recon_enabled = {FALSE};
-static const vector<uint32_t> valid_recon_enabled = {FALSE, TRUE};
+static const vector<uint32_t> default_recon_enabled = {false};
+static const vector<uint32_t> valid_recon_enabled = {false, true};
 static const vector<uint32_t> invalid_recon_enabled = {/** none */};
 
 #if TILES
@@ -917,9 +917,9 @@ static const vector<uint8_t> valid_altref_nframes = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 static const vector<uint8_t> invalid_altref_nframes = {11};
 
-static const vector<Bool> default_enable_overlays = {FALSE};
-static const vector<Bool> valid_enable_overlays = {FALSE, TRUE};
-static const vector<Bool> invalid_enable_overlays = {/*none*/};
+static const vector<bool> default_enable_overlays = {false};
+static const vector<bool> valid_enable_overlays = {false, true};
+static const vector<bool> invalid_enable_overlays = {/*none*/};
 
 /* Variables to control the super-resolution tool
  */

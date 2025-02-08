@@ -30,22 +30,22 @@ extern "C" {
 #define SEGMENT_END_IDX(index, pic_size_in_sb, num_of_seg) ((((index) + 1) * (pic_size_in_sb)) / (num_of_seg))
 
 typedef struct WnFilterCtrls {
-    Bool enabled;
+    bool enabled;
     // [1-3], 1 is Y-7tap, UV-5tap; 2 is Y-5tap, UV-5tap; 3 is Y-3tap, UV-3tap
     uint8_t filter_tap_lvl;
-    Bool    use_refinement; // If true, perform a refinement search around initial filter coeff values
-    Bool    max_one_refinement_step; // Limit refinement search to one step
+    bool    use_refinement; // If true, perform a refinement search around initial filter coeff values
+    bool    max_one_refinement_step; // Limit refinement search to one step
     // Skip coeff generation and use the filter params from the colocated rest. unit on the previous
     // frame, if available, else generate new
-    Bool use_prev_frame_coeffs;
+    bool use_prev_frame_coeffs;
     // Requires that previous frames saved their params (only true if this flag is on for all
     // frames) if 1, enable Wiener filtering to be used for chroma planes, else use for luma plane
     // only
-    Bool use_chroma;
+    bool use_chroma;
 } WnFilterCtrls;
 
 typedef struct SgFilterCtrls {
-    Bool enabled;
+    bool enabled;
     // [0,16] - the range of epsilon to test for the self-guided filter selection; lower is more
     // aggressive
     int8_t step_range;
@@ -56,7 +56,7 @@ typedef struct SgFilterCtrls {
     int8_t ep_inc[PLANE_TYPES]; //search increment index
     int8_t refine[PLANE_TYPES]; //refinement for alpha/beta   1:do the refinment  0:no refinement
     // if 1, enable Wiener filtering to be used for chroma planes, else use for luma plane only
-    Bool use_chroma;
+    bool use_chroma;
 } SgFilterCtrls;
 typedef struct Av1Common {
     int32_t  mi_rows;

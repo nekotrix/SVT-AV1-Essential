@@ -60,7 +60,7 @@ typedef struct PictureManagerResults {
     uint8_t          tpl_ref_list0_count;
     uint8_t          tpl_ref_list1_count;
     uint8_t          temporal_layer_index;
-    Bool             is_ref;
+    bool             is_ref;
 } PictureManagerResults;
 
 typedef struct PictureManagerResultInitData {

@@ -32,16 +32,16 @@ DECLARE_ALIGNED(16, static const uint8_t, kDotProdMergeBlockTbl[48]) = {
 };
 // clang-format on
 
-static INLINE Bool is_convolve_2tap(const int16_t *const filter) {
+static INLINE bool is_convolve_2tap(const int16_t *const filter) {
     return (const void *)filter == (const void *)bilinear_filters;
 }
 
-static INLINE Bool is_convolve_4tap(const int16_t *const filter) {
+static INLINE bool is_convolve_4tap(const int16_t *const filter) {
     return (const void *)filter == (const void *)sub_pel_filters_4 ||
         (const void *)filter == (const void *)sub_pel_filters_4smooth;
 }
 
-static INLINE Bool is_convolve_6tap(const int16_t *const filter) {
+static INLINE bool is_convolve_6tap(const int16_t *const filter) {
     return (const void *)filter == (const void *)sub_pel_filters_8 ||
         (const void *)filter == (const void *)sub_pel_filters_8smooth;
 }

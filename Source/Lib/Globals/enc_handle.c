@@ -105,7 +105,7 @@ static uint8_t                   num_groups = 0;
 #ifdef _WIN32
 static uint8_t                   svt_aom_group_affinity_enabled = 0;
 static GROUP_AFFINITY            svt_aom_group_affinity;
-static Bool                    alternate_groups = 0;
+static bool                    alternate_groups = 0;
 #elif defined(__linux__)
 static cpu_set_t                 svt_aom_group_affinity;
 typedef struct logicalProcessorGroup {
@@ -265,7 +265,7 @@ void svt_set_thread_management_parameters(EbSvtAv1EncConfiguration* config_ptr) 
                 // target socket is not set, use current group
                 const uint32_t num_lp_per_group = GetActiveProcessorCount(svt_aom_group_affinity.Group);
                 if (config_ptr->pin_threads > num_lp_per_group) {
-                    alternate_groups = TRUE;
+                    alternate_groups = true;
                     SVT_WARN("--pin (pin threads) setting is ignored. Run on both sockets. \n");
                 }
                 else
@@ -373,7 +373,7 @@ static uint32_t get_max_wavefronts(uint32_t width, uint32_t height, uint32_t blk
 *
 * Return true if the pic dimension is a single SB width
 */
-static Bool is_pic_dimension_single_sb(uint32_t sb_size, uint16_t pic_dimension) {
+static bool is_pic_dimension_single_sb(uint32_t sb_size, uint16_t pic_dimension) {
     return ((pic_dimension + sb_size - 1) / sb_size) == 1;
 }
 /*********************************************************************************
@@ -1245,10 +1245,10 @@ static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instanc
         ref_pic_buf_desc_init_data.right_padding = scs->right_padding;
         ref_pic_buf_desc_init_data.top_padding = scs->top_padding;
         ref_pic_buf_desc_init_data.bot_padding = scs->bot_padding;
-        ref_pic_buf_desc_init_data.split_mode = FALSE;
+        ref_pic_buf_desc_init_data.split_mode = false;
         ref_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
         ref_pic_buf_desc_init_data.mfmv                = 0;
-        ref_pic_buf_desc_init_data.is_16bit_pipeline   = FALSE;
+        ref_pic_buf_desc_init_data.is_16bit_pipeline   = false;
         ref_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
         ref_pic_buf_desc_init_data.sb_total_count      = scs->sb_total_count;
 
@@ -1261,10 +1261,10 @@ static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instanc
         quart_pic_buf_desc_init_data.right_padding = scs->b64_size >> 1;
         quart_pic_buf_desc_init_data.top_padding = scs->b64_size >> 1;
         quart_pic_buf_desc_init_data.bot_padding = scs->b64_size >> 1;
-        quart_pic_buf_desc_init_data.split_mode = FALSE;
+        quart_pic_buf_desc_init_data.split_mode = false;
         quart_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
         quart_pic_buf_desc_init_data.mfmv                = 0;
-        quart_pic_buf_desc_init_data.is_16bit_pipeline   = FALSE;
+        quart_pic_buf_desc_init_data.is_16bit_pipeline   = false;
         quart_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
         quart_pic_buf_desc_init_data.sb_total_count      = scs->sb_total_count;
 
@@ -1277,10 +1277,10 @@ static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instanc
         sixteenth_pic_buf_desc_init_data.right_padding = scs->b64_size >> 2;
         sixteenth_pic_buf_desc_init_data.top_padding = scs->b64_size >> 2;
         sixteenth_pic_buf_desc_init_data.bot_padding = scs->b64_size >> 2;
-        sixteenth_pic_buf_desc_init_data.split_mode = FALSE;
+        sixteenth_pic_buf_desc_init_data.split_mode = false;
         sixteenth_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
         sixteenth_pic_buf_desc_init_data.mfmv                = 0;
-        sixteenth_pic_buf_desc_init_data.is_16bit_pipeline   = FALSE;
+        sixteenth_pic_buf_desc_init_data.is_16bit_pipeline   = false;
         sixteenth_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
         sixteenth_pic_buf_desc_init_data.sb_total_count      = scs->sb_total_count;
 
@@ -1324,9 +1324,9 @@ static int create_tpl_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instan
     ref_pic_buf_desc_init_data.right_padding = TPL_PADX;// scs->right_padding;
     ref_pic_buf_desc_init_data.top_padding = TPL_PADY;// scs->top_padding;
     ref_pic_buf_desc_init_data.bot_padding = TPL_PADY;// scs->bot_padding;
-    ref_pic_buf_desc_init_data.split_mode = FALSE;
+    ref_pic_buf_desc_init_data.split_mode = false;
     ref_pic_buf_desc_init_data.mfmv = 0;
-    ref_pic_buf_desc_init_data.is_16bit_pipeline = FALSE;
+    ref_pic_buf_desc_init_data.is_16bit_pipeline = false;
     ref_pic_buf_desc_init_data.enc_mode = scs->static_config.enc_mode;
 
     ref_pic_buf_desc_init_data.rest_units_per_tile = 0;// rest not needed in tpl scs->rest_units_per_tile;
@@ -1356,7 +1356,7 @@ static int create_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instance_i
     EbReferenceObjectDescInitData     eb_ref_obj_ect_desc_init_data_structure;
     EbPictureBufferDescInitData       ref_pic_buf_desc_init_data;
     SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[instance_index]->scs;
-    Bool is_16bit = (Bool)(scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
+    bool is_16bit = (bool)(scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
     // Initialize the various Picture types
     ref_pic_buf_desc_init_data.max_width = scs->max_input_luma_width;
     ref_pic_buf_desc_init_data.max_height = scs->max_input_luma_height;
@@ -1379,7 +1379,7 @@ static int create_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instance_i
     ref_pic_buf_desc_init_data.is_16bit_pipeline = scs->is_16bit_pipeline;
     // Hsan: split_mode is set @ eb_reference_object_ctor() as both unpacked reference and packed reference are needed for a 10BIT input; unpacked reference @ MD, and packed reference @ EP
 
-    ref_pic_buf_desc_init_data.split_mode = FALSE;
+    ref_pic_buf_desc_init_data.split_mode = false;
     ref_pic_buf_desc_init_data.enc_mode = scs->static_config.enc_mode;
     if (is_16bit)
         ref_pic_buf_desc_init_data.bit_depth = EB_TEN_BIT;
@@ -1566,7 +1566,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
             NULL);
 #if SRM_REPORT
         enc_handle_ptr->me_pool_ptr_array[instance_index]->empty_queue->log = 0;
-        dump_srm_content(enc_handle_ptr->me_pool_ptr_array[instance_index], FALSE);
+        dump_srm_content(enc_handle_ptr->me_pool_ptr_array[instance_index], false);
 #endif
     }
 
@@ -3629,7 +3629,7 @@ static void set_first_pass_ctrls(
     }
 }
 
-static uint8_t get_tpl(uint8_t pred_structure, uint8_t superres_mode, uint8_t resize_mode, uint8_t aq_mode, Bool avif) {
+static uint8_t get_tpl(uint8_t pred_structure, uint8_t superres_mode, uint8_t resize_mode, uint8_t aq_mode, bool avif) {
     if (avif) {
         SVT_WARN("TPL is disabled for avif\n");
         return 0;
@@ -3971,11 +3971,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     }
 
     if (scs->static_config.enable_variance_boost && scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR) {
-        scs->static_config.enable_variance_boost = FALSE;
+        scs->static_config.enable_variance_boost = false;
         SVT_WARN("Variance boost is incompatible with CBR rate control, disabling variance boost\n");
     }
     if (scs->static_config.enable_variance_boost && scs->static_config.enable_adaptive_quantization == 1) {
-        scs->static_config.enable_variance_boost = FALSE;
+        scs->static_config.enable_variance_boost = false;
         SVT_WARN("Variance AQ based on segmentation with variance boost not supported, disabling variance boost\n");
     }
     if (scs->static_config.variance_boost_strength >= 4) {
@@ -4223,7 +4223,7 @@ static void copy_api_from_app(
     scs->picture_analysis_number_of_regions_per_height =
         scs->max_input_luma_height >= 64 ? HIGHER_THAN_CLASS_1_REGION_SPLIT_PER_WIDTH : 1;
 
-    scs->pic_based_rate_est = FALSE;
+    scs->pic_based_rate_est = false;
     scs->block_mean_calc_prec        = BLOCK_MEAN_PREC_SUB;
     scs->ten_bit_format = 0;
     scs->speed_control_flag = 0;
@@ -4434,7 +4434,7 @@ static void copy_api_from_app(
     scs->chroma_format_idc = (uint32_t)(scs->static_config.encoder_color_format);
     scs->encoder_bit_depth = (uint32_t)(scs->static_config.encoder_bit_depth);
     //16bit pipeline
-    scs->is_16bit_pipeline = ((((EbSvtAv1EncConfiguration*)config_struct)->encoder_bit_depth) > EB_EIGHT_BIT) ? TRUE: FALSE;
+    scs->is_16bit_pipeline = ((((EbSvtAv1EncConfiguration*)config_struct)->encoder_bit_depth) > EB_EIGHT_BIT) ? true: false;
     scs->subsampling_x = (scs->chroma_format_idc == EB_YUV444 ? 0 : 1);
     scs->subsampling_y = (scs->chroma_format_idc >= EB_YUV422 ? 0 : 1);
     // Thresholds
@@ -4767,7 +4767,7 @@ static EbErrorType downsample_copy_frame_buffer(
     EbPictureBufferDesc           *input_pic = (EbPictureBufferDesc*)destination;
     EbPictureBufferDesc           *y8b_input_picture_ptr = (EbPictureBufferDesc*)destination_y8b;
     EbSvtIOFormat                   *input_ptr = (EbSvtIOFormat*)source;
-    Bool                           is_16bit_input = (Bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
+    bool                           is_16bit_input = (bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
 
     // Need to include for Interlacing on the fly with pictureScanType = 1
     if (!is_16bit_input) {
@@ -4895,7 +4895,7 @@ static EbErrorType copy_frame_buffer(
     EbPictureBufferDesc           *input_pic = (EbPictureBufferDesc*)destination;
     EbPictureBufferDesc           *y8b_input_picture_ptr = (EbPictureBufferDesc*)destination_y8b;
     EbSvtIOFormat                   *input_ptr = (EbSvtIOFormat*)source;
-    Bool                           is_16bit_input = (Bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
+    bool                           is_16bit_input = (bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
 
     // Need to include for Interlacing on the fly with pictureScanType = 1
 
@@ -5037,7 +5037,7 @@ static EbErrorType copy_private_data_list(EbBufferHeaderType* dst, EbBufferHeade
 EbErrorType svt_input_buffer_header_update(
     EbBufferHeaderType* input_buffer,
     SequenceControlSet       *scs,
-    Bool                   noy8b) {
+    bool                   noy8b) {
 
     EbPictureBufferDescInitData input_pic_buf_desc_init_data;
     EbSvtAv1EncConfiguration   * config = &scs->static_config;
@@ -5061,7 +5061,7 @@ EbErrorType svt_input_buffer_header_update(
     input_pic_buf_desc_init_data.top_padding = scs->top_padding;
     input_pic_buf_desc_init_data.bot_padding = scs->bot_padding;
 
-    input_pic_buf_desc_init_data.split_mode = is_16bit ? TRUE : FALSE;
+    input_pic_buf_desc_init_data.split_mode = is_16bit ? true : false;
 
     input_pic_buf_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK;
     input_pic_buf_desc_init_data.is_16bit_pipeline = 0;
@@ -5108,7 +5108,7 @@ EbErrorType svt_input_y8b_update(
     input_pic_buf_desc_init_data.top_padding = scs->top_padding;
     input_pic_buf_desc_init_data.bot_padding = scs->bot_padding;
 
-    input_pic_buf_desc_init_data.split_mode = is_16bit ? TRUE : FALSE;
+    input_pic_buf_desc_init_data.split_mode = is_16bit ? true : false;
 
     input_pic_buf_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_LUMA_MASK; //allocate for 8bit Luma only
     input_pic_buf_desc_init_data.is_16bit_pipeline = 0;
@@ -5142,7 +5142,7 @@ static void memset_input_buffer(SequenceControlSet* scs, EbBufferHeaderType* dst
             EbPictureBufferDesc* y8b_input_picture_ptr = (EbPictureBufferDesc*)dst_y8b->p_buffer;
             EbPictureBufferDesc* input_pic = (EbPictureBufferDesc*)dst->p_buffer;
             EbSvtAv1EncConfiguration* config = &scs->static_config;
-            Bool is_16bit_input = (Bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
+            bool is_16bit_input = (bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
             const uint8_t subsampling_x  = (config->encoder_color_format == EB_YUV444 ? 0 : 1);
             const uint8_t subsampling_y  = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 0 : 1);
             const uint32_t chroma_width  = (input_pic->max_width + subsampling_x) >> subsampling_x;
@@ -5172,7 +5172,7 @@ static void memset_input_buffer(SequenceControlSet* scs, EbBufferHeaderType* dst
             EbPictureBufferDesc* y8b_input_picture_ptr = (EbPictureBufferDesc*)dst_y8b->p_buffer;
             EbPictureBufferDesc* input_pic = (EbPictureBufferDesc*)dst->p_buffer;
             EbSvtAv1EncConfiguration* config = &scs->static_config;
-            Bool is_16bit_input = (Bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
+            bool is_16bit_input = (bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
             const uint8_t subsampling_x  = (config->encoder_color_format == EB_YUV444 ? 0 : 1);
             const uint8_t subsampling_y  = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 0 : 1);
             const uint32_t chroma_width  = (input_pic->max_width + subsampling_x) >> subsampling_x;
@@ -5404,7 +5404,7 @@ EB_API EbErrorType svt_av1_enc_send_picture(
         &eb_wrapper_ptr);
     // if resolution has changed, and the input_buffer settings do not match scs settings, update input_buffer settings
     if (buffer_update_needed((EbBufferHeaderType*)eb_wrapper_ptr->object_ptr, enc_handle_ptr->scs_instance_array[0]->scs))
-        svt_input_buffer_header_update((EbBufferHeaderType*)eb_wrapper_ptr->object_ptr, enc_handle_ptr->scs_instance_array[0]->scs, TRUE);
+        svt_input_buffer_header_update((EbBufferHeaderType*)eb_wrapper_ptr->object_ptr, enc_handle_ptr->scs_instance_array[0]->scs, true);
 
      //set live count to 1 to be decremented at the end of the encode in RC, and released
      //this would also allow low delay TF to retain pictures
@@ -5421,7 +5421,7 @@ EB_API EbErrorType svt_av1_enc_send_picture(
         EbPictureBufferDesc* input_pic = (EbPictureBufferDesc*)lib_y8b_hdr->p_buffer;
         SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[0]->scs;
         EbSvtAv1EncConfiguration* config = &scs->static_config;
-        Bool is_16bit_input = (Bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
+        bool is_16bit_input = (bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
 
         const uint8_t subsampling_x = (config->encoder_color_format == EB_YUV444 ? 0 : 1);
         const uint8_t subsampling_y = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 0 : 1);
@@ -5682,7 +5682,7 @@ static EbErrorType init_svt_av1_encoder_handle(
 static EbErrorType allocate_frame_buffer(
     SequenceControlSet       *scs,
     EbBufferHeaderType       *input_buffer,
-    Bool                   noy8b)
+    bool                   noy8b)
 {
     EbErrorType   return_error = EB_ErrorNone;
     EbPictureBufferDescInitData input_pic_buf_desc_init_data;
@@ -5707,7 +5707,7 @@ static EbErrorType allocate_frame_buffer(
     input_pic_buf_desc_init_data.top_padding = scs->top_padding;
     input_pic_buf_desc_init_data.bot_padding = scs->bot_padding;
 
-    input_pic_buf_desc_init_data.split_mode = is_16bit ? TRUE : FALSE;
+    input_pic_buf_desc_init_data.split_mode = is_16bit ? true : false;
 
     input_pic_buf_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK;
     input_pic_buf_desc_init_data.is_16bit_pipeline = 0;
@@ -5763,7 +5763,7 @@ static EbErrorType allocate_y8b_frame_buffer(
     input_pic_buf_desc_init_data.top_padding = scs->top_padding;
     input_pic_buf_desc_init_data.bot_padding = scs->bot_padding;
 
-    input_pic_buf_desc_init_data.split_mode = is_16bit ? TRUE : FALSE;
+    input_pic_buf_desc_init_data.split_mode = is_16bit ? true : false;
 
     input_pic_buf_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_LUMA_MASK; //allocate for 8bit Luma only
     input_pic_buf_desc_init_data.is_16bit_pipeline = 0;
@@ -5845,7 +5845,7 @@ EbErrorType svt_input_buffer_header_creator(
     EbErrorType return_error = allocate_frame_buffer(
         scs,
         input_buffer,
-        TRUE);
+        true);
     if (return_error != EB_ErrorNone)
         return return_error;
 
@@ -5884,7 +5884,7 @@ EbErrorType svt_overlay_buffer_header_creator(
     EbErrorType return_error = allocate_frame_buffer(
         scs,
         input_buffer,
-        FALSE);
+        false);
     if (return_error != EB_ErrorNone)
         return return_error;
 

@@ -33,7 +33,7 @@ typedef struct EbReferenceObject {
     uint8_t              hp_coded_area;
     uint8_t              is_mfmv_used;
     uint8_t              tmp_layer_idx;
-    Bool                 is_scene_change;
+    bool                 is_scene_change;
     uint16_t             pic_avg_variance;
     AomFilmGrain         film_grain_params; //Film grain parameters for a reference frame
     int8_t               sg_frame_ep;

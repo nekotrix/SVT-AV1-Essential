@@ -41,7 +41,7 @@ BOOL CALLBACK create_malloc_mutex_wrapper(PINIT_ONCE InitOnce, PVOID Parameter, 
     (void)Parameter;
     (void)lpContext;
     create_malloc_mutex();
-    return TRUE;
+    return true;
 }
 
 static EbHandle get_malloc_mutex() {
@@ -80,8 +80,8 @@ typedef struct MemoryEntry {
 static MemoryEntry g_mem_entry[MEM_ENTRY_SIZE];
 
 #define TO_INDEX(v) ((v) % MEM_ENTRY_SIZE)
-static Bool g_add_mem_entry_warning    = TRUE;
-static Bool g_remove_mem_entry_warning = TRUE;
+static bool g_add_mem_entry_warning    = true;
+static bool g_remove_mem_entry_warning = true;
 
 /*********************************************************************************
 *
@@ -95,12 +95,12 @@ static Bool g_remove_mem_entry_warning = TRUE;
 *  param you set to for_each_mem_entry
 *
 *
-* @returns  return TRUE if you want get early exit in for_each_mem_entry
+* @returns  return true if you want get early exit in for_each_mem_entry
 *
 s*
 ********************************************************************************/
 
-typedef Bool (*Predicate)(MemoryEntry* e, void* param);
+typedef bool (*Predicate)(MemoryEntry* e, void* param);
 
 /*********************************************************************************
 *
@@ -114,31 +114,31 @@ typedef Bool (*Predicate)(MemoryEntry* e, void* param);
 *  loop start position
 *
 * @param[in] pred
-*  return TRUE if you want early exit
+*  return true if you want early exit
 *
 * @param[out] param
 *  param send to pred.
 *
-* @returns  return TRUE if we got early exit.
+* @returns  return true if we got early exit.
 *
 *
 ********************************************************************************/
-static Bool for_each_hash_entry(MemoryEntry* bucket, uint32_t start, Predicate pred, void* param) {
+static bool for_each_hash_entry(MemoryEntry* bucket, uint32_t start, Predicate pred, void* param) {
     const uint32_t s = TO_INDEX(start);
     uint32_t       i = s;
 
     do {
         MemoryEntry* e = bucket + i;
         if (pred(e, param))
-            return TRUE;
+            return true;
         i++;
         i = TO_INDEX(i);
     } while (i != s);
-    return FALSE;
+    return false;
 }
 
-static Bool for_each_mem_entry(uint32_t start, Predicate pred, void* param) {
-    Bool     ret;
+static bool for_each_mem_entry(uint32_t start, Predicate pred, void* param) {
+    bool     ret;
     EbHandle m = get_malloc_mutex();
     svt_block_on_mutex(m);
     ret = for_each_hash_entry(g_mem_entry, start, pred, param);
@@ -152,24 +152,24 @@ static const char* mem_type_name(EbPtrType type) {
     return name[type];
 }
 
-static Bool add_mem_entry(MemoryEntry* e, void* param) {
+static bool add_mem_entry(MemoryEntry* e, void* param) {
     if (!e->ptr) {
         EB_MEMCPY(e, param, sizeof(*e));
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
-static Bool remove_mem_entry(MemoryEntry* e, void* param) {
+static bool remove_mem_entry(MemoryEntry* e, void* param) {
     MemoryEntry* item = param;
     if (e->ptr == item->ptr) {
         // The second case is a special case, we use EB_FREE to free calloced memory
         if (e->type == item->type || (e->type == EB_C_PTR && item->type == EB_N_PTR)) {
             e->ptr = NULL;
-            return TRUE;
+            return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 typedef struct MemSummary {
@@ -177,13 +177,13 @@ typedef struct MemSummary {
     uint32_t occupied;
 } MemSummary;
 
-static Bool count_mem_entry(MemoryEntry* e, void* param) {
+static bool count_mem_entry(MemoryEntry* e, void* param) {
     if (e->ptr) {
         MemSummary* sum = param;
         sum->amount[e->type] += e->count;
         sum->occupied++;
     }
-    return FALSE;
+    return false;
 }
 
 static inline void get_memory_usage_and_scale(size_t amount, double* const usage, char* const scale) {
@@ -202,26 +202,26 @@ static inline void get_memory_usage_and_scale(size_t amount, double* const usage
 //if we use a static array here, this size + sizeof(g_mem_entry) will exceed max size allowed on windows.
 static MemoryEntry* g_profile_entry;
 
-static Bool add_location(MemoryEntry* e, void* param) {
+static bool add_location(MemoryEntry* e, void* param) {
     MemoryEntry* new_item = param;
     if (!e->ptr) {
         *e = *new_item;
-        return TRUE;
+        return true;
     }
     if (e->file == new_item->file && e->line == new_item->line) {
         e->count += new_item->count;
-        return TRUE;
+        return true;
     }
     // to next position.
-    return FALSE;
+    return false;
 }
 
-static Bool collect_mem(MemoryEntry* e, void* param) {
+static bool collect_mem(MemoryEntry* e, void* param) {
     EbPtrType* type = param;
     if (e->ptr && e->type == *type)
         for_each_hash_entry(g_profile_entry, 0, add_location, e);
     //Loop entire bucket.
-    return FALSE;
+    return false;
 }
 
 static int compare_count(const void* a, const void* b) {
@@ -259,14 +259,14 @@ static void print_top_10_locations() {
 
 static int g_component_count;
 
-static Bool print_leak(MemoryEntry* e, void* param) {
+static bool print_leak(MemoryEntry* e, void* param) {
     if (e->ptr) {
-        Bool* leaked = param;
-        *leaked      = TRUE;
+        bool* leaked = param;
+        *leaked      = true;
         SVT_ERROR("%s leaked at %s:%d\n", mem_type_name(e->type), e->file, e->line);
     }
     //loop through all items
-    return FALSE;
+    return false;
 }
 
 void svt_print_memory_usage() {
@@ -309,7 +309,7 @@ void svt_decrease_component_count() {
     svt_block_on_mutex(m);
     g_component_count--;
     if (!g_component_count) {
-        Bool leaked = FALSE;
+        bool leaked = false;
         for_each_hash_entry(g_mem_entry, 0, print_leak, &leaked);
         if (!leaked)
             SVT_INFO("you have no memory leak\n");
@@ -326,7 +326,7 @@ void svt_add_mem_entry_impl(void* ptr, EbPtrType type, size_t count, const char*
         SVT_ERROR(
             "can't add memory entry.\n"
             "You have memory leak or you need increase MEM_ENTRY_SIZE\n");
-        g_add_mem_entry_warning = FALSE;
+        g_add_mem_entry_warning = false;
     }
 }
 
@@ -337,7 +337,7 @@ void svt_remove_mem_entry(void* ptr, EbPtrType type) {
         return;
     if (g_remove_mem_entry_warning) {
         SVT_ERROR("something wrong. you freed a unallocated memory %p, type = %s\n", ptr, mem_type_name(type));
-        g_remove_mem_entry_warning = FALSE;
+        g_remove_mem_entry_warning = false;
     }
 }
 #endif

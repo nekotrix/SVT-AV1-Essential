@@ -22,4 +22,4 @@ void read_and_skip_y4m_header(FILE *input_file);
 
 size_t read_y4m_frame_delimiter(FILE *input_file, FILE *error_log_file);
 
-Bool check_if_y4m(EbConfig *cfg);
+bool check_if_y4m(EbConfig *cfg);

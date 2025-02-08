@@ -58,7 +58,7 @@ EbErrorType svt_aom_inter_prediction(SequenceControlSet *scs, PictureControlSet 
                                      uint32_t component_mask, uint8_t bit_depth, uint8_t is_16bit_pipeline);
 void        svt_aom_search_compound_diff_wedge(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
                                                ModeDecisionCandidate *cand);
-Bool        svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
+bool        svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
                                               ModeDecisionCandidate *cand);
 
 EbErrorType svt_aom_inter_pu_prediction_av1_light_pd0(uint8_t hbd_md, struct ModeDecisionContext *ctx,
@@ -77,7 +77,7 @@ EbErrorType svt_aom_warped_motion_prediction(PictureControlSet *pcs, MvUnit *mv_
                                              NeighborArrayUnit *recon_neigh_y, NeighborArrayUnit *recon_neigh_cb,
                                              NeighborArrayUnit *recon_neigh_cr, ModeDecisionCandidate *cand,
                                              EbWarpedMotionParams *wm_params_l0, EbWarpedMotionParams *wm_params_l1,
-                                             uint8_t bit_depth, uint32_t component_mask, Bool is_encode_pass);
+                                             uint8_t bit_depth, uint32_t component_mask, bool is_encode_pass);
 
 void svt_aom_precompute_obmc_data(PictureControlSet *pcs, struct ModeDecisionContext *ctx);
 

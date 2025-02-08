@@ -772,7 +772,7 @@ typedef struct EbSvtAv1EncConfiguration {
      * @brief Signal to the library to treat intra_period_length as seconds and
      * multiply by fps_num/fps_den.
      */
-    uint8_t multiply_keyint;
+    bool multiply_keyint;
     // reference scaling parameters
     /**
      * @brief Reference scaling mode

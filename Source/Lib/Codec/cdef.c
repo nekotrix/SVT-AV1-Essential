@@ -312,7 +312,7 @@ void svt_aom_fill_rect(uint16_t *dst, int32_t dstride, int32_t v, int32_t h, uin
 }
 
 void svt_aom_copy_sb8_16(uint16_t *dst, int32_t dstride, const uint8_t *src, int32_t src_voffset, int32_t src_hoffset,
-                         int32_t sstride, int32_t vsize, int32_t hsize, Bool is_16bit) {
+                         int32_t sstride, int32_t vsize, int32_t hsize, bool is_16bit) {
     if (is_16bit) {
         const uint16_t *base = ((uint16_t *)src) + (src_voffset * sstride + src_hoffset);
         for (int r = 0; r < vsize; r++) {

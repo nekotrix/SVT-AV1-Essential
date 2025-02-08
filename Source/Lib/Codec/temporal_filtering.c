@@ -152,7 +152,7 @@ void save_YUV_to_file_highbd(char *filename, uint16_t *buffer_y, uint16_t *buffe
 }
 #endif
 void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
-                     uint32_t ss_y, Bool include_padding) {
+                     uint32_t ss_y, bool include_padding) {
     uint16_t width  = pic_ptr->stride_y;
     uint16_t height = (uint16_t)(pic_ptr->org_y * 2 + pic_ptr->height);
 
@@ -191,7 +191,7 @@ void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffe
 }
 
 void svt_aom_unpack_highbd_pic(uint16_t *buffer_highbd[3], EbPictureBufferDesc *pic_ptr, uint32_t ss_x,
-                       uint32_t ss_y, Bool include_padding) {
+                       uint32_t ss_y, bool include_padding) {
     uint16_t width  = pic_ptr->stride_y;
     uint16_t height = (uint16_t)(pic_ptr->org_y * 2 + pic_ptr->height);
 
@@ -1802,7 +1802,7 @@ static void tf_64x64_sub_pel_search(PictureParentControlSet* pcs, MeContext* me_
     else
         interp_filters = av1_make_interp_filters(EIGHTTAP_REGULAR, EIGHTTAP_REGULAR);
 
-    Bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)FALSE : (uint8_t)TRUE;
+    bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)false : (uint8_t)true;
     BlkStruct blk_struct;
     MacroBlockD av1xd;
     blk_struct.av1xd = &av1xd;
@@ -1912,7 +1912,7 @@ static void tf_32x32_sub_pel_search(PictureParentControlSet* pcs, MeContext* me_
     else
         interp_filters = av1_make_interp_filters(EIGHTTAP_REGULAR, EIGHTTAP_REGULAR);
 
-    Bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)FALSE : (uint8_t)TRUE;
+    bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)false : (uint8_t)true;
     BlkStruct blk_struct;
     MacroBlockD av1xd;
     blk_struct.av1xd = &av1xd;
@@ -2021,7 +2021,7 @@ static void tf_16x16_sub_pel_search(PictureParentControlSet* pcs, MeContext* me_
     int encoder_bit_depth) {
     InterpFilters interp_filters = av1_make_interp_filters(EIGHTTAP_REGULAR, EIGHTTAP_REGULAR);
 
-    Bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)FALSE : (uint8_t)TRUE;
+    bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)false : (uint8_t)true;
 
     BlkStruct   blk_ptr;
     MacroBlockD av1xd;
@@ -2141,7 +2141,7 @@ static void tf_8x8_sub_pel_search(PictureParentControlSet* pcs, MeContext* me_ct
     int encoder_bit_depth) {
     InterpFilters interp_filters = av1_make_interp_filters(EIGHTTAP_REGULAR, EIGHTTAP_REGULAR);
 
-    Bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)FALSE : (uint8_t)TRUE;
+    bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)false : (uint8_t)true;
 
     BlkStruct   blk_ptr;
     MacroBlockD av1xd;
@@ -2260,7 +2260,7 @@ static void tf_64x64_inter_prediction(PictureParentControlSet *pcs, MeContext *m
     SequenceControlSet *scs = pcs->scs;
     const InterpFilters interp_filters = av1_make_interp_filters(MULTITAP_SHARP, MULTITAP_SHARP);
 
-    Bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)FALSE : (uint8_t)TRUE;
+    bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)false : (uint8_t)true;
 
     BlkStruct   blk_ptr;
     MacroBlockD av1xd;
@@ -2367,7 +2367,7 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
     SequenceControlSet *scs = pcs->scs;
     const InterpFilters interp_filters = av1_make_interp_filters(MULTITAP_SHARP, MULTITAP_SHARP);
 
-    Bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)FALSE : (uint8_t)TRUE;
+    bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)false : (uint8_t)true;
 
     BlkStruct   blk_ptr;
     MacroBlockD av1xd;
@@ -2608,7 +2608,7 @@ void svt_aom_get_final_filtered_pixels_c(MeContext *me_ctx, EbByte *src_center_p
                                  uint16_t **altref_buffer_highbd_start, uint32_t **accum,
                                  uint16_t **count, const uint32_t *stride, int blk_y_src_offset,
                                  int blk_ch_src_offset, uint16_t blk_width_ch,
-                                 uint16_t blk_height_ch, Bool is_highbd) {
+                                 uint16_t blk_height_ch, bool is_highbd) {
     int i, j, k;
 
     if (!is_highbd) {
@@ -2691,7 +2691,7 @@ static void convert_64x64_info_to_32x32_info(
     PictureParentControlSet* pcs, MeContext* ctx,
     EbByte* pred, uint16_t** pred_16bit, uint32_t* stride_pred,
     EbByte* src,  uint16_t** src_16bit, uint32_t* stride_src,
-    Bool is_highbd) {
+    bool is_highbd) {
 
     ctx->tf_32x32_mv_x[0] = ctx->tf_64x64_mv_x;
     ctx->tf_32x32_mv_y[0] = ctx->tf_64x64_mv_y;
@@ -2783,7 +2783,7 @@ static EbErrorType produce_temporally_filtered_pic(
     EbPictureBufferDesc **list_input_picture_ptr, uint8_t index_center,
     MotionEstimationContext_t *me_context_ptr,
     const int32_t *noise_levels_log1p_fp16,
-    int32_t segment_index, Bool is_highbd) {
+    int32_t segment_index, bool is_highbd) {
     DECLARE_ALIGNED(16, uint32_t, accumulator[BLK_PELS * COLOR_CHANNELS]);
     DECLARE_ALIGNED(16, uint16_t, counter[BLK_PELS * COLOR_CHANNELS]);
     uint32_t *accum[COLOR_CHANNELS] = {
@@ -3406,7 +3406,7 @@ static EbErrorType produce_temporally_filtered_pic_ld(
     EbPictureBufferDesc **list_input_picture_ptr, uint8_t index_center,
     MotionEstimationContext_t *me_context_ptr,
     const int32_t *noise_levels_log1p_fp16,
-    int32_t segment_index, Bool is_highbd) {
+    int32_t segment_index, bool is_highbd) {
     DECLARE_ALIGNED(16, uint32_t, accumulator[BLK_PELS * COLOR_CHANNELS]);
     DECLARE_ALIGNED(16, uint16_t, counter[BLK_PELS * COLOR_CHANNELS]);
     uint32_t *accum[COLOR_CHANNELS] = {
@@ -3936,7 +3936,7 @@ void pad_and_decimate_filtered_pic(PictureParentControlSet *centre_pcs) {
 
 // save original enchanced_picture_ptr buffer in a separate buffer (to be replaced by the temporally filtered pic)
 static EbErrorType save_src_pic_buffers(PictureParentControlSet *centre_pcs,
-                                        uint32_t ss_y, Bool is_highbd) {
+                                        uint32_t ss_y, bool is_highbd) {
     // save buffer from full size frame enhanced_unscaled_pic
     EbPictureBufferDesc *src_pic_ptr =
         centre_pcs->enhanced_unscaled_pic;
@@ -4020,7 +4020,7 @@ static EbErrorType save_src_pic_buffers(PictureParentControlSet *centre_pcs,
 
     return EB_ErrorNone;
 }
-static EbErrorType save_y_src_pic_buffers(PictureParentControlSet* centre_pcs, Bool is_highbd) {
+static EbErrorType save_y_src_pic_buffers(PictureParentControlSet* centre_pcs, bool is_highbd) {
     // save buffer from full size frame enhanced_unscaled_pic
     EbPictureBufferDesc* src_pic_ptr =
         centre_pcs->enhanced_unscaled_pic;
@@ -4070,7 +4070,7 @@ static uint32_t filt_unfilt_dist(
     EbByte filt,
     EbByte unfil,
     uint16_t stride_y,
-    Bool is_highbd) {
+    bool is_highbd) {
 
     uint32_t pic_width_in_b64 = (ppcs->aligned_width + ppcs->scs->b64_size - 1) / ppcs->scs->b64_size;
     uint32_t pic_height_in_b64 = (ppcs->aligned_height + ppcs->scs->b64_size - 1) / ppcs->scs->b64_size;
@@ -4128,7 +4128,7 @@ EbErrorType svt_av1_init_temporal_filtering(
 
     uint32_t encoder_bit_depth =
         centre_pcs->scs->static_config.encoder_bit_depth;
-    Bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)FALSE : (uint8_t)TRUE;
+    bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)false : (uint8_t)true;
 
     // chroma subsampling
     uint32_t ss_x = centre_pcs->scs->subsampling_x;
@@ -4161,12 +4161,12 @@ EbErrorType svt_av1_init_temporal_filtering(
                                 pcs_list[i]->altref_buffer_highbd,
                                 ss_x,
                                 ss_y,
-                                TRUE);
+                                true);
             }
         }
 
         centre_pcs->do_tf =
-            TRUE; // set temporal filtering flag ON for current picture
+            true; // set temporal filtering flag ON for current picture
 
         // save original source picture (to be replaced by the temporally filtered pic)
         // if stat_report is enabled for PSNR computation
@@ -4177,7 +4177,7 @@ EbErrorType svt_av1_init_temporal_filtering(
             centre_pcs->scs->static_config.superres_auto_search_type;
         uint32_t frame_update_type = svt_aom_get_frame_update_type(centre_pcs->scs,
                                                            centre_pcs);
-        Bool   superres_recode_enabled = (superres_mode == SUPERRES_AUTO) &&
+        bool   superres_recode_enabled = (superres_mode == SUPERRES_AUTO) &&
             ((search_type == SUPERRES_AUTO_DUAL) ||
              (search_type == SUPERRES_AUTO_ALL)) // auto-dual or auto-all
             && ((frame_update_type == SVT_AV1_KF_UPDATE) ||
@@ -4263,7 +4263,7 @@ EbErrorType svt_av1_init_temporal_filtering(
                               central_picture_ptr,
                               ss_x,
                               ss_y,
-                              TRUE);
+                              true);
             EB_FREE_ARRAY(centre_pcs->altref_buffer_highbd[C_Y]);
             if (centre_pcs->tf_ctrls.chroma_lvl) {
                 EB_FREE_ARRAY(centre_pcs->altref_buffer_highbd[C_U]);
@@ -4292,7 +4292,7 @@ EbErrorType svt_av1_init_temporal_filtering(
             EbByte filt = input_pic->buffer_y + input_pic->org_y * input_pic->stride_y + input_pic->org_x;
             EbByte unfil = centre_pcs->save_source_picture_ptr[C_Y] + input_pic->org_y * input_pic->stride_y + input_pic->org_x;
 
-            centre_pcs->filt_to_unfilt_diff = filt_unfilt_dist(centre_pcs, filt, unfil, centre_pcs->enhanced_pic->stride_y, FALSE);
+            centre_pcs->filt_to_unfilt_diff = filt_unfilt_dist(centre_pcs, filt, unfil, centre_pcs->enhanced_pic->stride_y, false);
         }
 
         // signal that temp filt is done

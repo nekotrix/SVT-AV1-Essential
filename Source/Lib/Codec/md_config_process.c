@@ -293,7 +293,7 @@ void mode_decision_configuration_init_qp_update(PictureControlSet *pcs) {
     }
     // Initial Rate Estimation of the syntax elements
     svt_aom_estimate_syntax_rate(md_rate_est_ctx,
-                                 pcs->slice_type == I_SLICE ? TRUE : FALSE,
+                                 pcs->slice_type == I_SLICE ? true : false,
                                  pcs->ppcs->scs->seq_header.filter_intra_level,
                                  pcs->ppcs->frm_hdr.allow_screen_content_tools,
                                  pcs->ppcs->enable_restoration,
@@ -672,7 +672,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         // -------
         if ((pcs->ppcs->frame_superres_enabled == 1 || scs->static_config.resize_mode != RESIZE_NONE) &&
             pcs->slice_type != I_SLICE) {
-            if (pcs->ppcs->is_ref == TRUE && pcs->ppcs->ref_pic_wrapper != NULL) {
+            if (pcs->ppcs->is_ref == true && pcs->ppcs->ref_pic_wrapper != NULL) {
                 // update mi_rows and mi_cols for the reference pic wrapper (used in mfmv for other
                 // pictures)
                 EbReferenceObject *ref_object = pcs->ppcs->ref_pic_wrapper->object_ptr;
@@ -720,7 +720,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         }
         // Initial Rate Estimation of the syntax elements
         svt_aom_estimate_syntax_rate(md_rate_est_ctx,
-                                     pcs->slice_type == I_SLICE ? TRUE : FALSE,
+                                     pcs->slice_type == I_SLICE ? true : false,
                                      scs->seq_header.filter_intra_level,
                                      pcs->ppcs->frm_hdr.allow_screen_content_tools,
                                      pcs->ppcs->enable_restoration,
@@ -914,7 +914,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
 
         pcs->mimic_only_tx_4x4 = 0;
         if (frm_hdr->segmentation_params.segmentation_enabled) {
-            Bool has_lossless_segment = 0;
+            bool has_lossless_segment = 0;
             // Loop through each segment to determine if it is coded losslessly
             for (int segment_id = 0; segment_id < MAX_SEGMENTS; segment_id++) {
                 pcs->lossless[segment_id] = 0;

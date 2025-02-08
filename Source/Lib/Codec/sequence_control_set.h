@@ -249,7 +249,7 @@ typedef struct SequenceControlSet {
     * 1: 16 bit pipeline.
     * Now 16bit pipeline is only enabled in filter
     * Default is 0. */
-    Bool is_16bit_pipeline;
+    bool is_16bit_pipeline;
 
     /* Super block size (mm-signal)
     *

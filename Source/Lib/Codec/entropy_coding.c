@@ -1074,7 +1074,7 @@ uint8_t av1_get_skip_context(const MacroBlockD *xd) {
  *   Encodes the skip coefficient flag
  *********************************************************************/
 static void encode_skip_coeff_av1(EcBlkStruct *blk_ptr, FRAME_CONTEXT *frame_context, AomWriter *ec_writer,
-                                  Bool skip_coeff_flag) {
+                                  bool skip_coeff_flag) {
     // TODO: need to code in syntax for segmentation map + skip
     uint8_t ctx = av1_get_skip_context(blk_ptr->av1xd);
     aom_write_symbol(ec_writer, skip_coeff_flag ? 1 : 0, frame_context->skip_cdfs[ctx], 2);
@@ -1184,7 +1184,7 @@ uint8_t av1_get_skip_mode_context(const MacroBlockD *xd) {
  *   Encodes the skip Mode flag
  *********************************************************************/
 static void encode_skip_mode_av1(const EcBlkStruct *blk_ptr, FRAME_CONTEXT *frame_context, AomWriter *ec_writer,
-                                 Bool skip_mode_flag) {
+                                 bool skip_mode_flag) {
     // TODO: not coded in syntax for skip mode/ref-frame/global-mv in segmentation map
     const uint8_t context_index = av1_get_skip_mode_context(blk_ptr->av1xd);
 
@@ -1308,7 +1308,7 @@ EbErrorType svt_aom_entropy_tile_info_ctor(EntropyTileInfo *eti, uint32_t buf_si
     EbErrorType return_error = EB_ErrorNone;
     eti->dctor               = entropy_tile_info_dctor;
     EB_NEW(eti->ec, svt_aom_entropy_coder_ctor, buf_size);
-    eti->entropy_coding_tile_done = FALSE;
+    eti->entropy_coding_tile_done = false;
     return return_error;
 }
 
@@ -2716,7 +2716,7 @@ static AOM_INLINE void write_color_config(const SequenceControlSet *const scs, s
             svt_aom_wb_write_literal(wb, scs->static_config.chroma_sample_position, 2);
         }
     }
-    Bool separate_uv_delta_q = (scs->static_config.chroma_u_ac_qindex_offset !=
+    bool separate_uv_delta_q = (scs->static_config.chroma_u_ac_qindex_offset !=
                                     scs->static_config.chroma_v_ac_qindex_offset ||
                                 scs->static_config.chroma_u_dc_qindex_offset !=
                                     scs->static_config.chroma_v_dc_qindex_offset);
@@ -4709,7 +4709,7 @@ void svt_av1_update_segmentation_map(PictureControlSet *pcs, BlockSize bsize, ui
         for (x = 0; x < xmis; ++x) segment_ids[mi_offset + y * cm->mi_cols + x] = segment_id;
 }
 void write_segment_id(PictureControlSet *pcs, FRAME_CONTEXT *frame_context, AomWriter *ecWriter, BlockSize bsize,
-                      uint32_t blk_org_x, uint32_t blk_org_y, EcBlkStruct *blk_ptr, Bool skip_coeff) {
+                      uint32_t blk_org_x, uint32_t blk_org_y, EcBlkStruct *blk_ptr, bool skip_coeff) {
     SegmentationParams *segmentation_params = &pcs->ppcs->frm_hdr.segmentation_params;
     if (!segmentation_params->segmentation_enabled)
         return;
@@ -4730,7 +4730,7 @@ void write_segment_id(PictureControlSet *pcs, FRAME_CONTEXT *frame_context, AomW
 }
 static void write_inter_segment_id(PictureControlSet *pcs, FRAME_CONTEXT *frame_context, AomWriter *ecWriter,
                                    const BlockGeom *blockGeom, uint32_t blk_org_x, uint32_t blk_org_y,
-                                   EcBlkStruct *blk_ptr, Bool skip, int pre_skip) {
+                                   EcBlkStruct *blk_ptr, bool skip, int pre_skip) {
     SegmentationParams *segmentation_params = &pcs->ppcs->frm_hdr.segmentation_params;
     if (!segmentation_params->segmentation_enabled)
         return;
@@ -4788,7 +4788,7 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
     uint32_t           blk_org_y                   = ec_ctx->sb_origin_y + blk_geom->org_y;
     BlockSize          bsize                       = blk_geom->bsize;
     MbModeInfo        *mbmi                        = get_mbmi(pcs, blk_org_x, blk_org_y);
-    Bool               skip_coeff                  = mbmi->block_mi.skip;
+    bool               skip_coeff                  = mbmi->block_mi.skip;
     ec_ctx->mbmi                                   = mbmi;
 
     const uint8_t skip_mode = mbmi->block_mi.skip_mode;
@@ -5306,7 +5306,7 @@ EB_EXTERN EbErrorType svt_aom_write_sb(EntropyCodingContext *ec_ctx, SuperBlock 
     SbGeom    *sb_geom                = &pcs->ppcs->sb_geom[tb_ptr->index];
     const bool check_blk_out_of_bound = !(sb_geom->is_complete_sb);
     do {
-        Bool             code_blk_cond = TRUE; // Code cu only if it is inside the picture
+        bool             code_blk_cond = true; // Code cu only if it is inside the picture
         EcBlkStruct     *blk_ptr       = &tb_ptr->final_blk_arr[final_blk_index];
         const BlockGeom *blk_geom      = get_blk_geom_mds(blk_index);
 

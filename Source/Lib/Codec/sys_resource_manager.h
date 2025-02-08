@@ -43,7 +43,7 @@ typedef struct EbObjectWrapper {
     // release_enable - a flag that enables the release of
     //   EbObjectWrapper for reuse in the encoding of subsequent
     //   pictures in the encoder pipeline.
-    Bool release_enable;
+    bool release_enable;
 
     // system_resource_ptr - a pointer to the SystemResourceManager
     //   that the object belongs to.
@@ -83,7 +83,7 @@ typedef struct EbFifo {
     EbObjectWrapper *last_ptr;
 
     // quit_signal - a flag that main thread sets to break out from kernels
-    Bool quit_signal;
+    bool quit_signal;
 
     // queue_ptr - pointer to MuxingQueue that the EbFifo is
     //   associated with.

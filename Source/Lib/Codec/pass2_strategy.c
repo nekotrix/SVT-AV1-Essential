@@ -962,7 +962,7 @@ static void dynamic_resize_one_pass_cbr(PictureParentControlSet *ppcs) {
     // Don't allow for resized frame to go below 160x90, resize in steps of 3/4.
     const int32_t min_width    = (160 * 4) / 3;
     const int32_t min_height   = (90 * 4) / 3;
-    Bool          down_size_on = TRUE;
+    bool          down_size_on = true;
 
     // Step 1: check frame type
     // Don't resize on key frame; reset the counters on key frame.
@@ -976,7 +976,7 @@ static void dynamic_resize_one_pass_cbr(PictureParentControlSet *ppcs) {
     // Step 2: check frame size
     // No resizing down if frame size is below some limit.
     if ((ppcs->frame_width * ppcs->frame_height) < min_width * min_height)
-        down_size_on = FALSE;
+        down_size_on = false;
 
     // Step 3: calculate dynamic resize state
     // Resize based on average buffer underflow and QP over some window.

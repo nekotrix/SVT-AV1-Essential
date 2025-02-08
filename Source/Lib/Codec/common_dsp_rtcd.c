@@ -435,7 +435,7 @@ EbCpuFlags svt_aom_get_cpu_flags_to_use() {
 #endif
 #endif
 
-/* Macros SET_* use local variable EbCpuFlags flags and Bool check_pointer_was_set */
+/* Macros SET_* use local variable EbCpuFlags flags and bool check_pointer_was_set */
 #ifdef ARCH_X86_64
     #define SET_ONLY_C(ptr, c)                                      SET_FUNCTIONS(ptr, c, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
     #define SET_SSE2(ptr, c, sse2)                                  SET_FUNCTIONS(ptr, c, 0, 0, sse2, 0, 0, 0, 0, 0, 0, 0)
@@ -465,9 +465,9 @@ EbCpuFlags svt_aom_get_cpu_flags_to_use() {
 
 void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
     /* Avoid check that pointer is set double, after first  setup. */
-    static Bool first_call_setup = TRUE;
-    Bool        check_pointer_was_set = first_call_setup;
-    first_call_setup = FALSE;
+    static bool first_call_setup = true;
+    bool        check_pointer_was_set = first_call_setup;
+    first_call_setup = false;
     /** Should be done during library initialization,
         but for safe limiting cpu flags again. */
 #if defined ARCH_X86_64 || defined ARCH_AARCH64

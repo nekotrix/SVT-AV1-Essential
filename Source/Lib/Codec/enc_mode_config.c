@@ -1243,7 +1243,7 @@ static void svt_aom_set_sg_filter_ctrls(Av1Common *cm, uint8_t sg_filter_lvl) {
 }
 
 // Returns the level for Wiener restoration filter
-static uint8_t svt_aom_get_wn_filter_level(EncMode enc_mode, uint8_t input_resolution, Bool is_not_last_layer,
+static uint8_t svt_aom_get_wn_filter_level(EncMode enc_mode, uint8_t input_resolution, bool is_not_last_layer,
                                            const uint8_t is_base) {
     uint8_t wn_filter_lvl = 0;
     if (enc_mode <= ENC_M7)
@@ -1841,7 +1841,7 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
         gm_ctrls->corners               = 4;
         gm_ctrls->chess_rfn             = 0;
         gm_ctrls->match_sz              = 13;
-        gm_ctrls->inj_psq_glb           = FALSE;
+        gm_ctrls->inj_psq_glb           = false;
         gm_ctrls->pp_enabled            = 0;
         gm_ctrls->ref_idx0_only         = 0;
         gm_ctrls->rfn_early_exit        = 0;
@@ -1861,7 +1861,7 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
         gm_ctrls->corners                      = 2;
         gm_ctrls->chess_rfn                    = 0;
         gm_ctrls->match_sz                     = 7;
-        gm_ctrls->inj_psq_glb                  = FALSE;
+        gm_ctrls->inj_psq_glb                  = false;
         gm_ctrls->pp_enabled                   = 1;
         gm_ctrls->ref_idx0_only                = 0;
         gm_ctrls->rfn_early_exit               = 0;
@@ -1881,7 +1881,7 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level) {
         gm_ctrls->corners                      = 2;
         gm_ctrls->chess_rfn                    = 1;
         gm_ctrls->match_sz                     = 7;
-        gm_ctrls->inj_psq_glb                  = TRUE;
+        gm_ctrls->inj_psq_glb                  = true;
         gm_ctrls->pp_enabled                   = 0;
         gm_ctrls->ref_idx0_only                = 1;
         gm_ctrls->rfn_early_exit               = 1;
@@ -2216,7 +2216,7 @@ static EbErrorType svt_aom_check_high_freq(PictureControlSet *pcs, SuperBlock *s
 
         // ME offset(s)
         FrameHeader       *frm_hdr             = &pcs->ppcs->frm_hdr;
-        Bool               is_compound_enabled = (frm_hdr->reference_mode == SINGLE_REFERENCE) ? 0 : 1;
+        bool               is_compound_enabled = (frm_hdr->reference_mode == SINGLE_REFERENCE) ? 0 : 1;
         const MeSbResults *me_results          = pa_me_data->me_results[ctx->me_sb_addr];
         uint8_t            total_me_cnt        = me_results->total_me_candidate_index[ctx->me_block_offset];
 
@@ -2331,23 +2331,23 @@ static EbErrorType svt_aom_check_high_freq(PictureControlSet *pcs, SuperBlock *s
 
 /*
 * check if the reference picture is in same frame size
-* TRUE -- in same frame size
-* FALSE -- reference picture not exist or in difference frame size
+* true -- in same frame size
+* false -- reference picture not exist or in difference frame size
 */
-Bool svt_aom_is_ref_same_size(PictureControlSet *pcs, uint8_t list_idx, uint8_t ref_idx) {
+bool svt_aom_is_ref_same_size(PictureControlSet *pcs, uint8_t list_idx, uint8_t ref_idx) {
     // skip the checking if reference scaling and super-res are disabled
     if (pcs->ppcs->is_not_scaled)
-        return TRUE;
+        return true;
     if (pcs->slice_type != P_SLICE && pcs->slice_type != B_SLICE)
-        return FALSE;
+        return false;
     if (pcs->slice_type != B_SLICE && list_idx == REF_LIST_1)
-        return FALSE;
+        return false;
     if (pcs->ref_pic_ptr_array[list_idx][ref_idx] == NULL)
-        return FALSE;
+        return false;
 
     EbReferenceObject *ref_obj = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
     if (ref_obj == NULL || ref_obj->reference_picture == NULL)
-        return FALSE;
+        return false;
 
     return ref_obj->reference_picture->width == pcs->ppcs->frame_width &&
         ref_obj->reference_picture->height == pcs->ppcs->frame_height;
@@ -6254,8 +6254,8 @@ static void set_spatial_sse_full_loop_level(ModeDecisionContext *ctx, uint8_t sp
     SpatialSSECtrls *spatial_sse_ctrls = &ctx->spatial_sse_ctrls;
 
     switch (spatial_sse_full_loop_level) {
-    case 0: spatial_sse_ctrls->spatial_sse_full_loop_level = FALSE; break;
-    case 1: spatial_sse_ctrls->spatial_sse_full_loop_level = TRUE; break;
+    case 0: spatial_sse_ctrls->spatial_sse_full_loop_level = false; break;
+    case 1: spatial_sse_ctrls->spatial_sse_full_loop_level = true; break;
     default: assert(0); break;
     }
 }
@@ -6441,7 +6441,7 @@ sb_ang_intra_count: Number of TPL blocks in the SB where the best_mode was an an
 sb_max_intra: The maximum intra mode selected by any TPL block in the SB (DC_PRED is lowest, PAETH_PRED is highest)
 sb_intra_count: Number of TPL blocks in the SB where the best_mode was an intra mode
 */
-static Bool get_sb_tpl_intra_stats(PictureControlSet *pcs, ModeDecisionContext *ctx, int *sb_ang_intra_count,
+static bool get_sb_tpl_intra_stats(PictureControlSet *pcs, ModeDecisionContext *ctx, int *sb_ang_intra_count,
                                    PredictionMode *sb_max_intra, int *sb_intra_count) {
     PictureParentControlSet *ppcs = pcs->ppcs;
 
@@ -6923,11 +6923,11 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
     ctx->depth_removal_ctrls.disallow_below_16x16 = pcs->pic_disallow_below_16x16;
 
     if (b64_geom->width % 32 != 0 || b64_geom->height % 32 != 0)
-        ctx->depth_removal_ctrls.disallow_below_64x64 = FALSE;
+        ctx->depth_removal_ctrls.disallow_below_64x64 = false;
     if (b64_geom->width % 16 != 0 || b64_geom->height % 16 != 0)
-        ctx->depth_removal_ctrls.disallow_below_32x32 = FALSE;
+        ctx->depth_removal_ctrls.disallow_below_32x32 = false;
     if (b64_geom->width % 8 != 0 || b64_geom->height % 8 != 0)
-        ctx->depth_removal_ctrls.disallow_below_16x16 = FALSE;
+        ctx->depth_removal_ctrls.disallow_below_16x16 = false;
     ctx->disallow_4x4 = pcs->pic_disallow_4x4;
 
     if (rtc_tune && !pcs->ppcs->sc_class1) {
@@ -7007,7 +7007,7 @@ void svt_aom_sig_deriv_enc_dec_light_pd0(SequenceControlSet *scs, PictureControl
     ctx->md_disallow_nsq_search                = 1;
 
     // Use coeff rate and slit flag rate only (i.e. no fast rate)
-    ctx->shut_fast_rate = TRUE;
+    ctx->shut_fast_rate = true;
 
     uint8_t depth_early_exit_lvl = 1;
     // When only the predicted depth is used, use safe early exit THs
@@ -7137,12 +7137,12 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
     const bool     rtc_tune  = (pcs->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
     const uint8_t  sc_class1 = ppcs->sc_class1;
     const EncMode  enc_mode  = pcs->enc_mode;
-    const Bool     disable_rdoq_rtc = enc_mode <= ENC_M9 ? 0 : rtc_tune && sc_class1 ? 1 : 0;
+    const bool     disable_rdoq_rtc = enc_mode <= ENC_M9 ? 0 : rtc_tune && sc_class1 ? 1 : 0;
     // the frame size of reference pics are different if enable reference scaling.
     // sb info can not be reused because super blocks are mismatched, so we set
     // the reference pic unavailable to avoid using wrong info
-    const Bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
-    const Bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
+    const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
+    const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
 
     // REF info only available if frame is not an I_SLICE
     if (!is_islice && is_ref_l0_avail) {
@@ -7337,13 +7337,13 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
     /* Set signals that have assumed values in the light-PD1 path (but need to be initialized as they may be checked) */
 
     // Use coeff rate and slit flag rate only (i.e. no fast rate)
-    ctx->shut_fast_rate   = FALSE;
+    ctx->shut_fast_rate   = false;
     ctx->uv_ctrls.enabled = 1;
     ctx->uv_ctrls.uv_mode = CHROMA_MODE_1;
     set_cfl_ctrls(ctx, 0);
     ctx->md_disallow_nsq_search                     = 1;
     ctx->new_nearest_injection                      = 1;
-    ctx->blk_skip_decision                          = TRUE;
+    ctx->blk_skip_decision                          = true;
     ctx->rate_est_ctrls.update_skip_ctx_dc_sign_ctx = 0;
     ctx->rate_est_ctrls.update_skip_coeff_ctx       = 0;
     ctx->subres_ctrls.odd_to_even_deviation_th      = 0;
@@ -7411,9 +7411,9 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
     svt_aom_set_dist_based_ref_pruning_controls(ctx, pd_pass == PD_PASS_0 ? 0 : pcs->dist_based_ref_pruning);
     set_spatial_sse_full_loop_level(ctx, pd_pass == PD_PASS_0 ? 0 : pcs->spatial_sse_full_loop_level);
     if (ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1)
-        ctx->blk_skip_decision = TRUE;
+        ctx->blk_skip_decision = true;
     else
-        ctx->blk_skip_decision = FALSE;
+        ctx->blk_skip_decision = false;
     if (pd_pass == PD_PASS_0) {
         if (enc_mode <= ENC_M6)
             ctx->rdoq_level = 1;
@@ -7436,9 +7436,9 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
 
     // There are only redundant blocks when HVA_HVB shapes are used
     if (pd_pass == PD_PASS_0 || !ctx->nsq_geom_ctrls.allow_HVA_HVB)
-        ctx->redundant_blk = FALSE;
+        ctx->redundant_blk = false;
     else
-        ctx->redundant_blk = TRUE;
+        ctx->redundant_blk = true;
     uint8_t depth_early_exit_lvl = 0;
     if (pd_pass == PD_PASS_0)
         depth_early_exit_lvl = 1;
@@ -7514,9 +7514,9 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
     ctx->approx_inter_rate = pcs->approx_inter_rate;
     // Use coeff rate and slit flag rate only (i.e. no fast rate)
     if (pd_pass == PD_PASS_0)
-        ctx->shut_fast_rate = TRUE;
+        ctx->shut_fast_rate = true;
     else
-        ctx->shut_fast_rate = FALSE;
+        ctx->shut_fast_rate = false;
 
     // intra_level must be greater than 0 for I_SLICE
     uint8_t intra_level = 0;
@@ -7776,7 +7776,7 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
 
     const uint8_t is_base            = ppcs->temporal_layer_index == 0;
     const uint8_t is_islice          = pcs->slice_type == I_SLICE;
-    const Bool    transition_present = (ppcs->transition_present == 1);
+    const bool    transition_present = (ppcs->transition_present == 1);
     const uint8_t sc_class1          = ppcs->sc_class1;
     const bool    rtc_tune  = (ppcs->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
     InputCoeffLvl coeff_lvl = pcs->coeff_lvl;
@@ -8057,7 +8057,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     const uint8_t            sc_class1           = ppcs->sc_class1;
     const uint8_t            fast_decode         = scs->static_config.fast_decode;
     const uint32_t           hierarchical_levels = ppcs->hierarchical_levels;
-    const Bool               transition_present  = (ppcs->transition_present == 1);
+    const bool               transition_present  = (ppcs->transition_present == 1);
     const bool               rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
     const bool               is_not_last_layer = !ppcs->is_highest_layer;
     const uint32_t           sq_qp             = scs->static_config.qp;
@@ -8109,15 +8109,15 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     if (fast_decode <= 1 || input_resolution <= INPUT_SIZE_360p_RANGE) {
         if (rtc_tune) {
             if (pcs->enc_mode <= ENC_M7)
-                pcs->ppcs->use_accurate_part_ctx = TRUE;
+                pcs->ppcs->use_accurate_part_ctx = true;
             else
-                pcs->ppcs->use_accurate_part_ctx = FALSE;
+                pcs->ppcs->use_accurate_part_ctx = false;
         } else if (pcs->enc_mode <= ENC_M5)
-            pcs->ppcs->use_accurate_part_ctx = TRUE;
+            pcs->ppcs->use_accurate_part_ctx = true;
         else
-            pcs->ppcs->use_accurate_part_ctx = FALSE;
+            pcs->ppcs->use_accurate_part_ctx = false;
     } else {
-        pcs->ppcs->use_accurate_part_ctx = FALSE;
+        pcs->ppcs->use_accurate_part_ctx = false;
     }
 
     FrameHeader *frm_hdr             = &ppcs->frm_hdr;
@@ -8166,7 +8166,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         }
     }
 
-    Bool enable_wm = pcs->wm_level ? 1 : 0;
+    bool enable_wm = pcs->wm_level ? 1 : 0;
     // Note: local warp should be disabled when super-res or resize is ON
     // according to the AV1 spec 5.11.27
     frm_hdr->allow_warped_motion = enable_wm &&
@@ -8690,7 +8690,7 @@ set lpd0_level
     // Can only use light-PD1 under the following conditions
     // There is another check before PD1 is called; pred_depth_only is not checked here, because some modes
     // may force pred_depth_only at the light-pd1 detector
-    if (pcs->pic_lpd1_lvl && !(ppcs->hbd_md == 0 && pcs->pic_disallow_4x4 == TRUE && scs->super_block_size == 64)) {
+    if (pcs->pic_lpd1_lvl && !(ppcs->hbd_md == 0 && pcs->pic_disallow_4x4 == true && scs->super_block_size == 64)) {
         pcs->pic_lpd1_lvl = 0;
     }
 

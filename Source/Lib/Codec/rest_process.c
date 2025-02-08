@@ -43,19 +43,19 @@ typedef struct RestContext {
 } RestContext;
 
 void        svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
-                                    uint32_t ss_y, Bool include_padding);
+                                    uint32_t ss_y, bool include_padding);
 void        svt_aom_copy_buffer_info(EbPictureBufferDesc *src_ptr, EbPictureBufferDesc *dst_ptr);
 void        svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs);
 void        svt_av1_loop_restoration_filter_frame(int32_t *rst_tmpbuf, Yv12BufferConfig *frame, Av1Common *cm,
                                                   int32_t optimized_lr);
-EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, Bool free_memory);
-EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet *scs, Bool free_memory);
+EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, bool free_memory);
+EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet *scs, bool free_memory);
 void        pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *scs);
 void        restoration_seg_search(int32_t *rst_tmpbuf, Yv12BufferConfig *org_fts, const Yv12BufferConfig *src,
                                    Yv12BufferConfig *trial_frame_rst, PictureControlSet *pcs, uint32_t segment_index);
 void        rest_finish_search(PictureControlSet *pcs);
 void        svt_av1_upscale_normative_rows(const Av1Common *cm, const uint8_t *src, int src_stride, uint8_t *dst,
-                                           int dst_stride, int rows, int sub_x, int bd, Bool is_16bit_pipeline);
+                                           int dst_stride, int rows, int sub_x, int bd, bool is_16bit_pipeline);
 #if DEBUG_UPSCALING
 void save_YUV_to_file(char *filename, EbByte buffer_y, EbByte buffer_u, EbByte buffer_v, uint16_t width,
                       uint16_t height, uint16_t stride_y, uint16_t stride_u, uint16_t stride_v, uint16_t org_y,
@@ -96,7 +96,7 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
     context_ptr->picture_demux_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->picture_demux_results_resource_ptr, demux_index);
 
-    Bool is_16bit = scs->is_16bit_pipeline;
+    bool is_16bit = scs->is_16bit_pipeline;
     if (svt_aom_get_enable_restoration(init_data_ptr->enc_mode,
                                        config->enable_restoration_filtering,
                                        scs->input_resolution,
@@ -112,7 +112,7 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
         init_data.right_padding      = AOM_RESTORATION_FRAME_BORDER;
         init_data.top_padding        = AOM_RESTORATION_FRAME_BORDER;
         init_data.bot_padding        = AOM_RESTORATION_FRAME_BORDER;
-        init_data.split_mode         = FALSE;
+        init_data.split_mode         = false;
         init_data.is_16bit_pipeline  = is_16bit;
 
         EB_NEW(context_ptr->trial_frame_rst, svt_picture_buffer_desc_ctor, (EbPtr)&init_data);
@@ -132,9 +132,9 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
 
     return EB_ErrorNone;
 }
-extern void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, Bool is_highbd) {
+extern void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd) {
     if (!is_highbd) {
-        if (pcs->ppcs->is_ref == TRUE)
+        if (pcs->ppcs->is_ref == true)
             *recon_ptr = ((EbReferenceObject *)pcs->ppcs->ref_pic_wrapper->object_ptr)->reference_picture;
         else
             *recon_ptr = pcs->ppcs->enc_dec_ptr->recon_pic; // OMK
@@ -162,7 +162,7 @@ extern void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **
 //
 // Return a pointer to the recon pic to be used during the restoration search.
 static EbPictureBufferDesc *get_own_recon(SequenceControlSet *scs, PictureControlSet *pcs, RestContext *context_ptr,
-                                          Bool is_16bit) {
+                                          bool is_16bit) {
     const uint32_t ss_x = scs->subsampling_x;
     const uint32_t ss_y = scs->subsampling_y;
 
@@ -199,7 +199,7 @@ static EbPictureBufferDesc *get_own_recon(SequenceControlSet *scs, PictureContro
                        (recon_pic->width >> ss_x) << 1);
         }
     } else {
-        if (pcs->ppcs->is_ref == TRUE)
+        if (pcs->ppcs->is_ref == true)
             recon_pic = ((EbReferenceObject *)pcs->ppcs->ref_pic_wrapper->object_ptr)->reference_picture;
         else
             recon_pic = pcs->ppcs->enc_dec_ptr->recon_pic; // OMK
@@ -294,7 +294,7 @@ void set_unscaled_input_16bit(PictureControlSet *pcs) {
 
 static void derive_blk_pointers_enc(EbPictureBufferDesc *recon_picture_buf, int32_t plane, int32_t blk_col_px,
                                     int32_t blk_row_px, void **pp_blk_recon_buf, int32_t *recon_stride, int32_t sub_x,
-                                    int32_t sub_y, Bool use_highbd) {
+                                    int32_t sub_y, bool use_highbd) {
     int32_t block_offset;
 
     if (plane == 0) {
@@ -406,7 +406,7 @@ void svt_av1_superres_upscale_frame(struct Av1Common *cm, PictureControlSet *pcs
     // Set these parameters for testing since they are not correctly populated yet
     EbPictureBufferDesc *recon_ptr;
 
-    Bool is_16bit = scs->is_16bit_pipeline;
+    bool is_16bit = scs->is_16bit_pipeline;
 
     svt_aom_get_recon_pic(pcs, &recon_ptr, is_16bit);
 
@@ -540,7 +540,7 @@ void *svt_aom_rest_kernel(void *input_ptr) {
     uint8_t tile_cols;
     uint8_t tile_rows;
 
-    Bool superres_recode = FALSE;
+    bool superres_recode = false;
 
     for (;;) {
         // Get Cdef Results
@@ -551,7 +551,7 @@ void *svt_aom_rest_kernel(void *input_ptr) {
         PictureParentControlSet *ppcs = pcs->ppcs;
         scs                           = pcs->scs;
         FrameHeader *frm_hdr          = &pcs->ppcs->frm_hdr;
-        Bool         is_16bit         = scs->is_16bit_pipeline;
+        bool         is_16bit         = scs->is_16bit_pipeline;
         Av1Common   *cm               = pcs->ppcs->av1_cm;
         if (ppcs->enable_restoration && frm_hdr->allow_intrabc == 0) {
             // If using boundaries during the filter search, copy the recon pic to a new buffer (to
@@ -566,7 +566,7 @@ void *svt_aom_rest_kernel(void *input_ptr) {
 
             EbPictureBufferDesc *scaled_input_pic = NULL;
             // downscale input picture if recon is resized
-            Bool is_resized = recon_pic->width != input_pic->width || recon_pic->height != input_pic->height;
+            bool is_resized = recon_pic->width != input_pic->width || recon_pic->height != input_pic->height;
             if (is_resized) {
                 scaled_input_pic = pcs->scaled_input_pic;
                 input_pic        = scaled_input_pic;
@@ -655,11 +655,11 @@ void *svt_aom_rest_kernel(void *input_ptr) {
                 copy_statistics_to_ref_obj_ect(pcs, scs);
             }
 
-            superres_recode = pcs->ppcs->superres_total_recode_loop > 0 ? TRUE : FALSE;
+            superres_recode = pcs->ppcs->superres_total_recode_loop > 0 ? true : false;
 
             // Pad the reference picture and set ref POC
             {
-                if (pcs->ppcs->is_ref == TRUE)
+                if (pcs->ppcs->is_ref == true)
                     pad_ref_and_set_flags(pcs, scs);
                 else {
                     // convert non-reference frame buffer from 16-bit to 8-bit, to export recon and
@@ -705,7 +705,7 @@ void *svt_aom_rest_kernel(void *input_ptr) {
             // PSNR and SSIM Calculation.
             if (superres_recode) { // superres needs psnr to compute rdcost
                 // Note: if superres recode is actived, memory needs to be freed in packetization process by calling free_temporal_filtering_buffer()
-                EbErrorType return_error = psnr_calculations(pcs, scs, FALSE);
+                EbErrorType return_error = psnr_calculations(pcs, scs, false);
                 if (return_error != EB_ErrorNone) {
                     svt_aom_assert_err(0,
                                        "Couldn't allocate memory for uncompressed 10bit buffers for PSNR "
@@ -713,13 +713,13 @@ void *svt_aom_rest_kernel(void *input_ptr) {
                 }
             } else if (scs->static_config.stat_report) {
                 // Note: if temporal_filtering is used, memory needs to be freed in the last of these calls
-                EbErrorType return_error = psnr_calculations(pcs, scs, FALSE);
+                EbErrorType return_error = psnr_calculations(pcs, scs, false);
                 if (return_error != EB_ErrorNone) {
                     svt_aom_assert_err(0,
                                        "Couldn't allocate memory for uncompressed 10bit buffers for PSNR "
                                        "calculations");
                 }
-                return_error = svt_aom_ssim_calculations(pcs, scs, TRUE /* free memory here */);
+                return_error = svt_aom_ssim_calculations(pcs, scs, true /* free memory here */);
                 if (return_error != EB_ErrorNone) {
                     svt_aom_assert_err(0,
                                        "Couldn't allocate memory for uncompressed 10bit buffers for SSIM "

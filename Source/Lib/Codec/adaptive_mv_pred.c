@@ -1232,7 +1232,7 @@ void svt_aom_get_av1_mv_pred_drl(ModeDecisionContext *ctx, BlkStruct *blk_ptr, M
 void svt_aom_update_mi_map_enc_dec(BlkStruct *blk_ptr, ModeDecisionContext *ctx, PictureControlSet *pcs) {
     // Update only the data in the top left block of the partition, because all other mi_blocks
     // point to the top left mi block of the partition
-    blk_ptr->av1xd->mi[0]->mbmi.block_mi.skip      = blk_ptr->block_has_coeff ? FALSE : TRUE;
+    blk_ptr->av1xd->mi[0]->mbmi.block_mi.skip      = blk_ptr->block_has_coeff ? false : true;
     blk_ptr->av1xd->mi[0]->mbmi.block_mi.skip_mode = (int8_t)blk_ptr->skip_mode;
 
     if (pcs->ppcs->frm_hdr.segmentation_params.segmentation_enabled) {
@@ -1342,7 +1342,7 @@ void svt_aom_update_mi_map(BlkStruct *blk_ptr, uint32_t blk_org_x, uint32_t blk_
 
     block_mi->bsize        = blk_geom->bsize;
     block_mi->mode         = blk_ptr->pred_mode;
-    block_mi->skip         = (blk_ptr->block_has_coeff) ? FALSE : TRUE;
+    block_mi->skip         = (blk_ptr->block_has_coeff) ? false : true;
     block_mi->partition    = from_shape_to_part[blk_geom->shape];
     block_mi->skip_mode    = (int8_t)blk_ptr->skip_mode;
     block_mi->uv_mode      = blk_ptr->intra_chroma_mode;
@@ -1687,14 +1687,14 @@ uint16_t wm_find_samples(BlkStruct *blk_ptr, const BlockGeom *blk_geom, uint16_t
                                       top_right_present);
 }
 
-Bool svt_aom_warped_motion_parameters(PictureControlSet *pcs, BlkStruct *blk_ptr, MvUnit *mv_unit,
+bool svt_aom_warped_motion_parameters(PictureControlSet *pcs, BlkStruct *blk_ptr, MvUnit *mv_unit,
                                       const BlockGeom *blk_geom, uint16_t blk_org_x, uint16_t blk_org_y,
                                       uint8_t ref_frame_type, EbWarpedMotionParams *wm_params, uint16_t *num_samples,
                                       uint8_t min_neighbour_perc, uint8_t corner_perc_bias, uint16_t lower_band_th,
-                                      uint16_t upper_band_th, Bool shut_approx) {
+                                      uint16_t upper_band_th, bool shut_approx) {
     MacroBlockD *xd       = blk_ptr->av1xd;
     BlockSize    bsize    = blk_geom->bsize;
-    Bool         apply_wm = FALSE;
+    bool         apply_wm = false;
 
     int     pts[SAMPLES_ARRAY_SIZE], pts_inref[SAMPLES_ARRAY_SIZE];
     int32_t mi_row = blk_org_y >> MI_SIZE_LOG2;

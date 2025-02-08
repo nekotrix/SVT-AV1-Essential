@@ -199,7 +199,7 @@ static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, in
             EbConfig* app_cfg                    = c->app_cfg;
             app_cfg->config.active_channel_count = num_channels;
             app_cfg->config.channel_id           = inst_cnt;
-            app_cfg->config.recon_enabled        = app_cfg->recon_file ? TRUE : FALSE;
+            app_cfg->config.recon_enabled        = app_cfg->recon_file ? true : false;
 
             // set force_key_frames frames
             if (app_cfg->config.force_key_frames) {
@@ -239,7 +239,7 @@ static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, in
             }
             return_error = (EbErrorType)(return_error | c->return_error);
         } else
-            c->active = FALSE;
+            c->active = false;
     }
     return return_error;
 }
@@ -358,7 +358,7 @@ static void print_performance(const EncContext* const enc_context) {
         const EncChannel* c = enc_context->channels + inst_cnt;
         if (c->exit_cond == APP_ExitConditionFinished && c->return_error == EB_ErrorNone) {
             EbConfig* app_cfg = c->app_cfg;
-            if (app_cfg->stop_encoder == FALSE) {
+            if (app_cfg->stop_encoder == false) {
                 if ((app_cfg->config.pass == 0 ||
                      (app_cfg->config.pass == 2 && app_cfg->config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF) ||
                      app_cfg->config.pass == 3))
@@ -394,15 +394,15 @@ static void print_warnnings(const EncContext* const enc_context) {
     }
 }
 
-static Bool is_active(const EncChannel* c) { return c->active; }
+static bool is_active(const EncChannel* c) { return c->active; }
 
-static Bool has_active_channel(const EncContext* const enc_context) {
+static bool has_active_channel(const EncContext* const enc_context) {
     // check if all channels are inactive
     for (uint32_t inst_cnt = 0; inst_cnt < enc_context->num_channels; ++inst_cnt) {
         if (is_active(enc_context->channels + inst_cnt))
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 }
 bool process_skip(EbConfig* app_cfg, EbBufferHeaderType* header_ptr);
 
@@ -415,7 +415,7 @@ static void enc_channel_step(EncChannel* c, EncApp* enc_app, EncContext* enc_con
         if (!skip && next_c == EOF) {
             fputs("\n[SVT-Error]: Skipped all available frames!\n", stderr);
             c->exit_cond_input = APP_ExitConditionFinished;
-            c->active          = FALSE;
+            c->active          = false;
             return;
         }
         ungetc(next_c, app_cfg->input_file);
@@ -429,7 +429,7 @@ static void enc_channel_step(EncChannel* c, EncApp* enc_app, EncContext* enc_con
          c->exit_cond_output == APP_ExitConditionFinished && c->exit_cond_input == APP_ExitConditionFinished) ||
         ((c->exit_cond_recon == APP_ExitConditionError && app_cfg->recon_file) ||
          c->exit_cond_output == APP_ExitConditionError || c->exit_cond_input == APP_ExitConditionError)) {
-        c->active = FALSE;
+        c->active = false;
         if (app_cfg->recon_file)
             c->exit_cond = (AppExitConditionType)(c->exit_cond_recon | c->exit_cond_output | c->exit_cond_input);
         else
@@ -450,7 +450,7 @@ static void enc_channel_start(EncChannel* c) {
         c->exit_cond_output = APP_ExitConditionNone;
         c->exit_cond_recon  = app_cfg->recon_file ? APP_ExitConditionNone : APP_ExitConditionError;
         c->exit_cond_input  = APP_ExitConditionNone;
-        c->active           = TRUE;
+        c->active           = true;
         app_svt_av1_get_time(&app_cfg->performance_context.encode_start_time[0],
                              &app_cfg->performance_context.encode_start_time[1]);
     }

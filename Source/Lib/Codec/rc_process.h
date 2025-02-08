@@ -71,7 +71,7 @@ typedef struct coded_frames_stats_entry {
     EbDctor  dctor;
     uint64_t picture_number;
     int64_t  frame_total_bit_actual;
-    Bool     end_of_sequence_flag;
+    bool     end_of_sequence_flag;
 } coded_frames_stats_entry;
 
 typedef enum {

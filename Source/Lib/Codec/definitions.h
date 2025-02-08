@@ -1834,10 +1834,10 @@ static INLINE int32_t get_ext_tx_set(TxSize tx_size, int32_t is_inter, int32_t u
     const TxSetType set_type = get_ext_tx_set_type(tx_size, is_inter, use_reduced_set);
     return ext_tx_set_index[is_inter][set_type];
 }
-static INLINE Bool is_intra_mode(PredictionMode mode) {
+static INLINE bool is_intra_mode(PredictionMode mode) {
     return mode < INTRA_MODE_END; // && mode >= INTRA_MODE_START; // mode is always greater than INTRA_MODE_START
 }
-static INLINE Bool is_inter_mode(PredictionMode mode) {
+static INLINE bool is_inter_mode(PredictionMode mode) {
     return mode >= SINGLE_INTER_MODE_START && mode < COMP_INTER_MODE_END;
 }
 static INLINE int32_t is_inter_compound_mode(PredictionMode mode) {
@@ -2215,10 +2215,10 @@ typedef struct EbLinkedListNode
                                                             // release_cb_fnc_ptr may need to access it.
     EbLinkedListType       type;                      // type of data pointed by "data" member variable
     uint32_t                    size;                      // size of (data)
-    Bool                   passthrough;               // whether this is passthrough data from application
+    bool                   passthrough;               // whether this is passthrough data from application
     void(*release_cb_fnc_ptr)(struct EbLinkedListNode*); // callback to be executed by encoder when picture reaches end of pipeline, or
                                                         // when aborting. However, at end of pipeline encoder shall
-                                                        // NOT invoke this callback if passthrough is TRUE (but
+                                                        // NOT invoke this callback if passthrough is true (but
                                                         // still needs to do so when aborting)
     void                     *data;                      // pointer to application's data
     struct EbLinkedListNode  *next;                      // pointer to next node (null when last)

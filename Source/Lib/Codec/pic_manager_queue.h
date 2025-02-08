@@ -30,9 +30,9 @@ typedef struct InputQueueEntry {
     EbDctor          dctor;
     EbObjectWrapper *input_object_ptr;
     uint32_t         use_count;
-    Bool             memory_mgmt_loop_done;
-    Bool             rate_control_loop_done;
-    Bool             encoding_has_begun;
+    bool             memory_mgmt_loop_done;
+    bool             rate_control_loop_done;
+    bool             encoding_has_begun;
 } InputQueueEntry;
 
 /************************************************
@@ -44,15 +44,15 @@ typedef struct ReferenceQueueEntry {
     uint64_t         picture_number;
     uint64_t         decode_order;
     EbObjectWrapper *reference_object_ptr;
-    Bool             release_enable;
-    Bool             reference_available;
-    Bool             is_ref;
+    bool             release_enable;
+    bool             reference_available;
+    bool             is_ref;
     uint64_t         rc_group_index;
-    Bool             is_alt_ref;
-    Bool             feedback_arrived;
+    bool             is_alt_ref;
+    bool             feedback_arrived;
     SliceType        slice_type;
     uint8_t          temporal_layer_index;
-    Bool             frame_context_updated;
+    bool             frame_context_updated;
     uint8_t          refresh_frame_mask;
     // decode order of the last frame to use the current entry as a reference
     uint64_t dec_order_of_last_ref;

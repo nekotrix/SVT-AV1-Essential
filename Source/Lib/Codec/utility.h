@@ -294,11 +294,11 @@ extern const CodedBlockStats* svt_aom_get_coded_blk_stats(const uint32_t cu_idx)
 EbLinkedListNode* svt_aom_concat_eb_linked_list(EbLinkedListNode* a, EbLinkedListNode* b);
 
 // split a linked list into two. return the pointer to a linked list whose nodes meets the condition
-// predicate_func(node) == TRUE, the rest of the nodes will be collected into another linked list to which (*restLL) is
+// predicate_func(node) == true, the rest of the nodes will be collected into another linked list to which (*restLL) is
 // set. Does not gaurantee the original order of the nodes.
 
 EbLinkedListNode* svt_aom_split_eb_linked_list(EbLinkedListNode* input, EbLinkedListNode** restLL,
-                                               Bool (*predicate_func)(EbLinkedListNode*));
+                                               bool (*predicate_func)(EbLinkedListNode*));
 
 #define MINI_GOP_MAX_COUNT 31
 #define MINI_GOP_WINDOW_MAX_COUNT 16 // window subdivision: 16 x 2L

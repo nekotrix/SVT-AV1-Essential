@@ -53,7 +53,7 @@ typedef struct ModeDecisionCandidate {
     CandClass      cand_class;
     PredictionMode pred_mode;
     uint8_t        skip_mode; // skip mode_info + coeff. as defined in section 6.10.10 of the av1 text
-    Bool           skip_mode_allowed;
+    bool           skip_mode_allowed;
     uint8_t        use_intrabc;
 
     // Intra Mode

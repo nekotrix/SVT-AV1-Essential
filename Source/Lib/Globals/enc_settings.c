@@ -877,7 +877,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->tile_rows                = DEFAULT;
     config_ptr->tile_columns             = DEFAULT;
     config_ptr->qp                       = DEFAULT_QP;
-    config_ptr->use_qp_file              = FALSE;
+    config_ptr->use_qp_file              = false;
     config_ptr->use_fixed_qindex_offsets = 0;
     memset(config_ptr->qindex_offsets, 0, sizeof(config_ptr->qindex_offsets));
     config_ptr->key_frame_chroma_qindex_offset = 0;
@@ -902,11 +902,11 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->enable_adaptive_quantization = 2;
     config_ptr->enc_mode                     = ENC_M8;
     config_ptr->intra_period_length          = -2;
-    config_ptr->multiply_keyint              = FALSE;
+    config_ptr->multiply_keyint              = false;
     config_ptr->intra_refresh_type           = 2;
     config_ptr->hierarchical_levels          = 0;
     config_ptr->pred_structure               = SVT_AV1_PRED_RANDOM_ACCESS;
-    config_ptr->enable_dlf_flag              = TRUE;
+    config_ptr->enable_dlf_flag              = true;
     config_ptr->cdef_level                   = DEFAULT;
     config_ptr->enable_restoration_filtering = DEFAULT;
     config_ptr->enable_mfmv                  = DEFAULT;
@@ -951,7 +951,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
 
     // Alt-Ref default values
     config_ptr->enable_tf       = 1;
-    config_ptr->enable_overlays = FALSE;
+    config_ptr->enable_overlays = false;
     config_ptr->tune            = 1;
     // Super-resolution default values
     config_ptr->superres_mode      = SUPERRES_NONE;
@@ -993,7 +993,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->frame_scale_evts.start_frame_nums = NULL;
     config_ptr->enable_roi_map                    = false;
     config_ptr->fgs_table                         = NULL;
-    config_ptr->enable_variance_boost             = FALSE;
+    config_ptr->enable_variance_boost             = false;
     config_ptr->variance_boost_strength           = 2;
     config_ptr->variance_octile                   = 6;
     config_ptr->tf_strength                       = 3;
@@ -1361,9 +1361,9 @@ static uint32_t count_params(const char *nptr) {
 static EbErrorType str_to_bool(const char *nptr, bool *out) {
     bool val;
     if (!strcmp(nptr, "1") || !strcasecmp(nptr, "true") || !strcasecmp(nptr, "yes"))
-        val = TRUE;
+        val = true;
     else if (!strcmp(nptr, "0") || !strcasecmp(nptr, "false") || !strcasecmp(nptr, "no"))
-        val = FALSE;
+        val = false;
     else
         return EB_ErrorBadParameter;
 
@@ -1386,7 +1386,7 @@ static EbErrorType str_to_crf(const char *nptr, EbSvtAv1EncConfiguration *config
     return EB_ErrorNone;
 }
 
-static EbErrorType str_to_keyint(const char *nptr, int32_t *out, Bool *multi) {
+static EbErrorType str_to_keyint(const char *nptr, int32_t *out, bool *multi) {
     char      *suff;
     const long keyint = strtol(nptr, &suff, 0);
 
@@ -1396,11 +1396,11 @@ static EbErrorType str_to_keyint(const char *nptr, int32_t *out, Bool *multi) {
     switch (*suff) {
     case 's':
         // signal we need to multiply keyint * frame_rate
-        *multi = TRUE;
+        *multi = true;
         *out   = keyint;
         break;
     case '\0':
-        *multi = FALSE;
+        *multi = false;
         *out   = keyint < 0 ? keyint : keyint - 1;
         break;
     default:
@@ -2060,7 +2060,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         }
     }
 
-    // Bool fields
+    // bool fields
     const struct {
         const char *name;
         bool       *out;

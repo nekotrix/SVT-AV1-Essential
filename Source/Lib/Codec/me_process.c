@@ -156,9 +156,9 @@ void *svt_aom_motion_estimation_kernel(void *input_ptr) {
             uint32_t y_b64_start_index = SEGMENT_START_IDX(y_segment_index, picture_height_in_b64, pcs->me_segments_row_count);
             uint32_t y_b64_end_index = SEGMENT_END_IDX(y_segment_index, picture_height_in_b64, pcs->me_segments_row_count);
 
-            Bool skip_me = FALSE;
+            bool skip_me = false;
             if (svt_aom_is_pic_skipped(pcs))
-                skip_me = TRUE;
+                skip_me = true;
             // skip me for the first pass. ME is already performed
             if (!skip_me) {
                 if (pcs->slice_type != I_SLICE) {
@@ -280,7 +280,7 @@ void *svt_aom_motion_estimation_kernel(void *input_ptr) {
                                         svt_aom_global_motion_estimation(pcs, input_pic);
                                     } else {
                                         // Initilize global motion to be OFF when GM is OFF
-                                        memset(pcs->is_global_motion, FALSE, MAX_NUM_OF_REF_PIC_LIST * REF_LIST_MAX_DEPTH);
+                                        memset(pcs->is_global_motion, false, MAX_NUM_OF_REF_PIC_LIST * REF_LIST_MAX_DEPTH);
                                     }
                                 }
 

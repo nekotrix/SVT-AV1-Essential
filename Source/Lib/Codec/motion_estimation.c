@@ -99,7 +99,7 @@ void svt_ext_sad_calculation_8x8_16x16_c(uint8_t *src, uint32_t src_stride, uint
                                          uint32_t ref_stride, uint32_t *p_best_sad_8x8,
                                          uint32_t *p_best_sad_16x16, uint32_t *p_best_mv8x8,
                                          uint32_t *p_best_mv16x16, uint32_t mv,
-                                         uint32_t *p_sad16x16, uint32_t *p_sad8x8, Bool sub_sad) {
+                                         uint32_t *p_sad16x16, uint32_t *p_sad8x8, bool sub_sad) {
     uint32_t sad16x16;
 
     if (sub_sad) {
@@ -211,7 +211,7 @@ static void svt_ext_eight_sad_calculation_8x8_16x16(
     uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride, uint32_t mv,
     uint32_t start_16x16_pos, uint32_t *p_best_sad_8x8, uint32_t *p_best_sad_16x16,
     uint32_t *p_best_mv8x8, uint32_t *p_best_mv16x16, uint32_t p_eight_sad16x16[16][8],
-    uint32_t p_eight_sad8x8[64][8], Bool sub_sad) {
+    uint32_t p_eight_sad8x8[64][8], bool sub_sad) {
     const uint32_t start_8x8_pos = 4 * start_16x16_pos;
     int16_t        x_mv, y_mv;
 
@@ -337,7 +337,7 @@ void svt_ext_all_sad_calculation_8x8_16x16_c(uint8_t *src, uint32_t src_stride, 
                                              uint32_t *p_best_sad_8x8, uint32_t *p_best_sad_16x16,
                                              uint32_t *p_best_mv8x8, uint32_t *p_best_mv16x16,
                                              uint32_t p_eight_sad16x16[16][8],
-                                             uint32_t p_eight_sad8x8[64][8], Bool sub_sad) {
+                                             uint32_t p_eight_sad8x8[64][8], bool sub_sad) {
     static const char offsets[16] = {0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15};
     //---- 16x16 : 0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15
     for (int y = 0; y < 4; y++) {
@@ -439,7 +439,7 @@ static void open_loop_me_get_eight_search_point_results_block(
 ) {
     // uint32_t ref_luma_stride = ref_pic_ptr->stride_y; // NADER
     // uint8_t  *ref_ptr = ref_pic_ptr->buffer_y; // NADER
-    const Bool sub_sad         = (me_ctx->me_search_method == SUB_SAD_SEARCH);
+    const bool sub_sad         = (me_ctx->me_search_method == SUB_SAD_SEARCH);
     uint32_t     ref_luma_stride = me_ctx->interpolated_full_stride[list_index][ref_pic_index];
     uint8_t *    ref_ptr         = me_ctx->integer_buffer_ptr[list_index][ref_pic_index] +
         ((ME_FILTER_TAP >> 1) * me_ctx->interpolated_full_stride[list_index][ref_pic_index]) +
@@ -484,7 +484,7 @@ static void open_loop_me_get_search_point_results_block(
     int32_t y_search_index) // input parameter, search region position in the
 // vertical direction, used to derive yMV
 {
-    const Bool sub_sad = (me_ctx->me_search_method == SUB_SAD_SEARCH);
+    const bool sub_sad = (me_ctx->me_search_method == SUB_SAD_SEARCH);
     uint8_t *    src_ptr = me_ctx->b64_src_ptr;
 
     // uint8_t  *ref_ptr = ref_pic_ptr->buffer_y; // NADER
@@ -1328,7 +1328,7 @@ static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
             } else {
                 uint8_t hme_is_accuarte = 1;
                     if ((x_search_center != 0 || y_search_center != 0) &&
-                        (me_ctx->is_ref == TRUE)) {
+                        (me_ctx->is_ref == true)) {
 
                         best_hme_sad = check_00_center(
                             ref_pic_ptr,
@@ -1690,7 +1690,7 @@ static uint32_t get_zz_sad(EbPictureBufferDesc *ref_pic_ptr, MeContext *me_ctx, 
 // Determine if pre-HME for the current picture and search region should be skipped.
 // Return 1 if can early exit (i.e. skip pre-hme for current frame and search region)
 // Return 0 if can't skip
-static Bool check_prehme_early_exit(MeContext *me_ctx, uint8_t list_i, uint8_t ref_i, uint8_t sr_i) {
+static bool check_prehme_early_exit(MeContext *me_ctx, uint8_t list_i, uint8_t ref_i, uint8_t sr_i) {
     SearchInfo *prehme_data = &me_ctx->prehme_data[list_i][ref_i][sr_i];
 
     if (me_ctx->me_early_exit_th) {
@@ -2195,9 +2195,9 @@ void set_final_seach_centre_sb(PictureParentControlSet *pcs, MeContext *me_ctx) 
     uint32_t list_index;
     uint8_t  ref_pic_index;
     // Configure HME level 0, level 1 and level 2 from static config parameters
-    Bool enable_hme_level0_flag = me_ctx->enable_hme_level0_flag;
-    Bool enable_hme_level1_flag = me_ctx->enable_hme_level1_flag;
-    Bool enable_hme_level2_flag = me_ctx->enable_hme_level2_flag;
+    bool enable_hme_level0_flag = me_ctx->enable_hme_level0_flag;
+    bool enable_hme_level1_flag = me_ctx->enable_hme_level1_flag;
+    bool enable_hme_level2_flag = me_ctx->enable_hme_level2_flag;
 
     uint64_t best_cost         = (uint64_t)~0;
     me_ctx->best_list_idx = 0;
@@ -3182,7 +3182,7 @@ EbErrorType svt_aom_open_loop_intra_search_mb(PictureParentControlSet *pcs, uint
         const CodedBlockStats *blk_stats_ptr;
         blk_stats_ptr              = svt_aom_get_coded_blk_stats(pa_blk_index);
         uint8_t bsize              = blk_stats_ptr->size;
-        Bool  small_boundary_blk = FALSE;
+        bool  small_boundary_blk = false;
 
         //if(sb_params->raster_scan_blk_validity[md_scan_to_raster_scan[pa_blk_index]])
         {
@@ -3191,7 +3191,7 @@ EbErrorType svt_aom_open_loop_intra_search_mb(PictureParentControlSet *pcs, uint
             if ((blk_stats_ptr->org_x % 16) == 0 && (blk_stats_ptr->org_y % 16) == 0 &&
                 ((pcs->enhanced_pic->width - cu_origin_x) < 16 ||
                  (pcs->enhanced_pic->height - cu_origin_y) < 16))
-                small_boundary_blk = TRUE;
+                small_boundary_blk = true;
         }
 
         if (bsize != 16 && !small_boundary_blk) {

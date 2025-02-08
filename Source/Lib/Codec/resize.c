@@ -734,10 +734,10 @@ EbErrorType svt_av1_highbd_resize_plane_horizontal(const uint16_t *const input, 
 }
 
 void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
-                             uint32_t ss_y, Bool include_padding);
+                             uint32_t ss_y, bool include_padding);
 
 void svt_aom_unpack_highbd_pic(uint16_t *buffer_highbd[3], EbPictureBufferDesc *pic_ptr, uint32_t ss_x, uint32_t ss_y,
-                               Bool include_padding);
+                               bool include_padding);
 #if DEBUG_SCALING
 void save_YUV_to_file(char *filename, EbByte buffer_y, EbByte buffer_u, EbByte buffer_v, uint16_t width,
                       uint16_t height, uint16_t stride_y, uint16_t stride_u, uint16_t stride_v, uint16_t org_y,
@@ -839,7 +839,7 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
         EB_MALLOC_ARRAY(dst_buffer_highbd[1], dst->chroma_size);
         EB_MALLOC_ARRAY(dst_buffer_highbd[2], dst->chroma_size);
         if (is_2bcompress)
-            svt_aom_pack_highbd_pic(src, src_buffer_highbd, ss_x, ss_y, TRUE);
+            svt_aom_pack_highbd_pic(src, src_buffer_highbd, ss_x, ss_y, true);
         else
             pack_highbd_pic_2d(src, src_buffer_highbd, ss_x, ss_y);
     } else {
@@ -1039,7 +1039,7 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
 #endif
     if (bd > 8 && !is_packed) {
         if (is_2bcompress)
-            svt_aom_unpack_highbd_pic(dst_buffer_highbd, dst, ss_x, ss_y, TRUE);
+            svt_aom_unpack_highbd_pic(dst_buffer_highbd, dst, ss_x, ss_y, true);
         else
             svt_aom_unpack_highbd_pic_2d(dst_buffer_highbd, dst, ss_x, ss_y);
         EB_FREE(src_buffer_highbd[0]);
@@ -1290,9 +1290,9 @@ EbErrorType svt_aom_downscaled_source_buffer_desc_ctor(EbPictureBufferDesc **pic
     initData.bit_depth          = picture_ptr_for_reference->bit_depth;
     initData.color_format       = picture_ptr_for_reference->color_format;
     initData.split_mode         = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT &&
-                           picture_ptr_for_reference->packed_flag == FALSE)
-                ? TRUE
-                : FALSE;
+                           picture_ptr_for_reference->packed_flag == false)
+                ? true
+                : false;
     initData.left_padding       = picture_ptr_for_reference->org_x;
     initData.right_padding      = picture_ptr_for_reference->org_x;
     initData.top_padding        = picture_ptr_for_reference->org_y;
@@ -1377,7 +1377,7 @@ void scale_pcs_params(SequenceControlSet *scs, PictureParentControlSet *pcs, sup
     b64_geom_init_pcs(scs, pcs);
     sb_geom_init_pcs(scs, pcs);
 
-    if (pcs->frame_superres_enabled == TRUE || pcs->frame_resize_enabled == TRUE) {
+    if (pcs->frame_superres_enabled == true || pcs->frame_resize_enabled == true) {
         pcs->frm_hdr.use_ref_frame_mvs = 0;
     } else {
         if (pcs->slice_type == I_SLICE)
@@ -1414,12 +1414,12 @@ static EbErrorType allocate_downscaled_reference_pics(EbPictureBufferDesc    **d
 
         // align with svt_reference_object_ctor()
         // Use 10bit here to use in MD
-        ref_pic_buf_desc_init_data.split_mode = TRUE;
+        ref_pic_buf_desc_init_data.split_mode = true;
         ref_pic_buf_desc_init_data.bit_depth  = EB_TEN_BIT;
         EB_NEW(*downscaled_reference_picture_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&ref_pic_buf_desc_init_data);
     } else {
         // Hsan: set split_mode to 0 to as 8BIT input
-        ref_pic_buf_desc_init_data.split_mode = FALSE;
+        ref_pic_buf_desc_init_data.split_mode = false;
         EB_NEW(*downscaled_reference_picture_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&ref_pic_buf_desc_init_data);
     }
 
@@ -1441,8 +1441,8 @@ static EbErrorType allocate_downscaled_source_reference_pics(EbPictureBufferDesc
     initData.max_height         = spr_params.encoding_height;
     initData.bit_depth          = picture_ptr_for_reference->bit_depth;
     initData.color_format       = picture_ptr_for_reference->color_format;
-    initData.split_mode         = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? TRUE : FALSE;
-    initData.is_16bit_pipeline  = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? TRUE : FALSE;
+    initData.split_mode         = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? true : false;
+    initData.is_16bit_pipeline  = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? true : false;
     initData.left_padding       = picture_ptr_for_reference->org_x;
     initData.right_padding      = picture_ptr_for_reference->org_x;
 
@@ -1456,8 +1456,8 @@ static EbErrorType allocate_downscaled_source_reference_pics(EbPictureBufferDesc
     initData.max_height         = spr_params.encoding_height >> 1;
     initData.bit_depth          = picture_ptr_for_reference->bit_depth;
     initData.color_format       = picture_ptr_for_reference->color_format;
-    initData.split_mode         = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? TRUE : FALSE;
-    initData.is_16bit_pipeline  = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? TRUE : FALSE;
+    initData.split_mode         = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? true : false;
+    initData.is_16bit_pipeline  = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? true : false;
     initData.left_padding       = picture_ptr_for_reference->org_x >> 1;
     initData.right_padding      = picture_ptr_for_reference->org_x >> 1;
     initData.top_padding        = picture_ptr_for_reference->org_y >> 1;
@@ -1470,8 +1470,8 @@ static EbErrorType allocate_downscaled_source_reference_pics(EbPictureBufferDesc
     initData.max_height         = spr_params.encoding_height >> 2;
     initData.bit_depth          = picture_ptr_for_reference->bit_depth;
     initData.color_format       = picture_ptr_for_reference->color_format;
-    initData.split_mode         = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? TRUE : FALSE;
-    initData.is_16bit_pipeline  = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? TRUE : FALSE;
+    initData.split_mode         = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? true : false;
+    initData.is_16bit_pipeline  = (picture_ptr_for_reference->bit_depth > EB_EIGHT_BIT) ? true : false;
     initData.left_padding       = picture_ptr_for_reference->org_x >> 2;
     initData.right_padding      = picture_ptr_for_reference->org_x >> 2;
     initData.top_padding        = picture_ptr_for_reference->org_y >> 2;
@@ -1510,7 +1510,7 @@ void scale_source_references(SequenceControlSet *scs, PictureParentControlSet *p
 
             // if the size of the reference pic is different than the size of the input pic, then scale references
             if (ref_pic_ptr->width != input_pic->width) {
-                Bool do_resize = FALSE;
+                bool do_resize = false;
 
                 svt_block_on_mutex(ref_object->resize_mutex[sr_denom_idx][resize_denom_idx]);
                 if (ref_object->downscaled_input_padded_picture_ptr[sr_denom_idx][resize_denom_idx] == NULL) {
@@ -1526,12 +1526,12 @@ void scale_source_references(SequenceControlSet *scs, PictureParentControlSet *p
                         ref_pic_ptr,
                         spr_params);
 
-                    do_resize = TRUE;
+                    do_resize = true;
                 }
 
                 // skip the duplicated scaling on the same reference picture
                 if (ref_object->downscaled_picture_number[sr_denom_idx][resize_denom_idx] != ref_picture_number) {
-                    do_resize = TRUE;
+                    do_resize = true;
                 }
 
                 if (do_resize) {
@@ -1577,7 +1577,7 @@ static void scale_input_references(PictureParentControlSet *pcs, superres_params
     // reference structures (padded pictures + downsampled versions)
     EbPaReferenceObject *src_object     = (EbPaReferenceObject *)pcs->pa_ref_pic_wrapper->object_ptr;
     EbPictureBufferDesc *padded_pic_ptr = src_object->input_padded_pic;
-    Bool                 do_resize      = FALSE;
+    bool                 do_resize      = false;
 
     svt_block_on_mutex(src_object->resize_mutex[sr_denom_idx][resize_denom_idx]);
 
@@ -1589,11 +1589,11 @@ static void scale_input_references(PictureParentControlSet *pcs, superres_params
             &src_object->downscaled_sixteenth_downsampled_picture_ptr[sr_denom_idx][resize_denom_idx],
             padded_pic_ptr,
             svt_aom_superres_params);
-        do_resize = TRUE;
+        do_resize = true;
     }
 
     if (src_object->downscaled_picture_number[sr_denom_idx][resize_denom_idx] != pcs->picture_number) {
-        do_resize = TRUE;
+        do_resize = true;
     }
 
     if (do_resize) {
@@ -1648,7 +1648,7 @@ void svt_aom_scale_rec_references(PictureControlSet *pcs, EbPictureBufferDesc *i
             EbPictureBufferDesc *ref_pic_ptr = svt_aom_get_ref_pic_buffer(pcs, hbd_md, list_index, ref_pic_index);
             // if the size of the reference pic is different than the size of the input pic, then scale references
             if (ref_pic_ptr->width != input_pic->width) {
-                Bool do_resize = FALSE;
+                bool do_resize = false;
 
                 svt_block_on_mutex(ref_object->resize_mutex[sr_denom_idx][resize_denom_idx]);
 
@@ -1671,12 +1671,12 @@ void svt_aom_scale_rec_references(PictureControlSet *pcs, EbPictureBufferDesc *i
                         &ref_object->downscaled_reference_picture[sr_denom_idx][resize_denom_idx], ref_pic_ptr, ppcs);
 
                     down_ref_pic8bit = ref_object->downscaled_reference_picture[sr_denom_idx][resize_denom_idx];
-                    do_resize        = TRUE;
+                    do_resize        = true;
                 }
 
                 // skip the duplicated scaling on the same reference picture
                 if (ref_object->downscaled_picture_number[sr_denom_idx][resize_denom_idx] != ref_picture_number) {
-                    do_resize = TRUE;
+                    do_resize = true;
                 }
 
                 if (do_resize) {
@@ -1747,9 +1747,9 @@ void svt_aom_reset_resized_picture(SequenceControlSet *scs, PictureParentControl
                                        input_pic->height, // encoding_height
                                        SCALE_NUMERATOR};
     pcs->superres_denom             = spr_params.superres_denom;
-    pcs->frame_superres_enabled     = FALSE;
+    pcs->frame_superres_enabled     = false;
     pcs->resize_denom               = SCALE_NUMERATOR;
-    pcs->frame_resize_enabled       = FALSE;
+    pcs->frame_resize_enabled       = false;
     pcs->render_width               = input_pic->width;
     pcs->render_height              = input_pic->height;
     // restore frame size (width) which was changed by super-res tool
@@ -1870,14 +1870,14 @@ void svt_aom_init_resize_picture(SequenceControlSet *scs, PictureParentControlSe
     superres_params_type spr_params = {input_pic->width, // encoding_width
                                        input_pic->height, // encoding_height
                                        scs->static_config.superres_denom};
-    Bool                 do_resize  = FALSE;
+    bool                 do_resize  = false;
 
     // step 1: calculate resized resolution
     pcs->resize_denom = SCALE_NUMERATOR;
     if (scs->static_config.resize_mode > RESIZE_NONE)
         pcs->resize_denom = calculate_next_resize_scale(scs, pcs);
-    pcs->frame_resize_enabled = (pcs->resize_denom == SCALE_NUMERATOR ? FALSE : TRUE);
-    if (pcs->frame_resize_enabled == TRUE) {
+    pcs->frame_resize_enabled = (pcs->resize_denom == SCALE_NUMERATOR ? false : true);
+    if (pcs->frame_resize_enabled == true) {
         calculate_scaled_size_helper(&spr_params.encoding_width, pcs->resize_denom);
         calculate_scaled_size_helper(&spr_params.encoding_height, pcs->resize_denom);
     }
@@ -1886,7 +1886,7 @@ void svt_aom_init_resize_picture(SequenceControlSet *scs, PictureParentControlSe
 
     // step 2: calculate super-res resolution
     if (scs->static_config.superres_mode > SUPERRES_NONE) {
-        Bool first_loop = !(scs->static_config.superres_mode == SUPERRES_AUTO && pcs->superres_recode_loop > 0);
+        bool first_loop = !(scs->static_config.superres_mode == SUPERRES_AUTO && pcs->superres_recode_loop > 0);
         if (first_loop) { // first loop of multiple coding loop (auto-dual or auto-all mode) or the only loop (all the other modes)
             // determine super-res denom
             calc_superres_params(&spr_params, scs, pcs);
@@ -1919,7 +1919,7 @@ void svt_aom_init_resize_picture(SequenceControlSet *scs, PictureParentControlSe
             if (resize_denom != pcs->resize_denom) {
                 // refresh resize info if resize denom is adjusted
                 pcs->resize_denom         = resize_denom;
-                pcs->frame_resize_enabled = (pcs->resize_denom == SCALE_NUMERATOR ? FALSE : TRUE);
+                pcs->frame_resize_enabled = (pcs->resize_denom == SCALE_NUMERATOR ? false : true);
                 pcs->render_width         = spr_params.encoding_width;
                 pcs->render_height        = spr_params.encoding_height;
             }
@@ -1935,11 +1935,11 @@ void svt_aom_init_resize_picture(SequenceControlSet *scs, PictureParentControlSe
     EB_DELETE(pcs->enhanced_downscaled_pic);
 
     if (spr_params.encoding_width != input_pic->width || spr_params.encoding_height != input_pic->height)
-        do_resize = TRUE;
+        do_resize = true;
 
     if (spr_params.superres_denom != SCALE_NUMERATOR) {
         pcs->superres_denom         = spr_params.superres_denom;
-        pcs->frame_superres_enabled = TRUE;
+        pcs->frame_superres_enabled = true;
     }
 
     if (do_resize) {

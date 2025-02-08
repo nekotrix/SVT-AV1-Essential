@@ -33,11 +33,11 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                           EbPictureBufferDesc *input_pic, COMPONENT_TYPE component_type, uint32_t chroma_qindex,
                           uint64_t cb_full_distortion[DIST_TOTAL][DIST_CALC_TOTAL],
                           uint64_t cr_full_distortion[DIST_TOTAL][DIST_CALC_TOTAL], uint64_t *cb_coeff_bits,
-                          uint64_t *cr_coeff_bits, Bool is_full_loop);
+                          uint64_t *cr_coeff_bits, bool is_full_loop);
 void svt_aom_inv_transform_recon_wrapper(PictureControlSet *pcs, ModeDecisionContext *ctx, uint8_t *pred_buffer,
                                          uint32_t pred_offset, uint32_t pred_stride, uint8_t *rec_buffer,
                                          uint32_t rec_offset, uint32_t rec_stride, int32_t *rec_coeff_buffer,
-                                         uint32_t coeff_offset, Bool hbd, TxSize txsize, TxType transform_type,
+                                         uint32_t coeff_offset, bool hbd, TxSize txsize, TxType transform_type,
                                          PlaneType component_type, uint32_t eob);
 
 uint32_t svt_aom_d2_inter_depth_block_decision(PictureControlSet *pcs, ModeDecisionContext *ctx, uint32_t blk_mds);

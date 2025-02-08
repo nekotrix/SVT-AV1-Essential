@@ -189,7 +189,7 @@ static unsigned char send_qp_on_the_fly(FILE *const qp_file, bool *use_qp_file) 
         tmp_qp = get_next_qp_from_qp_file(qp_file, &qp_read_from_file);
 
     if (tmp_qp == -1) {
-        *use_qp_file = FALSE;
+        *use_qp_file = false;
         fprintf(stderr, "\nWarning: QP File did not contain any valid QPs");
     }
     return (unsigned)CLIP3(0, 63, tmp_qp);
@@ -489,7 +489,7 @@ void process_input_buffer(EncChannel *channel) {
     if (app_cfg->injector)
         injector(app_cfg->processed_frame_count, app_cfg->injector_frame_rate);
 
-    if (frames_to_be_encoded != app_cfg->processed_frame_count && app_cfg->stop_encoder == FALSE) {
+    if (frames_to_be_encoded != app_cfg->processed_frame_count && app_cfg->stop_encoder == false) {
         header_ptr->p_app_private = NULL;
         header_ptr->pic_type      = EB_AV1_INVALID_PICTURE;
 #if FTR_RES_ON_FLY_SAMPLE
@@ -508,7 +508,7 @@ void process_input_buffer(EncChannel *channel) {
                 header_ptr->qp = send_qp_on_the_fly(app_cfg->qp_file, &app_cfg->config.use_qp_file);
 
             if (keep_running == 0 && !app_cfg->stop_encoder)
-                app_cfg->stop_encoder = TRUE;
+                app_cfg->stop_encoder = true;
             // Fill in Buffers Header control data
             header_ptr->pts      = app_cfg->processed_frame_count - 1;
             header_ptr->pic_type = is_forced_keyframe(app_cfg, header_ptr->pts) ? EB_AV1_KEY_PICTURE
@@ -661,7 +661,7 @@ static void normal_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBuff
 
     if (read_size != header_ptr->n_filled_len && !app_cfg->input_file_is_fifo) {
         fseek(input_file, 0, SEEK_SET);
-        if (app_cfg->y4m_input == TRUE) {
+        if (app_cfg->y4m_input == true) {
             read_and_skip_y4m_header(app_cfg->input_file);
             read_y4m_frame_delimiter(app_cfg->input_file, app_cfg->error_log_file);
         }

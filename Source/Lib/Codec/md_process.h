@@ -38,11 +38,11 @@ extern "C" {
  * Macros
  **************************************/
 
-#define GROUP_OF_4_8x8_BLOCKS(org_x, org_y) (((org_x >> 3) & 0x1) && ((org_y >> 3) & 0x1) ? TRUE : FALSE)
+#define GROUP_OF_4_8x8_BLOCKS(org_x, org_y) (((org_x >> 3) & 0x1) && ((org_y >> 3) & 0x1) ? true : false)
 #define GROUP_OF_4_16x16_BLOCKS(org_x, org_y) \
-    (((((org_x >> 3) & 0x2) == 0x2) && (((org_y >> 3) & 0x2) == 0x2)) ? TRUE : FALSE)
+    (((((org_x >> 3) & 0x2) == 0x2) && (((org_y >> 3) & 0x2) == 0x2)) ? true : false)
 #define GROUP_OF_4_32x32_BLOCKS(org_x, org_y) \
-    (((((org_x >> 3) & 0x4) == 0x4) && (((org_y >> 3) & 0x4) == 0x4)) ? TRUE : FALSE)
+    (((((org_x >> 3) & 0x4) == 0x4) && (((org_y >> 3) & 0x4) == 0x4)) ? true : false)
 
 /**************************************
  * Coding Loop Context
@@ -416,7 +416,7 @@ typedef struct MdSubPelSearchCtrls {
         bias_fp; // Bias towards fpel at the MD subpel-search: apply a penalty to the cost of fractional positions during the subpel-search each time we check against a full-pel MV
 } MdSubPelSearchCtrls;
 typedef struct ParentSqCmplxCtrls {
-    Bool enabled;
+    bool enabled;
 
     // cutoff for the highest coeff-area band [0-100]
     uint8_t high_freq_band1_th;
@@ -538,7 +538,7 @@ typedef struct NicPruningCtrls {
     uint64_t mds3_cand_base_th;
 
     // enable skipping MDS1 in PD1 when there is only 1 cand post-mds0
-    Bool enable_skipping_mds1;
+    bool enable_skipping_mds1;
     // if (best_mds0_distortion/QP < TH) consider only the best candidate after MDS0; 0: OFF,
     // higher: more aggressive.
     uint32_t force_1_cand_th;
@@ -664,7 +664,7 @@ typedef struct WmCtrls {
     // Skip if alpha/ beta / gamma / delta is higher than threshold value
     uint16_t upper_band_th;
     // Shut the approximation(s) if refinement @ mds1 or mds3
-    Bool shut_approx_if_not_mds0;
+    bool shut_approx_if_not_mds0;
 } WmCtrls;
 typedef struct UvCtrls {
     uint8_t enabled;
@@ -700,7 +700,7 @@ typedef struct InterpolationSearchCtrls {
 } InterpolationSearchCtrls;
 typedef struct SpatialSSECtrls {
     // enable spatial-sse for each superblock
-    Bool spatial_sse_full_loop_level;
+    bool spatial_sse_full_loop_level;
 } SpatialSSECtrls;
 typedef struct RedundantCandCtrls {
     int score_th;
@@ -724,7 +724,7 @@ typedef struct Lpd0Ctrls {
     // Whether light-PD0 is set to be used for an SB (the detector may change this)
     Pd0Level pd0_level;
     // Whether to use a detector; if use_light_pd0 is set to 1, the detector will protect tough SBs
-    Bool use_lpd0_detector[LPD0_LEVELS];
+    bool use_lpd0_detector[LPD0_LEVELS];
     // Use info of ref frames - incl. colocated SBs - such as mode, coeffs, etc. in the detector.
     // [0,2] - 0 is off, 2 is most aggressive
     uint8_t use_ref_info[LPD0_LEVELS];
@@ -740,7 +740,7 @@ typedef struct Lpd1Ctrls {
     // Whether light-PD1 is set to be used for an SB (the detector may change this)
     Pd1Level pd1_level;
     // Whether to use a detector; if use_light_pd1 is set to 1, the detector will protect tough SBs
-    Bool use_lpd1_detector[LPD1_LEVELS];
+    bool use_lpd1_detector[LPD1_LEVELS];
     // Use info of ref frames - incl. colocated SBs - such as mode, coeffs, etc. in the detector.
     // [0,1] - 0 is off, 1 is on
     uint8_t use_ref_info[LPD1_LEVELS];
@@ -798,16 +798,16 @@ typedef struct Lpd1TxCtrls {
     uint8_t use_uv_shortcuts_on_y_coeffs;
 } Lpd1TxCtrls;
 typedef struct CflCtrls {
-    Bool enabled;
+    bool enabled;
     // Early exit to reduce the number of iterations to compute CFL parameters
     uint8_t itr_th;
 } CflCtrls;
 typedef struct MdRateEstCtrls {
     // If true, update skip context and dc_sign context (updates are done in the same func, so
     // control together)
-    Bool update_skip_ctx_dc_sign_ctx;
+    bool update_skip_ctx_dc_sign_ctx;
     // If true, update skip coeff context
-    Bool update_skip_coeff_ctx;
+    bool update_skip_coeff_ctx;
     // 0: OFF (always use approx for coeff rate), 1: full; always compute coeff rate, 2: when
     // num_coeff is low, use approximation for coeff rate
     uint8_t coeff_rate_est_lvl;
@@ -943,7 +943,7 @@ typedef struct ModeDecisionContext {
     // for the case of lambda modulation (blk_lambda_tuning), full_lambda_md/fast_lambda_md
     // corresponds to block lambda and full_sb_lambda_md is the full lambda per sb
     uint32_t full_sb_lambda_md[2];
-    Bool     blk_lambda_tuning;
+    bool     blk_lambda_tuning;
     // Context Variables---------------------------------
     SuperBlock      *sb_ptr;
     BlkStruct       *blk_ptr;
@@ -968,8 +968,8 @@ typedef struct ModeDecisionContext {
     uint8_t          me_q_index;
     uint64_t         three_quad_energy;
     uint32_t         txb_1d_offset;
-    Bool             uv_intra_comp_only;
-    Bool             ind_uv_avail; // True if independent chroma search data is available
+    bool             uv_intra_comp_only;
+    bool             ind_uv_avail; // True if independent chroma search data is available
     UvPredictionMode best_uv_mode[UV_PAETH_PRED + 1];
     int8_t           best_uv_angle[UV_PAETH_PRED + 1];
     uint64_t         best_uv_cost[UV_PAETH_PRED + 1];
@@ -1013,7 +1013,7 @@ typedef struct ModeDecisionContext {
     uint8_t           nic_level;
     uint8_t          *cfl_temp_luma_recon;
     uint16_t         *cfl_temp_luma_recon16bit;
-    Bool              blk_skip_decision;
+    bool              blk_skip_decision;
     int8_t            rdoq_level;
     int16_t           sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
     // Store ME MV of the square to use with NSQ shapes; 4x4 will also use the 8x8 ME MVs
@@ -1055,18 +1055,18 @@ typedef struct ModeDecisionContext {
     uint8_t   lpd1_allow_skipping_tx;
     // fast_loop_core signals
     // was md_staging_skip_interpolation_search
-    Bool mds_skip_ifs;
-    Bool mds_skip_uv_pred;
+    bool mds_skip_ifs;
+    bool mds_skip_uv_pred;
     // full_loop_core signals 0: perform luma & chroma prediction + interpolation search, 2: nothing
     // (use information from previous stages)
-    Bool mds_do_inter_pred;
+    bool mds_do_inter_pred;
     // 0: Tx Size recon only, 1:Tx Size search and recon
-    Bool mds_tx_size_mode;
-    Bool mds_txt_level;
-    Bool mds_skip_full_uv;
-    Bool mds_skip_rdoq;
-    Bool mds_spatial_sse;
-    Bool mds_do_intra_uv_pred;
+    bool mds_tx_size_mode;
+    bool mds_txt_level;
+    bool mds_skip_full_uv;
+    bool mds_skip_rdoq;
+    bool mds_spatial_sse;
+    bool mds_do_intra_uv_pred;
     // Store intra prediction for inter-intra
     uint8_t **intrapred_buf;
     // Store OBMC pre-computed data
@@ -1177,9 +1177,9 @@ typedef struct ModeDecisionContext {
     uint32_t                 max_nics_uv;
     InterpolationSearchCtrls ifs_ctrls;
     // If enabled, will bypass EncDec and copy recon/quant coeffs from MD
-    Bool bypass_encdec;
+    bool bypass_encdec;
     // Indicates whether only pred depth refinement is used in PD1 (set per SB)
-    Bool pred_depth_only;
+    bool pred_depth_only;
     // If true, indicates that there is a fixed partition structure for the current PD pass. When
     // the partition strucutre is fixed, there is no SQ/NSQ (d1) decision and no inter-depth (d2) decision.
     // When the partition structure in PD1 is fixed and EncDec is bypassed, the recon pic and QP info
@@ -1187,7 +1187,7 @@ typedef struct ModeDecisionContext {
     bool fixed_partition;
     // Indicates whether only pred depth refinement is used in PD1 (set per frame) Per frame is
     // necessary because some shortcuts can only be taken if the whole frame uses pred depth only
-    Bool                pic_pred_depth_only;
+    bool                pic_pred_depth_only;
     uint16_t            coded_area_sb;
     uint16_t            coded_area_sb_uv;
     Lpd0Ctrls           lpd0_ctrls;
@@ -1253,7 +1253,7 @@ typedef struct ModeDecisionContext {
 } ModeDecisionContext;
 
 typedef void (*EbAv1LambdaAssignFunc)(PictureControlSet *pcs, uint32_t *fast_lambda, uint32_t *full_lambda,
-                                      uint8_t bit_depth, uint16_t qp_index, Bool multiply_lambda);
+                                      uint8_t bit_depth, uint16_t qp_index, bool multiply_lambda);
 
 /**************************************
  * Extern Function Declarations

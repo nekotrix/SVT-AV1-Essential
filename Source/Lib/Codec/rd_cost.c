@@ -112,8 +112,8 @@ void svt_av1_txb_init_levels_c(const TranLow *const coeff, const int32_t width, 
 
 static int32_t av1_transform_type_rate_estimation(struct ModeDecisionContext *ctx, uint8_t allow_update_cdf,
                                                   FRAME_CONTEXT *fc, struct ModeDecisionCandidateBuffer *cand_bf,
-                                                  Bool is_inter, TxSize transform_size, TxType transform_type,
-                                                  Bool reduced_tx_set_used) {
+                                                  bool is_inter, TxSize transform_size, TxType transform_type,
+                                                  bool reduced_tx_set_used) {
     // const MbModeInfo *mbmi = &xd->mi[0]->mbmi;
     // const int32_t is_inter = is_inter_block(mbmi);
 
@@ -434,7 +434,7 @@ static INLINE int32_t av1_cost_coeffs_txb_loop_cost_eob(struct ModeDecisionConte
 uint64_t svt_av1_cost_coeffs_txb(struct ModeDecisionContext *ctx, uint8_t allow_update_cdf, FRAME_CONTEXT *ec_ctx,
                                  struct ModeDecisionCandidateBuffer *cand_bf, const TranLow *const qcoeff, uint16_t eob,
                                  PlaneType plane_type, TxSize transform_size, TxType transform_type,
-                                 int16_t txb_skip_ctx, int16_t dc_sign_ctx, Bool reduced_transform_set_flag)
+                                 int16_t txb_skip_ctx, int16_t dc_sign_ctx, bool reduced_transform_set_flag)
 
 {
     //Note: there is a different version of this function in AOM that seems to be efficient as its name is:
@@ -468,7 +468,7 @@ uint64_t svt_av1_cost_coeffs_txb(struct ModeDecisionContext *ctx, uint8_t allow_
                                 width,
                                 height,
                                 levels); // NM - Needs to be optimized - to be combined with the quantisation.
-    const Bool is_inter = is_inter_mode(cand_bf->cand->pred_mode);
+    const bool is_inter = is_inter_mode(cand_bf->cand->pred_mode);
     // Transform type bit estimation
     cost += plane_type > PLANE_TYPE_Y ? 0
                                       : av1_transform_type_rate_estimation(ctx,
@@ -752,7 +752,7 @@ static INLINE int svt_aom_has_uni_comp_refs(const MbModeInfo *mbmi) {
 
 // This function encodes the reference frame
 uint64_t estimate_ref_frame_type_bits(struct ModeDecisionContext *ctx, BlkStruct *blk_ptr, uint8_t ref_frame_type,
-                                      Bool is_compound) {
+                                      bool is_compound) {
     uint64_t ref_rate_bits = 0;
 
     // const MbModeInfo *const mbmi = &blk_ptr->av1xd->mi[0]->mbmi;
@@ -1291,7 +1291,7 @@ uint64_t svt_aom_inter_fast_cost(PictureControlSet *pcs, struct ModeDecisionCont
         /* Check if inter-intra is allowed for current block size / mode (even if the feature is off
         * for the current block, we still need to signal inter-intra off.
         */
-        svt_is_interintra_allowed(TRUE, blk_geom->bsize, cand->pred_mode, rf)) {
+        svt_is_interintra_allowed(true, blk_geom->bsize, cand->pred_mode, rf)) {
         const int interintra  = cand->is_interintra_used;
         const int bsize_group = size_group_lookup[blk_geom->bsize];
 
@@ -1311,7 +1311,7 @@ uint64_t svt_aom_inter_fast_cost(PictureControlSet *pcs, struct ModeDecisionCont
             }
         }
     }
-    Bool is_inter = inter_mode >= SINGLE_INTER_MODE_START && inter_mode < SINGLE_INTER_MODE_END;
+    bool is_inter = inter_mode >= SINGLE_INTER_MODE_START && inter_mode < SINGLE_INTER_MODE_END;
     if (is_inter && frm_hdr->is_motion_mode_switchable && rf[1] != INTRA_FRAME) {
         MotionMode motion_mode_rd           = cand->motion_mode;
         BlockSize  bsize                    = blk_geom->bsize;
@@ -1422,7 +1422,7 @@ EbErrorType svt_aom_txb_estimate_coeff_bits(struct ModeDecisionContext *ctx, uin
     int16_t  cr_txb_skip_context   = ctx->cr_txb_skip_context;
     int16_t  cr_dc_sign_context    = ctx->cr_dc_sign_context;
 
-    Bool reduced_transform_set_flag = frm_hdr->reduced_tx_set ? TRUE : FALSE;
+    bool reduced_transform_set_flag = frm_hdr->reduced_tx_set ? true : false;
 
     //Estimate the rate of the transform type and coefficient for Luma
 
@@ -1594,7 +1594,7 @@ void svt_aom_full_cost(PictureControlSet *pcs, ModeDecisionContext *ctx, struct 
     uint64_t mode_cost            = RDCOST(lambda, mode_rate, mode_distortion);
 
     // If skip_mode is allowed for this candidate, check cost of skip mode compared to regular cost
-    if (cand_bf->cand->skip_mode_allowed == TRUE) {
+    if (cand_bf->cand->skip_mode_allowed == true) {
         const uint8_t skip_mode_ctx = ctx->skip_mode_ctx;
 
         // Skip mode cost
@@ -1606,14 +1606,14 @@ void svt_aom_full_cost(PictureControlSet *pcs, ModeDecisionContext *ctx, struct 
             : 0;
         const uint64_t skip_mode_cost            = RDCOST(lambda, skip_mode_rate, skip_mode_distortion);
 
-        cand_bf->cand->skip_mode = FALSE;
+        cand_bf->cand->skip_mode = false;
         if (skip_mode_cost <= mode_cost) {
             // Update candidate cost
             mode_cost                = skip_mode_cost;
             mode_rate                = skip_mode_rate;
             mode_distortion          = skip_mode_distortion;
             mode_ssim_distortion     = skip_mode_ssim_distortion;
-            cand_bf->cand->skip_mode = TRUE;
+            cand_bf->cand->skip_mode = true;
 
             // Update signals to correspond to skip_mode values (no coeffs, etc.)
             cand_bf->block_has_coeff = 0;
@@ -1918,7 +1918,7 @@ uint64_t svt_aom_tx_size_bits(PictureControlSet *pcs, uint8_t segment_id, MdRate
 /* Get the TXS rate.  A dummy txfm context array will be used, so context updates will not be saved for
 future blocks. */
 uint64_t svt_aom_get_tx_size_bits(ModeDecisionCandidateBuffer *candidateBuffer, ModeDecisionContext *ctx,
-                                  PictureControlSet *pcs, uint8_t tx_depth, Bool block_has_coeff) {
+                                  PictureControlSet *pcs, uint8_t tx_depth, bool block_has_coeff) {
     NeighborArrayUnit *txfm_context_array      = ctx->txfm_context_array;
     uint32_t           txfm_context_left_index = get_neighbor_array_unit_left_index(txfm_context_array, ctx->blk_org_y);
     uint32_t           txfm_context_above_index = get_neighbor_array_unit_top_index(txfm_context_array, ctx->blk_org_x);
@@ -1967,7 +1967,7 @@ uint64_t svt_aom_partition_rate_cost(PictureParentControlSet *pcs, ModeDecisionC
     const BlockSize  bsize    = blk_geom->bsize;
     assert(mi_size_wide_log2[bsize] == mi_size_high_log2[bsize]);
     assert(bsize < BlockSizeS_ALL);
-    const Bool is_partition_point = (bsize >= BLOCK_8X8);
+    const bool is_partition_point = (bsize >= BLOCK_8X8);
 
     if (!is_partition_point) {
         return 0;

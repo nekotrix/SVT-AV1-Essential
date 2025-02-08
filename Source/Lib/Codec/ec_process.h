@@ -58,7 +58,7 @@ typedef struct EntropyCodingContext {
     uint32_t txb_size;
 
     // MCP Context
-    Bool        is_16bit; //enable 10 bit encode in CL
+    bool        is_16bit; //enable 10 bit encode in CL
     int32_t     coded_area_sb;
     int32_t     coded_area_sb_uv;
     TOKENEXTRA *tok;

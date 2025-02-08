@@ -194,8 +194,8 @@ extern EbErrorType svt_aom_b64_geom_init(SequenceControlSet *scs) {
                  (b64_geom->org_y + raster_scan_blk_y[raster_scan_blk_index] +
                       raster_scan_blk_size[raster_scan_blk_index] >
                   scs->max_input_luma_height))
-                ? FALSE
-                : TRUE;
+                ? false
+                : true;
         }
     }
 
@@ -275,8 +275,8 @@ EbErrorType svt_aom_sb_geom_init(SequenceControlSet *scs) {
                 scs->sb_geom[sb_index].block_is_allowed[md_scan_block_index] =
                     ((scs->sb_geom[sb_index].org_x + blk_geom->org_x + blk_geom->bwidth > scs->max_input_luma_width) ||
                      (scs->sb_geom[sb_index].org_y + blk_geom->org_y + blk_geom->bheight > scs->max_input_luma_height))
-                    ? FALSE
-                    : TRUE;
+                    ? false
+                    : true;
             }
         }
     }

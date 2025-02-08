@@ -27,7 +27,7 @@
 #include "resize.h"
 
 void svt_aom_copy_sb8_16(uint16_t *dst, int32_t dstride, const uint8_t *src, int32_t src_voffset, int32_t src_hoffset,
-                         int32_t sstride, int32_t vsize, int32_t hsize, Bool is_16bit);
+                         int32_t sstride, int32_t vsize, int32_t hsize, bool is_16bit);
 
 void   *svt_aom_memalign(size_t align, size_t size);
 void    svt_aom_free(void *memblk);
@@ -41,7 +41,7 @@ void    svt_av1_loop_restoration_save_boundary_lines(const Yv12BufferConfig *fra
 void    svt_av1_superres_upscale_frame(struct Av1Common *cm, PictureControlSet *pcs, SequenceControlSet *scs);
 void    set_unscaled_input_16bit(PictureControlSet *pcs);
 
-void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, Bool is_highbd);
+void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
 
 /**************************************
  * Cdef Context
@@ -78,7 +78,7 @@ EbErrorType svt_aom_cdef_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
 #define default_mse_uv 1040400
 static uint64_t compute_cdef_dist(const EbByte dst, int32_t doffset, int32_t dstride, const uint8_t *src,
                                   const CdefList *dlist, int32_t cdef_count, BlockSize bsize, int32_t coeff_shift,
-                                  int32_t pli, uint8_t subsampling_factor, Bool is_16bit) {
+                                  int32_t pli, uint8_t subsampling_factor, bool is_16bit) {
     uint64_t curr_mse = 0;
     if (is_16bit) {
         curr_mse = svt_compute_cdef_dist_16bit(((uint16_t *)dst) + doffset,
@@ -107,7 +107,7 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
     struct PictureParentControlSet *ppcs     = pcs->ppcs;
     FrameHeader                    *frm_hdr  = &ppcs->frm_hdr;
     Av1Common                      *cm       = ppcs->av1_cm;
-    const Bool                      is_16bit = scs->is_16bit_pipeline;
+    const bool                      is_16bit = scs->is_16bit_pipeline;
     uint32_t                        x_seg_idx;
     uint32_t                        y_seg_idx;
     const uint32_t                  b64_pic_width  = (ppcs->aligned_width + 64 - 1) / 64;
@@ -429,7 +429,7 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
         PictureParentControlSet *ppcs = pcs->ppcs;
         scs                           = pcs->scs;
 
-        Bool       is_16bit = scs->is_16bit_pipeline;
+        bool       is_16bit = scs->is_16bit_pipeline;
         Av1Common *cm       = pcs->ppcs->av1_cm;
         frm_hdr             = &pcs->ppcs->frm_hdr;
         pcs->cdef_dist_dev  = -1;
@@ -471,7 +471,7 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
             }
 
             //restoration prep
-            Bool is_lr = ppcs->enable_restoration && frm_hdr->allow_intrabc == 0;
+            bool is_lr = ppcs->enable_restoration && frm_hdr->allow_intrabc == 0;
             if (is_lr) {
                 svt_av1_loop_restoration_save_boundary_lines(cm->frame_to_show, cm, 1);
                 if (is_16bit) {
@@ -495,7 +495,7 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
                     svt_aom_assert_err(pcs->scaled_input_pic == NULL, "pcs_ptr->scaled_input_pic is not desctoried!");
                     EbPictureBufferDesc *scaled_input_pic = NULL;
                     // downscale input picture if recon is resized
-                    Bool is_resized = recon->width != input_pic->width || recon->height != input_pic->height;
+                    bool is_resized = recon->width != input_pic->width || recon->height != input_pic->height;
                     if (is_resized) {
                         superres_params_type spr_params = {recon->width, recon->height, 0};
                         svt_aom_downscaled_source_buffer_desc_ctor(&scaled_input_pic, input_pic, spr_params);
@@ -519,9 +519,9 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
             pcs->rest_segments_total_count = (uint16_t)(pcs->rest_segments_column_count * pcs->rest_segments_row_count);
             pcs->tot_seg_searched_rest     = 0;
             pcs->ppcs->av1_cm->use_boundaries_in_rest_search = scs->use_boundaries_in_rest_search;
-            pcs->rest_extend_flag[0]                         = FALSE;
-            pcs->rest_extend_flag[1]                         = FALSE;
-            pcs->rest_extend_flag[2]                         = FALSE;
+            pcs->rest_extend_flag[0]                         = false;
+            pcs->rest_extend_flag[1]                         = false;
+            pcs->rest_extend_flag[2]                         = false;
 
             uint32_t segment_index;
             for (segment_index = 0; segment_index < pcs->rest_segments_total_count; ++segment_index) {

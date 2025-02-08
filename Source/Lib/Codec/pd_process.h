@@ -36,7 +36,7 @@ void svt_aom_gathering_picture_statistics(SequenceControlSet *scs, PictureParent
 
 void svt_aom_down_sample_chroma(EbPictureBufferDesc *input_pic, EbPictureBufferDesc *outputPicturePtr);
 
-Bool svt_aom_is_delayed_intra(PictureParentControlSet *pcs);
+bool svt_aom_is_delayed_intra(PictureParentControlSet *pcs);
 
 uint8_t     svt_aom_tf_max_ref_per_struct(uint32_t hierarchical_levels, uint8_t type /*I_SLICE, BASE, L1*/,
                                           bool direction /*Past, Future*/);
@@ -57,14 +57,14 @@ typedef struct PictureDecisionContext {
     EbFifo *picture_decision_results_output_fifo_ptr;
     EbFifo *me_fifo_ptr;
 
-    Bool        reset_running_avg;
+    bool        reset_running_avg;
     int8_t      tf_motion_direction; // -1: invalid   0: horz  1: vert
     uint32_t ***prev_picture_histogram;
     uint64_t    prev_average_intensity_per_region[MAX_NUMBER_OF_REGIONS_IN_WIDTH][MAX_NUMBER_OF_REGIONS_IN_HEIGHT];
     uint32_t  **ahd_running_avg_cb;
     uint32_t  **ahd_running_avg_cr;
     uint32_t  **ahd_running_avg;
-    Bool        is_scene_change_detected;
+    bool        is_scene_change_detected;
     int8_t      transition_detected; // -1: not computed
         // The signal transition_detected is set for only the RA case, and used to derive transition_present flag
         // If the scene change happens during a complete mini-GOP, then transition_present is set to 1
@@ -82,7 +82,7 @@ typedef struct PictureDecisionContext {
     uint32_t mini_gop_intra_count[MINI_GOP_WINDOW_MAX_COUNT];
     uint32_t mini_gop_idr_count[MINI_GOP_WINDOW_MAX_COUNT];
     uint32_t mini_gop_hierarchical_levels[MINI_GOP_WINDOW_MAX_COUNT];
-    Bool     mini_gop_activity_array[MINI_GOP_MAX_COUNT];
+    bool     mini_gop_activity_array[MINI_GOP_MAX_COUNT];
     uint32_t mini_gop_region_activity_cost_array[MINI_GOP_MAX_COUNT][MAX_NUMBER_OF_REGIONS_IN_WIDTH]
                                                 [MAX_NUMBER_OF_REGIONS_IN_HEIGHT];
 
@@ -92,7 +92,7 @@ typedef struct PictureDecisionContext {
     uint8_t                  lay1_toggle; //2 way toggle 0->1
     uint8_t                  cut_short_ra_mg;
     DpbEntry                 dpb[REF_FRAMES];
-    Bool                     mini_gop_toggle; //mini GOP toggling since last Key Frame  K-0-1-0-1-0-K-0-1-0-1-K-0-1.....
+    bool                     mini_gop_toggle; //mini GOP toggling since last Key Frame  K-0-1-0-1-0-K-0-1-0-1-K-0-1.....
     uint8_t                  last_i_picture_sc_class0;
     uint8_t                  last_i_picture_sc_class1;
     uint8_t                  last_i_picture_sc_class2;

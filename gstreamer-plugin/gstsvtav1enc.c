@@ -398,7 +398,7 @@ static void gst_svtav1enc_deallocate_svt_buffers(GstSvtAv1Enc *svtav1enc) {
 static gboolean gst_svtav1enc_configure_svt(GstSvtAv1Enc *svtav1enc) {
     if (!svtav1enc->state) {
         GST_WARNING_OBJECT(svtav1enc, "no state, can't configure encoder yet");
-        return FALSE;
+        return false;
     }
 
     /* set object properties */
@@ -424,18 +424,18 @@ static gboolean gst_svtav1enc_configure_svt(GstSvtAv1Enc *svtav1enc) {
         }
         svtav1enc->svt_config->max_qp_allowed   = svtav1enc->max_qp_allowed;
         svtav1enc->svt_config->min_qp_allowed   = svtav1enc->min_qp_allowed;
-        svtav1enc->svt_config->force_key_frames = FALSE;
+        svtav1enc->svt_config->force_key_frames = false;
     } else if (svtav1enc->crf > 0) {
         GST_DEBUG_OBJECT(svtav1enc, "Enabling CRF mode (qp %u)", svtav1enc->crf);
         svtav1enc->svt_config->qp                = svtav1enc->crf;
         svtav1enc->svt_config->rate_control_mode = SVT_AV1_RC_MODE_CQP_OR_CRF;
-        svtav1enc->svt_config->force_key_frames  = TRUE;
+        svtav1enc->svt_config->force_key_frames  = true;
     } else if (svtav1enc->cqp > 0) {
         GST_DEBUG_OBJECT(svtav1enc, "Enabling CQP mode (qp %u)", svtav1enc->cqp);
         svtav1enc->svt_config->qp                           = svtav1enc->cqp;
         svtav1enc->svt_config->rate_control_mode            = SVT_AV1_RC_MODE_CQP_OR_CRF;
-        svtav1enc->svt_config->enable_adaptive_quantization = FALSE;
-        svtav1enc->svt_config->force_key_frames             = TRUE;
+        svtav1enc->svt_config->enable_adaptive_quantization = false;
+        svtav1enc->svt_config->force_key_frames             = true;
     } else {
         GST_DEBUG_OBJECT(svtav1enc, "Using default rate control settings");
     }
@@ -535,10 +535,10 @@ static gboolean gst_svtav1enc_configure_svt(GstSvtAv1Enc *svtav1enc) {
         svtav1enc->svt_config->mastering_display.white_point.y = master_display_info.white_point.y;
         svtav1enc->svt_config->mastering_display.max_luma      = master_display_info.max_display_mastering_luminance;
         svtav1enc->svt_config->mastering_display.min_luma      = master_display_info.min_display_mastering_luminance;
-        svtav1enc->svt_config->high_dynamic_range_input        = TRUE;
+        svtav1enc->svt_config->high_dynamic_range_input        = true;
     } else {
         memset(&svtav1enc->svt_config->mastering_display, 0, sizeof(svtav1enc->svt_config->mastering_display));
-        svtav1enc->svt_config->high_dynamic_range_input = FALSE;
+        svtav1enc->svt_config->high_dynamic_range_input = false;
     }
 
     GstVideoContentLightLevel content_light_level;
@@ -553,9 +553,9 @@ static gboolean gst_svtav1enc_configure_svt(GstSvtAv1Enc *svtav1enc) {
     EbErrorType res = svt_av1_enc_set_parameter(svtav1enc->svt_encoder, svtav1enc->svt_config);
     if (res != EB_ErrorNone) {
         GST_ELEMENT_ERROR(svtav1enc, LIBRARY, INIT, (NULL), ("svt_av1_enc_set_parameter failed with error %d", res));
-        return FALSE;
+        return false;
     }
-    return TRUE;
+    return true;
 }
 
 static gboolean gst_svtav1enc_start_svt(GstSvtAv1Enc *svtav1enc) {
@@ -565,9 +565,9 @@ static gboolean gst_svtav1enc_start_svt(GstSvtAv1Enc *svtav1enc) {
 
     if (res != EB_ErrorNone) {
         GST_ELEMENT_ERROR(svtav1enc, LIBRARY, INIT, (NULL), ("svt_av1_enc_init failed with error %d", res));
-        return FALSE;
+        return false;
     }
-    return TRUE;
+    return true;
 }
 
 static GstFlowReturn gst_svtav1enc_encode(GstSvtAv1Enc *svtav1enc, GstVideoCodecFrame *frame) {
@@ -633,14 +633,14 @@ static gboolean gst_svtav1enc_send_eos(GstSvtAv1Enc *svtav1enc) {
 
     if (ret != EB_ErrorNone) {
         GST_ELEMENT_ERROR(svtav1enc, LIBRARY, ENCODE, (NULL), ("couldn't send EOS frame."));
-        return FALSE;
+        return false;
     }
 
     return (ret == EB_ErrorNone);
 }
 
 static gboolean gst_svtav1enc_flush(GstVideoEncoder *encoder) {
-    GstFlowReturn ret = gst_svtav1enc_dequeue_encoded_frames(GST_SVTAV1ENC(encoder), TRUE, FALSE);
+    GstFlowReturn ret = gst_svtav1enc_dequeue_encoded_frames(GST_SVTAV1ENC(encoder), true, false);
 
     return (ret != GST_FLOW_ERROR);
 }
@@ -649,7 +649,7 @@ static GstFlowReturn gst_svtav1enc_dequeue_encoded_frames(GstSvtAv1Enc *svtav1en
                                                           gboolean output_frames) {
     GstFlowReturn ret           = GST_FLOW_OK;
     EbErrorType   res           = EB_ErrorNone;
-    gboolean      encode_at_eos = FALSE;
+    gboolean      encode_at_eos = false;
 
     do {
         GstVideoCodecFrame *frame      = NULL;
@@ -706,10 +706,10 @@ static gboolean gst_svtav1enc_open(GstVideoEncoder *encoder) {
     EbErrorType res = svt_av1_enc_init_handle(&svtav1enc->svt_encoder, svtav1enc->svt_config);
     if (res != EB_ErrorNone) {
         GST_ELEMENT_ERROR(svtav1enc, LIBRARY, INIT, (NULL), ("svt_av1_enc_init_handle failed with error %d", res));
-        return FALSE;
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 static gboolean gst_svtav1enc_close(GstVideoEncoder *encoder) {
     GstSvtAv1Enc *svtav1enc = GST_SVTAV1ENC(encoder);
@@ -718,7 +718,7 @@ static gboolean gst_svtav1enc_close(GstVideoEncoder *encoder) {
 
     svt_av1_enc_deinit_handle(svtav1enc->svt_encoder);
     svtav1enc->svt_encoder = NULL;
-    return TRUE;
+    return true;
 }
 
 static gboolean gst_svtav1enc_start(GstVideoEncoder *encoder) {
@@ -727,7 +727,7 @@ static gboolean gst_svtav1enc_start(GstVideoEncoder *encoder) {
     GST_DEBUG_OBJECT(svtav1enc, "start");
 
     gst_svtav1enc_allocate_svt_buffers(svtav1enc);
-    return TRUE;
+    return true;
 }
 
 static gboolean gst_svtav1enc_stop(GstVideoEncoder *encoder) {
@@ -742,7 +742,7 @@ static gboolean gst_svtav1enc_stop(GstVideoEncoder *encoder) {
     svt_av1_enc_deinit(svtav1enc->svt_encoder);
     gst_svtav1enc_deallocate_svt_buffers(svtav1enc);
 
-    return TRUE;
+    return true;
 }
 
 static gboolean gst_svtav1enc_set_format(GstVideoEncoder *encoder, GstVideoCodecState *state) {
@@ -762,9 +762,9 @@ static gboolean gst_svtav1enc_set_format(GstVideoEncoder *encoder, GstVideoCodec
     svtav1enc->state = gst_video_codec_state_ref(state);
 
     if (!gst_svtav1enc_configure_svt(svtav1enc))
-        return FALSE;
+        return false;
     if (!gst_svtav1enc_start_svt(svtav1enc))
-        return FALSE;
+        return false;
 
     guint32 fps = svtav1enc->svt_config->frame_rate_numerator / svtav1enc->svt_config->frame_rate_denominator;
     fps         = fps > 120 ? 120 : fps;
@@ -800,7 +800,7 @@ static GstFlowReturn gst_svtav1enc_handle_frame(GstVideoEncoder *encoder, GstVid
         return ret;
     }
 
-    return gst_svtav1enc_dequeue_encoded_frames(svtav1enc, FALSE, TRUE);
+    return gst_svtav1enc_dequeue_encoded_frames(svtav1enc, false, true);
 }
 
 static GstFlowReturn gst_svtav1enc_finish(GstVideoEncoder *encoder) {
@@ -810,7 +810,7 @@ static GstFlowReturn gst_svtav1enc_finish(GstVideoEncoder *encoder) {
 
     gst_svtav1enc_send_eos(svtav1enc);
 
-    return gst_svtav1enc_dequeue_encoded_frames(svtav1enc, TRUE, TRUE);
+    return gst_svtav1enc_dequeue_encoded_frames(svtav1enc, true, true);
 }
 
 static gboolean gst_svtav1enc_propose_allocation(GstVideoEncoder *encoder, GstQuery *query) {

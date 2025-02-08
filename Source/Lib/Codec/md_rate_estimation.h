@@ -192,7 +192,7 @@ extern "C" {
     ***************************************************************************/
     extern void svt_aom_estimate_syntax_rate(
         MdRateEstimationContext      *md_rate_est_ctx,
-        Bool                          is_i_slice,
+        bool                          is_i_slice,
         uint8_t pic_filter_intra_level,
         uint8_t allow_screen_content_tools,
         uint8_t enable_restoration,

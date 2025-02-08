@@ -94,7 +94,7 @@ svt_reference_param_update: update the parameters in EbReferenceObject for chang
 EbErrorType svt_reference_param_update(EbReferenceObject *ref_object, SequenceControlSet *scs) {
     EbPictureBufferDescInitData picture_buffer_desc_init_data_ptr;
 
-    Bool is_16bit = (Bool)(scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
+    bool is_16bit = (bool)(scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
     // Initialize the various Picture types
     picture_buffer_desc_init_data_ptr.max_width           = scs->max_input_luma_width;
     picture_buffer_desc_init_data_ptr.max_height          = scs->max_input_luma_height;
@@ -115,7 +115,7 @@ EbErrorType svt_reference_param_update(EbReferenceObject *ref_object, SequenceCo
     picture_buffer_desc_init_data_ptr.mfmv              = scs->mfmv_enabled;
     picture_buffer_desc_init_data_ptr.is_16bit_pipeline = scs->is_16bit_pipeline;
 
-    picture_buffer_desc_init_data_ptr.split_mode = FALSE;
+    picture_buffer_desc_init_data_ptr.split_mode = false;
     picture_buffer_desc_init_data_ptr.enc_mode   = scs->static_config.enc_mode;
     if (is_16bit)
         picture_buffer_desc_init_data_ptr.bit_depth = EB_TEN_BIT;
@@ -123,11 +123,11 @@ EbErrorType svt_reference_param_update(EbReferenceObject *ref_object, SequenceCo
     EbPictureBufferDescInitData picture_buffer_desc_init_data_16bit_ptr = picture_buffer_desc_init_data_ptr;
     //TODO:12bit
     if (picture_buffer_desc_init_data_ptr.bit_depth == EB_TEN_BIT) {
-        picture_buffer_desc_init_data_16bit_ptr.split_mode = TRUE;
+        picture_buffer_desc_init_data_16bit_ptr.split_mode = true;
         svt_picture_buffer_desc_update(ref_object->reference_picture, (EbPtr)&picture_buffer_desc_init_data_16bit_ptr);
     } else {
         // Hsan: set split_mode to 0 to as 8BIT input
-        picture_buffer_desc_init_data_ptr.split_mode = FALSE;
+        picture_buffer_desc_init_data_ptr.split_mode = false;
         svt_picture_buffer_desc_update(ref_object->reference_picture, (EbPtr)&picture_buffer_desc_init_data_ptr);
 
         initialize_samples_neighboring_reference_picture(
@@ -154,14 +154,14 @@ EbErrorType svt_reference_object_ctor(EbReferenceObject *ref_object, EbPtr objec
     if (picture_buffer_desc_init_data_16bit_ptr.bit_depth == EB_TEN_BIT) {
         // Hsan: set split_mode to 0 to construct the packed reference buffer (used @ EP)
         // Use 10bit here to use in MD
-        picture_buffer_desc_init_data_16bit_ptr.split_mode = TRUE;
+        picture_buffer_desc_init_data_16bit_ptr.split_mode = true;
         picture_buffer_desc_init_data_16bit_ptr.bit_depth  = EB_TEN_BIT;
         EB_NEW(ref_object->reference_picture,
                svt_picture_buffer_desc_ctor,
                (EbPtr)&picture_buffer_desc_init_data_16bit_ptr);
     } else {
         // Hsan: set split_mode to 0 to as 8BIT input
-        picture_buffer_desc_init_data_ptr->split_mode = FALSE;
+        picture_buffer_desc_init_data_ptr->split_mode = false;
         EB_NEW(ref_object->reference_picture, svt_picture_buffer_desc_ctor, (EbPtr)picture_buffer_desc_init_data_ptr);
 
         initialize_samples_neighboring_reference_picture(
@@ -258,10 +258,10 @@ EbErrorType svt_pa_reference_param_update(EbPaReferenceObject *pa_ref_obj, Seque
     ref_pic_buf_desc_init_data.right_padding       = scs->right_padding;
     ref_pic_buf_desc_init_data.top_padding         = scs->top_padding;
     ref_pic_buf_desc_init_data.bot_padding         = scs->bot_padding;
-    ref_pic_buf_desc_init_data.split_mode          = FALSE;
+    ref_pic_buf_desc_init_data.split_mode          = false;
     ref_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
     ref_pic_buf_desc_init_data.mfmv                = 0;
-    ref_pic_buf_desc_init_data.is_16bit_pipeline   = FALSE;
+    ref_pic_buf_desc_init_data.is_16bit_pipeline   = false;
     ref_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
 
     quart_pic_buf_desc_init_data.max_width           = scs->max_input_luma_width >> 1;
@@ -273,10 +273,10 @@ EbErrorType svt_pa_reference_param_update(EbPaReferenceObject *pa_ref_obj, Seque
     quart_pic_buf_desc_init_data.right_padding       = scs->b64_size >> 1;
     quart_pic_buf_desc_init_data.top_padding         = scs->b64_size >> 1;
     quart_pic_buf_desc_init_data.bot_padding         = scs->b64_size >> 1;
-    quart_pic_buf_desc_init_data.split_mode          = FALSE;
+    quart_pic_buf_desc_init_data.split_mode          = false;
     quart_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
     quart_pic_buf_desc_init_data.mfmv                = 0;
-    quart_pic_buf_desc_init_data.is_16bit_pipeline   = FALSE;
+    quart_pic_buf_desc_init_data.is_16bit_pipeline   = false;
     quart_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
 
     sixteenth_pic_buf_desc_init_data.max_width           = scs->max_input_luma_width >> 2;
@@ -288,10 +288,10 @@ EbErrorType svt_pa_reference_param_update(EbPaReferenceObject *pa_ref_obj, Seque
     sixteenth_pic_buf_desc_init_data.right_padding       = scs->b64_size >> 2;
     sixteenth_pic_buf_desc_init_data.top_padding         = scs->b64_size >> 2;
     sixteenth_pic_buf_desc_init_data.bot_padding         = scs->b64_size >> 2;
-    sixteenth_pic_buf_desc_init_data.split_mode          = FALSE;
+    sixteenth_pic_buf_desc_init_data.split_mode          = false;
     sixteenth_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
     sixteenth_pic_buf_desc_init_data.mfmv                = 0;
-    sixteenth_pic_buf_desc_init_data.is_16bit_pipeline   = FALSE;
+    sixteenth_pic_buf_desc_init_data.is_16bit_pipeline   = false;
     sixteenth_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
 
     // Reference picture constructor
@@ -364,9 +364,9 @@ EbErrorType svt_tpl_reference_param_update(EbTplReferenceObject *tpl_ref_obj, Se
     ref_pic_buf_desc_init_data.right_padding     = TPL_PADX;
     ref_pic_buf_desc_init_data.top_padding       = TPL_PADY;
     ref_pic_buf_desc_init_data.bot_padding       = TPL_PADY;
-    ref_pic_buf_desc_init_data.split_mode        = FALSE;
+    ref_pic_buf_desc_init_data.split_mode        = false;
     ref_pic_buf_desc_init_data.mfmv              = 0;
-    ref_pic_buf_desc_init_data.is_16bit_pipeline = FALSE;
+    ref_pic_buf_desc_init_data.is_16bit_pipeline = false;
     ref_pic_buf_desc_init_data.enc_mode          = scs->static_config.enc_mode;
 
     ref_pic_buf_desc_init_data.rest_units_per_tile = 0;

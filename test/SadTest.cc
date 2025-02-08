@@ -697,7 +697,7 @@ typedef void (*svt_ext_all_sad_calculation_8x8_16x16_fn)(
     uint32_t mv, uint32_t *p_best_sad_8x8, uint32_t *p_best_sad_16x16,
     uint32_t *p_best_mv8x8, uint32_t *p_best_mv16x16,
     uint32_t p_eight_sad16x16[16][8], uint32_t p_eight_sad8x8[64][8],
-    Bool sub_sad);
+    bool sub_sad);
 
 typedef std::tuple<TestPattern, SADPattern,
                    svt_ext_all_sad_calculation_8x8_16x16_fn>
@@ -737,7 +737,7 @@ class Allsad8x8_CalculationTest
         uint32_t best_mv16x16[2][16] = {{0}};
         uint32_t eight_sad16x16[2][16][8];
         uint32_t eight_sad8x8[2][64][8];
-        Bool sub_sad = false;
+        bool sub_sad = false;
         fill_buf_with_value(&best_sad8x8[0][0], 2 * 64, BEST_SAD_MAX);
         fill_buf_with_value(&best_sad16x16[0][0], 2 * 16, UINT_MAX);
         fill_buf_with_value(&eight_sad16x16[0][0][0], 2 * 16 * 8, UINT_MAX);
@@ -1019,7 +1019,7 @@ typedef void (*svt_ext_sad_calculation_8x8_16x16_fn)(
     uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
     uint32_t *p_best_sad_8x8, uint32_t *p_best_sad_16x16,
     uint32_t *p_best_mv8x8, uint32_t *p_best_mv16x16, uint32_t mv,
-    uint32_t *p_sad16x16, uint32_t *p_sad8x8, Bool sub_sad);
+    uint32_t *p_sad16x16, uint32_t *p_sad8x8, bool sub_sad);
 
 typedef std::tuple<TestPattern, SADPattern,
                    svt_ext_sad_calculation_8x8_16x16_fn>
@@ -1047,7 +1047,7 @@ class Extsad8x8_CalculationTest
         uint32_t best_sad16x16[2], best_mv16x16[2] = {0};
         uint32_t sad16x16[2];
         uint32_t sad_8x8[2][4];
-        Bool sub_sad = false;
+        bool sub_sad = false;
         fill_buf_with_value(&best_sad8x8[0][0], 2 * 4, BEST_SAD_MAX);
         fill_buf_with_value(&best_sad16x16[0], 2, UINT_MAX);
         fill_buf_with_value(&sad16x16[0], 2, UINT_MAX);

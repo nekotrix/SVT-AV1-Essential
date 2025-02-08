@@ -243,7 +243,7 @@ recon_coef_update_param: update the parameters in EncDecSet for changing the res
 */
 EbErrorType recon_coef_update_param(EncDecSet *object_ptr, SequenceControlSet *scs) {
     EbPictureBufferDescInitData input_pic_buf_desc_init_data;
-    Bool                        is_16bit = scs->encoder_bit_depth > 8 ? TRUE : FALSE;
+    bool                        is_16bit = scs->encoder_bit_depth > 8 ? true : false;
     // Init Picture Init data
     input_pic_buf_desc_init_data.max_width          = scs->max_input_luma_width;
     input_pic_buf_desc_init_data.max_height         = scs->max_input_luma_height;
@@ -258,7 +258,7 @@ EbErrorType recon_coef_update_param(EncDecSet *object_ptr, SequenceControlSet *s
     input_pic_buf_desc_init_data.right_padding = padding;
     input_pic_buf_desc_init_data.top_padding   = padding;
     input_pic_buf_desc_init_data.bot_padding   = padding;
-    input_pic_buf_desc_init_data.split_mode    = FALSE;
+    input_pic_buf_desc_init_data.split_mode    = false;
 
     //  Reconstructed Picture Buffer
     if (is_16bit) {
@@ -290,7 +290,7 @@ static EbErrorType recon_coef_ctor(EncDecSet *object_ptr, EbPtr object_init_data
     const uint16_t picture_sb_height = (uint16_t)((init_data_ptr->picture_height + init_data_ptr->b64_size - 1) /
                                                   init_data_ptr->b64_size);
     uint16_t       sb_index;
-    Bool           is_16bit = init_data_ptr->bit_depth > 8 ? TRUE : FALSE;
+    bool           is_16bit = init_data_ptr->bit_depth > 8 ? true : false;
 
     //object_ptr->tile_row_count  = init_data_ptr->tile_row_count;
     //object_ptr->tile_column_count = init_data_ptr->tile_column_count;
@@ -311,7 +311,7 @@ static EbErrorType recon_coef_ctor(EncDecSet *object_ptr, EbPtr object_init_data
     input_pic_buf_desc_init_data.right_padding = padding;
     input_pic_buf_desc_init_data.top_padding   = padding;
     input_pic_buf_desc_init_data.bot_padding   = padding;
-    input_pic_buf_desc_init_data.split_mode    = FALSE;
+    input_pic_buf_desc_init_data.split_mode    = false;
 
     object_ptr->recon_pic_16bit = (EbPictureBufferDesc *)NULL;
     object_ptr->recon_pic       = (EbPictureBufferDesc *)NULL; // OMK
@@ -352,7 +352,7 @@ static EbErrorType recon_coef_ctor(EncDecSet *object_ptr, EbPtr object_init_data
     coeff_init_data.right_padding      = 0;
     coeff_init_data.top_padding        = 0;
     coeff_init_data.bot_padding        = 0;
-    coeff_init_data.split_mode         = FALSE;
+    coeff_init_data.split_mode         = false;
     coeff_init_data.is_16bit_pipeline  = init_data_ptr->is_16bit_pipeline;
     for (sb_index = 0; sb_index < object_ptr->init_b64_total_count; ++sb_index) {
         EB_NEW(object_ptr->quantized_coeff[sb_index], //OMK2
@@ -381,7 +381,7 @@ EbErrorType pcs_update_param(PictureControlSet *pcs) {
     uint16_t sb_origin_x;
     uint16_t sb_origin_y;
 
-    Bool is_16bit = scs->encoder_bit_depth > 8 ? TRUE : FALSE;
+    bool is_16bit = scs->encoder_bit_depth > 8 ? true : false;
     // Init Picture Init data
     EbPictureBufferDescInitData coeff_buffer_desc_init_data;
     uint16_t                    padding = scs->super_block_size + 32;
@@ -396,7 +396,7 @@ EbErrorType pcs_update_param(PictureControlSet *pcs) {
     coeff_buffer_desc_init_data.right_padding     = padding;
     coeff_buffer_desc_init_data.top_padding       = padding;
     coeff_buffer_desc_init_data.bot_padding       = padding;
-    coeff_buffer_desc_init_data.split_mode        = FALSE;
+    coeff_buffer_desc_init_data.split_mode        = false;
     coeff_buffer_desc_init_data.is_16bit_pipeline = scs->is_16bit_pipeline;
     if ((is_16bit) || (scs->is_16bit_pipeline)) {
         svt_picture_buffer_desc_update(pcs->input_frame16bit, (EbPtr)&coeff_buffer_desc_init_data);
@@ -459,7 +459,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     uint16_t       sb_origin_y;
     EbErrorType    return_error;
 
-    Bool           is_16bit      = init_data_ptr->bit_depth > 8 ? TRUE : FALSE;
+    bool           is_16bit      = init_data_ptr->bit_depth > 8 ? true : false;
     const uint16_t subsampling_x = (init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
     const uint16_t subsampling_y = (init_data_ptr->color_format >= EB_YUV422 ? 0 : 1);
 
@@ -490,7 +490,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     coeff_buffer_desc_init_data.right_padding     = padding;
     coeff_buffer_desc_init_data.top_padding       = padding;
     coeff_buffer_desc_init_data.bot_padding       = padding;
-    coeff_buffer_desc_init_data.split_mode        = FALSE;
+    coeff_buffer_desc_init_data.split_mode        = false;
     coeff_buffer_desc_init_data.is_16bit_pipeline = init_data_ptr->is_16bit_pipeline;
     object_ptr->color_format                      = init_data_ptr->color_format;
     object_ptr->temp_lf_recon_pic_16bit           = (EbPictureBufferDesc *)NULL;
@@ -1199,7 +1199,7 @@ EbErrorType ppcs_update_param(PictureParentControlSet *ppcs) {
         input_pic_buf_desc_init_data.top_padding        = scs->top_padding;
         input_pic_buf_desc_init_data.bot_padding        = scs->bot_padding;
         input_pic_buf_desc_init_data.color_format       = EB_YUV420; //set to 420 for MD
-        input_pic_buf_desc_init_data.split_mode         = FALSE;
+        input_pic_buf_desc_init_data.split_mode         = false;
         svt_picture_buffer_desc_update(ppcs->chroma_downsampled_pic, (EbPtr)&input_pic_buf_desc_init_data);
     }
     // GOP
@@ -1252,9 +1252,9 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
         input_pic_buf_desc_init_data.top_padding        = init_data_ptr->top_padding;
         input_pic_buf_desc_init_data.bot_padding        = init_data_ptr->bot_padding;
         input_pic_buf_desc_init_data.color_format       = EB_YUV420; //set to 420 for MD
-        input_pic_buf_desc_init_data.split_mode         = FALSE;
+        input_pic_buf_desc_init_data.split_mode         = false;
         EB_NEW(object_ptr->chroma_downsampled_pic, svt_picture_buffer_desc_ctor, (EbPtr)&input_pic_buf_desc_init_data);
-        object_ptr->is_chroma_downsampled_picture_ptr_owner = TRUE;
+        object_ptr->is_chroma_downsampled_picture_ptr_owner = true;
     } else if (init_data_ptr->color_format == EB_YUV420) {
         object_ptr->chroma_downsampled_pic = NULL;
     } else
@@ -1262,12 +1262,12 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
     // GOP
     object_ptr->pred_struct_index    = 0;
     object_ptr->picture_number       = 0;
-    object_ptr->idr_flag             = FALSE;
+    object_ptr->idr_flag             = false;
     object_ptr->temporal_layer_index = 0;
     object_ptr->total_num_bits       = 0;
     object_ptr->last_idr_picture     = 0;
     object_ptr->b64_total_count      = picture_sb_width * picture_sb_height;
-    object_ptr->is_pcs_sb_params     = FALSE;
+    object_ptr->is_pcs_sb_params     = false;
 
     object_ptr->data_ll_head_ptr         = (EbLinkedListNode *)NULL;
     object_ptr->app_out_data_ll_head_ptr = (EbLinkedListNode *)NULL;
@@ -1361,7 +1361,7 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
     EB_MALLOC_ARRAY(object_ptr->tile_group_info,
                     (object_ptr->av1_cm->tiles_info.tile_rows * object_ptr->av1_cm->tiles_info.tile_cols));
 
-    object_ptr->frame_superres_enabled = FALSE;
+    object_ptr->frame_superres_enabled = false;
     object_ptr->aligned_width          = init_data_ptr->picture_width;
     object_ptr->aligned_height         = init_data_ptr->picture_height;
     object_ptr->frame_width            = init_data_ptr->picture_width;
@@ -1375,7 +1375,7 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
     memset(&object_ptr->superres_rdcost, 0, sizeof(object_ptr->superres_rdcost));
     memset(&object_ptr->superres_denom_array, 0, sizeof(object_ptr->superres_denom_array));
 
-    object_ptr->frame_resize_enabled = FALSE;
+    object_ptr->frame_resize_enabled = false;
     object_ptr->resize_denom         = SCALE_NUMERATOR;
 
     // Loop variables
@@ -1534,8 +1534,8 @@ EbErrorType b64_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *
                  (b64_geom->org_y + raster_scan_blk_y[raster_scan_blk_index] +
                       raster_scan_blk_size[raster_scan_blk_index] >
                   encoding_height))
-                ? FALSE
-                : TRUE;
+                ? false
+                : true;
         }
 
         // super-res can not work with multi-tiles, just set up it for no tiling
@@ -1611,8 +1611,8 @@ EbErrorType sb_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *p
                 pcs->sb_geom[sb_index].block_is_allowed[md_scan_block_index] =
                     ((pcs->sb_geom[sb_index].org_x + blk_geom->org_x + blk_geom->bwidth > encoding_width) ||
                      (pcs->sb_geom[sb_index].org_y + blk_geom->org_y + blk_geom->bheight > encoding_height))
-                    ? FALSE
-                    : TRUE;
+                    ? false
+                    : true;
             }
         }
     }

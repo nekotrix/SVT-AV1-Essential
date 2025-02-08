@@ -20,12 +20,12 @@
 #include "sequence_control_set.h"
 #include "pcs.h"
 #include "aom_dsp_rtcd.h"
-void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, Bool is_highbd);
+void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
 void svt_av1_loop_restoration_save_boundary_lines(const Yv12BufferConfig *frame, Av1Common *cm, int32_t after_cdef);
 void svt_convert_pic_8bit_to_16bit(EbPictureBufferDesc *src_8bit, EbPictureBufferDesc *dst_16bit, uint16_t ss_x,
                                    uint16_t ss_y);
 
-extern void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, Bool is_highbd);
+extern void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
 
 static void dlf_context_dctor(EbPtr p) {
     EbThreadContext *thread_ctx = (EbThreadContext *)p;
@@ -77,7 +77,7 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
         PictureParentControlSet *ppcs = pcs->ppcs;
         scs                           = pcs->scs;
 
-        Bool is_16bit = scs->is_16bit_pipeline;
+        bool is_16bit = scs->is_16bit_pipeline;
         if (is_16bit && scs->static_config.encoder_bit_depth == EB_EIGHT_BIT) {
             svt_convert_pic_8bit_to_16bit(pcs->ppcs->enhanced_pic,
                                           pcs->input_frame16bit,
@@ -99,7 +99,7 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
         pcs->best_filt_sse             = -1;
         pcs->dlf_dist_dev              = -1;
         FrameHeader   *frm_hdr         = &pcs->ppcs->frm_hdr;
-        Bool           dlf_enable_flag = (Bool)pcs->ppcs->dlf_ctrls.enabled;
+        bool           dlf_enable_flag = (bool)pcs->ppcs->dlf_ctrls.enabled;
         const uint16_t tg_count        = pcs->ppcs->tile_group_cols * pcs->ppcs->tile_group_rows;
         // Move sb level lf to here if tile_parallel
         if ((dlf_enable_flag && !pcs->ppcs->dlf_ctrls.sb_based_dlf) ||

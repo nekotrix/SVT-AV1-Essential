@@ -252,10 +252,10 @@ void SvtAv1E2ETestFramework::init_test(TestVideoVector &test_vector) {
         << "svt_av1_enc_init return error:" << return_error;
 
 #if TILES_PARALLEL
-    Bool has_tiles = (Bool)(av1enc_ctx_.enc_params.tile_columns ||
+    bool has_tiles = (bool)(av1enc_ctx_.enc_params.tile_columns ||
                             av1enc_ctx_.enc_params.tile_rows);
 #else
-    Bool has_tiles = (Bool)FALSE;
+    bool has_tiles = (bool)false;
 #endif
     obu_frame_header_size_ =
         has_tiles ? OBU_FRAME_HEADER_SIZE + 1 : OBU_FRAME_HEADER_SIZE;

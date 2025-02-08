@@ -763,7 +763,7 @@ static void process_block_hbd_avx2(int h, int w, uint16_t *buff_hbd_start, uint3
 void svt_aom_get_final_filtered_pixels_avx2(MeContext *me_ctx, EbByte *src_center_ptr_start,
                                             uint16_t **altref_buffer_highbd_start, uint32_t **accum, uint16_t **count,
                                             const uint32_t *stride, int blk_y_src_offset, int blk_ch_src_offset,
-                                            uint16_t blk_width_ch, uint16_t blk_height_ch, Bool is_highbd) {
+                                            uint16_t blk_width_ch, uint16_t blk_height_ch, bool is_highbd) {
     assert(blk_width_ch % 16 == 0);
     assert(BW % 16 == 0);
 

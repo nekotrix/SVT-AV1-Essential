@@ -68,7 +68,7 @@ void svt_aom_get_syntax_rate_from_cdf(int32_t *costs, const AomCdfProb *cdf, con
  * Estimate the rate for each syntax elements and for
  * all scenarios based on the frame CDF
  **************************************************************/
-void svt_aom_estimate_syntax_rate(MdRateEstimationContext *md_rate_est_ctx, Bool is_i_slice,
+void svt_aom_estimate_syntax_rate(MdRateEstimationContext *md_rate_est_ctx, bool is_i_slice,
                                   uint8_t pic_filter_intra_level, uint8_t allow_screen_content_tools,
                                   uint8_t enable_restoration, uint8_t allow_intrabc, FRAME_CONTEXT *fc) {
     int32_t i, j;

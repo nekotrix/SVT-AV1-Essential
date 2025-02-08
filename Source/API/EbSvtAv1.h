@@ -16,6 +16,7 @@
 extern "C" {
 #endif // __cplusplus
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "EbSvtAv1Formats.h"
 #include "EbDebugMacros.h"
@@ -74,14 +75,6 @@ typedef enum EbAv1PictureType {
     EB_AV1_SWITCH_PICTURE        = 7,
     EB_AV1_INVALID_PICTURE       = 0xFF
 } EbAv1PictureType;
-
-/** The Bool type is intended to be used to represent a true or a false
-value when passing parameters to and from the eBrisk API.  The
-Bool is an 8 bit quantity.
-*/
-typedef uint8_t Bool;
-#define FALSE 0
-#define TRUE 1
 
 typedef struct EbBufferHeaderType {
     // EbBufferHeaderType size
@@ -206,7 +199,7 @@ typedef struct EbColorConfig {
 
     /*!< 1: Indicates that the video does not contain U and V color planes.
      *   0: Indicates that the video contains Y, U, and V color planes. */
-    Bool mono_chrome;
+    bool mono_chrome;
     /*!< Specify the chroma subsampling format */
     uint8_t subsampling_x;
 
@@ -234,12 +227,12 @@ typedef struct EbColorConfig {
     /*!< 1: Indicates that the U and V planes may have separate delta quantizer
      *   0: Indicates that the U and V planes will share the same delta
             quantizer value */
-    Bool separate_uv_delta_q;
+    bool separate_uv_delta_q;
 } EbColorConfig;
 
 typedef struct EbTimingInfo {
     /*!< Timing info present flag */
-    Bool timing_info_present;
+    bool timing_info_present;
 
     /*!< Number of time units of a clock operating at the frequency time_scale
      * Hz that corresponds to one increment of a clock tick counter*/

@@ -339,7 +339,7 @@ EbHandle svt_create_mutex(void) {
 
 #ifdef _WIN32
     mutex_handle = (EbHandle)CreateMutex(NULL, // default security attributes
-                                         FALSE, // FALSE := not initially owned
+                                         false, // false := not initially owned
                                          NULL); // mutex is not named
 
 #else

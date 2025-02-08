@@ -18,7 +18,7 @@
 #include "pcs.h"
 
 void svt_av1_upscale_normative_rows(const Av1Common *cm, const uint8_t *src, int src_stride, uint8_t *dst,
-                                    int dst_stride, int rows, int sub_x, int bd, Bool is_16bit_pipeline);
+                                    int dst_stride, int rows, int sub_x, int bd, bool is_16bit_pipeline);
 
 void svt_aom_foreach_rest_unit_in_frame(Av1Common *cm, int32_t plane, RestTileStartVisitor on_tile,
                                         RestUnitVisitor on_rest_unit, void *priv);

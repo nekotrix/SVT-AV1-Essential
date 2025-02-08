@@ -128,7 +128,7 @@ void svt_aom_build_masked_compound_no_round(uint8_t *dst, int dst_stride, const 
                                             const CONV_BUF_TYPE *src1, int src1_stride,
                                             const InterInterCompoundData *const comp_data, uint8_t *seg_mask,
                                             BlockSize bsize, int h, int w, ConvolveParams *conv_params, uint8_t bd,
-                                            Bool is_16bit);
+                                            bool is_16bit);
 
 static const InterpFilterParams av1_interp_4tap[2] = {
     {(const int16_t *)sub_pel_filters_4, SUBPEL_TAPS, SUBPEL_SHIFTS, EIGHTTAP_REGULAR},
@@ -396,7 +396,7 @@ static INLINE PredictionMode compound_ref1_mode(PredictionMode mode) {
     return lut[mode];
 }
 
-static INLINE Bool is_motion_variation_allowed_bsize(const BlockSize bsize) {
+static INLINE bool is_motion_variation_allowed_bsize(const BlockSize bsize) {
     return (block_size_wide[bsize] >= 8 && block_size_high[bsize] >= 8);
 }
 

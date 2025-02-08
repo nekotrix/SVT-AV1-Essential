@@ -36,7 +36,7 @@ typedef struct EntropyCoder {
 typedef struct EntropyTileInfo {
     EbDctor       dctor;
     EntropyCoder* ec;
-    Bool          entropy_coding_tile_done;
+    bool          entropy_coding_tile_done;
 } EntropyTileInfo;
 
 extern EbErrorType svt_aom_entropy_tile_info_ctor(EntropyTileInfo* entropy_tile_info_ptr, uint32_t buf_size);

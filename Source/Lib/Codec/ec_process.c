@@ -38,7 +38,7 @@ EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, con
     thread_ctx->priv  = context_ptr;
     thread_ctx->dctor = rest_context_dctor;
 
-    context_ptr->is_16bit = (Bool)(enc_handle_ptr->scs_instance_array[0]->scs->static_config.encoder_bit_depth >
+    context_ptr->is_16bit = (bool)(enc_handle_ptr->scs_instance_array[0]->scs->static_config.encoder_bit_depth >
                                    EB_EIGHT_BIT);
     ;
 
@@ -245,11 +245,11 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
                                       cm->tiles_info.tile_row_start_mi[tile_row]) >>
             scs->seq_header.sb_size_log2;
 
-        Bool frame_entropy_done = FALSE;
+        bool frame_entropy_done = false;
 
         svt_block_on_mutex(pcs->entropy_coding_pic_mutex);
         if (pcs->entropy_coding_pic_reset_flag) {
-            pcs->entropy_coding_pic_reset_flag = FALSE;
+            pcs->entropy_coding_pic_reset_flag = false;
 
             reset_entropy_coding_picture(context_ptr, pcs, scs);
         }
@@ -274,16 +274,16 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
                 }
             }
         }
-        Bool pic_ready = TRUE;
+        bool pic_ready = true;
 
         // Current tile ready
         svt_aom_encode_slice_finish(pcs->ec_info[tile_idx]->ec);
 
         svt_block_on_mutex(pcs->entropy_coding_pic_mutex);
-        pcs->ec_info[tile_idx]->entropy_coding_tile_done = TRUE;
+        pcs->ec_info[tile_idx]->entropy_coding_tile_done = true;
         for (uint16_t i = 0; i < tile_cnt; i++) {
-            if (pcs->ec_info[i]->entropy_coding_tile_done == FALSE) {
-                pic_ready = FALSE;
+            if (pcs->ec_info[i]->entropy_coding_tile_done == false) {
+                pic_ready = false;
                 break;
             }
         }
@@ -307,7 +307,7 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
                 if (pcs->tile_tok[0][0])
                     EB_FREE_ARRAY(pcs->tile_tok[0][0]);
             }
-            frame_entropy_done = TRUE;
+            frame_entropy_done = true;
         }
 
         if (frame_entropy_done) {

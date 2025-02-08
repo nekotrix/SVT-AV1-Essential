@@ -52,13 +52,13 @@ typedef struct PacketizationContext {
     uint64_t     disp_order_continuity_count;
 } PacketizationContext;
 
-static Bool is_passthrough_data(EbLinkedListNode *data_node) { return data_node->passthrough; }
+static bool is_passthrough_data(EbLinkedListNode *data_node) { return data_node->passthrough; }
 void        free_temporal_filtering_buffer(PictureControlSet *pcs, SequenceControlSet *scs);
 void        svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs);
 void        svt_aom_init_resize_picture(SequenceControlSet *scs, PictureParentControlSet *pcs);
 void        pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *scs);
 void        svt_aom_update_rc_counts(PictureParentControlSet *ppcs);
-EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet *scs, Bool free_memory);
+EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet *scs, bool free_memory);
 
 // Extracts passthrough data from a linked list. The extracted data nodes are removed from the original linked list and
 // returned as a linked list. Does not gaurantee the original order of the nodes.
@@ -426,11 +426,11 @@ void release_references_eos(SequenceControlSet *scs) {
             // Release the nominal live_count value
             svt_release_object(ref_entry->reference_object_ptr);
             ref_entry->reference_object_ptr  = (EbObjectWrapper *)NULL;
-            ref_entry->reference_available   = FALSE;
-            ref_entry->is_ref                = FALSE;
+            ref_entry->reference_available   = false;
+            ref_entry->is_ref                = false;
             ref_entry->is_valid              = false;
-            ref_entry->frame_context_updated = FALSE;
-            ref_entry->feedback_arrived      = FALSE;
+            ref_entry->frame_context_updated = false;
+            ref_entry->feedback_arrived      = false;
             svt_post_semaphore(scs->ref_buffer_available_semaphore);
         }
     }
@@ -530,7 +530,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
             ++ppcs->superres_recode_loop;
 
             if (ppcs->superres_recode_loop <= ppcs->superres_total_recode_loop) {
-                Bool do_recode = FALSE;
+                bool do_recode = false;
                 if (ppcs->superres_recode_loop == ppcs->superres_total_recode_loop) {
                     // compare rdcosts to determine whether need to recode again
                     // rdcost is the smaller the better
@@ -544,7 +544,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
                     }
 
                     if (best_index != ppcs->superres_total_recode_loop - 1) {
-                        do_recode            = TRUE;
+                        do_recode            = true;
                         ppcs->superres_denom = ppcs->superres_denom_array[best_index];
 #if DEBUG_SUPERRES_RECODE
                         printf("\n####### %s - frame %d, extra loop, pick denom %d\n",
@@ -554,14 +554,14 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
 #endif
                     }
                 } else {
-                    do_recode = TRUE;
+                    do_recode = true;
                 }
 
                 if (do_recode) {
                     svt_aom_init_resize_picture(scs, ppcs);
 
                     // reset gm based on super-res on/off
-                    bool super_res_off = ppcs->frame_superres_enabled == FALSE &&
+                    bool super_res_off = ppcs->frame_superres_enabled == false &&
                         scs->static_config.resize_mode == RESIZE_NONE;
                     svt_aom_set_gm_controls(ppcs, svt_aom_derive_gm_level(ppcs, super_res_off));
                     // Initialize Segments as picture decision process
@@ -638,7 +638,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
             {
                 if (scs->static_config.stat_report) {
                     // memory is freed in the svt_aom_ssim_calculations call
-                    svt_aom_ssim_calculations(pcs, scs, TRUE);
+                    svt_aom_ssim_calculations(pcs, scs, true);
                 } else {
                     // free memory used by psnr_calculations
                     free_temporal_filtering_buffer(pcs, scs);
@@ -752,8 +752,8 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
         RateControlTasks *rc_tasks = (RateControlTasks *)rate_control_tasks_wrapper_ptr->object_ptr;
         rc_tasks->pcs_wrapper      = pcs->ppcs_wrapper;
         rc_tasks->task_type        = RC_PACKETIZATION_FEEDBACK_RESULT;
-        if (scs->enable_dec_order || (pcs->ppcs->is_ref == TRUE && pcs->ppcs->ref_pic_wrapper)) {
-            if (pcs->ppcs->is_ref == TRUE &&
+        if (scs->enable_dec_order || (pcs->ppcs->is_ref == true && pcs->ppcs->ref_pic_wrapper)) {
+            if (pcs->ppcs->is_ref == true &&
                 // Force each frame to update their data so future frames can use it,
                 // even if the current frame did not use it.  This enables REF frames to
                 // have the feature off, while NREF frames can have it on.  Used for
@@ -894,7 +894,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
             enc_ctx->sc_frame_out++;
             svt_release_mutex(enc_ctx->sc_buffer_mutex);
         }
-        if (scs->enable_dec_order || (pcs->ppcs->is_ref == TRUE && pcs->ppcs->ref_pic_wrapper))
+        if (scs->enable_dec_order || (pcs->ppcs->is_ref == true && pcs->ppcs->ref_pic_wrapper))
             // Post the Full Results Object
             svt_post_full_object(picture_manager_results_wrapper_ptr);
         // Post Rate Control Task. Be done after postig to PM as RC might release ppcs
@@ -915,7 +915,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
         uint32_t frames, total_bytes;
 #if OPT_LD_LATENCY2
         svt_block_on_mutex(enc_ctx->total_number_of_shown_frames_mutex);
-        Bool eos = false;
+        bool eos = false;
 #endif
         while ((frames = count_frames_in_next_tu(enc_ctx, &total_bytes))) {
             collect_frames_info(context_ptr, enc_ctx, frames);
@@ -927,7 +927,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
 #if OPT_LD_LATENCY2
             eos = output_stream_ptr->flags & EB_BUFFERFLAG_EOS;
 #else
-            Bool eos = output_stream_ptr->flags & EB_BUFFERFLAG_EOS;
+            bool eos = output_stream_ptr->flags & EB_BUFFERFLAG_EOS;
 #endif
 #if OPT_LD_LATENCY2
             encode_tu(enc_ctx, frames, total_bytes, output_stream_ptr);

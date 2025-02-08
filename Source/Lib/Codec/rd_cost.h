@@ -30,7 +30,7 @@ extern uint64_t svt_av1_cost_coeffs_txb(struct ModeDecisionContext *ctx, uint8_t
                                         FRAME_CONTEXT *ec_ctx, struct ModeDecisionCandidateBuffer *cand_bf,
                                         const TranLow *const qcoeff, uint16_t eob, PlaneType plane_type,
                                         TxSize transform_size, TxType transform_type, int16_t txb_skip_ctx,
-                                        int16_t dc_sign_ctx, Bool reduced_transform_set_flag);
+                                        int16_t dc_sign_ctx, bool reduced_transform_set_flag);
 void            svt_aom_coding_loop_context_generation(PictureControlSet *pcs, ModeDecisionContext *ctx);
 #define RDDIV_BITS 7
 
@@ -61,7 +61,7 @@ uint64_t svt_aom_tx_size_bits(PictureControlSet *pcs, uint8_t segment_id, MdRate
                               uint8_t skip, FRAME_CONTEXT *ec_ctx, uint8_t allow_update_cdf);
 
 uint64_t svt_aom_get_tx_size_bits(ModeDecisionCandidateBuffer *candidateBuffer, ModeDecisionContext *ctx,
-                                  PictureControlSet *pcs, uint8_t tx_depth, Bool block_has_coeff);
+                                  PictureControlSet *pcs, uint8_t tx_depth, bool block_has_coeff);
 
 MvJointType svt_av1_get_mv_joint(const MV *mv);
 int32_t svt_av1_mv_bit_cost(const MV *mv, const MV *ref, const int32_t *mvjcost, int32_t *mvcost[2], int32_t weight);

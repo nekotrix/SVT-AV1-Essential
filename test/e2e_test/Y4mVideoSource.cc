@@ -57,7 +57,7 @@ EbErrorType Y4MVideoSource::parse_file_info() {
     EbConfig cfg;
     memset(&cfg, 0, sizeof(cfg));
     cfg.input_file = file_handle_;
-    if (check_if_y4m(&cfg) != TRUE)
+    if (check_if_y4m(&cfg) != true)
         return EB_ErrorBadParameter;
     read_y4m_header(&cfg);
 

@@ -238,10 +238,10 @@ size_t read_y4m_frame_delimiter(FILE *input_file, FILE *error_log_file) {
 }
 
 /* check if the input file is in YUV4MPEG2 (y4m) format */
-Bool check_if_y4m(EbConfig *cfg) {
+bool check_if_y4m(EbConfig *cfg) {
     const size_t y4m_magic_size = 9;
     if (fread(cfg->y4m_buf, y4m_magic_size, 1, cfg->input_file) != 1)
-        return FALSE;
+        return false;
     if (cfg->input_file != stdin && !cfg->input_file_is_fifo)
         fseek(cfg->input_file, 0, SEEK_SET);
     return !strncmp(cfg->y4m_buf, "YUV4MPEG2", y4m_magic_size);

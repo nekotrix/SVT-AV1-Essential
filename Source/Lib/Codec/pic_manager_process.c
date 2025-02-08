@@ -198,10 +198,10 @@ void svt_aom_init_enc_dec_segement(PictureParentControlSet *ppcs) {
             for (uint16_t s = top_left_tile_row_idx; s < bottom_right_tile_row_idx; s++) {
                 for (uint16_t d = top_left_tile_col_idx; d < bottom_right_tile_col_idx; d++) {
                     uint16_t tileIdx                                            = s * tile_cols + d;
-                    ppcs->child_pcs->ec_info[tileIdx]->entropy_coding_tile_done = FALSE;
+                    ppcs->child_pcs->ec_info[tileIdx]->entropy_coding_tile_done = false;
                 }
             }
-            ppcs->child_pcs->entropy_coding_pic_reset_flag = TRUE;
+            ppcs->child_pcs->entropy_coding_pic_reset_flag = true;
         }
     }
 }
@@ -318,7 +318,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
     EbObjectWrapper     *input_pic_demux_wrapper;
     PictureDemuxResults *input_pic_demux;
 
-    Bool availability_flag;
+    bool availability_flag;
 
     InputQueueEntry         *input_entry;
     uint32_t                 input_queue_index;
@@ -402,13 +402,13 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 }
                 ref_entry->picture_number                = pcs->picture_number;
                 ref_entry->reference_object_ptr          = (EbObjectWrapper *)NULL;
-                ref_entry->release_enable                = TRUE;
-                ref_entry->reference_available           = FALSE;
+                ref_entry->release_enable                = true;
+                ref_entry->reference_available           = false;
                 ref_entry->slice_type                    = pcs->slice_type;
                 ref_entry->temporal_layer_index          = pcs->temporal_layer_index;
-                ref_entry->frame_context_updated         = FALSE;
+                ref_entry->frame_context_updated         = false;
                 ref_entry->is_alt_ref                    = pcs->is_alt_ref;
-                ref_entry->feedback_arrived              = FALSE;
+                ref_entry->feedback_arrived              = false;
                 ref_entry->is_ref                        = pcs->is_ref;
                 ref_entry->decode_order                  = pcs->decode_order;
                 ref_entry->refresh_frame_mask            = pcs->av1_ref_signal.refresh_frame_mask;
@@ -439,7 +439,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                     ref_entry->reference_object_ptr = input_pic_demux->ref_pic_wrapper;
 
                     // Set the reference availability
-                    ref_entry->reference_available = TRUE;
+                    ref_entry->reference_available = true;
                     break;
                 }
                 // Check if the reference list is full
@@ -464,8 +464,8 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 ref_entry = enc_ctx->ref_pic_list[i];
                 if (ref_entry->is_valid && ref_entry->picture_number == input_pic_demux->picture_number) {
                     // Set the feedback arrived
-                    ref_entry->feedback_arrived      = TRUE;
-                    ref_entry->frame_context_updated = TRUE;
+                    ref_entry->feedback_arrived      = true;
+                    ref_entry->frame_context_updated = true;
                     break;
                 }
                 // Sometimes the reference may not be in the queue (e.g. if a delayed-I causes a ref
@@ -504,22 +504,22 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 if (input_entry->input_object_ptr != NULL) {
                     entry_ppcs        = (PictureParentControlSet *)input_entry->input_object_ptr->object_ptr;
                     entry_scs_ptr     = entry_ppcs->scs;
-                    availability_flag = TRUE;
+                    availability_flag = true;
                     if (entry_ppcs->decode_order != decode_order && (scs->enable_dec_order))
-                        availability_flag = FALSE;
+                        availability_flag = false;
 
                     // pic mgr starts pictures in dec order (no need to wait for feedback)
                     if (entry_scs_ptr->enable_pic_mgr_dec_order)
                         if (entry_ppcs->picture_number > 0 &&
                             entry_ppcs->decode_order != context_ptr->pmgr_dec_order + 1)
-                            availability_flag = FALSE;
+                            availability_flag = false;
                     // Only start pictures that can be reached with the given number of reference
                     // buffers. PA may have more ref buffers than PM, so can send pictures faster,
                     // but PM can't start those pictures until it has sufficient buffers to reach
                     // it.
                     if (entry_ppcs->decode_order >
                         (context_ptr->consecutive_dec_order + scs->reference_picture_buffer_init_count - REF_FRAMES))
-                        availability_flag = FALSE;
+                        availability_flag = false;
                     if ((entry_ppcs->slice_type == P_SLICE) || (entry_ppcs->slice_type == B_SLICE)) {
                         uint8_t max_ref_count = (entry_ppcs->slice_type == B_SLICE) ? ALT + 1
                                                                                     : BWD; // no list1 refs for P_SLICE
@@ -540,19 +540,19 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                             ref_entry = search_ref_in_ref_queue(enc_ctx, ref_poc);
 
                             if (ref_entry != NULL) {
-                                availability_flag = (availability_flag == FALSE) ? FALSE
+                                availability_flag = (availability_flag == false) ? false
                                                                                  : // Don't update if already False
                                     (scs->static_config.rate_control_mode && entry_ppcs->slice_type != I_SLICE &&
                                      entry_ppcs->temporal_layer_index == 0 && !ref_entry->feedback_arrived &&
                                      !enc_ctx->terminating_sequence_flag_received)
-                                    ? FALSE
+                                    ? false
                                     : (entry_ppcs->frame_end_cdf_update_mode && !ref_entry->frame_context_updated)
-                                    ? FALSE
-                                    : (ref_entry->reference_available) ? TRUE
+                                    ? false
+                                    : (ref_entry->reference_available) ? true
                                                                        : // The Reference has been completed
-                                    FALSE; // The Reference has not been completed
+                                    false; // The Reference has not been completed
                             } else {
-                                availability_flag = FALSE;
+                                availability_flag = false;
                             }
 #if OPT_LD_LATENCY2
                             svt_release_mutex(enc_ctx->ref_pic_list_mutex);
@@ -560,7 +560,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                         }
                     }
 
-                    if (availability_flag == TRUE) {
+                    if (availability_flag == true) {
                         if (entry_ppcs->is_ref) {
                             EbObjectWrapper *ref_pic_wrapper;
                             // Get Empty Reference Picture Object
@@ -953,11 +953,11 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                         // Release the nominal live_count value
                         svt_release_object(ref_entry->reference_object_ptr);
                         ref_entry->reference_object_ptr  = (EbObjectWrapper *)NULL;
-                        ref_entry->reference_available   = FALSE;
-                        ref_entry->is_ref                = FALSE;
+                        ref_entry->reference_available   = false;
+                        ref_entry->is_ref                = false;
                         ref_entry->is_valid              = false;
-                        ref_entry->frame_context_updated = FALSE;
-                        ref_entry->feedback_arrived      = FALSE;
+                        ref_entry->frame_context_updated = false;
+                        ref_entry->feedback_arrived      = false;
                         svt_post_semaphore(scs->ref_buffer_available_semaphore);
                     }
                 }

@@ -146,12 +146,12 @@ typedef struct EncodeContext {
     uint32_t pred_struct_position; // Current position within a prediction structure
     uint32_t elapsed_non_idr_count;
     uint32_t elapsed_non_cra_count;
-    Bool     initial_picture;
+    bool     initial_picture;
     uint64_t last_idr_picture; // the most recently occured IDR picture (in decode order)
 
     // Sequence Termination Flags
     uint64_t terminating_picture_number;
-    Bool     terminating_sequence_flag_received;
+    bool     terminating_sequence_flag_received;
 
     // Prediction Structure
     PredictionStructureGroup *prediction_structure_group_ptr;
@@ -171,7 +171,7 @@ typedef struct EncodeContext {
 
     EbHandle stat_file_mutex;
 
-    Bool                 is_mini_gop_changed;
+    bool                 is_mini_gop_changed;
     uint64_t             poc_map_idx[MAX_TPL_LA_SW];
     EbPictureBufferDesc *mc_flow_rec_picture_buffer[MAX_TPL_LA_SW];
     EbPictureBufferDesc *mc_flow_rec_picture_buffer_noref;

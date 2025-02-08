@@ -19,7 +19,7 @@
 #include "resize.h"
 #include "av1me.h"
 
-void                 svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, Bool is_highbd);
+void                 svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
 EbPictureBufferDesc *svt_aom_get_ref_pic_buffer(PictureControlSet *pcs, uint8_t is_highbd, uint8_t list_idx,
                                                 uint8_t ref_idx) {
     (void)is_highbd;
@@ -665,7 +665,7 @@ struct build_prediction_ctxt {
     EbPictureBufferDesc  prediction_ptr;
     uint16_t             dst_origin_x;
     uint16_t             dst_origin_y;
-    Bool                 perform_chroma;
+    bool                 perform_chroma;
 };
 // input: log2 of length, 0(4), 1(8), ...
 static const int max_neighbor_obmc[6] = {0, 1, 2, 3, 4, 4};
@@ -840,7 +840,7 @@ static EbErrorType get_single_prediction_for_obmc_luma_hbd(SequenceControlSet *s
                                      bit_depth, // bit_depth
                                      0, // use_intrabc
                                      0, // is_masked_compound
-                                     TRUE); // is16bit
+                                     true); // is16bit
     return return_error;
 }
 static EbErrorType get_single_prediction_for_obmc_chroma_hbd(SequenceControlSet *scs, uint32_t interp_filters,
@@ -911,7 +911,7 @@ static EbErrorType get_single_prediction_for_obmc_chroma_hbd(SequenceControlSet 
                                      bit_depth, // bit_depth
                                      0, // use_intrabc
                                      0, // is_masked_compound
-                                     TRUE); // is16bit
+                                     true); // is16bit
 
     //List0-Cr
     src_stride  = ref_pic_list0->stride_cr;
@@ -950,7 +950,7 @@ static EbErrorType get_single_prediction_for_obmc_chroma_hbd(SequenceControlSet 
                                      bit_depth, // bit_depth
                                      0, // use_intrabc
                                      0, // is_masked_compound
-                                     TRUE); // is16bit
+                                     true); // is16bit
     return return_error;
 }
 
@@ -1333,7 +1333,7 @@ static INLINE void build_prediction_by_left_pred(uint8_t is16bit, MacroBlockD *x
                                                   ctxt->ss_y);
     }
 }
-static void build_prediction_by_above_preds(Bool perform_chroma, BlockSize bsize, PictureControlSet *pcs,
+static void build_prediction_by_above_preds(bool perform_chroma, BlockSize bsize, PictureControlSet *pcs,
                                             MacroBlockD *xd, int mi_row, int mi_col, uint8_t *tmp_buf[MAX_MB_PLANE],
                                             int tmp_stride[MAX_MB_PLANE], uint8_t is16bit) {
     if (!xd->up_available)
@@ -1375,7 +1375,7 @@ static void build_prediction_by_above_preds(Bool perform_chroma, BlockSize bsize
     xd->mb_to_right_edge = ctxt.mb_to_far_edge;
     xd->mb_to_bottom_edge -= (this_height - pred_height) * 8;
 }
-static void build_prediction_by_left_preds(Bool perform_chroma, BlockSize bsize, PictureControlSet *pcs,
+static void build_prediction_by_left_preds(bool perform_chroma, BlockSize bsize, PictureControlSet *pcs,
                                            MacroBlockD *xd, int mi_row, int mi_col, uint8_t *tmp_buf[MAX_MB_PLANE],
                                            int tmp_stride[MAX_MB_PLANE], uint8_t is16bit) {
     if (!xd->left_available)
@@ -1646,7 +1646,7 @@ static void av1_make_masked_warp_inter_predictor(uint8_t *src_ptr, uint8_t *src_
                                                  uint8_t bheight, ConvolveParams *conv_params,
                                                  InterInterCompoundData *comp_data, uint8_t bitdepth, uint8_t plane,
                                                  uint16_t pu_origin_x, uint16_t pu_origin_y,
-                                                 EbWarpedMotionParams *wm_params_l1, Bool is16bit) {
+                                                 EbWarpedMotionParams *wm_params_l1, bool is16bit) {
     //We come here when we have a prediction done using regular path for the ref0 stored in conv_param.dst.
     //use regular path to generate a prediction for ref1 into  a temporary buffer,
     //then  blend that temporary buffer with that from  the first reference.
@@ -1893,7 +1893,7 @@ static void chroma_plane_warped_motion_prediction_sub8x8(PictureControlSet *pcs,
                                                          int32_t src_stride, int32_t dst_stride, uint8_t *src_ptr_l0,
                                                          uint8_t *src_ptr_l1, uint8_t *src_ptr_2b_l0,
                                                          uint8_t *src_ptr_2b_l1, uint8_t *dst_ptr,
-                                                         MvReferenceFrame rf[2], MvUnit *mv_unit, Bool is16bit) {
+                                                         MvReferenceFrame rf[2], MvUnit *mv_unit, bool is16bit) {
     DECLARE_ALIGNED(32, uint16_t, tmp_dst[64 * 64]);
     // If interpoltion filter is specified at the block level, WM will always use regular. If
     // the interpolation is specified at the frame level, WM blocks will use the specified filter.
@@ -2048,7 +2048,7 @@ static void plane_warped_motion_prediction(PictureControlSet *pcs, uint8_t compo
                                            int32_t src_stride, int32_t dst_stride, uint16_t buf_width,
                                            uint16_t buf_height, uint8_t ss_x, uint8_t ss_y, uint8_t *src_ptr_l0,
                                            uint8_t *src_ptr_l1, uint8_t *src_ptr_2b_l0, uint8_t *src_ptr_2b_l1,
-                                           uint8_t *dst_ptr, uint8_t plane, MvReferenceFrame rf[2], Bool is16bit) {
+                                           uint8_t *dst_ptr, uint8_t plane, MvReferenceFrame rf[2], bool is16bit) {
     if (!is_compound) {
         ConvolveParams conv_params = get_conv_params_no_round(0, 0, 0, NULL, 128, is_compound, bit_depth);
 
@@ -2528,7 +2528,7 @@ static void interpolation_filter_search(PictureControlSet *pcs, ModeDecisionCont
 
     // If filters are non-zero, cannot use skip_mode. Opt to use IFS over skip_mode.
     if (cand_bf->cand->skip_mode_allowed && cand_bf->cand->interp_filters != 0)
-        cand_bf->cand->skip_mode_allowed = FALSE;
+        cand_bf->cand->skip_mode_allowed = false;
 
     // Update fast_luma_rate to take into account switchable_rate
     cand_bf->fast_luma_rate += switchable_rate;
@@ -2543,7 +2543,7 @@ static void inter_intra_prediction(PictureControlSet *pcs, EbPictureBufferDesc *
                                    NeighborArrayUnit *recon_neigh_cb, NeighborArrayUnit *recon_neigh_cr,
                                    BlkStruct *blk_ptr, const BlockGeom *blk_geom, int16_t pu_origin_x,
                                    uint16_t pu_origin_y, uint16_t dst_origin_x, uint16_t dst_origin_y,
-                                   uint32_t component_mask, uint8_t bit_depth, Bool is16bit) {
+                                   uint32_t component_mask, uint8_t bit_depth, bool is16bit) {
     int32_t start_plane = (component_mask & PICTURE_BUFFER_DESC_LUMA_MASK) ? 0 : 1;
     int32_t end_plane   = (component_mask & PICTURE_BUFFER_DESC_CHROMA_MASK) && blk_geom->has_uv ? MAX_MB_PLANE : 1;
 
@@ -2746,12 +2746,12 @@ EbErrorType svt_aom_warped_motion_prediction(PictureControlSet *pcs, MvUnit *mv_
                                              NeighborArrayUnit *recon_neigh_cr, ModeDecisionCandidate *cand,
 
                                              EbWarpedMotionParams *wm_params_l0, EbWarpedMotionParams *wm_params_l1,
-                                             uint8_t bit_depth, uint32_t component_mask, Bool is_encode_pass) {
+                                             uint8_t bit_depth, uint32_t component_mask, bool is_encode_pass) {
     EbErrorType         return_error      = EB_ErrorNone;
     uint8_t             is_compound       = (mv_unit->pred_direction == BI_PRED) ? 1 : 0;
     SequenceControlSet *scs               = pcs->scs;
-    Bool                is_16bit_pipeline = scs->is_16bit_pipeline;
-    Bool                is16bit           = (Bool)(bit_depth > EB_EIGHT_BIT) || (is_encode_pass && is_16bit_pipeline);
+    bool                is_16bit_pipeline = scs->is_16bit_pipeline;
+    bool                is16bit           = (bool)(bit_depth > EB_EIGHT_BIT) || (is_encode_pass && is_16bit_pipeline);
 
     int32_t  src_stride;
     int32_t  dst_stride;
@@ -4516,7 +4516,7 @@ EbErrorType svt_aom_inter_prediction(SequenceControlSet *scs, PictureControlSet 
     return return_error;
 }
 
-Bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionContext *ctx, ModeDecisionCandidate *cand) {
+bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionContext *ctx, ModeDecisionCandidate *cand) {
     SequenceControlSet  *scs     = pcs->scs;
     uint8_t              hbd_md  = ctx->hbd_md == EB_DUAL_BIT_MD ? EB_8_BIT_MD : ctx->hbd_md;
     EbPictureBufferDesc *src_pic = hbd_md ? pcs->input_frame16bit : pcs->ppcs->enhanced_pic;
@@ -4665,7 +4665,7 @@ Bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionConte
                                  hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT,
                                  0); // is_16bit_pipeline
 
-    Bool     exit_compound_prep  = FALSE;
+    bool     exit_compound_prep  = false;
     uint32_t pred0_to_pred1_dist = 0;
 
     if (hbd_md) {
@@ -4676,7 +4676,7 @@ Bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionConte
     }
 
     if (pred0_to_pred1_dist < (bheight * bwidth * ctx->inter_comp_ctrls.pred0_to_pred1_mult)) {
-        exit_compound_prep = TRUE;
+        exit_compound_prep = true;
         return exit_compound_prep;
     }
 
@@ -4894,7 +4894,7 @@ EbErrorType svt_aom_inter_pu_prediction_av1(uint8_t hbd_md, ModeDecisionContext 
 
     if (cand_bf->cand->use_intrabc) {
         svt_aom_get_recon_pic(pcs, &ref_pic_list0, hbd_md);
-        uint32_t component_mask = (ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && ctx->mds_skip_uv_pred == FALSE)
+        uint32_t component_mask = (ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && ctx->mds_skip_uv_pred == false)
             ? PICTURE_BUFFER_DESC_FULL_MASK
             : PICTURE_BUFFER_DESC_LUMA_MASK;
         svt_aom_inter_prediction(scs,
@@ -4955,7 +4955,7 @@ EbErrorType svt_aom_inter_pu_prediction_av1(uint8_t hbd_md, ModeDecisionContext 
         bit_depth = scs->static_config.encoder_bit_depth;
 
     if (cand->motion_mode == WARPED_CAUSAL) {
-        uint32_t component_mask = (ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && ctx->mds_skip_uv_pred == FALSE)
+        uint32_t component_mask = (ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && ctx->mds_skip_uv_pred == false)
             ? PICTURE_BUFFER_DESC_FULL_MASK
             : PICTURE_BUFFER_DESC_LUMA_MASK;
 
@@ -5003,12 +5003,12 @@ EbErrorType svt_aom_inter_pu_prediction_av1(uint8_t hbd_md, ModeDecisionContext 
                                          &cand->wm_params_l1,
                                          bit_depth,
                                          component_mask,
-                                         FALSE);
+                                         false);
 
         return return_error;
     }
     uint32_t interp_filters_0 = cand_bf->cand->interp_filters;
-    if (ctx->mds_skip_ifs == FALSE && pcs->ppcs->frm_hdr.interpolation_filter == SWITCHABLE &&
+    if (ctx->mds_skip_ifs == false && pcs->ppcs->frm_hdr.interpolation_filter == SWITCHABLE &&
         av1_is_interp_needed(cand_bf, pcs, ctx->blk_geom->bsize)) {
         // If using hybrid MD for HBD content, use 8bit pic for the IFS search
         if (ctx->hbd_md == EB_DUAL_BIT_MD && hbd_md == EB_DUAL_BIT_MD) {

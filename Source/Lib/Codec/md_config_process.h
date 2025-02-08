@@ -31,10 +31,10 @@ extern "C" {
 
 typedef struct MdcpLocalBlkStruct {
     uint64_t early_cost;
-    Bool     early_split_flag;
+    bool     early_split_flag;
     uint32_t split_context;
-    Bool     selected_cu;
-    Bool     stop_split;
+    bool     selected_cu;
+    bool     stop_split;
 } MdcpLocalBlkStruct;
 
 typedef struct ModeDecisionConfigurationContext {

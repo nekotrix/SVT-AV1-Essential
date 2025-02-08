@@ -182,9 +182,9 @@ EbLinkedListNode* svt_aom_concat_eb_linked_list(EbLinkedListNode* a, EbLinkedLis
 
 // split a linked list
 EbLinkedListNode* svt_aom_split_eb_linked_list(EbLinkedListNode* input, EbLinkedListNode** restLL,
-                                               Bool (*predicate_func)(EbLinkedListNode*)) {
-    EbLinkedListNode* ll_true_ptr = (EbLinkedListNode*)NULL; // list of nodes satifying predicate_func(node) == TRUE
-    EbLinkedListNode* ll_rest_ptr = (EbLinkedListNode*)NULL; // list of nodes satifying predicate_func(node) != TRUE
+                                               bool (*predicate_func)(EbLinkedListNode*)) {
+    EbLinkedListNode* ll_true_ptr = (EbLinkedListNode*)NULL; // list of nodes satifying predicate_func(node) == true
+    EbLinkedListNode* ll_rest_ptr = (EbLinkedListNode*)NULL; // list of nodes satifying predicate_func(node) != true
 
     while (input) {
         EbLinkedListNode* next = input->next;

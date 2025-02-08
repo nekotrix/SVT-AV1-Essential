@@ -42,12 +42,12 @@ uint16_t    wm_find_samples(BlkStruct *blk_ptr, const BlockGeom *blk_geom, uint1
 void        svt_aom_wm_count_samples(BlkStruct *blk_ptr, const BlockSize sb_size, const BlockGeom *blk_geom,
                                      uint16_t blk_org_x, uint16_t blk_org_y, uint8_t ref_frame_type, PictureControlSet *pcs,
                                      uint16_t *num_samples);
-Bool        svt_aom_warped_motion_parameters(PictureControlSet *pcs, BlkStruct *blk_ptr, MvUnit *mv_unit,
+bool        svt_aom_warped_motion_parameters(PictureControlSet *pcs, BlkStruct *blk_ptr, MvUnit *mv_unit,
                                              const BlockGeom *blk_geom, uint16_t blk_org_x, uint16_t blk_org_y,
                                              uint8_t ref_frame_type, EbWarpedMotionParams *wm_params, uint16_t *num_samples,
                                              uint8_t min_neighbour_perc, uint8_t corner_perc_bias, uint16_t lower_band_th,
-                                             uint16_t upper_band_th, Bool shut_approx);
-static INLINE Bool has_overlappable_candidates(const BlkStruct *blk_ptr) {
+                                             uint16_t upper_band_th, bool shut_approx);
+static INLINE bool has_overlappable_candidates(const BlkStruct *blk_ptr) {
     return (blk_ptr->overlappable_neighbors != 0);
 }
 

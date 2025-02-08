@@ -125,10 +125,10 @@ uint32_t svt_create_random_aligned_stride(const uint32_t width,
  * Compare Data
  ***************************************/
 #define BUF_COMPARE_FUNCTION(name, type)                         \
-    Bool name(const type *const buf1,                            \
+    bool name(const type *const buf1,                            \
               const type *const buf2,                            \
               const size_t bufSize) {                            \
-        Bool result = TRUE;                                      \
+        bool result = true;                                      \
                                                                  \
         for (uint32_t i = 0; i < bufSize; i++) {                 \
             if (buf1[i] != buf2[i]) {                            \
@@ -137,7 +137,7 @@ uint32_t svt_create_random_aligned_stride(const uint32_t width,
                        buf1[i],                                  \
                        i,                                        \
                        buf2[i]);                                 \
-                result = FALSE;                                  \
+                result = false;                                  \
             }                                                    \
         }                                                        \
                                                                  \

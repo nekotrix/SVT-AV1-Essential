@@ -273,12 +273,12 @@ typedef struct IntraReferenceSamplesOpenLoop {
     // Scratch buffers used in the interpolaiton process
     uint8_t reference_above_line_y[MAX_INTRA_REFERENCE_SAMPLES];
     uint8_t reference_left_line_y[MAX_INTRA_REFERENCE_SAMPLES];
-    Bool    above_ready_flag_y;
-    Bool    left_ready_flag_y;
+    bool    above_ready_flag_y;
+    bool    left_ready_flag_y;
 } IntraReferenceSamplesOpenLoop;
 
 typedef struct MeHmeRefPruneCtrls {
-    Bool enable_me_hme_ref_pruning;
+    bool enable_me_hme_ref_pruning;
     // TH used to prune references based on hme sad deviation
     uint16_t prune_ref_if_hme_sad_dev_bigger_than_th;
     // TH used to prune references based on me sad deviation
@@ -406,10 +406,10 @@ typedef struct MeContext {
     EbBitFraction     *mvd_bits_array;
     uint8_t            hme_search_method;
     uint8_t            me_search_method;
-    Bool               enable_hme_flag;
-    Bool               enable_hme_level0_flag;
-    Bool               enable_hme_level1_flag;
-    Bool               enable_hme_level2_flag;
+    bool               enable_hme_flag;
+    bool               enable_hme_level0_flag;
+    bool               enable_hme_level1_flag;
+    bool               enable_hme_level2_flag;
     MeHmeRefPruneCtrls me_hme_prune_ctrls;
     MeSrCtrls          me_sr_adjustment_ctrls;
     Me8x8VarCtrls      me_8x8_var_ctrls;
@@ -463,7 +463,7 @@ typedef struct MeContext {
     uint8_t num_of_ref_pic_to_search[2];
     uint8_t temporal_layer_index;
     // Flag will be true if the current frame is used as a reference picture by other frames.
-    Bool                        is_ref;
+    bool                        is_ref;
     EbDownScaledBufDescPtrArray me_ds_ref_array[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     // tf
     uint8_t      tf_chroma;

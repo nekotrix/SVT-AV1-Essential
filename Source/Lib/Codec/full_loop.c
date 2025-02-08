@@ -20,7 +20,7 @@
 
 void     svt_aom_residual_kernel(uint8_t *input, uint32_t input_offset, uint32_t input_stride, uint8_t *pred,
                                  uint32_t pred_offset, uint32_t pred_stride, int16_t *residual, uint32_t residual_offset,
-                                 uint32_t residual_stride, Bool hbd, uint32_t area_width, uint32_t area_height);
+                                 uint32_t residual_stride, bool hbd, uint32_t area_width, uint32_t area_height);
 uint64_t svt_spatial_full_distortion_ssim_kernel(uint8_t *input, uint32_t input_offset, uint32_t input_stride,
                                                  uint8_t *recon, int32_t recon_offset, uint32_t recon_stride,
                                                  uint32_t area_width, uint32_t area_height, bool hbd);
@@ -1126,7 +1126,7 @@ static void svt_fast_optimize_b(const TranLow *coeff_ptr, const MacroblockPlane 
 static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx, int16_t txb_skip_context,
                                int16_t dc_sign_context, const TranLow *coeff_ptr, const MacroblockPlane *p,
                                TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, uint16_t *eob, const QuantParam *qparam,
-                               TxSize tx_size, TxType tx_type, Bool is_inter, uint8_t use_sharpness,
+                               TxSize tx_size, TxType tx_type, bool is_inter, uint8_t use_sharpness,
                                uint8_t delta_q_present, uint8_t picture_qp, uint32_t lambda, int plane) {
     int                    sharpness  = 0; // No Sharpness
     int                    fast_mode  = (ctx->rdoq_ctrls.eob_fast_y_inter && is_inter && !plane) ||
@@ -1465,7 +1465,7 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
                                       int32_t segmentation_qp_offset, TxSize txsize, uint16_t *eob,
                                       uint32_t component_type, uint32_t bit_depth, TxType tx_type,
                                       int16_t txb_skip_context, int16_t dc_sign_context, PredictionMode pred_mode,
-                                      uint32_t lambda, Bool is_encode_pass) {
+                                      uint32_t lambda, bool is_encode_pass) {
     SequenceControlSet *scs     = pcs->scs;
     EncodeContext      *enc_ctx = scs->enc_ctx;
     int32_t plane = component_type == COMPONENT_LUMA ? AOM_PLANE_Y : COMPONENT_CHROMA_CB ? AOM_PLANE_U : AOM_PLANE_V;
@@ -1560,12 +1560,12 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
     qparam.qmatrix   = q_matrix;
     qparam.iqmatrix  = iq_matrix;
 
-    Bool is_inter = (pred_mode >= NEARESTMV);
-    Bool perform_rdoq;
+    bool is_inter = (pred_mode >= NEARESTMV);
+    bool perform_rdoq;
 
     // If rdoq_level is specified in the command line instruction, set perform_rdoq accordingly.
     perform_rdoq = !svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) &&
-        ((ctx->mds_skip_rdoq == FALSE || is_encode_pass) && ctx->rdoq_level);
+        ((ctx->mds_skip_rdoq == false || is_encode_pass) && ctx->rdoq_level);
     const int dequant_shift = ctx->hbd_md ? pcs->ppcs->enhanced_pic->bit_depth - 5 : 3;
     const int qstep         = candidate_plane.dequant_qtx[1] /*[AC]*/ >> dequant_shift;
     if (!is_encode_pass) {
@@ -1690,7 +1690,7 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
 void svt_aom_inv_transform_recon_wrapper(PictureControlSet *pcs, ModeDecisionContext *ctx, uint8_t *pred_buffer,
                                          uint32_t pred_offset, uint32_t pred_stride, uint8_t *rec_buffer,
                                          uint32_t rec_offset, uint32_t rec_stride, int32_t *rec_coeff_buffer,
-                                         uint32_t coeff_offset, Bool hbd, TxSize txsize, TxType transform_type,
+                                         uint32_t coeff_offset, bool hbd, TxSize txsize, TxType transform_type,
                                          PlaneType component_type, uint32_t eob) {
     if (hbd) {
         svt_aom_inv_transform_recon(rec_coeff_buffer + coeff_offset,
@@ -1796,7 +1796,7 @@ void svt_aom_full_loop_chroma_light_pd1(PictureControlSet *pcs, ModeDecisionCont
                                                                0,
                                                                cand_bf->cand->pred_mode,
                                                                full_lambda,
-                                                               FALSE);
+                                                               false);
 
         svt_aom_picture_full_distortion32_bits_single(&(((int32_t *)ctx->tx_coeffs->buffer_cb)[0]),
                                                       &(((int32_t *)cand_bf->rec_coeff->buffer_cb)[0]),
@@ -1877,7 +1877,7 @@ void svt_aom_full_loop_chroma_light_pd1(PictureControlSet *pcs, ModeDecisionCont
                                                                0,
                                                                cand_bf->cand->pred_mode,
                                                                full_lambda,
-                                                               FALSE);
+                                                               false);
 
         svt_aom_picture_full_distortion32_bits_single(&(((int32_t *)ctx->tx_coeffs->buffer_cr)[0]),
                                                       &(((int32_t *)cand_bf->rec_coeff->buffer_cr)[0]),
@@ -1922,7 +1922,7 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                           EbPictureBufferDesc *input_pic, COMPONENT_TYPE component_type, uint32_t chroma_qindex,
                           uint64_t cb_full_distortion[DIST_TOTAL][DIST_CALC_TOTAL],
                           uint64_t cr_full_distortion[DIST_TOTAL][DIST_CALC_TOTAL], uint64_t *cb_coeff_bits,
-                          uint64_t *cr_coeff_bits, Bool is_full_loop) {
+                          uint64_t *cr_coeff_bits, bool is_full_loop) {
     EbSpatialFullDistType spatial_full_dist_type_fun = ctx->hbd_md ? svt_full_distortion_kernel16_bits
                                                                    : svt_spatial_full_distortion_kernel;
     EB_ALIGN(16) uint64_t txb_full_distortion[DIST_TOTAL][3][DIST_CALC_TOTAL];
@@ -1939,7 +1939,7 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
     ctx->three_quad_energy = 0;
 
     const uint8_t tx_depth = cand_bf->cand->tx_depth;
-    const Bool    is_inter = (is_inter_mode(cand_bf->cand->pred_mode) || cand_bf->cand->use_intrabc) ? TRUE : FALSE;
+    const bool    is_inter = (is_inter_mode(cand_bf->cand->pred_mode) || cand_bf->cand->use_intrabc) ? true : false;
     const int     tu_count = tx_depth ? 1 : ctx->blk_geom->txb_count[cand_bf->cand->tx_depth]; //NM: 128x128 exeption
     uint32_t      txb_1d_offset = 0;
 
@@ -2033,7 +2033,7 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                 ctx->cb_dc_sign_context,
                 cand_bf->cand->pred_mode,
                 full_lambda,
-                FALSE);
+                false);
 
             if (is_full_loop && ctx->mds_spatial_sse) {
                 uint32_t cb_has_coeff = cand_bf->eob.u[txb_itr] > 0;
@@ -2216,7 +2216,7 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                 ctx->cr_dc_sign_context,
                 cand_bf->cand->pred_mode,
                 full_lambda,
-                FALSE);
+                false);
             if (is_full_loop && ctx->mds_spatial_sse) {
                 uint32_t cr_has_coeff = cand_bf->eob.v[txb_itr] > 0;
 
@@ -2494,7 +2494,7 @@ static void compute_depth_costs(ModeDecisionContext *ctx, PictureParentControlSe
  */
 uint32_t svt_aom_d2_inter_depth_block_decision(PictureControlSet *pcs, ModeDecisionContext *ctx, uint32_t blk_mds) {
     uint64_t         parent_depth_cost = 0, current_depth_cost = 0;
-    Bool             last_depth_flag = (ctx->md_blk_arr_nsq[blk_mds].split_flag == FALSE);
+    bool             last_depth_flag = (ctx->md_blk_arr_nsq[blk_mds].split_flag == false);
     uint32_t         last_blk_index = blk_mds, current_depth_idx_mds = blk_mds;
     const BlockGeom *blk_geom = get_blk_geom_mds(blk_mds);
     if (last_depth_flag) {
@@ -2515,9 +2515,9 @@ uint32_t svt_aom_d2_inter_depth_block_decision(PictureControlSet *pcs, ModeDecis
             if (parent_depth_cost == MAX_MODE_COST && current_depth_cost == MAX_MODE_COST) {
                 // If parent and current depth are both invalid, don't update the cost
                 ctx->md_blk_arr_nsq[parent_depth_idx_mds].part       = PARTITION_SPLIT;
-                ctx->md_blk_arr_nsq[parent_depth_idx_mds].split_flag = TRUE;
+                ctx->md_blk_arr_nsq[parent_depth_idx_mds].split_flag = true;
             } else if (((parent_bias * parent_depth_cost) / 1000) <= current_depth_cost) {
-                ctx->md_blk_arr_nsq[parent_depth_idx_mds].split_flag = FALSE;
+                ctx->md_blk_arr_nsq[parent_depth_idx_mds].split_flag = false;
                 ctx->md_blk_arr_nsq[parent_depth_idx_mds].cost       = parent_depth_cost;
                 last_blk_index                                       = parent_depth_idx_mds;
                 ctx->cost_avail[parent_depth_idx_mds]                = 1;
@@ -2525,7 +2525,7 @@ uint32_t svt_aom_d2_inter_depth_block_decision(PictureControlSet *pcs, ModeDecis
             } else {
                 ctx->md_blk_arr_nsq[parent_depth_idx_mds].cost       = current_depth_cost;
                 ctx->md_blk_arr_nsq[parent_depth_idx_mds].part       = PARTITION_SPLIT;
-                ctx->md_blk_arr_nsq[parent_depth_idx_mds].split_flag = TRUE;
+                ctx->md_blk_arr_nsq[parent_depth_idx_mds].split_flag = true;
                 ctx->cost_avail[parent_depth_idx_mds]                = 1;
                 assert(current_depth_cost != MAX_MODE_COST);
             }
@@ -2565,7 +2565,7 @@ void svt_aom_compute_depth_costs_md_skip_light_pd0(PictureParentControlSet *pcs,
                                                     above_depth_mds,
                                                     PARTITION_SPLIT,
                                                     full_lambda,
-                                                    TRUE, // Use accurate split cost for early exit
+                                                    true, // Use accurate split cost for early exit
                                                     ctx->md_rate_est_ctx);
 
     *above_depth_cost = ctx->md_blk_arr_nsq[above_depth_mds].cost;
@@ -2611,7 +2611,7 @@ void svt_aom_compute_depth_costs_md_skip(ModeDecisionContext *ctx, PictureParent
                                                    above_depth_mds,
                                                    PARTITION_SPLIT,
                                                    full_lambda,
-                                                   TRUE, // Use accurate split cost for early exit
+                                                   true, // Use accurate split cost for early exit
                                                    ctx->md_rate_est_ctx);
 
     *curr_depth_cost += above_split_rate;
