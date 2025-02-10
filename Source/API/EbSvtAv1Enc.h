@@ -907,6 +907,12 @@ typedef struct EbSvtAv1EncConfiguration {
      *  Default is 6 */
     uint8_t variance_octile;
 
+    /* @brief Bias towards decreased/increased sharpness in the deblocking loop filter & during rate distortion
+     * Minimum value is -7 (less sharp).
+     * Maximum value is 7 (more sharp).
+     * Default is 0 (medium sharpness). */
+    int8_t sharpness;
+
     /* @brief Enable the user to configure which curve variance boost uses.
      * Curve 1 emphasizes boosting low-medium contrast regions at a modest bitrate increase over the default curve
      *  0: default curve

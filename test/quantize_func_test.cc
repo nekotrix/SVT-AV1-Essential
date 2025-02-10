@@ -14,6 +14,7 @@
 #include "gtest/gtest.h"
 
 #include "aom_dsp_rtcd.h"
+#include "md_config_process.h"
 #include "random.h"
 #include "util.h"
 
@@ -25,11 +26,6 @@
 
 namespace {
 using svt_av1_test_tool::SVTRandom;
-
-extern "C" void svt_av1_build_quantizer(
-    EbBitDepth bit_depth, int32_t y_dc_delta_q, int32_t u_dc_delta_q,
-    int32_t u_ac_delta_q, int32_t v_dc_delta_q, int32_t v_ac_delta_q,
-    Quants *const quants, Dequants *const deq);
 
 #define QUAN_PARAM_LIST                                                      \
     const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr,    \
@@ -99,8 +95,13 @@ class QuantizeTest : public ::testing::TestWithParam<ParamType> {
     }
 
     void InitQuantizer() {
+        PictureParentControlSet pcs;
+        pcs.scs = (SequenceControlSet *)malloc(sizeof(SequenceControlSet));
+        pcs.frm_hdr.quantization_params.base_q_idx = 0;
+        pcs.scs->static_config.sharpness = 0;
+        PictureParentControlSet *pcs_ptr = &pcs;
         svt_av1_build_quantizer(
-            bd_, 0, 0, 0, 0, 0, &qtab_->quant, &qtab_->dequant);
+            pcs_ptr, bd_, 0, 0, 0, 0, 0, &qtab_->quant, &qtab_->dequant);
     }
 
     virtual void QuantizeRun(bool is_loop, int q = 0, int test_num = 1) = 0;

@@ -4557,6 +4557,10 @@ static void copy_api_from_app(
 
     // Frame-level luminance-based QP bias
     scs->static_config.luminance_qp_bias = config_struct->luminance_qp_bias;
+
+    // Sharpness
+    scs->static_config.sharpness = config_struct->sharpness;
+
     return;
 }
 

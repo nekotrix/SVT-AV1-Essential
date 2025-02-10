@@ -12,8 +12,11 @@
 
 #include "definitions.h"
 #include "full_loop.h"
+#include "pcs.h"
 #include "rd_cost.h"
 #include "aom_dsp_rtcd.h"
+#include "sequence_control_set.h"
+#include "utility.h"
 
 void     svt_aom_residual_kernel(uint8_t *input, uint32_t input_offset, uint32_t input_stride, uint8_t *pred,
                                  uint32_t pred_offset, uint32_t pred_stride, int16_t *residual, uint32_t residual_offset,
@@ -1120,13 +1123,11 @@ static void svt_fast_optimize_b(const TranLow *coeff_ptr, const MacroblockPlane 
     const int              shift      = av1_get_tx_scale_tab[tx_size];
     update_coeff_eob_fast(eob, shift, p->dequant_qtx, scan, coeff_ptr, qcoeff_ptr, dqcoeff_ptr);
 }
-static void svt_av1_optimize_b(ModeDecisionContext *ctx, int16_t txb_skip_context, int16_t dc_sign_context,
-                               const TranLow *coeff_ptr, const MacroblockPlane *p, TranLow *qcoeff_ptr,
-                               TranLow *dqcoeff_ptr, uint16_t *eob, const QuantParam *qparam, TxSize tx_size,
-                               TxType tx_type, Bool is_inter, uint8_t use_sharpness, uint8_t delta_q_present,
-                               uint8_t picture_qp, uint32_t lambda, int plane)
-
-{
+static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx, int16_t txb_skip_context,
+                               int16_t dc_sign_context, const TranLow *coeff_ptr, const MacroblockPlane *p,
+                               TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, uint16_t *eob, const QuantParam *qparam,
+                               TxSize tx_size, TxType tx_type, Bool is_inter, uint8_t use_sharpness,
+                               uint8_t delta_q_present, uint8_t picture_qp, uint32_t lambda, int plane) {
     int                    sharpness  = 0; // No Sharpness
     int                    fast_mode  = (ctx->rdoq_ctrls.eob_fast_y_inter && is_inter && !plane) ||
             (ctx->rdoq_ctrls.eob_fast_y_intra && !is_inter && !plane) ||
@@ -1164,8 +1165,9 @@ static void svt_av1_optimize_b(ModeDecisionContext *ctx, int16_t txb_skip_contex
         if (*eob == 0)
             return;
     }
-    int       rweight = 100;
-    const int rshift  = 2;
+    int           rweight       = 100;
+    const int32_t sharpness_val = CLIP3(0, 7, pcs->scs->static_config.sharpness);
+    const int     rshift        = MAX(2, (int)sharpness_val);
     if (use_sharpness && delta_q_present && plane == 0) {
         int diff = ctx->sb_ptr->qindex - quantizer_to_qindex[picture_qp];
         if (diff < 0) {
@@ -1659,7 +1661,8 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
     }
     if (perform_rdoq && *eob != 0) {
         // Perform rdoq
-        svt_av1_optimize_b(ctx,
+        svt_av1_optimize_b(pcs,
+                           ctx,
                            txb_skip_context,
                            dc_sign_context,
                            (TranLow *)coeff,
