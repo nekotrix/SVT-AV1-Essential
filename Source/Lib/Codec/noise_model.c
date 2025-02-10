@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "noise_model.h"
+#include "definitions.h"
+#include "sequence_control_set.h"
 #include "noise_util.h"
 #include "mathutils.h"
 #include "svt_log.h"
@@ -2097,15 +2099,6 @@ int32_t svt_aom_wiener_denoise_2d(const uint8_t *const data[3], uint8_t *denoise
     return init_success;
 }
 
-EbErrorType svt_aom_denoise_and_model_alloc(AomDenoiseAndModel *ctx, int32_t bit_depth, int32_t block_size,
-                                            float noise_level) {
-    ctx->block_size  = block_size;
-    ctx->noise_level = noise_level;
-    ctx->bit_depth   = bit_depth;
-
-    return EB_ErrorNone;
-}
-
 static void denoise_and_model_dctor(EbPtr p) {
     AomDenoiseAndModel *obj = (AomDenoiseAndModel *)p;
 
@@ -2122,6 +2115,7 @@ EbErrorType svt_aom_denoise_and_model_ctor(AomDenoiseAndModel *object_ptr, EbPtr
     DenoiseAndModelInitData *init_data_ptr = (DenoiseAndModelInitData *)object_init_data_ptr;
     EbErrorType              return_error  = EB_ErrorNone;
     uint32_t                 use_highbd    = init_data_ptr->encoder_bit_depth > EB_EIGHT_BIT ? 1 : 0;
+    EbInputResolution        input_resolution;
 
     int32_t chroma_sub_log2[2] = {1, 1}; //todo: send chroma subsampling
     chroma_sub_log2[0]         = (init_data_ptr->encoder_color_format == EB_YUV444 ? 0 : 1);
@@ -2129,12 +2123,19 @@ EbErrorType svt_aom_denoise_and_model_ctor(AomDenoiseAndModel *object_ptr, EbPtr
 
     object_ptr->dctor = denoise_and_model_dctor;
 
-    return_error = svt_aom_denoise_and_model_alloc(object_ptr,
-                                                   init_data_ptr->encoder_bit_depth > EB_EIGHT_BIT ? 10 : 8,
-                                                   DENOISING_BlockSize,
-                                                   (float)(init_data_ptr->noise_level / 10.0));
-    if (return_error != EB_ErrorNone)
-        return return_error;
+    const uint32_t input_size = init_data_ptr->width * init_data_ptr->height;
+    svt_aom_derive_input_resolution(&input_resolution, input_size);
+
+    int32_t denoise_block_size = 32;
+    if (input_resolution <= INPUT_SIZE_1080p_RANGE)
+        denoise_block_size = 8;
+    else if (input_resolution <= INPUT_SIZE_4K_RANGE)
+        denoise_block_size = 16;
+
+    object_ptr->block_size  = denoise_block_size;
+    object_ptr->noise_level = (float)(init_data_ptr->noise_level / 10.0);
+    object_ptr->bit_depth   = init_data_ptr->encoder_bit_depth > EB_EIGHT_BIT ? 10 : 8;
+
     object_ptr->width     = init_data_ptr->width;
     object_ptr->height    = init_data_ptr->height;
     object_ptr->y_stride  = init_data_ptr->stride_y;
