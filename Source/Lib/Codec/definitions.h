@@ -87,14 +87,16 @@ typedef struct SharpnessCtrls {
     uint8_t restoration;
     uint8_t rdoq;
 } SharpnessCtrls;
-
+#if !OPT_DEPTHS_CTRL 
 typedef struct StabilityCtrls {
     uint8_t depth_refinement;
 } StabilityCtrls;
-
+#endif
 typedef struct VqCtrls {
     SharpnessCtrls sharpness_ctrls;
+#if !OPT_DEPTHS_CTRL 
     StabilityCtrls stability_ctrls;
+#endif
 } VqCtrls;
 typedef struct MrpCtrls {
     /*

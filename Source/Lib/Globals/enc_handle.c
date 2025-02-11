@@ -3246,8 +3246,10 @@ static void derive_vq_params(SequenceControlSet* scs) {
         vq_ctrl->sharpness_ctrls.cdef             = 1;
         vq_ctrl->sharpness_ctrls.restoration      = 1;
         vq_ctrl->sharpness_ctrls.rdoq             = 1;
+#if !OPT_DEPTHS_CTRL 
         // Stability
         vq_ctrl->stability_ctrls.depth_refinement = 1;
+#endif
     }
     else {
 
@@ -3259,8 +3261,10 @@ static void derive_vq_params(SequenceControlSet* scs) {
         vq_ctrl->sharpness_ctrls.cdef             = 0;
         vq_ctrl->sharpness_ctrls.restoration      = 0;
         vq_ctrl->sharpness_ctrls.rdoq             = 0;
+#if !OPT_DEPTHS_CTRL 
         // Stability
         vq_ctrl->stability_ctrls.depth_refinement = 0;
+#endif
     }
     // Do not use scene_transition if LD or 1st pass or middle pass
     if (scs->static_config.pred_structure != SVT_AV1_PRED_RANDOM_ACCESS || scs->static_config.pass == ENC_FIRST_PASS)

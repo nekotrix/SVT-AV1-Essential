@@ -293,6 +293,10 @@ typedef struct PictureControlSet {
     uint8_t     *sb_skip;
     uint8_t     *sb_64x64_mvp;
     uint32_t    *sb_count_nz_coeffs;
+#if OPT_DEPTHS_CTRL
+    uint8_t     *sb_min_sq_size;
+    uint8_t     *sb_max_sq_size;
+#endif
     // qindex per 64x64 using ME distortions (to be used for lambda modulation only; not at Q/Q-1)
     // Mode Decision Neighbor Arrays
     uint8_t            *b64_me_qindex;

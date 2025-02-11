@@ -136,8 +136,13 @@ typedef struct ModeDecisionCandidateBuffer {
     uint8_t     u_has_coeff;
     uint8_t     v_has_coeff;
     uint16_t    y_has_coeff;
+#if CLN_VALID_PRED
+    // The prediction of SIMPLE_TRANSLATION is not valid when OBMC face-off is used (where OBMC will re-use the pred buffer of SIMPLE_TRANSLATION)
+    bool valid_luma_pred;
+#else
     bool
         valid_pred; // The prediction of SIMPLE_TRANSLATION is not valid when OBMC face-off is used (where OBMC will re-use the pred buffer of SIMPLE_TRANSLATION)
+#endif
 } ModeDecisionCandidateBuffer;
 
 /**************************************

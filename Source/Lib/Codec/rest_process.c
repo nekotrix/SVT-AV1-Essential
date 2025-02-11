@@ -493,6 +493,10 @@ static void copy_statistics_to_ref_obj_ect(PictureControlSet *pcs, SequenceContr
         obj->sb_64x64_mvp[sb_index]       = pcs->sb_64x64_mvp[sb_index];
         obj->sb_me_64x64_dist[sb_index]   = pcs->ppcs->me_64x64_distortion[sb_index];
         obj->sb_me_8x8_cost_var[sb_index] = pcs->ppcs->me_8x8_cost_variance[sb_index];
+#if OPT_DEPTHS_CTRL
+        obj->sb_min_sq_size[sb_index] = pcs->sb_min_sq_size[sb_index];
+        obj->sb_max_sq_size[sb_index] = pcs->sb_max_sq_size[sb_index];
+#endif
     }
     obj->tmp_layer_idx   = (uint8_t)pcs->temporal_layer_index;
     obj->is_scene_change = pcs->ppcs->scene_change_flag;

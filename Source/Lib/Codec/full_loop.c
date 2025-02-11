@@ -1564,8 +1564,13 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
     bool perform_rdoq;
 
     // If rdoq_level is specified in the command line instruction, set perform_rdoq accordingly.
+#if CLN_RENAME_MDS_SKIP
+    perform_rdoq = !svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) &&
+        ((ctx->mds_do_rdoq || is_encode_pass) && ctx->rdoq_level);
+#else
     perform_rdoq = !svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) &&
         ((ctx->mds_skip_rdoq == false || is_encode_pass) && ctx->rdoq_level);
+#endif
     const int dequant_shift = ctx->hbd_md ? pcs->ppcs->enhanced_pic->bit_depth - 5 : 3;
     const int qstep         = candidate_plane.dequant_qtx[1] /*[AC]*/ >> dequant_shift;
     if (!is_encode_pass) {
@@ -2035,7 +2040,11 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                 full_lambda,
                 false);
 
+#if CLN_RENAME_MDS_SKIP
+            if (is_full_loop && ctx->mds_do_spatial_sse) {
+#else
             if (is_full_loop && ctx->mds_spatial_sse) {
+#endif
                 uint32_t cb_has_coeff = cand_bf->eob.u[txb_itr] > 0;
 
                 if (cb_has_coeff)
@@ -2217,7 +2226,11 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                 cand_bf->cand->pred_mode,
                 full_lambda,
                 false);
+#if CLN_RENAME_MDS_SKIP
+            if (is_full_loop && ctx->mds_do_spatial_sse) {
+#else
             if (is_full_loop && ctx->mds_spatial_sse) {
+#endif
                 uint32_t cr_has_coeff = cand_bf->eob.v[txb_itr] > 0;
 
                 if (cr_has_coeff)

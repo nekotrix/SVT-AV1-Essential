@@ -184,6 +184,10 @@ static void picture_control_set_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->sb_64x64_mvp);
     EB_FREE_ARRAY(obj->sb_count_nz_coeffs);
     EB_FREE_ARRAY(obj->b64_me_qindex);
+#if OPT_DEPTHS_CTRL
+    EB_FREE_ARRAY(obj->sb_min_sq_size);
+    EB_FREE_ARRAY(obj->sb_max_sq_size);
+#endif
     EB_DELETE(obj->bitstream_ptr);
     EB_DELETE_PTR_ARRAY(obj->ec_info, tile_cnt);
 
@@ -537,7 +541,10 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     EB_MALLOC_ARRAY(object_ptr->sb_skip, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->sb_64x64_mvp, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->b64_me_qindex, object_ptr->init_b64_total_count);
-
+#if OPT_DEPTHS_CTRL
+    EB_MALLOC_ARRAY(object_ptr->sb_min_sq_size, object_ptr->init_b64_total_count);
+    EB_MALLOC_ARRAY(object_ptr->sb_max_sq_size, object_ptr->init_b64_total_count);
+#endif
     sb_origin_x = 0;
     sb_origin_y = 0;
 

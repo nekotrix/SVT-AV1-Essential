@@ -2456,7 +2456,11 @@ static void interpolation_filter_search(PictureControlSet *pcs, ModeDecisionCont
          * Skip the prediction if the interp_filter matches the current interp_filter
          * for MDS1 or higher (since previously performed @ mds0), and EB_EIGHT_BIT (to do for EB_TEN_BIT).
          */
+#if CLN_VALID_PRED
+        const uint8_t is_pred_buffer_ready = (cand_bf->valid_luma_pred &&
+#else
         const uint8_t is_pred_buffer_ready = (cand_bf->valid_pred &&
+#endif
                                               cand_bf->cand->interp_filters == org_interp_filters &&
                                               ctx->md_stage > MD_STAGE_0 && encoder_bit_depth == EB_EIGHT_BIT);
 
@@ -4905,9 +4909,13 @@ EbErrorType svt_aom_inter_pu_prediction_av1(uint8_t hbd_md, ModeDecisionContext 
 
     if (cand_bf->cand->use_intrabc) {
         svt_aom_get_recon_pic(pcs, &ref_pic_list0, hbd_md);
+#if CLN_PRED_SIGS
+        uint32_t component_mask = ctx->mds_do_chroma ? PICTURE_BUFFER_DESC_FULL_MASK : PICTURE_BUFFER_DESC_LUMA_MASK;
+#else
         uint32_t component_mask = (ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && ctx->mds_skip_uv_pred == false)
             ? PICTURE_BUFFER_DESC_FULL_MASK
             : PICTURE_BUFFER_DESC_LUMA_MASK;
+#endif
         svt_aom_inter_prediction(scs,
                                  pcs,
                                  cand_bf->cand->interp_filters,
@@ -4966,11 +4974,19 @@ EbErrorType svt_aom_inter_pu_prediction_av1(uint8_t hbd_md, ModeDecisionContext 
         bit_depth = scs->static_config.encoder_bit_depth;
 
     if (cand->motion_mode == WARPED_CAUSAL) {
+#if CLN_PRED_SIGS
+        uint32_t component_mask = ctx->mds_do_chroma ? PICTURE_BUFFER_DESC_FULL_MASK : PICTURE_BUFFER_DESC_LUMA_MASK;
+#else
         uint32_t component_mask = (ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && ctx->mds_skip_uv_pred == false)
             ? PICTURE_BUFFER_DESC_FULL_MASK
             : PICTURE_BUFFER_DESC_LUMA_MASK;
+#endif
 
+#if CLN_VALID_PRED
+        if (ctx->md_stage >= MD_STAGE_1 && cand_bf->valid_luma_pred && component_mask == PICTURE_BUFFER_DESC_FULL_MASK &&
+#else
         if (ctx->md_stage >= MD_STAGE_1 && cand_bf->valid_pred && component_mask == PICTURE_BUFFER_DESC_FULL_MASK &&
+#endif
             !ctx->need_hbd_comp_mds3) {
             // The mask generation for DIFFWTD compound mode is done for luma, using luma samples, so must always
             // perform luma prediction if DIFFWTD is used.
@@ -5019,7 +5035,11 @@ EbErrorType svt_aom_inter_pu_prediction_av1(uint8_t hbd_md, ModeDecisionContext 
         return return_error;
     }
     uint32_t interp_filters_0 = cand_bf->cand->interp_filters;
+#if CLN_RENAME_MDS_SKIP
+    if (ctx->mds_do_ifs && pcs->ppcs->frm_hdr.interpolation_filter == SWITCHABLE &&
+#else
     if (ctx->mds_skip_ifs == false && pcs->ppcs->frm_hdr.interpolation_filter == SWITCHABLE &&
+#endif
         av1_is_interp_needed(cand_bf, pcs, ctx->blk_geom->bsize)) {
         // If using hybrid MD for HBD content, use 8bit pic for the IFS search
         if (ctx->hbd_md == EB_DUAL_BIT_MD && hbd_md == EB_DUAL_BIT_MD) {
@@ -5062,12 +5082,20 @@ EbErrorType svt_aom_inter_pu_prediction_av1(uint8_t hbd_md, ModeDecisionContext 
         recon_neigh_cr = ctx->cr_recon_na_16bit;
     }
 
+#if CLN_PRED_SIGS
+    uint32_t component_mask = ctx->mds_do_chroma ? PICTURE_BUFFER_DESC_FULL_MASK : PICTURE_BUFFER_DESC_LUMA_MASK;
+#else
     uint32_t component_mask = (ctx->mds_skip_uv_pred || ctx->uv_ctrls.uv_mode == CHROMA_MODE_2)
         ? PICTURE_BUFFER_DESC_LUMA_MASK
         : PICTURE_BUFFER_DESC_FULL_MASK;
+#endif
 
     // Skip luma prediction if
+#if CLN_VALID_PRED
+    if (ctx->md_stage >= MD_STAGE_1 && cand_bf->valid_luma_pred &&
+#else
     if (ctx->md_stage >= MD_STAGE_1 && cand_bf->valid_pred &&
+#endif
         interp_filters_0 == interp_filters_1) { // already performed and IFS did not change it
         if (component_mask == PICTURE_BUFFER_DESC_FULL_MASK && !ctx->need_hbd_comp_mds3) {
             // The mask generation for DIFFWTD compound mode is done for luma, using luma samples, so must always
@@ -5118,9 +5146,13 @@ EbErrorType svt_aom_inter_pu_prediction_av1_obmc(uint8_t hbd_md, ModeDecisionCon
                                                  ModeDecisionCandidateBuffer *cand_bf) {
     EbErrorType return_error = EB_ErrorNone;
 
+#if CLN_PRED_SIGS
+    uint32_t component_mask = ctx->mds_do_chroma ? PICTURE_BUFFER_DESC_FULL_MASK : PICTURE_BUFFER_DESC_LUMA_MASK;
+#else
     uint32_t component_mask = (ctx->mds_skip_uv_pred || ctx->uv_ctrls.uv_mode == CHROMA_MODE_2)
         ? PICTURE_BUFFER_DESC_LUMA_MASK
         : PICTURE_BUFFER_DESC_FULL_MASK;
+#endif
 
     av1_inter_prediction_obmc(
         pcs,

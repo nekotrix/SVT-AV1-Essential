@@ -79,6 +79,10 @@ static void svt_reference_object_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->sb_64x64_mvp);
     EB_FREE_ARRAY(obj->sb_me_64x64_dist);
     EB_FREE_ARRAY(obj->sb_me_8x8_cost_var);
+#if OPT_DEPTHS_CTRL
+    EB_FREE_ARRAY(obj->sb_min_sq_size);
+    EB_FREE_ARRAY(obj->sb_max_sq_size);
+#endif
     for (uint8_t sr_denom_idx = 0; sr_denom_idx < NUM_SR_SCALES + 1; sr_denom_idx++) {
         for (uint8_t resize_denom_idx = 0; resize_denom_idx < NUM_RESIZE_SCALES + 1; resize_denom_idx++) {
             if (obj->downscaled_reference_picture[sr_denom_idx][resize_denom_idx] != NULL) {
@@ -194,6 +198,10 @@ EbErrorType svt_reference_object_ctor(EbReferenceObject *ref_object, EbPtr objec
     EB_MALLOC_ARRAY(ref_object->sb_64x64_mvp, picture_buffer_desc_init_data_ptr->sb_total_count);
     EB_MALLOC_ARRAY(ref_object->sb_me_64x64_dist, picture_buffer_desc_init_data_ptr->sb_total_count);
     EB_MALLOC_ARRAY(ref_object->sb_me_8x8_cost_var, picture_buffer_desc_init_data_ptr->sb_total_count);
+#if OPT_DEPTHS_CTRL
+    EB_MALLOC_ARRAY(ref_object->sb_min_sq_size, picture_buffer_desc_init_data_ptr->sb_total_count);
+    EB_MALLOC_ARRAY(ref_object->sb_max_sq_size, picture_buffer_desc_init_data_ptr->sb_total_count);
+#endif
     return EB_ErrorNone;
 }
 

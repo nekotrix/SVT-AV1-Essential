@@ -1202,7 +1202,12 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
                                                              ctx->blk_geom->bwidth));
                 }
             }
+#if CLN_PRED_SIGS
+            if (ctx->mds_do_chroma) {
+                assert(ctx->blk_geom->has_uv);
+#else
             if (ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && ctx->mds_skip_uv_pred == false) {
+#endif
                 if (ctx->mds0_ctrls.mds0_dist_type == SSD) {
                     EbSpatialFullDistType spatial_full_dist_type_fun = ctx->hbd_md ? svt_full_distortion_kernel16_bits
                                                                                    : svt_spatial_full_distortion_kernel;
@@ -1275,10 +1280,18 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
                 cand_bf->fast_chroma_rate = simple_translation_fast_chroma_rate;
                 cand_bf->luma_fast_dist   = simple_translation_luma_fast_distortion;
 
+#if CLN_VALID_PRED
+                cand_bf->valid_luma_pred = 0;
+#else
                 cand_bf->valid_pred = 0;
+#endif
 
             } else {
+#if CLN_VALID_PRED
+                cand_bf->valid_luma_pred = 1;
+#else
                 cand_bf->valid_pred = 1;
+#endif
             }
         }
     }
@@ -1360,7 +1373,12 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
                                                      ctx->blk_geom->bwidth));
         }
     }
+#if CLN_PRED_SIGS
+    if (ctx->mds_do_chroma) {
+        assert(ctx->blk_geom->has_uv);
+#else
     if (ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && ctx->mds_skip_uv_pred == false) {
+#endif
         if (ctx->mds0_ctrls.mds0_dist_type == SSD) {
             EbSpatialFullDistType spatial_full_dist_type_fun = ctx->hbd_md ? svt_full_distortion_kernel16_bits
                                                                            : svt_spatial_full_distortion_kernel;
@@ -1462,13 +1480,22 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
             luma_fast_dist,
             chroma_fast_distortion);
     }
+#if CLN_VALID_PRED
+    cand_bf->valid_luma_pred = 1;
+#else
     cand_bf->valid_pred = 1;
+#endif
     if (ctx->obmc_ctrls.enabled && ctx->obmc_ctrls.trans_face_off == 1 &&
         (*(cand_bf->fast_cost) * ctx->obmc_ctrls.trans_face_off_th) <= (ctx->mds0_best_class0_cost * 100))
         obmc_trans_face_off(cand_bf, pcs, ctx, input_pic, loc);
+#if OPT_MDS_FEATS_PRUNING
+    // Init full cost in case we bypass stage1/stage2
+    *(cand_bf->full_cost) = *(cand_bf->fast_cost);
+#else
     // Init full cost in case we by pass stage1/stage2
     if (ctx->nic_ctrls.md_staging_mode == MD_STAGING_MODE_0)
         *(cand_bf->full_cost) = *(cand_bf->fast_cost);
+#endif
 }
 /* Set the max number of NICs for each MD stage, based on the picture type and scaling settings.
 
@@ -1516,6 +1543,7 @@ void set_md_stage_counts(PictureControlSet *pcs, ModeDecisionContext *ctx) {
         : true;
     ctx->bypass_md_stage_2 = (ctx->nic_ctrls.md_staging_mode == MD_STAGING_MODE_2) ? false : true;
 
+#if !OPT_MDS_BYPASS_NICS
     // Step 3: update count for md_stage_1 and d_stage_2 if bypassed (no NIC
     // setting should be done beyond this point)
     if (ctx->bypass_md_stage_1) {
@@ -1526,6 +1554,7 @@ void set_md_stage_counts(PictureControlSet *pcs, ModeDecisionContext *ctx) {
         for (CandClass cidx = CAND_CLASS_0; cidx < CAND_CLASS_TOTAL; cidx++)
             ctx->md_stage_3_count[cidx] = ctx->md_stage_2_count[cidx];
     }
+#endif
 }
 static void sort_fast_cost_based_candidates(
     struct ModeDecisionContext *ctx, uint32_t input_buffer_start_idx,
@@ -1635,8 +1664,12 @@ static void md_stage_0_light_pd1(PictureControlSet *pcs, ModeDecisionContext *ct
                                  ModeDecisionCandidate *fast_cand_array, uint32_t fast_cand_count,
                                  EbPictureBufferDesc *input_pic, BlockLocation *loc) {
     // Set MD Staging fast_loop_core settings
+#if CLN_PRED_SIGS
+    ctx->mds_do_chroma = false;
+#else
     ctx->mds_skip_uv_pred = true;
     ctx->end_plane        = 1;
+#endif
     /* If the interpolation filter type is assigned at the picture level, use that value, OW use regular.
      * NB intra_bc always uses BILINEAR, but IBC is not allowed in LPD1. */
     const InterpFilter default_interp_filter = (pcs->ppcs->frm_hdr.interpolation_filter == SWITCHABLE)
@@ -1664,24 +1697,81 @@ static void md_stage_0_light_pd1(PictureControlSet *pcs, ModeDecisionContext *ct
 }
 // returns true if the candidate should be processed during the current MDS0 iteration, false otherwise.
 // Function will only be applicate to classes which use multiple iterations
-static bool process_cand_itr(ModeDecisionCandidate *cand, uint8_t itr, PredictionMode best_reg_intra_mode,
-                             uint64_t best_reg_intra_cost, uint64_t regular_intra_cost[PAETH_PRED + 1]) {
+#if OPT_INTRA 
+static bool process_cand_itr(ModeDecisionContext* ctx, ModeDecisionCandidate* cand, uint8_t itr, PredictionMode best_reg_intra_mode,
+    uint64_t best_reg_intra_cost, uint64_t regular_intra_cost[PAETH_PRED + 1]) {
+#else
+static bool process_cand_itr(ModeDecisionCandidate * cand, uint8_t itr, PredictionMode best_reg_intra_mode,
+    uint64_t best_reg_intra_cost, uint64_t regular_intra_cost[PAETH_PRED + 1]) {
+#endif
     if (itr == 0) {
+#if OPT_INTRA
+#if OPT_FILTER_INTRA
+        if (ctx->filter_intra_ctrls.reduce_filter_intra && (ctx->intra_ctrls.skip_angular_delta1_th != -1 || ctx->intra_ctrls.skip_angular_delta2_th != -1 || ctx->intra_ctrls.skip_angular_delta3_th != -1)) {
+#else
+        if (ctx->cand_reduction_ctrls.reduce_filter_intra && (ctx->intra_ctrls.skip_angular_delta1_th != -1 || ctx->intra_ctrls.skip_angular_delta2_th != -1 || ctx->intra_ctrls.skip_angular_delta3_th != -1)) {
+#endif
+            // Eval regular only if itr=0 (i.e. skip angular and skip filter)
+            if (cand->angle_delta[PLANE_TYPE_Y] != 0 || cand->filter_intra_mode != FILTER_INTRA_MODES)
+                return false;
+        }
+        else if (ctx->intra_ctrls.skip_angular_delta1_th != -1 || ctx->intra_ctrls.skip_angular_delta2_th != -1 || ctx->intra_ctrls.skip_angular_delta3_th != -1) {
+            // Eval regular and filter intra only if itr=0 (i.e. skip angular)
+            if (cand->angle_delta[PLANE_TYPE_Y] != 0)
+                return false;
+        }        
+        else { // if (ctx->cand_reduction_ctrls.reduce_filter_intra)
+            // Eval regular and angular only if itr=0 (i.e. skip filter)
+            if (cand->filter_intra_mode != FILTER_INTRA_MODES)
+                return false;
+        }
+#else
         // Eval regular only if itr=0 (i.e. skip angular and skip filter)
         if (cand->angle_delta[PLANE_TYPE_Y] != 0 || cand->filter_intra_mode != FILTER_INTRA_MODES)
             return false;
+#endif
     } else {
+#if OPT_INTRA
+#if OPT_FILTER_INTRA
+        if (ctx->filter_intra_ctrls.reduce_filter_intra && (ctx->intra_ctrls.skip_angular_delta1_th != -1 || ctx->intra_ctrls.skip_angular_delta2_th != -1 || ctx->intra_ctrls.skip_angular_delta3_th != -1)) {
+#else
+        if (ctx->cand_reduction_ctrls.reduce_filter_intra && (ctx->intra_ctrls.skip_angular_delta1_th != -1 || ctx->intra_ctrls.skip_angular_delta2_th != -1 || ctx->intra_ctrls.skip_angular_delta3_th != -1)) {
+#endif
+            // Eval angular and filter intra if itr=1 (i.e. skip regular)
+            if (cand->angle_delta[PLANE_TYPE_Y] == 0 && cand->filter_intra_mode == FILTER_INTRA_MODES)
+                return false;
+        }
+        else if ((ctx->intra_ctrls.skip_angular_delta1_th != -1 || ctx->intra_ctrls.skip_angular_delta2_th != -1 || ctx->intra_ctrls.skip_angular_delta3_th != -1)) {
+            // Eval angular only if itr=1 (i.e. skip regular and skip filter intra)
+            if (cand->angle_delta[PLANE_TYPE_Y] == 0)
+                return false;
+        }
+        else { // if (ctx->cand_reduction_ctrls.reduce_filter_intra)
+            // Eval filter intra only if itr=1 (i.e. skip regular and skip angular)
+            if (cand->filter_intra_mode == FILTER_INTRA_MODES)
+                return false;
+        }
+#else
         // Eval angular and filter intra if itr=1 (i.e. skip regular)
         if (cand->angle_delta[PLANE_TYPE_Y] == 0 && cand->filter_intra_mode == FILTER_INTRA_MODES)
             return false;
-
+#endif
         // Use regular info to reduce angular processing
         // Eval the child-angular if the parent-angular is the best out of the regular modes (i.e. itr=0 eval)
         if (cand->filter_intra_mode == FILTER_INTRA_MODES) {
             if (best_reg_intra_mode != cand->pred_mode) {
+#if OPT_INTRA
+                if (ctx->intra_ctrls.skip_angular_delta1_th != -1 && (abs(cand->angle_delta[PLANE_TYPE_Y]) == 1) && (((regular_intra_cost[cand->pred_mode] - MAX(best_reg_intra_cost, 1)) * 100)  > ctx->intra_ctrls.skip_angular_delta1_th * best_reg_intra_cost))
+                    return false;
+                else if (ctx->intra_ctrls.skip_angular_delta2_th != -1 && (abs(cand->angle_delta[PLANE_TYPE_Y]) == 2) && (((regular_intra_cost[cand->pred_mode] - MAX(best_reg_intra_cost, 1)) * 100) > ctx->intra_ctrls.skip_angular_delta2_th * best_reg_intra_cost))
+                    return false;
+                else if (ctx->intra_ctrls.skip_angular_delta3_th != -1 && (abs(cand->angle_delta[PLANE_TYPE_Y]) == 3) && (((regular_intra_cost[cand->pred_mode] - MAX(best_reg_intra_cost, 1)) * 100) > ctx->intra_ctrls.skip_angular_delta3_th * best_reg_intra_cost))
+                    return false;
+#else
                 if ((((regular_intra_cost[cand->pred_mode] - MAX(best_reg_intra_cost, 1)) * 100) /
                      MAX(best_reg_intra_cost, 1)) > MDS0_REDUCE_ANGULAR_INTRA_TH)
                     return false;
+#endif
             }
         } else {
             // Eval filter candidates
@@ -1704,19 +1794,29 @@ static void md_stage_0(PictureControlSet *pcs, ModeDecisionContext *ctx,
                        uint32_t max_buffers) {
     const uint8_t apply_unipred_bias = pcs->scs->vq_ctrls.sharpness_ctrls.unipred_bias && pcs->ppcs->is_noise_level;
     // Set MD Staging fast_loop_core settings
+#if CLN_RENAME_MDS_SKIP
+    ctx->mds_do_ifs = (ctx->ifs_ctrls.level == IFS_MDS0);
+#else
     ctx->mds_skip_ifs = (ctx->ifs_ctrls.level == IFS_MDS0) ? false : true;
+#endif
     /* If the interpolation filter type is known, assign it, OW will be assigned in IFS search.
      * NB intra_bc always uses BILINEAR, but the IBC filters are updated automatically during prediction, so
      * no need for a special check here. */
     const InterpFilter default_interp_filter = (pcs->ppcs->frm_hdr.interpolation_filter == SWITCHABLE)
         ? 0
         : av1_broadcast_interp_filter(pcs->ppcs->frm_hdr.interpolation_filter);
+#if CLN_PRED_SIGS
+    ctx->mds_do_chroma = false;
+#else
     ctx->mds_skip_uv_pred                    = true;
+#endif
     // 2nd fast loop: src-to-recon
     uint32_t highest_cost_index = cand_bf_start_index;
+#if !CLN_PRED_SIGS
     ctx->end_plane = (ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && !ctx->mds_skip_uv_pred)
         ? (int)MAX_MB_PLANE
         : 1;
+#endif
 
     // Process CLASS_0 candidates through iterations at mds0;
     // 1st iteration : evaluate the regular mode(s).
@@ -1725,8 +1825,15 @@ static void md_stage_0(PictureControlSet *pcs, ModeDecisionContext *ctx,
     //    - skip pAngle !=0 of a given mode, if pAngle==0 of the same mode is not the best after the 1st iteration
     //      and if the cost to the best is significant
     //    - skip filter-intra mode if regular winner does not match (e.g. test filter-paeth if Paeth is best at first pass). Always test filter-DC.
+#if OPT_INTRA
+#if OPT_FILTER_INTRA
+    uint8_t tot_itr = (ctx->target_class != CAND_CLASS_0 || (!ctx->filter_intra_ctrls.reduce_filter_intra && !((ctx->intra_ctrls.skip_angular_delta1_th != -1 || ctx->intra_ctrls.skip_angular_delta2_th != -1 || ctx->intra_ctrls.skip_angular_delta3_th != -1)))) ? 1 : 2;
+#else
+    uint8_t tot_itr = (ctx->target_class != CAND_CLASS_0 || (!ctx->cand_reduction_ctrls.reduce_filter_intra && !((ctx->intra_ctrls.skip_angular_delta1_th != -1 || ctx->intra_ctrls.skip_angular_delta2_th != -1 || ctx->intra_ctrls.skip_angular_delta3_th != -1)))) ? 1 : 2;
+#endif
+#else
     uint8_t tot_itr = (ctx->target_class != CAND_CLASS_0 || !ctx->cand_reduction_ctrls.mds0_reduce_intra) ? 1 : 2;
-
+#endif
     uint64_t       best_reg_intra_cost = MAX_CU_COST; // Derived at the 1st itr
     PredictionMode best_reg_intra_mode = INTRA_INVALID; // Derived at the 1st itr
     uint64_t       regular_intra_cost[PAETH_PRED + 1];
@@ -1745,7 +1852,11 @@ static void md_stage_0(PictureControlSet *pcs, ModeDecisionContext *ctx,
             cand->interp_filters                              = default_interp_filter;
             // Check whether a candidate should be considered in the current iteration
             if (tot_itr > 1) {
+#if OPT_INTRA
+                if (!process_cand_itr(ctx, cand, itr, best_reg_intra_mode, best_reg_intra_cost, regular_intra_cost))
+#else
                 if (!process_cand_itr(cand, itr, best_reg_intra_mode, best_reg_intra_cost, regular_intra_cost))
+#endif
                     continue;
             }
 
@@ -1766,7 +1877,11 @@ static void md_stage_0(PictureControlSet *pcs, ModeDecisionContext *ctx,
             if (*cand_bf->fast_cost < ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class]) {
                 ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class] = *cand_bf->fast_cost;
             }
+#if OPT_INTRA
+            if (tot_itr > 1 && itr == 0 && cand->filter_intra_mode == FILTER_INTRA_MODES) {
+#else
             if (tot_itr > 1 && itr == 0) {
+#endif
                 regular_intra_cost[cand->pred_mode] = *cand_bf->fast_cost;
 
                 if (*cand_bf->fast_cost < best_reg_intra_cost) {
@@ -3762,7 +3877,11 @@ static void cfl_prediction(PictureControlSet *pcs, ModeDecisionCandidateBuffer *
     // Need DC prediction for CFL
     if (non_cfl_uv_mode != UV_DC_PRED) {
         ctx->uv_intra_comp_only = true;
+#if CLN_PRED_SIGS
+        assert(ctx->mds_do_chroma);
+#else
         ctx->mds_skip_uv_pred   = false;
+#endif
         svt_product_prediction_fun_table[is_inter_mode(cand_bf->cand->pred_mode)](ctx->hbd_md, ctx, pcs, cand_bf);
     }
 
@@ -3848,7 +3967,11 @@ static void cfl_prediction(PictureControlSet *pcs, ModeDecisionCandidateBuffer *
         // CFL computed DC pred, so if not using DC, need to redo the prediction
         if (non_cfl_uv_mode != UV_DC_PRED) {
             ctx->uv_intra_comp_only = true;
+#if CLN_PRED_SIGS
+            assert(ctx->mds_do_chroma);
+#else
             ctx->mds_skip_uv_pred   = false;
+#endif
             svt_product_prediction_fun_table[is_inter_mode(cand_bf->cand->pred_mode)](ctx->hbd_md, ctx, pcs, cand_bf);
         }
     }
@@ -3916,7 +4039,11 @@ static void check_best_indepedant_cfl(PictureControlSet *pcs, EbPictureBufferDes
         *cb_coeff_bits = 0;
         *cr_coeff_bits = 0;
 
+#if CLN_PRED_SIGS
+        assert(ctx->mds_do_chroma);
+#else
         ctx->mds_skip_uv_pred = false;
+#endif
         svt_product_prediction_fun_table[is_inter_mode(cand_bf->cand->pred_mode)](ctx->hbd_md, ctx, pcs, cand_bf);
         // Cb Residual
         svt_aom_residual_kernel(input_pic->buffer_cb,
@@ -4438,7 +4565,11 @@ static void perform_tx_light_pd0(PictureControlSet *pcs, ModeDecisionContext *ct
 // Return true if DCT_DCT is the only TX type to search
 static INLINE bool search_dct_dct_only(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                        ModeDecisionCandidateBuffer *cand_bf, uint8_t tx_depth, uint8_t is_inter) {
+#if CLN_RENAME_MDS_SKIP
+    if (!ctx->mds_do_txt)
+#else
     if (ctx->mds_txt_level == 0)
+#endif
         return 1;
 
     // If previous MD stages have 0 coeffs, use DCT_DCT only
@@ -4698,8 +4829,13 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
             if (y_has_coeff == 0 && tx_type != DCT_DCT)
                 continue;
 
+#if CLN_RENAME_MDS_SKIP
+            // Perform inverse TX if using spatial SSE or INTRA and tx_depth > 0
+            if (ctx->mds_do_spatial_sse || (!is_inter && cand_bf->cand->tx_depth)) {
+#else
             // Perform T-1 if mds_spatial_sse or  INTRA and tx_depth > 0 or
             if (ctx->mds_spatial_sse || (!is_inter && cand_bf->cand->tx_depth)) {
+#endif
                 if (y_has_coeff)
                     svt_aom_inv_transform_recon_wrapper(pcs,
                                                         ctx,
@@ -5170,6 +5306,10 @@ static void perform_tx_partitioning(ModeDecisionCandidateBuffer *cand_bf, ModeDe
         if (best_coeff_count < ctx->txs_ctrls.prev_depth_coeff_exit_th) {
             continue;
         }
+#if OPT_TXS_D2_IFF_D1_BEST
+        if (ctx->txs_ctrls.test_d2_iff_d1_best && ctx->tx_depth == 2 && best_tx_depth != 1 && start_tx_depth < 2)
+            continue;
+#endif
         if (ctx->tx_depth) {
             init_tx_cand_bf(cand_bf, ctx, ctx->tx_depth, is_inter);
             tx_reset_neighbor_arrays(pcs, ctx, is_inter, ctx->tx_depth);
@@ -5570,8 +5710,13 @@ static void perform_dct_dct_tx(PictureControlSet *pcs, ModeDecisionContext *ctx,
         cand_bf->eob.y[txb_itr]      = 0;
     }
 
+#if CLN_RENAME_MDS_SKIP
+    // Perform inverse TX if using spatial SSE (assumes TX depth is 0 b/c TXS is assumed off)
+    if (ctx->mds_do_spatial_sse) {
+#else
     // Perform T-1 if mds_spatial_sse (assumes TX depth is 0 b/c TXS is assumed off)
     if (ctx->mds_spatial_sse) {
+#endif
         const SsimLevel ssim_level = ctx->tune_ssim_level;
         assert(IMPLIES(ssim_level > SSIM_LVL_0, ctx->pd_pass == PD_PASS_1));
         assert(IMPLIES(ssim_level > SSIM_LVL_0, ctx->md_stage == MD_STAGE_3));
@@ -6221,14 +6366,24 @@ static void full_loop_core_light_pd1(PictureControlSet *pcs, ModeDecisionContext
     // If need 10bit prediction, perform luma compensation before TX
     if ((perform_tx || recon_needed) && ctx->hbd_md) {
         ctx->md_stage           = MD_STAGE_0;
+#if CLN_PRED_SIGS
+        ctx->mds_do_chroma = false;
+#else
         ctx->end_plane          = 1;
         ctx->mds_skip_uv_pred   = 1;
+#endif
         ctx->uv_intra_comp_only = false;
         svt_product_prediction_fun_table_light_pd1[is_inter_mode(cand->pred_mode)](ctx->hbd_md, ctx, pcs, cand_bf);
         ctx->md_stage           = MD_STAGE_3;
+#if !CLN_PRED_SIGS
         ctx->end_plane          = MAX_MB_PLANE;
+#endif
         ctx->uv_intra_comp_only = true;
+#if CLN_PRED_SIGS
+        ctx->mds_do_chroma = true;
+#else
         ctx->mds_skip_uv_pred   = 0;
+#endif
     }
     if (perform_tx) {
         perform_dct_dct_tx_light_pd1(pcs, ctx, cand_bf, loc, &y_coeff_bits, y_full_distortion[DIST_SSD]);
@@ -6339,7 +6494,11 @@ static INLINE void get_start_end_tx_depth(PictureParentControlSet *ppcs, ModeDec
 
     if (txs_ctrls->enabled == 0) {
         *start_tx_depth = *end_tx_depth = 0;
+#if CLN_RENAME_MDS_SKIP
+    } else if (!ctx->mds_do_txs) {
+#else
     } else if (ctx->mds_tx_size_mode == 0) {
+#endif
         *start_tx_depth = *end_tx_depth = cand->tx_depth;
     } else {
         *start_tx_depth = 0;
@@ -6441,7 +6600,11 @@ static INLINE void opt_non_translation_motion_mode(PictureControlSet *pcs, ModeD
                                              1);
 
             update_fast_luma_rate(ctx, cand_bf, cand, default_mv, default_ref_mv, list_idx);
+#if CLN_VALID_PRED
+            cand_bf->valid_luma_pred = 0;
+#else
             cand_bf->valid_pred = 0;
+#endif
         } else {
             // If refined mode was not valid, or the MV was not changed, reset the original settings to proceed with processing the candidate
             cand->mv[list_idx].as_int      = default_mv.as_int;
@@ -6471,7 +6634,11 @@ static INLINE void opt_non_translation_motion_mode(PictureControlSet *pcs, ModeD
         if (motion_mode_valid) {
             if (default_mv.as_int != cand_bf->cand->mv[list_idx].as_int) {
                 update_fast_luma_rate(ctx, cand_bf, cand, default_mv, default_ref_mv, list_idx);
+#if CLN_VALID_PRED
+                cand_bf->valid_luma_pred = 0;
+#else
                 cand_bf->valid_pred = 0;
+#endif
             }
         } else {
             // If refined mode was not valid, reset the original settings to proceed with processing the candidate
@@ -6506,14 +6673,34 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
     cand->skip_mode = false;
     if (is_inter_mode(cand->pred_mode)) {
         opt_non_translation_motion_mode(pcs, ctx, cand_bf, cand);
+#if CLN_PRED_SIGS
+        if (ctx->mds_do_chroma || ctx->mds_do_ifs || cand_bf->valid_luma_pred == 0 || ctx->need_hbd_comp_mds3) {
+#else
+#if CLN_VALID_PRED
+        if (ctx->mds_do_inter_pred || cand_bf->valid_luma_pred == 0) {
+#else
         if (ctx->mds_do_inter_pred || cand_bf->valid_pred == 0) {
+#endif
+#endif
             // Perform INTER prediction
             svt_product_prediction_fun_table[1](ctx->hbd_md, ctx, pcs, cand_bf);
+#if CLN_VALID_PRED
+            cand_bf->valid_luma_pred = 1;
+#else
             cand_bf->valid_pred = 1;
+#endif
         }
+#if CLN_PRED_SIGS
+    } else if (ctx->mds_do_chroma || ctx->need_hbd_comp_mds3) {
+        /* For intra, the luma pred should be valid from MDS0(there is no refinement - ifs, obmc / wm, etc. - that causes
+         * inter to sometimes be invalid. If the encoder is changed so that luma pred becomes invalid, we should add that
+         * check above to ensure the prediction is always valid before the transform.*/
+        assert(cand_bf->valid_luma_pred);
+#else
     } else if ((ctx->mds_skip_full_uv == false && (ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1) &&
                 ctx->mds_do_intra_uv_pred) ||
                ctx->need_hbd_comp_mds3) {
+#endif
         ctx->uv_intra_comp_only = ctx->need_hbd_comp_mds3 ? false : true;
         // Here, the mode is INTRA, but if intra_bc is used, must use inter prediction function
         svt_product_prediction_fun_table[cand_bf->cand->use_intrabc](ctx->hbd_md, ctx, pcs, cand_bf);
@@ -6648,7 +6835,12 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
 
     // FullLoop and TU search
     uint16_t cb_qindex = ctx->qp_index;
+#if CLN_PRED_SIGS
+    if (ctx->mds_do_chroma) {
+        assert(ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1);
+#else
     if (ctx->mds_skip_full_uv == false && ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1) {
+#endif
         bool cfl_performed = false;
         if (!is_inter && ctx->md_stage == MD_STAGE_3 && ctx->cfl_ctrls.enabled &&
             MAX(ctx->blk_geom->bheight, ctx->blk_geom->bwidth) <= 32) {
@@ -6740,27 +6932,54 @@ static void md_stage_1(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
     ModeDecisionCandidateBuffer **cand_bf_ptr_array      = &(cand_bf_ptr_array_base[0]);
 
     // Set MD Staging full_loop_core settings
+#if CLN_RENAME_MDS_SKIP
+    ctx->mds_do_txs = false;
+    ctx->mds_do_txt = false;
+#else
     ctx->mds_tx_size_mode = 0;
     ctx->mds_txt_level    = 0;
+#endif
+#if !CLN_PRED_SIGS
     ctx->mds_skip_full_uv = true;
+#endif
 
+#if CLN_RENAME_MDS_SKIP
+    ctx->mds_do_spatial_sse = false;
+#else
     ctx->mds_spatial_sse          = false;
+#endif
     ctx->mds_fast_coeff_est_level = (ctx->pd_pass == PD_PASS_1) ? 1 : ctx->rate_est_ctrls.pd0_fast_coeff_est_level;
     ctx->mds_subres_step          = ctx->subres_ctrls.step;
+#if CLN_PRED_SIGS
+    ctx->mds_do_chroma           = false;
+#else
     ctx->mds_skip_uv_pred         = true;
     ctx->mds_do_intra_uv_pred     = false;
     ctx->mds_do_inter_pred        = (ctx->ifs_ctrls.level == IFS_MDS1) ? true : false;
+#endif
+#if CLN_RENAME_MDS_SKIP
+    ctx->mds_do_ifs = (ctx->ifs_ctrls.level == IFS_MDS1);
+    ctx->mds_do_rdoq = false;
+#else
     ctx->mds_skip_ifs             = (ctx->ifs_ctrls.level == IFS_MDS1) ? false : true;
+#if OPT_MDS_FEATS_PRUNING
+    ctx->mds_skip_rdoq            = true;
+#endif
+#endif
+#if !CLN_PRED_SIGS
     ctx->end_plane = (ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && !ctx->mds_skip_uv_pred)
         ? (int)MAX_MB_PLANE
         : 1;
+#endif
     for (uint32_t full_loop_candidate_index = 0; full_loop_candidate_index < ctx->md_stage_1_count[ctx->target_class];
          ++full_loop_candidate_index) {
         uint32_t                     cand_index = ctx->cand_buff_indices[ctx->target_class][full_loop_candidate_index];
         ModeDecisionCandidateBuffer *cand_bf    = cand_bf_ptr_array[cand_index];
         ModeDecisionCandidate       *cand       = cand_bf->cand;
+#if !OPT_MDS_FEATS_PRUNING
         // Use RDOQ in MDS1 for intra candidates if MDS2 is bypassed (otherwise RDOQ is already used for intra candidates in MDS2)
         ctx->mds_skip_rdoq = (ctx->bypass_md_stage_2 && is_intra_mode(cand->pred_mode)) ? false : true;
+#endif
         full_loop_core(pcs,
                        ctx,
                        cand_bf,
@@ -6778,19 +6997,61 @@ static void md_stage_2(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
     ModeDecisionCandidateBuffer **cand_bf_ptr_array_base = ctx->cand_bf_ptr_array;
     ModeDecisionCandidateBuffer **cand_bf_ptr_array      = &(cand_bf_ptr_array_base[0]);
 
+#if !CLN_PRED_SIGS
     ctx->mds_do_inter_pred    = (ctx->ifs_ctrls.level == IFS_MDS2) ? true : false;
+#endif
+#if CLN_RENAME_MDS_SKIP
+    ctx->mds_do_ifs = (ctx->ifs_ctrls.level == IFS_MDS2);
+#else
     ctx->mds_skip_ifs         = (ctx->ifs_ctrls.level == IFS_MDS2) ? false : true;
+#endif
+#if OPT_MDS_FEATS_PRUNING
+#if CLN_RENAME_MDS_SKIP
+    ctx->mds_do_txs = false;
+    ctx->mds_do_rdoq = false;
+    ctx->mds_do_spatial_sse = false;
+#else
+    ctx->mds_tx_size_mode = 0;
+    ctx->mds_skip_rdoq    = true;
+    ctx->mds_spatial_sse  = false;
+#endif
+    ctx->mds_fast_coeff_est_level = (ctx->pd_pass == PD_PASS_1) ? 1 : ctx->rate_est_ctrls.pd0_fast_coeff_est_level;
+    ctx->mds_subres_step          = (ctx->pd_pass == PD_PASS_1) ? 0 : ctx->subres_ctrls.step;
+#endif
+#if CLN_PRED_SIGS
+    ctx->mds_do_chroma = false;
+#else
     ctx->mds_skip_uv_pred     = true;
     ctx->mds_do_intra_uv_pred = false;
     ctx->end_plane = (ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && !ctx->mds_skip_uv_pred)
         ? (int)MAX_MB_PLANE
         : 1;
+#endif
     // Set MD Staging full_loop_core settings
     for (uint32_t fullLoopCandidateIndex = 0; fullLoopCandidateIndex < ctx->md_stage_2_count[ctx->target_class];
          ++fullLoopCandidateIndex) {
         uint32_t                     candidateIndex = ctx->cand_buff_indices[ctx->target_class][fullLoopCandidateIndex];
         ModeDecisionCandidateBuffer *cand_bf        = cand_bf_ptr_array[candidateIndex];
         ModeDecisionCandidate       *cand           = cand_bf->cand;
+#if OPT_MDS_FEATS_PRUNING
+        // There is no difference between MDS1/MDS2 for inter candidates, so no need to recompute.
+        // If spatial SSE is used in MDS2, we must check all candidates, otherwise the inter vs. intra cost
+        // will be inaccurate.
+#if CLN_PRED_SIGS
+        if (is_inter_mode(cand->pred_mode) && !ctx->mds_do_ifs)
+            continue;
+#else
+        if (is_inter_mode(cand->pred_mode) && !ctx->mds_do_inter_pred)
+            continue;
+#endif
+#if CLN_RENAME_MDS_SKIP
+        ctx->mds_do_txt = svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) ? 0
+#else
+        ctx->mds_txt_level = svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) ? 0
+#endif
+            : is_intra_mode(cand->pred_mode) ? ctx->txt_ctrls.enabled
+            : 0;
+#else
         ctx->mds_tx_size_mode                       = 0;
         ctx->mds_txt_level                          = svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) ? 0
                                      : is_intra_mode(cand->pred_mode) ? ctx->txt_ctrls.enabled
@@ -6800,6 +7061,7 @@ static void md_stage_2(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
         ctx->mds_spatial_sse                        = ctx->spatial_sse_ctrls.spatial_sse_full_loop_level;
         ctx->mds_fast_coeff_est_level = (ctx->pd_pass == PD_PASS_1) ? 1 : ctx->rate_est_ctrls.pd0_fast_coeff_est_level;
         ctx->mds_subres_step          = (ctx->pd_pass == PD_PASS_1) ? 0 : ctx->subres_ctrls.step;
+#endif
 
         full_loop_core(pcs,
                        ctx,
@@ -6824,9 +7086,10 @@ static void update_intra_chroma_mode(PictureControlSet *pcs, ModeDecisionContext
         const int32_t          angle_delta       = ctx->best_uv_angle[cand->pred_mode];
 
         if (cand->intra_chroma_mode != intra_chroma_mode || cand->angle_delta[PLANE_TYPE_UV] != angle_delta) {
+#if !CLN_PRED_SIGS
             // Set to true to redo INTRA CHROMA compensation
             ctx->mds_do_intra_uv_pred = true;
-
+#endif
             // Update intra_chroma_mode
             cand->intra_chroma_mode          = intra_chroma_mode;
             cand->angle_delta[PLANE_TYPE_UV] = angle_delta;
@@ -6864,14 +7127,23 @@ static void md_stage_3_light_pd1(PictureControlSet *pcs, ModeDecisionContext *ct
     ModeDecisionCandidateBuffer *cand_bf = ctx->cand_bf_ptr_array[ctx->mds0_best_idx];
     ModeDecisionCandidate       *cand    = cand_bf->cand;
 
+#if CLN_PRED_SIGS
+    // chroma is performed for all blocks b/c LDP1 assumes 4xN/Nx4 blocks are disabled (blk_geom->has_uv assumed true)
+    ctx->mds_do_chroma = true;
+#else
     ctx->end_plane          = MAX_MB_PLANE;
+#endif
     ctx->uv_intra_comp_only = true;
     // If EncDec is bypassed, disable features affecting the TX that are usually disabled in EncDec
     if (ctx->bypass_encdec) {
         ctx->rdoq_ctrls.skip_uv      = 0;
         ctx->rdoq_ctrls.dct_dct_only = 0;
     }
+#if CLN_RENAME_MDS_SKIP
+    ctx->mds_do_rdoq = true;
+#else
     ctx->mds_skip_rdoq            = false;
+#endif
     ctx->mds_fast_coeff_est_level = 1;
     ctx->mds_subres_step          = 0;
     full_loop_core_light_pd1(pcs, ctx, cand_bf, cand, input_pic, loc);
@@ -6881,11 +7153,30 @@ static void md_stage_3(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
                        uint32_t blk_chroma_origin_index, uint32_t fullCandidateTotalCount) {
     ModeDecisionCandidateBuffer **cand_bf_ptr_array_base = ctx->cand_bf_ptr_array;
     ModeDecisionCandidateBuffer **cand_bf_ptr_array      = &(cand_bf_ptr_array_base[0]);
+#if CLN_RENAME_MDS_SKIP
+    // If EncDec is bypassed, disable features affecting the TX that are usually disabled in EncDec
+    if (ctx->bypass_encdec && ctx->pd_pass == PD_PASS_1) {
+        ctx->pf_ctrls.pf_shape = DEFAULT_SHAPE;
+        ctx->rdoq_ctrls.skip_uv = 0;
+        ctx->rdoq_ctrls.dct_dct_only = 0;
+    }
+
+    ctx->mds_do_ifs = (ctx->ifs_ctrls.level == IFS_MDS3);
+    ctx->mds_do_txs = ctx->txs_ctrls.enabled && (ctx->blk_geom->sq_size >= ctx->txs_ctrls.min_sq_size);
+    ctx->mds_do_rdoq = true;
+    ctx->mds_do_spatial_sse = ctx->spatial_sse_ctrls.spatial_sse_full_loop_level;
+    ctx->mds_fast_coeff_est_level = (ctx->pd_pass == PD_PASS_1) ? 1 : ctx->rate_est_ctrls.pd0_fast_coeff_est_level;
+    ctx->mds_subres_step = (ctx->pd_pass == PD_PASS_1) ? 0 : ctx->subres_ctrls.step;
+#endif
+#if CLN_PRED_SIGS
+    ctx->mds_do_chroma = (ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1) ? true : false;
+#else
     ctx->mds_do_intra_uv_pred                            = true;
     ctx->mds_skip_uv_pred                                = false;
     ctx->end_plane = (ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1 && !ctx->mds_skip_uv_pred)
         ? (int)MAX_MB_PLANE
         : 1;
+#endif
     for (uint32_t full_loop_candidate_index = 0; full_loop_candidate_index < fullCandidateTotalCount;
          ++full_loop_candidate_index) {
         uint32_t                     cand_index = ctx->best_candidate_index_array[full_loop_candidate_index];
@@ -6898,38 +7189,40 @@ static void md_stage_3(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
                     // Scale  palette colors to 10bit
                     for (uint8_t col = 0; col < cand->palette_size[0]; col++)
                         cand->palette_info->pmi.palette_colors[col] *= 4;
+#if !CLN_RENAME_MDS_SKIP
         // If EncDec is bypassed, disable features affecting the TX that are usually disabled in EncDec
         if (ctx->bypass_encdec && ctx->pd_pass == PD_PASS_1) {
             ctx->pf_ctrls.pf_shape  = DEFAULT_SHAPE;
             ctx->rdoq_ctrls.skip_uv = 0;
-
             ctx->rdoq_ctrls.dct_dct_only = 0;
         }
-
+#endif
+#if !CLN_PRED_SIGS
         // Set MD Staging full_loop_core settings
-
         ctx->mds_do_inter_pred = ctx->nic_ctrls.md_staging_mode != MD_STAGING_MODE_0 ||
-
             (ctx->pd_pass == PD_PASS_1 && ctx->need_hbd_comp_mds3);
-
+#endif
+#if !CLN_RENAME_MDS_SKIP
         ctx->mds_skip_ifs = (ctx->ifs_ctrls.level == IFS_MDS3) ? false : true;
-
+#endif
+#if CLN_RENAME_MDS_SKIP
+        ctx->mds_do_txt = svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) ? 0 : ctx->txt_ctrls.enabled;
+#else
         ctx->mds_tx_size_mode = ctx->txs_ctrls.enabled && (ctx->blk_geom->sq_size >= ctx->txs_ctrls.min_sq_size);
         ctx->mds_txt_level    = svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) ? 0 : ctx->txt_ctrls.enabled;
+#endif
+#if !CLN_PRED_SIGS
         ctx->mds_skip_full_uv = false;
-
+#endif
+#if !CLN_RENAME_MDS_SKIP
         ctx->mds_skip_rdoq = false;
-
         ctx->mds_spatial_sse = ctx->spatial_sse_ctrls.spatial_sse_full_loop_level;
-
         ctx->mds_fast_coeff_est_level = (ctx->pd_pass == PD_PASS_1) ? 1 : ctx->rate_est_ctrls.pd0_fast_coeff_est_level;
-
         ctx->mds_subres_step = (ctx->pd_pass == PD_PASS_1) ? 0 : ctx->subres_ctrls.step;
+#endif
 
         // If independent chroma search was performed before the last MD stage, update the chroma data
-
         if (ctx->ind_uv_avail && ctx->uv_ctrls.ind_uv_last_mds)
-
             update_intra_chroma_mode(pcs, ctx, cand_bf);
 
         full_loop_core(pcs,
@@ -7208,13 +7501,24 @@ static void search_best_mds3_uv_mode(PictureControlSet *pcs, EbPictureBufferDesc
     }
     uv_mode_total_count = uv_mode_total_count - start_fast_buffer_index;
 
+#if CLN_RENAME_MDS_SKIP
+    ctx->mds_do_rdoq              = true;
+    ctx->mds_do_spatial_sse       = ctx->spatial_sse_ctrls.spatial_sse_full_loop_level;
+#else
     ctx->mds_skip_rdoq            = 0;
     ctx->mds_spatial_sse          = ctx->spatial_sse_ctrls.spatial_sse_full_loop_level;
+#endif
     ctx->mds_fast_coeff_est_level = 1;
     ctx->uv_intra_comp_only       = true;
+#if CLN_PRED_SIGS
+    // This function is only for searching chroma, so it is expected that chroma is valid for this block
+    assert(ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1);
+    ctx->mds_do_chroma           = true;
+#else
     ctx->mds_skip_uv_pred         = false;
     ctx->end_plane = (ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1) ? (int)MAX_MB_PLANE : 1;
     assert(ctx->mds_skip_uv_pred == false);
+#endif
 
     // Perform full-loop search for all UV modes
     for (unsigned int uv_mode_count = 0; uv_mode_count < uv_mode_total_count; uv_mode_count++) {
@@ -7411,13 +7715,24 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
     uv_mode_total_count = uv_mode_total_count - start_fast_buffer_index;
 
     // Prepare fast-loop search settings
+#if CLN_RENAME_MDS_SKIP
+    ctx->mds_do_rdoq              = true;
+    ctx->mds_do_spatial_sse       = ctx->spatial_sse_ctrls.spatial_sse_full_loop_level;
+#else
     ctx->mds_skip_rdoq            = 0;
     ctx->mds_spatial_sse          = ctx->spatial_sse_ctrls.spatial_sse_full_loop_level;
+#endif
     ctx->mds_fast_coeff_est_level = 1;
     ctx->uv_intra_comp_only       = true;
+#if CLN_PRED_SIGS
+    // This function is only for searching chroma, so it is expected that chroma is valid for this block
+    assert(ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1);
+    ctx->mds_do_chroma = true;
+#else
     ctx->mds_skip_uv_pred         = false;
     ctx->end_plane = (ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1) ? (int)MAX_MB_PLANE : 1;
     assert(ctx->mds_skip_uv_pred == false);
+#endif
 
     // Perform fast-loop search for all candidates
     for (unsigned int uv_mode_count = 0; uv_mode_count < uv_mode_total_count; uv_mode_count++) {
@@ -7727,7 +8042,11 @@ static void post_mds1_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
     ModeDecisionCandidateBuffer **cand_bf_arr          = ctx->cand_bf_ptr_array;
     for (CandClass cidx = CAND_CLASS_0; cidx < CAND_CLASS_TOTAL; cidx++) {
         if ((mds2_cand_th != (uint64_t)~0 || mds2_class_th != (uint64_t)~0) && ctx->md_stage_1_count[cidx] > 0 &&
+#if OPT_MDS_FEATS_PRUNING
+            ctx->md_stage_2_count[cidx] > 0) {
+#else
             ctx->md_stage_2_count[cidx] > 0 && ctx->bypass_md_stage_1 == false) {
+#endif
             const uint32_t *cand_buff = ctx->cand_buff_indices[cidx];
             const uint64_t  best_cost = *cand_bf_arr[cand_buff[0]]->full_cost;
 
@@ -7806,7 +8125,12 @@ static void post_mds2_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
     ctx->md_stage_3_total_count                 = 0;
     for (CandClass cidx = CAND_CLASS_0; cidx < CAND_CLASS_TOTAL; cidx++) {
         if ((mds3_cand_th != (uint64_t)~0 || mds3_class_th != (uint64_t)~0) && ctx->md_stage_2_count[cidx] > 0 &&
+#if OPT_MDS_FEATS_PRUNING
+            // Perform pruning with post-MDS2 THs to preserve the onion ring
+            ctx->md_stage_3_count[cidx] > 0) {
+#else
             ctx->md_stage_3_count[cidx] > 0 && ctx->bypass_md_stage_2 == false) {
+#endif
             const uint32_t *cand_buff = ctx->cand_buff_indices[cidx];
             const uint64_t  best_cost = *cand_bf_arr[cand_buff[0]]->full_cost;
 
@@ -7963,7 +8287,11 @@ static void md_encode_block_light_pd0(PictureControlSet *pcs, ModeDecisionContex
     BlkStruct *blk_ptr = ctx->blk_ptr;
     if (!ctx->skip_intra) {
         svt_aom_init_xd(pcs, ctx);
+#if CLN_PRED_SIGS
+        ctx->mds_do_chroma     = false;
+#else
         ctx->end_plane          = 1;
+#endif
         ctx->uv_intra_comp_only = false;
     }
     if (pcs->slice_type != I_SLICE) {
@@ -9240,7 +9568,16 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
     if (ctx->perform_mds1 == 0 && ctx->tx_shortcut_ctrls.use_mds3_shortcuts_th > 0)
         tx_shortcut_detector(pcs, ctx, cand_bf_ptr_array);
     // 1st Full-Loop
+#if OPT_MDS_FEATS_PRUNING
+    assert(IMPLIES(!ctx->perform_mds1, ctx->md_stage_1_total_count == 1));
+    // If MDS1 is bypassed, don't update the best MD stage cost because the cost will be used in
+    // the post-mds1 pruning, which relies on the cost.  Pruning is done on the full_cost, but if
+    // MDS1 is bypassed the full_cost will be set to the fast_cost in MDS0.
+    if (ctx->bypass_md_stage_1 == false)
+        best_md_stage_cost = (uint64_t)~0;
+#else
     best_md_stage_cost = (uint64_t)~0;
+#endif
     ctx->md_stage      = MD_STAGE_1;
     for (cand_class_it = CAND_CLASS_0; cand_class_it < CAND_CLASS_TOTAL; cand_class_it++) {
         //number of next level candidates could not exceed number of curr level candidates
@@ -9279,7 +9616,15 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
     if (ctx->perform_mds1)
         post_mds1_nic_pruning(pcs, ctx, best_md_stage_cost);
     // 2nd Full-Loop
+#if OPT_MDS_FEATS_PRUNING
+    // If MDS2 is bypassed, don't update the best MD stage cost because the cost will be used in
+    // the post-mds2 pruning, which relies on the cost.  Pruning is done on the full_cost, which
+    // is available from MDS1 even in MDS2 is bypassed.
+    if (ctx->bypass_md_stage_2 == false)
+        best_md_stage_cost = (uint64_t)~0;
+#else
     best_md_stage_cost = (uint64_t)~0;
+#endif
     ctx->md_stage      = MD_STAGE_2;
     for (cand_class_it = CAND_CLASS_0; cand_class_it < CAND_CLASS_TOTAL; cand_class_it++) {
         //number of next level candidates could not exceed number of curr level candidates
@@ -9542,6 +9887,36 @@ static bool update_skip_nsq_based_on_sq_recon_dist(ModeDecisionContext *ctx) {
     const uint64_t modulated_th    = (100 * (dist_cost_ratio - min_ratio)) / (max_ratio - min_ratio);
 
     // Modulate TH based on parent SQ pred_mode
+#if OPT_MAXP0P1
+    switch (sq_blk_ptr->pred_mode) {
+    case NEWMV:
+    case NEW_NEWMV:
+        max_part0_to_part1_dev = ((max_part0_to_part1_dev * 75) / 100);
+        break;
+    case DC_PRED:
+    case H_PRED:
+    case V_PRED:
+    case NEAREST_NEARESTMV:
+    case NEAR_NEARMV:
+        max_part0_to_part1_dev *= 2;
+        break;
+    case D45_PRED:
+    case D135_PRED:
+    case D113_PRED:
+    case D157_PRED:
+    case D203_PRED:
+    case D67_PRED:
+    case SMOOTH_PRED:
+    case SMOOTH_H_PRED:
+    case SMOOTH_V_PRED:
+    case PAETH_PRED:
+    case GLOBALMV:
+    case GLOBAL_GLOBALMV:
+        max_part0_to_part1_dev <<= 2;
+        break;
+    default: break;
+    }
+#else
     switch (sq_blk_ptr->pred_mode) {
     case NEWMV:
     case NEW_NEWMV: max_part0_to_part1_dev = ((max_part0_to_part1_dev * 75) / 100); break;
@@ -9551,6 +9926,7 @@ static bool update_skip_nsq_based_on_sq_recon_dist(ModeDecisionContext *ctx) {
     case GLOBAL_GLOBALMV: max_part0_to_part1_dev <<= 2; break;
     default: break;
     }
+#endif
 
     if (blk_geom->shape == PART_H || blk_geom->shape == PART_HA || blk_geom->shape == PART_HB ||
         blk_geom->shape == PART_H4) {
@@ -10429,8 +10805,13 @@ void svt_aom_mode_decision_sb_light_pd0(SequenceControlSet *scs, PictureControlS
     ctx->txb_itr                  = 0;
     ctx->luma_txb_skip_context    = 0;
     ctx->luma_dc_sign_context     = 0;
+#if CLN_RENAME_MDS_SKIP
+    ctx->mds_do_rdoq              = true;
+    ctx->mds_do_spatial_sse       = false;
+#else
     ctx->mds_skip_rdoq            = 0;
     ctx->mds_spatial_sse          = 0;
+#endif
     ctx->mds_fast_coeff_est_level = ctx->rate_est_ctrls.pd0_fast_coeff_est_level; //ON  !!!
     ctx->ind_uv_avail             = 0;
     // Update neighbour arrays for the SB
@@ -10666,8 +11047,13 @@ void svt_aom_mode_decision_sb(SequenceControlSet *scs, PictureControlSet *pcs, M
         update_part_neighs(ctx);
 
         // Use more conservative NSQ settings in the presence of a high energy area
+#if OPT_HIGH_ENERGY
+        if (!ctx->md_disallow_nsq_search && ctx->nsq_search_ctrls.high_energy_weight &&
+            ctx->detect_high_freq_ctrls.enabled && ctx->detect_high_freq_ctrls.do_nsq)
+#else
         if (!ctx->md_disallow_nsq_search && ctx->nsq_search_ctrls.high_energy_weight &&
             ctx->detect_high_freq_ctrls.enabled)
+#endif
             update_nsq_settings(pcs, ctx);
         // Check current depth cost; if larger than parent, exit early
         // if using pred depth only, you won't skip, so no need to check

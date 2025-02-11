@@ -16,8 +16,9 @@
 #include "lambda_rate_tables.h"
 #include "rc_process.h"
 #include "enc_mode_config.h"
-
+#if !OPT_DEPTHS_CTRL
 void set_block_based_depth_refinement_controls(ModeDecisionContext *ctx, uint8_t block_based_depth_refinement_level);
+#endif
 static void mode_decision_context_dctor(EbPtr p) {
     ModeDecisionContext *obj = (ModeDecisionContext *)p;
 
@@ -613,7 +614,9 @@ void svt_aom_reset_mode_decision(SequenceControlSet *scs, ModeDecisionContext *c
     }
     //each segment enherits the bypass encdec from the picture level
     ctx->bypass_encdec = pcs->pic_bypass_encdec;
+#if !OPT_DEPTHS_CTRL
     set_block_based_depth_refinement_controls(ctx, pcs->pic_block_based_depth_refinement_level);
+#endif
     if (!pcs->rtc_tune || pcs->temporal_layer_index != 0)
         ctx->rtc_use_N4_dct_dct_shortcut = 1;
     else

@@ -1842,7 +1842,10 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
     pcs->sb_skip[sb_addr]            = 1;
     pcs->sb_64x64_mvp[sb_addr]       = 0;
     pcs->sb_count_nz_coeffs[sb_addr] = 0;
-
+#if OPT_DEPTHS_CTRL
+    pcs->sb_min_sq_size[sb_addr]     = 128;
+    pcs->sb_max_sq_size[sb_addr]     = 0;
+#endif
     // CU Loop
     uint32_t final_blk_itr = 0;
     sb_ptr->final_blk_cnt  = 0;
@@ -1924,6 +1927,10 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
             } else {
                 pcs->sb_skip[sb_addr] = 0;
             }
+#if OPT_DEPTHS_CTRL
+            pcs->sb_min_sq_size[sb_addr] = MIN(blk_geom->sq_size, pcs->sb_min_sq_size[sb_addr]);
+            pcs->sb_max_sq_size[sb_addr] = MAX(blk_geom->sq_size, pcs->sb_max_sq_size[sb_addr]);
+#endif
             pcs->sb_count_nz_coeffs[sb_addr] += md_ctx->blk_ptr->cnt_nz_coeff;
             svt_block_on_mutex(pcs->ppcs->pcs_total_rate_mutex);
             pcs->ppcs->pcs_total_rate += blk_ptr->total_rate;

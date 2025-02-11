@@ -34,6 +34,24 @@
 extern "C" {
 #endif // __cplusplus
 
+// svt-15 macros
+#define OPT_MAXP0P1                 1 // Modulate TH for intra modes
+#define CLN_REMOVE_TXS_ME_MOD       1 // Remove Me-based modulation of TXS level
+#define OPT_TXS_D2_IFF_D1_BEST      0 // Test TXS depth 2 iff depth 1 is best
+#define OPT_MDS_FEATS_PRUNING       1 // Optimize the feautres used in MDS1/2 and enable MDS2 pruning when MDS2 is skipped (using MDS1 cost)
+#define CLN_MDS_SIGS                1 // Cleanup MD staging signals
+#if CLN_MDS_SIGS
+#define CLN_VALID_PRED              1 // Rename valid_pred to valid_luma_pred
+#define CLN_RENAME_MDS_SKIP         1 // Rename ctx->mds_* signals. Make each signal "do" instead of "skip".
+#define CLN_PRED_SIGS               1 // Cleanup signals related to performing prediction in each MDS
+#endif
+#define OPT_DEPTHS_CTRL             0 // Remove depths_ctrls, and rework depth_refinement_ctrls
+#define OPT_INTRA                   1 // Optimize INTRA levels
+#define OPT_MDS_BYPASS_NICS         1 // Don't update NIC counts when a stage is bypassed. Update pruning THs to adapt.
+#define OPT_FILTER_INTRA            0 // Optimize Filter-INTRA levels
+#define OPR_DR_SETTINGS             0 // Optimize the depth-removal settings
+#define OPT_HIGH_ENERGY             0 // Opt high energy
+
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0

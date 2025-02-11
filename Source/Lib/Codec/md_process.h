@@ -221,6 +221,7 @@ typedef struct DepthRemovalCtrls {
     // remove 8x8 blocks and below based on the sb_64x64 (me_distortion, variance)
     uint8_t disallow_4x4;
 } DepthRemovalCtrls;
+#if !OPT_DEPTHS_CTRL
 typedef struct DepthCtrls {
     // start depth; 0: consider no parent blocks; else number of parent blocks to consider,
     // specified as a negative number (e.g. -2 means consider 2 parents)
@@ -232,8 +233,51 @@ typedef struct DepthCtrls {
     uint8_t limit_max_min_to_pd0;
     uint8_t use_pred_mode; // 0: OFF, 1: reduce the number of depth(s) if the pred mode is INTER
 } DepthCtrls;
+#endif
 #define MAX_RANGE_CNT 8
 #define MAX_RANGE_CNT 8
+
+#if OPT_DEPTHS_CTRL
+typedef struct DepthRefinementCtrls {
+    // Mode selection:
+    // 0 - No depth restriction
+    // 1 - Adaptive depth control
+    // 2 - Pred-part only
+    uint8_t mode;
+    // maximum allowed parent-to-current cost deviation beyond which the previous depth will not be
+    // added to PRED
+    int64_t s1_parent_to_current_th;
+    int64_t s2_parent_to_current_th;
+    // maximum allowed sub-to-current cost deviation beyond which the next depth will not be added
+    // to PRED
+    int64_t e1_sub_to_current_th;
+    int64_t e2_sub_to_current_th;
+    // When enabled, only prune the parent depth when the cost is sufficiently high (i.e. the parent block is
+    // sufficiently complex). The signal is specified as a multiplier to a threshold (the threshold is
+    // an absolute cost).  A higher value is more conservative; 0 is off.
+    // parent_max_cost_th_mult not relevant when parent is never skipped by parent_to_current_th
+    uint16_t parent_max_cost_th_mult;
+    // whether to decrement parent_to_current_th and sub_to_current_th based on the cost range of
+    // the parent block or not
+    uint8_t cost_band_based_modulation;
+    // the max cost beyond which the decrement is ignored
+    uint16_t max_cost_multiplier;
+    // the number of band(s)
+    uint8_t max_band_cnt;
+    // the offset per band
+    int64_t decrement_per_band[MAX_RANGE_CNT];
+    // Skip parent depth if PARTITION_SPLIT rate of parent depth is much lower than parent cost. 0 is off; higher is more aggressive.
+    uint32_t lower_depth_split_cost_th;
+    // Skip child depth if PARTITION_SPLIT rate of current depth is X% higher than current cost. 0 is off; lower is more aggressive.
+    uint32_t split_rate_th;
+    // If true, limit the max/min block sizes for PD1 to the max/min selected by PD0 (when the max/min block sizes are different).
+    uint8_t limit_max_min_to_pd0;
+    // If true, check whether current and ref are selecting the largest block size, then force Pred
+    uint8_t use_ref_info;
+    // Modulate sub/parent-to-current TH using QP. 0 is off; lower is more aggressive.
+    uint32_t q_weight;
+} DepthRefinementCtrls;
+#else
 typedef struct DepthRefinementCtrls {
     uint8_t enabled;
     // maximum allowed parent-to-current cost deviation beyond which the previous depth will not be
@@ -274,6 +318,7 @@ typedef struct DepthRefinementCtrls {
     // Modulate sub/parent-to-current TH using QP. 0 is off; lower is more aggressive.
     uint32_t q_weight;
 } DepthRefinementCtrls;
+#endif
 typedef struct SubresCtrls {
     // Residual sub-sampling step (0:OFF)
     uint8_t step;
@@ -634,6 +679,10 @@ typedef struct TxsControls {
     int depth1_txt_group_offset;
     // Offset to be subtracted from default txt-group to derive the txt-group of depth-2
     int depth2_txt_group_offset;
+#if OPT_TXS_D2_IFF_D1_BEST
+    // Test depth 2 only if depth 1 is best depth
+    bool test_d2_iff_d1_best;
+#endif
     // Min. sq size to use TXS for
     uint16_t min_sq_size;
 
@@ -774,6 +823,12 @@ typedef struct DetectHighFreqCtrls {
     uint8_t max_pic_lpd1_lvl;
     // maximum pd1-txt level for the detected SB(s)
     uint8_t max_pd1_txt_lvl;
+#if OPT_HIGH_ENERGY
+    // Use high-frequency information to modulate the depth-removal level
+    bool do_dr;
+    // Use high-frequency information to modulate the NSQ level
+    bool do_nsq;
+#endif
 } DetectHighFreqCtrls;
 
 typedef struct Lpd1TxCtrls {
@@ -820,6 +875,11 @@ typedef struct IntraCtrls {
     uint8_t intra_mode_end;
     // 0: angular off; 1: angular full; 2/3: limit num. angular candidates; 4: H + V only
     uint8_t angular_pred_level;
+#if OPT_INTRA
+    int8_t skip_angular_delta1_th;
+    int8_t skip_angular_delta2_th;
+    int8_t skip_angular_delta3_th;
+#endif
 } IntraCtrls;
 typedef struct TxShortcutCtrls {
     // Skip TX at MDS3 if the MDS1 TX gave 0 coeffs
@@ -854,7 +914,13 @@ typedef struct CandReductionCtrls {
     UseNeighbouringModeCtrls use_neighbouring_mode_ctrls;
     CandEliminationCtlrs     cand_elimination_ctrls;
     uint8_t                  reduce_unipred_candidates;
+#if !OPT_FILTER_INTRA
+#if OPT_INTRA
+    uint8_t                  reduce_filter_intra;
+#else
     uint8_t                  mds0_reduce_intra;
+#endif
+#endif
 } CandReductionCtrls;
 typedef struct SkipSubDepthCtrls {
     uint8_t enabled;
@@ -872,6 +938,9 @@ typedef struct FilterIntraCtrls {
     // Set the max filter intra mode to test. The max filter intra level will also depend on ctx->intra_ctrls.intra_mode_end.
     // The max mode to be test will be min(max_filter_intra_mode, ctx->intra_ctrls.intra_mode_end).
     FilterIntraMode max_filter_intra_mode;
+#if OPT_FILTER_INTRA
+    uint8_t reduce_filter_intra;
+#endif
 } FilterIntraCtrls;
 
 typedef struct CompoundPredictionStore {
@@ -1051,6 +1120,23 @@ typedef struct ModeDecisionContext {
     uint8_t   perform_mds1;
     uint8_t   use_tx_shortcuts_mds3;
     uint8_t   lpd1_allow_skipping_tx;
+#if CLN_RENAME_MDS_SKIP
+    // Signals controlling which features are used at each MD stage
+    bool mds_do_ifs;
+    bool mds_do_txs;
+    bool mds_do_txt;
+    bool mds_do_rdoq;
+    bool mds_do_spatial_sse;
+#if CLN_PRED_SIGS
+    bool mds_do_chroma;
+#else
+    // Signals controlling which predictions must be generated (if any) in a given MD stage
+    bool mds_do_inter_pred;
+    bool mds_skip_uv_pred;
+    bool mds_skip_full_uv;
+    bool mds_do_intra_uv_pred;
+#endif
+#else
     // fast_loop_core signals
     // was md_staging_skip_interpolation_search
     bool mds_skip_ifs;
@@ -1065,6 +1151,7 @@ typedef struct ModeDecisionContext {
     bool mds_skip_rdoq;
     bool mds_spatial_sse;
     bool mds_do_intra_uv_pred;
+#endif
     // Store intra prediction for inter-intra
     uint8_t **intrapred_buf;
     // Store OBMC pre-computed data
@@ -1088,12 +1175,16 @@ typedef struct ModeDecisionContext {
     uint8_t           md_palette_level;
     uint8_t           dist_based_ref_pruning;
     DepthRemovalCtrls depth_removal_ctrls;
+#if !OPT_DEPTHS_CTRL
     // control which depths can be considered in PD1
     DepthCtrls           depth_ctrls;
+#endif
     DepthRefinementCtrls depth_refinement_ctrls;
     SkipSubDepthCtrls    skip_sub_depth_ctrls;
+#if !OPT_DEPTHS_CTRL
     int64_t              parent_to_current_deviation;
     int64_t              child_to_current_deviation;
+#endif
     SubresCtrls          subres_ctrls;
     uint8_t              is_subres_safe;
     PfCtrls              pf_ctrls;
@@ -1204,7 +1295,9 @@ typedef struct ModeDecisionContext {
     SpatialSSECtrls spatial_sse_ctrls;
 
     uint16_t init_max_block_cnt;
+#if CLN_PRED_SIGS
     uint8_t  end_plane;
+#endif
     // set to true if MDS3 needs to perform a full 10bit compensation in MDS3 (to make MDS3
     // conformant when using bypass_encdec)
     uint8_t need_hbd_comp_mds3;
