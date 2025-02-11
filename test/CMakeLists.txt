@@ -149,15 +149,15 @@ set(arch_neutral_lib_list
     $<TARGET_OBJECTS:C_DEFAULT>
     $<TARGET_OBJECTS:GLOBALS>
     $<TARGET_OBJECTS:CODEC>
-    gtest_all)
+    gtest_all
+    cpuinfo::cpuinfo)
 
 if(HAVE_X86_PLATFORM)
   set(x86_arch_lib_list
       $<TARGET_OBJECTS:ASM_SSE2>
       $<TARGET_OBJECTS:ASM_SSSE3>
       $<TARGET_OBJECTS:ASM_SSE4_1>
-      $<TARGET_OBJECTS:ASM_AVX2>
-      $<IF:$<BOOL:${USE_EXTERNAL_CPUINFO}>,cpuinfo::cpuinfo,cpuinfo_public>)
+      $<TARGET_OBJECTS:ASM_AVX2>)
   if(ENABLE_AVX512)
     list(APPEND x86_arch_lib_list
       $<TARGET_OBJECTS:ASM_AVX512>)

@@ -27,5 +27,6 @@ test/docs/
 .DS_Store
 third_party/aom/lib/*/aom.lib
 third_party/aom/lib/*/*/aom.lib
+third_party/cpuinfo
 third_party/safestringlib/dummy.c
 /offline_ci/

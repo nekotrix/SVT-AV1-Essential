@@ -24,9 +24,9 @@
 #include "pack_unpack_c.h"
 #include "utility.h"
 
-#if defined ARCH_X86_64
+#if defined(HAVE_CPUINFO) && HAVE_CPUINFO
 // for svt_aom_get_cpu_flags
-#include "cpuinfo.h"
+#include <cpuinfo.h>
 #endif
 
 #if defined ARCH_AARCH64
@@ -99,6 +99,7 @@ int64_t svt_av1_block_error_c(const TranLow *coeff, const TranLow *dqcoeff,
 EbCpuFlags svt_aom_get_cpu_flags() {
     EbCpuFlags flags = 0;
 
+#if defined(HAVE_CPUINFO) && HAVE_CPUINFO
     // safe to call multiple times, and threadsafe
     // also correctly checks whether the OS saves AVX(2|512) registers
     cpuinfo_initialize();
@@ -134,6 +135,7 @@ EbCpuFlags svt_aom_get_cpu_flags() {
             flags |= EB_CPU_FLAGS_AVX512ICL;
         }
     }
+#endif
 
     return flags;
 }

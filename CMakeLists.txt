@@ -30,7 +30,9 @@ endif()
 if(POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW)
 endif()
-
+if(POLICY CMP0174)
+    cmake_policy(SET CMP0174 NEW)
+endif()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 # Default build type to release if the generator does not has its own set of build types
@@ -40,13 +42,6 @@ endif()
 
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(WARNING "32-bit is not supported")
-endif()
-
-option(COMPILE_C_ONLY "Compile only C code with no simds (autodetect, default off for x86)" OFF)
-option(USE_EXTERNAL_CPUINFO "Consume system cpuinfo library only" OFF)
-
-if(USE_EXTERNAL_CPUINFO)
-    find_package(cpuinfo CONFIG REQUIRED)
 endif()
 
 include(CheckCSourceCompiles)
@@ -67,6 +62,7 @@ check_c_source_compiles("
 int main(void) {}
 " HAVE_ARM_PLATFORM)
 
+option(COMPILE_C_ONLY "Compile only C code with no simds (autodetect, default off for x86)" OFF)
 option(MINIMAL_BUILD "Enable minimal build" OFF)
 if(MINIMAL_BUILD)
     add_definitions(-DMINIMAL_BUILD=1)
@@ -189,6 +185,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_OUTPUT_DIRECTORY})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_OUTPUT_DIRECTORY})
 
+set(REQUIRES_PRIVATE "")
+
 #Clang support, required to build static with LTO
 if(CMAKE_C_COMPILER_ID MATCHES "Clang" AND UNIX AND NOT APPLE)
     find_program(LLVM_LD_EXE llvm-ld)
@@ -216,6 +214,7 @@ else()
     set_property(CACHE SANITIZER PROPERTY STRINGS Address Memory Thread Undefined Integer)
 endif()
 
+# Always build with -fPIC
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 11)
@@ -324,9 +323,6 @@ if(UNIX)
     endif()
 endif()
 
-# Always build with -fPIC
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 function(check_flag lang flag)
     string(REGEX REPLACE "[^A-Za-z0-9]" "_" flag_var "${flag}")
     if(NOT DEFINED ${lang}_FLAG${flag_var})
@@ -409,6 +405,8 @@ if(SVT_AV1_LTO)
         set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
     endif()
 endif()
+
+include(cmake/cpuinfo.cmake)
 
 check_both_flags_add(PREPEND -Wextra -Wformat -Wformat-security)
 
@@ -714,9 +712,5 @@ if(BUILD_TESTING)
 endif()
 
 add_subdirectory(third_party/fastfeat)
-
-if(NOT USE_EXTERNAL_CPUINFO AND NOT COMPILE_C_ONLY AND HAVE_X86_PLATFORM)
-    add_subdirectory(third_party/cpuinfo)
-endif()
 
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/Source/API/ DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/svt-av1" FILES_MATCHING PATTERN "*.h")
