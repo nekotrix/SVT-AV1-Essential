@@ -178,6 +178,7 @@ class DevNullLike(IOBase):
         """Return the file number"""
         return -3
 
+
 async def run_subprocess(prog, *args: List, log: IOBase = None, **kwargs) -> Process:
     """Run a subprocess"""
     if log is None:
@@ -446,7 +447,15 @@ def write_script(job: dict, safe_name: str, project_dir: Path, variables: Dict) 
         f". {shquote(f'{inside_script_base}_after_script.sh')}"
     ])
 
-    ret = ["sh", "-x", f"{shquote(str(inside_script_base) + '.sh')}"]
+    ret = [
+        "sh", "-xec",
+        f"cd {shquote(str(inside_dir))}; "
+        "if type bash > /dev/null 2>&1; then "
+        f"bash {shquote(str(inside_script_base) + '.sh')}; "
+        "else "
+        f"sh {shquote(str(inside_script_base) + '.sh')}; "
+        "fi"
+    ]
     return ret
 
 
