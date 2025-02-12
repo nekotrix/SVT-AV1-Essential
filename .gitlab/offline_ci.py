@@ -243,9 +243,10 @@ def expand_matrix(matrix: List[Dict[str, Union[list, str, int]]]
 
 def detect_os(yml_job: Dict) -> OS:
     """Detect the OS of a job"""
-    if 'svt-windows-docker' in yml_job.get("tags", []):
+    tags: List[str] = yml_job.get("tags", [])
+    if 'svt-windows-docker' in tags:
         return OS.WINDOWS
-    if 'macos-ci' in yml_job.get("tags", []):
+    if 'macos-ci' in tags or 'macos' in tags:
         return OS.MACOS
     return OS.LINUX
 
