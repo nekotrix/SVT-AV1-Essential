@@ -159,10 +159,29 @@ def pull_json(project_name: str) -> dict:
         return json.loads(json_cache.read_text())
 
 
+class DevNullLike(IOBase):
+    """DevNullLike class"""
+
+    def write(self, _):
+        """Write to devnull"""
+        pass
+
+    def writelines(self, _):
+        """Write lines to devnull"""
+        pass
+
+    def flush(self):
+        """Flush devnull"""
+        pass
+
+    def fileno(self):
+        """Return the file number"""
+        return -3
+
 async def run_subprocess(prog, *args: List, log: IOBase = None, **kwargs) -> Process:
     """Run a subprocess"""
     if log is None:
-        log = DEVNULL
+        log = DevNullLike()
     print("Running", file=log, flush=True)
     print(
         f"{' '.join(['$ ' + shquote(str(prog))] + [shquote(str(arg)) for arg in args])}",
@@ -170,7 +189,10 @@ async def run_subprocess(prog, *args: List, log: IOBase = None, **kwargs) -> Pro
     print(f"with kwargs {kwargs}", file=log, flush=True)
 
     if "stdout" not in kwargs:
-        kwargs["stdout"] = log
+        if isinstance(log, DevNullLike):
+            kwargs["stdout"] = DEVNULL
+        else:
+            kwargs["stdout"] = log
     if "stderr" not in kwargs:
         kwargs["stderr"] = STDOUT
     return await create_subprocess_exec(prog, *args, **kwargs)
