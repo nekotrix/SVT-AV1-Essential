@@ -506,7 +506,11 @@ def extract_deps(deps: Set[str], project_dir: Path) -> int:
             print(f"Error!: {dep} artifacts not found")
             return 1
         with tarfile.open(tar_location, "r:gz") as tar:
-            tar.extractall(path=project_dir)
+            # Added in 3.12
+            if hasattr(tarfile, "data_filter"):
+                tar.extractall(path=project_dir, filter="data")
+            else:
+                tar.extractall(path=project_dir)
     return 0
 
 
