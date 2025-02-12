@@ -389,6 +389,7 @@ def write_script(job: dict, safe_name: str, project_dir: Path, variables: Dict) 
     """Write out the scripts for a job, returns the command to run"""
     outside_dir = Path(project_dir)
     inside_dir = Path("/") / REPO_DIR.name
+    inside_git_dir = inside_dir / ".git"
 
     before_script = job["before_script"]
     script = job["script"]
@@ -401,6 +402,7 @@ def write_script(job: dict, safe_name: str, project_dir: Path, variables: Dict) 
         write_script_ps1(outside_script_base, before_script, script, after_script,
                          [
                              f"git config --global --add safe.directory \"{inside_dir}\"",
+                             f"git config --global --add safe.directory \"{inside_git_dir}\"",
                              f". \"{inside_script_base}_before_script.ps1\"",
                              f". \"{inside_script_base}_script.ps1\"",
                              f". \"{inside_script_base}_after_script.ps1\""
@@ -415,6 +417,7 @@ def write_script(job: dict, safe_name: str, project_dir: Path, variables: Dict) 
     write_script_sh(outside_script_base, before_script, script, after_script, [
         eval_string,
         f"git config --global --add safe.directory {shquote(str(inside_dir))} || true",
+        f"git config --global --add safe.directory {shquote(str(inside_git_dir))} || true",
         f". {shquote(f'{inside_script_base}_before_script.sh')}",
         f". {shquote(f'{inside_script_base}_script.sh')}",
         f". {shquote(f'{inside_script_base}_after_script.sh')}"
