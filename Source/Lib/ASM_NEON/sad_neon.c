@@ -66,7 +66,7 @@ void svt_ext_sad_calculation_8x8_16x16_neon_intrin(uint8_t *src, uint32_t src_st
                                                    uint32_t *p_sad16x16, uint32_t *p_sad8x8, bool sub_sad) {
     uint32_t   sad16x16;
     uint32x4_t sad;
-    uint32x4_t best_sad_vec = vld1q_u32(p_sad8x8);
+    uint32x4_t best_sad_vec = vld1q_u32(p_best_sad_8x8);
     uint32x4_t best_mv_vec  = vld1q_u32(p_best_mv8x8);
     uint32x4_t mv_vec       = vdupq_n_u32(mv);
 
@@ -128,7 +128,7 @@ static void svt_ext_eight_sad_calculation_8x8_16x16_neon(uint8_t *src, uint32_t 
         uint32_t src_stride_sub = (src_stride << 1);
         uint32_t ref_stride_sub = (ref_stride << 1);
         for (int search_index = 0; search_index < 8; search_index++) {
-            uint32_t   tmp_mv = (y_mv << 16) | (x_mv + search_index);
+            uint32_t   tmp_mv = (y_mv << 16) | ((x_mv + search_index) & 0xFFFF);
             uint32x4_t mv_vec = vdupq_n_u32(tmp_mv);
 
             uint32x4_t sad01 = compute8xh_sad_kernel_dual_neon(
@@ -153,7 +153,7 @@ static void svt_ext_eight_sad_calculation_8x8_16x16_neon(uint8_t *src, uint32_t 
         }
     } else {
         for (int search_index = 0; search_index < 8; search_index++) {
-            uint32_t   tmp_mv = (y_mv << 16) | (x_mv + search_index);
+            uint32_t   tmp_mv = (y_mv << 16) | ((x_mv + search_index) & 0xFFFF);
             uint32x4_t mv_vec = vdupq_n_u32(tmp_mv);
             uint32x4_t sad01  = compute8xh_sad_kernel_dual_neon(src, src_stride, ref + search_index, ref_stride, 8);
             uint32x4_t sad23  = compute8xh_sad_kernel_dual_neon(
