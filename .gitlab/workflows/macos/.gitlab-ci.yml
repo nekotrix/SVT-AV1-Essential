@@ -9,6 +9,7 @@
 .macos-compiler-base:
   extends: .common-ci-base
   stage: compile
+  dependencies: []
   tags:
     - macos
     - shell
@@ -39,8 +40,6 @@
     when: always
     reports:
       junit: reports/*.xml
-  needs:
-    - macOS (Static, Tests)
 
 #
 # Compile jobs
@@ -120,6 +119,8 @@ macOS Unit Tests:
     - cmake -B Build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
     - cmake --build Build --target TestVectors
     - python3 gtest_parallel.py --print_test_times --shard_index=$SHARD_INDEX --shard_count=$TOTAL_SHARDS ./Bin/Release/SvtAv1UnitTests ./Bin/Release/SvtAv1E2ETests -- --gtest_output="xml:reports/{#}.xml"
+  needs:
+    - macOS (Static, Tests)
 
 macOS Unit Tests (m1):
   extends: .macos-unit-test-base
@@ -174,6 +175,7 @@ macOS Enc Test(m1):
 macOS FFmpeg (Static):
   extends: .macos-test-base
   stage: ffmpeg
+  dependencies: []
   variables:
     CFLAGS: -pipe
     CXXFLAGS: -pipe
