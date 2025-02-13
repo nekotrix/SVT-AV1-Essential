@@ -706,10 +706,10 @@ static const vector<uint32_t> invalid_level = {
 
 /* Assembly instruction set used by encoder.
  *
- * 0 = non-AVX2, C only.
- * 1 = up to AVX512, auto-select highest assembly instruction set supported.
+ * 0 = non-SIMD, C only.
+ * EB_CPU_FLAGS_ALL = auto-select highest assembly instruction set supported.
  *
- * Default is 1. */
+ * Default is EB_CPU_FLAGS_ALL. */
 static const vector<EbCpuFlags> default_use_cpu_flags = {
     EB_CPU_FLAGS_ALL,
 };
@@ -734,6 +734,11 @@ static const vector<EbCpuFlags> valid_use_cpu_flags = {
     EB_CPU_FLAGS_AVX512ICL,
 #elif defined(ARCH_AARCH64)
     EB_CPU_FLAGS_NEON,
+    EB_CPU_FLAGS_ARM_CRC32,
+    EB_CPU_FLAGS_NEON_DOTPROD,
+    EB_CPU_FLAGS_NEON_I8MM,
+    EB_CPU_FLAGS_SVE,
+    EB_CPU_FLAGS_SVE2,
 #endif
 };
 static const vector<EbCpuFlags> invalid_use_cpu_flags = {EB_CPU_FLAGS_INVALID};
