@@ -9,6 +9,7 @@
 .linux-compiler-base:
   extends: .common-ci-base
   stage: compile
+  dependencies: []
   tags:
     - gitlab-org
   image: registry.gitlab.com/aomediacodec/aom-testing/ubuntu2004
@@ -395,6 +396,7 @@ Enc Intra Diff Test:
 Linux Gstreamer (Static):
   extends: .linux-test-base
   stage: standalone
+  dependencies: []
   variables:
     CC: gcc-11
     CXX: g++-11
@@ -419,6 +421,7 @@ Linux Gstreamer (Static):
 Linux libavif (Static):
   extends: .linux-test-base
   stage: standalone
+  dependencies: []
   variables:
     CC: gcc-11
     CXX: g++-11
@@ -456,6 +459,7 @@ Linux libavif (Static):
 Linux FFmpeg (n7.0.2, Static):
   extends: .linux-test-base
   stage: ffmpeg
+  dependencies: []
   variables:
     CC: gcc-11
     CXX: g++-11
@@ -499,6 +503,7 @@ Linux FFmpeg (n7.0.2, Static):
 Linux FFmpeg (n5.0, Static):
   extends: .linux-test-base
   stage: ffmpeg
+  dependencies: []
   variables:
     CC: gcc-11
     CXX: g++-11
