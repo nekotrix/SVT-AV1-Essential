@@ -9,6 +9,7 @@
 .windows-compiler-base:
   extends: .common-ci-base
   stage: compile
+  dependencies: []
   image: registry.gitlab.com/aomediacodec/aom-testing/core1809
   tags:
     - svt-windows-docker
@@ -38,8 +39,6 @@
     when: always
     reports:
       junit: reports/*.xml
-  needs:
-    - Win64 (MSVC, Tests)
 
 #
 # Compile jobs
@@ -85,6 +84,8 @@ Win64 Unit Tests:
     - cmake -B Build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
     - cmake --build Build --target TestVectors
     - python gtest_parallel.py --print_test_times --shard_index=$env:SHARD_INDEX --shard_count=$env:TOTAL_SHARDS ./Bin/Release/SvtAv1UnitTests ./Bin/Release/SvtAv1E2ETests -- --gtest_output="xml:reports/{#}.xml"
+  needs:
+    - Win64 (MSVC, Tests)
 
 Win64 Enc Test:
   extends: .windows-test-base
@@ -100,6 +101,7 @@ Win64 Enc Test:
 
 Win64 FFmpeg (Static):
   extends: .windows-test-base
+  dependencies: []
   stage: ffmpeg
   variables:
     CC: ccache gcc
