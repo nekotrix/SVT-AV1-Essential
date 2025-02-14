@@ -630,16 +630,15 @@ static uint32_t calculate_squared_errors_sum_no_div_highbd_neon(const uint16_t *
     sum = vpaddq_s32(sum, sum);
     sum = vpaddq_s32(sum, sum);
 
-    return vgetq_lane_s32(vrshlq_s32(sum, vdupq_n_s32(-shift_factor)), 0);
+    return vgetq_lane_s32(sum, 0) >> shift_factor;
 }
 
 static void calculate_squared_errors_sum_2x8xh_no_div_highbd_neon(const uint16_t *s, int s_stride, const uint16_t *p,
                                                                   int p_stride, unsigned int h, int shift_factor,
                                                                   uint32_t *output) {
-    const int32x4_t zero      = vdupq_n_s32(0);
-    int32x4_t       sum_0     = zero;
-    int32x4_t       sum_1     = zero;
-    const int32x4_t shift_vec = vdupq_n_s32(-shift_factor);
+    const int32x4_t zero  = vdupq_n_s32(0);
+    int32x4_t       sum_0 = zero;
+    int32x4_t       sum_1 = zero;
 
     for (unsigned int i = 0; i < h; i++) {
         const uint16x8_t s_8_0 = vld1q_u16(s + i * s_stride);
@@ -660,8 +659,8 @@ static void calculate_squared_errors_sum_2x8xh_no_div_highbd_neon(const uint16_t
     sum_1 = vpaddq_s32(sum_1, sum_1);
     sum_1 = vpaddq_s32(sum_1, sum_1);
 
-    output[0] = vgetq_lane_s32(vrshlq_s32(sum_0, shift_vec), 0);
-    output[1] = vgetq_lane_s32(vrshlq_s32(sum_1, shift_vec), 0);
+    output[0] = vgetq_lane_s32(sum_0, 0) >> shift_factor;
+    output[1] = vgetq_lane_s32(sum_1, 0) >> shift_factor;
 }
 
 static void svt_av1_apply_temporal_filter_planewise_medium_hbd_partial_neon(
