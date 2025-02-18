@@ -436,7 +436,6 @@ Linux libavif (Static):
     - git clone $PWD svtav1-src
     - git clone https://github.com/AOMediaCodec/libavif.git libavif-src
     - git clone https://code.videolan.org/videolan/dav1d.git dav1d-src
-    - git -C libavif-src apply $PWD/.gitlab/workflows/linux/libavif_api_job_fix.patch
     - !reference [.ffmpeg-before-script-export]
     - apt update && apt install -yyy libpng-dev libjpeg-dev
   script:

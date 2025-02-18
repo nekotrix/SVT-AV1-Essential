@@ -59,6 +59,8 @@ License 1.0. See [LICENSE](LICENSE.md) and [PATENTS](PATENTS.md) for details.
 - [SPIE 2022](https://www.spiedigitallibrary.org/conference-proceedings-of-spie/12226/122260S/Enhancing-SVT-AV1-with-LCEVC-to-improve-quality-cycles-trade/10.1117/12.2633882.full)
 - [Adaptive Steaming Common Test Conditions](https://aomedia.org/docs/SIWG-D001o.pdf)
 - [ICIP 2023](https://arxiv.org/abs/2307.05208)
+- [SPIE 2024](https://www.spiedigitallibrary.org/conference-proceedings-of-spie/13137/131370W/Benchmarking-hardware-and-software-encoder-quality-and-performance/10.1117/12.3031754.full)
+- [ICIP 2024](https://drive.google.com/file/d/19FCzCo06zfRJNn960jZ7P-_etiWeHeXI/view?usp=sharing)
 
 **Design Documents**
 - [Encoder Design](Docs/svt-av1-encoder-design.md)
@@ -74,7 +76,6 @@ License 1.0. See [LICENSE](LICENSE.md) and [PATENTS](PATENTS.md) for details.
 - [Film Grain Synthesis](Docs/Appendix-Film-Grain-Synthesis.md)
 - [Global Motion Appendix](Docs/Appendix-Global-Motion.md)
 - [Intra Block Copy Appendix](Docs/Appendix-Intra-Block-Copy.md)
-- [IPP Pass Appendix](Docs/Appendix-IPP-Pass.md)
 - [Local Warped Motion appendix](Docs/Appendix-Local-Warped-Motion.md)
 - [Mode Decision Appendix](Docs/Appendix-Mode-Decision.md)
 - [Motion Estimation Appendix](Docs/Appendix-Open-Loop-Motion-Estimation.md)
