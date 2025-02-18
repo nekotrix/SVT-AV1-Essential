@@ -4,7 +4,7 @@
 
 API updates
 - Refreshed API cleaning up unused fields, use stdbool type and cleanup redundant parameter in `svt_av1_enc_init_handle`
-- Repositioned the presets and removed on preset resulting in a max preset of M10 in the current version
+- Repositioned the presets and removed one preset resulting in a max preset of M10 in the current version
 - Added temporal layer and averageQP fields in output picture structure, along with an option to specify a QP offset for the startup gop
 - The API changes are not backwards compatible, more details about the changes can be found in issue 2217
 
@@ -13,13 +13,13 @@ Encoder
 -  ~15-25% speedup for M3-M10 at the same quality levels - (!2376 and !2343)
 -  ~1% BD-rate improvement for presets M0-M2 - (!2376 and !2343)
 - Repositioned the `fast-decode 1` mode to produce ~10% decoder cycle reduction vs `fast-decode 0` while reducing the BD-rate loss to ~1% (!2376)
-- Further Arm-based optimizations improving the efficiency of previously written Arm-neon implementations by an average of 30%
+- Further Arm Neon and SVE2 optimizations that improve high bitdepth encoding by an average of 10-25% for 480p-1080p resolutions beyond the architecture-agnostic algorithmic improvements since v2.3.0
 - Ported several features from SVT-AV1-SPY fork to further improve the perceptual quality of `tune 0` mode
 - Added an `avif` mode to reduce resource utilization when encoding still images
 
 Cleanup Build and bug fixes and documentation
-- third_party: removed the code of cpuinfo and called it from the system. Systems that do not have cpuinfo will be running C-code without optimizations
-- Improved the unit test coverage for Arm-neon code
+- third_party: Removed vendored cpuinfo, will attempt to use one provided by the system. For those without cpuinfo, it will be pulled and compiled into the library, similar to before
+- Improved the unit test coverage for Arm Neon and SVE2 code
 - Updated documentation
 
 ## [2.3.0] - 2024-10-28

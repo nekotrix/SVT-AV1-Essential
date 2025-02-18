@@ -60,7 +60,7 @@ License 1.0. See [LICENSE](LICENSE.md) and [PATENTS](PATENTS.md) for details.
 - [Adaptive Steaming Common Test Conditions](https://aomedia.org/docs/SIWG-D001o.pdf)
 - [ICIP 2023](https://arxiv.org/abs/2307.05208)
 - [SPIE 2024](https://www.spiedigitallibrary.org/conference-proceedings-of-spie/13137/131370W/Benchmarking-hardware-and-software-encoder-quality-and-performance/10.1117/12.3031754.full)
-- [ICIP 2024](https://drive.google.com/file/d/19FCzCo06zfRJNn960jZ7P-_etiWeHeXI/view?usp=sharing)
+- [ICIP 2024](https://aomedia.org/docs/Software_Implementation_Working_Group_Update_ICIP2024.pdf)
 
 **Design Documents**
 - [Encoder Design](Docs/svt-av1-encoder-design.md)
@@ -93,4 +93,3 @@ License 1.0. See [LICENSE](LICENSE.md) and [PATENTS](PATENTS.md) for details.
 
 **How Can I Contribute?**
 - [SVT-AV1 Contribution Guide](Docs/Contribute.md)
-
