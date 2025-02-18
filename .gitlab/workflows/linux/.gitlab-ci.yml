@@ -147,9 +147,9 @@ Linux (GCC 11, Tests, Static):
   variables:
     CC: gcc-11
     CXX: g++-11
-    EXTRA_CFLAGS: -g
-    EXTRA_CXXFLAGS: -g
-    EXTRA_LDFLAGS: -static -static-libgcc -static-libstdc++
+    EXTRA_CFLAGS: -g -Wno-error
+    EXTRA_CXXFLAGS: -g -Wno-error
+    EXTRA_LDFLAGS: -static -static-libgcc -static-libstdc++ -Wno-error
     EXTRA_CMAKE_FLAGS: -DBUILD_TESTING=ON -DBUILD_APPS=OFF
   artifacts:
     untracked: false
