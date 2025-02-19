@@ -120,7 +120,11 @@ static void mode_decision_context_dctor(EbPtr p) {
 }
 
 void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_CLASS_TOTAL],
+#if OPT_REMOVE_NIC_QP_BANDS
+                      uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type, uint32_t qp);
+#else
                       uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type);
+#endif
 
 /******************************************************
  * Mode Decision Context Constructor
@@ -153,11 +157,17 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
     for (uint8_t rtc_itr = 0; rtc_itr < 2; rtc_itr++) {
         bool rtc_tune = (bool)rtc_itr;
         for (uint8_t is_base = 0; is_base < 2; is_base++) {
+#if OPT_REMOVE_NIC_QP_BANDS
+            uint8_t nic_level = svt_aom_get_nic_level(enc_mode, is_base, rtc_tune);
+            uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
+            min_nic_scaling_level = MIN(min_nic_scaling_level, nic_scaling_level);
+#else
             for (uint8_t qp = MIN_QP_VALUE; qp <= MAX_QP_VALUE; qp++) {
                 uint8_t nic_level         = svt_aom_get_nic_level(enc_mode, is_base, qp, seq_qp_mod, rtc_tune);
                 uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
                 min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
             }
+#endif
         }
     }
     uint8_t stage1_scaling_num = MD_STAGE_NICS_SCAL_NUM[min_nic_scaling_level][MD_STAGE_1];
@@ -173,11 +183,21 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
         uint32_t mds2_count[CAND_CLASS_TOTAL];
         uint32_t mds3_count[CAND_CLASS_TOTAL];
         for (uint8_t pic_type = 0; pic_type < NICS_PIC_TYPE; pic_type++) {
+#if OPT_REMOVE_NIC_QP_BANDS
+            for (uint8_t qp = MIN_QP_VALUE; qp <= MAX_QP_VALUE; qp++) {
+                svt_aom_set_nics(&scaling_ctrls, mds1_count, mds2_count, mds3_count, pic_type, qp);
+
+                uint32_t nics = 0;
+                for (CandClass cidx = CAND_CLASS_0; cidx < CAND_CLASS_TOTAL; cidx++) { nics += mds1_count[cidx]; }
+                max_nics = MAX(max_nics, nics);
+            }
+#else
             svt_aom_set_nics(&scaling_ctrls, mds1_count, mds2_count, mds3_count, pic_type);
 
             uint32_t nics = 0;
             for (CandClass cidx = CAND_CLASS_0; cidx < CAND_CLASS_TOTAL; cidx++) { nics += mds1_count[cidx]; }
             max_nics = MAX(max_nics, nics);
+#endif
         }
     }
 

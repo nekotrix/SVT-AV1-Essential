@@ -216,11 +216,11 @@ typedef struct CdefDirData {
     uint8_t dir[CDEF_NBLOCKS][CDEF_NBLOCKS];
     int32_t var[CDEF_NBLOCKS][CDEF_NBLOCKS];
 } CdefDirData;
-
+#if !CLN_HIGH_FREQUENCY
 typedef struct PicVqCtrls {
     uint8_t detect_high_freq_lvl;
 } PicVqCtrls;
-
+#endif
 typedef struct PictureControlSet {
     /*!< Pointer to the dtor of the struct*/
     EbDctor                    dctor;
@@ -439,7 +439,9 @@ typedef struct PictureControlSet {
     // be removed)
     uint8_t    approx_inter_rate;
     uint8_t    skip_intra;
+#if !CLN_HIGH_FREQUENCY
     PicVqCtrls vq_ctrls;
+#endif
     uint16_t   lambda_weight;
     // scaled input picture is only used in loop restoration for recon size is
     // different with input frame when reference scaling is enabled

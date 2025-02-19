@@ -45,12 +45,15 @@ extern "C" {
 #define CLN_RENAME_MDS_SKIP         1 // Rename ctx->mds_* signals. Make each signal "do" instead of "skip".
 #define CLN_PRED_SIGS               1 // Cleanup signals related to performing prediction in each MDS
 #endif
-#define OPT_DEPTHS_CTRL             0 // Remove depths_ctrls, and rework depth_refinement_ctrls
+#define OPT_DEPTHS_CTRL             1 // Remove depths_ctrls, and rework depth_refinement_ctrls
 #define OPT_INTRA                   1 // Optimize INTRA levels
 #define OPT_MDS_BYPASS_NICS         1 // Don't update NIC counts when a stage is bypassed. Update pruning THs to adapt.
 #define OPT_FILTER_INTRA            0 // Optimize Filter-INTRA levels
-#define OPR_DR_SETTINGS             0 // Optimize the depth-removal settings
-#define OPT_HIGH_ENERGY             0 // Opt high energy
+#define OPT_DR_SETTINGS             1 // Optimize the depth-removal settings
+#define CLN_HIGH_FREQUENCY          1 // delete high frequency modulation
+#define TXS_OPT                     1 // Opt TXS
+#define OPT_REMOVE_NIC_QP_BANDS     1 // Remove QP banding for NICs
+#define FIX_COMPOUND_TEST           1 // Fix unit test to enable wedge intrinsic
 
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection

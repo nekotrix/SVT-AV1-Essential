@@ -68,9 +68,9 @@ void svt_aom_assert_err(uint32_t condition, char *err_msg);
 #define VQ_NOISE_LVL_TH 15000
 #define VQ_STABILITY_ME_VAR_TH 750
 #define VQ_PIC_AVG_VARIANCE_TH 1000
-
+#if !OPT_FILTER_INTRA
 #define MDS0_REDUCE_ANGULAR_INTRA_TH 25
-
+#endif
 #define NUM_MV_COMPONENTS 2
 #define NUM_MV_HIST 2
 #define MAX_MV_HIST_SIZE 2 * REF_LIST_MAX_DEPTH *NUM_MV_COMPONENTS *NUM_MV_HIST

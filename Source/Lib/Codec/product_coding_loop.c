@@ -1497,12 +1497,34 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
         *(cand_bf->full_cost) = *(cand_bf->fast_cost);
 #endif
 }
+#if OPT_REMOVE_NIC_QP_BANDS
+static void get_qp_based_th_scaling_factors(uint32_t qp, uint32_t* ret_q_weight, uint32_t* ret_q_weight_denom) {
+    // limit scaling for low QPs to 10/63 to avoid extreme actions. 10 chosen arbitrarily.
+    uint32_t q_weight = MAX(10, qp);
+    uint32_t q_weight_denom = MAX_QP_VALUE;
+    if (qp >= 43) {
+        double ex = -(MAX(40, (double)qp) - 35) / 10;
+        double q_weight_int = exp(ex);
+        q_weight_int = 1.05 - q_weight_int;
+        q_weight_int *= 10000;
+
+        q_weight = (uint32_t)q_weight_int;
+        q_weight_denom = 10000;
+    }
+    *ret_q_weight = q_weight;
+    *ret_q_weight_denom = q_weight_denom;
+}
+#endif
 /* Set the max number of NICs for each MD stage, based on the picture type and scaling settings.
 
    pic_type = I_SLICE ? 0 : REF ? 1 : 2;
 */
 void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_CLASS_TOTAL],
+#if OPT_REMOVE_NIC_QP_BANDS
+                      uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type, uint32_t qp) {
+#else
                       uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type) {
+#endif
     for (CandClass cidx = CAND_CLASS_0; cidx < CAND_CLASS_TOTAL; cidx++) {
         mds1_count[cidx] = MD_STAGE_NICS[pic_type][cidx];
         mds2_count[cidx] = MD_STAGE_NICS[pic_type][cidx] >> 1;
@@ -1526,6 +1548,15 @@ void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_C
         mds2_count[cidx] = MAX(min_mds2_nics, DIVIDE_AND_ROUND(mds2_count[cidx] * stage2_num, scale_denum));
         mds3_count[cidx] = MAX(min_mds3_nics, DIVIDE_AND_ROUND(mds3_count[cidx] * stage3_num, scale_denum));
     }
+#if OPT_REMOVE_NIC_QP_BANDS
+    uint32_t q_weight, q_weight_denom;
+    get_qp_based_th_scaling_factors(qp, &q_weight, &q_weight_denom);
+    for (CandClass cidx = 0; cidx < CAND_CLASS_TOTAL; ++cidx) {
+        mds1_count[cidx] = MAX(min_mds1_nics, DIVIDE_AND_ROUND(mds1_count[cidx] * q_weight, q_weight_denom));
+        mds2_count[cidx] = MAX(min_mds2_nics, DIVIDE_AND_ROUND(mds2_count[cidx] * q_weight, q_weight_denom));
+        mds3_count[cidx] = MAX(min_mds3_nics, DIVIDE_AND_ROUND(mds3_count[cidx] * q_weight, q_weight_denom));
+    }
+#endif
 }
 
 void set_md_stage_counts(PictureControlSet *pcs, ModeDecisionContext *ctx) {
@@ -1533,8 +1564,13 @@ void set_md_stage_counts(PictureControlSet *pcs, ModeDecisionContext *ctx) {
     // no NIC setting should be done beyond this point
     // Set md_stage count
     uint8_t pic_type = pcs->slice_type == I_SLICE ? 0 : !pcs->ppcs->is_highest_layer ? 1 : 2;
+#if OPT_REMOVE_NIC_QP_BANDS
+    svt_aom_set_nics(
+        &ctx->nic_ctrls.scaling_ctrls, ctx->md_stage_1_count, ctx->md_stage_2_count, ctx->md_stage_3_count, pic_type, pcs->ppcs->scs->static_config.qp);
+#else
     svt_aom_set_nics(
         &ctx->nic_ctrls.scaling_ctrls, ctx->md_stage_1_count, ctx->md_stage_2_count, ctx->md_stage_3_count, pic_type);
+#endif
 
     // Step 2: derive bypass_stage1 flags
     ctx->bypass_md_stage_1 = (ctx->nic_ctrls.md_staging_mode == MD_STAGING_MODE_1 ||
@@ -7948,6 +7984,15 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
 static void post_mds0_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *ctx, uint64_t best_md_stage_cost,
                                   uint64_t best_md_stage_dist) {
     const struct NicPruningCtrls pruning_ctrls = ctx->nic_ctrls.pruning_ctrls;
+#if OPT_REMOVE_NIC_QP_BANDS
+    uint32_t q_weight, q_weight_denom;
+    get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+    uint64_t                      mds1_class_th = DIVIDE_AND_ROUND(pruning_ctrls.mds1_class_th * q_weight, q_weight_denom);
+    uint8_t                       mds1_band_cnt = pruning_ctrls.mds1_band_cnt;
+    uint16_t                      mds1_cand_th_rank_factor = pruning_ctrls.mds1_cand_th_rank_factor;
+    uint64_t                      mds1_cand_base_th_intra = DIVIDE_AND_ROUND(pruning_ctrls.mds1_cand_base_th_intra * q_weight, q_weight_denom);
+    uint64_t                      mds1_cand_base_th_inter = DIVIDE_AND_ROUND(pruning_ctrls.mds1_cand_base_th_inter * q_weight, q_weight_denom);
+#else
     uint16_t                     mult          = pruning_ctrls.mds1_q_weight;
 
     uint16_t q_weight = (mult == (uint16_t)~0)
@@ -7962,6 +8007,7 @@ static void post_mds0_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
     uint16_t                      mds1_cand_th_rank_factor = pruning_ctrls.mds1_cand_th_rank_factor;
     uint64_t                      mds1_cand_base_th_intra  = (pruning_ctrls.mds1_cand_base_th_intra * q_weight) / 1000;
     uint64_t                      mds1_cand_base_th_inter  = (pruning_ctrls.mds1_cand_base_th_inter * q_weight) / 1000;
+#endif
     ModeDecisionCandidateBuffer **cand_bf_arr              = ctx->cand_bf_ptr_array;
     for (CandClass cidx = CAND_CLASS_0; cidx < CAND_CLASS_TOTAL; cidx++) {
         const uint64_t mds1_cand_th = is_intra_class(cidx) ? mds1_cand_base_th_intra : mds1_cand_base_th_inter;
@@ -8021,6 +8067,14 @@ static void post_mds0_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
 static void post_mds1_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *ctx, uint64_t best_md_stage_cost) {
     const struct NicPruningCtrls pruning_ctrls = ctx->nic_ctrls.pruning_ctrls;
 
+#if OPT_REMOVE_NIC_QP_BANDS
+    uint32_t q_weight, q_weight_denom;
+    get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+    const uint64_t                mds2_cand_th         = DIVIDE_AND_ROUND(pruning_ctrls.mds2_cand_base_th * q_weight, q_weight_denom);
+    const uint64_t                mds2_class_th        = DIVIDE_AND_ROUND(pruning_ctrls.mds2_class_th * q_weight, q_weight_denom);
+    const uint8_t                 mds2_band_cnt        = pruning_ctrls.mds2_band_cnt;
+    const uint16_t                mds2_relative_dev_th = pruning_ctrls.mds2_relative_dev_th;
+#else
     uint16_t mult = pruning_ctrls.mds2_q_weight;
 
     uint16_t q_weight = (mult == (uint16_t)~0)
@@ -8039,6 +8093,7 @@ static void post_mds1_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
     const uint64_t                mds2_class_th        = (pruning_ctrls.mds2_class_th * q_weight) / 1000;
     const uint8_t                 mds2_band_cnt        = pruning_ctrls.mds2_band_cnt;
     const uint16_t                mds2_relative_dev_th = pruning_ctrls.mds2_relative_dev_th;
+#endif
     ModeDecisionCandidateBuffer **cand_bf_arr          = ctx->cand_bf_ptr_array;
     for (CandClass cidx = CAND_CLASS_0; cidx < CAND_CLASS_TOTAL; cidx++) {
         if ((mds2_cand_th != (uint64_t)~0 || mds2_class_th != (uint64_t)~0) && ctx->md_stage_1_count[cidx] > 0 &&
@@ -8104,6 +8159,13 @@ static void post_mds1_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
 static void post_mds2_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *ctx, uint64_t best_md_stage_cost) {
     const struct NicPruningCtrls pruning_ctrls = ctx->nic_ctrls.pruning_ctrls;
 
+#if OPT_REMOVE_NIC_QP_BANDS
+    uint32_t q_weight, q_weight_denom;
+    get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+    const uint64_t                mds3_cand_th  = DIVIDE_AND_ROUND(pruning_ctrls.mds3_cand_base_th * q_weight, q_weight_denom);
+    const uint64_t                mds3_class_th = DIVIDE_AND_ROUND(pruning_ctrls.mds3_class_th * q_weight, q_weight_denom);
+    const uint8_t                 mds3_band_cnt = pruning_ctrls.mds3_band_cnt;
+#else
     uint16_t mult = pruning_ctrls.mds3_q_weight;
 
     uint16_t q_weight = (mult == (uint16_t)~0)
@@ -8121,6 +8183,7 @@ static void post_mds2_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
     const uint64_t                mds3_cand_th  = (pruning_ctrls.mds3_cand_base_th * q_weight) / 1000;
     const uint64_t                mds3_class_th = (pruning_ctrls.mds3_class_th * q_weight) / 1000;
     const uint8_t                 mds3_band_cnt = pruning_ctrls.mds3_band_cnt;
+#endif
     ModeDecisionCandidateBuffer **cand_bf_arr   = ctx->cand_bf_ptr_array;
     ctx->md_stage_3_total_count                 = 0;
     for (CandClass cidx = CAND_CLASS_0; cidx < CAND_CLASS_TOTAL; cidx++) {
@@ -10729,6 +10792,7 @@ static void update_d1_data(PictureControlSet *pcs, ModeDecisionContext *ctx, uin
         }
     }
 }
+#if !CLN_HIGH_FREQUENCY
 static void update_nsq_settings(PictureControlSet *pcs, ModeDecisionContext *ctx) {
     // Reset the NSQ setting if previous-SQ is_high_energy
     svt_aom_set_nsq_search_ctrls(pcs, ctx, pcs->nsq_search_level, pcs->ppcs->input_resolution);
@@ -10743,6 +10807,7 @@ static void update_nsq_settings(PictureControlSet *pcs, ModeDecisionContext *ctx
         svt_aom_set_nsq_search_ctrls(pcs, ctx, MAX((int)pcs->nsq_search_level - 1, 1), pcs->ppcs->input_resolution);
     }
 }
+#endif
 /*
  * Update d2 data (including d2 decision) after processing the last d1 block of a given square.
  */
@@ -11045,16 +11110,12 @@ void svt_aom_mode_decision_sb(SequenceControlSet *scs, PictureControlSet *pcs, M
         // Update the left and above partition neighbours for the square block, which are used to derive
         // the partition rate
         update_part_neighs(ctx);
-
+#if !CLN_HIGH_FREQUENCY
         // Use more conservative NSQ settings in the presence of a high energy area
-#if OPT_HIGH_ENERGY
-        if (!ctx->md_disallow_nsq_search && ctx->nsq_search_ctrls.high_energy_weight &&
-            ctx->detect_high_freq_ctrls.enabled && ctx->detect_high_freq_ctrls.do_nsq)
-#else
         if (!ctx->md_disallow_nsq_search && ctx->nsq_search_ctrls.high_energy_weight &&
             ctx->detect_high_freq_ctrls.enabled)
-#endif
             update_nsq_settings(pcs, ctx);
+#endif
         // Check current depth cost; if larger than parent, exit early
         // if using pred depth only, you won't skip, so no need to check
         if (!(ctx->pd_pass == PD_PASS_1 && ctx->pred_depth_only))

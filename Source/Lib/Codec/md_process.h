@@ -238,37 +238,42 @@ typedef struct DepthCtrls {
 #define MAX_RANGE_CNT 8
 
 #if OPT_DEPTHS_CTRL
+#define PD0_DEPTH_NO_RESTRICTION  0  // No depth restriction
+#define PD0_DEPTH_ADAPTIVE        1  // Adaptive depth control
+#define PD0_DEPTH_PRED_PART_ONLY  2  // Pred-part only
 typedef struct DepthRefinementCtrls {
     // Mode selection:
     // 0 - No depth restriction
     // 1 - Adaptive depth control
     // 2 - Pred-part only
     uint8_t mode;
-    // maximum allowed parent-to-current cost deviation beyond which the previous depth will not be
+    // Default parent-to-current cost deviation beyond which the previous depth will not be
     // added to PRED
-    int64_t s1_parent_to_current_th;
-    int64_t s2_parent_to_current_th;
-    // maximum allowed sub-to-current cost deviation beyond which the next depth will not be added
+    uint8_t s1_parent_to_current_th;
+    uint8_t s2_parent_to_current_th;
+    // Default sub-to-current cost deviation beyond which the next depth will not be added
     // to PRED
-    int64_t e1_sub_to_current_th;
-    int64_t e2_sub_to_current_th;
+    uint8_t e1_sub_to_current_th;
+    uint8_t e2_sub_to_current_th;
     // When enabled, only prune the parent depth when the cost is sufficiently high (i.e. the parent block is
     // sufficiently complex). The signal is specified as a multiplier to a threshold (the threshold is
     // an absolute cost).  A higher value is more conservative; 0 is off.
     // parent_max_cost_th_mult not relevant when parent is never skipped by parent_to_current_th
     uint16_t parent_max_cost_th_mult;
-    // whether to decrement parent_to_current_th and sub_to_current_th based on the cost range of
+    // Whether whether to modulate the deviation thresholds and bounds based on the coefficient level
+    uint8_t coeff_lvl_modulation;
+    // Whether to decrement parent_to_current_th and sub_to_current_th based on the cost range of
     // the parent block or not
     uint8_t cost_band_based_modulation;
-    // the max cost beyond which the decrement is ignored
+    // Max cost beyond which the decrement is ignored
     uint16_t max_cost_multiplier;
-    // the number of band(s)
+    // Number of band(s)
     uint8_t max_band_cnt;
-    // the offset per band
+    // Offset per band
     int64_t decrement_per_band[MAX_RANGE_CNT];
     // Skip parent depth if PARTITION_SPLIT rate of parent depth is much lower than parent cost. 0 is off; higher is more aggressive.
     uint32_t lower_depth_split_cost_th;
-    // Skip child depth if PARTITION_SPLIT rate of current depth is X% higher than current cost. 0 is off; lower is more aggressive.
+    // Skip child depth if PARTITION_SPLIT rate of current depth is x% higher than current cost. 0 is off; lower is more aggressive.
     uint32_t split_rate_th;
     // If true, limit the max/min block sizes for PD1 to the max/min selected by PD0 (when the max/min block sizes are different).
     uint8_t limit_max_min_to_pd0;
@@ -276,6 +281,11 @@ typedef struct DepthRefinementCtrls {
     uint8_t use_ref_info;
     // Modulate sub/parent-to-current TH using QP. 0 is off; lower is more aggressive.
     uint32_t q_weight;
+    // Handling mode for cases where PD0 information is unavailable   
+    // 0 - use default s_depth and e_depth
+    // 1 - cap s_depth and e_depth to -1 and 1
+    // 2 - set s_depth and e_depth to 0
+    uint32_t pd0_unavail_mode_depth;
 } DepthRefinementCtrls;
 #else
 typedef struct DepthRefinementCtrls {
@@ -585,9 +595,11 @@ typedef struct NicPruningCtrls {
     // if (best_mds0_distortion/QP < TH) consider only the best candidate after MDS0; 0: OFF,
     // higher: more aggressive.
     uint32_t force_1_cand_th;
+#if !OPT_REMOVE_NIC_QP_BANDS
     uint16_t mds1_q_weight;
     uint16_t mds2_q_weight;
     uint16_t mds3_q_weight;
+#endif
     uint8_t  merge_inter_cands_mult;
 } NicPruningCtrls;
 typedef struct NicCtrls {
@@ -650,8 +662,10 @@ typedef struct NsqSearchCtrls {
     uint8_t psq_txs_lvl;
     // Whether to use the default or aggressive settings for the sub-Pred_depth block(s) (i.e. not applicable when PRED only)
     uint8_t sub_depth_block_lvl;
+#if !CLN_HIGH_FREQUENCY
     // Whether to use conservative settings for high energy area (not applicable when sb-size=128)
     uint8_t high_energy_weight;
+#endif
 } NsqSearchCtrls;
 typedef struct DepthEarlyExitCtrls {
     // If the rate cost of splitting into lower depths is greater than the percentage threshold of the cost of the parent block, skip testing the lower depth.
@@ -807,7 +821,7 @@ typedef struct Lpd1Ctrls {
     // Shift applied to ME dist and var of top and left SBs when PD0 is skipped
     uint16_t skip_pd0_me_shift[LPD1_LEVELS];
 } Lpd1Ctrls;
-
+#if !CLN_HIGH_FREQUENCY
 typedef struct DetectHighFreqCtrls {
     int8_t enabled;
     // me-8x8 SADs deviation threshold beyond which the SB is not considered
@@ -823,13 +837,8 @@ typedef struct DetectHighFreqCtrls {
     uint8_t max_pic_lpd1_lvl;
     // maximum pd1-txt level for the detected SB(s)
     uint8_t max_pd1_txt_lvl;
-#if OPT_HIGH_ENERGY
-    // Use high-frequency information to modulate the depth-removal level
-    bool do_dr;
-    // Use high-frequency information to modulate the NSQ level
-    bool do_nsq;
-#endif
 } DetectHighFreqCtrls;
+#endif
 
 typedef struct Lpd1TxCtrls {
     // skip cost calc and chroma TX/compensation if there are zero luma coeffs
@@ -1280,7 +1289,9 @@ typedef struct ModeDecisionContext {
     uint16_t            coded_area_sb;
     uint16_t            coded_area_sb_uv;
     Lpd0Ctrls           lpd0_ctrls;
+#if !CLN_HIGH_FREQUENCY
     DetectHighFreqCtrls detect_high_freq_ctrls;
+#endif
     // 0 : Use regular PD0 1 : Use light PD0 path. Assumes one class, no NSQ, no 4x4, TXT off, TXS
     // off, PME off, etc. 2 : Use very light PD0 path: only mds0 (no transform path), no
     // compensation(s) @ mds0 (only umpired candidates, and read directly from reference buffer(s)
@@ -1328,9 +1339,11 @@ typedef struct ModeDecisionContext {
     uint8_t        pred_mode_depth_refine;
     // when MD is done on 8bit, scale palette colors to 10bit (valid when bypass is 1)
     uint8_t  scale_palette;
+#if !CLN_HIGH_FREQUENCY
     uint8_t  high_freq_present;
     uint32_t high_freq_satd_to_me;
     uint32_t b32_satd[4];
+#endif
     uint64_t rec_dist_per_quadrant[4];
     // non-normative txs
     uint16_t min_nz_h;
