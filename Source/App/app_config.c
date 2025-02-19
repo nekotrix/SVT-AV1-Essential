@@ -766,12 +766,8 @@ ConfigEntry config_entry_global_options[] = {
     // Asm Type
     {SINGLE_INPUT,
      ASM_TYPE_TOKEN,
-#ifdef ARCH_X86_64
-     "Limit assembly instruction set, default is max [c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, "
-     "avx2, avx512, max]",
-#elif defined(ARCH_AARCH64)
-     "Limit assembly instruction set, default is max [c, neon, crc32, neon_dotprod, neon_i8mm, sve, sve2, max]",
-#endif
+     "Limit assembly instruction set, only applicable to x86, default is max [c, mmx, sse, sse2, "
+     "sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512, max]",
      set_cfg_generic_token},
     {SINGLE_INPUT,
      THREAD_MGMNT,
