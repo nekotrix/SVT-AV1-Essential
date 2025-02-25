@@ -652,7 +652,11 @@ void svt_aom_mode_decision_configure_sb(ModeDecisionContext *ctx, PictureControl
     /* Note(CHKN) : when Qp modulation varies QP on a sub-SB(CU) basis,  Lamda has to change based on Cu->QP , and then this code has to move inside the CU loop in MD */
 
     // Lambda Assignement
+#if OPT_DELTA_QP
+    ctx->qp_index = pcs->ppcs->frm_hdr.delta_q_params.delta_q_present || pcs->ppcs->r0_delta_qp_md
+#else
     ctx->qp_index = pcs->ppcs->frm_hdr.delta_q_params.delta_q_present
+#endif
         ? sb_qp
         : (uint8_t)pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
 

@@ -696,7 +696,40 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
                                       scs->tpl, scs->static_config.enc_mode, scs->static_config.rate_control_mode),
                                   scs->max_input_luma_width,
                                   scs->max_input_luma_height);
+#if OPT_DELTA_QP
+            // If TPL results are needed for the current hierarchical layer, but are not available, shut r0-based QPS/QPM
+            if (!pcs->tpl_ctrls.enable ||
+                (pcs->tpl_ctrls.reduced_tpl_group >= 0 && pcs->temporal_layer_index > pcs->tpl_ctrls.reduced_tpl_group)) {
+                pcs->r0_gen            = 0;
+                pcs->r0_qps            = 0;
+                pcs->r0_delta_qp_md    = 0;
+                pcs->r0_delta_qp_quant = 0;
 
+            }
+            else {
+                pcs->r0_gen = 1;
+                if (pcs->hierarchical_levels == 5) { // 6L
+                    pcs->r0_qps = pcs->r0_gen;
+                    pcs->r0_delta_qp_md = pcs->r0_gen && pcs->temporal_layer_index <= 3;
+                    pcs->r0_delta_qp_quant = pcs->r0_delta_qp_md && pcs->temporal_layer_index == 0;
+                }
+                else if (pcs->hierarchical_levels == 4) { // 5L
+                    pcs->r0_qps = pcs->r0_gen;
+                    pcs->r0_delta_qp_md = pcs->r0_gen && pcs->temporal_layer_index <= 2;
+                    pcs->r0_delta_qp_quant = pcs->r0_delta_qp_md && pcs->temporal_layer_index == 0;
+                }
+                else if (pcs->hierarchical_levels == 3) { // 4L
+                    pcs->r0_qps = pcs->r0_gen;
+                    pcs->r0_delta_qp_md = pcs->r0_gen && pcs->temporal_layer_index <= 1;
+                    pcs->r0_delta_qp_quant = pcs->r0_delta_qp_md && pcs->slice_type == I_SLICE;
+                }
+                else { // 3L
+                    pcs->r0_qps = pcs->r0_gen && pcs->temporal_layer_index == 0;
+                    pcs->r0_delta_qp_md = pcs->r0_gen && pcs->temporal_layer_index == 0;
+                    pcs->r0_delta_qp_quant = (pcs->r0_delta_qp_md && pcs->slice_type == I_SLICE);
+                }
+            }
+#else
             pcs->r0_based_qps_qpm = pcs->tpl_ctrls.enable &&
                 (pcs->temporal_layer_index == 0 ||
                  (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF &&
@@ -709,7 +742,7 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
                 assert(pcs->temporal_layer_index != 0);
                 pcs->r0_based_qps_qpm = 0;
             }
-
+#endif
             if (in_results_ptr->task_type == TASK_SUPERRES_RE_ME) {
                 // do necessary steps as normal routine
                 {

@@ -798,8 +798,11 @@ static int crf_qindex_calc(PictureControlSet *pcs, RATE_CONTROL *rc, int qindex)
     const int bit_depth = scs->static_config.encoder_bit_depth;
 
     // Set qindex calc method; r0-based using qstep or ref-frame based
+#if OPT_DELTA_QP
+    bool use_qstep_based_q_calc = ppcs->r0_qps;
+#else
     bool use_qstep_based_q_calc = ppcs->r0_based_qps_qpm;
-
+#endif
     // Since many frames can be processed at the same time, storing/using arf_q in rc param is not sufficient and will create a run to run.
     // So, for each frame, arf_q is updated based on the qp of its references.
     rc->arf_q = MAX(rc->arf_q, ((pcs->ref_pic_qp_array[0][0] << 2) + 2));
@@ -1042,7 +1045,11 @@ int svt_aom_compute_rd_mult(PictureControlSet *pcs, uint8_t q_index, uint8_t me_
     rdmult                 = (rdmult * rd_frame_type_factor[gf_update_type]) >> 7;
     if (pcs->scs->stats_based_sb_lambda_modulation) {
         int factor = 128;
+#if OPT_DELTA_QP
+        if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present || pcs->ppcs->r0_delta_qp_md) {
+#else
         if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present) {
+#endif
             int qdiff = q_index - pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
             if (qdiff < 0) {
                 factor = (qdiff <= -8) ? 90 : 115;
@@ -1080,7 +1087,11 @@ int svt_aom_compute_fast_lambda(PictureControlSet *pcs, uint8_t q_index, uint8_t
     rdmult                 = (rdmult * rd_frame_type_factor[gf_update_type]) >> 7;
     if (pcs->scs->stats_based_sb_lambda_modulation) {
         int factor = 128;
+#if OPT_DELTA_QP
+        if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present || pcs->ppcs->r0_delta_qp_md) {
+#else
         if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present) {
+#endif
             int qdiff = q_index - pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
             if (qdiff < 0) {
                 factor = (qdiff <= -8) ? 90 : 115;
@@ -1572,14 +1583,22 @@ void svt_variance_adjust_qp(PictureControlSet *pcs) {
 void svt_aom_sb_qp_derivation_tpl_la(PictureControlSet *pcs) {
     PictureParentControlSet *ppcs_ptr = pcs->ppcs;
     SequenceControlSet      *scs      = pcs->ppcs->scs;
+#if OPT_DELTA_QP
+    if (ppcs_ptr->r0_delta_qp_quant)
+#else
     if (ppcs_ptr->r0_based_qps_qpm)
+#endif
         pcs->ppcs->frm_hdr.delta_q_params.delta_q_present = 1;
 
     // super res pictures scaled with different sb count, should use sb_total_count for each picture
     uint16_t sb_cnt = scs->sb_total_count;
     if (ppcs_ptr->frame_superres_enabled || ppcs_ptr->frame_resize_enabled)
         sb_cnt = pcs->sb_total_count;
+#if OPT_DELTA_QP
+    if (ppcs_ptr->r0_delta_qp_md && pcs->ppcs->tpl_is_valid == 1) {
+#else
     if ((ppcs_ptr->r0_based_qps_qpm) && (pcs->ppcs->tpl_is_valid == 1)) {
+#endif
 #if DEBUG_VAR_BOOST_STATS
         printf("TPL qindex boost, frame %llu, temp. level %i\n", pcs->picture_number, pcs->temporal_layer_index);
 #endif
@@ -3169,9 +3188,14 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
             pcs = (PictureControlSet *)rc_tasks->pcs_wrapper->object_ptr;
             scs = pcs->scs;
             // Get r0
+#if OPT_DELTA_QP
+            if (pcs->ppcs->r0_gen)
+                svt_aom_generate_r0beta(pcs->ppcs);
+#else
             if (pcs->ppcs->r0_based_qps_qpm) {
                 svt_aom_generate_r0beta(pcs->ppcs);
             }
+#endif
             // Get intra % in ref frame
             get_ref_intra_percentage(pcs, &pcs->ref_intra_percentage);
             // Get skip % in ref frame

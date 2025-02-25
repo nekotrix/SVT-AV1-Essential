@@ -1476,7 +1476,11 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
     MacroblockPlane candidate_plane;
     const QmVal    *q_matrix  = pcs->ppcs->gqmatrix[qmatrix_level][plane][adjusted_tx_size];
     const QmVal    *iq_matrix = pcs->ppcs->giqmatrix[qmatrix_level][plane][adjusted_tx_size];
+#if OPT_DELTA_QP
+    int32_t         q_index = pcs->ppcs->frm_hdr.delta_q_params.delta_q_present && (!pcs->ppcs->tpl_ctrls.enable || pcs->ppcs->r0_delta_qp_quant)
+#else
     int32_t         q_index   = pcs->ppcs->frm_hdr.delta_q_params.delta_q_present
+#endif
                   ? qindex
                   : pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
     if (segmentation_qp_offset != 0) {

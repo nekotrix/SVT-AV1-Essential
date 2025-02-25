@@ -54,7 +54,8 @@ extern "C" {
 #define TXS_OPT                     1 // Opt TXS
 #define OPT_REMOVE_NIC_QP_BANDS     1 // Remove QP banding for NICs
 #define FIX_COMPOUND_TEST           1 // Fix unit test to enable wedge intrinsic
-
+#define OPT_DELTA_QP                1 // Break-down r0_based_qps_qpm into three separate components and added a fourth signal to specify whether 
+                                      // to use SB QP during quantization:r0_gen, r0_qps, r0_delta_qp_md,r0_delta_qp_quant
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0

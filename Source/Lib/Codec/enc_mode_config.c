@@ -2537,8 +2537,12 @@ static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisio
 
         int8_t qp_scale_factor = 0;
 
-        // modulate the depth-removal level using: (1) tpl-information, specifically the SB delta-qp.
+        // modulate the depth-removal level using: (1) tpl-information, specifically the SB delta-qp, and (2) the high-freq information
+#if OPT_DELTA_QP
+        if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present || pcs->ppcs->r0_delta_qp_md) {
+#else
         if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present) {
+#endif
             int diff = ctx->sb_ptr->qindex - quantizer_to_qindex[pcs->ppcs->picture_qp];
             if (diff <= -12)
                 depth_removal_level = MAX(0, (int)depth_removal_level - 4);
@@ -2768,6 +2772,7 @@ static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisio
 
             int64_t dev_16x16_to_8x8 = (int64_t)(((int64_t)MAX(cost_16x16, 1) - (int64_t)MAX(cost_8x8, 1)) * 1000) /
                 (int64_t)MAX(cost_8x8, 1);
+
             // Enable depth removal at a given depth if the entire SB can be covered by blocks of that size (to avoid
             // disallowing necessary blocks).
             depth_removal_ctrls->disallow_below_64x64 = (((sb_geom->width % 64) == 0 || (sb_geom->width % 64) > 32) &&
@@ -8145,13 +8150,18 @@ uint8_t svt_aom_get_nsq_search_level(PictureControlSet *pcs, EncMode enc_mode, I
 
 #define NSQ_MODULATION_MIN_LEVEL 8
     if (nsq_search_level > NSQ_MODULATION_MIN_LEVEL) {
+#if OPT_DELTA_QP
+        if (pcs->ppcs->r0_gen) {
+#else
         if (pcs->ppcs->tpl_ctrls.enable && pcs->ppcs->r0_based_qps_qpm) {
+#endif
             double r0_tab[MAX_TEMPORAL_LAYERS] = {0.10, 0.15, 0.20, 0.25, 0.25, 0.25};
             double r0_th                       = pcs->slice_type == I_SLICE ? 0.05 : r0_tab[pcs->temporal_layer_index];
             if (pcs->ppcs->r0 < r0_th)
                 nsq_search_level = MIN(nsq_search_level, MAX(NSQ_MODULATION_MIN_LEVEL, MAX(nsq_search_level - 4, 1)));
         }
     }
+
     if (nsq_search_level > NSQ_MODULATION_MIN_LEVEL) {
         if (pcs->ppcs->sc_class3)
             nsq_search_level = MIN(nsq_search_level, MAX(NSQ_MODULATION_MIN_LEVEL, MAX(nsq_search_level - 2, 1)));
@@ -8556,7 +8566,11 @@ static void mfmv_controls(PictureControlSet *pcs, uint8_t mfmv_level) {
     }
 
     if (r0_th) {
+#if OPT_DELTA_QP
+        if (pcs->ppcs->r0_gen && is_base) {
+#else
         if (pcs->ppcs->tpl_ctrls.enable && pcs->ppcs->r0_based_qps_qpm && is_base) {
+#endif
             if (pcs->ppcs->r0 < r0_th)
                 ppcs->frm_hdr.use_ref_frame_mvs = 1;
         }
@@ -9197,7 +9211,11 @@ set lpd0_level
     }
 
     // r0-modulation
+#if OPT_DELTA_QP
+    if (pcs->pic_block_based_depth_refinement_level && pcs->ppcs->r0_gen) {
+#else
     if (pcs->pic_block_based_depth_refinement_level && pcs->ppcs->tpl_ctrls.enable && pcs->ppcs->r0_based_qps_qpm) {
+#endif
         double r0_tab[MAX_TEMPORAL_LAYERS] = { 0.20, 0.30, 0.40, 0.50, 0.50, 0.50 };
         double r0_th = pcs->slice_type == I_SLICE ? 0.05 : r0_tab[pcs->temporal_layer_index];
         if (pcs->ppcs->r0 < r0_th)
