@@ -479,7 +479,6 @@ typedef struct MeContext {
     int16_t  tf_8x8_mv_y[64];
     uint64_t tf_8x8_block_error[64];
     int      tf_16x16_block_split_flag[4][4];
-
     int16_t  tf_32x32_mv_x[4];
     int16_t  tf_32x32_mv_y[4];
     uint64_t tf_32x32_block_error[4];
@@ -490,6 +489,9 @@ typedef struct MeContext {
     uint16_t tf_mv_dist_th;
     int32_t  prune_me_candidates_th;
     uint8_t  use_best_unipred_cand_only; // Use only the best unipred candidate when MRP is off
+#if OPT_SC_ME
+    uint8_t sc_class4_me_boost;
+#endif
     uint8_t  reduce_hme_l0_sr_th_min;
     uint8_t  reduce_hme_l0_sr_th_max;
     uint16_t tf_me_exit_th;

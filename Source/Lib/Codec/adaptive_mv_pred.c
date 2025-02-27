@@ -1058,7 +1058,11 @@ void svt_aom_init_xd(PictureControlSet *pcs, ModeDecisionContext *ctx) {
     xd->above_mbmi = (xd->up_available) ? &xd->mi[-(xd->mi_stride)]->mbmi : NULL;
     //mi_ptr = xd->mi[-1];
     xd->left_mbmi = (xd->left_available) ? &xd->mi[-1]->mbmi : NULL;
+#if FIX_INTRA_UPDATES
+    if (!ctx->skip_intra || ctx->inter_intra_comp_ctrls.enabled) {
+#else
     if (!ctx->skip_intra) {
+#endif
         const uint8_t ss_x = 1, ss_y = 1;
         xd->chroma_up_available   = bh < 2 /*mi_size_wide[BLOCK_8X8]*/ ? (mi_row - 1) > xd->tile.mi_row_start
                                                                        : xd->up_available;

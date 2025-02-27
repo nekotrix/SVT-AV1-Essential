@@ -2141,7 +2141,11 @@ static uint8_t ii_size_scales[BlockSizeS_ALL] = {
 };
 /* clang-format on */
 
-void build_smooth_interintra_mask(uint8_t *mask, int stride, BlockSize plane_bsize, InterIntraMode mode) {
+#if OPT_II_MASK_GEN
+static void build_smooth_interintra_mask(uint8_t *mask, int stride, BlockSize plane_bsize, InterIntraMode mode) {
+#else
+void build_smooth_interintra_mask(uint8_t * mask, int stride, BlockSize plane_bsize, InterIntraMode mode) {
+#endif
     const int bw         = block_size_wide[plane_bsize];
     const int bh         = block_size_high[plane_bsize];
     const int size_scale = ii_size_scales[plane_bsize];
@@ -2178,6 +2182,32 @@ void build_smooth_interintra_mask(uint8_t *mask, int stride, BlockSize plane_bsi
     }
 }
 
+#if OPT_II_MASK_GEN
+// ii_masks stores the actual masks. We use smooth_ii_masks to access ii_masks so that we can index the array
+// directly with the bsize (BlockSize that would be passed when doing the prediction) without using the extra memory
+// to store empty, unused masks for the blocksizes that don't allow inter-intra
+static uint8_t ii_masks[BLOCK_32X32 - BLOCK_4X4 + 1][INTERINTRA_MODES][MAX_INTERINTRA_SB_SQUARE];
+static uint8_t* smooth_ii_masks[BlockSizeS_ALL][INTERINTRA_MODES];
+
+// Initialize the masks used for inter-intra compound blending. Inter-intra is allowed for 8x8-32x32 blocks, but
+// masks must be generated down to 4x4 because of chroma. The stride of each mask is the block width.
+void init_ii_masks(void) {
+    memset(smooth_ii_masks, 0 /*NULL*/, sizeof(smooth_ii_masks));
+    for (BlockSize bsize = BLOCK_4X4; bsize <= BLOCK_32X32; ++bsize) {
+        const int bw = block_size_wide[bsize];
+        for (InterIntraMode ii_mode = II_DC_PRED; ii_mode < INTERINTRA_MODES; ii_mode++) {
+            build_smooth_interintra_mask(ii_masks[bsize - BLOCK_4X4][ii_mode], bw, bsize, ii_mode);
+            smooth_ii_masks[bsize][ii_mode] = ii_masks[bsize - BLOCK_4X4][ii_mode];
+        }
+    }
+}
+
+// mask stride is block width
+static uint8_t* get_ii_mask(BlockSize bsize, InterIntraMode ii_mode) {
+    return smooth_ii_masks[bsize][ii_mode];
+}
+#endif
+
 void svt_aom_combine_interintra_highbd(InterIntraMode mode, uint8_t use_wedge_interintra, uint8_t wedge_index,
                                        uint8_t wedge_sign, BlockSize bsize, BlockSize plane_bsize, uint8_t *comppred8,
                                        int compstride, const uint8_t *interpred8, int interstride,
@@ -2207,8 +2237,12 @@ void svt_aom_combine_interintra_highbd(InterIntraMode mode, uint8_t use_wedge_in
         return;
     }
 
+#if OPT_II_MASK_GEN
+    uint8_t* mask = get_ii_mask(plane_bsize, mode);
+#else
     uint8_t mask[MAX_SB_SQUARE];
     build_smooth_interintra_mask(mask, bw, plane_bsize, mode);
+#endif
     svt_aom_highbd_blend_a64_mask(
         comppred8, compstride, intrapred8, intrastride, interpred8, interstride, mask, bw, bw, bh, 0, 0, bd);
 }
@@ -2364,8 +2398,12 @@ void svt_aom_combine_interintra(InterIntraMode mode, int8_t use_wedge_interintra
         }
         return;
     } else {
+#if OPT_II_MASK_GEN
+        uint8_t* mask = get_ii_mask(plane_bsize, mode);
+#else
         uint8_t mask[MAX_SB_SQUARE];
         build_smooth_interintra_mask(mask, bw, plane_bsize, mode);
+#endif
         svt_aom_blend_a64_mask(
             comppred, compstride, intrapred, intrastride, interpred, interstride, mask, bw, bw, bh, 0, 0);
     }

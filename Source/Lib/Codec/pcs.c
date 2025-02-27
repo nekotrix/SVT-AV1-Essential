@@ -1400,7 +1400,6 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
         ? svt_aom_get_enable_me_8x8(init_data_ptr->enc_mode, init_data_ptr->rtc_tune, resolution)
         : 0;
     EB_NEW(object_ptr->dg_detector, svt_aom_dg_detector_seg_ctor);
-
     return return_error;
 }
 static void me_dctor(EbPtr p) {

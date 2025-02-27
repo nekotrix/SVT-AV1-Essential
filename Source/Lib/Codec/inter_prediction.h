@@ -67,6 +67,9 @@ typedef struct PadBlock {
 } PadBlock;
 
 #define INTERINTRA_WEDGE_SIGN 0
+#if OPT_II_MASK_GEN
+#define MAX_INTERINTRA_SB_SQUARE 32 * 32
+#endif
 
 typedef uint8_t *WedgeMasksType[MAX_WEDGE_TYPES];
 
@@ -177,7 +180,9 @@ static INLINE int valid_ref_frame_size(int ref_width, int ref_height, int this_w
 }
 void svt_aom_pack_block(uint8_t *in8_bit_buffer, uint32_t in8_stride, uint8_t *inn_bit_buffer, uint32_t inn_stride,
                         uint16_t *out16_bit_buffer, uint32_t out_stride, uint32_t width, uint32_t height);
+#if !OPT_II_MASK_GEN
 void build_smooth_interintra_mask(uint8_t *mask, int stride, BlockSize plane_bsize, InterIntraMode mode);
+#endif
 
 void highbd_convolve_2d_for_intrabc(const uint16_t *src, int src_stride, uint16_t *dst, int dst_stride, int w, int h,
                                     int subpel_x_q4, int subpel_y_q4, ConvolveParams *conv_params, int bd);

@@ -1005,7 +1005,9 @@ typedef struct PictureParentControlSet {
     uint8_t sc_class2;
 
     uint8_t sc_class3;
-
+#if OPT_SC_ME
+    uint8_t sc_class4;
+#endif
     SkipModeInfo skip_mode_info;
 
     uint64_t picture_number_alt; // The picture number overlay includes all the overlay frames
@@ -1195,7 +1197,9 @@ typedef struct PictureParentControlSet {
     uint64_t norm_me_dist;
     uint8_t  tpl_params_ready;
     bool     is_startup_gop;
-
+#if OPT_SC_ME
+    uint32_t ahd_error;
+#endif
 } PictureParentControlSet;
 
 typedef struct TplDispResults {

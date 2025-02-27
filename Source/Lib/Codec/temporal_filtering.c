@@ -2336,6 +2336,9 @@ static void tf_64x64_inter_prediction(PictureParentControlSet *pcs, MeContext *m
         0, //use_intrabc,
         SIMPLE_TRANSLATION,
         0,
+#if OPT_II_PRECOMPUTE
+        false, // use_precomputed_ii
+#endif
         0,
         1, //compound_idx not used
         NULL, // interinter_comp not used
@@ -2452,6 +2455,9 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
                         0, //use_intrabc,
                         SIMPLE_TRANSLATION,
                         0,
+#if OPT_II_PRECOMPUTE
+                        false, // use_precomputed_ii
+#endif
                         0,
                         1, //compound_idx not used
                         NULL, // interinter_comp not used
@@ -2515,6 +2521,9 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
                                  0, //use_intrabc,
                                  SIMPLE_TRANSLATION,
                                  0,
+#if OPT_II_PRECOMPUTE
+                                 false, // use_precomputed_ii
+#endif
                                  0,
                                  1, //compound_idx not used
                                  NULL, // interinter_comp not used
@@ -2579,6 +2588,9 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
             0, //use_intrabc,
             SIMPLE_TRANSLATION,
             0,
+#if OPT_II_PRECOMPUTE
+            false, // use_precomputed_ii
+#endif
             0,
             1, //compound_idx not used
             NULL, // interinter_comp not used

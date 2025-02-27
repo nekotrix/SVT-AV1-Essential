@@ -660,7 +660,11 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         if (pcs->slice_type == I_SLICE) {
             pcs->me_dist_mod = 0;
         } else {
+#if TUNE_M3
+            if (pcs->enc_mode <= ENC_M2)
+#else
             if (pcs->enc_mode <= ENC_M3)
+#endif
                 pcs->me_dist_mod = 0;
             else
                 pcs->me_dist_mod = 1;

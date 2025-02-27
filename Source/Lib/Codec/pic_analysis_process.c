@@ -1893,11 +1893,20 @@ static bool is_valid_palette_nb_colors(const uint8_t *src, int stride, int rows,
 // Estimate if the source frame is screen content, based on the portion of
 // blocks that have no more than 4 (experimentally selected) luma colors.
 void svt_aom_is_screen_content(PictureParentControlSet *pcs) {
+
+#if OPT_SC_ME
+    int blk_w = 16;
+    int blk_h = 16;
+    // These threshold values are selected experimentally.
+    int color_thresh = 4;
+    int var_thresh = 0;
+#else
     const int blk_w = 16;
     const int blk_h = 16;
     // These threshold values are selected experimentally.
     const int color_thresh = 4;
     const int var_thresh   = 0;
+#endif
     // Counts of blocks with no more than color_thresh colors.
     int counts_1 = 0;
     // Counts of blocks with no more than color_thresh colors and variance larger
@@ -1937,6 +1946,37 @@ void svt_aom_is_screen_content(PictureParentControlSet *pcs) {
     pcs->sc_class3 = pcs->sc_class1 ||
         (counts_1 * blk_h * blk_w * 8 > input_pic->width * input_pic->height &&
          counts_2 * blk_h * blk_w * 50 > input_pic->width * input_pic->height);
+
+#if OPT_SC_ME
+    blk_w = 8;
+    blk_h = 8;
+    // These threshold values are selected experimentally.
+    color_thresh = 4;
+    var_thresh = 16;
+    // Counts of blocks with no more than color_thresh colors.
+    counts_1 = 0;
+    // Counts of blocks with no more than color_thresh colors and variance larger
+    // than var_thresh.
+    counts_2 = 0;
+    for (int r = 0; r + blk_h <= input_pic->height; r += blk_h) {
+        for (int c = 0; c + blk_w <= input_pic->width; c += blk_w) {
+            {
+                uint8_t* src = input_pic->buffer_y + (input_pic->org_y + r) * input_pic->stride_y + input_pic->org_x +
+                    c;
+
+                if (is_valid_palette_nb_colors(src, input_pic->stride_y, blk_w, blk_h, color_thresh)) {
+                    ++counts_1;
+                    int var = svt_av1_get_sby_perpixel_variance(fn_ptr, src, input_pic->stride_y, BLOCK_8X8);
+                    if (var > var_thresh)
+                        ++counts_2;
+                }
+            }
+        }
+    }
+    //pcs->sc_class4 = (counts_1 * blk_h * blk_w * 10 > input_pic->width * input_pic->height) && (counts_2 * blk_h * blk_w * 12 > input_pic->width * input_pic->height);
+    // v0 pcs->sc_class4 = (counts_1 * blk_h * blk_w * 12 > input_pic->width * input_pic->height) && (counts_2 * blk_h * blk_w * 13 > input_pic->width * input_pic->height);
+    pcs->sc_class4 = (counts_1 * blk_h * blk_w * 18 > input_pic->width * input_pic->height) && (counts_2 * blk_h * blk_w * 20 > input_pic->width * input_pic->height);
+#endif
 }
 
 /************************************************
@@ -2164,6 +2204,7 @@ void *svt_aom_picture_analysis_kernel(void *input_ptr) {
 
                 pa_ref_obj_->avg_luma = pcs->avg_luma;
             }
+
             // If running multi-threaded mode, perform SC detection in svt_aom_picture_analysis_kernel, else in svt_aom_picture_decision_kernel
             if (scs->static_config.level_of_parallelism != 1) {
                 if (scs->static_config.screen_content_mode == 2) { // auto detect
@@ -2171,13 +2212,21 @@ void *svt_aom_picture_analysis_kernel(void *input_ptr) {
                     if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE)
                         svt_aom_is_screen_content(pcs);
                     else
+#if OPT_SC_ME
+                        pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = pcs->sc_class4 = 0;
+#else
                         pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = 0;
-
+#endif
                 } else // off / on
+#if OPT_SC_ME
+                    pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = pcs->sc_class4 =
+#else
                     pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 =
+#endif
                         scs->static_config.screen_content_mode;
             }
         }
+
         // Get Empty Results Object
         svt_get_empty_object(pa_ctx->picture_analysis_results_output_fifo_ptr, &out_results_wrapper);
 

@@ -1427,6 +1427,9 @@ static int create_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instance_i
 
 void init_fn_ptr(void);
 void svt_av1_init_wedge_masks(void);
+#if OPT_II_MASK_GEN
+void init_ii_masks(void);
+#endif
 /**********************************
 * Initialize Encoder Library
 **********************************/
@@ -1459,6 +1462,9 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
     svt_av1_init_me_luts();
     init_fn_ptr();
     svt_av1_init_wedge_masks();
+#if OPT_II_MASK_GEN
+    init_ii_masks();
+#endif
     /************************************
      * Sequence Control Set
      ************************************/
@@ -3926,7 +3932,15 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->static_config.enable_variance_boost)
         scs->super_block_size = 64;
     else
+#if TUNE_M1
+#if TUNE_M0
+        if (scs->static_config.enc_mode <= ENC_MR)
+#else
+        if (scs->static_config.enc_mode <= ENC_M0)
+#endif
+#else
         if (scs->static_config.enc_mode <= ENC_M1)
+#endif
             scs->super_block_size = 128;
         else if (scs->static_config.enc_mode <= ENC_M2) {
 
@@ -3943,12 +3957,14 @@ static void set_param_based_on_input(SequenceControlSet *scs)
                     scs->super_block_size = 128;
             }
         }
+#if !TUNE_M3
         else if (scs->static_config.enc_mode <= ENC_M3) {
             if (scs->static_config.qp <= 56)
                 scs->super_block_size = 64;
             else
                 scs->super_block_size = 128;
         }
+#endif
         else if (scs->static_config.enc_mode <= ENC_M6) {
             if (scs->static_config.qp <= 57)
                 scs->super_block_size = 64;
@@ -4112,7 +4128,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     svt_aom_set_mfmv_config(scs);
 
     uint8_t list0_only_base_lvl = 0;
+#if TUNE_M3
+    if (scs->static_config.enc_mode <= ENC_M2)
+#else
     if (scs->static_config.enc_mode <= ENC_M3)
+#endif
         list0_only_base_lvl = 0;
     else if (scs->static_config.enc_mode <= ENC_M4)
         list0_only_base_lvl = 3;
@@ -4159,15 +4179,27 @@ static void set_param_based_on_input(SequenceControlSet *scs)
             else
                 mrp_level = 2;
         }
+#if TUNE_M4
+        else if (scs->static_config.enc_mode <= ENC_M3) {
+            if (!(scs->input_resolution <= INPUT_SIZE_360p_RANGE) && !(scs->static_config.fast_decode <= 1))
+                mrp_level = 9;
+            else
+                mrp_level = 5;
+#else
         else if (scs->static_config.enc_mode <= ENC_M4) {
             if (!(scs->input_resolution <= INPUT_SIZE_360p_RANGE) && !(scs->static_config.fast_decode <= 1))
                 mrp_level = 9;
             else
                 mrp_level = 5;
+#endif
         }
         // any changes for preset ENC_M5 and higher should be separated for VBR and CRF in the control structure below
         else if (scs->static_config.rate_control_mode != SVT_AV1_RC_MODE_VBR) {
+#if TUNE_M8
+            if (scs->static_config.enc_mode <= ENC_M8)
+#else
             if (scs->static_config.enc_mode <= ENC_M7)
+#endif
                 mrp_level = 9;
             else if (scs->static_config.enc_mode <= ENC_M9)
                 mrp_level = 10;

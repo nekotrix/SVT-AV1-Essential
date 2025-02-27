@@ -1357,6 +1357,10 @@ static void perform_inter_coding_loop(SequenceControlSet *scs, PictureControlSet
         assert(blk_ptr->use_intrabc == 0);
 
         svt_aom_warped_motion_prediction(pcs,
+#if OPT_II_PRECOMPUTE
+                                         NULL,
+                                         false, //use_precomputed_ii
+#endif
                                          &ctx->mv_unit,
                                          blk_ptr->ref_frame_type,
                                          blk_ptr->compound_idx,
@@ -1389,6 +1393,9 @@ static void perform_inter_coding_loop(SequenceControlSet *scs, PictureControlSet
                                  blk_ptr->use_intrabc,
                                  blk_ptr->motion_mode,
                                  0, //use_precomputed_obmc,
+#if OPT_II_PRECOMPUTE
+                                 false, //use_precomputed_ii
+#endif
                                  0,
                                  blk_ptr->compound_idx,
                                  &blk_ptr->interinter_comp,

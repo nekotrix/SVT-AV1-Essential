@@ -46,7 +46,11 @@ void        av1_inter_prediction_light_pd1(SequenceControlSet *scs, MvUnit *mv_u
                                            uint8_t hbd_md, ScaleFactors *sf0, ScaleFactors *sf1);
 EbErrorType svt_aom_inter_prediction(SequenceControlSet *scs, PictureControlSet *pcs, uint32_t interp_filters,
                                      BlkStruct *blk_ptr, uint8_t ref_frame_type, MvUnit *mv_unit, uint8_t use_intrabc,
+#if OPT_II_PRECOMPUTE
+                                     MotionMode motion_mode, uint8_t use_precomputed_obmc, bool use_precomputed_ii,
+#else
                                      MotionMode motion_mode, uint8_t use_precomputed_obmc,
+#endif
                                      struct ModeDecisionContext *ctx, uint8_t compound_idx,
                                      InterInterCompoundData *interinter_comp, NeighborArrayUnit *recon_neigh_y,
                                      NeighborArrayUnit *recon_neigh_cb, NeighborArrayUnit *recon_neigh_cr,
@@ -68,7 +72,11 @@ EbErrorType svt_aom_inter_pu_prediction_av1_light_pd1(uint8_t hbd_md, struct Mod
 EbErrorType svt_aom_inter_pu_prediction_av1(uint8_t hbd_md, struct ModeDecisionContext *ctx, PictureControlSet *pcs,
                                             ModeDecisionCandidateBuffer *cand_bf);
 
+#if OPT_II_PRECOMPUTE
+EbErrorType svt_aom_warped_motion_prediction(PictureControlSet* pcs, struct ModeDecisionContext* ctx, bool use_precomputed_ii, MvUnit* mv_unit, uint8_t ref_frame_type,
+#else
 EbErrorType svt_aom_warped_motion_prediction(PictureControlSet *pcs, MvUnit *mv_unit, uint8_t ref_frame_type,
+#endif
                                              uint8_t compound_idx, InterInterCompoundData *interinter_comp,
                                              uint16_t pu_origin_x, uint16_t pu_origin_y, BlkStruct *blk_ptr,
                                              const BlockGeom *blk_geom, EbPictureBufferDesc *ref_pic_list0,

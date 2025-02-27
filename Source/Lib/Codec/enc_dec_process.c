@@ -2351,16 +2351,24 @@ static void is_parent_to_current_deviation_small(PictureControlSet* pcs, ModeDec
         int64_t s2_parent_to_current_th = (int64_t) ctx->depth_refinement_ctrls.s2_parent_to_current_th;
 
         if (ctx->depth_refinement_ctrls.q_weight) {
-            const uint32_t mult = ctx->depth_refinement_ctrls.q_weight;
-            const uint32_t cost_part = (uint32_t)MAX(
-                (ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost /
-                    (uint64_t)(((uint64_t)blk_geom->bwidth * (uint64_t)blk_geom->bheight) << 10)),
-                1);
+
+#if OPT_USE_EXP_DEPTHS
+            uint32_t q_weight, q_weight_denom;
+            svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+            s1_parent_to_current_th = s1_parent_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : DIVIDE_AND_ROUND(s1_parent_to_current_th * q_weight, q_weight_denom);
+            s2_parent_to_current_th = s2_parent_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : DIVIDE_AND_ROUND(s2_parent_to_current_th * q_weight, q_weight_denom);
+#else
             const int q_weight_unscaled = (int)((mult * cost_part * ((5 * (int)pcs->ppcs->scs->static_config.qp) - 100)) /
                 100);
             const uint32_t q_weight = CLIP3(100, 2000, q_weight_unscaled);
             s1_parent_to_current_th = s1_parent_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : (s1_parent_to_current_th * q_weight) / 2000;
             s2_parent_to_current_th = s2_parent_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : (s2_parent_to_current_th * q_weight) / 2000;
+            const uint32_t mult      = ctx->depth_refinement_ctrls.q_weight;
+            const uint32_t cost_part = (uint32_t)MAX(
+                (ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost /
+                 (uint64_t)(((uint64_t)blk_geom->bwidth * (uint64_t)blk_geom->bheight) << 10)),
+                1);
+#endif
         }
 
         s1_parent_to_current_th = s1_parent_to_current_th == MIN_SIGNED_VALUE
@@ -2435,16 +2443,23 @@ static void is_child_to_current_deviation_small(PictureControlSet* pcs, ModeDeci
         int64_t e2_sub_to_current_th = (int64_t) ctx->depth_refinement_ctrls.e2_sub_to_current_th;
 
         if (ctx->depth_refinement_ctrls.q_weight) {
-            const uint32_t mult = ctx->depth_refinement_ctrls.q_weight;
-            const uint32_t cost_part = (uint32_t)MAX(
-                (ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost /
-                    (uint64_t)(((uint64_t)blk_geom->bwidth * (uint64_t)blk_geom->bheight) << 10)),
-                1);
+#if OPT_USE_EXP_DEPTHS
+            uint32_t q_weight, q_weight_denom;
+            svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+            e1_sub_to_current_th = e1_sub_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : DIVIDE_AND_ROUND(e1_sub_to_current_th * q_weight, q_weight_denom);
+            e2_sub_to_current_th = e2_sub_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : DIVIDE_AND_ROUND(e2_sub_to_current_th * q_weight, q_weight_denom);
+#else
             const int q_weight_unscaled = (int)((mult * cost_part * ((5 * (int)pcs->ppcs->scs->static_config.qp) - 100)) /
                 100);
             const uint32_t q_weight = CLIP3(100, 2000, q_weight_unscaled);
             e1_sub_to_current_th = e1_sub_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : (e1_sub_to_current_th * q_weight) / 2000;
             e2_sub_to_current_th = e2_sub_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : (e2_sub_to_current_th * q_weight) / 2000;
+            const uint32_t mult = ctx->depth_refinement_ctrls.q_weight;
+            const uint32_t cost_part = (uint32_t)MAX(
+                (ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost /
+                    (uint64_t)(((uint64_t)blk_geom->bwidth * (uint64_t)blk_geom->bheight) << 10)),
+                1);
+#endif
         }
         
         e1_sub_to_current_th = e1_sub_to_current_th == MIN_SIGNED_VALUE

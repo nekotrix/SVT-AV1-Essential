@@ -2749,6 +2749,9 @@ static void  av1_generate_rps_info(
         pcs->sc_class1 = pcs->alt_ref_ppcs_ptr->sc_class1;
         pcs->sc_class2 = pcs->alt_ref_ppcs_ptr->sc_class2;
         pcs->sc_class3 = pcs->alt_ref_ppcs_ptr->sc_class3;
+#if OPT_SC_ME
+        pcs->sc_class4 = pcs->alt_ref_ppcs_ptr->sc_class4;
+#endif
     }
 /***************************************************************************************************
  * Initialize the overlay frame
@@ -2928,8 +2931,16 @@ static int ref_pics_modulation(
         }
     }
     // Modulate offset using qp
+#if OPT_USE_EXP_TF
+    if (pcs->tf_ctrls.qp_opt) {
+        uint32_t q_weight, q_weight_denom;
+        svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+        offset = DIVIDE_AND_ROUND(offset * q_weight, q_weight_denom);
+    }
+#else
     if (pcs->tf_ctrls.qp_opt)
         offset = (offset * CLIP3(100, 1000, (int)(int)(45 * pcs->scs->static_config.qp) - 1000)) / 1000;
+#endif
     return offset;
 }
 
@@ -3949,21 +3960,36 @@ static void perform_sc_detection(SequenceControlSet* scs, PictureParentControlSe
                 if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE)
                     svt_aom_is_screen_content(pcs);
                 else
+#if OPT_SC_ME
+                    pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = pcs->sc_class4 = 0;
+#else
                     pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = 0;
+#endif
             }
             else
+#if OPT_SC_ME
+                    pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = pcs->sc_class4 = scs->static_config.screen_content_mode;
+#else
                 pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = scs->static_config.screen_content_mode;
+#endif
         }
         ctx->last_i_picture_sc_class0 = pcs->sc_class0;
         ctx->last_i_picture_sc_class1 = pcs->sc_class1;
         ctx->last_i_picture_sc_class2 = pcs->sc_class2;
         ctx->last_i_picture_sc_class3 = pcs->sc_class3;
+#if OPT_SC_ME
+        ctx->last_i_picture_sc_class4 = pcs->sc_class4;
+#endif
+
     }
     else {
         pcs->sc_class0 = ctx->last_i_picture_sc_class0;
         pcs->sc_class1 = ctx->last_i_picture_sc_class1;
         pcs->sc_class2 = ctx->last_i_picture_sc_class2;
         pcs->sc_class3 = ctx->last_i_picture_sc_class3;
+#if OPT_SC_ME
+        pcs->sc_class4 = ctx->last_i_picture_sc_class4;
+#endif
     }
 }
 
@@ -4419,7 +4445,24 @@ static void update_dpb(PictureParentControlSet* pcs, PictureDecisionContext* ctx
         }
     }
 }
+#if OPT_SC_ME
+static uint32_t calc_ahd_pd(SequenceControlSet* scs, PictureParentControlSet* pcs, PictureDecisionContext* ctx) {
+    // accumulative histogram (absolute) differences between the past and current frame
+    uint32_t ahd = 0;
+    uint32_t  region_in_picture_width_index;
+    uint32_t  region_in_picture_height_index;
+    // Loop over regions inside the picture
+    for (region_in_picture_width_index = 0; region_in_picture_width_index < scs->picture_analysis_number_of_regions_per_width; region_in_picture_width_index++) {  // loop over horizontal regions
+        for (region_in_picture_height_index = 0; region_in_picture_height_index < scs->picture_analysis_number_of_regions_per_height; region_in_picture_height_index++) { // loop over vertical regions
 
+            for (int bin = 0; bin < HISTOGRAM_NUMBER_OF_BINS; ++bin) {
+                ahd += ABS((int32_t)pcs->picture_histogram[region_in_picture_width_index][region_in_picture_height_index][bin] - (int32_t)ctx->prev_picture_histogram[region_in_picture_width_index][region_in_picture_height_index][bin]);
+            }
+        }
+    }
+    return(ahd);
+}
+#endif
 /* Picture Decision Kernel */
 
 /***************************************************************************************************
@@ -4586,6 +4629,12 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
             bool window_avail, eos_reached;
             check_window_availability(scs, enc_ctx, pcs, queue_entry_ptr, &window_avail, &eos_reached);
 
+#if OPT_SC_ME
+            pcs->ahd_error = (uint32_t) ~0;
+            if (window_avail == true && queue_entry_ptr->picture_number > 0) {
+                pcs->ahd_error = calc_ahd_pd(scs, pcs, ctx);
+            }
+#endif
             // If the relevant frames are available, perform scene change detection
             if (window_avail == true && queue_entry_ptr->picture_number > 0) {
                 perform_scene_change_detection(scs, pcs, ctx);

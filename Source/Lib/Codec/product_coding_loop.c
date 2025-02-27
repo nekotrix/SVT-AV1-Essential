@@ -230,7 +230,11 @@ static void mode_decision_update_neighbor_arrays(PictureControlSet *pcs, ModeDec
         svt_aom_neighbor_array_unit_mode_write(
             ctx->txfm_context_array, &bh, org_x, org_y, bwdith, bheight, NEIGHBOR_ARRAY_UNIT_LEFT_MASK);
     }
+#if FIX_INTRA_UPDATES
+    if (!ctx->skip_intra || ctx->inter_intra_comp_ctrls.enabled) {
+#else
     if (!ctx->skip_intra) {
+#endif
         if (ctx->encoder_bit_depth > EB_EIGHT_BIT && ctx->bypass_encdec && !ctx->hbd_md && ctx->pd_pass == PD_PASS_1) {
             // copy HBD
             svt_aom_update_recon_neighbor_array16bit(ctx->luma_recon_na_16bit,
@@ -1497,6 +1501,7 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
         *(cand_bf->full_cost) = *(cand_bf->fast_cost);
 #endif
 }
+#if !OPT_USE_EXP_HME_ME
 #if OPT_REMOVE_NIC_QP_BANDS
 static void get_qp_based_th_scaling_factors(uint32_t qp, uint32_t* ret_q_weight, uint32_t* ret_q_weight_denom) {
     // limit scaling for low QPs to 10/63 to avoid extreme actions. 10 chosen arbitrarily.
@@ -1514,6 +1519,7 @@ static void get_qp_based_th_scaling_factors(uint32_t qp, uint32_t* ret_q_weight,
     *ret_q_weight = q_weight;
     *ret_q_weight_denom = q_weight_denom;
 }
+#endif
 #endif
 /* Set the max number of NICs for each MD stage, based on the picture type and scaling settings.
 
@@ -1550,7 +1556,11 @@ void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_C
     }
 #if OPT_REMOVE_NIC_QP_BANDS
     uint32_t q_weight, q_weight_denom;
+#if OPT_USE_EXP_HME_ME
+    svt_aom_get_qp_based_th_scaling_factors(qp, &q_weight, &q_weight_denom);
+#else
     get_qp_based_th_scaling_factors(qp, &q_weight, &q_weight_denom);
+#endif
     for (CandClass cidx = 0; cidx < CAND_CLASS_TOTAL; ++cidx) {
         mds1_count[cidx] = MAX(min_mds1_nics, DIVIDE_AND_ROUND(mds1_count[cidx] * q_weight, q_weight_denom));
         mds2_count[cidx] = MAX(min_mds2_nics, DIVIDE_AND_ROUND(mds2_count[cidx] * q_weight, q_weight_denom));
@@ -3295,6 +3305,16 @@ static void pme_search(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
     uint8_t hbd_md = EB_8_BIT_MD;
     // Modulate the PME-full-pel search-area using QP
     // The PME-full-pel search will be skipped  if width or/and height ends-up equal to 0 (only subpel-search will take place)
+#if OPT_USE_EXP_PME
+    uint8_t  full_pel_search_width = ctx->md_pme_ctrls.full_pel_search_width;
+    uint8_t  full_pel_search_height = ctx->md_pme_ctrls.full_pel_search_height;
+    if (ctx->md_pme_ctrls.sa_q_weight) {
+        uint32_t q_weight, q_weight_denom;
+        svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+        full_pel_search_width = MAX(3, DIVIDE_AND_ROUND(full_pel_search_width * q_weight, q_weight_denom));
+        full_pel_search_height = MAX(3, DIVIDE_AND_ROUND(full_pel_search_height * q_weight, q_weight_denom));
+    }
+#else
     uint16_t mult = ctx->md_pme_ctrls.sa_q_weight;
 
     uint16_t q_weight               = (mult == (uint8_t)~0)
@@ -3302,7 +3322,7 @@ static void pme_search(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
                       : CLIP3(250, 1000, (int)(mult * ((8 * pcs->ppcs->scs->static_config.qp) - 125)));
     uint8_t  full_pel_search_width  = MAX(3, (ctx->md_pme_ctrls.full_pel_search_width * q_weight) / 1000);
     uint8_t  full_pel_search_height = MAX(3, (ctx->md_pme_ctrls.full_pel_search_height * q_weight) / 1000);
-
+#endif
     input_pic = hbd_md ? pcs->input_frame16bit : pcs->ppcs->enhanced_pic;
 
     uint32_t input_origin_index = (ctx->blk_org_y + input_pic->org_y) * input_pic->stride_y +
@@ -4704,6 +4724,7 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
         use_pfn4_cond     = (cand_bf->cnt_nz_coeff < th) || !cand_bf->block_has_coeff ? 1 : 0;
         if (use_pfn4_cond)
             pf_shape = N4_SHAPE;
+#if !CLN_USE_NEIGHBOUR_SIG
     } else if (ctx->md_stage == MD_STAGE_3 && !ctx->perform_mds1 && ctx->tx_shortcut_ctrls.use_neighbour_info) {
         MacroBlockD *xd = ctx->blk_ptr->av1xd;
         if (xd->left_available && xd->up_available && ctx->blk_geom->sq_size > 16 && ctx->is_subres_safe == 1) {
@@ -4721,6 +4742,7 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
                     pf_shape = N4_SHAPE;
             }
         }
+#endif
     }
     uint64_t best_cost_tx_search = (uint64_t)~0;
     uint64_t dct_dct_cost        = (uint64_t)~0;
@@ -4729,15 +4751,23 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
          : is_inter                             ? ctx->txt_ctrls.satd_early_exit_th_inter
                     : ctx->txt_ctrls.satd_early_exit_th_intra; // only compute satd when using TXT search
 
+
+#if OPT_USE_EXP_TXT
+    if (ctx->txt_ctrls.satd_th_q_weight) {
+        uint32_t q_weight, q_weight_denom;
+        svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+        satd_early_exit_th = DIVIDE_AND_ROUND(satd_early_exit_th * q_weight, q_weight_denom);
+    }
+#else
     if (satd_early_exit_th) {
         uint16_t mult = ctx->txt_ctrls.satd_th_q_weight;
-
         uint16_t q_weight = (mult == (uint16_t)~0)
             ? 1000
             : CLIP3(100, 1000, (int)(mult * ((16 * pcs->ppcs->scs->static_config.qp) - 250)));
 
         satd_early_exit_th = MAX(1, ((satd_early_exit_th * q_weight) / 1000));
     }
+#endif
     int32_t  tx_type;
     uint16_t txb_origin_x           = ctx->blk_geom->tx_org_x[is_inter][ctx->tx_depth][ctx->txb_itr];
     uint16_t txb_origin_y           = ctx->blk_geom->tx_org_y[is_inter][ctx->tx_depth][ctx->txb_itr];
@@ -5969,7 +5999,11 @@ static void full_loop_core_light_pd0(PictureControlSet *pcs, ModeDecisionContext
 static uint8_t do_md_recon(PictureParentControlSet *pcs, ModeDecisionContext *ctxt) {
     uint8_t encdec_bypass = ctxt->bypass_encdec &&
         (ctxt->pd_pass == PD_PASS_1); // if enc dec is bypassed MD has to produce the final recon
+#if FIX_INTRA_UPDATES
+    uint8_t need_md_rec_for_intra_pred = !ctxt->skip_intra || ctxt->inter_intra_comp_ctrls.enabled; // for intra prediction of current frame
+#else
     uint8_t need_md_rec_for_intra_pred = !ctxt->skip_intra; // for intra prediction of current frame
+#endif
     uint8_t need_md_rec_for_ref        = (pcs->is_ref || pcs->scs->static_config.recon_enabled) &&
         encdec_bypass; // for inter prediction of future frame or if recon is being output
     uint8_t need_md_rec_for_dlf_search  = pcs->dlf_ctrls.enabled; // for DLF levels
@@ -7986,7 +8020,11 @@ static void post_mds0_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
     const struct NicPruningCtrls pruning_ctrls = ctx->nic_ctrls.pruning_ctrls;
 #if OPT_REMOVE_NIC_QP_BANDS
     uint32_t q_weight, q_weight_denom;
+#if OPT_USE_EXP_HME_ME
+    svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+#else
     get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+#endif
     uint64_t                      mds1_class_th = DIVIDE_AND_ROUND(pruning_ctrls.mds1_class_th * q_weight, q_weight_denom);
     uint8_t                       mds1_band_cnt = pruning_ctrls.mds1_band_cnt;
     uint16_t                      mds1_cand_th_rank_factor = pruning_ctrls.mds1_cand_th_rank_factor;
@@ -8069,7 +8107,11 @@ static void post_mds1_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
 
 #if OPT_REMOVE_NIC_QP_BANDS
     uint32_t q_weight, q_weight_denom;
+#if OPT_USE_EXP_HME_ME
+    svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+#else
     get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+#endif
     const uint64_t                mds2_cand_th         = DIVIDE_AND_ROUND(pruning_ctrls.mds2_cand_base_th * q_weight, q_weight_denom);
     const uint64_t                mds2_class_th        = DIVIDE_AND_ROUND(pruning_ctrls.mds2_class_th * q_weight, q_weight_denom);
     const uint8_t                 mds2_band_cnt        = pruning_ctrls.mds2_band_cnt;
@@ -8161,7 +8203,11 @@ static void post_mds2_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
 
 #if OPT_REMOVE_NIC_QP_BANDS
     uint32_t q_weight, q_weight_denom;
+#if OPT_USE_EXP_HME_ME
+    svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+#else
     get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+#endif
     const uint64_t                mds3_cand_th  = DIVIDE_AND_ROUND(pruning_ctrls.mds3_cand_base_th * q_weight, q_weight_denom);
     const uint64_t                mds3_class_th = DIVIDE_AND_ROUND(pruning_ctrls.mds3_class_th * q_weight, q_weight_denom);
     const uint8_t                 mds3_band_cnt = pruning_ctrls.mds3_band_cnt;
@@ -9234,12 +9280,14 @@ static void md_encode_block_light_pd1(PictureControlSet *pcs, ModeDecisionContex
 void tx_shortcut_detector(PictureControlSet *pcs, ModeDecisionContext *ctx,
                           ModeDecisionCandidateBuffer **cand_bf_ptr_array) {
     const BlockGeom       *blk_geom           = ctx->blk_geom;
+#if !CLN_USE_NEIGHBOUR_SIG
     ModeDecisionCandidate *cand               = cand_bf_ptr_array[ctx->mds0_best_idx]->cand;
+#endif
     const uint32_t         best_md_stage_dist = cand_bf_ptr_array[ctx->mds0_best_idx]->luma_fast_dist;
     const uint32_t         th_normalizer      = blk_geom->bheight * blk_geom->bwidth * (pcs->picture_qp >> 1);
     ctx->use_tx_shortcuts_mds3                = (100 * best_md_stage_dist) <
         (ctx->tx_shortcut_ctrls.use_mds3_shortcuts_th * th_normalizer);
-
+#if !CLN_USE_NEIGHBOUR_SIG
     if (!ctx->use_tx_shortcuts_mds3 && ctx->tx_shortcut_ctrls.use_neighbour_info && ctx->is_subres_safe) {
         MacroBlockD *xd = ctx->blk_ptr->av1xd;
         if (xd->left_available && xd->up_available) {
@@ -9293,6 +9341,7 @@ void tx_shortcut_detector(PictureControlSet *pcs, ModeDecisionContext *ctx,
             }
         }
     }
+#endif
 }
 
 static void non_normative_txs(PictureControlSet *pcs, ModeDecisionContext *ctx, BlkStruct *blk_ptr,
@@ -9806,13 +9855,21 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
                                             loc.blk_chroma_origin_index);
     if (ctx->encoder_bit_depth > EB_EIGHT_BIT && ctx->bypass_encdec && !org_hbd && ctx->pd_pass == PD_PASS_1 &&
         ctx->hbd_md) {
+#if FIX_INTRA_UPDATES
+        if (!ctx->skip_intra || ctx->inter_intra_comp_ctrls.enabled)
+#else
         if (!ctx->skip_intra)
+#endif
             convert_md_recon_16bit_to_8bit(pcs, ctx);
         ctx->hbd_md             = 0;
         ctx->need_hbd_comp_mds3 = 0;
     }
 
+#if FIX_INTRA_UPDATES
+    if (!ctx->skip_intra || ctx->inter_intra_comp_ctrls.enabled) {
+#else
     if (!ctx->skip_intra) {
+#endif
         copy_recon_md(pcs, ctx, cand_bf);
     }
     if (!ctx->md_disallow_nsq_search && ctx->nsq_psq_txs_ctrls.enabled && ctx->blk_geom->shape == PART_N &&

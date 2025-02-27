@@ -84,6 +84,40 @@ typedef enum InterCandGroup {
     COMP_WEDGE,
     TOT_INTER_GROUP
 } InterCandGroup;
+#if OPT_COMPOUND
+typedef struct InterCompCtrls {
+    // total compound types to test; 0: OFF, 1: AVG, 2: AVG/DIST, 3: AVG/DIST/DIFF/WEDGE, 4:
+    // AVG/DIST/DIFF/WEDGE
+    uint8_t tot_comp_types;
+    // if true, test all compound types for me
+    bool do_me;
+    // if true, test all compound types for pme
+    bool do_pme;
+    // if true, test all compound types for nearest_nearest
+    bool do_nearest_nearest;
+    // if true, test all compound types for near_near
+    bool do_near_near;
+    // if true, test all compound types for nearest_near_new
+    bool do_nearest_near_new;
+    // if true, test all compound types for 3x3_bipred
+    bool do_3x3_bi;
+    // if true, test all compound types for global
+    bool do_global;
+    // multiplier to the pred0_to_pred1_sad; 0: no pred0_to_pred1_sad-based pruning, >= 1: towards
+    // more inter-inter compound
+    uint8_t pred0_to_pred1_mult;
+    // Skip compound if any of the MV components are greater than max_mv_length
+    uint16_t max_mv_length;
+    // skip compound if block per-pixel distortion (from subpel/pme) is below the TH
+    uint16_t distortion_exit_th;
+    // Skip MVP compound based on ref frame type and neighbour ref frame types
+    bool skip_on_ref_info;
+    // if true, use rate @ compound params derivation
+    bool use_rate;
+    // no distance for symteric refs
+    bool no_sym_dist;
+} InterCompCtrls;
+#else
 typedef struct InterCompCtrls {
     // total compound types to test; 0: OFF, 1: AVG, 2: AVG/DIST, 3: AVG/DIST/DIFF/WEDGE, 4:
     // AVG/DIST/DIFF/WEDGE
@@ -114,6 +148,7 @@ typedef struct InterCompCtrls {
     //no distance for symteric refs
     uint8_t no_sym_dist;
 } InterCompCtrls;
+#endif
 typedef struct InterIntraCompCtrls {
     uint8_t enabled;
     // if 1 use curvefit model to estimate RD cost; if 0 use SSE
@@ -169,7 +204,11 @@ typedef struct TxtControls {
     // skip testing the TX type. txt_rate_cost_th is specified as a perentage * 10 (i.e. a value of 70 corresponds to skipping the TX type if the
     // txt rate cost is > 7% of the best TX type cost). 0 is off.  Lower values are more aggressive.
     uint16_t txt_rate_cost_th;
+#if OPT_USE_EXP_TXT
+    // Whether to perform QP-based SATD-threshold pruning
+#else
     // a multiplier to control the q-based modulation of satd_early_exit_th; ~0 is off, lower values are more aggressive.
+#endif
     uint16_t satd_th_q_weight;
 } TxtControls;
 typedef struct TxsCycleRControls {
@@ -279,8 +318,13 @@ typedef struct DepthRefinementCtrls {
     uint8_t limit_max_min_to_pd0;
     // If true, check whether current and ref are selecting the largest block size, then force Pred
     uint8_t use_ref_info;
+#if OPT_USE_EXP_DEPTHS
+    // Whether to use QP to modulate the sub/parent-to-current threshold(s).
+    uint8_t q_weight;
+#else
     // Modulate sub/parent-to-current TH using QP. 0 is off; lower is more aggressive.
     uint32_t q_weight;
+#endif
     // Handling mode for cases where PD0 information is unavailable   
     // 0 - use default s_depth and e_depth
     // 1 - cap s_depth and e_depth to -1 and 1
@@ -427,7 +471,11 @@ typedef struct MdPmeCtrls {
     int post_fp_pme_to_me_mv_th;
     // Enable pSad
     uint8_t enable_psad;
+#if OPT_USE_EXP_PME
+    // Whether to perform QP-based search-area pruning
+#else
     // a weight to control the q-based modulation of the fpel width and height, lower values are more aggressive.
+#endif
     uint8_t sa_q_weight;
 } MdPmeCtrls;
 typedef struct MdSubPelSearchCtrls {
@@ -903,8 +951,10 @@ typedef struct TxShortcutCtrls {
     // if (best_mds0_distortion/QP < TH) use shortcuts for candidates at MDS3; 0: OFF, higher: more
     // aggressive
     uint32_t use_mds3_shortcuts_th;
+#if !CLN_USE_NEIGHBOUR_SIG
     // if true, use info from neighbouring blocks to use more aggressive THs/actions
     uint8_t use_neighbour_info;
+#endif
 } TxShortcutCtrls;
 typedef struct Mds0Ctrls {
     // Distortion metric to use MDS0: SSD, VAR, SAD

@@ -281,7 +281,11 @@ uint8_t svt_aom_set_tpl_group(PictureParentControlSet *pcs, uint8_t tpl_group_le
 
 static uint8_t get_tpl_params_level(int8_t enc_mode, SvtAv1RcMode rc_mode) {
     uint8_t tpl_params_level;
+#if TUNE_M3
+    if (enc_mode <= ENC_M3) {
+#else
     if (enc_mode <= ENC_M2) {
+#endif
         tpl_params_level = 1;
 
     } else if (enc_mode <= ENC_M8 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M9)) {

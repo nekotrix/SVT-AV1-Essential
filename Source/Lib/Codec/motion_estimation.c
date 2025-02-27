@@ -1308,7 +1308,25 @@ static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
                 if (ABS(y_search_center) > me_ctx->mv_based_sa_adj.mv_size_th)
                     search_area_height *= me_ctx->mv_based_sa_adj.sa_multiplier;
             }
+#if OPT_SC_ME
+            if (me_ctx->sc_class4_me_boost &&
+                (pcs->ahd_error == (uint32_t)~0 || // Use ahd_error only when it is derived
+                 pcs->ahd_error < ((((20 * pcs->enhanced_pic->width * pcs->enhanced_pic->height) / 128)) * (uint32_t) (INPUT_SIZE_COUNT - pcs->input_resolution)))) { // Only if there are low temporal variations between frames
 
+                if (me_ctx->search_results[list_index][ref_pic_index].hme_sad > (4 * 64 * 64)) {
+                    search_area_width *= 4;
+                    search_area_height *= 4;
+                }
+                else if (me_ctx->search_results[list_index][ref_pic_index].hme_sad > (3 * 64 * 64)) {
+                    search_area_width *= 3;
+                    search_area_height *= 3;
+                }
+                else if (me_ctx->search_results[list_index][ref_pic_index].hme_sad > (2 * 64 * 64)) {
+                    search_area_width *= 2;
+                    search_area_height *= 2;
+                }
+            }
+#endif
             // Constrain x_ME to be a multiple of 8 (round up)
             // Update ME search reagion size based on hme-data
             search_area_width = (MAX(1, (search_area_width / me_ctx->reduce_me_sr_divisor[list_index][ref_pic_index])) + 7) & ~0x07;
