@@ -15,112 +15,108 @@
 #include "transpose_neon.h"
 #include "pack_unpack_c.h"
 
-static inline void residual_kernel4_neon(const uint8_t *restrict input, const uint32_t input_stride,
-                                         const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
-                                         const uint32_t residual_stride, const uint32_t area_height) {
-    uint32x2_t in, pr;
-    int64x2_t  re;
-
-    uint32_t y = area_height;
-
+static inline void residual_kernel4xh_neon(const uint8_t *restrict input, const uint32_t input_stride,
+                                           const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
+                                           const uint32_t residual_stride, uint32_t area_height) {
     do {
-        in = vdup_n_u32(*(uint32_t *)(input + 0 * input_stride));
-        in = vset_lane_u32(*(uint32_t *)(input + 1 * input_stride), in, 1);
-        pr = vdup_n_u32(*(uint32_t *)(pred + 0 * pred_stride));
-        pr = vset_lane_u32(*(uint32_t *)(pred + 1 * pred_stride), pr, 1);
+        uint8x8_t s = load_u8_4x2(input, input_stride);
+        uint8x8_t p = load_u8_4x2(pred, pred_stride);
 
-        re = vreinterpretq_s64_u16(vsubl_u8(vreinterpret_u8_u32(in), vreinterpret_u8_u32(pr)));
-        vst1q_lane_s64((int64_t *)residual, re, 0);
-        vst1q_lane_s64((int64_t *)(residual + residual_stride), re, 1);
+        int16x8_t diff = vreinterpretq_s16_u16(vsubl_u8(s, p));
+
+        vst1_s16(residual + 0 * residual_stride, vget_low_s16(diff));
+        vst1_s16(residual + 1 * residual_stride, vget_high_s16(diff));
 
         input += 2 * input_stride;
         pred += 2 * pred_stride;
         residual += 2 * residual_stride;
-        y -= 2;
-    } while (y);
+        area_height -= 2;
+    } while (area_height != 0);
 }
 
-static inline void residual_kernel_neon(const uint8_t *restrict input, const uint8_t *restrict pred,
-                                        int16_t *residual) {
-    const uint8x8_t in = vld1_u8(input);
-    const uint8x8_t pr = vld1_u8(pred);
-    const int16x8_t re = vreinterpretq_s16_u16(vsubl_u8(in, pr));
-    vst1q_s16(residual, re);
-}
-
-static inline void residual_kernel8_neon(const uint8_t *restrict input, const uint32_t input_stride,
-                                         const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
-                                         const uint32_t residual_stride, const uint32_t area_height) {
-    uint32_t y = area_height;
-    int      i;
-    do {
-        for (i = 0; i < 8; i += 8) { residual_kernel_neon(input + i, pred + i, residual + i); }
-
-        input += input_stride;
-        pred += pred_stride;
-        residual += residual_stride;
-        y -= 1;
-    } while (y);
-}
-
-static inline void residual_kernel16_neon(const uint8_t *restrict input, const uint32_t input_stride,
-                                          const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
-                                          const uint32_t residual_stride, const uint32_t area_height) {
-    uint32_t y = area_height;
-    int      i;
-    do {
-        for (i = 0; i < 16; i += 8) { residual_kernel_neon(input + i, pred + i, residual + i); }
-
-        input += input_stride;
-        pred += pred_stride;
-        residual += residual_stride;
-        y -= 1;
-    } while (y);
-}
-
-static inline void residual_kernel32_neon(const uint8_t *restrict input, const uint32_t input_stride,
-                                          const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
-                                          const uint32_t residual_stride, const uint32_t area_height) {
-    uint32_t y = area_height;
-    int      i;
-    do {
-        for (i = 0; i < 32; i += 8) { residual_kernel_neon(input + i, pred + i, residual + i); }
-
-        input += input_stride;
-        pred += pred_stride;
-        residual += residual_stride;
-        y -= 1;
-    } while (y);
-}
-
-static inline void residual_kernel64_neon(const uint8_t *restrict input, const uint32_t input_stride,
-                                          const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
-                                          const uint32_t residual_stride, const uint32_t area_height) {
-    uint32_t y = area_height;
-    int      i;
-    do {
-        for (i = 0; i < 64; i += 8) { residual_kernel_neon(input + i, pred + i, residual + i); }
-
-        input += input_stride;
-        pred += pred_stride;
-        residual += residual_stride;
-        y -= 1;
-    } while (y);
-}
-
-static inline void residual_kernel128_neon(const uint8_t *restrict input, const uint32_t input_stride,
+static inline void residual_kernel8xh_neon(const uint8_t *restrict input, const uint32_t input_stride,
                                            const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
-                                           const uint32_t residual_stride, const uint32_t area_height) {
-    uint32_t y = area_height;
-    int      i;
+                                           const uint32_t residual_stride, uint32_t area_height) {
     do {
-        for (i = 0; i < 128; i += 8) { residual_kernel_neon(input + i, pred + i, residual + i); }
+        const uint8x8_t in = vld1_u8(input);
+        const uint8x8_t pr = vld1_u8(pred);
+        const int16x8_t re = vreinterpretq_s16_u16(vsubl_u8(in, pr));
+        vst1q_s16(residual, re);
 
         input += input_stride;
         pred += pred_stride;
         residual += residual_stride;
-        y -= 1;
-    } while (y);
+    } while (--area_height != 0);
+}
+
+static inline void residual_kernel16xh_neon(const uint8_t *restrict input, const uint32_t input_stride,
+                                            const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
+                                            const uint32_t residual_stride, uint32_t area_height) {
+    do {
+        const uint8x16_t in = vld1q_u8(input);
+        const uint8x16_t pr = vld1q_u8(pred);
+
+        const int16x8_t diff0 = vreinterpretq_s16_u16(vsubl_u8(vget_low_u8(in), vget_low_u8(pr)));
+        const int16x8_t diff1 = vreinterpretq_s16_u16(vsubl_u8(vget_high_u8(in), vget_high_u8(pr)));
+
+        store_s16_8x2(residual, 8, diff0, diff1);
+
+        input += input_stride;
+        pred += pred_stride;
+        residual += residual_stride;
+    } while (--area_height != 0);
+}
+
+static inline void residual_kernel32x1_neon(const uint8_t *restrict input, const uint8_t *restrict pred,
+                                            int16_t *residual) {
+    const uint8x16_t in0 = vld1q_u8(input);
+    const uint8x16_t in1 = vld1q_u8(input + 16);
+    const uint8x16_t pr0 = vld1q_u8(pred);
+    const uint8x16_t pr1 = vld1q_u8(pred + 16);
+
+    const int16x8_t diff0_lo = vreinterpretq_s16_u16(vsubl_u8(vget_low_u8(in0), vget_low_u8(pr0)));
+    const int16x8_t diff0_hi = vreinterpretq_s16_u16(vsubl_u8(vget_high_u8(in0), vget_high_u8(pr0)));
+    const int16x8_t diff1_lo = vreinterpretq_s16_u16(vsubl_u8(vget_low_u8(in1), vget_low_u8(pr1)));
+    const int16x8_t diff1_hi = vreinterpretq_s16_u16(vsubl_u8(vget_high_u8(in1), vget_high_u8(pr1)));
+
+    store_s16_8x4(residual, 8, diff0_lo, diff0_hi, diff1_lo, diff1_hi);
+}
+
+static inline void residual_kernel32xh_neon(const uint8_t *restrict input, const uint32_t input_stride,
+                                            const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
+                                            const uint32_t residual_stride, uint32_t area_height) {
+    do {
+        residual_kernel32x1_neon(input, pred, residual);
+
+        input += input_stride;
+        pred += pred_stride;
+        residual += residual_stride;
+    } while (--area_height != 0);
+}
+
+static inline void residual_kernel64xh_neon(const uint8_t *restrict input, const uint32_t input_stride,
+                                            const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
+                                            const uint32_t residual_stride, uint32_t area_height) {
+    do {
+        residual_kernel32x1_neon(input, pred, residual);
+        residual_kernel32x1_neon(input + 32, pred + 32, residual + 32);
+
+        input += input_stride;
+        pred += pred_stride;
+        residual += residual_stride;
+    } while (--area_height != 0);
+}
+
+static inline void residual_kernel128xh_neon(const uint8_t *restrict input, const uint32_t input_stride,
+                                             const uint8_t *restrict pred, const uint32_t  pred_stride,
+                                             int16_t *residual, const uint32_t residual_stride, uint32_t area_height) {
+    do {
+        for (int i = 0; i < 128; i += 32) { residual_kernel32x1_neon(input + i, pred + i, residual + i); }
+
+        input += input_stride;
+        pred += pred_stride;
+        residual += residual_stride;
+    } while (--area_height != 0);
 }
 
 void svt_residual_kernel8bit_neon(uint8_t *input, uint32_t input_stride, uint8_t *pred, uint32_t pred_stride,
@@ -128,33 +124,33 @@ void svt_residual_kernel8bit_neon(uint8_t *input, uint32_t input_stride, uint8_t
                                   uint32_t area_height) {
     switch (area_width) {
     case 4: {
-        residual_kernel4_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
+        residual_kernel4xh_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
         break;
     }
 
     case 8: {
-        residual_kernel8_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
+        residual_kernel8xh_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
         break;
     }
 
     case 16: {
-        residual_kernel16_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
+        residual_kernel16xh_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
         break;
     }
 
     case 32: {
-        residual_kernel32_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
+        residual_kernel32xh_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
         break;
     }
 
     case 64: {
-        residual_kernel64_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
+        residual_kernel64xh_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
         break;
     }
 
     default: // 128
     {
-        residual_kernel128_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
+        residual_kernel128xh_neon(input, input_stride, pred, pred_stride, residual, residual_stride, area_height);
         break;
     }
     }
