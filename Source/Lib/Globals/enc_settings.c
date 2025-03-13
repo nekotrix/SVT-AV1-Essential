@@ -14,6 +14,7 @@
 /**************************************
  * Includes
  **************************************/
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -1007,6 +1008,8 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->variance_boost_curve              = 0;
     config_ptr->luminance_qp_bias                 = 0;
     config_ptr->sharpness                         = 0;
+    config_ptr->lossless                          = false;
+    config_ptr->avif                              = false;
     return return_error;
 }
 static const char *tier_to_str(unsigned in) {
