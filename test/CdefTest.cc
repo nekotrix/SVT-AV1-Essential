@@ -1162,3 +1162,8 @@ INSTANTIATE_TEST_SUITE_P(AVX512, CDEFSearchOneDualTest,
 #endif
 
 #endif  // ARCH_X86_64
+
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(NEON, CDEFSearchOneDualTest,
+                         ::testing::Values(svt_search_one_dual_neon));
+#endif  // ARCH_AARCH64

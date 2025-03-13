@@ -1229,6 +1229,8 @@ extern "C" {
 
     void svt_av1_get_nz_map_contexts_neon(const uint8_t *const levels, const int16_t *const scan, const uint16_t eob, TxSize tx_size, const TxClass tx_class, int8_t *const coeff_contexts);
 
+    uint64_t svt_search_one_dual_neon(int *lev0, int *lev1, int nb_strengths, uint64_t** mse[2], int sb_count, int start_gi, int end_gi);
+
     int32_t svt_estimate_noise_fp16_neon(const uint8_t *src, uint16_t width, uint16_t height, uint16_t stride_y);
     int32_t svt_estimate_noise_highbd_fp16_neon(const uint16_t *src, int width, int height, int stride, int bd);
     uint64_t svt_aom_compute_cdef_dist_8bit_neon(const uint8_t *dst8, int32_t dstride, const uint8_t *src8,

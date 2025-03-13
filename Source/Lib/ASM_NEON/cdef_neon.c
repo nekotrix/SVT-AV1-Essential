@@ -10,9 +10,11 @@
 */
 
 #include <arm_neon.h>
-
-#include "definitions.h"
 #include <math.h>
+
+#include "aom_dsp_rtcd.h"
+#include "cdef.h"
+#include "definitions.h"
 
 static INLINE uint32_t sum32(const int32x4_t src) {
     int32x4_t dst;
@@ -469,4 +471,74 @@ uint64_t svt_aom_compute_cdef_dist_16bit_neon(const uint16_t *dst, int32_t dstri
     }
 
     return sum >> 2 * coeff_shift;
+}
+
+uint64_t svt_search_one_dual_neon(int *lev0, int *lev1, int nb_strengths, uint64_t **mse[2], int sb_count, int start_gi,
+                                  int end_gi) {
+    if (end_gi >= 48) {
+        return svt_search_one_dual_c(lev0, lev1, nb_strengths, mse, sb_count, start_gi, end_gi);
+    }
+
+    uint64_t      tot_mse[TOTAL_STRENGTHS][TOTAL_STRENGTHS];
+    int32_t       i, j;
+    uint64_t      best_tot_mse    = (uint64_t)1 << 63;
+    int32_t       best_id0        = 0;
+    int32_t       best_id1        = 0;
+    const int32_t total_strengths = end_gi;
+    memset(tot_mse, 0, sizeof(tot_mse));
+    /* Loop over the filter blocks in the frame */
+    for (i = 0; i < sb_count; i++) {
+        int32_t  gi;
+        uint64_t best_mse = (uint64_t)1 << 63;
+        /* Loop over the already selected nb_strengths (Luma_strength,
+           Chroma_strength) pairs, and find the pair that has the smallest mse
+           (best_mse) for the current filter block.*/
+        /* Find best mse among already selected options. */
+        for (gi = 0; gi < nb_strengths; gi++) {
+            uint64_t curr = mse[0][i][lev0[gi]];
+            curr += mse[1][i][lev1[gi]];
+            if (curr < best_mse)
+                best_mse = curr;
+        }
+        /* Loop over the set of available (Luma_strength, Chroma_strength)
+           pairs, identify any that provide an mse better than best_mse from the
+           step above for the current filter block, and update any corresponding
+           total mse (tot_mse[j][k]). */
+        /* Find best mse when adding each possible new option. */
+        uint64x2_t best0 = vdupq_n_u64(best_mse);
+        for (j = start_gi; j < total_strengths; j++) {
+            int32_t    k;
+            uint64x2_t curr0 = vld1q_dup_u64(&mse[0][i][j]);
+            for (k = start_gi; k < total_strengths; k += 4) {
+                uint64x2_t curr_v0 = vaddq_u64(curr0, vld1q_u64(&mse[1][i][k]));
+                uint64x2_t curr_v1 = vaddq_u64(curr0, vld1q_u64(&mse[1][i][k + 2]));
+
+                uint64x2_t comp0   = vcltq_u64(curr_v0, best0);
+                uint64x2_t comp1   = vcltq_u64(curr_v1, best0);
+                uint64x2_t best_v0 = vbslq_u64(comp0, curr_v0, best0);
+                uint64x2_t best_v1 = vbslq_u64(comp1, curr_v1, best0);
+
+                uint64x2_t tot_mse_v0 = vld1q_u64(&tot_mse[j][k]);
+                uint64x2_t tot_mse_v1 = vld1q_u64(&tot_mse[j][k + 2]);
+                vst1q_u64(&tot_mse[j][k], vaddq_u64(tot_mse_v0, best_v0));
+                vst1q_u64(&tot_mse[j][k + 2], vaddq_u64(tot_mse_v1, best_v1));
+            }
+        }
+    }
+    /* Loop over the additionally searched (Luma_strength, Chroma_strength) pairs
+       from the step above, and identify any such pair that provided the best mse for
+       the whole frame. The identified pair would be added to the set of already selected pairs. */
+    for (j = start_gi; j < total_strengths; j++) { // Loop over the additionally searched luma strengths
+        int32_t k;
+        for (k = start_gi; k < total_strengths; k++) { // Loop over the additionally searched chroma strengths
+            if (tot_mse[j][k] < best_tot_mse) {
+                best_tot_mse = tot_mse[j][k];
+                best_id0     = j; // index for the best luma strength
+                best_id1     = k; // index for the best chroma strength
+            }
+        }
+    }
+    lev0[nb_strengths] = best_id0; // Add the identified luma strength to the list of selected luma strengths
+    lev1[nb_strengths] = best_id1; // Add the identified chroma strength to the list of selected chroma strengths
+    return best_tot_mse;
 }

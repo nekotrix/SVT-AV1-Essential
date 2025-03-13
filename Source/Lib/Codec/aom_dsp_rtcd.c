@@ -848,7 +848,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_aom_ifft4x4_float, svt_aom_ifft4x4_float_c);
     SET_ONLY_C(svt_av1_get_gradient_hist, svt_av1_get_gradient_hist_c);
     SET_NEON(svt_av1_get_nz_map_contexts, svt_av1_get_nz_map_contexts_c, svt_av1_get_nz_map_contexts_neon);
-    SET_ONLY_C(svt_search_one_dual, svt_search_one_dual_c);
+    SET_NEON(svt_search_one_dual, svt_search_one_dual_c, svt_search_one_dual_neon);
     SET_NEON(svt_sad_loop_kernel, svt_sad_loop_kernel_c, svt_sad_loop_kernel_neon);
     SET_NEON(svt_pme_sad_loop_kernel, svt_pme_sad_loop_kernel_c, svt_pme_sad_loop_kernel_neon);
     SET_ONLY_C(svt_av1_apply_zz_based_temporal_filter_planewise_medium, svt_av1_apply_zz_based_temporal_filter_planewise_medium_c);
