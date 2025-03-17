@@ -79,8 +79,10 @@ typedef struct TileInfo {
     int32_t tile_rs_index; //tile index in raster order
 } TileInfo;
 
+#if !CLN_REMOVE_DEC_STRUCT
 #define INTER_TX_SIZE_BUF_LEN 16
 #define TXK_TYPE_BUF_LEN 64
+#endif
 
 typedef struct FilterIntraModeInfo {
     /*!< Specifies the type of intra filtering, and can represent any of the following:
@@ -105,6 +107,105 @@ typedef struct InterIntraModeParams {
     /*!< Specifies the sign of the wedge blend. */
     // int interintra_wedge_sign; Always 0
 } InterIntraModeParams;
+#if CLN_MOVE_FIELDS_MBMI
+typedef struct BlockModeInfo {
+    /*! \brief The prediction mode used */
+    PredictionMode   mode;
+    /*! \brief The UV mode when intra is used */
+    UvPredictionMode uv_mode; // Only for INTRA blocks
+
+  /*****************************************************************************
+   * \name Inter Mode Info
+   ****************************************************************************/
+   /**@{*/
+   /*! \brief The motion vectors used by the current inter mode */
+    IntMv mv[2];
+    /*! \brief The reference frames for the MV */
+    MvReferenceFrame ref_frame[2];
+    /*! \brief Filter used in subpel interpolation. */
+    uint32_t interp_filters;
+    /*! \brief Struct that stores the data used in interinter compound mode. */
+    InterInterCompoundData interinter_comp;
+    /*! \brief The motion mode used by the inter prediction. */
+    MotionMode motion_mode;
+    /*! \brief Number of samples used by warp causal */
+#if CLN_WM_CTRLS
+    uint8_t num_proj_ref;
+#else
+    uint16_t num_proj_ref;
+#endif
+    /*! \brief The type of intra mode used by inter-intra */
+    InterIntraMode interintra_mode;
+    /*! \brief The type of wedge used in interintra mode. */
+    uint8_t interintra_wedge_index;
+
+
+    /*****************************************************************************
+     * \name Intra Mode Info
+     ****************************************************************************/
+     /**@{*/
+     /*! \brief Directional mode delta: the angle is base angle + (angle_delta *
+      * step). */
+    int8_t angle_delta[PLANE_TYPES];
+    /*! \brief The type of filter intra mode used (if applicable). */
+    uint8_t filter_intra_mode;
+    /*! \brief Chroma from Luma: Joint sign of alpha Cb and alpha Cr */
+    uint8_t cfl_alpha_signs;
+    /*! \brief Chroma from Luma: Index of the alpha Cb and alpha Cr combination */
+    uint8_t cfl_alpha_idx;
+
+    uint8_t tx_depth;
+    uint8_t is_interintra_used : 1;
+    uint8_t use_wedge_interintra : 1;
+    /*! \brief Indicates if masked compound is used(1) or not (0). */
+    uint8_t comp_group_idx : 1;
+    /*!< 0 indicates that a distance based weighted scheme should be used for blending.
+     *   1 indicates that the averaging scheme should be used for blending.*/
+    uint8_t compound_idx : 1;
+    // possible values: 0,1; skip coeff only. as defined in section 6.10.11 of the av1 text
+    uint8_t skip : 1;
+
+    /*!< 1 indicates that this block will use some default settings and skip mode info.
+     * 0 indicates that the mode info is not skipped. */
+     // possible values: 0,1; skip mode_info + coeff. as defined in section 6.10.10 of the av1 text
+    uint8_t skip_mode : 1;
+    /*! \brief Whether intrabc is used. */
+    uint8_t use_intrabc : 1;
+} BlockModeInfo;
+#else
+#if CLN_REMOVE_DEC_STRUCT
+typedef struct BlockModeInfo {
+    // Only for INTER blocks
+    IntMv mv[2];
+
+    /*!< Specifies the type of filter used in inter prediction. Values 0..3 are allowed
+        * with the same interpretation as for interpolation_filter. One filter type is specified
+        * for the vertical filter direction and one for the horizontal filter direction.*/
+    uint32_t interp_filters;
+
+    MvReferenceFrame ref_frame[2]; // Only for INTER blocks
+    BlockSize        bsize;
+    PredictionMode   mode;
+    PartitionType    partition;
+    UvPredictionMode uv_mode; // Only for INTRA blocks
+
+    uint8_t tx_depth;
+    uint8_t comp_group_idx : 1; // possible values: 0,1
+    /*!< 0 indicates that a distance based weighted scheme should be used for blending.
+     *   1 indicates that the averaging scheme should be used for blending.*/
+    uint8_t compound_idx : 1; // possible values: 0,1
+    // possible values: 0,1; skip coeff only. as defined in section 6.10.11 of the av1 text
+    uint8_t skip : 1;
+
+    /*!< 1 indicates that this block will use some default settings and skip mode info.
+     * 0 indicates that the mode info is not skipped. */
+     // possible values: 0,1; skip mode_info + coeff. as defined in section 6.10.10 of the av1 text
+    uint8_t skip_mode : 1;
+    uint8_t use_intrabc : 1; // possible values: 0,1
+
+    uint8_t segment_id;
+} BlockModeInfo;
+#else
 typedef struct BlockModeInfoEnc {
     // Only for INTER blocks
     IntMv mv[2];
@@ -225,14 +326,26 @@ typedef struct BlockModeInfo {
     int32_t mi_col;
 #endif
 } BlockModeInfo;
-
+#endif
+#endif
 typedef struct MbModeInfo {
+#if !CLN_MOVE_FIELDS_MBMI
 #if CONFIG_RD_DEBUG
     RD_STATS rd_stats;
     int32_t  mi_row;
     int32_t  mi_col;
 #endif
+#endif
+#if CLN_REMOVE_DEC_STRUCT
+    BlockModeInfo    block_mi;
+#else
     BlockModeInfoEnc    block_mi;
+#endif
+#if CLN_MOVE_FIELDS_MBMI
+    BlockSize        bsize;
+    PartitionType    partition;
+    uint8_t segment_id;
+#endif
     PaletteLumaModeInfo palette_mode_info;
     int8_t              cdef_strength;
 } MbModeInfo;

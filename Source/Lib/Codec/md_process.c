@@ -258,7 +258,11 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
         for (uint8_t qp = MIN_QP_VALUE; qp <= MAX_QP_VALUE; qp++) {
             if (obmc_allowed)
                 break;
+#if OPT_OBMC
+            obmc_allowed |= svt_aom_get_obmc_level(enc_mode, qp, seq_qp_mod);
+#else
             obmc_allowed |= svt_aom_get_obmc_level(enc_mode, qp, is_base, seq_qp_mod);
+#endif
         }
     }
     if (obmc_allowed) {

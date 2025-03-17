@@ -81,7 +81,11 @@ static const int32_t mode_to_angle_map[] = {
 extern uint8_t base_mask[33][32];
 extern uint8_t even_odd_mask_x[8][16];
 
+#if CLN_REMOVE_DEC_STRUCT
+int svt_aom_is_smooth(const BlockModeInfo* mbmi, int plane);
+#else
 int                  svt_aom_is_smooth(const BlockModeInfoEnc *mbmi, int plane);
+#endif
 extern const uint8_t extend_modes[INTRA_MODES];
 
 /* TODO: Need to harmonize with fun from EbAdaptiveMotionVectorPrediction.c */

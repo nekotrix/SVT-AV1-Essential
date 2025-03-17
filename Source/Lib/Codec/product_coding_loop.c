@@ -1001,7 +1001,11 @@ static void fast_loop_core_light_pd0(ModeDecisionCandidateBuffer *cand_bf, Pictu
         svt_aom_use_scaled_rec_refs_if_needed(pcs, input_pic, ref_obj, &ref_pic, 0);
         ref_origin_index = ref_pic->org_x + (ctx->blk_org_x + mv_x) +
             (ctx->blk_org_y + mv_y + ref_pic->org_y) * ref_pic->stride_y;
+#if CLN_MDS0
+        if (pcs->rtc_tune) {
+#else
         if (pcs->rtc_tune && ctx->mds0_ctrls.mds0_dist_type == VAR) {
+#endif
             const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
             unsigned int            sse;
             uint8_t                *pred_y = ref_pic->buffer_y + ref_origin_index;
@@ -1020,6 +1024,16 @@ static void fast_loop_core_light_pd0(ModeDecisionCandidateBuffer *cand_bf, Pictu
     } else {
         // intrabc not allowed in light_pd0
         svt_product_prediction_fun_table_light_pd0[is_inter_mode(cand->pred_mode)](0, ctx, pcs, cand_bf);
+#if CLN_MDS0
+        const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
+        unsigned int            sse;
+        uint8_t *               pred_y = pred->buffer_y + cu_origin_index;
+        uint8_t *               src_y  = input_pic->buffer_y + input_origin_index;
+        if (pcs->rtc_tune)
+            *(cand_bf->fast_cost) = fn_ptr->vf(pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse) / 3;
+        else
+            *(cand_bf->fast_cost) = fn_ptr->vf(pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse) >> 2;
+#else
         if (ctx->mds0_ctrls.mds0_dist_type == VAR) {
             const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
             unsigned int            sse;
@@ -1039,6 +1053,7 @@ static void fast_loop_core_light_pd0(ModeDecisionCandidateBuffer *cand_bf, Pictu
                                                        ctx->blk_geom->bheight,
                                                        ctx->blk_geom->bwidth);
         }
+#endif
     }
 }
 // Light PD1 fast loop core; assumes luma only, 8bit only, and that SSD is not used.
@@ -1054,6 +1069,28 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
     ctx->uv_intra_comp_only = false;
     svt_product_prediction_fun_table_light_pd1[is_inter_mode(cand->pred_mode)](0, ctx, pcs, cand_bf);
     // Distortion
+#if CLN_MDS0
+    const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
+    unsigned int            sse;
+    uint8_t *               pred_y = pred->buffer_y + loc->blk_origin_index;
+    uint8_t *               src_y  = input_pic->buffer_y + loc->input_origin_index;
+
+    // The variance is shifted because fast_lambda is used, and variance is much larger than SAD (for which
+    // fast_lambda was designed), so a scaling is needed to make the values closer.  3 was chosen empirically.
+    if (pcs->rtc_tune)
+        cand_bf->luma_fast_dist = luma_fast_dist = fn_ptr->vf(
+                                                       pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse) /
+            3;
+    else if (ctx->lpd1_shift_mds0_dist) {
+        cand_bf->luma_fast_dist = luma_fast_dist = fn_ptr->vf(
+                                                       pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse) >>
+            3;
+    } else {
+        cand_bf->luma_fast_dist = luma_fast_dist = fn_ptr->vf(
+                                                       pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse) >>
+            2;
+    }
+#else
     if (ctx->mds0_ctrls.mds0_dist_type == VAR) {
         const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
         unsigned int            sse;
@@ -1086,7 +1123,7 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
                                                  ctx->blk_geom->bheight,
                                                  ctx->blk_geom->bwidth));
     }
-
+#endif
     // If distortion cost is greater than the best cost, exit early. This candidate will never be
     // selected b/c only one candidate is sent to MDS3
     if (ctx->mds0_best_cost != (uint64_t)~0) {
@@ -1103,6 +1140,10 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
         cand_bf->fast_luma_rate   = 0;
         cand_bf->fast_chroma_rate = 0;
     } else {
+#if CLN_MDS0
+        *(cand_bf->fast_cost) = av1_product_fast_cost_func_table[is_inter_mode(cand->pred_mode)](
+            pcs, ctx, cand_bf, fast_lambda, luma_fast_dist);
+#else
         *(cand_bf->fast_cost) = av1_product_fast_cost_func_table[is_inter_mode(cand->pred_mode)](
             pcs,
             ctx,
@@ -1110,17 +1151,21 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
             fast_lambda,
             luma_fast_dist,
             0); //chroma_fast_distortion
+#endif
     }
 }
 static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs, ModeDecisionContext *ctx,
                                 EbPictureBufferDesc *input_pic, BlockLocation *loc) {
     const uint32_t input_origin_index       = loc->input_origin_index;
+#if !CLN_MDS0
     const uint32_t input_cb_origin_in_index = loc->input_cb_origin_in_index;
     const uint32_t input_cr_origin_in_index = loc->input_cb_origin_in_index;
+#endif
     const uint32_t cu_origin_index          = loc->blk_origin_index;
+#if !CLN_MDS0
     const uint32_t cu_chroma_origin_index   = loc->blk_chroma_origin_index;
-
     uint32_t full_lambda = ctx->hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
+#endif
     uint32_t fast_lambda = ctx->hbd_md ? ctx->fast_lambda_md[EB_10_BIT_MD] : ctx->fast_lambda_md[EB_8_BIT_MD];
 
     ModeDecisionCandidate *cand = cand_bf->cand;
@@ -1136,15 +1181,41 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
 
         if (is_inter_mode(cand_bf->cand->pred_mode) && is_obmc_allowed && cand->motion_mode == SIMPLE_TRANSLATION &&
             cand->is_interintra_used == 0) {
-            uint32_t luma_fast_dist;
-            uint32_t chroma_fast_distortion = 0;
 
+#if OPT_OBMC
+            // Derive the fast luma rate of OBMC
+            MotionMode last_motion_mode_allowed = svt_aom_motion_mode_allowed(
+                    pcs, cand->num_proj_ref, ctx->blk_ptr->overlappable_neighbors, ctx->blk_geom->bsize, rf[0], rf[1], (PredictionMode)cand->pred_mode);
+            int inter_mode_bits_num_translation = 0;
+            int inter_mode_bits_num_obmc = 0;
+            
+            switch (last_motion_mode_allowed) {
+                case SIMPLE_TRANSLATION: break;
+                case OBMC_CAUSAL: 
+                    inter_mode_bits_num_translation = ctx->md_rate_est_ctx->motion_mode_fac_bits1[ctx->blk_geom->bsize][0];
+                    inter_mode_bits_num_obmc = ctx->md_rate_est_ctx->motion_mode_fac_bits1[ctx->blk_geom->bsize][1];
+                    break;
+                default: 
+                    inter_mode_bits_num_translation = ctx->md_rate_est_ctx->motion_mode_fac_bits[ctx->blk_geom->bsize][SIMPLE_TRANSLATION];
+                    inter_mode_bits_num_obmc = ctx->md_rate_est_ctx->motion_mode_fac_bits[ctx->blk_geom->bsize][OBMC_CAUSAL];
+                    break;               
+            }
+           uint64_t obmc_fast_luma_rate = cand_bf->fast_luma_rate + inter_mode_bits_num_obmc - inter_mode_bits_num_translation;
+#endif
+            uint32_t luma_fast_dist;
+#if !CLN_MDS0
+            uint32_t chroma_fast_distortion = 0;
+#endif
             // Take a copy of the simple-translation results
             uint64_t simple_translation_cost                 = *(cand_bf->fast_cost);
             uint64_t simple_translation_fast_luma_rate       = cand_bf->fast_luma_rate;
             uint64_t simple_translation_fast_chroma_rate     = cand_bf->fast_chroma_rate;
             uint32_t simple_translation_luma_fast_distortion = cand_bf->luma_fast_dist;
-
+#if !CLN_MDS0
+#if OPT_OBMC
+            uint32_t simple_translation_chroma_fast_distortion = cand_bf->chroma_fast_dist;
+#endif
+#endif
             // Modify the motion-mode
             cand->motion_mode = OBMC_CAUSAL;
 
@@ -1153,6 +1224,26 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
             svt_aom_inter_pu_prediction_av1_obmc(ctx->hbd_md, ctx, pcs, cand_bf);
 
             // Distortion
+#if CLN_MDS0
+            if (!ctx->hbd_md) {
+                const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
+                unsigned int            sse;
+                uint8_t *               pred_y = pred->buffer_y + cu_origin_index;
+                uint8_t *               src_y  = input_pic->buffer_y + input_origin_index;
+                cand_bf->luma_fast_dist        = luma_fast_dist =
+                    fn_ptr->vf(pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse) >> 2;
+            } else {
+                const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
+                unsigned int            sse;
+                uint16_t *              pred_y = ((uint16_t *)pred->buffer_y) + cu_origin_index;
+                uint16_t *              src_y  = ((uint16_t *)input_pic->buffer_y) + input_origin_index;
+                cand_bf->luma_fast_dist = luma_fast_dist = fn_ptr->vf_hbd_10(CONVERT_TO_BYTEPTR(pred_y),
+                                                                             pred->stride_y,
+                                                                             CONVERT_TO_BYTEPTR(src_y),
+                                                                             input_pic->stride_y,
+                                                                             &sse) >> 1;
+            }
+#else
             if (ctx->mds0_ctrls.mds0_dist_type == SSD) {
                 EbSpatialFullDistType spatial_full_dist_type_fun = ctx->hbd_md ? svt_full_distortion_kernel16_bits
                                                                                : svt_spatial_full_distortion_kernel;
@@ -1267,7 +1358,21 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
                     }
                 }
             }
-
+#endif
+#if OPT_OBMC
+#if CLN_MDS0
+            cand_bf->fast_luma_rate   = obmc_fast_luma_rate;
+            *(cand_bf->fast_cost)     = RDCOST(fast_lambda,
+                                           cand_bf->fast_luma_rate + cand_bf->fast_chroma_rate,
+                                           cand_bf->luma_fast_dist);
+#else
+           cand_bf->chroma_fast_dist = chroma_fast_distortion;
+           cand_bf->fast_luma_rate = obmc_fast_luma_rate;
+            *(cand_bf->fast_cost) = RDCOST((ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
+                                           cand_bf->fast_luma_rate + cand_bf->fast_chroma_rate,
+                                           cand_bf->luma_fast_dist + cand_bf->chroma_fast_dist);
+#endif
+#else
             // Fast Cost
             *(cand_bf->fast_cost) = av1_product_fast_cost_func_table[is_inter_mode(cand->pred_mode)](
                 pcs,
@@ -1276,6 +1381,7 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
                 (ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
                 luma_fast_dist,
                 chroma_fast_distortion);
+#endif
             if (simple_translation_cost < *(cand_bf->fast_cost)) {
                 // Restore the simple-translation results
                 cand->motion_mode         = SIMPLE_TRANSLATION;
@@ -1283,7 +1389,11 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
                 cand_bf->fast_luma_rate   = simple_translation_fast_luma_rate;
                 cand_bf->fast_chroma_rate = simple_translation_fast_chroma_rate;
                 cand_bf->luma_fast_dist   = simple_translation_luma_fast_distortion;
-
+#if !CLN_MDS0
+#if OPT_OBMC
+                cand_bf->chroma_fast_dist = simple_translation_chroma_fast_distortion;
+#endif
+#endif
 #if CLN_VALID_PRED
                 cand_bf->valid_luma_pred = 0;
 #else
@@ -1303,15 +1413,23 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
 void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs, ModeDecisionContext *ctx,
                     EbPictureBufferDesc *input_pic, BlockLocation *loc) {
     const uint32_t input_origin_index       = loc->input_origin_index;
+#if !CLN_MDS0
     const uint32_t input_cb_origin_in_index = loc->input_cb_origin_in_index;
-    const uint32_t input_cr_origin_in_index = loc->input_cb_origin_in_index;
+    const uint32_t input_cr_origin_in_index = loc->input_cb_origin_in_index; 
+#endif
     const uint32_t cu_origin_index          = loc->blk_origin_index;
+#if !CLN_MDS0
     const uint32_t cu_chroma_origin_index   = loc->blk_chroma_origin_index;
+#endif
     uint32_t       luma_fast_dist;
+#if CLN_MDS0
+    uint32_t fast_lambda = ctx->hbd_md ? ctx->fast_lambda_md[EB_10_BIT_MD] : ctx->fast_lambda_md[EB_8_BIT_MD];
+#else
     uint32_t       chroma_fast_distortion = 0;
+
     uint32_t       full_lambda = ctx->hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
     uint32_t       fast_lambda = ctx->hbd_md ? ctx->fast_lambda_md[EB_10_BIT_MD] : ctx->fast_lambda_md[EB_8_BIT_MD];
-
+#endif
     ModeDecisionCandidate *cand = cand_bf->cand;
     EbPictureBufferDesc   *pred = cand_bf->pred;
     ctx->pu_itr                 = 0;
@@ -1320,6 +1438,33 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
     svt_product_prediction_fun_table[is_inter_mode(cand->pred_mode) || cand->use_intrabc](
         ctx->hbd_md, ctx, pcs, cand_bf);
     // Distortion
+#if CLN_MDS0
+    if (!ctx->hbd_md) {
+        const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
+        unsigned int            sse;
+        uint8_t *               pred_y = pred->buffer_y + cu_origin_index;
+        uint8_t *               src_y  = input_pic->buffer_y + input_origin_index;
+        if (pcs->rtc_tune)
+            cand_bf->luma_fast_dist = luma_fast_dist = fn_ptr->vf(
+                                                           pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse) /
+                3;
+        else
+            cand_bf->luma_fast_dist = luma_fast_dist = fn_ptr->vf(
+                                                           pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse) >>
+                2;
+    } else {
+        const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
+        unsigned int            sse;
+        uint16_t *              pred_y = ((uint16_t *)pred->buffer_y) + cu_origin_index;
+        uint16_t *              src_y  = ((uint16_t *)input_pic->buffer_y) + input_origin_index;
+        cand_bf->luma_fast_dist = luma_fast_dist = fn_ptr->vf_hbd_10(CONVERT_TO_BYTEPTR(pred_y),
+                                                                     pred->stride_y,
+                                                                     CONVERT_TO_BYTEPTR(src_y),
+                                                                     input_pic->stride_y,
+                                                                     &sse) >>
+            1;
+    }
+#else
     // Y
     if (ctx->mds0_ctrls.mds0_dist_type == SSD) {
         EbSpatialFullDistType spatial_full_dist_type_fun = ctx->hbd_md ? svt_full_distortion_kernel16_bits
@@ -1437,16 +1582,27 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
             }
         }
     }
+#if OPT_OBMC
+    cand_bf->chroma_fast_dist = chroma_fast_distortion;
+#endif
+#endif
     if (ctx->mds0_ctrls.pruning_method_th && ctx->pd_pass == PD_PASS_1) {
         if (ctx->mds0_ctrls.pruning_method_th != (uint8_t)~0 &&
             (MIN(ctx->md_me_dist, ctx->md_pme_dist) / (ctx->blk_geom->bwidth * ctx->blk_geom->bheight)) >
                 ctx->mds0_ctrls.pruning_method_th) {
             if (ctx->mds0_ctrls.per_class_dist_to_cost_th[cand_bf->cand->cand_class] != (uint16_t)~0 &&
                 ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class] != (uint64_t)~0) {
+#if CLN_MDS0
+                const uint64_t distortion_cost = RDCOST(
+                    fast_lambda,
+                    0,
+                    luma_fast_dist);
+#else
                 const uint64_t distortion_cost = RDCOST(
                     (ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
                     0,
                     luma_fast_dist + chroma_fast_distortion);
+#endif
                 if ((100 *
                      (int64_t)((int64_t)distortion_cost -
                                (int64_t)ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class])) >
@@ -1458,10 +1614,17 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
             }
         } else {
             if (ctx->mds0_ctrls.dist_to_cost_th != (uint16_t)~0 && ctx->mds0_best_cost != (uint64_t)~0) {
+#if CLN_MDS0
+                const uint64_t distortion_cost = RDCOST(
+                    fast_lambda,
+                    0,
+                    luma_fast_dist);
+#else
                 const uint64_t distortion_cost = RDCOST(
                     (ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
                     0,
                     luma_fast_dist + chroma_fast_distortion);
+#endif
                 if ((100 * (int64_t)((int64_t)distortion_cost - (int64_t)ctx->mds0_best_cost)) >
                     ((int64_t)ctx->mds0_best_cost * ctx->mds0_ctrls.dist_to_cost_th)) {
                     *(cand_bf->fast_cost) = MAX_MODE_COST;
@@ -1472,10 +1635,22 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
     }
     // Fast Cost
     if (ctx->shut_fast_rate) {
+#if CLN_MDS0
+        *(cand_bf->fast_cost) = luma_fast_dist;
+#else
         *(cand_bf->fast_cost)     = luma_fast_dist + chroma_fast_distortion;
+#endif
         cand_bf->fast_luma_rate   = 0;
         cand_bf->fast_chroma_rate = 0;
     } else {
+#if CLN_MDS0
+        *(cand_bf->fast_cost) = av1_product_fast_cost_func_table[is_inter_mode(cand->pred_mode)](
+            pcs,
+            ctx,
+            cand_bf,
+            fast_lambda,
+            luma_fast_dist);
+#else
         *(cand_bf->fast_cost) = av1_product_fast_cost_func_table[is_inter_mode(cand->pred_mode)](
             pcs,
             ctx,
@@ -1483,14 +1658,20 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
             (ctx->mds0_ctrls.mds0_dist_type == SSD) ? full_lambda : fast_lambda,
             luma_fast_dist,
             chroma_fast_distortion);
+#endif
     }
 #if CLN_VALID_PRED
     cand_bf->valid_luma_pred = 1;
 #else
     cand_bf->valid_pred = 1;
 #endif
+
+#if OPT_OBMC
+    if (ctx->obmc_ctrls.enabled && ctx->obmc_ctrls.trans_face_off == 1)
+#else
     if (ctx->obmc_ctrls.enabled && ctx->obmc_ctrls.trans_face_off == 1 &&
         (*(cand_bf->fast_cost) * ctx->obmc_ctrls.trans_face_off_th) <= (ctx->mds0_best_class0_cost * 100))
+#endif
         obmc_trans_face_off(cand_bf, pcs, ctx, input_pic, loc);
 #if OPT_MDS_FEATS_PRUNING
     // Init full cost in case we bypass stage1/stage2
@@ -5529,8 +5710,13 @@ static void perform_dct_dct_tx_light_pd1(PictureControlSet *pcs, ModeDecisionCon
     } else if (ctx->lpd1_tx_ctrls.use_neighbour_info) {
         MacroBlockD *xd = ctx->blk_ptr->av1xd;
         if (xd->left_available && xd->up_available && ctx->blk_geom->sq_size > 16 && ctx->is_subres_safe == 1) {
+#if CLN_REMOVE_DEC_STRUCT
+            const BlockModeInfo* const left_mi = &xd->left_mbmi->block_mi;
+            const BlockModeInfo* const above_mi = &xd->above_mbmi->block_mi;
+#else
             const BlockModeInfoEnc *const left_mi  = &xd->left_mbmi->block_mi;
             const BlockModeInfoEnc *const above_mi = &xd->above_mbmi->block_mi;
+#endif
             if (left_mi->skip && above_mi->skip) {
                 ctx->use_tx_shortcuts_mds3 = 1;
                 pf_shape                   = N2_SHAPE;
@@ -6358,8 +6544,13 @@ static bool get_perform_tx_flag(PictureControlSet *pcs, ModeDecisionContext *ctx
 
         MacroBlockD *xd = ctx->blk_ptr->av1xd;
         if (xd->left_available && xd->up_available) {
+#if CLN_REMOVE_DEC_STRUCT
+            const BlockModeInfo* const left_mi = &xd->left_mbmi->block_mi;
+            const BlockModeInfo* const above_mi = &xd->above_mbmi->block_mi;
+#else
             const BlockModeInfoEnc *const left_mi  = &xd->left_mbmi->block_mi;
             const BlockModeInfoEnc *const above_mi = &xd->above_mbmi->block_mi;
+#endif
             if (left_mi->skip && above_mi->skip &&
                 ((left_mi->mode == NEAREST_NEARESTMV && above_mi->mode == NEAREST_NEARESTMV) ||
                  ctx->lpd1_skip_inter_tx_level)) {
@@ -6641,7 +6832,11 @@ static INLINE void opt_non_translation_motion_mode(PictureControlSet *pcs, ModeD
         const Mv                   default_ref_mv       = cand->pred_mv[list_idx];
         const uint8_t              default_drl_idx      = cand->drl_index;
         const EbWarpedMotionParams default_wm_params    = cand->wm_params_l0;
+#if CLN_WM_CTRLS
+        const uint8_t              default_num_proj_ref = cand->num_proj_ref;
+#else
         const uint16_t             default_num_proj_ref = cand->num_proj_ref;
+#endif
 
         motion_mode_valid = ctx->wm_ctrls.refinement_iterations
             ? svt_aom_wm_motion_refinement(
@@ -6654,6 +6849,22 @@ static INLINE void opt_non_translation_motion_mode(PictureControlSet *pcs, ModeD
             mv_unit.pred_direction = list_idx;
             // Update wm_params and num_proj_ref for the chosen MV. This call is not
             // part of a search, so disable the shortcuts.
+#if CLN_WM_CTRLS
+            svt_aom_warped_motion_parameters(pcs,
+#if CLN_WM_SAMPLES
+                                             ctx,
+#else
+                                             ctx->blk_ptr,
+#endif
+                                             &mv_unit,
+                                             ctx->blk_geom,
+                                             cand->ref_frame_type,
+                                             &cand->wm_params_l0,
+                                             &cand->num_proj_ref,
+                                             0,
+                                             0,
+                                             1);
+#else
             svt_aom_warped_motion_parameters(pcs,
                                              ctx->blk_ptr,
                                              &mv_unit,
@@ -6668,6 +6879,7 @@ static INLINE void opt_non_translation_motion_mode(PictureControlSet *pcs, ModeD
                                              0,
                                              0,
                                              1);
+#endif
 
             update_fast_luma_rate(ctx, cand_bf, cand, default_mv, default_ref_mv, list_idx);
 #if CLN_VALID_PRED
@@ -7317,6 +7529,7 @@ void svt_aom_move_blk_data(PictureControlSet *pcs, EncDecContext *ctx, BlkStruct
         else
             SVT_ERROR("palette: Not-Enough-Memory\n");
     }
+#if !CLN_MOVE_FIELDS_MBMI
     dst->interinter_comp.type        = src->interinter_comp.type;
     dst->interinter_comp.mask_type   = src->interinter_comp.mask_type;
     dst->interinter_comp.wedge_index = src->interinter_comp.wedge_index;
@@ -7326,20 +7539,25 @@ void svt_aom_move_blk_data(PictureControlSet *pcs, EncDecContext *ctx, BlkStruct
     dst->interintra_mode        = src->interintra_mode;
     dst->use_wedge_interintra   = src->use_wedge_interintra;
     dst->interintra_wedge_index = src->interintra_wedge_index; //inter_intra wedge index
+#endif
 
     svt_memcpy(&dst->eob, &src->eob, sizeof(EobData));
     svt_memcpy(dst->tx_type, src->tx_type, sizeof(src->tx_type[0]) * MAX_TXB_COUNT);
     dst->tx_type_uv = src->tx_type_uv;
 
+#if !CLN_MOVE_FIELDS_MBMI
     // Intra Mode
     dst->angle_delta[0] = src->angle_delta[0];
     dst->angle_delta[1] = src->angle_delta[1];
     // Inter Mode
     dst->motion_mode            = src->motion_mode;
     dst->num_proj_ref           = src->num_proj_ref;
+#endif
     dst->overlappable_neighbors = src->overlappable_neighbors;
+#if !CLN_MOVE_FIELDS_MBMI
     dst->cfl_alpha_idx          = src->cfl_alpha_idx;
     dst->cfl_alpha_signs        = src->cfl_alpha_signs;
+#endif
 
     dst->qindex = src->qindex;
 
@@ -7358,7 +7576,9 @@ void svt_aom_move_blk_data(PictureControlSet *pcs, EncDecContext *ctx, BlkStruct
     svt_memcpy(dst->predmv, src->predmv, 2 * sizeof(IntMv));
 
     dst->mds_idx           = src->mds_idx;
+#if !CLN_MOVE_FIELDS_MBMI
     dst->filter_intra_mode = src->filter_intra_mode;
+#endif
     dst->drl_ctx[0]        = src->drl_ctx[0];
     dst->drl_ctx[1]        = src->drl_ctx[1];
     dst->drl_ctx_near[0]   = src->drl_ctx_near[0];
@@ -7810,6 +8030,40 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
         cand_bf->cand                        = &ctx->fast_cand_array[uv_mode_count + start_fast_buffer_index];
         svt_product_prediction_fun_table[is_inter_mode(cand_bf->cand->pred_mode)](ctx->hbd_md, ctx, pcs, cand_bf);
         uint32_t chroma_fast_distortion;
+#if CLN_MDS0
+        if (!ctx->hbd_md) {
+            const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize_uv];
+            unsigned int            sse;
+            uint8_t *               pred_cb = cand_bf->pred->buffer_cb + cu_chroma_origin_index;
+            uint8_t *               src_cb  = input_pic->buffer_cb + input_cb_origin_in_index;
+            chroma_fast_distortion          = fn_ptr->vf(
+                                         pred_cb, cand_bf->pred->stride_cb, src_cb, input_pic->stride_cb, &sse) >>
+                2;
+            uint8_t *pred_cr = cand_bf->pred->buffer_cr + cu_chroma_origin_index;
+            uint8_t *src_cr  = input_pic->buffer_cr + input_cr_origin_in_index;
+            chroma_fast_distortion +=
+                (fn_ptr->vf(pred_cr, cand_bf->pred->stride_cr, src_cr, input_pic->stride_cr, &sse) >> 2);
+        } else {
+            const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize_uv];
+            unsigned int            sse;
+            uint16_t *              pred_cb = ((uint16_t *)cand_bf->pred->buffer_cb) + cu_chroma_origin_index;
+            uint16_t *              src_cb  = ((uint16_t *)input_pic->buffer_cb) + input_cb_origin_in_index;
+            chroma_fast_distortion          = fn_ptr->vf_hbd_10(CONVERT_TO_BYTEPTR(pred_cb),
+                                                       cand_bf->pred->stride_cb,
+                                                       CONVERT_TO_BYTEPTR(src_cb),
+                                                       input_pic->stride_cb,
+                                                       &sse) >>
+                1;
+            uint16_t *pred_cr = ((uint16_t *)cand_bf->pred->buffer_cr) + cu_chroma_origin_index;
+            uint16_t *src_cr  = ((uint16_t *)input_pic->buffer_cr) + input_cr_origin_in_index;
+            chroma_fast_distortion += (fn_ptr->vf_hbd_10(CONVERT_TO_BYTEPTR(pred_cr),
+                                                         cand_bf->pred->stride_cr,
+                                                         CONVERT_TO_BYTEPTR(src_cr),
+                                                         input_pic->stride_cr,
+                                                         &sse) >>
+                                       1);
+        }
+#else
         if (ctx->mds0_ctrls.mds0_dist_type == VAR) {
             if (!ctx->hbd_md) {
                 const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize_uv];
@@ -7872,6 +8126,7 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
                                                      ctx->blk_geom->bheight_uv,
                                                      ctx->blk_geom->bwidth_uv);
         }
+#endif
         // Do not consider rate @ this stage
         *(cand_bf->fast_cost) = chroma_fast_distortion;
     }
@@ -9042,7 +9297,11 @@ static void convert_md_recon_16bit_to_8bit(PictureControlSet *pcs, ModeDecisionC
 }
 // Check if reference frame pair of the current block matches with the given
 // block.
+#if CLN_REMOVE_DEC_STRUCT
+static INLINE int match_ref_frame_pair(const BlockModeInfo* mbmi, const MvReferenceFrame* ref_frames) {
+#else
 static INLINE int match_ref_frame_pair(const BlockModeInfoEnc *mbmi, const MvReferenceFrame *ref_frames) {
+#endif
     return ((ref_frames[0] == mbmi->ref_frame[0]) && (ref_frames[1] == mbmi->ref_frame[1]));
 }
 static void lpd1_tx_shortcut_detector(PictureControlSet *pcs, ModeDecisionContext *ctx,
@@ -9064,8 +9323,13 @@ static void lpd1_tx_shortcut_detector(PictureControlSet *pcs, ModeDecisionContex
         ctx->is_subres_safe) {
         MacroBlockD *xd = ctx->blk_ptr->av1xd;
         if (xd->left_available && xd->up_available) {
+#if CLN_REMOVE_DEC_STRUCT
+            const BlockModeInfo* const left_mi = &xd->left_mbmi->block_mi;
+            const BlockModeInfo* const above_mi = &xd->above_mbmi->block_mi;
+#else
             const BlockModeInfoEnc *const left_mi  = &xd->left_mbmi->block_mi;
             const BlockModeInfoEnc *const above_mi = &xd->above_mbmi->block_mi;
+#endif
             if (left_mi->skip && above_mi->skip) {
                 MvReferenceFrame rf[2];
                 av1_set_ref_frame(rf, cand->ref_frame_type);
@@ -9517,6 +9781,11 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
     cand_bf_ptr_array           = &(cand_bf_ptr_array_base[0]);
     ctx->blk_lambda_tuning      = pcs->ppcs->blk_lambda_tuning;
     ctx->tune_ssim_level        = SSIM_LVL_0;
+#if OPT_OBMC
+    ctx->weighted_pred_ready = 0;
+    ctx->neighbor_luma_pred_ready   = 0;
+    ctx->neighbor_chroma_pred_ready = 0;
+#endif
     if (pcs->ppcs->frm_hdr.segmentation_params.segmentation_enabled) {
         SuperBlock *sb_ptr = ctx->sb_ptr;
         svt_aom_apply_segmentation_based_quantization(blk_geom, pcs, sb_ptr, blk_ptr);

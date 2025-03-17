@@ -183,18 +183,24 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
         global_motion_estimation_level = 2;
     else
         global_motion_estimation_level = 3;
+
     if (pcs->gm_ctrls.downsample_level == GM_ADAPT_0) {
         pcs->gm_downsample_level = (average_me_sad < GMV_ME_SAD_TH_1) ? GM_DOWN : GM_FULL;
     } else if (pcs->gm_ctrls.downsample_level == GM_ADAPT_1) {
+#if CLN_CALCULATE_VARIANCE
+        pcs->gm_downsample_level = (average_me_sad < GMV_ME_SAD_TH_2)
+#else
         SequenceControlSet *scs = pcs->scs;
 
         pcs->gm_downsample_level = (average_me_sad < GMV_ME_SAD_TH_2 &&
                                     (!scs->calculate_variance || (pcs->pic_avg_variance < GMV_PIC_VAR_TH)))
+#endif
             ? GM_DOWN16
             : GM_DOWN;
     } else {
         pcs->gm_downsample_level = pcs->gm_ctrls.downsample_level;
     }
+
     if (pcs->gm_ctrls.bypass_based_on_me) {
         if ((total_gm_sbs < (uint32_t)(pcs->b64_total_count >> 1)) ||
             (pcs->gm_ctrls.use_stationary_block &&

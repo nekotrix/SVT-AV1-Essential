@@ -228,8 +228,13 @@ int32_t svt_sb_all_skip(PictureControlSet *pcs, const Av1Common *const cm, int32
 
     for (int32_t r = 0; r < maxr; r++) {
         for (int32_t c = 0; c < maxc; c++) {
+#if CLN_REMOVE_MODE_INFO
+            if (!(pcs->mi_grid_base[(mi_row + r) * pcs->mi_stride + mi_col + c]->block_mi.skip))
+                return 0;
+#else
             if (!(pcs->mi_grid_base[(mi_row + r) * pcs->mi_stride + mi_col + c]->mbmi.block_mi.skip))
                 return 0;
+#endif
         }
     }
     return 1;
@@ -237,8 +242,12 @@ int32_t svt_sb_all_skip(PictureControlSet *pcs, const Av1Common *const cm, int32
 
 int32_t svt_sb_compute_cdef_list(PictureControlSet *pcs, const Av1Common *const cm, int32_t mi_row, int32_t mi_col,
                                  CdefList *dlist, BlockSize bs) {
+#if CLN_REMOVE_MODE_INFO
+    MbModeInfo** grid = pcs->mi_grid_base;
+#else
     //MbModeInfo **grid = cm->mi_grid_visible;
     ModeInfo **grid      = pcs->mi_grid_base;
+#endif
     int32_t    mi_stride = pcs->mi_stride;
 
     int32_t maxc = cm->mi_cols - mi_col;
@@ -264,6 +273,16 @@ int32_t svt_sb_compute_cdef_list(PictureControlSet *pcs, const Av1Common *const 
     int32_t count = 0;
     for (int32_t r = 0; r < maxr; r += r_step) {
         for (int32_t c = 0; c < maxc; c += c_step) {
+#if CLN_REMOVE_MODE_INFO
+            if (!grid[(mi_row + r) * mi_stride + (mi_col + c)]->block_mi.skip ||
+                !grid[(mi_row + r) * mi_stride + (mi_col + c + 1)]->block_mi.skip ||
+                !grid[(mi_row + r + 1) * mi_stride + (mi_col + c)]->block_mi.skip ||
+                !grid[(mi_row + r + 1) * mi_stride + (mi_col + c + 1)]->block_mi.skip) {
+                dlist[count].by = (uint8_t)(r >> r_shift);
+                dlist[count].bx = (uint8_t)(c >> c_shift);
+                count++;
+            }
+#else
             if (!grid[(mi_row + r) * mi_stride + (mi_col + c)]->mbmi.block_mi.skip ||
                 !grid[(mi_row + r) * mi_stride + (mi_col + c + 1)]->mbmi.block_mi.skip ||
                 !grid[(mi_row + r + 1) * mi_stride + (mi_col + c)]->mbmi.block_mi.skip ||
@@ -272,6 +291,7 @@ int32_t svt_sb_compute_cdef_list(PictureControlSet *pcs, const Av1Common *const 
                 dlist[count].bx = (uint8_t)(c >> c_shift);
                 count++;
             }
+#endif
         }
     }
     return count;
@@ -346,9 +366,15 @@ void svt_av1_cdef_frame(SequenceControlSet *scs, PictureControlSet *pcs) {
             curr_row_cdef[fbc] = 0;
             assert(pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc] != NULL &&
                    "CDEF ERROR: Skipping Current FB");
-            assert(pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc]->mbmi.cdef_strength !=
+#if CLN_REMOVE_MODE_INFO
+            assert(pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc]->cdef_strength !=
                        -1 &&
                    "CDEF ERROR: Skipping Current FB");
+#else
+            assert(pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc]->mbmi.cdef_strength !=
+                -1 &&
+                "CDEF ERROR: Skipping Current FB");
+#endif
             if (!cdef_left)
                 cstart =
                     -CDEF_HBORDER; //CHKN if the left block has not been filtered, then we can use samples on the left as input.
@@ -382,8 +408,13 @@ void svt_av1_cdef_frame(SequenceControlSet *scs, PictureControlSet *pcs) {
                 frame_right = 1;
 
             // Find the index of the CDEF strength for the filter block
+#if CLN_REMOVE_MODE_INFO
+            const int32_t mbmi_cdef_strength =
+                pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc]->cdef_strength;
+#else
             const int32_t mbmi_cdef_strength =
                 pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc]->mbmi.cdef_strength;
+#endif
             level        = frm_hdr->cdef_params.cdef_y_strength[mbmi_cdef_strength] / CDEF_SEC_STRENGTHS;
             sec_strength = frm_hdr->cdef_params.cdef_y_strength[mbmi_cdef_strength] % CDEF_SEC_STRENGTHS;
             // Secondary luma strength takes values in {0, 1, 2, 4}. If sec_strength is equal to 3 from the step above, change it to 4.
@@ -406,9 +437,17 @@ void svt_av1_cdef_frame(SequenceControlSet *scs, PictureControlSet *pcs) {
             if (sb_size == 128) {
                 const uint32_t    lc    = MI_SIZE_64X64 * fbc;
                 const uint32_t    lr    = MI_SIZE_64X64 * fbr;
+#if CLN_REMOVE_MODE_INFO
+                const MbModeInfo* mbmi = pcs->mi_grid_base[lr * cm->mi_stride + lc];
+#else
                 ModeInfo        **mi    = pcs->mi_grid_base + lr * cm->mi_stride + lc;
                 const MbModeInfo *mbmi  = &mi[0]->mbmi;
+#endif
+#if CLN_MOVE_FIELDS_MBMI
+                const BlockSize   bsize = mbmi->bsize;
+#else
                 const BlockSize   bsize = mbmi->block_mi.bsize;
+#endif
                 if (((fbc & 1) && (bsize == BLOCK_128X128 || bsize == BLOCK_128X64)) ||
                     ((fbr & 1) && (bsize == BLOCK_128X128 || bsize == BLOCK_64X128)))
                     dirinit = 0;
@@ -749,11 +788,19 @@ void finish_cdef_search(PictureControlSet *pcs) {
         assert(sb_index != NULL);
         for (fbr = 0; fbr < nvfb; ++fbr) {
             for (fbc = 0; fbc < nhfb; ++fbc) {
+#if CLN_REMOVE_MODE_INFO
+                const MbModeInfo* mbmi = pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc];
+#else
                 ModeInfo        **mi   = pcs->mi_grid_base + MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc;
                 const MbModeInfo *mbmi = &mi[0]->mbmi;
-
+#endif
+#if CLN_MOVE_FIELDS_MBMI
+                if (((fbc & 1) && (mbmi->bsize == BLOCK_128X128 || mbmi->bsize == BLOCK_128X64)) ||
+                    ((fbr & 1) && (mbmi->bsize == BLOCK_128X128 || mbmi->bsize == BLOCK_64X128))) {
+#else
                 if (((fbc & 1) && (mbmi->block_mi.bsize == BLOCK_128X128 || mbmi->block_mi.bsize == BLOCK_128X64)) ||
                     ((fbr & 1) && (mbmi->block_mi.bsize == BLOCK_128X128 || mbmi->block_mi.bsize == BLOCK_64X128))) {
+#endif
                     continue;
                 }
                 // No filtering if the entire filter block is skipped
@@ -764,6 +811,31 @@ void finish_cdef_search(PictureControlSet *pcs) {
             }
         }
         for (int32_t i = 0; i < sb_count; i++) {
+#if CLN_REMOVE_MODE_INFO
+            pcs->mi_grid_base[sb_index[i]]->cdef_strength = (int8_t)best_gi;
+            //in case the fb is within a block=128x128 or 128x64, or 64x128, then we genrate param only for the first 64x64.
+            //since our mi map deos not have the multi pointer single data assignment, we need to duplicate data.
+#if CLN_MOVE_FIELDS_MBMI
+            BlockSize bsize = pcs->mi_grid_base[sb_index[i]]->bsize;
+#else
+            BlockSize bsize = pcs->mi_grid_base[sb_index[i]]->block_mi.bsize;
+#endif
+            switch (bsize) {
+            case BLOCK_128X128:
+                pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64]->cdef_strength = (int8_t)best_gi;
+                pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64 * pcs->mi_stride]->cdef_strength = (int8_t)best_gi;
+                pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64 * pcs->mi_stride + MI_SIZE_64X64]->cdef_strength =
+                    (int8_t)best_gi;
+                break;
+            case BLOCK_128X64:
+                pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64]->cdef_strength = (int8_t)best_gi;
+                break;
+            case BLOCK_64X128:
+                pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64 * pcs->mi_stride]->cdef_strength = (int8_t)best_gi;
+                break;
+            default: break;
+            }
+#else
             pcs->mi_grid_base[sb_index[i]]->mbmi.cdef_strength = (int8_t)best_gi;
             //in case the fb is within a block=128x128 or 128x64, or 64x128, then we genrate param only for the first 64x64.
             //since our mi map deos not have the multi pointer single data assignment, we need to duplicate data.
@@ -783,6 +855,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
                 break;
             default: break;
             }
+#endif
         }
         frm_hdr->cdef_params.cdef_bits = 0;
         ppcs->nb_cdef_strengths        = 1;
@@ -819,11 +892,19 @@ void finish_cdef_search(PictureControlSet *pcs) {
     sb_count = 0;
     for (fbr = 0; fbr < nvfb; ++fbr) {
         for (fbc = 0; fbc < nhfb; ++fbc) {
+#if CLN_REMOVE_MODE_INFO
+            const MbModeInfo* mbmi = pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc];
+#else
             ModeInfo        **mi   = pcs->mi_grid_base + MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc;
             const MbModeInfo *mbmi = &mi[0]->mbmi;
-
+#endif
+#if CLN_MOVE_FIELDS_MBMI
+            if (((fbc & 1) && (mbmi->bsize == BLOCK_128X128 || mbmi->bsize == BLOCK_128X64)) ||
+                ((fbr & 1) && (mbmi->bsize == BLOCK_128X128 || mbmi->bsize == BLOCK_64X128))) {
+#else
             if (((fbc & 1) && (mbmi->block_mi.bsize == BLOCK_128X128 || mbmi->block_mi.bsize == BLOCK_128X64)) ||
                 ((fbr & 1) && (mbmi->block_mi.bsize == BLOCK_128X128 || mbmi->block_mi.bsize == BLOCK_64X128))) {
+#endif
                 continue;
             }
 
@@ -928,6 +1009,30 @@ void finish_cdef_search(PictureControlSet *pcs) {
             }
         }
 
+#if CLN_REMOVE_MODE_INFO
+        pcs->mi_grid_base[sb_index[i]]->cdef_strength = (int8_t)best_gi;
+        //in case the fb is within a block=128x128 or 128x64, or 64x128, then we genrate param only for the first 64x64.
+        //since our mi map deos not have the multi pointer single data assignment, we need to duplicate data.
+#if CLN_MOVE_FIELDS_MBMI
+        BlockSize bsize = pcs->mi_grid_base[sb_index[i]]->bsize;
+#else
+        BlockSize bsize = pcs->mi_grid_base[sb_index[i]]->block_mi.bsize;
+#endif
+
+        switch (bsize) {
+        case BLOCK_128X128:
+            pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64]->cdef_strength = (int8_t)best_gi;
+            pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64 * pcs->mi_stride]->cdef_strength = (int8_t)best_gi;
+            pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64 * pcs->mi_stride + MI_SIZE_64X64]->cdef_strength =
+                (int8_t)best_gi;
+            break;
+        case BLOCK_128X64: pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64]->cdef_strength = (int8_t)best_gi; break;
+        case BLOCK_64X128:
+            pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64 * pcs->mi_stride]->cdef_strength = (int8_t)best_gi;
+            break;
+        default: break;
+        }
+#else
         pcs->mi_grid_base[sb_index[i]]->mbmi.cdef_strength = (int8_t)best_gi;
         //in case the fb is within a block=128x128 or 128x64, or 64x128, then we genrate param only for the first 64x64.
         //since our mi map deos not have the multi pointer single data assignment, we need to duplicate data.
@@ -946,6 +1051,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
             break;
         default: break;
         }
+#endif
     }
     int filter_map[TOTAL_STRENGTHS] = {0};
     for (i = 0; i < first_pass_fs_num; i++) filter_map[i] = cdef_search_ctrls->default_first_pass_fs[i];

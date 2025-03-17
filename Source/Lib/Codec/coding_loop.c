@@ -2234,7 +2234,11 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
                                      ctx->blk_ptr->segment_id,
                                      md_ctx->md_rate_est_ctx,
                                      blk_ptr->av1xd,
+#if CLN_REMOVE_MODE_INFO
+                                     blk_ptr->av1xd->mi[0],
+#else
                                      &(blk_ptr->av1xd->mi[0]->mbmi),
+#endif
                                      blk_geom->txsize[blk_ptr->tx_depth],
                                      pcs->ppcs->frm_hdr.tx_mode,
                                      blk_geom->bsize,
@@ -2264,12 +2268,21 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
                 int32_t       mi_row    = ctx->blk_org_y >> MI_SIZE_LOG2;
                 int32_t       mi_col    = ctx->blk_org_x >> MI_SIZE_LOG2;
                 const int32_t offset    = mi_row * mi_stride + mi_col;
+#if CLN_REMOVE_MODE_INFO
+                MbModeInfo* mbmi = pcs->mi_grid_base[offset];
+                const int x_mis = AOMMIN(ctx->blk_geom->bwidth >> MI_SIZE_LOG2, pcs->ppcs->av1_cm->mi_cols - mi_col);
+                const int y_mis = AOMMIN(ctx->blk_geom->bheight >> MI_SIZE_LOG2, pcs->ppcs->av1_cm->mi_rows - mi_row);
+                EbReferenceObject* obj_l0 = (EbReferenceObject*)pcs->ppcs->ref_pic_wrapper->object_ptr;
+
+                av1_copy_frame_mvs(pcs, pcs->ppcs->av1_cm, mbmi[0], mi_row, mi_col, x_mis, y_mis, obj_l0);
+#else
                 ModeInfo     *mi_ptr    = *(pcs->mi_grid_base + offset);
                 const int x_mis = AOMMIN(ctx->blk_geom->bwidth >> MI_SIZE_LOG2, pcs->ppcs->av1_cm->mi_cols - mi_col);
                 const int y_mis = AOMMIN(ctx->blk_geom->bheight >> MI_SIZE_LOG2, pcs->ppcs->av1_cm->mi_rows - mi_row);
                 EbReferenceObject *obj_l0 = (EbReferenceObject *)pcs->ppcs->ref_pic_wrapper->object_ptr;
 
                 av1_copy_frame_mvs(pcs, pcs->ppcs->av1_cm, mi_ptr->mbmi, mi_row, mi_col, x_mis, y_mis, obj_l0);
+#endif
             }
         }
         blk_it += ctx->blk_geom->ns_depth_offset;

@@ -31,6 +31,12 @@
 #include "resize.h"
 #include "mcomp.h"
 #include "src_ops_process.h"
+#if OPT_OBMC
+#include "aom_dsp_rtcd.h"
+void calc_target_weighted_pred(PictureControlSet *pcs, ModeDecisionContext *ctx, const AV1_COMMON *cm,
+                               const MacroBlockD *xd, int mi_row, int mi_col, const uint8_t *above, int above_stride,
+                               const uint8_t *left, int left_stride);
+#endif
 #define INC_MD_CAND_CNT(cnt, max_can_count)                  \
     MULTI_LINE_MACRO_BEGIN                                   \
     if (cnt + 1 < max_can_count)                             \
@@ -894,6 +900,22 @@ static void inj_non_simple_modes(PictureControlSet *pcs, struct ModeDecisionCont
             MvUnit mv_unit;
             mv_unit.mv[list_idx]   = cand->mv[list_idx];
             mv_unit.pred_direction = list_idx;
+#if CLN_WM_CTRLS
+            motion_mode_valid = svt_aom_warped_motion_parameters(pcs,
+#if CLN_WM_SAMPLES
+                                                                 ctx,
+#else
+                                                                 ctx->blk_ptr,
+#endif
+                                                                 &mv_unit,
+                                                                 ctx->blk_geom,
+                                                                 cand->ref_frame_type,
+                                                                 &cand->wm_params_l0,
+                                                                 &cand->num_proj_ref,
+                                                                 ctx->wm_ctrls.lower_band_th,
+                                                                 ctx->wm_ctrls.upper_band_th,
+                                                                 0);
+#else
             motion_mode_valid      = svt_aom_warped_motion_parameters(pcs,
                                                                  ctx->blk_ptr,
                                                                  &mv_unit,
@@ -908,6 +930,7 @@ static void inj_non_simple_modes(PictureControlSet *pcs, struct ModeDecisionCont
                                                                  ctx->wm_ctrls.lower_band_th,
                                                                  ctx->wm_ctrls.upper_band_th,
                                                                  0);
+#endif
         }
 
         if (motion_mode_valid)
@@ -1023,6 +1046,9 @@ static void unipred_3x3_candidates_injection(PictureControlSet *pcs, ModeDecisio
                         cand_array[cand_total_cnt].ref_frame_type    = to_inject_ref_type;
                         cand_array[cand_total_cnt].pred_mv[list_idx] = (Mv){
                             {best_pred_mv[0].as_mv.col, best_pred_mv[0].as_mv.row}};
+#if CLN_WM_SAMPLES
+                        cand_array[cand_total_cnt].num_proj_ref = ctx->wm_sample_info[to_inject_ref_type].num;
+#endif
 
                         INC_MD_CAND_CNT(cand_total_cnt, pcs->ppcs->max_can_count);
 
@@ -1069,13 +1095,21 @@ static bool skip_compound_on_ref_types(ModeDecisionContext* ctx, MvReferenceFram
         return false;
 
     if (xd->left_available) {
+#if CLN_REMOVE_DEC_STRUCT
+        const BlockModeInfo* const left_mi = &xd->left_mbmi->block_mi;
+#else
         const BlockModeInfoEnc* const left_mi = &xd->left_mbmi->block_mi;
+#endif
         if ((is_inter_singleref_mode(left_mi->mode) && (left_mi->ref_frame[0] == rf[0] || left_mi->ref_frame[0] == rf[1])) ||
             (is_inter_compound_mode(left_mi->mode) && (left_mi->ref_frame[0] == rf[0] && left_mi->ref_frame[1] == rf[1])))
             return false;
     }
     if (xd->up_available) {
+#if CLN_REMOVE_DEC_STRUCT
+        const BlockModeInfo* const above_mi = &xd->above_mbmi->block_mi;
+#else
         const BlockModeInfoEnc* const above_mi = &xd->above_mbmi->block_mi;
+#endif
         if ((is_inter_singleref_mode(above_mi->mode) && (above_mi->ref_frame[0] == rf[0] || above_mi->ref_frame[0] == rf[1])) ||
             (is_inter_compound_mode(above_mi->mode) && (above_mi->ref_frame[0] == rf[0] && above_mi->ref_frame[1] == rf[1])))
             return false;
@@ -1432,6 +1466,9 @@ static void inject_mvp_candidates_ii_light_pd1(PictureControlSet *pcs, ModeDecis
             cand_array[cand_idx].ref_frame_type    = frame_type;
             assert(list_idx == 0 || list_idx == 1);
             cand_array[cand_idx].mv[list_idx] = (Mv){{to_inject_mv_x, to_inject_mv_y}};
+#if CLN_WM_SAMPLES
+            cand_array[cand_idx].num_proj_ref = ctx->wm_sample_info[frame_type].num;
+#endif
             INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
 
             ctx->injected_mvs[ctx->injected_mv_count][0]    = (Mv){{to_inject_mv_x, to_inject_mv_y}};
@@ -1457,6 +1494,9 @@ static void inject_mvp_candidates_ii_light_pd1(PictureControlSet *pcs, ModeDecis
                     cand_array[cand_idx].ref_frame_type    = frame_type;
                     assert(list_idx == 0 || list_idx == 1);
                     cand_array[cand_idx].mv[list_idx].as_int = to_inj_mv.as_int;
+#if CLN_WM_SAMPLES
+                    cand_array[cand_idx].num_proj_ref = ctx->wm_sample_info[frame_type].num;
+#endif
                     INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
 
                     ctx->injected_mvs[ctx->injected_mv_count][0].as_int = to_inj_mv.as_int;
@@ -1649,6 +1689,9 @@ static void inject_mvp_candidates_ii(PictureControlSet *pcs, ModeDecisionContext
                 cand_array[cand_idx].ref_frame_type      = frame_type;
                 cand_array[cand_idx].mv[list_idx].as_int = to_inj_mv.as_int;
                 cand_array[cand_idx].is_interintra_used  = 0;
+#if CLN_WM_SAMPLES
+                cand_array[cand_idx].num_proj_ref = ctx->wm_sample_info[frame_type].num;
+#endif
                 INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
 
                 inj_non_simple_modes(
@@ -1697,6 +1740,9 @@ static void inject_mvp_candidates_ii(PictureControlSet *pcs, ModeDecisionContext
                     cand_array[cand_idx].ref_frame_type      = frame_type;
                     cand_array[cand_idx].mv[list_idx].as_int = to_inj_mv.as_int;
                     cand_array[cand_idx].is_interintra_used  = 0;
+#if CLN_WM_SAMPLES
+                    cand_array[cand_idx].num_proj_ref = ctx->wm_sample_info[frame_type].num;
+#endif
                     INC_MD_CAND_CNT(cand_idx, pcs->ppcs->max_can_count);
 
                     inj_non_simple_modes(
@@ -2299,6 +2345,22 @@ uint8_t svt_aom_wm_motion_refinement(PictureControlSet *pcs, ModeDecisionContext
             mv_unit.mv[list_idx]      = test_mv;
             mv_unit.pred_direction    = list_idx;
             cand->mv[list_idx].as_int = test_mv.as_int;
+#if CLN_WM_CTRLS
+            uint8_t local_warp_valid = svt_aom_warped_motion_parameters(pcs,
+#if CLN_WM_SAMPLES
+                                                                        ctx,
+#else
+                                                                        ctx->blk_ptr,
+#endif
+                                                                        &mv_unit,
+                                                                        ctx->blk_geom,
+                                                                        cand->ref_frame_type,
+                                                                        &cand->wm_params_l0,
+                                                                        &cand->num_proj_ref,
+                                                                        ctx->wm_ctrls.lower_band_th,
+                                                                        ctx->wm_ctrls.upper_band_th,
+                                                                        shut_approx);
+#else
             uint8_t local_warp_valid  = svt_aom_warped_motion_parameters(pcs,
                                                                         ctx->blk_ptr,
                                                                         &mv_unit,
@@ -2313,6 +2375,7 @@ uint8_t svt_aom_wm_motion_refinement(PictureControlSet *pcs, ModeDecisionContext
                                                                         ctx->wm_ctrls.lower_band_th,
                                                                         ctx->wm_ctrls.upper_band_th,
                                                                         shut_approx);
+#endif
             if (!local_warp_valid)
                 continue;
             EbPictureBufferDesc *ref_pic_list0 = (EbPictureBufferDesc *)NULL;
@@ -2333,14 +2396,18 @@ uint8_t svt_aom_wm_motion_refinement(PictureControlSet *pcs, ModeDecisionContext
                 ref_pic_list1 = svt_aom_get_ref_pic_buffer(pcs, 0, list_idx1, ref_idx_l1);
             }
 
+#if !CLN_WM_SAMPLES
             svt_aom_wm_count_samples(ctx->blk_ptr,
                                      pcs->scs->seq_header.sb_size,
+#if !CLN_WM_CTRLS
                                      ctx->blk_geom,
                                      ctx->blk_org_x,
                                      ctx->blk_org_y,
+#endif
                                      cand->ref_frame_type,
                                      pcs,
                                      &cand->num_proj_ref);
+#endif
 
             svt_aom_warped_motion_prediction(pcs,
 #if OPT_II_PRECOMPUTE
@@ -2593,6 +2660,52 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
     if (block_size_wide[ctx->blk_geom->bsize] > ctx->obmc_ctrls.max_blk_size_to_refine ||
         block_size_high[ctx->blk_geom->bsize] > ctx->obmc_ctrls.max_blk_size_to_refine)
         return 1;
+
+#if OPT_OBMC
+    if (ctx->weighted_pred_ready == 0) {
+        int mi_row = ctx->blk_org_y >> 2;
+        int mi_col = ctx->blk_org_x >> 2;
+
+        DECLARE_ALIGNED(16, uint8_t, junk_2b[6 * MAX_MB_PLANE * MAX_SB_SQUARE]);
+
+        uint8_t *dst_buf1_8b = junk_2b + 2 * MAX_MB_PLANE * MAX_SB_SQUARE,
+                *dst_buf2_8b = junk_2b + 4 * MAX_MB_PLANE * MAX_SB_SQUARE;
+
+        if (ctx->hbd_md) {
+
+            svt_aom_un_pack2d((uint16_t *)ctx->obmc_buff_0,
+                              ctx->blk_geom->bwidth,
+                              dst_buf1_8b,
+                              ctx->blk_geom->bwidth,
+                              junk_2b,
+                              ctx->blk_geom->bwidth,
+                              ctx->blk_geom->bwidth,
+                              ctx->blk_geom->bheight);
+
+            svt_aom_un_pack2d((uint16_t *)ctx->obmc_buff_1,
+                              ctx->blk_geom->bwidth,
+                              dst_buf2_8b,
+                              ctx->blk_geom->bwidth,
+                              junk_2b,
+                              ctx->blk_geom->bwidth,
+                              ctx->blk_geom->bwidth,
+                              ctx->blk_geom->bheight);
+        }
+
+        calc_target_weighted_pred(pcs,
+                                  ctx,
+                                  pcs->ppcs->av1_cm,
+                                  ctx->blk_ptr->av1xd,
+                                  mi_row,
+                                  mi_col,
+                                  ctx->hbd_md ? dst_buf1_8b : ctx->obmc_buff_0,
+                                  ctx->blk_geom->bwidth,
+                                  ctx->hbd_md ? dst_buf2_8b : ctx->obmc_buff_1,
+                                  ctx->blk_geom->bwidth);
+        
+        ctx->weighted_pred_ready = 1;
+    }
+#endif
     IntMv           best_pred_mv[2] = {{0}, {0}};
     IntraBcContext  x_st;
     IntraBcContext *x = &x_st;
@@ -2817,6 +2930,9 @@ static void inject_new_candidates_light_pd1(PictureControlSet *pcs, struct ModeD
                     cand_array[cand_total_cnt].ref_frame_type        = to_inject_ref_type;
                     cand_array[cand_total_cnt].pred_mv[REF_LIST_0]   = (Mv){
                         {best_pred_mv[0].as_mv.col, best_pred_mv[0].as_mv.row}};
+#if CLN_WM_SAMPLES
+                    cand_array[cand_total_cnt].num_proj_ref = ctx->wm_sample_info[to_inject_ref_type].num;
+#endif
                     INC_MD_CAND_CNT(cand_total_cnt, pcs->ppcs->max_can_count);
                     // Add the injected MV to the list of injected MVs
                     ctx->injected_mvs[ctx->injected_mv_count][0].as_int = to_inj_mv.as_int;
@@ -2861,6 +2977,9 @@ static void inject_new_candidates_light_pd1(PictureControlSet *pcs, struct ModeD
                         cand_array[cand_total_cnt].ref_frame_type        = to_inject_ref_type;
                         cand_array[cand_total_cnt].pred_mv[REF_LIST_1]   = (Mv){
                             {best_pred_mv[0].as_mv.col, best_pred_mv[0].as_mv.row}};
+#if CLN_WM_SAMPLES
+                        cand_array[cand_total_cnt].num_proj_ref = ctx->wm_sample_info[to_inject_ref_type].num;
+#endif
                         INC_MD_CAND_CNT(cand_total_cnt, pcs->ppcs->max_can_count);
 
                         // Add the injected MV to the list of injected MVs
@@ -3015,6 +3134,9 @@ static void inject_new_candidates(PictureControlSet *pcs, ModeDecisionContext *c
                     cand_array[cand_total_cnt].is_interintra_used = 0;
                     cand_array[cand_total_cnt].motion_mode        = SIMPLE_TRANSLATION;
 
+#if CLN_WM_SAMPLES
+                    cand_array[cand_total_cnt].num_proj_ref = ctx->wm_sample_info[to_inject_ref_type].num;
+#endif
                     INC_MD_CAND_CNT(cand_total_cnt, pcs->ppcs->max_can_count);
 
                     inj_non_simple_modes(
@@ -3206,6 +3328,9 @@ static void inject_global_candidates(PictureControlSet *pcs, ModeDecisionContext
             cand_array[cand_total_cnt].drl_index         = 0;
             cand_array[cand_total_cnt].ref_frame_type    = frame_type;
 
+#if CLN_WM_SAMPLES
+            cand_array[cand_total_cnt].num_proj_ref = ctx->wm_sample_info[frame_type].num;
+#endif
             INC_MD_CAND_CNT(cand_total_cnt, pcs->ppcs->max_can_count);
 
             inj_non_simple_modes(
@@ -3421,6 +3546,9 @@ static void inject_pme_candidates(PictureControlSet *pcs, ModeDecisionContext *c
                         cand_array[cand_total_cnt].pred_mv[list_idx]   = (Mv){
                             {best_pred_mv[0].as_mv.col, best_pred_mv[0].as_mv.row}};
 
+#if CLN_WM_SAMPLES
+                        cand_array[cand_total_cnt].num_proj_ref = ctx->wm_sample_info[frame_type].num;
+#endif
                         INC_MD_CAND_CNT(cand_total_cnt, pcs->ppcs->max_can_count);
 
                         inj_non_simple_modes(pcs,
@@ -3562,6 +3690,9 @@ static void inject_inter_candidates_light_pd1(PictureControlSet *pcs, ModeDecisi
         // Overlappable neighbours only needed for non-"SIMPLE_TRANSLATION" candidates
         ctx->blk_ptr->overlappable_neighbors = 0;
     }
+#if CLN_WM_SAMPLES
+    svt_aom_init_wm_samples(pcs, ctx);
+#endif
     // Inject MVP candidates
     if (ctx->new_nearest_injection &&
         !(ctx->is_intra_bordered && ctx->cand_reduction_ctrls.use_neighbouring_mode_ctrls.enabled))
@@ -3591,10 +3722,23 @@ static void svt_aom_inject_inter_candidates(PictureControlSet *pcs, ModeDecision
     uint32_t mi_col = ctx->blk_org_x >> MI_SIZE_LOG2;
 
     svt_av1_count_overlappable_neighbors(pcs, ctx->blk_ptr, ctx->blk_geom->bsize, mi_row, mi_col);
+#if CLN_WM_SAMPLES
+    svt_aom_init_wm_samples(pcs, ctx);
+#endif
+#if OPT_OBMC
+    if (ctx->obmc_ctrls.enabled && ctx->obmc_ctrls.refine_level == 0) {
+        const uint8_t is_obmc_allowed = svt_aom_obmc_motion_mode_allowed(
+                                            pcs, ctx, ctx->blk_geom->bsize, 1, LAST_FRAME, -1, NEWMV) == OBMC_CAUSAL;
+        if (is_obmc_allowed)
+            svt_aom_precompute_obmc_data(pcs, ctx, PICTURE_BUFFER_DESC_LUMA_MASK);
+    }
+#else
     const uint8_t is_obmc_allowed = svt_aom_obmc_motion_mode_allowed(
                                         pcs, ctx, ctx->blk_geom->bsize, 1, LAST_FRAME, -1, NEWMV) == OBMC_CAUSAL;
+
     if (is_obmc_allowed)
         svt_aom_precompute_obmc_data(pcs, ctx);
+#endif
     /**************
          MVP
     ************* */
@@ -4076,6 +4220,9 @@ static void inject_zz_backup_candidate(
     cand_array[cand_total_cnt].pred_mv[REF_LIST_0] = (Mv) { {best_pred_mv[0].as_mv.col, best_pred_mv[0].as_mv.row} };
     cand_array[cand_total_cnt].is_interintra_used = 0;
     cand_array[cand_total_cnt].motion_mode = SIMPLE_TRANSLATION;
+#if CLN_WM_SAMPLES
+    cand_array[cand_total_cnt].num_proj_ref = ctx->wm_sample_info[svt_get_ref_frame_type(REF_LIST_0, 0)].num;
+#endif
     INC_MD_CAND_CNT (cand_total_cnt,pcs->ppcs->max_can_count);
     // update the total number of candidates injected
     (*candidate_total_cnt) = cand_total_cnt;

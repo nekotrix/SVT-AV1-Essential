@@ -94,12 +94,21 @@ static INLINE int is_rect_tx_allowed_bsize(BlockSize bsize) {
 
     return lut[bsize];
 }
+#if CLN_MOVE_FIELDS_MBMI
+static INLINE int is_rect_tx_allowed(/*const MacroBlockD *xd,*/
+    const MbModeInfo* mbmi) {
+    return is_rect_tx_allowed_bsize(mbmi->bsize) /*&&
+            !xd->lossless[mbmi->segment_id]*/
+        ;
+}
+#else
 static INLINE int is_rect_tx_allowed(/*const MacroBlockD *xd,*/
                                      const MbModeInfo *mbmi) {
     return is_rect_tx_allowed_bsize(mbmi->block_mi.bsize) /*&&
             !xd->lossless[mbmi->segment_id]*/
         ;
 }
+#endif
 
 ////////////////////// QUANTIZATION//////////////
 typedef struct QuantParam {

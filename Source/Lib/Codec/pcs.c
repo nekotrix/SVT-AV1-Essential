@@ -1083,10 +1083,17 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                     all_sb * (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)) *
                         (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)));
 
+#if CLN_REMOVE_MODE_INFO
+    memset(object_ptr->mip,
+           0,
+           sizeof(MbModeInfo) * all_sb * (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)) *
+               (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)));
+#else
     memset(object_ptr->mip,
            0,
            sizeof(ModeInfo) * all_sb * (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)) *
                (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)));
+#endif
 
     uint32_t mi_stride = picture_sb_w * (init_data_ptr->sb_size >> MI_SIZE_LOG2);
     for (uint32_t mi_h = 0; mi_h < picture_sb_h * (init_data_ptr->sb_size >> MI_SIZE_LOG2); mi_h++) {

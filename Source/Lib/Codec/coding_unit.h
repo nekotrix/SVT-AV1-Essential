@@ -63,10 +63,11 @@ typedef struct {
     MvReferenceFrame ref_frame;
 } MV_REF;
 
+#if !CLN_REMOVE_MODE_INFO
 typedef struct ModeInfo {
     MbModeInfo mbmi;
 } ModeInfo;
-
+#endif
 typedef struct MacroBlockDPlane {
     int          subsampling_x;
     int          subsampling_y;
@@ -111,7 +112,11 @@ typedef struct MacroBlockD {
     int8_t     chroma_left_available;
     TileInfo   tile;
     int32_t    mi_stride;
+#if CLN_REMOVE_MODE_INFO
+    MbModeInfo** mi;
+#else
     ModeInfo **mi;
+#endif
 
     /* Distance of MB away from frame edges in subpixels (1/8th pixel)  */
     int32_t        mb_to_left_edge;
@@ -220,7 +225,11 @@ typedef struct BlkStruct {
     // Inter Mode
     uint8_t    ref_frame_type;
     MotionMode motion_mode;
+#if CLN_WM_CTRLS
+    uint8_t   num_proj_ref;
+#else
     uint16_t   num_proj_ref;
+#endif
     uint32_t   overlappable_neighbors;
     uint8_t    cfl_alpha_idx; // Index of the alpha Cb and alpha Cr combination
     uint8_t    cfl_alpha_signs; // Joint sign of alpha Cb and alpha Cr
@@ -278,6 +287,7 @@ typedef struct EcBlkStruct {
     PaletteInfo           *palette_info;
     uint8_t                palette_size[2];
     IntMv                  predmv[2];
+#if !CLN_MOVE_FIELDS_MBMI
     InterInterCompoundData interinter_comp;
 
     // Intra Mode
@@ -285,11 +295,13 @@ typedef struct EcBlkStruct {
     // Inter Mode
     MotionMode motion_mode;
     uint16_t   num_proj_ref;
+#endif
     uint32_t   overlappable_neighbors;
+#if !CLN_MOVE_FIELDS_MBMI
     uint8_t    cfl_alpha_idx; // Index of the alpha Cb and alpha Cr combination
     uint8_t    cfl_alpha_signs; // Joint sign of alpha Cb and alpha Cr
     uint8_t    interintra_wedge_index;
-
+#endif
     int16_t inter_mode_ctx;
     // equivalent of leaf_index in the nscu context. we will keep both for now and use the right one
     // on a case by case basis.
@@ -303,10 +315,12 @@ typedef struct EcBlkStruct {
     // Store the drl ctx in coding loop to avoid storing final_ref_mv_stack and ref_mv_count for EC
     int8_t drl_ctx_near[2];
 
+#if !CLN_MOVE_FIELDS_MBMI
     InterIntraMode interintra_mode;
     uint8_t        is_interintra_used;
     uint8_t        use_wedge_interintra;
     uint8_t        filter_intra_mode;
+#endif
 } EcBlkStruct;
 
 typedef struct TplStats {

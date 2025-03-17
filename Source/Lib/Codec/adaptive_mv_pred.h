@@ -36,6 +36,22 @@ void        svt_aom_get_av1_mv_pred_drl(struct ModeDecisionContext *ctx, BlkStru
 MbModeInfo *get_mbmi(PictureControlSet *pcs, uint32_t blk_org_x, uint32_t blk_org_y);
 void        svt_aom_update_mi_map(BlkStruct *blk_ptr, uint32_t blk_org_x, uint32_t blk_org_y, const BlockGeom *blk_geom,
                                   PictureControlSet *pcs, struct ModeDecisionContext *ctx);
+#if CLN_WM_CTRLS
+#if !CLN_WM_SAMPLES
+uint8_t wm_find_samples(BlkStruct *blk_ptr, MvReferenceFrame rf0, PictureControlSet *pcs, int32_t *pts, int32_t *pts_inref);
+#endif
+void        svt_aom_wm_count_samples(BlkStruct *blk_ptr, const BlockSize sb_size,
+                                     uint8_t ref_frame_type, PictureControlSet *pcs, uint8_t *num_samples);
+#if CLN_WM_SAMPLES
+bool svt_aom_warped_motion_parameters(PictureControlSet* pcs, struct ModeDecisionContext* ctx, MvUnit* mv_unit,
+    const BlockGeom* blk_geom, uint8_t ref_frame_type, EbWarpedMotionParams* wm_params, uint8_t* num_samples,
+    uint16_t lower_band_th, uint16_t upper_band_th, bool shut_approx);
+#else
+bool        svt_aom_warped_motion_parameters(PictureControlSet *pcs, BlkStruct *blk_ptr, MvUnit *mv_unit,
+                                             const BlockGeom *blk_geom, uint8_t ref_frame_type, EbWarpedMotionParams *wm_params, uint8_t *num_samples,
+                                             uint16_t lower_band_th, uint16_t upper_band_th, bool shut_approx);
+#endif
+#else
 uint16_t    wm_find_samples(BlkStruct *blk_ptr, const BlockGeom *blk_geom, uint16_t blk_org_x, uint16_t blk_org_y,
                             MvReferenceFrame rf0, PictureControlSet *pcs, int32_t *pts, int32_t *pts_inref,
                             int *adjacent_samples, int *top_left_present, int *top_right_present);
@@ -47,6 +63,10 @@ bool        svt_aom_warped_motion_parameters(PictureControlSet *pcs, BlkStruct *
                                              uint8_t ref_frame_type, EbWarpedMotionParams *wm_params, uint16_t *num_samples,
                                              uint8_t min_neighbour_perc, uint8_t corner_perc_bias, uint16_t lower_band_th,
                                              uint16_t upper_band_th, bool shut_approx);
+#endif
+#if CLN_WM_SAMPLES
+void svt_aom_init_wm_samples(PictureControlSet* pcs, struct ModeDecisionContext* ctx);
+#endif
 static INLINE bool has_overlappable_candidates(const BlkStruct *blk_ptr) {
     return (blk_ptr->overlappable_neighbors != 0);
 }

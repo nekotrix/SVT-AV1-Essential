@@ -92,7 +92,11 @@ void svt_warp_plane(EbWarpedMotionParams *wm, const uint8_t *const ref, int widt
                     uint8_t *pred, int p_col, int p_row, int p_width, int p_height, int p_stride, int subsampling_x,
                     int subsampling_y, ConvolveParams *conv_params);
 
+#if CLN_WM_CTRLS
+uint8_t svt_aom_select_samples(MV* mv, int* pts, int* pts_inref, int len, BlockSize bsize);
+#else
 int svt_aom_select_samples(MV *mv, int *pts, int *pts_inref, int len, BlockSize bsize);
+#endif
 
 #ifdef __cplusplus
 }

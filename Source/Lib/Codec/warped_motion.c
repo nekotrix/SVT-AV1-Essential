@@ -920,6 +920,29 @@ int svt_get_shear_params(EbWarpedMotionParams *wm) {
     return 1;
 }
 
+#if CLN_WM_CTRLS
+// Select samples according to the motion vector difference.
+uint8_t svt_aom_select_samples(MV *mv, int *pts, int *pts_inref, int len, BlockSize bsize) {
+    const int bw     = block_size_wide[bsize];
+    const int bh     = block_size_high[bsize];
+    const int thresh = clamp(AOMMAX(bw, bh), 16, 112);
+    uint8_t ret      = 0;
+
+    // Only keep the samples with MV differences within threshold.
+    for (int i = 0; i < len; ++i) {
+        const int diff = abs(pts_inref[2 * i] - pts[2 * i] - mv->col) +
+            abs(pts_inref[2 * i + 1] - pts[2 * i + 1] - mv->row);
+        if (diff > thresh) continue;
+        if (ret != i) {
+            memcpy(pts + 2 * ret, pts + 2 * i, 2 * sizeof(pts[0]));
+            memcpy(pts_inref + 2 * ret, pts_inref + 2 * i, 2 * sizeof(pts_inref[0]));
+        }
+        ++ret;
+    }
+    // Keep at least 1 sample.
+    return AOMMAX(ret, 1);
+}
+#else
 // Select samples according to the motion vector difference.
 int svt_aom_select_samples(MV *mv, int *pts, int *pts_inref, int len, BlockSize bsize) {
     const uint8_t bw                          = block_size_wide[bsize];
@@ -970,3 +993,4 @@ int svt_aom_select_samples(MV *mv, int *pts, int *pts_inref, int len, BlockSize 
 
     return ret;
 }
+#endif

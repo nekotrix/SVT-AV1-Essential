@@ -414,6 +414,12 @@ static INLINE uint32_t have_nearmv_in_inter_mode(PredictionMode mode) {
     return (mode == NEARMV || mode == NEAR_NEARMV || mode == NEAR_NEWMV || mode == NEW_NEARMV);
 }
 
+#if CLN_REMOVE_DEC_STRUCT
+static INLINE int is_intrabc_block(const BlockModeInfo* block_mi) { return block_mi->use_intrabc; }
+static INLINE int is_inter_block(const BlockModeInfo* bloc_mi) {
+    return is_intrabc_block(bloc_mi) || bloc_mi->ref_frame[0] > INTRA_FRAME;
+}
+#else
 static INLINE int is_intrabc_block(const BlockModeInfoEnc *block_mi) { return block_mi->use_intrabc; }
 static INLINE int is_intrabc_block_dec(const BlockModeInfo *block_mi) { return block_mi->use_intrabc; }
 static INLINE int is_inter_block(const BlockModeInfoEnc *bloc_mi) {
@@ -422,6 +428,7 @@ static INLINE int is_inter_block(const BlockModeInfoEnc *bloc_mi) {
 static INLINE int is_inter_block_dec(const BlockModeInfo *bloc_mi) {
     return is_intrabc_block_dec(bloc_mi) || bloc_mi->ref_frame[0] > INTRA_FRAME;
 }
+#endif
 
 #define n_elements(x) (int32_t)(sizeof(x) / sizeof(x[0]))
 

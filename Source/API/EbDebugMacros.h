@@ -65,7 +65,7 @@ extern "C" {
 #define OPT_SC_ME                   1 // Opt SC for ME; new variant of the SC classifier that operates at the 8×8 block level instead of the 16×16 block level, aiming to enhance SC detection, particularly for sub-1080p SC clips (sc_class4)
 #define OPT_ME                      1 // ME Tuning
 #define FIX_GM_CANDS                1 // Allow translation bipred for GM; enable GM for 4xN blocks for rotzoom
-#define OPT_NSQ_SEARCH              1 // NSQ SEARCH Tuning
+#define OPT_NSQ_SEARCH_M5_LVL       1 // Change M5 level of the NSQ SEARCH from 15 to 16.
 #define OPT_TXT                     1 // TXT Tuning; fixing the onion ring and going more aggressive in txt_group_intra_gt_eq_16x16 in txt level 10
 #define OPT_ME_M0_TO_M3             1 // ME Tuning for M0 to M3
 #define OPT_ME_M7_TO_M9             1 // ME Tuning for M7 to M9. Note: Use a per-resolution Test Set (e.g., high-frame Test Set) for evaluation, as the reference previously included a resolution check.
@@ -86,6 +86,19 @@ extern "C" {
 #define OPT_TX_SHORT                1 // Create a new set of levels for tx_shortcut_level replacing the old set of levels and tuning them to M3-M10. MR-M2 still use tx_shortcut_level OFF.
 #define CLN_USE_NEIGHBOUR_SIG       1 // Cleanup the use_neighbour_info signal. It has been set to 0 everywhere for tx_shortcut_level in OPT_TX_SHORT.
 #define TUNE_M0                     1 // Tune M0
+#define OPT_OBMC                    1 // Opt OBMC; Lossless optimizations and level redefinition
+#define OPT_NSQ_SEARCH_LEVELS       1 // Optimize NSQ search levels.
+#define CLN_REMOVE_DEC_STRUCT       1 // Remove old struct used by the decoder
+#define CLN_REMOVE_MODE_INFO        1 // Remove ModeInfo struct that has only one element; point directly to that element instead
+#define OPT_NSQ_SEARCH_M7_LVL       1 // Change M7 level of the NSQ SEARCH from 18 to 17.
+#define CLN_CALCULATE_VARIANCE      1 // Remove the calculation and use of variance throughout the encoder.
+#define CLN_MOVE_FIELDS_MBMI        1 // Move fields from EcBlkStruct to BlockModeInfo
+#define CLN_WM_CTRLS                1 // Remove unused WM features and make num_proj_ref uint8_t type
+#define CLN_WM_SAMPLES              1 // Change how we compute num_proj_ref
+#define CLN_MDS0                    1 // Simplified MDS0: chroma-blind, and variance as metric for distortion derivation
+#define TUNE_MR                     1 // Tune MR
+#define TUNE_M7_2                   1 // Tune M7 (slower M7)
+#define CLN_M10_DEPTH_REFINEMENT    1 // Remove the r0-modulation for depth refinement in M10. 
 
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection

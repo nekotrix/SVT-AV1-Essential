@@ -19,7 +19,9 @@
 #include "md_process.h"
 #include "common_dsp_rtcd.h"
 
+#if !CLN_REMOVE_DEC_STRUCT
 int32_t is_inter_block(const BlockModeInfoEnc *mbmi);
+#endif
 // Weights are quadratic from '1' to '1 / BlockSize', scaled by
 // 2^sm_weight_log2_scale.
 const int32_t sm_weight_log2_scale = 8;
@@ -125,7 +127,11 @@ DECLARE_ALIGNED(16, uint8_t, even_odd_mask_x[8][16]) = {{0, 2, 4, 6, 8, 10, 12, 
         assert(pred_scale < 31);                                                  \
     } while (0) // ensures no overflow when calculating predictor.
 
+#if CLN_REMOVE_DEC_STRUCT
+int svt_aom_is_smooth(const BlockModeInfo* block_mi, int plane)
+#else
 int svt_aom_is_smooth(const BlockModeInfoEnc *block_mi, int plane)
+#endif
 {
     if (plane == 0) {
         const PredictionMode mode = block_mi->mode;

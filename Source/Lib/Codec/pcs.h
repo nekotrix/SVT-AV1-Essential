@@ -351,9 +351,14 @@ typedef struct PictureControlSet {
     NeighborArrayUnit      **segmentation_id_pred_array;
     SegmentationNeighborMap *segmentation_neighbor_map;
 
+#if CLN_REMOVE_MODE_INFO
+    MbModeInfo** mi_grid_base;
+    MbModeInfo* mip;
+#else
     ModeInfo **mi_grid_base; // 2 SB Rows of mi Data are enough
 
     ModeInfo *mip;
+#endif
 
     int32_t mi_stride;
     // true if 4x4 blocks are disallowed for all frames, and NSQ is disabled (since granularity is

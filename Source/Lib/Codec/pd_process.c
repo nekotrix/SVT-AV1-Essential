@@ -824,6 +824,9 @@ static void initialize_mini_gop_activity_array(SequenceControlSet* scs, PictureP
     }
     ctx->list0_only = 0;
     if (scs->list0_only_base_ctrls.enabled) {
+#if CLN_CALCULATE_VARIANCE
+        ctx->list0_only = 1;
+#else
         if (scs->list0_only_base_ctrls.list0_only_base_th == ((uint16_t)~0)) {
             ctx->list0_only = 1;
         }
@@ -839,6 +842,7 @@ static void initialize_mini_gop_activity_array(SequenceControlSet* scs, PictureP
                     ctx->list0_only = 1;
             }
         }
+#endif
     }
 }
 

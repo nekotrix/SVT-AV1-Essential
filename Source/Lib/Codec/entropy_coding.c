@@ -434,9 +434,15 @@ void svt_aom_get_txb_ctx(PictureControlSet *pcs, const int32_t plane,
     }
 }
 
+#if CLN_MOVE_FIELDS_MBMI
+static void av1_write_tx_type(PictureParentControlSet *pcs, FRAME_CONTEXT *frame_context, MbModeInfo *mbmi,
+                              AomWriter *ec_writer, uint32_t intraDir, TxType tx_type,
+                              TxSize tx_size) {
+#else
 static void av1_write_tx_type(PictureParentControlSet *pcs, FRAME_CONTEXT *frame_context, MbModeInfo *mbmi,
                               AomWriter *ec_writer, EcBlkStruct *blk_ptr, uint32_t intraDir, TxType tx_type,
                               TxSize tx_size) {
+#endif
     FrameHeader  *frm_hdr  = &pcs->frm_hdr;
     const int32_t is_inter = mbmi->block_mi.use_intrabc || is_inter_mode(mbmi->block_mi.mode);
     if (get_ext_tx_types(tx_size, is_inter, frm_hdr->reduced_tx_set) > 1 &&
@@ -457,10 +463,17 @@ static void av1_write_tx_type(PictureParentControlSet *pcs, FRAME_CONTEXT *frame
                              av1_num_ext_tx_set[tx_set_type]);
         } else {
             PredictionMode intra_dir;
+#if CLN_MOVE_FIELDS_MBMI
+            if (mbmi->block_mi.filter_intra_mode != FILTER_INTRA_MODES)
+                intra_dir = fimode_to_intradir[mbmi->block_mi.filter_intra_mode];
+            else
+                intra_dir = intraDir;
+#else
             if (blk_ptr->filter_intra_mode != FILTER_INTRA_MODES)
                 intra_dir = fimode_to_intradir[blk_ptr->filter_intra_mode];
             else
                 intra_dir = intraDir;
+#endif
 
             assert(intra_dir < 13);
             assert(square_tx_size < 4);
@@ -510,7 +523,11 @@ static int32_t av1_write_coeffs_txb_1d(PictureParentControlSet *ppcs, FRAME_CONT
         return 0;
     svt_av1_txb_init_levels(coeff_buffer_ptr, width, height, levels);
     if (component_type == COMPONENT_LUMA) {
+#if CLN_MOVE_FIELDS_MBMI
+        av1_write_tx_type(ppcs, frame_context, mbmi, ec_writer, intraLumaDir, tx_type, tx_size);
+#else
         av1_write_tx_type(ppcs, frame_context, mbmi, ec_writer, blk_ptr, intraLumaDir, tx_type, tx_size);
+#endif
     }
 
     int16_t       eob_extra;
@@ -1084,6 +1101,19 @@ static void encode_skip_coeff_av1(EcBlkStruct *blk_ptr, FRAME_CONTEXT *frame_con
 void svt_aom_get_kf_y_mode_ctx(const MacroBlockD *xd, uint8_t *above_ctx, uint8_t *left_ctx) {
     PredictionMode intra_luma_left_mode = DC_PRED;
     PredictionMode intra_luma_top_mode  = DC_PRED;
+#if CLN_REMOVE_MODE_INFO
+    if (xd->left_available) {
+        // When called for key frame, neighbouring mode should be intra
+        assert(!is_inter_block(&xd->mi[-1]->block_mi) || is_intrabc_block(&xd->mi[-1]->block_mi));
+        intra_luma_left_mode = xd->mi[-1]->block_mi.mode;
+    }
+    if (xd->up_available) {
+        // When called for key frame, neighbouring mode should be intra
+        assert(!is_inter_block(&xd->mi[-xd->mi_stride]->block_mi) ||
+            is_intrabc_block(&xd->mi[-xd->mi_stride]->block_mi));
+        intra_luma_top_mode = xd->mi[-xd->mi_stride]->block_mi.mode;
+    }
+#else
     if (xd->left_available) {
         // When called for key frame, neighbouring mode should be intra
         assert(!is_inter_block(&xd->mi[-1]->mbmi.block_mi) || is_intrabc_block(&xd->mi[-1]->mbmi.block_mi));
@@ -1095,6 +1125,7 @@ void svt_aom_get_kf_y_mode_ctx(const MacroBlockD *xd, uint8_t *above_ctx, uint8_
                is_intrabc_block(&xd->mi[-xd->mi_stride]->mbmi.block_mi));
         intra_luma_top_mode = xd->mi[-xd->mi_stride]->mbmi.block_mi.mode;
     }
+#endif
 
     *above_ctx = intra_mode_context[intra_luma_top_mode];
     *left_ctx  = intra_mode_context[intra_luma_left_mode];
@@ -1109,10 +1140,17 @@ static void encode_intra_luma_mode_kf_av1(FRAME_CONTEXT *frame_context, AomWrite
     aom_write_symbol(ec_writer, luma_mode, frame_context->kf_y_cdf[top_context][left_context], INTRA_MODES);
 
     if (bsize >= BLOCK_8X8 && av1_is_directional_mode(mbmi->block_mi.mode)) {
+#if CLN_MOVE_FIELDS_MBMI
+        aom_write_symbol(ec_writer,
+                         mbmi->block_mi.angle_delta[PLANE_TYPE_Y] + MAX_ANGLE_DELTA,
+                         frame_context->angle_delta_cdf[luma_mode - V_PRED],
+                         2 * MAX_ANGLE_DELTA + 1);
+#else
         aom_write_symbol(ec_writer,
                          blk_ptr->angle_delta[PLANE_TYPE_Y] + MAX_ANGLE_DELTA,
                          frame_context->angle_delta_cdf[luma_mode - V_PRED],
                          2 * MAX_ANGLE_DELTA + 1);
+#endif
     }
 
     return;
@@ -1121,15 +1159,27 @@ static void encode_intra_luma_mode_kf_av1(FRAME_CONTEXT *frame_context, AomWrite
 * encode_intra_luma_mode_nonkey_av1
 *   Encodes the Intra Luma Mode for non Key frames
 *********************************************************************/
+#if CLN_MOVE_FIELDS_MBMI
+static void encode_intra_luma_mode_nonkey_av1(FRAME_CONTEXT *frame_context, AomWriter *ec_writer, MbModeInfo *mbmi,
+                                              BlockSize bsize, uint32_t luma_mode) {
+#else
 static void encode_intra_luma_mode_nonkey_av1(FRAME_CONTEXT *frame_context, AomWriter *ec_writer, MbModeInfo *mbmi,
                                               EcBlkStruct *blk_ptr, BlockSize bsize, uint32_t luma_mode) {
+#endif
     aom_write_symbol(ec_writer, luma_mode, frame_context->y_mode_cdf[size_group_lookup[bsize]], INTRA_MODES);
 
     if (bsize >= BLOCK_8X8 && av1_is_directional_mode(mbmi->block_mi.mode)) {
+#if CLN_MOVE_FIELDS_MBMI
+        aom_write_symbol(ec_writer,
+                         mbmi->block_mi.angle_delta[PLANE_TYPE_Y] + MAX_ANGLE_DELTA,
+                         frame_context->angle_delta_cdf[luma_mode - V_PRED],
+                         2 * MAX_ANGLE_DELTA + 1);
+#else
         aom_write_symbol(ec_writer,
                          blk_ptr->angle_delta[PLANE_TYPE_Y] + MAX_ANGLE_DELTA,
                          frame_context->angle_delta_cdf[luma_mode - V_PRED],
                          2 * MAX_ANGLE_DELTA + 1);
+#endif
     }
 
     return;
@@ -1152,20 +1202,38 @@ static void write_cfl_alphas(FRAME_CONTEXT *const ec_ctx, int32_t idx, int32_t j
 * encode_intra_chroma_mode_av1
 *   Encodes the Intra Chroma Mode
 *********************************************************************/
+#if CLN_MOVE_FIELDS_MBMI
+static void encode_intra_chroma_mode_av1(FRAME_CONTEXT *frame_context, AomWriter *ec_writer, MbModeInfo *mbmi,
+                                         BlockSize bsize, uint32_t luma_mode,
+                                         uint32_t chroma_mode, uint8_t cflAllowed) {
+#else
 static void encode_intra_chroma_mode_av1(FRAME_CONTEXT *frame_context, AomWriter *ec_writer, MbModeInfo *mbmi,
                                          EcBlkStruct *blk_ptr, BlockSize bsize, uint32_t luma_mode,
                                          uint32_t chroma_mode, uint8_t cflAllowed) {
+#endif
     aom_write_symbol(
         ec_writer, chroma_mode, frame_context->uv_mode_cdf[cflAllowed][luma_mode], UV_INTRA_MODES - !cflAllowed);
 
+#if CLN_MOVE_FIELDS_MBMI
+    if (chroma_mode == UV_CFL_PRED)
+        write_cfl_alphas(frame_context, mbmi->block_mi.cfl_alpha_idx, mbmi->block_mi.cfl_alpha_signs, ec_writer);
+#else
     if (chroma_mode == UV_CFL_PRED)
         write_cfl_alphas(frame_context, blk_ptr->cfl_alpha_idx, blk_ptr->cfl_alpha_signs, ec_writer);
+#endif
 
     if (bsize >= BLOCK_8X8 && av1_is_directional_mode(get_uv_mode(mbmi->block_mi.uv_mode))) {
+#if CLN_MOVE_FIELDS_MBMI
+        aom_write_symbol(ec_writer,
+                         mbmi->block_mi.angle_delta[PLANE_TYPE_UV] + MAX_ANGLE_DELTA,
+                         frame_context->angle_delta_cdf[chroma_mode - V_PRED],
+                         2 * MAX_ANGLE_DELTA + 1);
+#else
         aom_write_symbol(ec_writer,
                          blk_ptr->angle_delta[PLANE_TYPE_UV] + MAX_ANGLE_DELTA,
                          frame_context->angle_delta_cdf[chroma_mode - V_PRED],
                          2 * MAX_ANGLE_DELTA + 1);
+#endif
     }
 
     return;
@@ -1268,8 +1336,13 @@ MotionMode svt_aom_motion_mode_allowed(const PictureControlSet *pcs, uint16_t nu
 static void write_motion_mode(FRAME_CONTEXT *frame_context, AomWriter *ec_writer, BlockSize bsize, MbModeInfo *mbmi,
                               MotionMode motion_mode, MvReferenceFrame rf0, MvReferenceFrame rf1, EcBlkStruct *blk_ptr,
                               PictureControlSet *pcs) {
+#if CLN_MOVE_FIELDS_MBMI
+    MotionMode last_motion_mode_allowed = svt_aom_motion_mode_allowed(
+        pcs, mbmi->block_mi.num_proj_ref, blk_ptr->overlappable_neighbors, bsize, rf0, rf1, mbmi->block_mi.mode);
+#else
     MotionMode last_motion_mode_allowed = svt_aom_motion_mode_allowed(
         pcs, blk_ptr->num_proj_ref, blk_ptr->overlappable_neighbors, bsize, rf0, rf1, mbmi->block_mi.mode);
+#endif
     switch (last_motion_mode_allowed) {
     case SIMPLE_TRANSLATION: break;
     case OBMC_CAUSAL: aom_write_symbol(ec_writer, motion_mode == OBMC_CAUSAL, frame_context->obmc_cdf[bsize], 2); break;
@@ -1552,7 +1625,11 @@ void svt_av1_encode_mv(PictureParentControlSet *pcs, AomWriter *ec_writer, const
 #define INTER_FILTER_DIR_OFFSET ((SWITCHABLE_FILTERS + 1) * 2)
 
 //Returns a context number for the given MB prediction signal
+#if CLN_REMOVE_DEC_STRUCT
+static InterpFilter svt_aom_get_ref_filter_type(const BlockModeInfo* ref_mbmi, int dir, MvReferenceFrame ref_frame) {
+#else
 static InterpFilter svt_aom_get_ref_filter_type(const BlockModeInfoEnc *ref_mbmi, int dir, MvReferenceFrame ref_frame) {
+#endif
     return ((ref_mbmi->ref_frame[0] == ref_frame || ref_mbmi->ref_frame[1] == ref_frame)
                 ? av1_extract_interp_filter(ref_mbmi->interp_filters, dir & 0x01)
                 : SWITCHABLE_FILTERS);
@@ -1583,11 +1660,19 @@ int svt_aom_get_pred_context_switchable_interp(MvReferenceFrame rf0, MvReference
     int left_type       = SWITCHABLE_FILTERS;
     int above_type      = SWITCHABLE_FILTERS;
 
+#if CLN_REMOVE_MODE_INFO
+    if (xd->left_available)
+        left_type = svt_aom_get_ref_filter_type(&xd->mi[-1]->block_mi, dir, ref_frame);
+
+    if (xd->up_available)
+        above_type = svt_aom_get_ref_filter_type(&xd->mi[-xd->mi_stride]->block_mi, dir, ref_frame);
+#else
     if (xd->left_available)
         left_type = svt_aom_get_ref_filter_type(&xd->mi[-1]->mbmi.block_mi, dir, ref_frame);
 
     if (xd->up_available)
         above_type = svt_aom_get_ref_filter_type(&xd->mi[-xd->mi_stride]->mbmi.block_mi, dir, ref_frame);
+#endif
 
     if (left_type == above_type) {
         filter_type_ctx += left_type;
@@ -1639,8 +1724,13 @@ static void write_mb_interp_filter(BlockSize bsize, MvReferenceFrame rf0, MvRefe
     FrameHeader *const frm_hdr = &pcs->frm_hdr;
 
     if (frm_hdr->interpolation_filter != SWITCHABLE ||
+#if CLN_MOVE_FIELDS_MBMI
+        !av1_is_interp_needed(
+            rf0, rf1, mbmi->block_mi.skip_mode, mbmi->block_mi.motion_mode, mbmi->block_mi.mode, bsize, pcs)) {
+#else
         !av1_is_interp_needed(
             rf0, rf1, mbmi->block_mi.skip_mode, blk_ptr->motion_mode, mbmi->block_mi.mode, bsize, pcs)) {
+#endif
         return;
     }
 
@@ -2086,14 +2176,22 @@ int32_t svt_av1_get_pred_context_single_ref_p6(const MacroBlockD *xd) { return g
 static void write_ref_frames(FRAME_CONTEXT *frame_context, PictureParentControlSet *pcs, const MacroBlockD *xd,
                              AomWriter *w) {
     FrameHeader            *frm_hdr     = &pcs->frm_hdr;
+#if CLN_REMOVE_MODE_INFO
+    const MbModeInfo* const mbmi = xd->mi[0];
+#else
     const MbModeInfo *const mbmi        = &xd->mi[0]->mbmi;
+#endif
     const int               is_compound = svt_aom_has_second_ref(mbmi);
     UNUSED(frame_context);
     {
         // does the feature use compound prediction or not
         // (if not specified at the frame/segment level)
         if (frm_hdr->reference_mode == REFERENCE_MODE_SELECT) {
+#if CLN_MOVE_FIELDS_MBMI
+            if (is_comp_ref_allowed(mbmi->bsize))
+#else
             if (is_comp_ref_allowed(mbmi->block_mi.bsize))
+#endif
                 aom_write_symbol(w, is_compound, svt_aom_get_reference_mode_cdf(xd), 2);
         } else {
             assert((!is_compound) == (frm_hdr->reference_mode == SINGLE_REFERENCE));
@@ -3886,6 +3984,50 @@ static void av1_write_delta_q_index(FRAME_CONTEXT *frame_context, int32_t delta_
     if (abs > 0)
         aom_write_bit(w, sign);
 }
+#if CLN_REMOVE_MODE_INFO
+static void write_cdef(SequenceControlSet *scs, PictureControlSet * pcs,
+                       uint16_t tile_idx, AomWriter *w, int32_t skip, int32_t mi_col,
+                       int32_t mi_row) {
+    Av1Common   *cm      = pcs->ppcs->av1_cm;
+    FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
+
+    if (frm_hdr->coded_lossless || frm_hdr->allow_intrabc) {
+        // Initialize to indicate no CDEF for safety.
+        frm_hdr->cdef_params.cdef_bits           = 0;
+        frm_hdr->cdef_params.cdef_y_strength[0]  = 0;
+        pcs->ppcs->nb_cdef_strengths       = 1;
+        frm_hdr->cdef_params.cdef_uv_strength[0] = 0;
+        return;
+    }
+
+    const int32_t   m  = ~((1 << (6 - MI_SIZE_LOG2)) - 1);
+    const MbModeInfo* mbmi = pcs->mi_grid_base[(mi_row & m) * cm->mi_stride + (mi_col & m)];
+
+    // Initialise when at top left part of the superblock
+    if (!(mi_row & (scs->seq_header.sb_mi_size - 1)) &&
+        !(mi_col & (scs->seq_header.sb_mi_size - 1))) { // Top left?
+        pcs->cdef_preset[tile_idx][0]     = pcs->cdef_preset[tile_idx][1] =
+            pcs->cdef_preset[tile_idx][2] = pcs->cdef_preset[tile_idx][3] = -1;
+    }
+
+    // Emit CDEF param at first non-skip coding block
+    const int32_t mask  = 1 << (6 - MI_SIZE_LOG2);
+    const int32_t index = scs->seq_header.sb_size == BLOCK_128X128 ? !!(mi_col & mask) + 2 * !!(mi_row & mask)
+                                                                          : 0;
+
+    if (pcs->cdef_preset[tile_idx][index] == -1 && !skip) {
+        aom_write_literal(w, mbmi->cdef_strength, frm_hdr->cdef_params.cdef_bits);
+        pcs->cdef_preset[tile_idx][index] = mbmi->cdef_strength;
+    }
+}
+
+void svt_av1_reset_loop_restoration(PictureControlSet *pcs, uint16_t tile_idx) {
+    for (int32_t p = 0; p < 3; ++p) {
+        set_default_wiener(pcs->wiener_info[tile_idx] + p);
+        set_default_sgrproj(pcs->sgrproj_info[tile_idx] + p);
+    }
+}
+#else
 static void write_cdef(SequenceControlSet *seqCSetPtr, PictureControlSet *p_pcs_ptr,
                        //Av1Common *cm,
                        uint16_t tile_idx, MacroBlockD *const xd, AomWriter *w, int32_t skip, int32_t mi_col,
@@ -3931,6 +4073,7 @@ void svt_av1_reset_loop_restoration(PictureControlSet *piCSetPtr, uint16_t tile_
         set_default_sgrproj(piCSetPtr->sgrproj_info[tile_idx] + p);
     }
 }
+#endif
 
 static void write_wiener_filter(int32_t wiener_win, const WienerInfo *wiener_info, WienerInfo *ref_wiener_info,
                                 AomWriter *wb) {
@@ -4384,9 +4527,14 @@ static INLINE int txfm_partition_context(TXFM_CONTEXT *above_ctx, TXFM_CONTEXT *
 
 static void write_tx_size_vartx(MacroBlockD *xd, const MbModeInfo *mbmi, TxSize tx_size, int depth, int blk_row,
                                 int blk_col, FRAME_CONTEXT *ec_ctx, AomWriter *w) {
+#if CLN_MOVE_FIELDS_MBMI
+    const int max_blocks_high = max_block_high(xd, mbmi->bsize, 0);
+    const int max_blocks_wide = max_block_wide(xd, mbmi->bsize, 0);
+#else
     //FRAME_CONTEXT *ec_ctx = xd->tile_ctx;
     const int max_blocks_high = max_block_high(xd, mbmi->block_mi.bsize, 0);
     const int max_blocks_wide = max_block_wide(xd, mbmi->block_mi.bsize, 0);
+#endif
 
     if (blk_row >= max_blocks_high || blk_col >= max_blocks_wide)
         return;
@@ -4396,9 +4544,15 @@ static void write_tx_size_vartx(MacroBlockD *xd, const MbModeInfo *mbmi, TxSize 
         return;
     }
 
+#if CLN_MOVE_FIELDS_MBMI
+    const int ctx = txfm_partition_context(
+        xd->above_txfm_context + blk_col, xd->left_txfm_context + blk_row, mbmi->bsize, tx_size);
+    const int write_txfm_partition = (tx_size == tx_depth_to_tx_size[mbmi->block_mi.tx_depth][mbmi->bsize]);
+#else
     const int ctx = txfm_partition_context(
         xd->above_txfm_context + blk_col, xd->left_txfm_context + blk_row, mbmi->block_mi.bsize, tx_size);
     const int write_txfm_partition = (tx_size == tx_depth_to_tx_size[mbmi->block_mi.tx_depth][mbmi->block_mi.bsize]);
+#endif
 
     if (write_txfm_partition) {
         aom_write_symbol(w, 0, ec_ctx->txfm_partition_cdf[ctx], 2);
@@ -4460,11 +4614,19 @@ static INLINE int tx_size_to_depth(TxSize tx_size, BlockSize bsize) {
 // left of the entries corresponding to real blocks.
 // The prediction flags in these dummy entries are initialized to 0.
 static INLINE int get_tx_size_context(const MacroBlockD *xd) {
+#if CLN_REMOVE_MODE_INFO
+    const MbModeInfo* mbmi = xd->mi[0];
+#else
     const ModeInfo         *mi          = xd->mi[0];
     const MbModeInfo       *mbmi        = &mi->mbmi;
+#endif
     const MbModeInfo *const above_mbmi  = xd->above_mbmi;
     const MbModeInfo *const left_mbmi   = xd->left_mbmi;
+#if CLN_MOVE_FIELDS_MBMI
+    const TxSize            max_tx_size = max_txsize_rect_lookup[mbmi->bsize];
+#else
     const TxSize            max_tx_size = max_txsize_rect_lookup[mbmi->block_mi.bsize];
+#endif
     const int               max_tx_wide = tx_size_wide[max_tx_size];
     const int               max_tx_high = tx_size_high[max_tx_size];
     const int               has_above   = xd->up_available;
@@ -4475,11 +4637,19 @@ static INLINE int get_tx_size_context(const MacroBlockD *xd) {
 
     if (has_above)
         if (is_inter_block(&above_mbmi->block_mi))
+#if CLN_MOVE_FIELDS_MBMI
+            above = block_size_wide[above_mbmi->bsize] >= max_tx_wide;
+#else
             above = block_size_wide[above_mbmi->block_mi.bsize] >= max_tx_wide;
+#endif
 
     if (has_left)
         if (is_inter_block(&left_mbmi->block_mi))
+#if CLN_MOVE_FIELDS_MBMI
+            left = block_size_high[left_mbmi->bsize] >= max_tx_high;
+#else
             left = block_size_high[left_mbmi->block_mi.bsize] >= max_tx_high;
+#endif
 
     if (has_above && has_left)
         return (above + left);
@@ -4491,9 +4661,17 @@ static INLINE int get_tx_size_context(const MacroBlockD *xd) {
         return 0;
 }
 static void write_selected_tx_size(const MacroBlockD *xd, FRAME_CONTEXT *ec_ctx, AomWriter *w, TxSize tx_size) {
+#if CLN_REMOVE_MODE_INFO
+    const MbModeInfo* const mbmi = xd->mi[0];
+#else
     const ModeInfo *const   mi    = xd->mi[0];
     const MbModeInfo *const mbmi  = &mi->mbmi;
+#endif
+#if CLN_MOVE_FIELDS_MBMI
+    const BlockSize         bsize = mbmi->bsize;
+#else
     const BlockSize         bsize = mbmi->block_mi.bsize;
+#endif
 
     if (block_signals_txsize(bsize)) {
         const int tx_size_ctx = get_tx_size_context(xd);
@@ -4554,6 +4732,17 @@ void set_mi_row_col(PictureControlSet *pcs, MacroBlockD *xd, TileInfo *tile, int
     const int32_t offset = mi_row * mi_stride + mi_col;
     xd->mi               = pcs->mi_grid_base + offset;
 
+#if CLN_REMOVE_MODE_INFO
+    if (xd->up_available)
+        xd->above_mbmi = xd->mi[-xd->mi_stride];
+    else
+        xd->above_mbmi = NULL;
+
+    if (xd->left_available)
+        xd->left_mbmi = xd->mi[-1];
+    else
+        xd->left_mbmi = NULL;
+#else
     if (xd->up_available)
         xd->above_mbmi = &xd->mi[-xd->mi_stride]->mbmi;
     else
@@ -4563,6 +4752,7 @@ void set_mi_row_col(PictureControlSet *pcs, MacroBlockD *xd, TileInfo *tile, int
         xd->left_mbmi = &xd->mi[-1]->mbmi;
     else
         xd->left_mbmi = NULL;
+#endif
 
     xd->n8_h        = bh;
     xd->n8_w        = bw;
@@ -4611,7 +4801,11 @@ static void code_tx_size(PictureControlSet *pcs, uint32_t blk_org_x, uint32_t bl
     uint32_t      mi_stride                = pcs->mi_stride;
     set_mi_row_col(pcs, xd, tile, mi_row, bh, mi_col, bw, mi_stride, cm->mi_rows, cm->mi_cols);
 
+#if CLN_REMOVE_MODE_INFO
+    const MbModeInfo* const mbmi = xd->mi[0];
+#else
     const MbModeInfo *const mbmi = &xd->mi[0]->mbmi;
+#endif
     xd->above_txfm_context       = &txfm_context_array->top_array[txfm_context_above_index];
     xd->left_txfm_context        = &txfm_context_array->left_array[txfm_context_left_index];
     TxSize       tx_size = blk_geom->txsize[mbmi->block_mi.tx_depth]; // inherit tx_size from 1st transform block;
@@ -4718,15 +4912,28 @@ void write_segment_id(PictureControlSet *pcs, FRAME_CONTEXT *frame_context, AomW
     const int   spatial_pred = svt_av1_get_spatial_seg_prediction(pcs, blk_ptr->av1xd, blk_org_x, blk_org_y, &cdf_num);
     if (skip_coeff) {
         svt_av1_update_segmentation_map(pcs, bsize, blk_org_x, blk_org_y, spatial_pred);
+#if CLN_MOVE_FIELDS_MBMI
+        mbmi->segment_id = spatial_pred;
+#else
         mbmi->block_mi.segment_id = spatial_pred;
+#endif
         return;
     }
+#if CLN_MOVE_FIELDS_MBMI
+    const int coded_id = svt_av1_neg_interleave(
+        mbmi->segment_id, spatial_pred, segmentation_params->last_active_seg_id + 1);
+#else
     const int coded_id = svt_av1_neg_interleave(
         mbmi->block_mi.segment_id, spatial_pred, segmentation_params->last_active_seg_id + 1);
+#endif
     struct segmentation_probs *segp     = &frame_context->seg;
     AomCdfProb                *pred_cdf = segp->spatial_pred_seg_cdf[cdf_num];
     aom_write_symbol(ecWriter, coded_id, pred_cdf, MAX_SEGMENTS);
+#if CLN_MOVE_FIELDS_MBMI
+    svt_av1_update_segmentation_map(pcs, bsize, blk_org_x, blk_org_y, mbmi->segment_id);
+#else
     svt_av1_update_segmentation_map(pcs, bsize, blk_org_x, blk_org_y, mbmi->block_mi.segment_id);
+#endif
 }
 static void write_inter_segment_id(PictureControlSet *pcs, FRAME_CONTEXT *frame_context, AomWriter *ecWriter,
                                    const BlockGeom *blockGeom, uint32_t blk_org_x, uint32_t blk_org_y,
@@ -4763,7 +4970,11 @@ static void write_inter_segment_id(PictureControlSet *pcs, FRAME_CONTEXT *frame_
     }
 }
 int svt_aom_is_interintra_allowed(const MbModeInfo *mbmi) {
+#if CLN_MOVE_FIELDS_MBMI
+    return svt_aom_is_interintra_allowed_bsize(mbmi->bsize) &&
+#else
     return svt_aom_is_interintra_allowed_bsize(mbmi->block_mi.bsize) &&
+#endif
         svt_aom_is_interintra_allowed_mode(mbmi->block_mi.mode) &&
         svt_aom_is_interintra_allowed_ref(mbmi->block_mi.ref_frame);
 }
@@ -4805,6 +5016,16 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
     blk_ptr->av1xd->tile.mi_row_end   = tb_ptr->tile_info.mi_row_end;
     blk_ptr->av1xd->up_available      = (mi_row > tb_ptr->tile_info.mi_row_start);
     blk_ptr->av1xd->left_available    = (mi_col > tb_ptr->tile_info.mi_col_start);
+#if CLN_REMOVE_MODE_INFO
+    if (blk_ptr->av1xd->up_available)
+        blk_ptr->av1xd->above_mbmi = blk_ptr->av1xd->mi[-mi_stride];
+    else
+        blk_ptr->av1xd->above_mbmi = NULL;
+    if (blk_ptr->av1xd->left_available)
+        blk_ptr->av1xd->left_mbmi = blk_ptr->av1xd->mi[-1];
+    else
+        blk_ptr->av1xd->left_mbmi = NULL;
+#else
     if (blk_ptr->av1xd->up_available)
         blk_ptr->av1xd->above_mbmi = &blk_ptr->av1xd->mi[-mi_stride]->mbmi;
     else
@@ -4813,6 +5034,7 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
         blk_ptr->av1xd->left_mbmi = &blk_ptr->av1xd->mi[-1]->mbmi;
     else
         blk_ptr->av1xd->left_mbmi = NULL;
+#endif
     blk_ptr->av1xd->tile_ctx = frame_context;
 
     const int32_t bw = mi_size_wide[bsize];
@@ -4843,7 +5065,9 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
         write_cdef(scs,
                    pcs,
                    tile_idx,
+#if !CLN_REMOVE_MODE_INFO
                    blk_ptr->av1xd,
+#endif
                    ec_writer,
                    skip_coeff,
                    blk_org_x >> MI_SIZE_LOG2,
@@ -4883,7 +5107,9 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                     encode_intra_chroma_mode_av1(frame_context,
                                                  ec_writer,
                                                  mbmi,
+#if !CLN_MOVE_FIELDS_MBMI
                                                  blk_ptr,
+#endif
                                                  bsize,
                                                  intra_luma_mode,
                                                  intra_chroma_mode,
@@ -4903,6 +5129,18 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
             if (mbmi->block_mi.use_intrabc == 0 &&
                 svt_aom_filter_intra_allowed(
                     scs->seq_header.filter_intra_level, bsize, blk_ptr->palette_size[0], intra_luma_mode)) {
+#if CLN_MOVE_FIELDS_MBMI
+                aom_write_symbol(ec_writer,
+                                 mbmi->block_mi.filter_intra_mode != FILTER_INTRA_MODES,
+                                 frame_context->filter_intra_cdfs[bsize],
+                                 2);
+                if (mbmi->block_mi.filter_intra_mode != FILTER_INTRA_MODES) {
+                    aom_write_symbol(ec_writer,
+                                     mbmi->block_mi.filter_intra_mode,
+                                     frame_context->filter_intra_mode_cdf,
+                                     FILTER_INTRA_MODES);
+                }
+#else
                 aom_write_symbol(ec_writer,
                                  blk_ptr->filter_intra_mode != FILTER_INTRA_MODES,
                                  frame_context->filter_intra_cdfs[bsize],
@@ -4913,6 +5151,7 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                                      frame_context->filter_intra_mode_cdf,
                                      FILTER_INTRA_MODES);
                 }
+#endif
             }
             if (mbmi->block_mi.use_intrabc == 0) {
                 assert(blk_ptr->palette_size[1] == 0);
@@ -4985,7 +5224,9 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
         write_cdef(scs,
                    pcs, /*cm,*/
                    tile_idx,
+#if !CLN_REMOVE_MODE_INFO
                    blk_ptr->av1xd,
+#endif
                    ec_writer,
                    skip_mode ? 1 : skip_coeff,
                    blk_org_x >> MI_SIZE_LOG2,
@@ -5022,12 +5263,18 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
 
                 uint32_t intra_chroma_mode = mbmi->block_mi.uv_mode;
 
+#if CLN_MOVE_FIELDS_MBMI
+                encode_intra_luma_mode_nonkey_av1(frame_context, ec_writer, mbmi, bsize, intra_luma_mode);
+#else
                 encode_intra_luma_mode_nonkey_av1(frame_context, ec_writer, mbmi, blk_ptr, bsize, intra_luma_mode);
+#endif
                 if (blk_geom->has_uv)
                     encode_intra_chroma_mode_av1(frame_context,
                                                  ec_writer,
                                                  mbmi,
+#if !CLN_MOVE_FIELDS_MBMI
                                                  blk_ptr,
+#endif
                                                  bsize,
                                                  intra_luma_mode,
                                                  intra_chroma_mode,
@@ -5043,6 +5290,18 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                                             ec_writer);
                 if (svt_aom_filter_intra_allowed(
                         scs->seq_header.filter_intra_level, bsize, blk_ptr->palette_size[0], intra_luma_mode)) {
+#if CLN_MOVE_FIELDS_MBMI
+                    aom_write_symbol(ec_writer,
+                                     mbmi->block_mi.filter_intra_mode != FILTER_INTRA_MODES,
+                                     frame_context->filter_intra_cdfs[bsize],
+                                     2);
+                    if (mbmi->block_mi.filter_intra_mode != FILTER_INTRA_MODES) {
+                        aom_write_symbol(ec_writer,
+                                         mbmi->block_mi.filter_intra_mode,
+                                         frame_context->filter_intra_mode_cdf,
+                                         FILTER_INTRA_MODES);
+                    }
+#else
                     aom_write_symbol(ec_writer,
                                      blk_ptr->filter_intra_mode != FILTER_INTRA_MODES,
                                      frame_context->filter_intra_cdfs[bsize],
@@ -5053,6 +5312,7 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                                          frame_context->filter_intra_mode_cdf,
                                          FILTER_INTRA_MODES);
                     }
+#endif
                 }
 
             } else {
@@ -5107,6 +5367,35 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                 }
                 if (pcs->ppcs->frm_hdr.reference_mode != COMPOUND_REFERENCE &&
                     scs->seq_header.enable_interintra_compound && svt_aom_is_interintra_allowed(mbmi)) {
+#if CLN_MOVE_FIELDS_MBMI
+                    if (mbmi->block_mi.is_interintra_used) {
+                        rf[1]                       = INTRA_FRAME;
+                        mbmi->block_mi.ref_frame[1] = INTRA_FRAME;
+                    }
+
+                    const int interintra  = mbmi->block_mi.is_interintra_used;
+                    const int bsize_group = size_group_lookup[bsize];
+                    aom_write_symbol(
+                        ec_writer, mbmi->block_mi.is_interintra_used, frame_context->interintra_cdf[bsize_group], 2);
+                    if (interintra) {
+                        aom_write_symbol(ec_writer,
+                                         mbmi->block_mi.interintra_mode,
+                                         frame_context->interintra_mode_cdf[bsize_group],
+                                         INTERINTRA_MODES);
+                        if (svt_aom_is_interintra_wedge_used(bsize)) {
+                            aom_write_symbol(ec_writer,
+                                             mbmi->block_mi.use_wedge_interintra,
+                                             frame_context->wedge_interintra_cdf[bsize],
+                                             2);
+                            if (mbmi->block_mi.use_wedge_interintra) {
+                                aom_write_symbol(ec_writer,
+                                                 mbmi->block_mi.interintra_wedge_index,
+                                                 frame_context->wedge_idx_cdf[bsize],
+                                                 16);
+                            }
+                        }
+                    }
+#else
                     if (blk_ptr->is_interintra_used) {
                         rf[1]                       = INTRA_FRAME;
                         mbmi->block_mi.ref_frame[1] = INTRA_FRAME;
@@ -5134,11 +5423,17 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                             }
                         }
                     }
+#endif
                 }
 
                 if (frm_hdr->is_motion_mode_switchable && rf[1] != INTRA_FRAME) {
+#if CLN_MOVE_FIELDS_MBMI
+                    write_motion_mode(
+                        frame_context, ec_writer, bsize, mbmi, mbmi->block_mi.motion_mode, rf[0], rf[1], blk_ptr, pcs);
+#else
                     write_motion_mode(
                         frame_context, ec_writer, bsize, mbmi, blk_ptr->motion_mode, rf[0], rf[1], blk_ptr, pcs);
+#endif
                 }
                 // First write idx to indicate current compound inter prediction mode group
                 // Group A (0): dist_wtd_comp, compound_average
@@ -5158,8 +5453,12 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                     }
 
                     if (mbmi->block_mi.comp_group_idx == 0) {
+#if CLN_MOVE_FIELDS_MBMI
+                        assert(IMPLIES(mbmi->block_mi.compound_idx, mbmi->block_mi.interinter_comp.type == COMPOUND_AVERAGE));
+#else
                         if (mbmi->block_mi.compound_idx)
                             assert(blk_ptr->interinter_comp.type == COMPOUND_AVERAGE);
+#endif
 
                         if (scs->seq_header.order_hint_info.enable_jnt_comp) {
                             const int comp_index_ctx = svt_aom_get_comp_index_context_enc(
@@ -5176,13 +5475,41 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                             assert(mbmi->block_mi.compound_idx == 1);
                         }
                     } else {
+#if CLN_MOVE_FIELDS_MBMI
                         assert(pcs->ppcs->frm_hdr.reference_mode != SINGLE_REFERENCE &&
-                               is_inter_compound_mode(mbmi->block_mi.mode) &&
-                               blk_ptr->motion_mode == SIMPLE_TRANSLATION);
+                            is_inter_compound_mode(mbmi->block_mi.mode) &&
+                            mbmi->block_mi.motion_mode == SIMPLE_TRANSLATION);
+                        assert(masked_compound_used);
+                        // compound_diffwtd, wedge
+                        assert(mbmi->block_mi.interinter_comp.type == COMPOUND_WEDGE ||
+                            mbmi->block_mi.interinter_comp.type == COMPOUND_DIFFWTD);
+
+                        if (is_interinter_compound_used(COMPOUND_WEDGE, bsize))
+                            aom_write_symbol(ec_writer,
+                                mbmi->block_mi.interinter_comp.type - COMPOUND_WEDGE,
+                                frame_context->compound_type_cdf[bsize],
+                                MASKED_COMPOUND_TYPES);
+
+                        if (mbmi->block_mi.interinter_comp.type == COMPOUND_WEDGE) {
+                            assert(is_interinter_compound_used(COMPOUND_WEDGE, bsize));
+                            aom_write_symbol(ec_writer,
+                                mbmi->block_mi.interinter_comp.wedge_index,
+                                frame_context->wedge_idx_cdf[bsize],
+                                16);
+                            aom_write_bit(ec_writer, mbmi->block_mi.interinter_comp.wedge_sign);
+                        }
+                        else {
+                            assert(mbmi->block_mi.interinter_comp.type == COMPOUND_DIFFWTD);
+                            aom_write_literal(ec_writer, mbmi->block_mi.interinter_comp.mask_type, MAX_DIFFWTD_MASK_BITS);
+                        }
+#else
+                        assert(pcs->ppcs->frm_hdr.reference_mode != SINGLE_REFERENCE &&
+                            is_inter_compound_mode(mbmi->block_mi.mode) &&
+                            blk_ptr->motion_mode == SIMPLE_TRANSLATION);
                         assert(masked_compound_used);
                         // compound_diffwtd, wedge
                         assert(blk_ptr->interinter_comp.type == COMPOUND_WEDGE ||
-                               blk_ptr->interinter_comp.type == COMPOUND_DIFFWTD);
+                            blk_ptr->interinter_comp.type == COMPOUND_DIFFWTD);
 
                         if (is_interinter_compound_used(COMPOUND_WEDGE, bsize))
                             aom_write_symbol(ec_writer,
@@ -5201,6 +5528,7 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                             assert(blk_ptr->interinter_comp.type == COMPOUND_DIFFWTD);
                             aom_write_literal(ec_writer, blk_ptr->interinter_comp.mask_type, MAX_DIFFWTD_MASK_BITS);
                         }
+#endif
                     }
                 }
                 write_mb_interp_filter(bsize, rf[0], rf[1], pcs->ppcs, ec_writer, mbmi, blk_ptr, ec);

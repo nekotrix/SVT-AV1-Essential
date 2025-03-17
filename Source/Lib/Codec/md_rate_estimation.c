@@ -533,7 +533,9 @@ extern int svt_aom_allow_intrabc(const FrameHeader *frm_hdr, SliceType slice_typ
 INLINE int32_t is_chroma_reference(int32_t mi_row, int32_t mi_col, BlockSize bsize, int32_t subsampling_x,
                                    int32_t subsampling_y);
 
+#if !CLN_REMOVE_DEC_STRUCT
 int32_t is_inter_block(const BlockModeInfoEnc *mbmi);
+#endif
 
 int svt_aom_allow_palette(int allow_screen_content_tools, BlockSize bsize);
 
@@ -550,8 +552,13 @@ static AOM_INLINE void update_filter_type_cdf(MacroBlockD *xd, const MbModeInfo 
                                               const bool enable_dual_filter) {
     const int max_dir = enable_dual_filter ? 2 : 1;
     for (int dir = 0; dir < max_dir; ++dir) {
+#if CLN_REMOVE_MODE_INFO
+        const int ctx = svt_aom_get_pred_context_switchable_interp(
+            mbmi->block_mi.ref_frame[0], mbmi->block_mi.ref_frame[1], xd, dir);
+#else
         const int ctx = svt_aom_get_pred_context_switchable_interp(
             xd->mi[0]->mbmi.block_mi.ref_frame[0], xd->mi[0]->mbmi.block_mi.ref_frame[1], xd, dir);
+#endif
         InterpFilter filter = av1_extract_interp_filter(mbmi->block_mi.interp_filters, dir);
         update_cdf(xd->tile_ctx->switchable_interp_cdf[ctx], filter, SWITCHABLE_FILTERS);
     }
@@ -669,11 +676,19 @@ static AOM_INLINE void update_palette_cdf(MacroBlockD *xd, const MbModeInfo *con
 static AOM_INLINE void sum_intra_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, const int intraonly,
                                        const int mi_row, const int mi_col) {
     MacroBlockD            *xd       = blk_ptr->av1xd;
+#if CLN_REMOVE_MODE_INFO
+    const MbModeInfo *const mbmi     = xd->mi[0];
+#else
     const MbModeInfo *const mbmi     = &xd->mi[0]->mbmi;
+#endif
     FRAME_CONTEXT          *fc       = xd->tile_ctx;
     const PredictionMode    y_mode   = mbmi->block_mi.mode;
     const BlockGeom        *blk_geom = get_blk_geom_mds(blk_ptr->mds_idx);
+#if CLN_MOVE_FIELDS_MBMI
+    const BlockSize         bsize = mbmi->bsize;
+#else
     const BlockSize         bsize    = mbmi->block_mi.bsize;
+#endif
     assert(bsize < BlockSizeS_ALL);
     assert(y_mode < 13);
 
@@ -735,7 +750,11 @@ void svt_aom_update_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, int mi_row
     //    const AV1_COMMON *const cm   = pcs->ppcs->av1_cm;
     FrameHeader            *frm_hdr = &pcs->ppcs->frm_hdr;
     MacroBlockD            *xd      = blk_ptr->av1xd;
+#if CLN_REMOVE_MODE_INFO
+    const MbModeInfo *const mbmi    = xd->mi[0];
+#else
     const MbModeInfo *const mbmi    = &xd->mi[0]->mbmi;
+#endif
 
     const BlockGeom *blk_geom = get_blk_geom_mds(blk_ptr->mds_idx);
     BlockSize        bsize    = blk_geom->bsize;

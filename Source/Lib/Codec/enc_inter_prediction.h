@@ -86,9 +86,11 @@ EbErrorType svt_aom_warped_motion_prediction(PictureControlSet *pcs, MvUnit *mv_
                                              NeighborArrayUnit *recon_neigh_cr, ModeDecisionCandidate *cand,
                                              EbWarpedMotionParams *wm_params_l0, EbWarpedMotionParams *wm_params_l1,
                                              uint8_t bit_depth, uint32_t component_mask, bool is_encode_pass);
-
+#if OPT_OBMC
+void svt_aom_precompute_obmc_data(PictureControlSet *pcs, struct ModeDecisionContext *ctx, uint32_t component_mask);
+#else
 void svt_aom_precompute_obmc_data(PictureControlSet *pcs, struct ModeDecisionContext *ctx);
-
+#endif
 int64_t pick_wedge_fixed_sign(PictureControlSet *pcs, struct ModeDecisionContext *ctx, const BlockSize bsize,
                               const int16_t *const residual1, const int16_t *const diff10, const int8_t wedge_sign,
                               int8_t *const best_wedge_index);

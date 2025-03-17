@@ -30,6 +30,18 @@ extern "C" {
 #define MAX_MPM_CANDIDATES 3
 #define MERGE_PENALTY 10
 
+#if CLN_WM_SAMPLES
+/*! \brief Holds the motion samples for warp motion model estimation
+ */
+typedef struct WarpSampleInfo {
+  //! Number of samples.
+  uint8_t num;
+  //! Sample locations in current frame.
+  int pts[SAMPLES_ARRAY_SIZE];
+  //! Sample location in the reference frame.
+  int pts_inref[SAMPLES_ARRAY_SIZE];
+} WarpSampleInfo;
+#endif
 // Create incomplete struct definition for the following function pointer typedefs
 struct ModeDecisionCandidateBuffer;
 struct ModeDecisionContext;
@@ -47,7 +59,11 @@ typedef struct ModeDecisionCandidate {
     InterInterCompoundData interinter_comp;
     TxType                 transform_type[MAX_TXB_COUNT];
     TxType                 transform_type_uv;
+#if CLN_WM_CTRLS
+    uint8_t               num_proj_ref;
+#else
     uint16_t               num_proj_ref;
+#endif
     uint8_t                palette_size[PLANE_TYPES];
 
     CandClass      cand_class;
@@ -81,10 +97,15 @@ typedef struct ModeDecisionCandidate {
  **************************************/
 typedef EbErrorType (*EbPredictionFunc)(uint8_t hbd_md, struct ModeDecisionContext *ctx, PictureControlSet *pcs,
                                         struct ModeDecisionCandidateBuffer *cand_bf);
+#if CLN_MDS0
+typedef uint64_t (*EbFastCostFunc)(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
+                                   struct ModeDecisionCandidateBuffer *cand_bf, uint64_t lambda,
+                                   uint64_t luma_distortion);
+#else
 typedef uint64_t (*EbFastCostFunc)(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
                                    struct ModeDecisionCandidateBuffer *cand_bf, uint64_t lambda,
                                    uint64_t luma_distortion, uint64_t chroma_distortion);
-
+#endif
 typedef EbErrorType (*EbAv1FullCostFunc)(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
                                          struct ModeDecisionCandidateBuffer *cand_bf, BlkStruct *blk_ptr,
                                          uint64_t y_distortion[DIST_TOTAL][DIST_CALC_TOTAL],
@@ -128,6 +149,11 @@ typedef struct ModeDecisionCandidateBuffer {
     uint64_t    fast_chroma_rate;
     uint64_t    total_rate;
     uint32_t    luma_fast_dist;
+#if !CLN_MDS0
+#if OPT_OBMC
+    uint32_t    chroma_fast_dist;
+#endif
+#endif
     uint32_t    full_dist;
     uint16_t    cnt_nz_coeff;
     QuantDcData quant_dc;

@@ -169,8 +169,10 @@ typedef struct ObmcControls {
     uint8_t refine_level;
     // if true, a face-off between simple-translation and obmc will take place at mds0
     uint8_t trans_face_off;
+#if !OPT_OBMC
     // if trans_face_off ON; perform the face-off for only the tran-MV that beats the best-class0 by at least trans_face_off_th percentage
     uint8_t trans_face_off_th;
+#endif
     // Specifies the search range @ the full-pel of OBMC
     uint8_t fpel_search_range;
     // Whether to search diagonal positions @ the full-pel of OBMC
@@ -765,9 +767,11 @@ typedef struct WmCtrls {
     // Specifies the MD Stage where the wm refinement will take place. 0: Before MDS0.  1: At MDS1.  2: At MDS3.
     uint8_t refine_level;
     // Specifies minimum neighbour percentage for WM
+#if !CLN_WM_CTRLS
     uint8_t min_neighbour_perc;
     // Specifies corner bias for WM
     uint8_t corner_perc_bias;
+#endif
     // Skip if alpha/ beta / gamma / delta is lower than threshold value
     uint16_t lower_band_th;
     // Skip if alpha/ beta / gamma / delta is higher than threshold value
@@ -957,8 +961,10 @@ typedef struct TxShortcutCtrls {
 #endif
 } TxShortcutCtrls;
 typedef struct Mds0Ctrls {
+#if !CLN_MDS0
     // Distortion metric to use MDS0: SSD, VAR, SAD
     uint8_t mds0_dist_type;
+#endif
     // 0: disabled, > 0: switch between: (1) reset reference cost for each subsequent class, (2) continuously update reference cost, (uint8_t) ~0: continuously update reference cost
     uint8_t pruning_method_th;
     // % TH(s) used to compare candidate distortion to best cost; higher is safer (applies to reg. PD1 only)
@@ -1106,6 +1112,9 @@ typedef struct ModeDecisionContext {
     uint8_t intra_luma_left_ctx;
     uint8_t intra_luma_top_ctx;
 
+#if CLN_WM_SAMPLES
+    WarpSampleInfo wm_sample_info[REF_FRAMES];
+#endif
     int16_t *pred_buf_q3;
     // Track all MVs that are prepared for candidates prior to MDS0. Used to avoid MV duplication.
     Mv **injected_mvs;
@@ -1356,7 +1365,7 @@ typedef struct ModeDecisionContext {
     SpatialSSECtrls spatial_sse_ctrls;
 
     uint16_t init_max_block_cnt;
-#if CLN_PRED_SIGS
+#if !CLN_PRED_SIGS
     uint8_t  end_plane;
 #endif
     // set to true if MDS3 needs to perform a full 10bit compensation in MDS3 (to make MDS3
@@ -1404,6 +1413,11 @@ typedef struct ModeDecisionContext {
     // SSIM_LVL_1: use ssim cost to find best candidate in product_full_mode_decision()
     // SSIM_LVL_2: addition to level 1, also use ssim cost to find best tx type in tx_type_search()
     SsimLevel tune_ssim_level;
+#if OPT_OBMC
+    bool weighted_pred_ready; // Flag indicating if weighted prediction is prepared
+    bool neighbor_luma_pred_ready; // Flag indicating if luma neighbor prediction is prepared
+    bool neighbor_chroma_pred_ready; // Flag indicating if luma neighbor prediction is prepared
+#endif
 } ModeDecisionContext;
 
 typedef void (*EbAv1LambdaAssignFunc)(PictureControlSet *pcs, uint32_t *fast_lambda, uint32_t *full_lambda,

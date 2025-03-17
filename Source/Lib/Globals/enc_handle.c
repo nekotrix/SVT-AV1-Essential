@@ -1531,7 +1531,9 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
                 enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rate_control_mode),
             input_data.picture_width, input_data.picture_height);
         input_data.enable_adaptive_quantization = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enable_adaptive_quantization;
+
         input_data.calculate_variance = enc_handle_ptr->scs_instance_array[instance_index]->scs->calculate_variance;
+
         input_data.calc_hist = enc_handle_ptr->scs_instance_array[instance_index]->scs->calc_hist =
             enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.scene_change_detection ||
             enc_handle_ptr->scs_instance_array[instance_index]->scs->vq_ctrls.sharpness_ctrls.scene_transition ||
@@ -3326,6 +3328,16 @@ static void set_list0_only_base(SequenceControlSet* scs, uint8_t list0_only_base
     List0OnlyBase* ctrls = &scs->list0_only_base_ctrls;
 
     switch (list0_only_base) {
+#if CLN_CALCULATE_VARIANCE
+    case 0:
+        ctrls->enabled = 0;
+        break;
+    case 1:
+        ctrls->enabled = 1;
+        break;
+    default:
+        break;
+#else
     case 0:
         ctrls->enabled = 0;
         break;
@@ -3349,6 +3361,7 @@ static void set_list0_only_base(SequenceControlSet* scs, uint8_t list0_only_base
         ctrls->enabled = 1;
         ctrls->list0_only_base_th = (uint16_t)~0;
         break;
+#endif
     }
 }
 /*
@@ -4134,6 +4147,10 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     if (scs->static_config.enc_mode <= ENC_M3)
 #endif
         list0_only_base_lvl = 0;
+#if CLN_CALCULATE_VARIANCE
+    else
+        list0_only_base_lvl = 1;
+#else
     else if (scs->static_config.enc_mode <= ENC_M4)
         list0_only_base_lvl = 3;
     else if (scs->static_config.enc_mode <= ENC_M6)
@@ -4143,6 +4160,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
 
     if ((scs->seq_qp_mod == 1 || scs->seq_qp_mod == 2) && scs->static_config.qp > 51)
         list0_only_base_lvl = MAX(0, (int)((int)list0_only_base_lvl - 1));
+#endif
 
     set_list0_only_base(scs, list0_only_base_lvl);
 
@@ -4219,8 +4237,10 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->vq_ctrls.sharpness_ctrls.tf == 1                ||
         scs->static_config.enable_variance_boost)
         scs->calculate_variance = 1;
+#if !CLN_CALCULATE_VARIANCE
     else if (scs->static_config.enc_mode <= ENC_M6)
         scs->calculate_variance = 1;
+#endif
     else
         scs->calculate_variance = 0;
 
