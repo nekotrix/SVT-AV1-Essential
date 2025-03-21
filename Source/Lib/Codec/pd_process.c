@@ -402,7 +402,11 @@ static void early_hme_b64(
     int16_t    sa_height, // search area height
     EbPictureBufferDesc* sixteenth_ref_pic_ptr, // sixteenth-downsampled reference picture
     uint64_t* best_sad, // output: Level0 SAD
+#if CLN_UNIFY_MV_TYPE
+    Mv* sr_center // output: Level0 xMV, Level0 yMV
+#else
     MV* sr_center // output: Level0 xMV, Level0 yMV
+#endif
 ) {
     // round up the search region width to nearest multiple of 8 because the SAD calculation performance (for
     // intrinsic functions) is the same for search region width from 1 to 8
@@ -469,8 +473,13 @@ static void early_hme_b64(
         block_width,
         /* results */
         best_sad,
+#if CLN_UNIFY_MV_TYPE
+        &sr_center->x,
+        &sr_center->y,
+#else
         &sr_center->col,
         &sr_center->row,
+#endif
         /* range */
         sixteenth_ref_pic_ptr->stride_y,
         0, // skip search line
@@ -481,10 +490,17 @@ static void early_hme_b64(
         ? *best_sad
         : *best_sad * 2; // Multiply by 2 because considered only ever other line
 
+#if CLN_UNIFY_MV_TYPE
+    sr_center->x += sa_origin_x;
+    sr_center->x *= 4; // Multiply by 4 because operating on 1/4 resolution
+    sr_center->y += sa_origin_y;
+    sr_center->y *= 4; // Multiply by 4 because operating on 1/4 resolution
+#else
     sr_center->col += sa_origin_x;
     sr_center->col *= 4; // Multiply by 4 because operating on 1/4 resolution
     sr_center->row += sa_origin_y;
     sr_center->row *= 4; // Multiply by 4 because operating on 1/4 resolution
+#endif
 
     return;
 }
@@ -498,7 +514,11 @@ void dg_detector_hme_level0(struct PictureParentControlSet *ppcs, uint32_t seg_i
     int16_t sa_height = ppcs->input_resolution <= INPUT_SIZE_360p_RANGE ? 16 : ppcs->input_resolution <= INPUT_SIZE_480p_RANGE ? 64 : 128;
 
     uint64_t hme_level0_sad = (uint64_t)~0;
+#if CLN_UNIFY_MV_TYPE
+    Mv sr_center = { .as_int = 0 };
+#else
     MV sr_center = { 0,0 };
+#endif
 
     uint8_t hme_search_method = FULL_SAD_SEARCH;
 
@@ -543,6 +563,43 @@ void dg_detector_hme_level0(struct PictureParentControlSet *ppcs, uint32_t seg_i
             ppcs->dg_detector->metrics.tot_dist += hme_level0_sad;
 
             ppcs->dg_detector->metrics.tot_cplx += (hme_level0_sad > (16 * 16 * 30));
+#if CLN_UNIFY_MV_TYPE
+            ppcs->dg_detector->metrics.tot_active += ((abs(sr_center.x) > 0) || (abs(sr_center.y) > 0));
+            if (y_b64_idx < pic_height_in_b64 / 2) {
+                if (sr_center.y > 0) {
+                    --ppcs->dg_detector->metrics.sum_in_vectors;
+                }
+                else if (sr_center.y < 0) {
+                    ++ppcs->dg_detector->metrics.sum_in_vectors;
+                }
+            }
+            else if (y_b64_idx > pic_height_in_b64 / 2) {
+                if (sr_center.y > 0) {
+                    ++ppcs->dg_detector->metrics.sum_in_vectors;
+                }
+                else if (sr_center.y < 0) {
+                    --ppcs->dg_detector->metrics.sum_in_vectors;
+                }
+            }
+
+            // Does the col vector point inwards or outwards?
+            if (x_b64_idx < pic_width_in_b64 / 2) {
+                if (sr_center.x > 0) {
+                    --ppcs->dg_detector->metrics.sum_in_vectors;
+                }
+                else if (sr_center.x < 0) {
+                    ++ppcs->dg_detector->metrics.sum_in_vectors;
+                }
+            }
+            else if (x_b64_idx > pic_width_in_b64 / 2) {
+                if (sr_center.x > 0) {
+                    ++ppcs->dg_detector->metrics.sum_in_vectors;
+                }
+                else if (sr_center.x < 0) {
+                    --ppcs->dg_detector->metrics.sum_in_vectors;
+                }
+            }
+#else
             ppcs->dg_detector->metrics.tot_active += ((abs(sr_center.col) > 0) || (abs(sr_center.row) > 0));
             if (y_b64_idx < pic_height_in_b64 / 2) {
                 if (sr_center.row > 0) {
@@ -578,6 +635,7 @@ void dg_detector_hme_level0(struct PictureParentControlSet *ppcs, uint32_t seg_i
                     --ppcs->dg_detector->metrics.sum_in_vectors;
                 }
             }
+#endif
             svt_release_mutex(ppcs->dg_detector->metrics_mutex);
         }
     }
@@ -1084,8 +1142,12 @@ static bool set_frame_display_params(
     Av1RpsNode *av1_rps = &pcs->av1_ref_signal;
     FrameHeader *frm_hdr = &pcs->frm_hdr;
 
+#if CLN_REMOVE_LDP // TODO: update LD refs
+    if (pcs->pred_struct_ptr->pred_type == SVT_AV1_PRED_LOW_DELAY || pcs->is_overlay) {
+#else
     if (pcs->pred_struct_ptr->pred_type == SVT_AV1_PRED_LOW_DELAY_P || pcs->is_overlay ||
         pcs->pred_struct_ptr->pred_type == SVT_AV1_PRED_LOW_DELAY_B) {
+#endif
         //P frames
         av1_rps->ref_dpb_index[BWD] = av1_rps->ref_dpb_index[ALT2] = av1_rps->ref_dpb_index[ALT] = av1_rps->ref_dpb_index[LAST];
         av1_rps->ref_poc_array[BWD] = av1_rps->ref_poc_array[ALT2] = av1_rps->ref_poc_array[ALT] = av1_rps->ref_poc_array[LAST];
@@ -1558,7 +1620,11 @@ static void  av1_generate_rps_info(
             //{ 4, 8, 0, 0 } // GOP Index 0 - Ref List 1
             ref_dpb_index[LAST] = base2_idx;
             ref_dpb_index[LAST2] = base0_idx;
+#if CLN_REMOVE_LDP
+            if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY)
+#else
             if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B)
+#endif
                 ref_dpb_index[LAST3] = long_base_idx;
             else
                 ref_dpb_index[LAST3] = ref_dpb_index[LAST];
@@ -1640,7 +1706,11 @@ static void  av1_generate_rps_info(
 
         set_ref_list_counts(pcs);
         // to make sure the long base reference is in base layer
+#if CLN_REMOVE_LDP
+        if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY && (pcs->picture_number - ctx->last_long_base_pic) >= long_base_pic &&
+#else
         if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B && (pcs->picture_number - ctx->last_long_base_pic) >= long_base_pic &&
+#endif
             pcs->temporal_layer_index == 0) {
             av1_rps->refresh_frame_mask |= (1 << long_base_idx);
             ctx->last_long_base_pic = pcs->picture_number;
@@ -2938,7 +3008,11 @@ static int ref_pics_modulation(
 #if OPT_USE_EXP_TF
     if (pcs->tf_ctrls.qp_opt) {
         uint32_t q_weight, q_weight_denom;
+#if TUNE_MR_2
+        svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom);
+#else
         svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+#endif
         offset = DIVIDE_AND_ROUND(offset * q_weight, q_weight_denom);
     }
 #else
@@ -3625,8 +3699,13 @@ void print_pre_ass_buffer(EncodeContext *ctx, PictureParentControlSet *pcs, uint
             SVT_LOG("PRE-ASSIGN COMPLETE   (%i pictures)  POC:%lld \n", ctx->pre_assignment_buffer_count, pcs->picture_number);
         if (ctx->pre_assignment_buffer_eos_flag == 1)
             SVT_LOG("PRE-ASSIGN EOS   (%i pictures)  POC:%lld \n", ctx->pre_assignment_buffer_count, pcs->picture_number);
+#if CLN_REMOVE_LDP
+        if (pcs->pred_structure == SVT_AV1_PRED_LOW_DELAY)
+            SVT_LOG("PRE-ASSIGN LD   (%i pictures)  POC:%lld \n", ctx->pre_assignment_buffer_count, pcs->picture_number);
+#else
         if (pcs->pred_structure == SVT_AV1_PRED_LOW_DELAY_P)
             SVT_LOG("PRE-ASSIGN LDP   (%i pictures)  POC:%lld \n", ctx->pre_assignment_buffer_count, pcs->picture_number);
+#endif
 
         SVT_LOG("\n Pre-Assign(%i):  ", ctx->pre_assignment_buffer_count);
         for (uint32_t pic = 0; pic < ctx->pre_assignment_buffer_count; pic++) {
@@ -3779,7 +3858,11 @@ static void set_frame_update_type(PictureParentControlSet *ppcs) {
     if (ppcs->frm_hdr.frame_type == KEY_FRAME) {
         ppcs->update_type = SVT_AV1_KF_UPDATE;
     }
+#if CLN_REMOVE_LDP
+    else if (scs->max_temporal_layers > 0 && ppcs->pred_structure != SVT_AV1_PRED_LOW_DELAY) {
+#else
     else if (scs->max_temporal_layers > 0 && ppcs->pred_structure != SVT_AV1_PRED_LOW_DELAY_B) {
+#endif
         if (ppcs->temporal_layer_index == 0) {
             ppcs->update_type = SVT_AV1_ARF_UPDATE;
         }
@@ -3790,7 +3873,11 @@ static void set_frame_update_type(PictureParentControlSet *ppcs) {
             ppcs->update_type = SVT_AV1_INTNL_ARF_UPDATE;
         }
     }
+#if CLN_REMOVE_LDP
+    else if (ppcs->pred_structure == SVT_AV1_PRED_LOW_DELAY && (ppcs->frame_offset % MAX_GF_INTERVAL) == 0) {
+#else
     else if (ppcs->pred_structure == SVT_AV1_PRED_LOW_DELAY_B && (ppcs->frame_offset % MAX_GF_INTERVAL) == 0) {
+#endif
         ppcs->update_type = SVT_AV1_GF_UPDATE;
     }
     else {
@@ -4012,13 +4099,25 @@ static void update_pred_struct_and_pic_type(SequenceControlSet* scs, EncodeConte
             enc_ctx->pred_struct_position -= pcs->pred_struct_ptr->init_pic_index;
         pcs->pred_struct_ptr = svt_aom_get_prediction_structure(
             enc_ctx->prediction_structure_group_ptr,
+#if CLN_REMOVE_LDP
+            SVT_AV1_PRED_LOW_DELAY,
+#else
             SVT_AV1_PRED_LOW_DELAY_P,
+#endif
             pcs->hierarchical_levels);
         *picture_type = P_SLICE;
         ctx->cut_short_ra_mg = 1;
     }
     else {
         // Set the Picture Type
+#if CLN_REMOVE_LDP
+        *picture_type =
+            (pcs->idr_flag || pcs->cra_flag) ? I_SLICE :
+            (pcs->pred_structure == SVT_AV1_PRED_LOW_DELAY) ? B_SLICE :
+            (pcs->pre_assignment_buffer_count == pcs->pred_struct_ptr->pred_struct_period) ? B_SLICE :
+            (enc_ctx->pre_assignment_buffer_eos_flag) ? P_SLICE :
+            B_SLICE;
+#else
         *picture_type =
             (pcs->idr_flag) ? I_SLICE :
             (pcs->cra_flag) ? I_SLICE :
@@ -4027,6 +4126,7 @@ static void update_pred_struct_and_pic_type(SequenceControlSet* scs, EncodeConte
             (pcs->pre_assignment_buffer_count == pcs->pred_struct_ptr->pred_struct_period) ? B_SLICE :
             (enc_ctx->pre_assignment_buffer_eos_flag) ? P_SLICE :
             B_SLICE;
+#endif
     }
         // If mini GOP switch, reset position
         if (pcs->init_pred_struct_position_flag)
@@ -4635,7 +4735,7 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
 
 #if OPT_SC_ME
             pcs->ahd_error = (uint32_t) ~0;
-            if (window_avail == true && queue_entry_ptr->picture_number > 0) {
+            if (window_avail == true && queue_entry_ptr->picture_number > 0 && scs->calc_hist) {
                 pcs->ahd_error = calc_ahd_pd(scs, pcs, ctx);
             }
 #endif
@@ -4662,9 +4762,18 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
                 ctx->prev_delayed_intra = NULL;
 
             release_prev_picture_from_reorder_queue(enc_ctx);
+#if OPT_ALLINTRA
+            assert(IMPLIES(scs->allintra, scs->static_config.intra_period_length == 0));
+            // If the Intra period length is 0, then introduce an intra for every picture
+            if (scs->allintra) {
+                assert(scs->static_config.intra_period_length == 0);
+                pcs->cra_flag = true;
+            }
+#else
             // If the Intra period length is 0, then introduce an intra for every picture
             if (scs->static_config.intra_period_length == 0)
                 pcs->cra_flag = true;
+#endif
             // If an #IntraPeriodLength has passed since the last Intra, then introduce a CRA or IDR based on Intra Refresh type
             else if (scs->static_config.intra_period_length != -1) {
 
@@ -4721,8 +4830,12 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
             if ((enc_ctx->pre_assignment_buffer_intra_count > 0) ||
                 (enc_ctx->pre_assignment_buffer_count == (uint32_t)(1 << next_mg_hierarchical_levels)) ||
                 (enc_ctx->pre_assignment_buffer_eos_flag == true) ||
+#if CLN_REMOVE_LDP
+                (pcs->pred_structure == SVT_AV1_PRED_LOW_DELAY))
+#else
                 (pcs->pred_structure == SVT_AV1_PRED_LOW_DELAY_P) ||
                 (pcs->pred_structure == SVT_AV1_PRED_LOW_DELAY_B))
+#endif
             {
 #if LAD_MG_PRINT
                 print_pre_ass_buffer(enc_ctx, pcs, 0);

@@ -198,6 +198,7 @@ static INLINE void mse_8xn_8bit_avx2(const uint8_t **src, const uint8_t *dst, co
     }
 }
 
+#if !FIX_CDEF_MSE
 static INLINE uint32_t sum32(const __m256i src) {
     const __m128i src_l = _mm256_castsi256_si128(src);
     const __m128i src_h = _mm256_extracti128_si256(src, 1);
@@ -314,6 +315,7 @@ static INLINE uint64_t dist_8xn_8bit_avx2(const uint8_t **src, const uint8_t *ds
                            (sum_d2 + sum_s2 - 2 * sum_sd) * .5 * (svar + dvar + (400 << 2 * coeff_shift)) /
                                (sqrt((20000 << 4 * coeff_shift) + svar * (double)dvar)));
 }
+#endif
 
 static INLINE void sum_32_to_64(const __m256i src, __m256i *dst) {
     const __m256i src_l = _mm256_unpacklo_epi32(src, _mm256_setzero_si256());
@@ -334,10 +336,15 @@ static INLINE uint64_t sum64(const __m256i src) {
 /* Compute MSE only on the blocks we filtered. */
 uint64_t svt_aom_compute_cdef_dist_16bit_avx2(const uint16_t *dst, int32_t dstride, const uint16_t *src,
                                               const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
+#if FIX_CDEF_MSE
+                                              int32_t coeff_shift, uint8_t subsampling_factor) {
+#else
                                               int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor) {
+#endif
     uint64_t sum;
     int32_t  bi, bx, by;
 
+#if !FIX_CDEF_MSE
     if ((bsize == BLOCK_8X8) && (pli == 0)) {
         sum = 0;
         for (bi = 0; bi < cdef_count; bi++) {
@@ -347,6 +354,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_avx2(const uint16_t *dst, int32_t dstri
                 &src, dst + 8 * by * dstride + 8 * bx, dstride, coeff_shift, 8, subsampling_factor);
         }
     } else {
+#endif
         __m256i mse64 = _mm256_setzero_si256();
 
         if (bsize == BLOCK_8X8) {
@@ -392,17 +400,24 @@ uint64_t svt_aom_compute_cdef_dist_16bit_avx2(const uint16_t *dst, int32_t dstri
         }
 
         sum = sum64(mse64);
+#if !FIX_CDEF_MSE
     }
+#endif
 
     return sum >> 2 * coeff_shift;
 }
 
 uint64_t svt_aom_compute_cdef_dist_8bit_avx2(const uint8_t *dst8, int32_t dstride, const uint8_t *src8,
                                              const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
+#if FIX_CDEF_MSE
+                                             int32_t coeff_shift, uint8_t subsampling_factor) {
+#else
                                              int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor) {
+#endif
     uint64_t sum;
     int32_t  bi, bx, by;
 
+#if !FIX_CDEF_MSE
     if ((bsize == BLOCK_8X8) && (pli == 0)) {
         sum = 0;
         for (bi = 0; bi < cdef_count; bi++) {
@@ -412,6 +427,7 @@ uint64_t svt_aom_compute_cdef_dist_8bit_avx2(const uint8_t *dst8, int32_t dstrid
                 &src8, dst8 + 8 * by * dstride + 8 * bx, dstride, coeff_shift, 8, subsampling_factor);
         }
     } else {
+#endif
         __m256i mse64 = _mm256_setzero_si256();
 
         if (bsize == BLOCK_8X8) {
@@ -459,6 +475,8 @@ uint64_t svt_aom_compute_cdef_dist_8bit_avx2(const uint8_t *dst8, int32_t dstrid
         }
 
         sum = sum64(mse64);
+#if !FIX_CDEF_MSE
     }
+#endif
     return sum >> 2 * coeff_shift;
 }

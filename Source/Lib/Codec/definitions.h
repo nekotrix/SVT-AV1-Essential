@@ -87,14 +87,14 @@ typedef struct SharpnessCtrls {
     uint8_t restoration;
     uint8_t rdoq;
 } SharpnessCtrls;
-#if !OPT_DEPTHS_CTRL 
+#if !OPT_DEPTHS_CTRL
 typedef struct StabilityCtrls {
     uint8_t depth_refinement;
 } StabilityCtrls;
 #endif
 typedef struct VqCtrls {
     SharpnessCtrls sharpness_ctrls;
-#if !OPT_DEPTHS_CTRL 
+#if !OPT_DEPTHS_CTRL
     StabilityCtrls stability_ctrls;
 #endif
 } VqCtrls;
@@ -756,6 +756,14 @@ typedef enum IfsLevel {
     IFS_MDS2, // IFS @ md_stage_2()
     IFS_MDS3, // IFS @ md_stage_3()
 } IfsLevel;
+#if TUNE_MR_2
+typedef enum SpatialSseLevel {
+    SSSE_MDS1, // Spatial SSE @ md_stage_1() and beyond
+    SSSE_MDS2, // Spatial SSE @ md_stage_2() and beyond
+    SSSE_MDS3, // Spatial SSE @ md_stage_3() and beyond
+    SSSE_OFF // Spatial SSE OFF
+} SpatialSseLevel;
+#endif
 typedef enum DistortionType { SAD, VAR, SSD, DIST_TYPES } DistortionType;
 // Profile 0.  8-bit and 10-bit 4:2:0 and 4:0:0 only.
 // Profile 1.  8-bit and 10-bit 4:4:4
@@ -2197,8 +2205,9 @@ object_init_data_ptr is a EbPtr to a data structure used to initialize the objec
 typedef EbErrorType(*EbCreator)(
     EbPtr *object_dbl_ptr,
     EbPtr object_init_data_ptr);
-
+#if !CLN_MOVE_MV_FIELDS
 #define INVALID_MV            0x80008000 //0xFFFFFFFF    //ICOPY They changed this to 0x80008000
+#endif
 /***************************************
 * Generic linked list data structure for passing data into/out from the library
 ***************************************/

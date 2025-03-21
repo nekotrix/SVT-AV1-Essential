@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#if !CLN_MOVE_MV_FIELDS // TODO: Remove this file when macros are removed
 #pragma pack(push, 1)
 typedef union Mv {
     struct {
@@ -41,7 +42,7 @@ typedef struct MvUnit {
     Mv      mv[MAX_NUM_OF_REF_PIC_LIST];
     uint8_t pred_direction;
 } MvUnit;
-
+#endif
 #ifdef __cplusplus
 }
 #endif

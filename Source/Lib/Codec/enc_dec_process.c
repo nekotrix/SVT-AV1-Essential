@@ -119,6 +119,21 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
                .split_mode         = false,
            });
     // Mode Decision Context
+#if TUNE_MR_2
+    EB_NEW(ed_ctx->md_ctx,
+           svt_aom_mode_decision_context_ctor,
+           enc_handle_ptr->scs_instance_array[0]->scs,
+           color_format,
+           enc_handle_ptr->scs_instance_array[0]->scs->super_block_size,
+           static_config->enc_mode,
+           enc_handle_ptr->scs_instance_array[0]->scs->max_block_cnt,
+           static_config->encoder_bit_depth,
+           0,
+           0,
+           enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
+           static_config->screen_content_mode,
+           enc_handle_ptr->scs_instance_array[0]->scs->seq_qp_mod);
+#else
     EB_NEW(ed_ctx->md_ctx,
            svt_aom_mode_decision_context_ctor,
            color_format,
@@ -131,6 +146,7 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
            enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
            static_config->screen_content_mode,
            enc_handle_ptr->scs_instance_array[0]->scs->seq_qp_mod);
+#endif
 
     if (enable_hbd_mode_decision)
         ed_ctx->md_ctx->input_sample16bit_buffer = ed_ctx->input_sample16bit_buffer;
@@ -2354,7 +2370,11 @@ static void is_parent_to_current_deviation_small(PictureControlSet* pcs, ModeDec
 
 #if OPT_USE_EXP_DEPTHS
             uint32_t q_weight, q_weight_denom;
+#if TUNE_MR_2
+            svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom);
+#else
             svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+#endif
             s1_parent_to_current_th = s1_parent_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : DIVIDE_AND_ROUND(s1_parent_to_current_th * q_weight, q_weight_denom);
             s2_parent_to_current_th = s2_parent_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : DIVIDE_AND_ROUND(s2_parent_to_current_th * q_weight, q_weight_denom);
 #else
@@ -2449,7 +2469,11 @@ static void is_child_to_current_deviation_small(PictureControlSet* pcs, ModeDeci
         if (ctx->depth_refinement_ctrls.q_weight) {
 #if OPT_USE_EXP_DEPTHS
             uint32_t q_weight, q_weight_denom;
+#if TUNE_MR_2
+            svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom);
+#else
             svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
+#endif
             e1_sub_to_current_th = e1_sub_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : DIVIDE_AND_ROUND(e1_sub_to_current_th * q_weight, q_weight_denom);
             e2_sub_to_current_th = e2_sub_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE : DIVIDE_AND_ROUND(e2_sub_to_current_th * q_weight, q_weight_denom);
 #else
@@ -2467,7 +2491,7 @@ static void is_child_to_current_deviation_small(PictureControlSet* pcs, ModeDeci
                                                                           : (e2_sub_to_current_th * q_weight) / 2000;
 #endif
         }
-        
+
         e1_sub_to_current_th = e1_sub_to_current_th == MIN_SIGNED_VALUE
             ? MIN_SIGNED_VALUE
             : e1_sub_to_current_th + th_offset;
@@ -2495,7 +2519,7 @@ static void is_child_to_current_deviation_small(PictureControlSet* pcs, ModeDeci
         else
             *e_depth = MIN(*e_depth, 2);
     }
-    else {       
+    else {
         if (ctx->depth_refinement_ctrls.pd0_unavail_mode_depth == 0)
             *e_depth = 0;
         else  if (ctx->depth_refinement_ctrls.pd0_unavail_mode_depth == 1)
@@ -2732,7 +2756,7 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                                           uint32_t sb_index) {
     MdcSbData *results_ptr = &ctx->mdc_sb_array;
     uint32_t   blk_index   = 0;
-#if !OPT_DEPTHS_CTRL 
+#if !OPT_DEPTHS_CTRL
     uint8_t    use_cost_band_based_modulation =
         (!scs->vq_ctrls.stability_ctrls.depth_refinement ||
          (pcs->slice_type != I_SLICE && pcs->ppcs->me_8x8_cost_variance[ctx->sb_index] < VQ_STABILITY_ME_VAR_TH));
@@ -2813,7 +2837,11 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
 #endif
                                 // Cap to (-1,+1) if the pred mode is INTER (if both INTER and INTRA are tested)
                                 if (ctx->intra_ctrls.enable_intra &&
+#if CLN_UNUSED_SIGS
+                                is_inter_mode(ctx->blk_ptr->block_mi.mode)) {
+#else
                                     (ctx->blk_ptr->prediction_mode_flag == INTER_MODE)) {
+#endif
                                     s_depth = MAX(s_depth, -1);
                                     e_depth = MIN(e_depth, 1);
                                 }
@@ -2852,7 +2880,7 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                                                                     : e_depth;
                             }
                         }
-#if !OPT_DEPTHS_CTRL 
+#if !OPT_DEPTHS_CTRL
                         if (ctx->depth_ctrls.limit_max_min_to_pd0 && max_pd0_size != min_pd0_size) {
                             // If PD0 selected multiple depths, don't test depths above the largest or below the smallest block sizes
                             if (blk_geom->sq_size == max_pd0_size)
@@ -3079,7 +3107,11 @@ static void exaustive_light_pd1_features(ModeDecisionContext *md_ctx, PicturePar
         if (md_ctx->obmc_ctrls.enabled == 0 && md_ctx->md_allow_intrabc == 0 && md_ctx->hbd_md == 0 &&
             md_ctx->ifs_ctrls.level == IFS_OFF && ppcs->frm_hdr.allow_warped_motion == 0 &&
             md_ctx->inter_intra_comp_ctrls.enabled == 0 && md_ctx->rate_est_ctrls.update_skip_ctx_dc_sign_ctx == 0 &&
+#if TUNE_MR_2
+            md_ctx->spatial_sse_ctrls.level == SSSE_OFF && md_ctx->md_sq_me_ctrls.enabled == 0 &&
+#else
             md_ctx->spatial_sse_ctrls.spatial_sse_full_loop_level == 0 && md_ctx->md_sq_me_ctrls.enabled == 0 &&
+#endif
             md_ctx->md_pme_ctrls.enabled == 0 && md_ctx->txt_ctrls.enabled == 0 &&
 #if CLN_MDS0
             md_ctx->unipred3x3_injection == 0 &&
@@ -3158,11 +3190,37 @@ static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *
                 }
 
                 // If the best PD0 mode was INTER, check the MV length
+#if CLN_UNUSED_SIGS
+                if (md_ctx->avail_blk_flag[0] == true && is_inter_mode(md_ctx->md_blk_arr_nsq[0].block_mi.mode) &&
+#else
                 if (md_ctx->avail_blk_flag[0] == true && md_ctx->md_blk_arr_nsq[0].prediction_mode_flag == INTER_MODE &&
+#endif
                     md_ctx->lpd1_ctrls.max_mv_length[pd1_lvl] != (uint16_t)~0) {
                     BlkStruct     *blk_ptr       = &md_ctx->md_blk_arr_nsq[0];
                     const uint16_t max_mv_length = md_ctx->lpd1_ctrls.max_mv_length[pd1_lvl];
 
+#if CLN_MBMI_IN_BLKSTRUCT
+                    // unipred MVs always stored in idx0
+                    if (blk_ptr->block_mi.mv[0].x > max_mv_length || blk_ptr->block_mi.mv[0].y > max_mv_length)
+                        md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
+#if CLN_UNUSED_SIGS
+                    if (has_second_ref(&blk_ptr->block_mi)) {
+#else
+                    if (blk_ptr->inter_pred_direction_index == BI_PRED) {
+#endif
+                        if (blk_ptr->block_mi.mv[1].x > max_mv_length || blk_ptr->block_mi.mv[1].y > max_mv_length)
+                            md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
+                    }
+#else
+#if CLN_MV_IDX
+                    // unipred MVs always stored in idx0
+                    if (blk_ptr->mv[0].x > max_mv_length || blk_ptr->mv[0].y > max_mv_length)
+                        md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
+                    if (blk_ptr->inter_pred_direction_index == BI_PRED) {
+                        if (blk_ptr->mv[1].x > max_mv_length || blk_ptr->mv[1].y > max_mv_length)
+                            md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
+                    }
+#else
                     if (blk_ptr->inter_pred_direction_index == UNI_PRED_LIST_0) {
                         if (blk_ptr->mv[REF_LIST_0].x > max_mv_length || blk_ptr->mv[REF_LIST_0].y > max_mv_length)
                             md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
@@ -3177,6 +3235,8 @@ static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *
                         if (blk_ptr->mv[REF_LIST_1].x > max_mv_length || blk_ptr->mv[REF_LIST_1].y > max_mv_length)
                             md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
                     }
+#endif
+#endif
                 }
 
                 if (pcs->slice_type != I_SLICE) {
@@ -3722,8 +3782,12 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                                 : 0;
 
                         // If LPD0 is used, a more conservative level can be set for complex SBs
+#if FTR_RTC_MODE
+                        const bool rtc_tune = scs->static_config.rtc_mode;
+#else
                         const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true
                                                                                                               : false;
+#endif
                         if (!(rtc_tune && !pcs->ppcs->sc_class1) && md_ctx->lpd0_ctrls.pd0_level > REGULAR_PD0) {
                             lpd0_detector(pcs, md_ctx, pic_width_in_sb);
                         }

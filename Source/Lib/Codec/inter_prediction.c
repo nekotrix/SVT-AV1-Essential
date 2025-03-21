@@ -1215,9 +1215,17 @@ void svt_inter_predictor_light_pd0(const uint8_t *src, int32_t src_stride, uint8
             src, src_stride, dst, dst_stride, w, h, 0, 0, 0, 0, conv_params);
     }
 }
+#if CLN_IF_PARAMS
+void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_stride, uint8_t *dst, int32_t dst_stride,
+                                   int32_t w, int32_t h, InterpFilters interp_filters,
+                                   SubpelParams *subpel_params, ConvolveParams *conv_params, int32_t bd) {
+    InterpFilterParams filter_params_x, filter_params_y;
+    av1_get_convolve_filter_params(interp_filters, &filter_params_x, &filter_params_y, w, h);
+#else
 void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_stride, uint8_t *dst, int32_t dst_stride,
                                    int32_t w, int32_t h, InterpFilterParams *filter_x, InterpFilterParams *filter_y,
                                    SubpelParams *subpel_params, ConvolveParams *conv_params, int32_t bd) {
+#endif
     const int32_t is_scaled = has_scale(subpel_params->xs, subpel_params->ys);
 
     if (bd > EB_EIGHT_BIT) {
@@ -1258,8 +1266,13 @@ void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_st
                                              dst_stride,
                                              w,
                                              h,
+#if CLN_IF_PARAMS
+                                             &filter_params_x,
+                                             &filter_params_y,
+#else
                                              filter_x,
                                              filter_y,
+#endif
                                              subpel_params->subpel_x,
                                              subpel_params->xs,
                                              subpel_params->subpel_y,
@@ -1275,8 +1288,13 @@ void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_st
                                                                                               dst_stride,
                                                                                               w,
                                                                                               h,
+#if CLN_IF_PARAMS
+                                                                                              &filter_params_x,
+                                                                                              &filter_params_y,
+#else
                                                                                               filter_x,
                                                                                               filter_y,
+#endif
                                                                                               sp.subpel_x,
                                                                                               sp.subpel_y,
                                                                                               conv_params,
@@ -1290,8 +1308,13 @@ void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_st
                                       dst_stride,
                                       w,
                                       h,
+#if CLN_IF_PARAMS
+                                      &filter_params_x,
+                                      &filter_params_y,
+#else
                                       filter_x,
                                       filter_y,
+#endif
                                       subpel_params->subpel_x,
                                       subpel_params->xs,
                                       subpel_params->subpel_y,
@@ -1300,8 +1323,13 @@ void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_st
         } else {
             SubpelParams sp = *subpel_params;
             revert_scale_extra_bits(&sp);
+#if CLN_IF_PARAMS
+            svt_aom_convolve[sp.subpel_x != 0][sp.subpel_y != 0][conv_params->is_compound](
+                src, src_stride, dst, dst_stride, w, h, &filter_params_x, &filter_params_y, sp.subpel_x, sp.subpel_y, conv_params);
+#else
             svt_aom_convolve[sp.subpel_x != 0][sp.subpel_y != 0][conv_params->is_compound](
                 src, src_stride, dst, dst_stride, w, h, filter_x, filter_y, sp.subpel_x, sp.subpel_y, conv_params);
+#endif
         }
     }
 }
@@ -2301,6 +2329,21 @@ void svt_aom_build_masked_compound_no_round(uint8_t *dst, int dst_stride, const 
     }
 }
 
+#if CLN_UNIFY_MV_TYPE
+void svt_aom_find_ref_dv(Mv* ref_dv, const TileInfo* const tile, int mib_size, int mi_row, int mi_col) {
+    (void)mi_col;
+    if (mi_row - mib_size < tile->mi_row_start) {
+        ref_dv->y = 0;
+        ref_dv->x = -MI_SIZE * mib_size - INTRABC_DELAY_PIXELS;
+    }
+    else {
+        ref_dv->y = -MI_SIZE * mib_size;
+        ref_dv->x = 0;
+    }
+    ref_dv->y *= 8;
+    ref_dv->x *= 8;
+}
+#else
 void svt_aom_find_ref_dv(IntMv *ref_dv, const TileInfo *const tile, int mib_size, int mi_row, int mi_col) {
     (void)mi_col;
     if (mi_row - mib_size < tile->mi_row_start) {
@@ -2313,6 +2356,7 @@ void svt_aom_find_ref_dv(IntMv *ref_dv, const TileInfo *const tile, int mib_size
     ref_dv->as_mv.row *= 8;
     ref_dv->as_mv.col *= 8;
 }
+#endif
 int svt_av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, int subsampling_y) {
     assert(is_motion_variation_allowed_bsize(bsize));
 

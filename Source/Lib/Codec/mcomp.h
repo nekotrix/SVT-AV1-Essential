@@ -36,8 +36,13 @@ enum {
 } UENUM1BYTE(MV_COST_TYPE);
 typedef struct svt_mv_cost_param {
     // The reference mv used to compute the mv cost
+#if CLN_UNIFY_MV_TYPE
+    const Mv    *ref_mv;
+    Mv   full_ref_mv;
+#else
     const MV    *ref_mv;
     FULLPEL_MV   full_ref_mv;
+#endif
     MV_COST_TYPE mv_cost_type;
     const int   *mvjcost;
     const int   *mvcost[2];
@@ -101,6 +106,44 @@ typedef struct {
     // Distortion calculation params
     SUBPEL_SEARCH_VAR_PARAMS var_params;
 } SUBPEL_MOTION_SEARCH_PARAMS;
+#if CLN_UNIFY_MV_TYPE
+typedef int(fractional_mv_step_fp)(void *ictx, MacroBlockD *xd, const struct AV1Common *const cm,
+                                   SUBPEL_MOTION_SEARCH_PARAMS *ms_params, Mv start_mv, Mv *bestmv, int *distortion,
+                                   unsigned int *sse1, int qp, BlockSize bsize, uint8_t is_intra_bordered);
+extern fractional_mv_step_fp svt_av1_find_best_sub_pixel_tree;
+extern fractional_mv_step_fp svt_av1_find_best_sub_pixel_tree_pruned;
+
+int svt_aom_fp_mv_err_cost(const Mv *mv, const MV_COST_PARAMS *mv_cost_params);
+
+static INLINE void svt_av1_set_subpel_mv_search_range(SubpelMvLimits *subpel_limits, const FullMvLimits *mv_limits,
+                                                      const Mv *ref_mv) {
+    const int max_mv = GET_MV_SUBPEL(MAX_FULL_PEL_VAL);
+    const int minc   = AOMMAX(GET_MV_SUBPEL(mv_limits->col_min), ref_mv->x - max_mv);
+    const int maxc   = AOMMIN(GET_MV_SUBPEL(mv_limits->col_max), ref_mv->x + max_mv);
+    const int minr   = AOMMAX(GET_MV_SUBPEL(mv_limits->row_min), ref_mv->y - max_mv);
+    const int maxr   = AOMMIN(GET_MV_SUBPEL(mv_limits->row_max), ref_mv->y + max_mv);
+
+    subpel_limits->col_min = AOMMAX(MV_LOW + 1, minc);
+    subpel_limits->col_max = AOMMIN(MV_UPP - 1, maxc);
+    subpel_limits->row_min = AOMMAX(MV_LOW + 1, minr);
+    subpel_limits->row_max = AOMMIN(MV_UPP - 1, maxr);
+}
+
+static INLINE int svt_av1_is_subpelmv_in_range(const SubpelMvLimits *mv_limits, Mv mv) {
+    return (mv.x >= mv_limits->col_min) && (mv.x <= mv_limits->col_max) && (mv.y >= mv_limits->row_min) &&
+        (mv.y <= mv_limits->row_max);
+}
+
+// Returns the rate of encoding the current motion vector based on the
+// joint_cost and comp_cost. joint_costs covers the cost of transmitting
+// JOINT_MV, and comp_cost covers the cost of transmitting the actual motion
+// vector.
+static INLINE int svt_mv_cost(const Mv *mv, const int *joint_cost, const int *const comp_cost[2]) {
+    // The y-component (row component) of the MV is coded first, so the cost is in the 0th idx
+    return joint_cost[svt_av1_get_mv_joint(mv)] + comp_cost[0][CLIP3(MV_LOW, MV_UPP, mv->y)] +
+        comp_cost[1][CLIP3(MV_LOW, MV_UPP, mv->x)];
+}
+#else
 typedef int(fractional_mv_step_fp)(void *ictx, MacroBlockD *xd, const struct AV1Common *const cm,
                                    SUBPEL_MOTION_SEARCH_PARAMS *ms_params, MV start_mv, MV *bestmv, int *distortion,
                                    unsigned int *sse1, int qp, BlockSize bsize, uint8_t is_intra_bordered);
@@ -136,6 +179,7 @@ static INLINE int svt_mv_cost(const MV *mv, const int *joint_cost, const int *co
     return joint_cost[svt_av1_get_mv_joint(mv)] + comp_cost[0][CLIP3(MV_LOW, MV_UPP, mv->row)] +
         comp_cost[1][CLIP3(MV_LOW, MV_UPP, mv->col)];
 }
+#endif
 
 #ifdef __cplusplus
 } // extern "C"

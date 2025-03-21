@@ -18,6 +18,7 @@
 #include "mem_neon.h"
 #include "neon_sve_bridge.h"
 
+#if !FIX_CDEF_MSE
 static inline uint64_t dist_8xn_16bit_sve(const uint16_t *src, const uint16_t *dst, const int32_t dstride,
                                           const int32_t coeff_shift, uint8_t height, uint8_t subsampling_factor) {
     uint64x2_t ss = vdupq_n_u64(0);
@@ -64,6 +65,7 @@ static inline uint64_t dist_8xn_16bit_sve(const uint16_t *src, const uint16_t *d
                            (sum_d2 + sum_s2 - 2 * sum_sd) * .5 * (svar + dvar + (400 << 2 * coeff_shift)) /
                                (sqrt((20000 << 4 * coeff_shift) + svar * (double)dvar)));
 }
+#endif
 
 static inline void mse_8xn_16bit_sve(const uint16_t *src, const uint16_t *dst, const int32_t dstride, uint64x2_t *sse,
                                      uint8_t height, uint8_t subsampling_factor) {
@@ -106,10 +108,15 @@ static inline void mse_4xn_16bit_sve(const uint16_t *src, const uint16_t *dst, c
 
 uint64_t svt_aom_compute_cdef_dist_16bit_sve(const uint16_t *dst, int32_t dstride, const uint16_t *src,
                                              const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
+#if FIX_CDEF_MSE
+                                             int32_t coeff_shift, uint8_t subsampling_factor) {
+#else
                                              int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor) {
+#endif
     uint64_t sum;
     int32_t  bi, bx, by;
 
+#if !FIX_CDEF_MSE
     if ((bsize == BLOCK_8X8) && (pli == 0)) {
         sum = 0;
         for (bi = 0; bi < cdef_count; bi++) {
@@ -120,6 +127,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_sve(const uint16_t *dst, int32_t dstrid
             src += 8 * 8;
         }
     } else {
+#endif
         uint64x2_t mse64 = vdupq_n_u64(0);
 
         if (bsize == BLOCK_8X8) {
@@ -154,7 +162,9 @@ uint64_t svt_aom_compute_cdef_dist_16bit_sve(const uint16_t *dst, int32_t dstrid
         }
 
         sum = vaddvq_u64(mse64);
+#if !FIX_CDEF_MSE
     }
+#endif
 
     return sum >> 2 * coeff_shift;
 }

@@ -20,6 +20,7 @@
 #include "rd_cost.h"
 
 void                   svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#if !FIX_CDEF_MSE
 static INLINE uint64_t dist_8xn_16bit_c(const uint16_t *src, const uint16_t *dst, const int32_t dstride,
                                         const int32_t coeff_shift, int8_t height, uint8_t subsampling_factor) {
     uint64_t svar   = 0;
@@ -46,6 +47,7 @@ static INLINE uint64_t dist_8xn_16bit_c(const uint16_t *src, const uint16_t *dst
                            (sum_d2 + sum_s2 - 2 * sum_sd) * .5 * (svar + dvar + (400 << 2 * coeff_shift)) /
                                (sqrt((20000 << 4 * coeff_shift) + svar * (double)dvar)));
 }
+#endif
 
 static INLINE uint64_t mse_8xn_16bit_c(const uint16_t *src, const uint16_t *dst, const int32_t dstride,
                                        const int32_t height, uint8_t subsampling_factor) {
@@ -73,6 +75,7 @@ static INLINE uint64_t mse_4xn_16bit_c(const uint16_t *src, const uint16_t *dst,
     return sum;
 }
 
+#if !FIX_CDEF_MSE
 static INLINE uint64_t dist_8xn_8bit_c(const uint8_t *src, const uint8_t *dst, const int32_t dstride,
                                        const int32_t coeff_shift, uint8_t height, uint8_t subsampling_factor) {
     uint64_t svar   = 0;
@@ -99,6 +102,7 @@ static INLINE uint64_t dist_8xn_8bit_c(const uint8_t *src, const uint8_t *dst, c
                            (sum_d2 + sum_s2 - 2 * sum_sd) * .5 * (svar + dvar + (400 << 2 * coeff_shift)) /
                                (sqrt((20000 << 4 * coeff_shift) + svar * (double)dvar)));
 }
+#endif
 static INLINE uint64_t mse_8xn_8bit_c(const uint8_t *src, const uint8_t *dst, const int32_t dstride,
                                       const int32_t height, uint8_t subsampling_factor) {
     uint64_t sum = 0;
@@ -128,13 +132,18 @@ static INLINE uint64_t mse_4xn_8bit_c(const uint8_t *src, const uint8_t *dst, co
 /* Compute MSE only on the blocks we filtered. */
 uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t *dst, int32_t dstride, const uint16_t *src,
                                            const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
+#if FIX_CDEF_MSE
+                                           int32_t coeff_shift, uint8_t subsampling_factor) {
+#else
                                            int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor) {
+#endif
     uint64_t sum = 0;
     int32_t  bi, bx, by;
     if (bsize == BLOCK_8X8) {
         for (bi = 0; bi < cdef_count; bi++) {
             by = dlist[bi].by;
             bx = dlist[bi].bx;
+#if !FIX_CDEF_MSE
             if (pli == 0) {
                 sum += dist_8xn_16bit_c(&src[bi << (3 + 3)],
                                         &dst[(by << 3) * dstride + (bx << 3)],
@@ -143,6 +152,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t *dst, int32_t dstride,
                                         8,
                                         subsampling_factor);
             } else
+#endif
                 sum += mse_8xn_16bit_c(
                     &src[bi << (3 + 3)], &dst[(by << 3) * dstride + (bx << 3)], dstride, 8, subsampling_factor);
         }
@@ -174,13 +184,18 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t *dst, int32_t dstride,
 
 uint64_t svt_aom_compute_cdef_dist_8bit_c(const uint8_t *dst8, int32_t dstride, const uint8_t *src8,
                                           const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
+#if FIX_CDEF_MSE
+                                          int32_t coeff_shift, uint8_t subsampling_factor) {
+#else
                                           int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor) {
+#endif
     uint64_t sum = 0;
     int32_t  bi, bx, by;
     if (bsize == BLOCK_8X8) {
         for (bi = 0; bi < cdef_count; bi++) {
             by = dlist[bi].by;
             bx = dlist[bi].bx;
+#if !FIX_CDEF_MSE
             if (pli == 0) {
                 sum += dist_8xn_8bit_c(&src8[bi << (3 + 3)],
                                        &dst8[(by << 3) * dstride + (bx << 3)],
@@ -189,6 +204,7 @@ uint64_t svt_aom_compute_cdef_dist_8bit_c(const uint8_t *dst8, int32_t dstride, 
                                        8,
                                        subsampling_factor);
             } else
+#endif
                 sum += mse_8xn_8bit_c(
                     &src8[bi << (3 + 3)], &dst8[(by << 3) * dstride + (bx << 3)], dstride, 8, subsampling_factor);
         }

@@ -451,7 +451,9 @@ typedef struct PictureControlSet {
     // scaled input picture is only used in loop restoration for recon size is
     // different with input frame when reference scaling is enabled
     EbPictureBufferDesc *scaled_input_pic;
+#if !FTR_RTC_MODE
     bool                 rtc_tune;
+#endif
     // lossless[s] is true if segment 's' is coded losslessly.
     bool    lossless[MAX_SEGMENTS];
     bool    mimic_only_tx_4x4;
@@ -586,6 +588,10 @@ typedef struct GmControls {
     uint8_t search_end_model;
     // 0: Inject both unipred and bipred global candidates in MD, 1: test bipred only
     uint8_t bipred_only;
+#if OPT_NO_GM_IDENTITY
+    // when true, don't inject GM candidates if one or both of the GM types is IDENTITY. When false, allow IDENTITY to be tested
+    uint8_t skip_identity;
+#endif
     // 0: Do not bypass GM search based on the uniformity of motion estimation MVs. 1 : Enable bypass of GM search on ME MVs
     uint8_t bypass_based_on_me;
     // 0: do not consider stationary_block info @ me-based bypass, 1: consider stationary_block info

@@ -1607,7 +1607,11 @@ class PmeSadLoopTest
         mvy = rnd.random();
         search_position_start_x = rnd.random();
         search_position_start_y = rnd.random();
+#if CLN_UNIFY_MV_TYPE
+        ref_mv = { {(int16_t)(76), (int16_t)(23)} };
+#else
         ref_mv = {(int16_t)(23), (int16_t)(76)};
+#endif
         mv_jcost[0] = 11;
         mv_jcost[1] = 54;
         mv_jcost[2] = 5437;
@@ -1626,7 +1630,11 @@ class PmeSadLoopTest
     int16_t search_position_start_x;
     int16_t search_position_start_y;
     MV_COST_PARAMS mv_cost_params;
+#if CLN_UNIFY_MV_TYPE
+    Mv ref_mv;
+#else
     MV ref_mv;
+#endif
     int32_t mv_jcost[MV_JOINTS];
     int mv_cost[MV_VALS];
 
@@ -1636,8 +1644,13 @@ class PmeSadLoopTest
         PmeSadLoopKernel func_c_ = svt_pme_sad_loop_kernel_c;
 
         mv_cost_params.ref_mv = &ref_mv;
+#if CLN_UNIFY_MV_TYPE
+        mv_cost_params.full_ref_mv = { {(int16_t)GET_MV_RAWPEL(76),
+                                        (int16_t)GET_MV_RAWPEL(23)} };
+#else
         mv_cost_params.full_ref_mv = {(int16_t)GET_MV_RAWPEL(23),
                                       (int16_t)GET_MV_RAWPEL(76)};
+#endif
         mv_cost_params.mv_cost_type = MV_COST_ENTROPY;
         mv_cost_params.mvjcost = mv_jcost;
         mv_cost_params.mvcost[0] = &mv_cost[MV_MAX];
@@ -1717,8 +1730,13 @@ class PmeSadLoopTest
         prepare_data();
 
         mv_cost_params.ref_mv = &ref_mv;
+#if CLN_UNIFY_MV_TYPE
+        mv_cost_params.full_ref_mv = { {(int16_t)GET_MV_RAWPEL(76),
+                                        (int16_t)GET_MV_RAWPEL(23)} };
+#else
         mv_cost_params.full_ref_mv = {(int16_t)GET_MV_RAWPEL(23),
                                       (int16_t)GET_MV_RAWPEL(76)};
+#endif
         mv_cost_params.mv_cost_type = MV_COST_ENTROPY;
         mv_cost_params.mvjcost = mv_jcost;
         mv_cost_params.mvcost[0] = &mv_cost[MV_MAX];

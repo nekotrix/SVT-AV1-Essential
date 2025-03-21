@@ -98,7 +98,53 @@ extern "C" {
 #define CLN_MDS0                    1 // Simplified MDS0: chroma-blind, and variance as metric for distortion derivation
 #define TUNE_MR                     1 // Tune MR
 #define TUNE_M7_2                   1 // Tune M7 (slower M7)
-#define CLN_M10_DEPTH_REFINEMENT    1 // Remove the r0-modulation for depth refinement in M10. 
+#define CLN_M10_DEPTH_REFINEMENT    1 // Remove the r0-modulation for depth refinement in M10.
+#define CLN_UNIFY_MV_TYPE           1 // Use Mv struct instead of IntMv/MV
+#define CLN_MOVE_MV_FIELDS          1 // Aggregate MV-related definitions and functions in mv.h - TODO: When removing macros, remove a file
+#define CLN_CAND_REF_FRAME          1 // Store ref frames as an array of two refs in ModeDecisionCandidate
+#define CLN_MV_IDX                  1 // Store unipred MVs in the 0th index
+#define CLN_GET_REF_PIC             1 // Change svt_aom_get_ref_pic_buffer to take the ref frame instead of list idx/ref idx
+#define CLN_CAND_INJ                1 // Cleanup cand injection funcs
+#define CLN_MOVE_FUNCS              1 // Move block info funcs to block_structures.h to avoid duplicate definitions
+#define OPT_NSQ_GEOM_MR_M0_LVL      1 // change the MR/M0 level of the NSQ SEARCH to 1 (for regular/low coeff lvl).
+#define FIX_IFS_10BIT               1 // Enable OBMC and inter-intra during IFS search for 10bit
+#define FTR_RTC_MODE                1 // Create a new rtc-mode API and use it to enable rtc settings throughout the encoder.
+#define CLN_MBMI_IN_CAND            1 // Use BlockModeInfo struct in MD candidates
+#define OPT_MRP                     1 // Create a new set of levels for MRP, and tune MRP for M3-M5.
+#define CLN_MBMI_IN_BLKSTRUCT       1 // Use BlockModeInfo struct in BlkStruct
+#define FIX_NEW_NR_NRST_LIST        1 // Fix list idx in new/near/nearest cand injection
+#define OPT_NSQ_SEARCH_LEVELS_2     1 // Develop a new level for NSQ Search (level 19), and set M10 & M9 to that level.
+#define CLN_INTER_PRED_FUNC         1 // Cleanup inter prediction functions
+#define CLN_INTER_PRED_FUNC_LPD1    1 // Cleanup LPD1 inter prediction functions
+#define CLN_INTER_PRED_FUNC_LPD0    1 // Cleanup LPD0 inter prediction functions
+#define CLN_MERGE_WM_INTER_PRED     1 // Combine WM pred func with regular inter pred function
+#define OPT_ENABLE_COMP_GM          1 // Enable DIFF and WEDGE compound for GM
+#define FIX_GM_MOTION               1 // GM cands should be SIMPLE_TRANSLATION and WM info should be obtained from the gm params
+#define CLN_COMPOUND_CHECKS         1 // Cleanup compound shortcuts; merge dist_based_ref_prune signals for inter-inter compound types
+#define OPT_NSQ_SEARCH_LEVELS_3     1 // Optimize NSQ search levels (level 15 - level 19).
+#define OPT_NSQ_GEOM                1 // Remove level 4 and changing M8-M10 level.
+#define OPT_NO_GM_IDENTITY          1 // Add GM opt to skip injecting GM IDENTITY cands
+#define CLN_UNUSED_SIGS             1 // Remove unused signals
+#define OPT_ENABLE_GM_M5            1 // Enable GM in M5
+#define CLN_MV_UNIT                 1 // Remove MvUnit struct
+#define CLN_REMOVE_MVCAND           1 // Remove MvCandidate struct type b/c redundant to Mv
+#define CLN_INJ_NON_SIMPLE_MODES    1 // Move checks for allowed non-simple modes inside inj_non_simple_modes()
+#define FIX_OPT_MRP_M4_M5           1 // Fix an onion ring issue in the new MRP changes in M4/M5.
+#define CLN_IF_PARAMS               1 // Cleanup unnecessary calls to filter params
+#define CLN_MV_ARRAYS               1 // Change the type of arrays that store MVs from int16_t to Mv.
+#define CLN_MV_BEST_PRED_FUNC       1 // Simplify the number and type of arguments passed to the function svt_aom_choose_best_av1_mv_pred()
+#define CLN_MV_MD_SUBPEL_FUNC       1 // Simplify the number and type of arguments passed to the function md_subpel_search()
+#define CLN_MV_ME_MV_XY             1 // Create a new Mv to hold me_mv_x and me_mv_y and use it.
+#define FIX_IFS_MDS0                1 // Add interp filter rate to fast cost when IFS is performed at MDS0
+#define FIX_IFS_MDS1                1 // Perform IFS at a later MD stage if IFS-MD-stage is bypassed
+#define FIX_PME_REF_MV              1 // Fix ref mv in PME search
+#define CLN_IFS                     1 // Skip pred in IFS search for fullpel cands; keep pred as valid
+#define TUNE_MR_2                   0 // MR Tuning; slowing down MR with good BDR gain.
+#define TUNE_REV_TUNE_M5_DIFFS      1 // Reverse two changes in TUNE_M5 for BDR gain: NIC level and Skip INTRA
+#define OPT_ALLINTRA                1 // Optimize allintra configuration
+#define CLN_REMOVE_LDP              1 // Remove unused SVT_AV1_PRED_LOW_DELAY_P
+#define OPT_CDEF_FD2_M5             1 // Change the cdef recon level that M5 uses in FD2 to level 1.
+#define FIX_CDEF_MSE                1 // Fix CDEF metric - use the same for luma and chroma
 
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection

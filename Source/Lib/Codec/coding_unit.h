@@ -18,7 +18,11 @@
 #include "cabac_context_model.h"
 #include "hash.h"
 #include "definitions.h"
+#if CLN_MOVE_MV_FIELDS
+#include "mv.h"
+#else
 #include "motion_vector_unit.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,6 +58,16 @@ static const uint32_t intra_luma_to_chroma[INTRA_MODES] = // EB_INTRA_PLANAR
         UV_PAETH_PRED, // Predict from the direction of smallest gradient
 };
 
+#if CLN_UNIFY_MV_TYPE
+typedef struct {
+    Mv mfmv0;
+    uint8_t ref_frame_offset;
+} TPL_MV_REF;
+typedef struct {
+    Mv mv;
+    MvReferenceFrame ref_frame;
+} MV_REF;
+#else
 typedef struct {
     IntMv   mfmv0;
     uint8_t ref_frame_offset;
@@ -62,6 +76,7 @@ typedef struct {
     IntMv            mv;
     MvReferenceFrame ref_frame;
 } MV_REF;
+#endif
 
 #if !CLN_REMOVE_MODE_INFO
 typedef struct ModeInfo {
@@ -154,10 +169,17 @@ typedef struct IntraBcContext {
     // The equivalent error at the current rdmult of one whole bit (not one
     // bitcost unit).
     int errorperbit;
+#if CLN_UNIFY_MV_TYPE
+    // Store the best motion vector during motion search
+    Mv best_mv;
+    // Store the second best motion vector during full-pixel motion search
+    Mv second_best_mv;
+#else
     // Store the best motion vector during motion search
     IntMv best_mv;
     // Store the second best motion vector during full-pixel motion search
     IntMv        second_best_mv;
+#endif
     MacroBlockD *xd;
     int         *nmv_vec_cost;
     int        **mv_cost_stack;
@@ -185,6 +207,7 @@ typedef struct QuantDcData {
     uint8_t v[MAX_TXB_COUNT_UV];
 } QuantDcData;
 
+#if CLN_MBMI_IN_BLKSTRUCT
 typedef struct BlkStruct {
     MacroBlockD *av1xd;
     // only for MD
@@ -215,15 +238,99 @@ typedef struct BlkStruct {
     uint8_t      palette_mem; // status of palette info alloc
     uint8_t      palette_size[2];
 
+    BlockModeInfo block_mi;
+
+    Mv predmv[2]; // unipred MV stored in idx 0
+#if !CLN_UNUSED_SIGS
+    uint8_t inter_pred_direction_index; // TODO: remove this
+#endif
+
+    uint32_t   overlappable_neighbors;
+    int16_t                inter_mode_ctx;
+    // equivalent of leaf_index in the nscu context. we will keep both for now and use the right one
+    // on a case by case basis.
+    uint16_t mds_idx;
+
+    uint8_t qindex;
+    uint8_t split_flag;
+    uint8_t drl_index;
+    // Store the drl ctx in coding loop to avoid storing final_ref_mv_stack and ref_mv_count for EC
+    int8_t drl_ctx[2];
+    // Store the drl ctx in coding loop to avoid storing final_ref_mv_stack and ref_mv_count for EC
+    int8_t         drl_ctx_near[2];
+
+    uint8_t segment_id;
+
+    PartitionType  part;
+    uint16_t       best_d1_blk;
+
+    PartitionContextType left_neighbor_partition;
+    PartitionContextType above_neighbor_partition;
+
+    // wm
+    EbWarpedMotionParams wm_params_l0;
+    EbWarpedMotionParams wm_params_l1;
+
+    unsigned cnt_nz_coeff : 12;
+#if !CLN_UNUSED_SIGS
+    unsigned prediction_mode_flag : 2; // TODO: remove this
+#endif
+    // ec; skip coeff only. as defined in section 6.10.11 of the av1 text
+    unsigned block_has_coeff : 1;
+} BlkStruct;
+#else
+typedef struct BlkStruct {
+    MacroBlockD *av1xd;
+    // only for MD
+    uint8_t  *neigh_left_recon[3];
+    uint8_t  *neigh_top_recon[3];
+    uint16_t *neigh_left_recon_16bit[3];
+    uint16_t *neigh_top_recon_16bit[3];
+    // buffer to store quantized coeffs from MD for the final mode of each block
+    // Used when encdec is bypassed
+    EbPictureBufferDesc *coeff_tmp;
+    // buffer to store recon from MD for the final mode of each block
+    // Used when encdec is bypassed
+    EbPictureBufferDesc *recon_tmp;
+    uint64_t             cost;
+    // Similar to cost but does not get updated @ svt_aom_d1_non_square_block_decision() and
+    // svt_aom_d2_inter_depth_block_decision()
+    uint64_t     default_cost;
+    uint64_t     total_rate;
+    uint32_t     full_dist;
+    QuantDcData  quant_dc;
+    EobData      eob;
+    TxType       tx_type[MAX_TXB_COUNT];
+    TxType       tx_type_uv;
+    uint16_t     y_has_coeff;
+    uint8_t      u_has_coeff;
+    uint8_t      v_has_coeff;
+    PaletteInfo *palette_info;
+    uint8_t      palette_mem; // status of palette info alloc
+    uint8_t      palette_size[2];
+
+#if CLN_MV_IDX
+    Mv mv[2]; // unipred MV stored in idx 0
+    Mv predmv[2]; // unipred MV stored in idx 0
+#else
     Mv      mv[MAX_NUM_OF_REF_PIC_LIST]; // 16-bytes
+#if CLN_UNIFY_MV_TYPE
+    Mv      predmv[MAX_NUM_OF_REF_PIC_LIST];
+#else
     IntMv   predmv[MAX_NUM_OF_REF_PIC_LIST];
+#endif
+#endif
     uint8_t inter_pred_direction_index;
 
     // Intra Mode
     int8_t           angle_delta[PLANE_TYPES];
     UvPredictionMode intra_chroma_mode;
     // Inter Mode
+#if CLN_CAND_REF_FRAME
+    MvReferenceFrame ref_frame[2];
+#else
     uint8_t    ref_frame_type;
+#endif
     MotionMode motion_mode;
 #if CLN_WM_CTRLS
     uint8_t   num_proj_ref;
@@ -278,6 +385,7 @@ typedef struct BlkStruct {
     // ec; skip coeff only. as defined in section 6.10.11 of the av1 text
     unsigned block_has_coeff : 1;
 } BlkStruct;
+#endif
 typedef struct EcBlkStruct {
     MacroBlockD *av1xd;
     EobData      eob;
@@ -286,7 +394,11 @@ typedef struct EcBlkStruct {
 
     PaletteInfo           *palette_info;
     uint8_t                palette_size[2];
+#if CLN_UNIFY_MV_TYPE
+    Mv                  predmv[2];
+#else
     IntMv                  predmv[2];
+#endif
 #if !CLN_MOVE_FIELDS_MBMI
     InterInterCompoundData interinter_comp;
 
@@ -330,7 +442,11 @@ typedef struct TplStats {
     int64_t  recrf_rate;
     int64_t  mc_dep_rate;
     int64_t  mc_dep_dist;
+#if CLN_UNIFY_MV_TYPE
+    Mv       mv;
+#else
     MV       mv;
+#endif
     uint64_t ref_frame_poc;
 } TplStats;
 
@@ -338,7 +454,11 @@ typedef struct TplSrcStats {
     int64_t        srcrf_dist;
     int64_t        srcrf_rate;
     uint64_t       ref_frame_poc;
+#if CLN_UNIFY_MV_TYPE
+    Mv             mv;
+#else
     MV             mv;
+#endif
     uint8_t        best_mode;
     int32_t        best_rf_idx;
     PredictionMode best_intra_mode;

@@ -15,6 +15,13 @@
 #include "definitions.h"
 #include "segmentation_params.h"
 #include "av1_structs.h"
+#if CLN_MOVE_MV_FIELDS
+#include "mv.h"
+#else
+#if CLN_UNIFY_MV_TYPE
+#include "motion_vector_unit.h"
+#endif
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,6 +30,7 @@ extern "C" {
 #define MAX_TILE_WIDTH (4096) // Max Tile width in pixels
 #define MAX_TILE_AREA (4096 * 2304) // Maximum tile area in pixels
 
+#if !CLN_UNIFY_MV_TYPE
 typedef struct MV {
     int16_t row;
     int16_t col;
@@ -32,12 +40,12 @@ typedef union IntMv {
     uint32_t as_int;
     MV       as_mv;
 } IntMv; /* facilitates faster equality tests and copies */
-
 typedef struct mv32 {
     int32_t row;
     int32_t col;
 } MV32;
-
+#endif
+#if !CLN_MOVE_MV_FIELDS
 #define GET_MV_RAWPEL(x) (((x) + 3 + ((x) >= 0)) >> 3)
 #define GET_MV_SUBPEL(x) ((x)*8)
 
@@ -46,6 +54,19 @@ typedef struct fullpel_mv {
     int16_t row;
     int16_t col;
 } FULLPEL_MV;
+#if CLN_UNIFY_MV_TYPE
+static INLINE int is_zero_mv(const Mv *mv) { return *((const uint32_t *)mv) == 0; }
+
+static AOM_INLINE Mv get_fullmv_from_mv(const Mv *subpel_mv) {
+    const Mv full_mv = { {(int16_t)GET_MV_RAWPEL(subpel_mv->x), (int16_t)GET_MV_RAWPEL(subpel_mv->y)} };
+    return full_mv;
+}
+
+static AOM_INLINE Mv get_mv_from_fullmv(const Mv *full_mv) {
+    const Mv subpel_mv = { {(int16_t)GET_MV_SUBPEL(full_mv->x), (int16_t)GET_MV_SUBPEL(full_mv->y)} };
+    return subpel_mv;
+}
+#else
 static const MV         kZeroMv     = {0, 0};
 static const FULLPEL_MV kZeroFullMv = {0, 0};
 static INLINE int       is_zero_mv(const MV *mv) { return *((const uint32_t *)mv) == 0; }
@@ -59,16 +80,27 @@ static AOM_INLINE MV get_mv_from_fullmv(const FULLPEL_MV *full_mv) {
     const MV subpel_mv = {(int16_t)GET_MV_SUBPEL(full_mv->row), (int16_t)GET_MV_SUBPEL(full_mv->col)};
     return subpel_mv;
 }
-
+#endif
+#endif
 typedef struct OisMbResults {
     int64_t intra_cost;
     int32_t intra_mode;
 } OisMbResults;
+#if !CLN_MOVE_MV_FIELDS
+#if CLN_UNIFY_MV_TYPE
+typedef struct CandidateMv {
+    Mv this_mv;
+    Mv comp_mv;
+    int32_t weight;
+} CandidateMv;
+#else
 typedef struct CandidateMv {
     IntMv   this_mv;
     IntMv   comp_mv;
     int32_t weight;
 } CandidateMv;
+#endif
+#endif
 
 typedef struct TileInfo {
     int32_t mi_row_start, mi_row_end;
@@ -118,8 +150,18 @@ typedef struct BlockModeInfo {
    * \name Inter Mode Info
    ****************************************************************************/
    /**@{*/
+#if CLN_MV_IDX
+   /*! \brief The motion vectors used by the current inter mode. Unipred MV stored
+   in idx 0.*/
+    Mv mv[2];
+#else
    /*! \brief The motion vectors used by the current inter mode */
+#if CLN_UNIFY_MV_TYPE
+    Mv mv[2];
+#else
     IntMv mv[2];
+#endif
+#endif
     /*! \brief The reference frames for the MV */
     MvReferenceFrame ref_frame[2];
     /*! \brief Filter used in subpel interpolation. */
@@ -137,7 +179,11 @@ typedef struct BlockModeInfo {
     /*! \brief The type of intra mode used by inter-intra */
     InterIntraMode interintra_mode;
     /*! \brief The type of wedge used in interintra mode. */
+#if CLN_MBMI_IN_CAND
+    int8_t interintra_wedge_index;
+#else
     uint8_t interintra_wedge_index;
+#endif
 
 
     /*****************************************************************************
@@ -350,6 +396,24 @@ typedef struct MbModeInfo {
     int8_t              cdef_strength;
 } MbModeInfo;
 
+#if CLN_MOVE_FUNCS
+static AOM_INLINE int has_second_ref(const BlockModeInfo* block_mi) {
+    return block_mi->ref_frame[1] > INTRA_FRAME;
+}
+
+static AOM_INLINE int has_uni_comp_refs(const BlockModeInfo* block_mi) {
+    return has_second_ref(block_mi) &&
+        (!((block_mi->ref_frame[0] >= BWDREF_FRAME) ^ (block_mi->ref_frame[1] >= BWDREF_FRAME)));
+}
+
+static AOM_INLINE int is_intrabc_block(const BlockModeInfo* block_mi) {
+    return block_mi->use_intrabc;
+}
+
+static AOM_INLINE int is_inter_block(const BlockModeInfo* block_mi) {
+    return is_intrabc_block(block_mi) || block_mi->ref_frame[0] > INTRA_FRAME;
+}
+#endif
 void svt_av1_tile_set_col(TileInfo *tile, const TilesInfo *tiles_info, int32_t mi_cols, int col);
 void svt_av1_tile_set_row(TileInfo *tile, TilesInfo *tiles_info, int32_t mi_rows, int row);
 

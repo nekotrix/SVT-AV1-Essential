@@ -779,10 +779,17 @@ INSTANTIATE_TEST_SUITE_P(
  *
  */
 
+#if FIX_CDEF_MSE
+using ComputeCdefDist16BitFunc =
+    uint64_t (*)(const uint16_t *dst, int32_t dstride, const uint16_t *src,
+                 const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
+                 int32_t coeff_shift, uint8_t subsampling_factor);
+#else
 using ComputeCdefDist16BitFunc =
     uint64_t (*)(const uint16_t *dst, int32_t dstride, const uint16_t *src,
                  const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
                  int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor);
+#endif
 
 class CDEFComputeCdefDist16Bit
     : public testing::TestWithParam<ComputeCdefDist16BitFunc> {
@@ -842,7 +849,9 @@ class CDEFComputeCdefDist16Bit
                                                                   cdef_count,
                                                                   test_bs[i],
                                                                   coeff_shift,
+#if !FIX_CDEF_MSE
                                                                   plane,
+#endif
                                                                   subsampling);
 
                             const uint64_t test_mse = test_func_(dst_data_,
@@ -852,7 +861,9 @@ class CDEFComputeCdefDist16Bit
                                                                  cdef_count,
                                                                  test_bs[i],
                                                                  coeff_shift,
+#if !FIX_CDEF_MSE
                                                                  plane,
+#endif
                                                                  subsampling);
                             ASSERT_EQ(ref_mse, test_mse)
                                 << "svt_aom_compute_cdef_dist_16bit_opt failed "
@@ -896,10 +907,17 @@ INSTANTIATE_TEST_SUITE_P(
 #endif  // HAVE_SVE
 #endif  // ARCH_AARCH64
 
+#if FIX_CDEF_MSE
+using ComputeCdefDist8BitFunc =
+    uint64_t (*)(const uint8_t *dst8, int32_t dstride, const uint8_t *src8,
+                 const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
+                 int32_t coeff_shift, uint8_t subsampling_factor);
+#else
 using ComputeCdefDist8BitFunc =
     uint64_t (*)(const uint8_t *dst8, int32_t dstride, const uint8_t *src8,
                  const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
                  int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor);
+#endif
 
 class CDEFComputeCdefDist8BitTest
     : public ::testing::TestWithParam<ComputeCdefDist8BitFunc> {
@@ -959,7 +977,9 @@ class CDEFComputeCdefDist8BitTest
                                                                  cdef_count,
                                                                  test_bs[i],
                                                                  coeff_shift,
+#if !FIX_CDEF_MSE
                                                                  plane,
+#endif
                                                                  subsampling);
 
                             const uint64_t test_mse = test_func_(dst_data_,
@@ -969,7 +989,9 @@ class CDEFComputeCdefDist8BitTest
                                                                  cdef_count,
                                                                  test_bs[i],
                                                                  coeff_shift,
+#if !FIX_CDEF_MSE
                                                                  plane,
+#endif
                                                                  subsampling);
                             ASSERT_EQ(ref_mse, test_mse)
                                 << "svt_aom_compute_cdef_dist_8bit_opt failed "

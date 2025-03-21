@@ -79,9 +79,13 @@ typedef enum InterCandGroup {
     WARP_GROUP,
     OBMC_GROUP,
     INTER_INTRA_GROUP,
+#if CLN_COMPOUND_CHECKS
+    INTER_COMP_GROUP, // dist, diff, wedge
+#else
     COMP_DIST,
     COMP_DIFF,
     COMP_WEDGE,
+#endif
     TOT_INTER_GROUP
 } InterCandGroup;
 #if OPT_COMPOUND
@@ -327,7 +331,7 @@ typedef struct DepthRefinementCtrls {
     // Modulate sub/parent-to-current TH using QP. 0 is off; lower is more aggressive.
     uint32_t q_weight;
 #endif
-    // Handling mode for cases where PD0 information is unavailable   
+    // Handling mode for cases where PD0 information is unavailable
     // 0 - use default s_depth and e_depth
     // 1 - cap s_depth and e_depth to -1 and 1
     // 2 - set s_depth and e_depth to 0
@@ -812,8 +816,16 @@ typedef struct InterpolationSearchCtrls {
     uint8_t skip_sse_rd_model;
 } InterpolationSearchCtrls;
 typedef struct SpatialSSECtrls {
+#if TUNE_MR_2
+    // Specifies the MD Stage where the spatial SSE will start being used in the full loop (SSSE_MDS1, SSSE_MDS2, or
+    // SSSE_MDS3 for respectively MD Stage 1, MD Stage 2, and MD Stage 3).  Spatial SSE will also be enabled
+    // in all subsequent MD stages, beyond the stage in which it’s first enabled.  For example, if set to SSSE_MDS2,
+    // spatial SSE would be enabled in MDS2 and MDS3.
+    SpatialSseLevel level;
+#else
     // enable spatial-sse for each superblock
     bool spatial_sse_full_loop_level;
+#endif
 } SpatialSSECtrls;
 typedef struct RedundantCandCtrls {
     int score_th;
@@ -1008,6 +1020,21 @@ typedef struct FilterIntraCtrls {
 #endif
 } FilterIntraCtrls;
 
+#if CLN_UNIFY_MV_TYPE
+typedef struct CompoundPredictionStore {
+    //avoid doing Unipred prediction for redundant MV
+    //example: NRST_NRST:  (0,0) (1,2)
+    //         NEAR_NEAR:  (1,0) (1,2)
+    //pred1 for NEAR_NEAR could be retrived from  NRST_NRST
+    uint8_t  pred0_cnt; //actual size for available predictions
+    uint8_t *pred0_buf[4]; //stores prediction for up to 4 different MVs (NEAREST + 3 NEAR)
+    Mv    pred0_mv[4]; //MVs for availble predictions
+
+    uint8_t  pred1_cnt;
+    uint8_t *pred1_buf[4];
+    Mv    pred1_mv[4];
+} CompoundPredictionStore;
+#else
 typedef struct CompoundPredictionStore {
     //avoid doing Unipred prediction for redundant MV
     //example: NRST_NRST:  (0,0) (1,2)
@@ -1021,6 +1048,7 @@ typedef struct CompoundPredictionStore {
     uint8_t *pred1_buf[4];
     IntMv    pred1_mv[4];
 } CompoundPredictionStore;
+#endif
 
 typedef struct ModeDecisionContext {
     EbDctor dctor;
@@ -1150,13 +1178,30 @@ typedef struct ModeDecisionContext {
     uint16_t         *cfl_temp_luma_recon16bit;
     bool              blk_skip_decision;
     int8_t            rdoq_level;
+#if CLN_MV_ARRAYS
+    Mv                sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
+#else
     int16_t           sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
+#endif
     // Store ME MV of the square to use with NSQ shapes; 4x4 will also use the 8x8 ME MVs
+#if CLN_MV_ARRAYS
+    Mv sq_sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
+#else
     int16_t  sq_sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
+#endif
+#if CLN_UNIFY_MV_TYPE
+    Mv       fp_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+    Mv       sub_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+#else
     MV       fp_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     MV       sub_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+#endif
     uint32_t post_subpel_me_mv_cost[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+#if CLN_MV_ARRAYS
+    Mv best_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
+#else
     int16_t  best_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
+#endif
     int8_t   valid_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
     // Store MVP during MD search - only results are forwarded to encdec
     CandidateMv ref_mv_stack[MODE_CTX_REF_FRAMES][MAX_REF_MV_STACK_SIZE];
@@ -1298,7 +1343,11 @@ typedef struct ModeDecisionContext {
     EbPictureBufferDesc *temp_residual;
     EbPictureBufferDesc *temp_recon_ptr;
     // Array for all nearest/near MVs for a block for single ref case
+#if CLN_UNIFY_MV_TYPE
+    Mv mvp_array[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH][MAX_MVP_CANIDATES];
+#else
     MV mvp_array[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH][MAX_MVP_CANIDATES];
+#endif
     // Count of all nearest/near MVs for a block for single ref case
     int8_t   mvp_count[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     uint16_t best_fp_mvp_idx[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
@@ -1310,7 +1359,11 @@ typedef struct ModeDecisionContext {
     int16_t         sprs_lev0_start_y;
     int16_t         sprs_lev0_end_y;
     NicCtrls        nic_ctrls;
+#if CLN_UNIFY_MV_TYPE
+    Mv              ref_mv;
+#else
     MV              ref_mv;
+#endif
     uint16_t        sb_index;
     uint64_t        mds0_best_cost_per_class[CAND_CLASS_TOTAL];
     uint64_t        mds0_best_cost;
@@ -1427,7 +1480,12 @@ typedef void (*EbAv1LambdaAssignFunc)(PictureControlSet *pcs, uint32_t *fast_lam
  * Extern Function Declarations
  **************************************/
 extern EbErrorType svt_aom_mode_decision_context_ctor(
+#if TUNE_MR_2
+    ModeDecisionContext *ctx, SequenceControlSet *scs, EbColorFormat color_format, uint8_t sb_size, EncMode enc_mode,
+    uint16_t max_block_cnt,
+#else
     ModeDecisionContext *ctx, EbColorFormat color_format, uint8_t sb_size, EncMode enc_mode, uint16_t max_block_cnt,
+#endif
     uint32_t encoder_bit_depth, EbFifo *mode_decision_configuration_input_fifo_ptr,
     EbFifo *mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision, uint8_t cfg_palette, uint8_t seq_qp_mod);
 

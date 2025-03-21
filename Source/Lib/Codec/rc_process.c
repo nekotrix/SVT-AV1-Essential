@@ -924,6 +924,10 @@ static int8_t non_base_boost(PictureControlSet *pcs) {
  ******************************************************/
 static int cqp_qindex_calc(PictureControlSet *pcs, int qindex) {
     SequenceControlSet *scs = pcs->ppcs->scs;
+#if OPT_ALLINTRA
+    if (scs->allintra)
+        return qindex;
+#endif
     int                 q;
     const int           bit_depth = scs->static_config.encoder_bit_depth;
 
@@ -962,8 +966,12 @@ static int cqp_qindex_calc(PictureControlSet *pcs, int qindex) {
         ? q_val
         : MAX(q_val - (q_val * percents[pcs->ppcs->hierarchical_levels <= 4][offset_idx] / 100), 0.0);
 
+#if CLN_REMOVE_LDP
+    if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+#else
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_P ||
         scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
+#endif
         if (pcs->ppcs->temporal_layer_index) {
             int8_t boost = non_base_boost(pcs);
             if (boost)

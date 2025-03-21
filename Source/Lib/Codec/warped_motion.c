@@ -362,8 +362,13 @@ static int is_affine_shear_allowed(int16_t alpha, int16_t beta, int16_t gamma, i
         return 1;
 }
 
+#if CLN_MV_UNIT
+static int find_affine_int(int np, const int *pts1, const int *pts2, BlockSize bsize, Mv mv,
+                           EbWarpedMotionParams *wm, int mi_row, int mi_col) {
+#else
 static int find_affine_int(int np, const int *pts1, const int *pts2, BlockSize bsize, int mvy, int mvx,
                            EbWarpedMotionParams *wm, int mi_row, int mi_col) {
+#endif
     int32_t A[2][2] = {{0, 0}, {0, 0}};
     int32_t bx[2]   = {0, 0};
     int32_t by[2]   = {0, 0};
@@ -375,8 +380,13 @@ static int find_affine_int(int np, const int *pts1, const int *pts2, BlockSize b
     const int rsux = (AOMMAX(bw, MI_SIZE) / 2 - 1);
     const int suy  = rsuy * 8;
     const int sux  = rsux * 8;
+#if CLN_MV_UNIT
+    const int duy  = suy + mv.y;
+    const int dux  = sux + mv.x;
+#else
     const int duy  = suy + mvy;
     const int dux  = sux + mvx;
+#endif
     const int isuy = (mi_row * MI_SIZE + rsuy);
     const int isux = (mi_col * MI_SIZE + rsux);
 
@@ -459,16 +469,37 @@ static int find_affine_int(int np, const int *pts1, const int *pts2, BlockSize b
     // 2nd and 3rd terms are (2^16 - 1) * (2^13 - 1). That leaves enough room
     // for the first term so that the overall sum in the worst case fits
     // within 32 bits overall.
+#if CLN_MV_UNIT
+    int32_t vx = mv.x * (1 << (WARPEDMODEL_PREC_BITS - 3)) -
+        (isux * (wm->wmmat[2] - (1 << WARPEDMODEL_PREC_BITS)) + isuy * wm->wmmat[3]);
+    int32_t vy = mv.y * (1 << (WARPEDMODEL_PREC_BITS - 3)) -
+        (isux * wm->wmmat[4] + isuy * (wm->wmmat[5] - (1 << WARPEDMODEL_PREC_BITS)));
+#else
     int32_t vx = mvx * (1 << (WARPEDMODEL_PREC_BITS - 3)) -
         (isux * (wm->wmmat[2] - (1 << WARPEDMODEL_PREC_BITS)) + isuy * wm->wmmat[3]);
     int32_t vy = mvy * (1 << (WARPEDMODEL_PREC_BITS - 3)) -
         (isux * wm->wmmat[4] + isuy * (wm->wmmat[5] - (1 << WARPEDMODEL_PREC_BITS)));
+#endif
     wm->wmmat[0] = clamp(vx, -WARPEDMODEL_TRANS_CLAMP, WARPEDMODEL_TRANS_CLAMP - 1);
     wm->wmmat[1] = clamp(vy, -WARPEDMODEL_TRANS_CLAMP, WARPEDMODEL_TRANS_CLAMP - 1);
 
     return 0;
 }
 
+#if CLN_MV_UNIT
+bool svt_find_projection(int np, int *pts1, int *pts2, BlockSize bsize, Mv mv,
+                         EbWarpedMotionParams *wm_params, int mi_row, int mi_col) {
+    if (find_affine_int(np, pts1, pts2, bsize, mv, wm_params, mi_row, mi_col)) {
+        return 1;
+    }
+
+    // check compatibility with the fast warp filter
+    if (!svt_get_shear_params(wm_params))
+        return 1;
+
+    return 0;
+}
+#else
 bool svt_find_projection(int np, int *pts1, int *pts2, BlockSize bsize, int mvy, int mvx,
                          EbWarpedMotionParams *wm_params, int mi_row, int mi_col) {
     if (find_affine_int(np, pts1, pts2, bsize, mvy, mvx, wm_params, mi_row, mi_col)) {
@@ -481,6 +512,7 @@ bool svt_find_projection(int np, int *pts1, int *pts2, BlockSize bsize, int mvy,
 
     return 0;
 }
+#endif
 
 /* The warp filter for ROTZOOM and AFFINE models works as follows:
    * Split the input into 8x8 blocks
@@ -921,6 +953,42 @@ int svt_get_shear_params(EbWarpedMotionParams *wm) {
 }
 
 #if CLN_WM_CTRLS
+#if CLN_UNIFY_MV_TYPE
+// Select samples according to the motion vector difference.
+#if CLN_MV_UNIT
+uint8_t svt_aom_select_samples(Mv mv, int* pts, int* pts_inref, int len, BlockSize bsize) {
+    const int bw = block_size_wide[bsize];
+    const int bh = block_size_high[bsize];
+    const int thresh = clamp(AOMMAX(bw, bh), 16, 112);
+    uint8_t ret = 0;
+
+    // Only keep the samples with MV differences within threshold.
+    for (int i = 0; i < len; ++i) {
+        const int diff = abs(pts_inref[2 * i] - pts[2 * i] - mv.x) +
+            abs(pts_inref[2 * i + 1] - pts[2 * i + 1] - mv.y);
+#else
+uint8_t svt_aom_select_samples(Mv* mv, int* pts, int* pts_inref, int len, BlockSize bsize) {
+    const int bw = block_size_wide[bsize];
+    const int bh = block_size_high[bsize];
+    const int thresh = clamp(AOMMAX(bw, bh), 16, 112);
+    uint8_t ret = 0;
+
+    // Only keep the samples with MV differences within threshold.
+    for (int i = 0; i < len; ++i) {
+        const int diff = abs(pts_inref[2 * i] - pts[2 * i] - mv->x) +
+            abs(pts_inref[2 * i + 1] - pts[2 * i + 1] - mv->y);
+#endif
+        if (diff > thresh) continue;
+        if (ret != i) {
+            memcpy(pts + 2 * ret, pts + 2 * i, 2 * sizeof(pts[0]));
+            memcpy(pts_inref + 2 * ret, pts_inref + 2 * i, 2 * sizeof(pts_inref[0]));
+        }
+        ++ret;
+    }
+    // Keep at least 1 sample.
+    return AOMMAX(ret, 1);
+}
+#else
 // Select samples according to the motion vector difference.
 uint8_t svt_aom_select_samples(MV *mv, int *pts, int *pts_inref, int len, BlockSize bsize) {
     const int bw     = block_size_wide[bsize];
@@ -942,6 +1010,7 @@ uint8_t svt_aom_select_samples(MV *mv, int *pts, int *pts_inref, int len, BlockS
     // Keep at least 1 sample.
     return AOMMAX(ret, 1);
 }
+#endif
 #else
 // Select samples according to the motion vector difference.
 int svt_aom_select_samples(MV *mv, int *pts, int *pts_inref, int len, BlockSize bsize) {

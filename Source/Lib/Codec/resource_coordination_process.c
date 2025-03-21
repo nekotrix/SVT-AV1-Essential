@@ -1136,7 +1136,11 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
 #if OPT_LD_LATENCY2
             // Get Empty Output Results Object
             // For the low delay mode, buffering for receiving EOS does not happen
+#if CLN_REMOVE_LDP
+            if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+#else
             if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
+#endif
                 PictureParentControlSet *ppcs_out = pcs;
 
                 ppcs_out->end_of_sequence_flag = end_of_sequence_flag;

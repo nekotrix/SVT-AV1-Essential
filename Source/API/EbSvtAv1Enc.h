@@ -173,6 +173,21 @@ typedef enum EbSFrameMode {
         2, /**< If the considered frame is not an altref frame, the next base layer inter frame will be made into an S-Frame */
 } EbSFrameMode;
 
+#if CLN_REMOVE_LDP
+/* Indicates what prediction structure to use
+ * was PredStructure in definitions.h
+ *
+ * SVT_AV1_PRED_UNUSED is not used, and not supported in the code. It is a placeholder after removing SVT_AV1_PRED_LOW_DELAY_P
+ * so that the values for --pred-struct don't need to change.
+ */
+typedef enum SvtAv1PredStructure {
+    SVT_AV1_PRED_UNUSED        = 0, // Do not use
+    SVT_AV1_PRED_LOW_DELAY     = 1,
+    SVT_AV1_PRED_RANDOM_ACCESS = 2,
+    SVT_AV1_PRED_TOTAL_COUNT   = 3,
+    SVT_AV1_PRED_INVALID       = 0xFF,
+} SvtAv1PredStructure;
+#else
 /* Indicates what prediction structure to use
  * was PredStructure in definitions.h
  * Only SVT_AV1_PRED_LOW_DELAY_B and SVT_AV1_PRED_RANDOM_ACCESS are valid
@@ -184,6 +199,7 @@ typedef enum SvtAv1PredStructure {
     SVT_AV1_PRED_TOTAL_COUNT   = 3,
     SVT_AV1_PRED_INVALID       = 0xFF,
 } SvtAv1PredStructure;
+#endif
 
 /* Indicates what rate control mode is used.
  * Currently, cqp is distinguised by setting enable_adaptive_quantization to 0
@@ -939,9 +955,19 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is false.
      */
     bool avif;
+#if FTR_RTC_MODE
+    /* @brief Signal to the library to enable real-time coding
+     *
+     * Default is false.
+     */
+    bool rtc_mode;
 
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
+    uint8_t padding[128 - sizeof(bool)];
+#else
+    /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128];
+#endif
 } EbSvtAv1EncConfiguration;
 
 /**

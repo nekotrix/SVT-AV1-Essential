@@ -38,13 +38,13 @@ static void mem_put_varsize(uint8_t *const dst, const int sz, const int val) {
     default: assert(0 && "Invalid size"); break;
     }
 }
-
+#if !CLN_MOVE_FUNCS
 int svt_aom_has_second_ref(const MbModeInfo *mbmi) { return mbmi->block_mi.ref_frame[1] > INTRA_FRAME; }
 int svt_aom_has_uni_comp_refs(const MbModeInfo *mbmi) {
     return svt_aom_has_second_ref(mbmi) &&
         (!((mbmi->block_mi.ref_frame[0] >= BWDREF_FRAME) ^ (mbmi->block_mi.ref_frame[1] >= BWDREF_FRAME)));
 }
-
+#endif
 int svt_aom_get_comp_index_context_enc(PictureParentControlSet *pcs, int cur_frame_index, int bck_frame_index,
                                        int fwd_frame_index, const MacroBlockD *xd) {
     const int fwd = abs(svt_aom_get_relative_dist_enc(&pcs->scs->seq_header, fwd_frame_index, cur_frame_index));
@@ -56,14 +56,22 @@ int svt_aom_get_comp_index_context_enc(PictureParentControlSet *pcs, int cur_fra
     int                     above_ctx = 0, left_ctx = 0;
 
     if (above_mi) {
+#if CLN_MOVE_FUNCS
+        if (has_second_ref(&above_mi->block_mi))
+#else
         if (svt_aom_has_second_ref(above_mi))
+#endif
             above_ctx = above_mi->block_mi.compound_idx;
         else if (above_mi->block_mi.ref_frame[0] == ALTREF_FRAME)
             above_ctx = 1;
     }
 
     if (left_mi) {
+#if CLN_MOVE_FUNCS
+        if (has_second_ref(&left_mi->block_mi))
+#else
         if (svt_aom_has_second_ref(left_mi))
+#endif
             left_ctx = left_mi->block_mi.compound_idx;
         else if (left_mi->block_mi.ref_frame[0] == ALTREF_FRAME)
             left_ctx = 1;
@@ -76,13 +84,21 @@ int svt_aom_get_comp_group_idx_context_enc(const MacroBlockD *xd) {
     const MbModeInfo *const left_mi   = xd->left_mbmi;
     int                     above_ctx = 0, left_ctx = 0;
     if (above_mi) {
+#if CLN_MOVE_FUNCS
+        if (has_second_ref(&above_mi->block_mi))
+#else
         if (svt_aom_has_second_ref(above_mi))
+#endif
             above_ctx = above_mi->block_mi.comp_group_idx;
         else if (above_mi->block_mi.ref_frame[0] == ALTREF_FRAME)
             above_ctx = 3;
     }
     if (left_mi) {
+#if CLN_MOVE_FUNCS
+        if (has_second_ref(&left_mi->block_mi))
+#else
         if (svt_aom_has_second_ref(left_mi))
+#endif
             left_ctx = left_mi->block_mi.comp_group_idx;
         else if (left_mi->block_mi.ref_frame[0] == ALTREF_FRAME)
             left_ctx = 3;
@@ -1595,9 +1611,16 @@ static MvJointType av1_get_mv_joint_diff(int32_t diff[2]) {
         return diff[1] == 0 ? MV_JOINT_HZVNZ : MV_JOINT_HNZVNZ;
 }
 
+#if CLN_UNIFY_MV_TYPE
+void svt_av1_encode_mv(PictureParentControlSet *pcs, AomWriter *ec_writer, const Mv *mv, const Mv *ref,
+                       NmvContext *mvctx, int32_t usehp) {
+    // The y-component (row component) of the MV is coded first
+    int32_t           diff[2] = {mv->y - ref->y, mv->x - ref->x};
+#else
 void svt_av1_encode_mv(PictureParentControlSet *pcs, AomWriter *ec_writer, const MV *mv, const MV *ref,
                        NmvContext *mvctx, int32_t usehp) {
     int32_t           diff[2] = {mv->row - ref->row, mv->col - ref->col};
+#endif
     const MvJointType j       = av1_get_mv_joint_diff(diff);
 
     if (pcs->frm_hdr.force_integer_mv)
@@ -1687,6 +1710,37 @@ int svt_aom_get_pred_context_switchable_interp(MvReferenceFrame rf0, MvReference
     }
     return filter_type_ctx;
 }
+#if FIX_IFS_MDS0
+int svt_aom_is_nontrans_global_motion(const BlockModeInfo* block_mi, const BlockSize bsize, PictureParentControlSet* pcs) {
+
+    // First check if all modes are GLOBALMV
+    if (block_mi->mode != GLOBALMV && block_mi->mode != GLOBAL_GLOBALMV)
+        return 0;
+
+    if (MIN(mi_size_wide[bsize], mi_size_high[bsize]) < 2)
+        return 0;
+    const uint8_t is_compound = is_inter_compound_mode(block_mi->mode);
+    // Now check if all global motion is non translational
+    for (int ref = 0; ref < 1 + is_compound; ++ref) {
+        if (pcs->global_motion[block_mi->ref_frame[ref]].wmtype == TRANSLATION)
+            return 0;
+    }
+    return 1;
+}
+
+static int av1_is_interp_needed(const BlockModeInfo* block_mi, const BlockSize bsize, PictureParentControlSet* pcs) {
+    if (block_mi->skip_mode)
+        return 0;
+
+    if (block_mi->motion_mode == WARPED_CAUSAL)
+        return 0;
+
+    if (svt_aom_is_nontrans_global_motion(block_mi, bsize, pcs))
+        return 0;
+
+    return 1;
+}
+#else
 int svt_aom_is_nontrans_global_motion_ec(MvReferenceFrame rf0, MvReferenceFrame rf1, PredictionMode pred_mode,
                                          BlockSize bsize, PictureParentControlSet *pcs) {
     int32_t ref;
@@ -1705,6 +1759,7 @@ int svt_aom_is_nontrans_global_motion_ec(MvReferenceFrame rf0, MvReferenceFrame 
     }
     return 1;
 }
+
 static int av1_is_interp_needed(MvReferenceFrame rf0, MvReferenceFrame rf1, uint8_t skip_mode, MotionMode motion_mode,
                                 PredictionMode pred_mode, BlockSize bsize, PictureParentControlSet *pcs) {
     if (skip_mode)
@@ -1718,18 +1773,23 @@ static int av1_is_interp_needed(MvReferenceFrame rf0, MvReferenceFrame rf1, uint
 
     return 1;
 }
+#endif
 static void write_mb_interp_filter(BlockSize bsize, MvReferenceFrame rf0, MvReferenceFrame rf1,
                                    PictureParentControlSet *pcs, AomWriter *ec_writer, MbModeInfo *mbmi,
                                    EcBlkStruct *blk_ptr, EntropyCoder *ec) {
     FrameHeader *const frm_hdr = &pcs->frm_hdr;
 
     if (frm_hdr->interpolation_filter != SWITCHABLE ||
+#if FIX_IFS_MDS0
+        !av1_is_interp_needed(&mbmi->block_mi, bsize, pcs)) {
+#else
 #if CLN_MOVE_FIELDS_MBMI
         !av1_is_interp_needed(
             rf0, rf1, mbmi->block_mi.skip_mode, mbmi->block_mi.motion_mode, mbmi->block_mi.mode, bsize, pcs)) {
 #else
         !av1_is_interp_needed(
             rf0, rf1, mbmi->block_mi.skip_mode, blk_ptr->motion_mode, mbmi->block_mi.mode, bsize, pcs)) {
+#endif
 #endif
         return;
     }
@@ -1825,6 +1885,15 @@ int svt_aom_get_comp_reference_type_context_new(const MacroBlockD *xd) {
         } else if (above_intra || left_intra) { // intra/inter
             const MbModeInfo *inter_mbmi = above_intra ? left_mbmi : above_mbmi;
 
+#if CLN_MOVE_FUNCS
+            if (!has_second_ref(&inter_mbmi->block_mi)) // single pred
+                pred_context = 2;
+            else // comp pred
+                pred_context = 1 + 2 * has_uni_comp_refs(&inter_mbmi->block_mi);
+        } else { // inter/inter
+            const int              a_sg = !has_second_ref(&above_mbmi->block_mi);
+            const int              l_sg = !has_second_ref(&left_mbmi->block_mi);
+#else
             if (!svt_aom_has_second_ref(inter_mbmi)) // single pred
                 pred_context = 2;
             else // comp pred
@@ -1832,21 +1901,31 @@ int svt_aom_get_comp_reference_type_context_new(const MacroBlockD *xd) {
         } else { // inter/inter
             const int              a_sg = !svt_aom_has_second_ref(above_mbmi);
             const int              l_sg = !svt_aom_has_second_ref(left_mbmi);
+#endif
             const MvReferenceFrame frfa = above_mbmi->block_mi.ref_frame[0];
             const MvReferenceFrame frfl = left_mbmi->block_mi.ref_frame[0];
 
             if (a_sg && l_sg) { // single/single
                 pred_context = 1 + 2 * (!(IS_BACKWARD_REF_FRAME(frfa) ^ IS_BACKWARD_REF_FRAME(frfl)));
             } else if (l_sg || a_sg) { // single/comp
+#if CLN_MOVE_FUNCS
+                const int uni_rfc = a_sg ? has_uni_comp_refs(&left_mbmi->block_mi) : has_uni_comp_refs(&above_mbmi->block_mi);
+#else
                 const int uni_rfc = a_sg ? svt_aom_has_uni_comp_refs(left_mbmi) : svt_aom_has_uni_comp_refs(above_mbmi);
+#endif
 
                 if (!uni_rfc) // comp bidir
                     pred_context = 1;
                 else // comp unidir
                     pred_context = 3 + (!(IS_BACKWARD_REF_FRAME(frfa) ^ IS_BACKWARD_REF_FRAME(frfl)));
             } else { // comp/comp
+#if CLN_MOVE_FUNCS
+                const int a_uni_rfc = has_uni_comp_refs(&above_mbmi->block_mi);
+                const int l_uni_rfc = has_uni_comp_refs(&left_mbmi->block_mi);
+#else
                 const int a_uni_rfc = svt_aom_has_uni_comp_refs(above_mbmi);
                 const int l_uni_rfc = svt_aom_has_uni_comp_refs(left_mbmi);
+#endif
 
                 if (!a_uni_rfc && !l_uni_rfc) // bidir/bidir
                     pred_context = 0;
@@ -1862,10 +1941,17 @@ int svt_aom_get_comp_reference_type_context_new(const MacroBlockD *xd) {
         if (!is_inter_block(&edge_mbmi->block_mi)) { // intra
             pred_context = 2;
         } else { // inter
+#if CLN_MOVE_FUNCS
+            if (!has_second_ref(&edge_mbmi->block_mi)) // single pred
+                pred_context = 2;
+            else // comp pred
+                pred_context = 4 * has_uni_comp_refs(&edge_mbmi->block_mi);
+#else
             if (!svt_aom_has_second_ref(edge_mbmi)) // single pred
                 pred_context = 2;
             else // comp pred
                 pred_context = 4 * svt_aom_has_uni_comp_refs(edge_mbmi);
+#endif
         }
     } else { // no edges available
         pred_context = 2;
@@ -1954,15 +2040,27 @@ int svt_aom_get_reference_mode_context_new(const MacroBlockD *xd) {
     // left of the entries corresponding to real macroblocks.
     // The prediction flags in these dummy entries are initialized to 0.
     if (has_above && has_left) { // both edges available
+#if CLN_MOVE_FUNCS
+        if (!has_second_ref(&above_mbmi->block_mi) && !has_second_ref(&left_mbmi->block_mi))
+#else
         if (!svt_aom_has_second_ref(above_mbmi) && !svt_aom_has_second_ref(left_mbmi))
+#endif
             // neither edge uses comp pred (0/1)
             ctx = IS_BACKWARD_REF_FRAME(above_mbmi->block_mi.ref_frame[0]) ^
                 IS_BACKWARD_REF_FRAME(left_mbmi->block_mi.ref_frame[0]);
+#if CLN_MOVE_FUNCS
+        else if (!has_second_ref(&above_mbmi->block_mi))
+#else
         else if (!svt_aom_has_second_ref(above_mbmi))
+#endif
             // one of two edges uses comp pred (2/3)
             ctx = 2 +
                 (IS_BACKWARD_REF_FRAME(above_mbmi->block_mi.ref_frame[0]) || !is_inter_block(&above_mbmi->block_mi));
+#if CLN_MOVE_FUNCS
+        else if (!has_second_ref(&left_mbmi->block_mi))
+#else
         else if (!svt_aom_has_second_ref(left_mbmi))
+#endif
             // one of two edges uses comp pred (2/3)
             ctx = 2 +
                 (IS_BACKWARD_REF_FRAME(left_mbmi->block_mi.ref_frame[0]) || !is_inter_block(&left_mbmi->block_mi));
@@ -1971,7 +2069,11 @@ int svt_aom_get_reference_mode_context_new(const MacroBlockD *xd) {
     } else if (has_above || has_left) { // one edge available
         const MbModeInfo *edge_mbmi = has_above ? above_mbmi : left_mbmi;
 
+#if CLN_MOVE_FUNCS
+        if (!has_second_ref(&edge_mbmi->block_mi))
+#else
         if (!svt_aom_has_second_ref(edge_mbmi))
+#endif
             // edge does not use comp pred (0/1)
             ctx = IS_BACKWARD_REF_FRAME(edge_mbmi->block_mi.ref_frame[0]);
         else
@@ -1996,14 +2098,22 @@ INLINE void svt_aom_collect_neighbors_ref_counts_new(MacroBlockD *const xd) {
     // Above neighbor
     if (above_in_image && is_inter_block(&above_mbmi->block_mi)) {
         ref_counts[above_mbmi->block_mi.ref_frame[0]]++;
+#if CLN_MOVE_FUNCS
+        if (has_second_ref(&above_mbmi->block_mi))
+#else
         if (svt_aom_has_second_ref(above_mbmi))
+#endif
             ref_counts[above_mbmi->block_mi.ref_frame[1]]++;
     }
 
     // Left neighbor
     if (left_in_image && is_inter_block(&left_mbmi->block_mi)) {
         ref_counts[left_mbmi->block_mi.ref_frame[0]]++;
+#if CLN_MOVE_FUNCS
+        if (has_second_ref(&left_mbmi->block_mi))
+#else
         if (svt_aom_has_second_ref(left_mbmi))
+#endif
             ref_counts[left_mbmi->block_mi.ref_frame[1]]++;
     }
 }
@@ -2181,7 +2291,11 @@ static void write_ref_frames(FRAME_CONTEXT *frame_context, PictureParentControlS
 #else
     const MbModeInfo *const mbmi        = &xd->mi[0]->mbmi;
 #endif
+#if CLN_MOVE_FUNCS
+    const int               is_compound = has_second_ref(&mbmi->block_mi);
+#else
     const int               is_compound = svt_aom_has_second_ref(mbmi);
+#endif
     UNUSED(frame_context);
     {
         // does the feature use compound prediction or not
@@ -2198,8 +2312,13 @@ static void write_ref_frames(FRAME_CONTEXT *frame_context, PictureParentControlS
         }
 
         if (is_compound) {
+#if CLN_MOVE_FUNCS
+            const CompReferenceType comp_ref_type = has_uni_comp_refs(&mbmi->block_mi) ? UNIDIR_COMP_REFERENCE
+                                                                                    : BIDIR_COMP_REFERENCE;
+#else
             const CompReferenceType comp_ref_type = svt_aom_has_uni_comp_refs(mbmi) ? UNIDIR_COMP_REFERENCE
                                                                                     : BIDIR_COMP_REFERENCE;
+#endif
             aom_write_symbol(w, comp_ref_type, svt_aom_get_comp_reference_type_cdf(xd), 2);
 
             if (comp_ref_type == UNIDIR_COMP_REFERENCE) {
@@ -4419,6 +4538,25 @@ static void write_palette_mode_info(PictureParentControlSet *ppcs, FRAME_CONTEXT
         aom_write_symbol(w, 0, ec_ctx->palette_uv_mode_cdf[palette_uv_mode_ctx], 2);
     }
 }
+#if CLN_UNIFY_MV_TYPE
+void svt_av1_encode_dv(AomWriter* w, const Mv* mv, const Mv* ref, NmvContext* mvctx) {
+    // DV and ref DV should not have sub-pel.
+    assert((mv->x & 7) == 0);
+    assert((mv->y & 7) == 0);
+    assert((ref->x & 7) == 0);
+    assert((ref->y & 7) == 0);
+    // The y-component (row component) of the MV is coded first
+    const Mv diff = { { mv->x - ref->x, mv->y - ref->y } };
+    const MvJointType j = svt_av1_get_mv_joint(&diff);
+
+    aom_write_symbol(w, j, mvctx->joints_cdf, MV_JOINTS);
+    if (mv_joint_vertical(j))
+        encode_mv_component(w, diff.y, &mvctx->comps[0], MV_SUBPEL_NONE);
+
+    if (mv_joint_horizontal(j))
+        encode_mv_component(w, diff.x, &mvctx->comps[1], MV_SUBPEL_NONE);
+}
+#else
 void svt_av1_encode_dv(AomWriter *w, const MV *mv, const MV *ref, NmvContext *mvctx) {
     // DV and ref DV should not have sub-pel.
     assert((mv->col & 7) == 0);
@@ -4435,6 +4573,7 @@ void svt_av1_encode_dv(AomWriter *w, const MV *mv, const MV *ref, NmvContext *mv
     if (mv_joint_horizontal(j))
         encode_mv_component(w, diff.col, &mvctx->comps[1], MV_SUBPEL_NONE);
 }
+#endif
 
 int svt_aom_allow_intrabc(const FrameHeader *frm_hdr, SliceType slice_type) {
     return (slice_type == I_SLICE && frm_hdr->allow_screen_content_tools && frm_hdr->allow_intrabc);
@@ -4446,10 +4585,16 @@ static void write_intrabc_info(FRAME_CONTEXT *ec_ctx, MbModeInfo *mbmi, EcBlkStr
         //assert(mbmi->mode == DC_PRED);
         //assert(mbmi->uv_mode == UV_DC_PRED);
         //assert(mbmi->motion_mode == SIMPLE_TRANSLATION);
+#if CLN_UNIFY_MV_TYPE
+        Mv dv_ref = blk_ptr->predmv[0];
+        Mv mv = mbmi->block_mi.mv[INTRA_FRAME];
+        svt_av1_encode_dv(w, &mv, &dv_ref, &ec_ctx->ndvc);
+#else
         IntMv dv_ref = blk_ptr->predmv[0]; // mbmi_ext->ref_mv_stack[INTRA_FRAME][0].this_mv;
         MV    mv;
         mv = mbmi->block_mi.mv[INTRA_FRAME].as_mv;
         svt_av1_encode_dv(w, &mv, &dv_ref.as_mv, &ec_ctx->ndvc);
+#endif
     }
 }
 
@@ -5335,6 +5480,35 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                     write_drl_idx(frame_context, ec_writer, mbmi, blk_ptr);
                 }
 
+#if CLN_UNIFY_MV_TYPE
+                if (inter_mode == NEWMV || inter_mode == NEW_NEWMV) {
+                    Mv ref_mv;
+
+                    for (uint8_t ref = 0; ref < 1 + is_compound; ++ref) {
+                        NmvContext *nmvc = &frame_context->nmvc;
+                        ref_mv           = blk_ptr->predmv[ref];
+
+                        Mv mv = mbmi->block_mi.mv[ref];
+
+                        svt_av1_encode_mv(
+                            pcs->ppcs, ec_writer, &mv, &ref_mv, nmvc, frm_hdr->allow_high_precision_mv);
+                    }
+                } else if (inter_mode == NEAREST_NEWMV || inter_mode == NEAR_NEWMV) {
+                    NmvContext *nmvc   = &frame_context->nmvc;
+                    Mv       ref_mv = blk_ptr->predmv[1];
+
+                    Mv mv = mbmi->block_mi.mv[1];
+
+                    svt_av1_encode_mv(pcs->ppcs, ec_writer, &mv, &ref_mv, nmvc, frm_hdr->allow_high_precision_mv);
+                } else if (inter_mode == NEW_NEARESTMV || inter_mode == NEW_NEARMV) {
+                    NmvContext *nmvc   = &frame_context->nmvc;
+                    Mv       ref_mv = blk_ptr->predmv[0];
+
+                    Mv mv = mbmi->block_mi.mv[0];
+
+                    svt_av1_encode_mv(pcs->ppcs, ec_writer, &mv, &ref_mv, nmvc, frm_hdr->allow_high_precision_mv);
+                }
+#else
                 if (inter_mode == NEWMV || inter_mode == NEW_NEWMV) {
                     IntMv ref_mv;
 
@@ -5365,8 +5539,13 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
 
                     svt_av1_encode_mv(pcs->ppcs, ec_writer, &mv, &ref_mv.as_mv, nmvc, frm_hdr->allow_high_precision_mv);
                 }
+#endif
+#if CLN_CAND_INJ // frm_hdr.reference_mode is never set to COMPOUND_REFERENCE; it can only signal single ref or select - see spec 6.8.23 (or 5.11.28 to show interintra does not depend on the reference mode)
+                if (scs->seq_header.enable_interintra_compound && svt_aom_is_interintra_allowed(mbmi)) {
+#else
                 if (pcs->ppcs->frm_hdr.reference_mode != COMPOUND_REFERENCE &&
                     scs->seq_header.enable_interintra_compound && svt_aom_is_interintra_allowed(mbmi)) {
+#endif
 #if CLN_MOVE_FIELDS_MBMI
                     if (mbmi->block_mi.is_interintra_used) {
                         rf[1]                       = INTRA_FRAME;
@@ -5438,7 +5617,11 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                 // First write idx to indicate current compound inter prediction mode group
                 // Group A (0): dist_wtd_comp, compound_average
                 // Group b (1): interintra, compound_diffwtd, wedge
+#if CLN_MOVE_FUNCS
+                if (has_second_ref(&mbmi->block_mi)) {
+#else
                 if (svt_aom_has_second_ref(mbmi)) {
+#endif
                     const int masked_compound_used = is_any_masked_compound_used(bsize) &&
                         scs->seq_header.enable_masked_compound;
 

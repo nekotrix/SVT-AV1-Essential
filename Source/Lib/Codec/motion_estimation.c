@@ -1665,8 +1665,13 @@ static void prehme_core(MeContext *me_ctx, int16_t org_x, int16_t org_y, uint32_
         sb_width,
         /* results */
         &prehme_data->sad,
+#if CLN_UNIFY_MV_TYPE
+        &prehme_data->best_mv.x,
+        &prehme_data->best_mv.y,
+#else
         &prehme_data->best_mv.as_mv.col,
         &prehme_data->best_mv.as_mv.row,
+#endif
         sixteenth_ref_pic_ptr->stride_y,
         me_ctx->prehme_ctrl.skip_search_line,
         search_area_width,
@@ -1675,10 +1680,17 @@ static void prehme_core(MeContext *me_ctx, int16_t org_x, int16_t org_y, uint32_
     prehme_data->sad = (me_ctx->hme_search_method == FULL_SAD_SEARCH)
         ? prehme_data->sad
         : prehme_data->sad * 2; // Multiply by 2 because considered only ever other line
+#if CLN_UNIFY_MV_TYPE
+    prehme_data->best_mv.x += x_search_area_origin;
+    prehme_data->best_mv.x *= 4; // Multiply by 4 because operating on 1/4 resolution
+    prehme_data->best_mv.y += y_search_area_origin;
+    prehme_data->best_mv.y *= 4; // Multiply by 4 because operating on 1/4 resolution
+#else
     prehme_data->best_mv.as_mv.col += x_search_area_origin;
     prehme_data->best_mv.as_mv.col *= 4; // Multiply by 4 because operating on 1/4 resolution
     prehme_data->best_mv.as_mv.row += y_search_area_origin;
     prehme_data->best_mv.as_mv.row *= 4; // Multiply by 4 because operating on 1/4 resolution
+#endif
     prehme_data->valid = 1;
     return;
 }
@@ -1713,14 +1725,32 @@ static bool check_prehme_early_exit(MeContext *me_ctx, uint8_t list_i, uint8_t r
 
     if (me_ctx->me_early_exit_th) {
         if (me_ctx->zz_sad[list_i][ref_i] < me_ctx->me_early_exit_th) {
+#if CLN_UNIFY_MV_TYPE
+            prehme_data->best_mv.as_int = 0;
+#else
             prehme_data->best_mv.as_mv.col = 0;
             prehme_data->best_mv.as_mv.row = 0;
+#endif
             prehme_data->sad               = 0;
             prehme_data->valid             = 1;
             return 1;
         }
     }
 
+#if CLN_UNIFY_MV_TYPE
+    if (me_ctx->prehme_ctrl.l1_early_exit) {
+        if (list_i == 1 && me_ctx->prehme_data[0][ref_i][sr_i].valid  &&
+            ((me_ctx->prehme_data[0][ref_i][sr_i].sad < (32 * 32)) ||
+             ((ABS(me_ctx->prehme_data[0][ref_i][sr_i].best_mv.x) < 16) &&
+              (ABS(me_ctx->prehme_data[0][ref_i][sr_i].best_mv.y) < 16)))) {
+            prehme_data->best_mv.x = -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.x;
+            prehme_data->best_mv.y = -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.y;
+            prehme_data->sad               = me_ctx->prehme_data[0][ref_i][sr_i].sad;
+            prehme_data->valid             = 1;
+            return 1;
+        }
+    }
+#else
     if (me_ctx->prehme_ctrl.l1_early_exit) {
         if (list_i == 1 && me_ctx->prehme_data[0][ref_i][sr_i].valid  &&
             ((me_ctx->prehme_data[0][ref_i][sr_i].sad < (32 * 32)) ||
@@ -1733,6 +1763,7 @@ static bool check_prehme_early_exit(MeContext *me_ctx, uint8_t list_i, uint8_t r
             return 1;
         }
     }
+#endif
     return 0;
 }
 
@@ -1761,8 +1792,12 @@ static void prehme_b64(PictureParentControlSet *pcs, uint32_t org_x, uint32_t or
 
                     SearchInfo *prehme_data = &me_ctx->prehme_data[list_i][ref_i][sr_i];
                     if (!me_ctx->search_results[list_i][ref_i].do_ref) {
+#if CLN_UNIFY_MV_TYPE
+                        prehme_data->best_mv.as_int = 0;
+#else
                         prehme_data->best_mv.as_mv.col = 0;
                         prehme_data->best_mv.as_mv.row = 0;
+#endif
                         prehme_data->sad = MAX_U32;
                         continue;
                     }
@@ -1787,10 +1822,17 @@ static void prehme_b64(PictureParentControlSet *pcs, uint32_t org_x, uint32_t or
             } else {
                 // PW: Does this account for base pictures
                 for (uint8_t sr_i = 0; sr_i < SEARCH_REGION_COUNT; sr_i++) {
+#if CLN_UNIFY_MV_TYPE
+                    me_ctx->prehme_data[1][ref_i][sr_i].best_mv.x =
+                        -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.x;
+                    me_ctx->prehme_data[1][ref_i][sr_i].best_mv.y =
+                        -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.y;
+#else
                     me_ctx->prehme_data[1][ref_i][sr_i].best_mv.as_mv.col =
                         -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.as_mv.col;
                     me_ctx->prehme_data[1][ref_i][sr_i].best_mv.as_mv.row =
                         -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.as_mv.row;
+#endif
                     me_ctx->prehme_data[1][ref_i][sr_i].sad = me_ctx->prehme_data[0][ref_i][sr_i].sad;
                 }
             }
@@ -1961,10 +2003,17 @@ static void hme_level0_b64(PictureParentControlSet *pcs, uint32_t org_x, uint32_
                     if (me_ctx->prehme_data[list_index][ref_pic_index][sr_i].sad < (me_ctx->prev_me_stage_based_exit_th >> 4)) {
                         for (uint32_t sr_idx_y = 0; sr_idx_y < me_ctx->num_hme_sa_h; sr_idx_y++) {
                             for (uint32_t sr_idx_x = 0; sr_idx_x < me_ctx->num_hme_sa_w; sr_idx_x++) {
+#if CLN_UNIFY_MV_TYPE
+                                me_ctx->x_hme_level0_search_center[list_index][ref_pic_index][sr_idx_x]
+                                    [sr_idx_y] = me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.x;
+                                me_ctx->y_hme_level0_search_center[list_index][ref_pic_index][sr_idx_x]
+                                    [sr_idx_y] = me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.y;
+#else
                                 me_ctx->x_hme_level0_search_center[list_index][ref_pic_index][sr_idx_x]
                                     [sr_idx_y] = me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.as_mv.col;
                                 me_ctx->y_hme_level0_search_center[list_index][ref_pic_index][sr_idx_x]
                                     [sr_idx_y] = me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.as_mv.row;
+#endif
                                 me_ctx->hme_level0_sad[list_index][ref_pic_index][sr_idx_x][sr_idx_y] = me_ctx->prehme_data[list_index][ref_pic_index][sr_i].sad;
                             }
                         }
@@ -2039,6 +2088,15 @@ static void hme_level0_b64(PictureParentControlSet *pcs, uint32_t org_x, uint32_
                         me_ctx->hme_level0_sad[list_index][ref_pic_index][sr_w_max][sr_h_max] =
                             me_ctx->prehme_data[list_index][ref_pic_index][sr_i].sad;
 
+#if CLN_UNIFY_MV_TYPE
+                        me_ctx->x_hme_level0_search_center[list_index][ref_pic_index][sr_w_max]
+                                                       [sr_h_max] =
+                            me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.x;
+
+                        me_ctx->y_hme_level0_search_center[list_index][ref_pic_index][sr_w_max]
+                                                       [sr_h_max] =
+                            me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.y;
+#else
                         me_ctx->x_hme_level0_search_center[list_index][ref_pic_index][sr_w_max]
                                                        [sr_h_max] =
                             me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.as_mv.col;
@@ -2046,6 +2104,7 @@ static void hme_level0_b64(PictureParentControlSet *pcs, uint32_t org_x, uint32_
                         me_ctx->y_hme_level0_search_center[list_index][ref_pic_index][sr_w_max]
                                                        [sr_h_max] =
                             me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.as_mv.row;
+#endif
                     }
                 }
             }

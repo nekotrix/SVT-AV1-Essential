@@ -73,5 +73,9 @@ uint8_t svt_aom_get_tpl_synthesizer_block_size(int8_t tpl_level, uint32_t pictur
 
 void svt_aom_set_mfmv_config(SequenceControlSet *scs);
 #if OPT_USE_EXP_HME_ME
+#if TUNE_MR_2
+void svt_aom_get_qp_based_th_scaling_factors(SequenceControlSet* scs, uint32_t *ret_q_weight, uint32_t *ret_q_weight_denom);
+#else
 void svt_aom_get_qp_based_th_scaling_factors(uint32_t qp, uint32_t* ret_q_weight, uint32_t* ret_q_weight_denom);
+#endif
 #endif

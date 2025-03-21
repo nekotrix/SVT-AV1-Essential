@@ -53,11 +53,19 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Source Height must be at least 4\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if CLN_REMOVE_LDP
+    if (config->pred_structure > SVT_AV1_PRED_RANDOM_ACCESS || config->pred_structure < SVT_AV1_PRED_LOW_DELAY) {
+#else
     if (config->pred_structure > 2 || config->pred_structure < 1) {
+#endif
         SVT_ERROR("Instance %u: Pred Structure must be [1 or 2]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if CLN_REMOVE_LDP
+    if (config->pred_structure == SVT_AV1_PRED_LOW_DELAY && config->pass > 0) {
+#else
     if (config->pred_structure == 1 && config->pass > 0) {
+#endif
         SVT_ERROR("Instance %u: Multi-passes is not support with Low Delay mode \n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
@@ -156,7 +164,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("CBR Rate control is currently not supported for SVT_AV1_PRED_RANDOM_ACCESS, use VBR mode\n");
         return_error = EB_ErrorBadParameter;
     }
+#if CLN_REMOVE_LDP
+    if (config->rate_control_mode == SVT_AV1_RC_MODE_VBR && config->pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+#else
     if (config->rate_control_mode == SVT_AV1_RC_MODE_VBR && config->pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
+#endif
         SVT_ERROR("VBR Rate control is currently not supported for SVT_AV1_PRED_LOW_DELAY_B, use CBR mode\n");
         return_error = EB_ErrorBadParameter;
     }
@@ -668,8 +680,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Error instance %u: switch frame interval must be >= 0\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if CLN_REMOVE_LDP
+    if (config->sframe_dist > 0 && config->pred_structure != SVT_AV1_PRED_LOW_DELAY) {
+#else
     if (config->sframe_dist > 0 && config->pred_structure != SVT_AV1_PRED_LOW_DELAY_P &&
         config->pred_structure != SVT_AV1_PRED_LOW_DELAY_B) {
+#endif
         SVT_ERROR(
             "Error instance %u: switch frame feature only supports low delay prediction "
             "structure\n",
@@ -771,7 +787,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             channel_number + 1);
     }
 
+#if CLN_REMOVE_LDP
+    if (config->pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+#else
     if (config->pred_structure == 1) {
+#endif
         if (config->tune == 0) {
             SVT_WARN("Instance %u: Tune 0 is not applicable for low-delay, tune will be forced to 1.\n",
                      channel_number + 1);
@@ -921,6 +941,9 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->enable_dg                    = 1;
     config_ptr->fast_decode                  = 0;
     config_ptr->encoder_color_format         = EB_YUV420;
+#if FTR_RTC_MODE
+    config_ptr->rtc_mode                     = 0;
+#endif
     // Rate control options
     // Set the default value toward more flexible rate allocation
     config_ptr->vbr_min_section_pct      = 0;
@@ -1059,6 +1082,16 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                 : config->encoder_color_format == EB_YUV444 ? "YUV444"
                                                             : "Unknown color format");
 
+#if CLN_REMOVE_LDP
+        SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t\t: %d / %s / %s\n",
+                 config->enc_mode,
+                 config->tune == 0       ? "VQ"
+                     : config->tune == 1 ? "PSNR"
+                                         : "SSIM",
+                 config->pred_structure == SVT_AV1_PRED_LOW_DELAY       ? "low delay"
+                     : config->pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? "random access"
+                                                   : "Unknown pred structure");
+#else
         SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t\t: %d / %s / %s\n",
                  config->enc_mode,
                  config->tune == 0       ? "VQ"
@@ -1067,6 +1100,7 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                  config->pred_structure == 1       ? "low delay"
                      : config->pred_structure == 2 ? "random access"
                                                    : "Unknown pred structure");
+#endif
         SVT_INFO(
             "SVT [config]: gop size / mini-gop size / key-frame type \t\t\t: "
             "%d / %d / %s\n",
@@ -2095,6 +2129,9 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"enable-variance-boost", &config_struct->enable_variance_boost},
         {"lossless", &config_struct->lossless},
         {"avif", &config_struct->avif},
+#if FTR_RTC_MODE
+        {"rtc-mode", &config_struct->rtc_mode},
+#endif
     };
     const size_t bool_opts_size = sizeof(bool_opts) / sizeof(bool_opts[0]);
 

@@ -76,6 +76,28 @@ EbErrorType svt_aom_cdef_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
 }
 
 #define default_mse_uv 1040400
+#if FIX_CDEF_MSE
+static uint64_t compute_cdef_dist(const EbByte dst, int32_t doffset, int32_t dstride, const uint8_t *src,
+                                  const CdefList *dlist, int32_t cdef_count, BlockSize bsize, int32_t coeff_shift,
+                                  uint8_t subsampling_factor, bool is_16bit) {
+    uint64_t curr_mse = 0;
+    if (is_16bit) {
+        curr_mse = svt_compute_cdef_dist_16bit(((uint16_t *)dst) + doffset,
+                                               dstride,
+                                               (uint16_t *)src,
+                                               dlist,
+                                               cdef_count,
+                                               bsize,
+                                               coeff_shift,
+                                               subsampling_factor);
+
+    } else {
+        curr_mse = svt_compute_cdef_dist_8bit(
+            dst + doffset, dstride, src, dlist, cdef_count, bsize, coeff_shift, subsampling_factor);
+    }
+    return curr_mse;
+}
+#else
 static uint64_t compute_cdef_dist(const EbByte dst, int32_t doffset, int32_t dstride, const uint8_t *src,
                                   const CdefList *dlist, int32_t cdef_count, BlockSize bsize, int32_t coeff_shift,
                                   int32_t pli, uint8_t subsampling_factor, bool is_16bit) {
@@ -97,6 +119,7 @@ static uint64_t compute_cdef_dist(const EbByte dst, int32_t doffset, int32_t dst
     }
     return curr_mse;
 }
+#endif
 
 /* Search for the best filter strength pair for each 64x64 filter block.
  *
@@ -290,7 +313,9 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
                         cdef_count,
                         (BlockSize)plane_bsize[pli],
                         coeff_shift,
+#if !FIX_CDEF_MSE
                         pli,
+#endif
                         subsampling_factor,
                         is_16bit);
 
@@ -342,7 +367,9 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
                         cdef_count,
                         (BlockSize)plane_bsize[pli],
                         coeff_shift,
+#if !FIX_CDEF_MSE
                         pli,
+#endif
                         subsampling_factor,
                         is_16bit);
 

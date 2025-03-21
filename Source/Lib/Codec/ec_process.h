@@ -50,7 +50,9 @@ typedef struct EntropyCodingContext {
     uint32_t pu_origin_y;
     uint32_t pu_width;
     uint32_t pu_height;
+#if !CLN_UNUSED_SIGS
     MvUnit   mv_unit;
+#endif
 
     uint32_t txb_itr;
     uint32_t txb_origin_x;

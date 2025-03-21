@@ -197,6 +197,9 @@
 #define LUMINANCE_QP_BIAS_TOKEN "--luminance-qp-bias"
 #define LOSSLESS_TOKEN "--lossless"
 #define AVIF_TOKEN "--avif"
+#if FTR_RTC_MODE
+#define RTC_TOKEN "--rtc-mode"
+#endif
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -992,6 +995,13 @@ ConfigEntry config_entry_intra_refresh[] = {
      "Set prediction structure, default is 2 [1: low delay frames, 2: "
      "random access]",
      set_cfg_generic_token},
+#if FTR_RTC_MODE
+    {SINGLE_INPUT,
+     RTC_TOKEN,
+     "Enables fast settings for rtc when using low-delay mode, "
+     "default is 0, [0-1]]",
+     set_cfg_generic_token},
+#endif
     {SINGLE_INPUT,
      FORCE_KEY_FRAMES_TOKEN,
      "Force key frames at the comma separated specifiers. `#f` for frames, `#.#s` for seconds",
@@ -1382,6 +1392,10 @@ ConfigEntry config_entry[] = {
     // Lossless coding
     {SINGLE_INPUT, LOSSLESS_TOKEN, "Lossless", set_cfg_generic_token},
     {SINGLE_INPUT, AVIF_TOKEN, "Avif", set_cfg_generic_token},
+#if FTR_RTC_MODE
+    // Real-time Coding
+    {SINGLE_INPUT, RTC_TOKEN, "RealTime", set_cfg_generic_token},
+#endif
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};
 

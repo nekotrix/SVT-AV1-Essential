@@ -195,10 +195,17 @@ INSTANTIATE_TEST_SUITE_P(NEON, HbdCflPredTest,
                          ::testing::Values(svt_cfl_predict_hbd_neon));
 #endif  // ARCH_AARCH64
 
+#if CLN_UNIFY_MV_TYPE
+typedef void (*AomUpsampledPredFunc)(MacroBlockD *,
+                                     const struct AV1Common *const, int, int,
+                                     const Mv *const, uint8_t *, int, int, int,
+                                     int, const uint8_t *, int, int);
+#else
 typedef void (*AomUpsampledPredFunc)(MacroBlockD *,
                                      const struct AV1Common *const, int, int,
                                      const MV *const, uint8_t *, int, int, int,
                                      int, const uint8_t *, int, int);
+#endif
 
 typedef ::testing::tuple<BlockSize, AomUpsampledPredFunc, int, int, int,
                          uint64_t>

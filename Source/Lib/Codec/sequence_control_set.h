@@ -307,6 +307,17 @@ typedef struct SequenceControlSet {
     // 2: (Default) Enable all QP modulation (apply conservative offsets to high QP, aggressive offsets to low QP)
     // 3: Enable only low-QP modulaiton (apply aggressive offsets to low QP)
     uint8_t seq_qp_mod;
+#if TUNE_MR_2
+    // Control whether we use the qp in calculating the scaling factors for the exponential QP-based function 
+    // for HME/ME search area scaling.
+    // 0: Automatically assign 1 to ret_q_weight and to ret_q_weight_denom.
+    // 1: Use the qp to calculate ret_q_weight and to ret_q_weight_denom.
+    bool enable_qp_based_th_scaling;
+#endif
+#if OPT_ALLINTRA
+    // If true, intra_period_length is 0 and every frame is coded with intra tools only
+    bool allintra;
+#endif
 } SequenceControlSet;
 typedef struct EbSequenceControlSetInstance {
     EbDctor             dctor;

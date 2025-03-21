@@ -328,7 +328,11 @@ typedef struct SearchAreaMinMax {
 } SearchAreaMinMax;
 typedef struct SearchInfo {
     SearchArea sa; // search area sizes
+#if CLN_UNIFY_MV_TYPE
+    Mv      best_mv; // best mv
+#else
     IntMv      best_mv; // best mv
+#endif
     uint64_t   sad; // best sad
     uint8_t    valid; //1 if the mv+sad are valid; invalid for some pruned references.
 } SearchInfo;

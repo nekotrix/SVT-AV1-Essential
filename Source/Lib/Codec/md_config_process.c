@@ -355,6 +355,15 @@ static INLINE int get_relative_dist(const OrderHintInfo *oh, int a, int b) {
     return diff;
 }
 
+#if CLN_UNIFY_MV_TYPE
+static int get_block_position(Av1Common *cm, int *mi_r, int *mi_c, int blk_row, int blk_col, Mv mv, int sign_bias) {
+    const int base_blk_row = (blk_row >> 3) << 3;
+    const int base_blk_col = (blk_col >> 3) << 3;
+
+    const int row_offset = (mv.y >= 0) ? (mv.y >> (4 + MI_SIZE_LOG2)) : -((-mv.y) >> (4 + MI_SIZE_LOG2));
+
+    const int col_offset = (mv.x >= 0) ? (mv.x >> (4 + MI_SIZE_LOG2)) : -((-mv.x) >> (4 + MI_SIZE_LOG2));
+#else
 static int get_block_position(Av1Common *cm, int *mi_r, int *mi_c, int blk_row, int blk_col, MV mv, int sign_bias) {
     const int base_blk_row = (blk_row >> 3) << 3;
     const int base_blk_col = (blk_col >> 3) << 3;
@@ -362,6 +371,7 @@ static int get_block_position(Av1Common *cm, int *mi_r, int *mi_c, int blk_row, 
     const int row_offset = (mv.row >= 0) ? (mv.row >> (4 + MI_SIZE_LOG2)) : -((-mv.row) >> (4 + MI_SIZE_LOG2));
 
     const int col_offset = (mv.col >= 0) ? (mv.col >> (4 + MI_SIZE_LOG2)) : -((-mv.col) >> (4 + MI_SIZE_LOG2));
+#endif
 
     const int row = (sign_bias == 1) ? blk_row - row_offset : blk_row + row_offset;
     const int col = (sign_bias == 1) ? blk_col - col_offset : blk_col + col_offset;
@@ -427,6 +437,30 @@ static int motion_field_projection(Av1Common *cm, PictureControlSet *pcs, MvRefe
     for (int blk_row = 0; blk_row < mvs_rows; ++blk_row) {
         for (int blk_col = 0; blk_col < mvs_cols; ++blk_col) {
             const MV_REF *const mv_ref = &mv_ref_base[blk_row * mvs_cols + blk_col];
+#if CLN_UNIFY_MV_TYPE
+            Mv fwd_mv = mv_ref->mv;
+
+            if (mv_ref->ref_frame > INTRA_FRAME) {
+                Mv        this_mv;
+                int       mi_r, mi_c;
+                const int ref_frame_offset = ref_offset[mv_ref->ref_frame];
+
+                int pos_valid = abs(ref_frame_offset) <= MAX_FRAME_DISTANCE && ref_frame_offset > 0 &&
+                    abs(start_to_current_frame_offset) <= MAX_FRAME_DISTANCE;
+
+                if (pos_valid) {
+                    get_mv_projection(&this_mv, fwd_mv, start_to_current_frame_offset, ref_frame_offset);
+                    pos_valid = get_block_position(cm, &mi_r, &mi_c, blk_row, blk_col, this_mv, dir >> 1);
+                }
+
+                if (pos_valid) {
+                    const int mi_offset = mi_r * (cm->mi_stride >> 1) + mi_c;
+
+                    tpl_mvs_base[mi_offset].mfmv0.as_int  = fwd_mv.as_int;
+                    tpl_mvs_base[mi_offset].ref_frame_offset = ref_frame_offset;
+                }
+            }
+#else
             MV                  fwd_mv = mv_ref->mv.as_mv;
 
             if (mv_ref->ref_frame > INTRA_FRAME) {
@@ -450,6 +484,7 @@ static int motion_field_projection(Av1Common *cm, PictureControlSet *pcs, MvRefe
                     tpl_mvs_base[mi_offset].ref_frame_offset = ref_frame_offset;
                 }
             }
+#endif
         }
     }
 
@@ -684,12 +719,19 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                 ref_object->mi_cols           = pcs->ppcs->aligned_width >> MI_SIZE_LOG2;
             }
 
+#if CLN_GET_REF_PIC
+            svt_aom_scale_rec_references(pcs, pcs->ppcs->enhanced_pic);
+#else
             svt_aom_scale_rec_references(pcs, pcs->ppcs->enhanced_pic, pcs->hbd_md);
+#endif
         }
 
         FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
-
+#if FTR_RTC_MODE
+        const bool rtc_tune = scs->static_config.rtc_mode;
+#else
         pcs->rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
+#endif
         // Mode Decision Configuration Kernel Signal(s) derivation
         svt_aom_sig_deriv_mode_decision_config(scs, pcs);
 
@@ -839,7 +881,11 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                                 highest_sg = ref_obj_l1->ref_cdef_strengths[0][fs];
                         }
                     }
+#if FTR_RTC_MODE
+                    if (rtc_tune) {
+#else
                     if (pcs->rtc_tune) {
+#endif
                         int8_t mid_filter     = MIN(63, MAX(0, MAX(lowest_sg, highest_sg)));
                         cdef_ctrls->pred_y_f  = mid_filter;
                         cdef_ctrls->pred_uv_f = 0;

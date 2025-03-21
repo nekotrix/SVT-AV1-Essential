@@ -119,9 +119,17 @@ static void mode_decision_context_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->full_cost_ssim_array);
 }
 
+#if TUNE_MR_2
+void svt_aom_set_nics(SequenceControlSet *scs, NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_CLASS_TOTAL],
+#else
 void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_CLASS_TOTAL],
+#endif
 #if OPT_REMOVE_NIC_QP_BANDS
+#if TUNE_MR_2
+                      uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type);
+#else
                       uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type, uint32_t qp);
+#endif
 #else
                       uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type);
 #endif
@@ -129,7 +137,12 @@ void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_C
 /******************************************************
  * Mode Decision Context Constructor
  ******************************************************/
+#if TUNE_MR_2
+EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, SequenceControlSet *scs,
+                                               EbColorFormat color_format, uint8_t sb_size,
+#else
 EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColorFormat color_format, uint8_t sb_size,
+#endif
                                                EncMode enc_mode, uint16_t max_block_cnt, uint32_t encoder_bit_depth,
                                                EbFifo *mode_decision_configuration_input_fifo_ptr,
                                                EbFifo *mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision,
@@ -185,7 +198,11 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
         for (uint8_t pic_type = 0; pic_type < NICS_PIC_TYPE; pic_type++) {
 #if OPT_REMOVE_NIC_QP_BANDS
             for (uint8_t qp = MIN_QP_VALUE; qp <= MAX_QP_VALUE; qp++) {
+#if TUNE_MR_2
+                svt_aom_set_nics(scs, &scaling_ctrls, mds1_count, mds2_count, mds3_count, pic_type);
+#else
                 svt_aom_set_nics(&scaling_ctrls, mds1_count, mds2_count, mds3_count, pic_type, qp);
+#endif
 
                 uint32_t nics = 0;
                 for (CandClass cidx = CAND_CLASS_0; cidx < CAND_CLASS_TOTAL; cidx++) { nics += mds1_count[cidx]; }
@@ -617,6 +634,9 @@ const EbAv1LambdaAssignFunc svt_aom_av1_lambda_assignment_function_table[4] = {
 
 void svt_aom_reset_mode_decision(SequenceControlSet *scs, ModeDecisionContext *ctx, PictureControlSet *pcs,
                                  uint16_t tile_group_idx, uint32_t segment_index) {
+#if FTR_RTC_MODE
+    const bool rtc_tune = scs->static_config.rtc_mode;
+#endif
     ctx->hbd_md = pcs->hbd_md;
     // Reset MD rate Estimation table to initial values by copying from md_rate_est_ctx
     ctx->md_rate_est_ctx = pcs->md_rate_est_ctx;
@@ -641,7 +661,11 @@ void svt_aom_reset_mode_decision(SequenceControlSet *scs, ModeDecisionContext *c
 #if !OPT_DEPTHS_CTRL
     set_block_based_depth_refinement_controls(ctx, pcs->pic_block_based_depth_refinement_level);
 #endif
+#if FTR_RTC_MODE
+    if (!rtc_tune || pcs->temporal_layer_index != 0)
+#else
     if (!pcs->rtc_tune || pcs->temporal_layer_index != 0)
+#endif
         ctx->rtc_use_N4_dct_dct_shortcut = 1;
     else
         ctx->rtc_use_N4_dct_dct_shortcut = 0;

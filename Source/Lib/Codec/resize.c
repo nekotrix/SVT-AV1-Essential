@@ -1622,7 +1622,11 @@ static void scale_input_references(PictureParentControlSet *pcs, superres_params
  * Allocate memory and perform scaling of the reconstructed reference pictures
  * to match with the input picture resolution
  */
+#if CLN_GET_REF_PIC
+void svt_aom_scale_rec_references(PictureControlSet* pcs, EbPictureBufferDesc* input_pic) {
+#else
 void svt_aom_scale_rec_references(PictureControlSet *pcs, EbPictureBufferDesc *input_pic, uint8_t hbd_md) {
+#endif
     EbReferenceObject *ref_object;
 
     PictureParentControlSet *ppcs = pcs->ppcs;
@@ -1645,7 +1649,11 @@ void svt_aom_scale_rec_references(PictureControlSet *pcs, EbPictureBufferDesc *i
 
             uint64_t ref_picture_number = ppcs->ref_pic_poc_array[list_index][ref_pic_index];
 
+#if CLN_GET_REF_PIC
+            EbPictureBufferDesc* ref_pic_ptr = svt_aom_get_ref_pic_buffer(pcs, svt_get_ref_frame_type(list_index, ref_pic_index));
+#else
             EbPictureBufferDesc *ref_pic_ptr = svt_aom_get_ref_pic_buffer(pcs, hbd_md, list_index, ref_pic_index);
+#endif
             // if the size of the reference pic is different than the size of the input pic, then scale references
             if (ref_pic_ptr->width != input_pic->width) {
                 bool do_resize = false;

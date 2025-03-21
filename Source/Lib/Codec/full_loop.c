@@ -1803,7 +1803,11 @@ void svt_aom_full_loop_chroma_light_pd1(PictureControlSet *pcs, ModeDecisionCont
                                                                cand_bf->cand->transform_type_uv,
                                                                0,
                                                                0,
+#if CLN_MBMI_IN_CAND
+                                                               cand_bf->cand->block_mi.mode,
+#else
                                                                cand_bf->cand->pred_mode,
+#endif
                                                                full_lambda,
                                                                false);
 
@@ -1884,7 +1888,11 @@ void svt_aom_full_loop_chroma_light_pd1(PictureControlSet *pcs, ModeDecisionCont
                                                                cand_bf->cand->transform_type_uv,
                                                                0,
                                                                0,
+#if CLN_MBMI_IN_CAND
+                                                               cand_bf->cand->block_mi.mode,
+#else
                                                                cand_bf->cand->pred_mode,
+#endif
                                                                full_lambda,
                                                                false);
 
@@ -1947,9 +1955,15 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
 
     ctx->three_quad_energy = 0;
 
+#if CLN_MBMI_IN_CAND
+    const uint8_t tx_depth = cand_bf->cand->block_mi.tx_depth;
+    const bool    is_inter = (is_inter_mode(cand_bf->cand->block_mi.mode) || cand_bf->cand->block_mi.use_intrabc) ? true : false;
+    const int     tu_count = tx_depth ? 1 : ctx->blk_geom->txb_count[cand_bf->cand->block_mi.tx_depth]; //NM: 128x128 exeption
+#else
     const uint8_t tx_depth = cand_bf->cand->tx_depth;
     const bool    is_inter = (is_inter_mode(cand_bf->cand->pred_mode) || cand_bf->cand->use_intrabc) ? true : false;
     const int     tu_count = tx_depth ? 1 : ctx->blk_geom->txb_count[cand_bf->cand->tx_depth]; //NM: 128x128 exeption
+#endif
     uint32_t      txb_1d_offset = 0;
 
     int txb_itr = 0;
@@ -2040,7 +2054,11 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                 cand_bf->cand->transform_type_uv,
                 ctx->cb_txb_skip_context,
                 ctx->cb_dc_sign_context,
+#if CLN_MBMI_IN_CAND
+                cand_bf->cand->block_mi.mode,
+#else
                 cand_bf->cand->pred_mode,
+#endif
                 full_lambda,
                 false);
 
@@ -2227,7 +2245,11 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                 cand_bf->cand->transform_type_uv,
                 ctx->cr_txb_skip_context,
                 ctx->cr_dc_sign_context,
+#if CLN_MBMI_IN_CAND
+                cand_bf->cand->block_mi.mode,
+#else
                 cand_bf->cand->pred_mode,
+#endif
                 full_lambda,
                 false);
 #if CLN_RENAME_MDS_SKIP
