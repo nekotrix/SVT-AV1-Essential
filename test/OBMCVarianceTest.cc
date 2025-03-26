@@ -235,15 +235,16 @@ INSTANTIATE_TEST_SUITE_P(NEON, OBMCSubPixelVarianceTest,
 using CalcTargetWeightedPredFn = void (*)(uint8_t, MacroBlockD *, int, uint8_t,
                                           MbModeInfo *, void *, const int);
 using CalcTargetWeightedPredParam =
-    tuple<CalcTargetWeightedPredFn, CalcTargetWeightedPredFn>;
+    tuple<int, CalcTargetWeightedPredFn, CalcTargetWeightedPredFn>;
 
 class CalcTargetWeightedPredTest
     : public ::testing::TestWithParam<CalcTargetWeightedPredParam> {
   public:
     CalcTargetWeightedPredTest()
         : rnd_(10, false),
-          func_ref_(TEST_GET_PARAM(0)),
-          func_tst_(TEST_GET_PARAM(1)) {
+          width_(TEST_GET_PARAM(0)),
+          func_ref_(TEST_GET_PARAM(1)),
+          func_tst_(TEST_GET_PARAM(2)) {
         mask_buf_ref = reinterpret_cast<int32_t *>(
             malloc(2 * MAX_SB_SQUARE * sizeof(int32_t)));
         mask_buf_tst = reinterpret_cast<int32_t *>(
@@ -278,75 +279,48 @@ class CalcTargetWeightedPredTest
   protected:
     void run_test() {
         uint32_t test_num = 10;
-        int overlap_tab[] = {1, 2, 4, 8, 16, 32};
 
-        for (uint32_t overlap_cnt = 0;
-             overlap_cnt < sizeof(overlap_tab) / sizeof(overlap_tab[0]);
-             overlap_cnt++) {
-            int width = overlap_tab[overlap_cnt];
-            xd.n4_w = 5 + (width >> MI_SIZE_LOG2);
-            calc_target_weighted_pred_ctxt ctxt_ref = {
-                mask_buf_ref, wsrc_buf_ref, tmp_ref, stride, width};
-            calc_target_weighted_pred_ctxt ctxt_tst = {
-                mask_buf_tst, wsrc_buf_tst, tmp_tst, stride, width};
-            for (uint32_t i = 0; i < test_num; i++) {
-                for (uint32_t j = 0; j < 2 * MAX_SB_SQUARE; j++) {
-                    mask_buf_ref[j] = mask_buf_tst[j] = rnd_.random();
-                    wsrc_buf_ref[j] = wsrc_buf_tst[j] = rnd_.random();
-                    tmp_ref[j] = tmp_tst[j] = rnd_.random() % 255;
-                }
-                uint8_t size = (width >> 1) < 1 ? 1 : (width >> 1);
-                func_ref_(0, &xd, 0, size, NULL, &ctxt_ref, 0);
-                func_tst_(0, &xd, 0, size, NULL, &ctxt_tst, 0);
+        xd.n4_w = 5 + (width_ >> MI_SIZE_LOG2);
+        calc_target_weighted_pred_ctxt ctxt_ref = {
+            mask_buf_ref, wsrc_buf_ref, tmp_ref, stride, width_};
+        calc_target_weighted_pred_ctxt ctxt_tst = {
+            mask_buf_tst, wsrc_buf_tst, tmp_tst, stride, width_};
+        for (uint32_t i = 0; i < test_num; i++) {
+            for (uint32_t j = 0; j < 2 * MAX_SB_SQUARE; j++) {
+                mask_buf_ref[j] = mask_buf_tst[j] = rnd_.random();
+                wsrc_buf_ref[j] = wsrc_buf_tst[j] = rnd_.random();
+                tmp_ref[j] = tmp_tst[j] = rnd_.random() % 255;
+            }
+            uint8_t size = (width_ >> 1) < 1 ? 1 : (width_ >> 1);
+            func_ref_(0, &xd, 0, size, NULL, &ctxt_ref, 0);
+            func_tst_(0, &xd, 0, size, NULL, &ctxt_tst, 0);
 
-                if (memcmp(mask_buf_ref,
-                           mask_buf_tst,
-                           sizeof(int32_t) * 2 * MAX_SB_SQUARE) != 0) {
-                    for (uint32_t j = 0; j < 2 * MAX_SB_SQUARE; j++)
-                        if (mask_buf_ref[j] != mask_buf_tst[j]) {
-                            printf(
-                                "error mask at "
-                                "idx=%d\texpected=%d\tcalculated=%d\n",
-                                j,
-                                mask_buf_ref[j],
-                                mask_buf_tst[j]);
-                            ASSERT(0);
-                        }
-                }
-                if (memcmp(wsrc_buf_ref,
-                           wsrc_buf_tst,
-                           sizeof(int32_t) * 2 * MAX_SB_SQUARE) != 0) {
-                    for (uint32_t j = 0; j < 2 * MAX_SB_SQUARE; j++)
-                        if (wsrc_buf_ref[j] != wsrc_buf_tst[j]) {
-                            printf(
-                                "error wsrc at "
-                                "idx=%d\texpected=%d\tcalculated=%d\n",
-                                j,
-                                wsrc_buf_ref[j],
-                                wsrc_buf_tst[j]);
-                            ASSERT(0);
-                        }
-                }
-                if (memcmp(tmp_ref,
-                           tmp_tst,
-                           sizeof(uint8_t) * 2 * MAX_SB_SQUARE) != 0) {
-                    for (uint32_t j = 0; j < 2 * MAX_SB_SQUARE; j++)
-                        if (tmp_ref[j] != tmp_tst[j]) {
-                            printf(
-                                "error tmp at "
-                                "idx=%d\texpected=%d\tcalculated=%d\n",
-                                j,
-                                tmp_ref[j],
-                                tmp_tst[j]);
-                            ASSERT(0);
-                        }
-                }
+            if (memcmp(mask_buf_ref,
+                       mask_buf_tst,
+                       sizeof(int32_t) * 2 * MAX_SB_SQUARE) != 0) {
+                for (uint32_t j = 0; j < 2 * MAX_SB_SQUARE; j++)
+                    ASSERT_EQ(mask_buf_ref[j], mask_buf_tst[j])
+                        << "Mismatch for mask_buf at idx " << j;
+            }
+            if (memcmp(wsrc_buf_ref,
+                       wsrc_buf_tst,
+                       sizeof(int32_t) * 2 * MAX_SB_SQUARE) != 0) {
+                for (uint32_t j = 0; j < 2 * MAX_SB_SQUARE; j++)
+                    ASSERT_EQ(wsrc_buf_ref[j], wsrc_buf_tst[j])
+                        << "Mismatch for wsrc_buf at idx " << j;
+            }
+            if (memcmp(tmp_ref, tmp_tst, sizeof(uint8_t) * 2 * MAX_SB_SQUARE) !=
+                0) {
+                for (uint32_t j = 0; j < 2 * MAX_SB_SQUARE; j++)
+                    ASSERT_EQ(tmp_ref[j], tmp_tst[j])
+                        << "Mismatch for tmp at idx " << j;
             }
         }
     }
 
   protected:
     SVTRandom rnd_;
+    int width_;
     CalcTargetWeightedPredFn func_ref_;
     CalcTargetWeightedPredFn func_tst_;
     MacroBlockD xd;
@@ -358,24 +332,39 @@ class CalcTargetWeightedPredTest
     uint8_t *tmp_tst;
     int stride;
 };
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CalcTargetWeightedPredTest);
 
-TEST_P(CalcTargetWeightedPredTest, RunCheckOutput) {
+using CalcTargetWeightedPredTestAbove = CalcTargetWeightedPredTest;
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CalcTargetWeightedPredTestAbove);
+
+TEST_P(CalcTargetWeightedPredTestAbove, RunCheckOutput) {
+    run_test();
+};
+
+using CalcTargetWeightedPredTestLeft = CalcTargetWeightedPredTest;
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CalcTargetWeightedPredTestLeft);
+
+TEST_P(CalcTargetWeightedPredTestLeft, RunCheckOutput) {
     run_test();
 };
 
 #ifdef ARCH_X86_64
-INSTANTIATE_TEST_SUITE_P(CalcTargetWeightedPredTestAbove,
-                         CalcTargetWeightedPredTest,
-                         ::testing::Values(::testing::make_tuple(
-                             &svt_av1_calc_target_weighted_pred_above_c,
-                             &svt_av1_calc_target_weighted_pred_above_avx2)));
+static const int overlap_tab[] = {2, 4, 8, 16, 32};
 
-INSTANTIATE_TEST_SUITE_P(CalcTargetWeightedPredTestLeft,
-                         CalcTargetWeightedPredTest,
-                         ::testing::Values(::testing::make_tuple(
-                             &svt_av1_calc_target_weighted_pred_left_c,
-                             &svt_av1_calc_target_weighted_pred_left_avx2)));
+INSTANTIATE_TEST_SUITE_P(
+    AVX2, CalcTargetWeightedPredTestAbove,
+    ::testing::Combine(
+        ::testing::ValuesIn(overlap_tab),
+        ::testing::Values(svt_av1_calc_target_weighted_pred_above_c),
+        ::testing::Values(svt_av1_calc_target_weighted_pred_above_avx2)));
+
+INSTANTIATE_TEST_SUITE_P(
+    AVX2, CalcTargetWeightedPredTestLeft,
+    ::testing::Combine(
+        ::testing::ValuesIn(overlap_tab),
+        ::testing::Values(svt_av1_calc_target_weighted_pred_left_c),
+        ::testing::Values(svt_av1_calc_target_weighted_pred_left_avx2)));
 #endif  // ARCH_X86_64
 
 }  // namespace
