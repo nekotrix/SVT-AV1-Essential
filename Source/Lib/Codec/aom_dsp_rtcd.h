@@ -1326,6 +1326,7 @@ extern "C" {
     double svt_av1_compute_cross_correlation_neon_dotprod(unsigned char *im1, int stride1, int x1, int y1, unsigned char *im2, int stride2, int x2, int y2, uint8_t match_sz);
     double svt_av1_compute_cross_correlation_sve(unsigned char *im1, int stride1, int x1, int y1, unsigned char *im2, int stride2, int x2, int y2, uint8_t match_sz);
 
+    void svt_av1_calc_target_weighted_pred_left_neon(uint8_t is16bit, MacroBlockD *xd, int rel_mi_row, uint8_t nb_mi_height, MbModeInfo *nb_mi, void *fun_ctxt, const int num_planes);
 #endif
 
 #ifdef ARCH_X86_64

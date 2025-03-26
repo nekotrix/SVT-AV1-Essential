@@ -343,15 +343,13 @@ TEST_P(CalcTargetWeightedPredTestAbove, RunCheckOutput) {
 
 using CalcTargetWeightedPredTestLeft = CalcTargetWeightedPredTest;
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CalcTargetWeightedPredTestLeft);
-
 TEST_P(CalcTargetWeightedPredTestLeft, RunCheckOutput) {
     run_test();
 };
 
-#ifdef ARCH_X86_64
 static const int overlap_tab[] = {2, 4, 8, 16, 32};
 
+#ifdef ARCH_X86_64
 INSTANTIATE_TEST_SUITE_P(
     AVX2, CalcTargetWeightedPredTestAbove,
     ::testing::Combine(
@@ -366,5 +364,14 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::Values(svt_av1_calc_target_weighted_pred_left_c),
         ::testing::Values(svt_av1_calc_target_weighted_pred_left_avx2)));
 #endif  // ARCH_X86_64
+
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, CalcTargetWeightedPredTestLeft,
+    ::testing::Combine(
+        ::testing::ValuesIn(overlap_tab),
+        ::testing::Values(svt_av1_calc_target_weighted_pred_left_c),
+        ::testing::Values(svt_av1_calc_target_weighted_pred_left_neon)));
+#endif  // ARCH_AARCH64
 
 }  // namespace
