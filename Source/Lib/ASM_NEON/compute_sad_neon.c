@@ -74,15 +74,6 @@ static INLINE uint16_t findposq_u32(uint32x4_t x, uint32_t value) {
     return __builtin_clzl(idx) / 16;
 }
 
-/* Calculate and accumulate into 'res' the absolute differences between 8 values from 'arr' and
- * 'val' */
-static INLINE uint16x8_t array_abal_with_value(uint16x8_t res, const uint8_t *arr, uint8_t val) {
-    uint8x8_t a, b;
-    a = vld1_u8(arr);
-    b = vdup_n_u8(val);
-    return vabal_u8(res, a, b);
-}
-
 static INLINE void update_best_sad_u32(uint32x4_t sad4, uint64_t *best_sad, int16_t *x_search_center,
                                        int16_t *y_search_center, int16_t x_search_index, int16_t y_search_index) {
     uint64_t temp_sad;
@@ -573,47 +564,61 @@ static INLINE uint32x4_t sad48xhx4d_neon(const uint8_t *src, uint32_t src_stride
     return vaddq_u32(sad4_0, sad4_1);
 }
 
+DECLARE_ALIGNED(16, static const uint8_t, kPermTable[48]) = {0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6,  6,  7,  7,  8,
+                                                             2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8,  8,  9,  9,  10,
+                                                             4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12};
+
 static INLINE uint16x8_t sad4xhx8d_neon(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
                                         uint32_t ref_stride, uint32_t h) {
-    uint32_t i;
     /* Initialize 'res' to store the sum of absolute differences (SAD) of 8 search spaces. */
-    uint16x8_t res;
+    uint16x8_t   res      = vdupq_n_u16(0);
+    uint8x16x2_t perm_tbl = vld1q_u8_x2(kPermTable);
 
-    res = vdupq_n_u16(0);
+    do {
+        uint8x16_t src0 = vreinterpretq_u8_u16(vld1q_dup_u16((const uint16_t *)src));
+        uint8x16_t src1 = vreinterpretq_u8_u16(vld1q_dup_u16((const uint16_t *)(src + 2)));
 
-    for (i = 0; i < h; i++) {
-        /* Take one value from each search space and one value from 'src', then accumulate the
-         * absolute differences in 'res'. Repeat this step 4 times to cover a 4-width block. */
-        res = array_abal_with_value(res, ref + 0, src[0]);
-        res = array_abal_with_value(res, ref + 1, src[1]);
-        res = array_abal_with_value(res, ref + 2, src[2]);
-        res = array_abal_with_value(res, ref + 3, src[3]);
+        uint8x16_t ref0 = vqtbl1q_u8(vld1q_u8(ref), perm_tbl.val[0]);
+        uint8x16_t ref1 = vqtbl1q_u8(vld1q_u8(ref), perm_tbl.val[1]);
+
+        uint8x16_t abs0 = vabdq_u8(src0, ref0);
+        uint8x16_t abs1 = vabdq_u8(src1, ref1);
+
+        res = vpadalq_u8(res, abs0);
+        res = vpadalq_u8(res, abs1);
+
         src += src_stride;
         ref += ref_stride;
-    }
+    } while (--h != 0);
     return res;
 }
 
 static INLINE uint16x8_t sad6xhx8d_neon(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
                                         uint32_t ref_stride, uint32_t h) {
-    uint32_t i;
     /* Initialize 'res' to store the sum of absolute differences (SAD) of 8 search spaces. */
-    uint16x8_t res;
+    uint16x8_t   res      = vdupq_n_u16(0);
+    uint8x16x3_t perm_tbl = vld1q_u8_x3(kPermTable);
 
-    res = vdupq_n_u16(0);
+    do {
+        uint8x16_t src0 = vreinterpretq_u8_u16(vld1q_dup_u16((const uint16_t *)src));
+        uint8x16_t src1 = vreinterpretq_u8_u16(vld1q_dup_u16((const uint16_t *)(src + 2)));
+        uint8x16_t src2 = vreinterpretq_u8_u16(vld1q_dup_u16((const uint16_t *)(src + 4)));
 
-    for (i = 0; i < h; i++) {
-        /* Take one value from each search space and one value from 'src', then accumulate the
-         * absolute differences in 'res'. Repeat this step 6 times to cover a 6-width block. */
-        res = array_abal_with_value(res, ref + 0, src[0]);
-        res = array_abal_with_value(res, ref + 1, src[1]);
-        res = array_abal_with_value(res, ref + 2, src[2]);
-        res = array_abal_with_value(res, ref + 3, src[3]);
-        res = array_abal_with_value(res, ref + 4, src[4]);
-        res = array_abal_with_value(res, ref + 5, src[5]);
+        uint8x16_t ref0 = vqtbl1q_u8(vld1q_u8(ref), perm_tbl.val[0]);
+        uint8x16_t ref1 = vqtbl1q_u8(vld1q_u8(ref), perm_tbl.val[1]);
+        uint8x16_t ref2 = vqtbl1q_u8(vld1q_u8(ref), perm_tbl.val[2]);
+
+        uint8x16_t abs0 = vabdq_u8(src0, ref0);
+        uint8x16_t abs1 = vabdq_u8(src1, ref1);
+        uint8x16_t abs2 = vabdq_u8(src2, ref2);
+
+        res = vpadalq_u8(res, abs0);
+        res = vpadalq_u8(res, abs1);
+        res = vpadalq_u8(res, abs2);
+
         src += src_stride;
         ref += ref_stride;
-    }
+    } while (--h != 0);
     return res;
 }
 
