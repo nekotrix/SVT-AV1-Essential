@@ -1800,3 +1800,151 @@ void svt_ext_sad_calculation_32x32_64x64_neon(uint32_t *p_sad16x16, uint32_t *p_
         p_best_mv64x64[0]   = mv;
     }
 }
+
+static INLINE uint32_t highbd_sad4xh_neon(uint16_t *src_ptr, int src_stride, uint16_t *ref_ptr, int ref_stride, int h) {
+    assert(h % 2 == 0);
+    uint32x4_t sum[2] = {vdupq_n_u32(0), vdupq_n_u32(0)};
+
+    h >>= 1;
+    do {
+        uint16x4_t s0 = vld1_u16(src_ptr);
+        uint16x4_t r0 = vld1_u16(ref_ptr);
+        sum[0]        = vabal_u16(sum[0], s0, r0);
+
+        uint16x4_t s1 = vld1_u16(src_ptr + src_stride);
+        uint16x4_t r1 = vld1_u16(ref_ptr + ref_stride);
+        sum[1]        = vabal_u16(sum[1], s1, r1);
+
+        src_ptr += 2 * src_stride;
+        ref_ptr += 2 * ref_stride;
+    } while (--h != 0);
+
+    sum[0] = vaddq_u32(sum[0], sum[1]);
+    return vaddvq_u32(sum[0]);
+}
+
+static INLINE uint32_t highbd_sad8xh_neon(uint16_t *src_ptr, int src_stride, uint16_t *ref_ptr, int ref_stride, int h) {
+    assert(h % 2 == 0);
+    uint32x4_t sum[2] = {vdupq_n_u32(0), vdupq_n_u32(0)};
+
+    h >>= 1;
+    do {
+        uint16x8_t s0    = vld1q_u16(src_ptr);
+        uint16x8_t r0    = vld1q_u16(ref_ptr);
+        uint16x8_t diff0 = vabdq_u16(s0, r0);
+        sum[0]           = vpadalq_u16(sum[0], diff0);
+
+        uint16x8_t s1    = vld1q_u16(src_ptr + src_stride);
+        uint16x8_t r1    = vld1q_u16(ref_ptr + ref_stride);
+        uint16x8_t diff1 = vabdq_u16(s1, r1);
+        sum[1]           = vpadalq_u16(sum[1], diff1);
+
+        src_ptr += 2 * src_stride;
+        ref_ptr += 2 * ref_stride;
+    } while (--h != 0);
+
+    sum[0] = vaddq_u32(sum[0], sum[1]);
+    return vaddvq_u32(sum[0]);
+}
+
+static INLINE uint32_t highbd_sad16xh_neon(uint16_t *src_ptr, int src_stride, uint16_t *ref_ptr, int ref_stride,
+                                           int h) {
+    uint32x4_t sum[2] = {vdupq_n_u32(0), vdupq_n_u32(0)};
+
+    do {
+        uint16x8_t s0    = vld1q_u16(src_ptr);
+        uint16x8_t r0    = vld1q_u16(ref_ptr);
+        uint16x8_t diff0 = vabdq_u16(s0, r0);
+        sum[0]           = vpadalq_u16(sum[0], diff0);
+
+        uint16x8_t s1    = vld1q_u16(src_ptr + 8);
+        uint16x8_t r1    = vld1q_u16(ref_ptr + 8);
+        uint16x8_t diff1 = vabdq_u16(s1, r1);
+        sum[1]           = vpadalq_u16(sum[1], diff1);
+
+        src_ptr += src_stride;
+        ref_ptr += ref_stride;
+    } while (--h != 0);
+
+    sum[0] = vaddq_u32(sum[0], sum[1]);
+    return vaddvq_u32(sum[0]);
+}
+
+static INLINE uint32_t highbd_sadwxh_neon(uint16_t *src_ptr, int src_stride, uint16_t *ref_ptr, int ref_stride, int h,
+                                          int w) {
+    uint32x4_t sum[4] = {vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0)};
+
+    do {
+        int i = 0;
+        do {
+            uint16x8_t s0    = vld1q_u16(src_ptr + i);
+            uint16x8_t r0    = vld1q_u16(ref_ptr + i);
+            uint16x8_t diff0 = vabdq_u16(s0, r0);
+            sum[0]           = vpadalq_u16(sum[0], diff0);
+
+            uint16x8_t s1    = vld1q_u16(src_ptr + i + 8);
+            uint16x8_t r1    = vld1q_u16(ref_ptr + i + 8);
+            uint16x8_t diff1 = vabdq_u16(s1, r1);
+            sum[1]           = vpadalq_u16(sum[1], diff1);
+
+            uint16x8_t s2    = vld1q_u16(src_ptr + i + 16);
+            uint16x8_t r2    = vld1q_u16(ref_ptr + i + 16);
+            uint16x8_t diff2 = vabdq_u16(s2, r2);
+            sum[2]           = vpadalq_u16(sum[2], diff2);
+
+            uint16x8_t s3    = vld1q_u16(src_ptr + i + 24);
+            uint16x8_t r3    = vld1q_u16(ref_ptr + i + 24);
+            uint16x8_t diff3 = vabdq_u16(s3, r3);
+            sum[3]           = vpadalq_u16(sum[3], diff3);
+
+            i += 32;
+        } while (i < w);
+
+        src_ptr += src_stride;
+        ref_ptr += ref_stride;
+    } while (--h != 0);
+
+    sum[0] = vaddq_u32(sum[0], sum[1]);
+    sum[2] = vaddq_u32(sum[2], sum[3]);
+    sum[0] = vaddq_u32(sum[0], sum[2]);
+
+    return vaddvq_u32(sum[0]);
+}
+
+uint32_t svt_aom_sad_16b_kernel_neon(uint16_t *src, uint32_t src_stride, uint16_t *ref, uint32_t ref_stride,
+                                     uint32_t height, uint32_t width) {
+    assert(width % 4 == 0);
+
+    switch (width) {
+    case 4: return highbd_sad4xh_neon(src, src_stride, ref, ref_stride, height);
+    case 8: return highbd_sad8xh_neon(src, src_stride, ref, ref_stride, height);
+    case 16: return highbd_sad16xh_neon(src, src_stride, ref, ref_stride, height);
+    case 32:
+    case 64:
+    case 128: return highbd_sadwxh_neon(src, src_stride, ref, ref_stride, height, width);
+    }
+
+    uint32_t offset       = 0;
+    uint32_t acc          = 0;
+    uint32_t width_offset = width & ~31;
+    if (width_offset) {
+        acc += highbd_sadwxh_neon(src, src_stride, ref, ref_stride, height, width_offset);
+        width -= width_offset;
+        offset += width_offset;
+    }
+    if (width >= 16) {
+        acc += highbd_sad16xh_neon(src + offset, src_stride, ref + offset, ref_stride, height);
+        width -= 16;
+        offset += 16;
+    }
+    if (width >= 8) {
+        acc += highbd_sad8xh_neon(src + offset, src_stride, ref + offset, ref_stride, height);
+        width -= 8;
+        offset += 8;
+    }
+    if (width) {
+        acc += highbd_sad4xh_neon(src + offset, src_stride, ref + offset, ref_stride, height);
+    }
+
+    return acc;
+}

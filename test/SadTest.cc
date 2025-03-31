@@ -1501,7 +1501,6 @@ class SADTestSubSample16bit
 
     SadSubsample16BitFunc test_func_;
 };
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(SADTestSubSample16bit);
 
 BlkSize TEST_BLOCK_SAD_SIZES[] = {
     BlkSize(16, 10),   BlkSize(16, 5),   BlkSize(32, 10), BlkSize(32, 20),
@@ -1535,6 +1534,13 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Combine(::testing::ValuesIn(TEST_PATTERNS),
                        ::testing::Values(svt_aom_sad_16bit_kernel_avx2)));
 #endif
+
+#ifdef ARCH_AARCH64
+INSTANTIATE_TEST_SUITE_P(
+    NEON, SADTestSubSample16bit,
+    ::testing::Combine(::testing::ValuesIn(TEST_PATTERNS),
+                       ::testing::Values(svt_aom_sad_16b_kernel_neon)));
+#endif  // ARCH_AARCH64
 
 typedef void (*PmeSadLoopKernel)(
     const struct svt_mv_cost_param *mv_cost_params, uint8_t *src,
