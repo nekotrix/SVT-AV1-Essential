@@ -680,6 +680,15 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::ValuesIn(TEST_LOOP_AREAS),
                        ::testing::Values(0, 1),
                        ::testing::Values(svt_sad_loop_kernel_neon)));
+
+#if HAVE_NEON_DOTPROD
+INSTANTIATE_TEST_SUITE_P(
+    NEON_DOTPROD, sad_LoopTest,
+    ::testing::Combine(::testing::ValuesIn(TEST_PATTERNS),
+                       ::testing::ValuesIn(TEST_LOOP_AREAS),
+                       ::testing::Values(0, 1),
+                       ::testing::Values(svt_sad_loop_kernel_neon_dotprod)));
+#endif  // HAVE_NEON_DOTPROD
 #endif  // ARCH_AARCH64
 
 /**
