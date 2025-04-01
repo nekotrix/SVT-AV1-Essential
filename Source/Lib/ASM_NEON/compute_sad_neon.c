@@ -766,23 +766,25 @@ static INLINE void svt_sad_loop_kernel12xh_neon(uint8_t *src, uint32_t src_strid
 }
 
 static INLINE void svt_sad_loop_kernel16xh_neon(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
-                                                uint32_t block_height, uint32_t block_width, uint64_t *best_sad,
-                                                int16_t *x_search_center, int16_t *y_search_center,
-                                                uint32_t src_stride_raw, uint8_t skip_search_line,
-                                                int16_t search_area_width, int16_t search_area_height) {
+                                                uint32_t block_height, uint64_t *best_sad, int16_t *x_search_center,
+                                                int16_t *y_search_center, uint32_t src_stride_raw,
+                                                uint8_t skip_search_line, int16_t search_area_width,
+                                                int16_t search_area_height) {
     int16_t    x_search_index, y_search_index;
     uint32x4_t sad4;
     uint64_t   temp_sad;
 
-    for (y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
-        /* Skip search line */
-        if (block_width == 16 && block_height <= 16 && skip_search_line) {
-            if ((y_search_index & 1) == 0) {
-                ref += src_stride_raw;
-                continue;
-            }
-        }
+    int y_search_start = 0;
+    int y_search_step  = 1;
 
+    if (block_height <= 16 && skip_search_line) {
+        ref += src_stride_raw;
+        src_stride_raw *= 2;
+        y_search_start = 1;
+        y_search_step  = 2;
+    }
+
+    for (y_search_index = y_search_start; y_search_index < search_area_height; y_search_index += y_search_step) {
         for (x_search_index = 0; x_search_index <= search_area_width - 4; x_search_index += 4) {
             /* Get the SAD of 4 search spaces aligned along the width and store it in 'sad4'. */
             sad4 = sad16xhx4d_neon(src, src_stride, ref + x_search_index, ref_stride, block_height);
@@ -986,7 +988,6 @@ void svt_sad_loop_kernel_neon(uint8_t *src, uint32_t src_stride, uint8_t *ref, u
                                      ref,
                                      ref_stride,
                                      block_height,
-                                     block_width,
                                      best_sad,
                                      x_search_center,
                                      y_search_center,
