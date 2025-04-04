@@ -26,6 +26,7 @@ target_sources(
   PUBLIC highbd_variance_neon_dotprod.c
   PUBLIC jnt_convolve_neon_dotprod.c
   PUBLIC pic_analysis_neon_dotprod.c
+  PUBLIC sad_neon_dotprod.c
   PUBLIC sse_neon_dotprod.c
   PUBLIC variance_neon_dotprod.c)
 
