@@ -13,52 +13,8 @@
 
 #include "aom_dsp_rtcd.h"
 #include "mem_neon.h"
+#include "sad_neon_dotprod.h"
 #include "sum_neon.h"
-
-static AOM_FORCE_INLINE uint32x4_t sad_8x4_dual_neon(const uint8_t *restrict src_ptr, uint32_t src_stride,
-                                                     const uint8_t *restrict ref_ptr, uint32_t ref_stride, int mult) {
-    uint32x4_t sum = vdupq_n_u32(0);
-
-    int h = 4;
-    do {
-        uint8x16_t s0 = vld1q_u8(src_ptr);
-        uint8x16_t s1 = vld1q_u8(src_ptr + src_stride);
-        uint8x16_t r0 = vld1q_u8(ref_ptr);
-        uint8x16_t r1 = vld1q_u8(ref_ptr + ref_stride);
-
-        uint8x16_t abs_diff0 = vabdq_u8(s0, r0);
-        uint8x16_t abs_diff1 = vabdq_u8(s1, r1);
-
-        sum = vdotq_u32(sum, abs_diff0, vdupq_n_u8(mult));
-        sum = vdotq_u32(sum, abs_diff1, vdupq_n_u8(mult));
-
-        src_ptr += 2 * src_stride;
-        ref_ptr += 2 * ref_stride;
-        h -= 2;
-    } while (h != 0);
-
-    return sum;
-}
-
-static AOM_FORCE_INLINE uint32x4_t sad_8x8_dual_neon(const uint8_t *restrict src_ptr, uint32_t src_stride,
-                                                     const uint8_t *restrict ref_ptr, uint32_t ref_stride, int mult) {
-    uint32x4_t sum = vdupq_n_u32(0);
-
-    int h = 8;
-    do {
-        uint8x16_t s0 = vld1q_u8(src_ptr);
-        uint8x16_t r0 = vld1q_u8(ref_ptr);
-
-        uint8x16_t abs_diff0 = vabdq_u8(s0, r0);
-
-        sum = vdotq_u32(sum, abs_diff0, vdupq_n_u8(mult));
-
-        src_ptr += src_stride;
-        ref_ptr += ref_stride;
-    } while (--h != 0);
-
-    return sum;
-}
 
 void svt_ext_sad_calculation_8x8_16x16_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
                                                     uint32_t ref_stride, uint32_t *p_best_sad_8x8,

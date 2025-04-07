@@ -854,6 +854,15 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::ValuesIn(TEST_SAD_PATTERNS),
         ::testing::Values(svt_ext_all_sad_calculation_8x8_16x16_neon_dotprod)));
 #endif  // HAVE_NEON_DOTPROD
+
+#if HAVE_SVE
+INSTANTIATE_TEST_SUITE_P(
+    SVE, Allsad8x8_CalculationTest,
+    ::testing::Combine(
+        ::testing::ValuesIn(TEST_PATTERNS),
+        ::testing::ValuesIn(TEST_SAD_PATTERNS),
+        ::testing::Values(svt_ext_all_sad_calculation_8x8_16x16_sve)));
+#endif  // HAVE_SVE
 #endif  // ARCH_AARCH64
 
 typedef void (*svt_ext_eight_sad_calculation_32x32_64x64_fn)(
