@@ -1715,7 +1715,7 @@ uint32_t svt_nxm_sad_kernel_helper_neon(const uint8_t *src, uint32_t src_stride,
     return res;
 }
 
-static INLINE void compute_4sad_neon(uint32_t p_sad16x16[16][8], uint32_t *p_sad32x32, uint32x4_t *sad0,
+static INLINE void compute_4sad_neon(uint32_t p_sad16x16[4][8], uint32_t *p_sad32x32, uint32x4_t *sad0,
                                      uint32x4_t *sad1) {
     uint32x4_t tmp0 = vaddq_u32(vld1q_u32(p_sad16x16[0]), vld1q_u32(p_sad16x16[1]));
     uint32x4_t tmp1 = vaddq_u32(vld1q_u32(p_sad16x16[2]), vld1q_u32(p_sad16x16[3]));
