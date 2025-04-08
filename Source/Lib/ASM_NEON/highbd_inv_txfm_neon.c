@@ -955,7 +955,7 @@ void svt_av1_inv_txfm2d_add_64x64_neon(const int32_t *input, uint16_t *output_r,
 
 static void idct16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     const int32_t  *cospi = cospi_arr(bit);
-    const int32x4_t vbit  = vdupq_n_s32(bit);
+    const int32x4_t vbit  = vdupq_n_s32(-bit);
 
     int32x4_t u[16], v[16], x, y;
 
@@ -1017,10 +1017,10 @@ static void idct16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     x    = vmulq_n_s32(u[0], cospi[32]);
     y    = vmulq_n_s32(u[1], cospi[32]);
     v[0] = vaddq_s32(x, y);
-    v[0] = vrshlq_s32(v[0], -vbit);
+    v[0] = vrshlq_s32(v[0], vbit);
 
     v[1] = vsubq_s32(x, y);
-    v[1] = vrshlq_s32(v[1], -vbit);
+    v[1] = vrshlq_s32(v[1], vbit);
 
     v[2]  = half_btf_neon(cospi[48], u[2], -cospi[16], u[3], bit);
     v[3]  = half_btf_neon(cospi[16], u[2], cospi[48], u[3], bit);
@@ -1047,10 +1047,10 @@ static void idct16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     x    = vmulq_n_s32(v[5], cospi[32]);
     y    = vmulq_n_s32(v[6], cospi[32]);
     u[5] = vsubq_s32(y, x);
-    u[5] = vrshlq_s32(u[5], -vbit);
+    u[5] = vrshlq_s32(u[5], vbit);
 
     u[6] = vaddq_s32(y, x);
-    u[6] = vrshlq_s32(u[6], -vbit);
+    u[6] = vrshlq_s32(u[6], vbit);
 
     u[7]  = v[7];
     u[8]  = vaddq_s32(v[8], v[11]);
@@ -1077,18 +1077,18 @@ static void idct16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     x     = vmulq_n_s32(u[10], cospi[32]);
     y     = vmulq_n_s32(u[13], cospi[32]);
     v[10] = vsubq_s32(y, x);
-    v[10] = vrshlq_s32(v[10], -vbit);
+    v[10] = vrshlq_s32(v[10], vbit);
 
     v[13] = vaddq_s32(x, y);
-    v[13] = vrshlq_s32(v[13], -vbit);
+    v[13] = vrshlq_s32(v[13], vbit);
 
     x     = vmulq_n_s32(u[11], cospi[32]);
     y     = vmulq_n_s32(u[12], cospi[32]);
     v[11] = vsubq_s32(y, x);
-    v[11] = vrshlq_s32(v[11], -vbit);
+    v[11] = vrshlq_s32(v[11], vbit);
 
     v[12] = vaddq_s32(x, y);
-    v[12] = vrshlq_s32(v[12], -vbit);
+    v[12] = vrshlq_s32(v[12], vbit);
 
     v[14] = u[14];
     v[15] = u[15];
@@ -1120,73 +1120,73 @@ static INLINE void idct16_xn_neon(int32x4_t *in, int32x4_t *out, int bit, int ho
 
 static void iadst16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     const int32_t  *cospi = cospi_arr(bit);
-    const int32x4_t vbit  = vdupq_n_s32(bit);
+    const int32x4_t vbit  = vdupq_n_s32(-bit);
 
     int32x4_t u[16], v[16], x, y;
 
     v[0] = vmulq_n_s32(in[15], cospi[2]);
     v[0] = vmlaq_n_s32(v[0], in[0], cospi[62]);
-    v[0] = vrshlq_s32(v[0], -vbit);
+    v[0] = vrshlq_s32(v[0], vbit);
 
     v[1] = vmulq_n_s32(in[15], cospi[62]);
     v[1] = vmlsq_n_s32(v[1], in[0], cospi[2]);
-    v[1] = vrshlq_s32(v[1], -vbit);
+    v[1] = vrshlq_s32(v[1], vbit);
 
     v[2] = vmulq_n_s32(in[13], cospi[10]);
     v[2] = vmlaq_n_s32(v[2], in[2], cospi[54]);
-    v[2] = vrshlq_s32(v[2], -vbit);
+    v[2] = vrshlq_s32(v[2], vbit);
 
     v[3] = vmulq_n_s32(in[13], cospi[54]);
     v[3] = vmlsq_n_s32(v[3], in[2], cospi[10]);
-    v[3] = vrshlq_s32(v[3], -vbit);
+    v[3] = vrshlq_s32(v[3], vbit);
 
     v[4] = vmulq_n_s32(in[11], cospi[18]);
     v[4] = vmlaq_n_s32(v[4], in[4], cospi[46]);
-    v[4] = vrshlq_s32(v[4], -vbit);
+    v[4] = vrshlq_s32(v[4], vbit);
 
     v[5] = vmulq_n_s32(in[11], cospi[46]);
     v[5] = vmlsq_n_s32(v[5], in[4], cospi[18]);
-    v[5] = vrshlq_s32(v[5], -vbit);
+    v[5] = vrshlq_s32(v[5], vbit);
 
     v[6] = vmulq_n_s32(in[9], cospi[26]);
     v[6] = vmlaq_n_s32(v[6], in[6], cospi[38]);
-    v[6] = vrshlq_s32(v[6], -vbit);
+    v[6] = vrshlq_s32(v[6], vbit);
 
     v[7] = vmulq_n_s32(in[9], cospi[38]);
     v[7] = vmlsq_n_s32(v[7], in[6], cospi[26]);
-    v[7] = vrshlq_s32(v[7], -vbit);
+    v[7] = vrshlq_s32(v[7], vbit);
 
     v[8] = vmulq_n_s32(in[7], cospi[34]);
     v[8] = vmlaq_n_s32(v[8], in[8], cospi[30]);
-    v[8] = vrshlq_s32(v[8], -vbit);
+    v[8] = vrshlq_s32(v[8], vbit);
 
     v[9] = vmulq_n_s32(in[7], cospi[30]);
     v[9] = vmlsq_n_s32(v[9], in[8], cospi[34]);
-    v[9] = vrshlq_s32(v[9], -vbit);
+    v[9] = vrshlq_s32(v[9], vbit);
 
     v[10] = vmulq_n_s32(in[5], cospi[42]);
     v[10] = vmlaq_n_s32(v[10], in[10], cospi[22]);
-    v[10] = vrshlq_s32(v[10], -vbit);
+    v[10] = vrshlq_s32(v[10], vbit);
 
     v[11] = vmulq_n_s32(in[5], cospi[22]);
     v[11] = vmlsq_n_s32(v[11], in[10], cospi[42]);
-    v[11] = vrshlq_s32(v[11], -vbit);
+    v[11] = vrshlq_s32(v[11], vbit);
 
     v[12] = vmulq_n_s32(in[3], cospi[50]);
     v[12] = vmlaq_n_s32(v[12], in[12], cospi[14]);
-    v[12] = vrshlq_s32(v[12], -vbit);
+    v[12] = vrshlq_s32(v[12], vbit);
 
     v[13] = vmulq_n_s32(in[3], cospi[14]);
     v[13] = vmlsq_n_s32(v[13], in[12], cospi[50]);
-    v[13] = vrshlq_s32(v[13], -vbit);
+    v[13] = vrshlq_s32(v[13], vbit);
 
     v[14] = vmulq_n_s32(in[1], cospi[58]);
     v[14] = vmlaq_n_s32(v[14], in[14], cospi[6]);
-    v[14] = vrshlq_s32(v[14], -vbit);
+    v[14] = vrshlq_s32(v[14], vbit);
 
     v[15] = vmulq_n_s32(in[1], cospi[6]);
     v[15] = vmlsq_n_s32(v[15], in[14], cospi[58]);
-    v[15] = vrshlq_s32(v[15], -vbit);
+    v[15] = vrshlq_s32(v[15], vbit);
 
     // stage 3
     u[0]  = vaddq_s32(v[0], v[8]);
@@ -1218,35 +1218,35 @@ static void iadst16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
 
     v[8] = vmulq_n_s32(u[8], cospi[8]);
     v[8] = vmlaq_n_s32(v[8], u[9], cospi[56]);
-    v[8] = vrshlq_s32(v[8], -vbit);
+    v[8] = vrshlq_s32(v[8], vbit);
 
     v[9] = vmulq_n_s32(u[8], cospi[56]);
     v[9] = vmlsq_n_s32(v[9], u[9], cospi[8]);
-    v[9] = vrshlq_s32(v[9], -vbit);
+    v[9] = vrshlq_s32(v[9], vbit);
 
     v[10] = vmulq_n_s32(u[10], cospi[40]);
     v[10] = vmlaq_n_s32(v[10], u[11], cospi[24]);
-    v[10] = vrshlq_s32(v[10], -vbit);
+    v[10] = vrshlq_s32(v[10], vbit);
 
     v[11] = vmulq_n_s32(u[10], cospi[24]);
     v[11] = vmlsq_n_s32(v[11], u[11], cospi[40]);
-    v[11] = vrshlq_s32(v[11], -vbit);
+    v[11] = vrshlq_s32(v[11], vbit);
 
     v[12] = vmulq_n_s32(u[12], -cospi[56]);
     v[12] = vmlaq_n_s32(v[12], u[13], cospi[8]);
-    v[12] = vrshlq_s32(v[12], -vbit);
+    v[12] = vrshlq_s32(v[12], vbit);
 
     v[13] = vmulq_n_s32(u[12], cospi[8]);
     v[13] = vmlsq_n_s32(v[13], u[13], -cospi[56]);
-    v[13] = vrshlq_s32(v[13], -vbit);
+    v[13] = vrshlq_s32(v[13], vbit);
 
     v[14] = vmulq_n_s32(u[14], -cospi[24]);
     v[14] = vmlaq_n_s32(v[14], u[15], cospi[40]);
-    v[14] = vrshlq_s32(v[14], -vbit);
+    v[14] = vrshlq_s32(v[14], vbit);
 
     v[15] = vmulq_n_s32(u[14], cospi[40]);
     v[15] = vmlsq_n_s32(v[15], u[15], -cospi[24]);
-    v[15] = vrshlq_s32(v[15], -vbit);
+    v[15] = vrshlq_s32(v[15], vbit);
 
     // stage 5
     u[0]  = vaddq_s32(v[0], v[4]);
@@ -1274,19 +1274,19 @@ static void iadst16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
 
     v[4] = vmulq_n_s32(u[4], cospi[16]);
     v[4] = vmlaq_n_s32(v[4], u[5], cospi[48]);
-    v[4] = vrshlq_s32(v[4], -vbit);
+    v[4] = vrshlq_s32(v[4], vbit);
 
     v[5] = vmulq_n_s32(u[4], cospi[48]);
     v[5] = vmlsq_n_s32(v[5], u[5], cospi[16]);
-    v[5] = vrshlq_s32(v[5], -vbit);
+    v[5] = vrshlq_s32(v[5], vbit);
 
     v[6] = vmulq_n_s32(u[6], -cospi[48]);
     v[6] = vmlaq_n_s32(v[6], u[7], cospi[16]);
-    v[6] = vrshlq_s32(v[6], -vbit);
+    v[6] = vrshlq_s32(v[6], vbit);
 
     v[7] = vmulq_n_s32(u[6], cospi[16]);
     v[7] = vmlsq_n_s32(v[7], u[7], -cospi[48]);
-    v[7] = vrshlq_s32(v[7], -vbit);
+    v[7] = vrshlq_s32(v[7], vbit);
 
     v[8]  = u[8];
     v[9]  = u[9];
@@ -1295,19 +1295,19 @@ static void iadst16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
 
     v[12] = vmulq_n_s32(u[12], cospi[16]);
     v[12] = vmlaq_n_s32(v[12], u[13], cospi[48]);
-    v[12] = vrshlq_s32(v[12], -vbit);
+    v[12] = vrshlq_s32(v[12], vbit);
 
     v[13] = vmulq_n_s32(u[12], cospi[48]);
     v[13] = vmlsq_n_s32(v[13], u[13], cospi[16]);
-    v[13] = vrshlq_s32(v[13], -vbit);
+    v[13] = vrshlq_s32(v[13], vbit);
 
     v[14] = vmulq_n_s32(u[14], -cospi[48]);
     v[14] = vmlaq_n_s32(v[14], u[15], cospi[16]);
-    v[14] = vrshlq_s32(v[14], -vbit);
+    v[14] = vrshlq_s32(v[14], vbit);
 
     v[15] = vmulq_n_s32(u[14], cospi[16]);
     v[15] = vmlsq_n_s32(v[15], u[15], -cospi[48]);
-    v[15] = vrshlq_s32(v[15], -vbit);
+    v[15] = vrshlq_s32(v[15], vbit);
 
     // stage 7
     u[0]  = vaddq_s32(v[0], v[2]);
@@ -1334,10 +1334,10 @@ static void iadst16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     y    = vmulq_n_s32(u[2], cospi[32]);
     x    = vmulq_n_s32(u[3], cospi[32]);
     v[2] = vaddq_s32(y, x);
-    v[2] = vrshlq_s32(v[2], -vbit);
+    v[2] = vrshlq_s32(v[2], vbit);
 
     v[3] = vsubq_s32(y, x);
-    v[3] = vrshlq_s32(v[3], -vbit);
+    v[3] = vrshlq_s32(v[3], vbit);
 
     v[4] = u[4];
     v[5] = u[5];
@@ -1345,10 +1345,10 @@ static void iadst16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     y    = vmulq_n_s32(u[6], cospi[32]);
     x    = vmulq_n_s32(u[7], cospi[32]);
     v[6] = vaddq_s32(y, x);
-    v[6] = vrshlq_s32(v[6], -vbit);
+    v[6] = vrshlq_s32(v[6], vbit);
 
     v[7] = vsubq_s32(y, x);
-    v[7] = vrshlq_s32(v[7], -vbit);
+    v[7] = vrshlq_s32(v[7], vbit);
 
     v[8] = u[8];
     v[9] = u[9];
@@ -1356,10 +1356,10 @@ static void iadst16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     y     = vmulq_n_s32(u[10], cospi[32]);
     x     = vmulq_n_s32(u[11], cospi[32]);
     v[10] = vaddq_s32(y, x);
-    v[10] = vrshlq_s32(v[10], -vbit);
+    v[10] = vrshlq_s32(v[10], vbit);
 
     v[11] = vsubq_s32(y, x);
-    v[11] = vrshlq_s32(v[11], -vbit);
+    v[11] = vrshlq_s32(v[11], vbit);
 
     v[12] = u[12];
     v[13] = u[13];
@@ -1367,10 +1367,10 @@ static void iadst16_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     y     = vmulq_n_s32(u[14], cospi[32]);
     x     = vmulq_n_s32(u[15], cospi[32]);
     v[14] = vaddq_s32(y, x);
-    v[14] = vrshlq_s32(v[14], -vbit);
+    v[14] = vrshlq_s32(v[14], vbit);
 
     v[15] = vsubq_s32(y, x);
-    v[15] = vrshlq_s32(v[15], -vbit);
+    v[15] = vrshlq_s32(v[15], vbit);
 
     // stage 9
     out[0]  = v[0];
@@ -1561,7 +1561,7 @@ void svt_av1_inv_txfm2d_add_16x16_neon(const int32_t *input, uint16_t *output_r,
 
 static INLINE void idct8_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     const int32_t  *cospi = cospi_arr(bit);
-    const int32x4_t shift = -vdupq_n_s32(bit);
+    const int32x4_t shift = vdupq_n_s32(-bit);
     int32x4_t       u0, u1, u2, u3, u4, u5, u6, u7;
     int32x4_t       v0, v1, v2, v3, v4, v5, v6, v7;
     int32x4_t       x, y;
@@ -1644,7 +1644,7 @@ static INLINE void idct8_xn_neon(int32x4_t *in, int32x4_t *out, int32_t bit, int
 
 static INLINE void iadst8_x4_neon(int32x4_t *in, int32x4_t *out, int32_t bit) {
     const int32_t  *cospi = cospi_arr(bit);
-    const int32x4_t shift = -vdupq_n_s32(bit);
+    const int32x4_t shift = vdupq_n_s32(-bit);
     int32x4_t       u[8], v[8], x;
 
     // stage 0
