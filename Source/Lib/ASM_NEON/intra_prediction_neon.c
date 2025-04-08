@@ -440,8 +440,8 @@ static INLINE void dr_prediction_z2_Nx4_neon(int N, uint8_t *dst, ptrdiff_t stri
             // Values in base_y_c64 range from -2 through 14 inclusive.
             base_y_c64 = vbic_s16(base_y_c64, vreinterpret_s16_u16(mask64));
 
-            uint8x8_t left_idx0 = vreinterpret_u8_s16(base_y_c64 + 2); // [0, 16]
-            uint8x8_t left_idx1 = vreinterpret_u8_s16(base_y_c64 + 3); // [1, 17]
+            uint8x8_t left_idx0 = vreinterpret_u8_s16(vadd_s16(base_y_c64, vdup_n_s16(2))); // [0, 16]
+            uint8x8_t left_idx1 = vreinterpret_u8_s16(vadd_s16(base_y_c64, vdup_n_s16(3))); // [1, 17]
 
             uint8x8_t a0_y = vtrn1_u8(vqtbl2_u8(left_vals, left_idx0), v_zero_u8);
             uint8x8_t a1_y = vtrn1_u8(vqtbl2_u8(left_vals, left_idx1), v_zero_u8);
@@ -637,8 +637,8 @@ static INLINE void dr_prediction_z2_Nx8_neon(int N, uint8_t *dst, ptrdiff_t stri
             // Values in base_y_c128 range from -2 through 31 inclusive.
             base_y_c128 = vbicq_s16(base_y_c128, vreinterpretq_s16_u16(mask128));
 
-            uint8x16_t left_idx0  = vreinterpretq_u8_s16(base_y_c128 + 2); // [0, 33]
-            uint8x16_t left_idx1  = vreinterpretq_u8_s16(base_y_c128 + 3); // [1, 34]
+            uint8x16_t left_idx0  = vreinterpretq_u8_s16(vaddq_s16(base_y_c128, vdupq_n_s16(2))); // [0, 33]
+            uint8x16_t left_idx1  = vreinterpretq_u8_s16(vaddq_s16(base_y_c128, vdupq_n_s16(3))); // [1, 34]
             uint8x16_t left_idx01 = vuzp1q_u8(left_idx0, left_idx1);
 
             uint8x16_t a01_x = vqtbl3q_u8(left_vals, left_idx01);
@@ -815,8 +815,8 @@ static INLINE void dr_prediction_z2_HxW_neon(int H, int W, uint8_t *dst, ptrdiff
                     base_y_c256.val[1] = vbicq_s16(base_y_c256.val[1], vreinterpretq_s16_u16(mask256.val[1]));
 
                     // Values in left_idx{0,1} range from 0 through 63 inclusive.
-                    uint8x16_t left_idx0 = vreinterpretq_u8_s16(base_y_c256.val[0] + 1);
-                    uint8x16_t left_idx1 = vreinterpretq_u8_s16(base_y_c256.val[1] + 1);
+                    uint8x16_t left_idx0 = vreinterpretq_u8_s16(vaddq_s16(base_y_c256.val[0], vdupq_n_s16(1)));
+                    uint8x16_t left_idx1 = vreinterpretq_u8_s16(vaddq_s16(base_y_c256.val[1], vdupq_n_s16(1)));
 
                     uint8x16_t left_idx01 = vuzp1q_u8(left_idx0, left_idx1);
 
