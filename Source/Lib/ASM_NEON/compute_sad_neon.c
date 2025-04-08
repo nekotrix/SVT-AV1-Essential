@@ -1089,11 +1089,13 @@ static INLINE uint32x4_t get_mv_cost_vector(const struct svt_mv_cost_param *mv_c
                          {baseMv.row, baseMv.col + 8 * 1},
                          {baseMv.row, baseMv.col + 8 * 2},
                          {baseMv.row, baseMv.col + 8 * 3}};
-    uint32x4_t cost   = {(uint32_t)svt_aom_fp_mv_err_cost(&mvs[0], mv_cost_params),
-                         (uint32_t)svt_aom_fp_mv_err_cost(&mvs[1], mv_cost_params),
-                         (uint32_t)svt_aom_fp_mv_err_cost(&mvs[2], mv_cost_params),
-                         (uint32_t)svt_aom_fp_mv_err_cost(&mvs[3], mv_cost_params)};
-    return cost;
+    uint32_t   costs[4];
+    costs[0] = (uint32_t)svt_aom_fp_mv_err_cost(&mvs[0], mv_cost_params);
+    costs[1] = (uint32_t)svt_aom_fp_mv_err_cost(&mvs[1], mv_cost_params);
+    costs[2] = (uint32_t)svt_aom_fp_mv_err_cost(&mvs[2], mv_cost_params);
+    costs[3] = (uint32_t)svt_aom_fp_mv_err_cost(&mvs[3], mv_cost_params);
+
+    return vld1q_u32(costs);
 }
 
 static INLINE void update_best_cost_u32(uint32x4_t cost4, uint32_t *best_cost, int16_t *x_search_center,
