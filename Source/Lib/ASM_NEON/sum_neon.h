@@ -51,6 +51,13 @@ static INLINE uint32x4_t horizontal_add_4d_u16x8(const uint16x8_t sum[4]) {
     return vpaddlq_u16(b0);
 }
 
+static INLINE int32x4_t horizontal_add_4d_s16x8(const int16x8_t sum[4]) {
+    const int16x8_t a0 = vpaddq_s16(sum[0], sum[1]);
+    const int16x8_t a1 = vpaddq_s16(sum[2], sum[3]);
+    const int16x8_t b0 = vpaddq_s16(a0, a1);
+    return vpaddlq_s16(b0);
+}
+
 static INLINE uint64_t horizontal_long_add_u32x4_x2(const uint32x4_t a[2]) {
     return vaddlvq_u32(a[0]) + vaddlvq_u32(a[1]);
 }
