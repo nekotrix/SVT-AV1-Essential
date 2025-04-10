@@ -329,8 +329,8 @@ static INLINE uint32_t sad4xh_neon(const uint8_t *src_ptr, uint32_t src_stride, 
     sum = vdupq_n_u16(0);
     i   = h / 2;
     do {
-        s = load_unaligned_u8(src_ptr, src_stride);
-        r = load_unaligned_u8(ref_ptr, ref_stride);
+        s = load_u8_4x2(src_ptr, src_stride);
+        r = load_u8_4x2(ref_ptr, ref_stride);
 
         sum = vabal_u8(sum, s, r); // add and accumulate
 

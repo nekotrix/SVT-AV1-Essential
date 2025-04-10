@@ -771,10 +771,10 @@ static INLINE void compute_stats_win5_highbd_neon(const int16_t *const d, const 
             int32x4_t deltas[WIENER_WIN_CHROMA * 2] = {vdupq_n_s32(0)};
             int16x8_t ds[WIENER_WIN_CHROMA * 2];
 
-            ds[0] = load_unaligned_s16_4x2(d_t + 0 * d_stride, width);
-            ds[1] = load_unaligned_s16_4x2(d_t + 1 * d_stride, width);
-            ds[2] = load_unaligned_s16_4x2(d_t + 2 * d_stride, width);
-            ds[3] = load_unaligned_s16_4x2(d_t + 3 * d_stride, width);
+            ds[0] = load_s16_4x2(d_t + 0 * d_stride, width);
+            ds[1] = load_s16_4x2(d_t + 1 * d_stride, width);
+            ds[2] = load_s16_4x2(d_t + 2 * d_stride, width);
+            ds[3] = load_s16_4x2(d_t + 3 * d_stride, width);
 
             step3_win5_neon(d_t + 4 * d_stride, d_stride, width, height, ds, deltas);
 

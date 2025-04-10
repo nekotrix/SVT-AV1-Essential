@@ -21,8 +21,8 @@ static INLINE void highbd_variance_4xh_sve(const uint16_t *src_ptr, int src_stri
     int64x2_t sse_s64 = vdupq_n_s64(0);
 
     do {
-        const uint16x8_t s = load_unaligned_u16_4x2(src_ptr, src_stride);
-        const uint16x8_t r = load_unaligned_u16_4x2(ref_ptr, ref_stride);
+        const uint16x8_t s = load_u16_4x2(src_ptr, src_stride);
+        const uint16x8_t r = load_u16_4x2(ref_ptr, ref_stride);
 
         int16x8_t diff = vreinterpretq_s16_u16(vsubq_u16(s, r));
         sum_s16        = vaddq_s16(sum_s16, diff);

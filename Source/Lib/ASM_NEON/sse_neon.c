@@ -38,8 +38,8 @@ static INLINE void sse_8x1_neon(const uint8_t *src, const uint8_t *ref, uint32x4
 
 static INLINE void sse_4x2_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
                                 uint32x4_t *sse) {
-    uint8x8_t s = load_unaligned_u8(src, src_stride);
-    uint8x8_t r = load_unaligned_u8(ref, ref_stride);
+    uint8x8_t s = load_u8_4x2(src, src_stride);
+    uint8x8_t r = load_u8_4x2(ref, ref_stride);
 
     uint8x8_t abs_diff = vabd_u8(s, r);
 

@@ -1666,13 +1666,13 @@ static AOM_FORCE_INLINE uint16x4x2_t highbd_dr_prediction_z2_gather_left_x4(cons
 
     // At time of writing both Clang and GCC produced better code with these
     // nested if-statements compared to a switch statement with fallthrough.
-    load_unaligned_u32_2x1_lane(ret0_u32, left + idx0, 0);
+    load_u32_2x1_lane(ret0_u32, left + idx0, 0);
     if (n > 1) {
-        load_unaligned_u32_2x1_lane(ret0_u32, left + idx1, 1);
+        load_u32_2x1_lane(ret0_u32, left + idx1, 1);
         if (n > 2) {
-            load_unaligned_u32_2x1_lane(ret1_u32, left + idx2, 0);
+            load_u32_2x1_lane(ret1_u32, left + idx2, 0);
             if (n > 3) {
-                load_unaligned_u32_2x1_lane(ret1_u32, left + idx3, 1);
+                load_u32_2x1_lane(ret1_u32, left + idx3, 1);
             }
         }
     }
@@ -1703,21 +1703,21 @@ static AOM_FORCE_INLINE uint16x8x2_t highbd_dr_prediction_z2_gather_left_x8(cons
 
     // At time of writing both Clang and GCC produced better code with these
     // nested if-statements compared to a switch statement with fallthrough.
-    load_unaligned_u32_4x1_lane(ret0_u32, left + idx0, 0);
+    load_u32_4x1_lane(ret0_u32, left + idx0, 0);
     if (n > 1) {
-        load_unaligned_u32_4x1_lane(ret0_u32, left + idx1, 1);
+        load_u32_4x1_lane(ret0_u32, left + idx1, 1);
         if (n > 2) {
-            load_unaligned_u32_4x1_lane(ret0_u32, left + idx2, 2);
+            load_u32_4x1_lane(ret0_u32, left + idx2, 2);
             if (n > 3) {
-                load_unaligned_u32_4x1_lane(ret0_u32, left + idx3, 3);
+                load_u32_4x1_lane(ret0_u32, left + idx3, 3);
                 if (n > 4) {
-                    load_unaligned_u32_4x1_lane(ret1_u32, left + idx4, 0);
+                    load_u32_4x1_lane(ret1_u32, left + idx4, 0);
                     if (n > 5) {
-                        load_unaligned_u32_4x1_lane(ret1_u32, left + idx5, 1);
+                        load_u32_4x1_lane(ret1_u32, left + idx5, 1);
                         if (n > 6) {
-                            load_unaligned_u32_4x1_lane(ret1_u32, left + idx6, 2);
+                            load_u32_4x1_lane(ret1_u32, left + idx6, 2);
                             if (n > 7) {
-                                load_unaligned_u32_4x1_lane(ret1_u32, left + idx7, 3);
+                                load_u32_4x1_lane(ret1_u32, left + idx7, 3);
                             }
                         }
                     }

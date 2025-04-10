@@ -197,8 +197,8 @@ void svt_cfl_luma_subsampling_420_lbd_neon(const uint8_t *input, int input_strid
     const int      luma_stride = input_stride << 1;
     if (width == 4) {
         do {
-            const uint8x8_t top = load_unaligned_u8(input, luma_stride);
-            const uint8x8_t bot = load_unaligned_u8(input + input_stride, luma_stride);
+            const uint8x8_t top = load_u8_4x2(input, luma_stride);
+            const uint8x8_t bot = load_u8_4x2(input + input_stride, luma_stride);
             uint16x4_t      sum = vpaddl_u8(top);
             sum                 = vpadal_u8(sum, bot);
             sum                 = vadd_u16(sum, sum);
@@ -264,8 +264,8 @@ void svt_cfl_luma_subsampling_420_hbd_neon(const uint16_t *input, int input_stri
     const int      luma_stride = input_stride << 1;
     if (width == 4) {
         do {
-            const uint16x8_t top = load_unaligned_u16_4x2(input, luma_stride);
-            const uint16x8_t bot = load_unaligned_u16_4x2(input + input_stride, luma_stride);
+            const uint16x8_t top = load_u16_4x2(input, luma_stride);
+            const uint16x8_t bot = load_u16_4x2(input + input_stride, luma_stride);
 
             uint16x8_t sum = vaddq_u16(top, bot);
             sum            = vpaddq_u16(sum, sum);

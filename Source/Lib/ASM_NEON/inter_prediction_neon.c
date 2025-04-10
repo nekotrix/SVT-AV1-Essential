@@ -166,8 +166,8 @@ static INLINE void diffwtd_mask_neon(uint8_t *mask, const bool inverse, const ui
     } else if (w == 4) {
         int i = 0;
         do {
-            uint8x16_t s0 = load_unaligned_u8q(src0, src0_stride);
-            uint8x16_t s1 = load_unaligned_u8q(src1, src1_stride);
+            uint8x16_t s0 = load_u8_4x4(src0, src0_stride);
+            uint8x16_t s1 = load_u8_4x4(src1, src1_stride);
 
             uint8x16_t diff = vshrq_n_u8(vabdq_u8(s0, s1), DIFF_FACTOR_LOG2);
             uint8x16_t m;
@@ -274,7 +274,7 @@ void svt_av1_calc_target_weighted_pred_left_neon(uint8_t is16bit, MacroBlockD *x
         // MI_SIZE = 4 so it's fine to do 4 rows at a time.
         int row = nb_mi_height * MI_SIZE;
         do {
-            uint8x16_t tmp_u8 = vcombine_u8(load_unaligned_u8_2x4(tmp, ctxt->tmp_stride), vdup_n_u8(0));
+            uint8x16_t tmp_u8 = vcombine_u8(load_u8_2x4(tmp, ctxt->tmp_stride), vdup_n_u8(0));
 
             int32x4_t tmp_lo = vreinterpretq_s32_u8(vqtbl1q_u8(tmp_u8, pre_idx0));
             int32x4_t tmp_hi = vreinterpretq_s32_u8(vqtbl1q_u8(tmp_u8, pre_idx1));
@@ -322,7 +322,7 @@ void svt_av1_calc_target_weighted_pred_left_neon(uint8_t is16bit, MacroBlockD *x
         int32x4_t m1  = vld1q_s32(mask1d1);
         int       row = nb_mi_height * MI_SIZE;
         do {
-            uint8x16_t tmp_u8 = load_unaligned_u8q(tmp, ctxt->tmp_stride);
+            uint8x16_t tmp_u8 = load_u8_4x4(tmp, ctxt->tmp_stride);
 
             int32x4_t tmp_s32[2];
             tmp_s32[0] = vreinterpretq_s32_u8(vqtbl1q_u8(tmp_u8, pre_idx0));

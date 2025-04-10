@@ -27,8 +27,8 @@ static INLINE void variance_4xh_neon(const uint8_t *src, int src_stride, const u
 
     int i = h;
     do {
-        uint8x8_t s    = load_unaligned_u8(src, src_stride);
-        uint8x8_t r    = load_unaligned_u8(ref, ref_stride);
+        uint8x8_t s    = load_u8_4x2(src, src_stride);
+        uint8x8_t r    = load_u8_4x2(ref, ref_stride);
         int16x8_t diff = vreinterpretq_s16_u16(vsubl_u8(s, r));
 
         sum_s16 = vaddq_s16(sum_s16, diff);

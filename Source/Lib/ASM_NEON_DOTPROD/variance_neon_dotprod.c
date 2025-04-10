@@ -21,8 +21,8 @@ static INLINE void variance_4xh_neon_dotprod(const uint8_t *src, int src_stride,
     uint32x4_t sse_u32 = vdupq_n_u32(0);
 
     do {
-        uint8x16_t s = load_unaligned_u8q(src, src_stride);
-        uint8x16_t r = load_unaligned_u8q(ref, ref_stride);
+        uint8x16_t s = load_u8_4x4(src, src_stride);
+        uint8x16_t r = load_u8_4x4(ref, ref_stride);
 
         src_sum = vdotq_u32(src_sum, s, vdupq_n_u8(1));
         ref_sum = vdotq_u32(ref_sum, r, vdupq_n_u8(1));

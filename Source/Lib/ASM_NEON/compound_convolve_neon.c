@@ -1273,11 +1273,11 @@ static INLINE void dist_wtd_convolve_y_6tap_dist_wtd_avg_neon(const uint8_t *src
             uint8_t       *d_u8   = dst8_ptr;
             int            height = h;
 
-            uint8x8_t t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-            uint8x8_t t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-            uint8x8_t t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-            uint8x8_t t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
-            uint8x8_t t4 = load_unaligned_u8_4x1(s + 4 * src_stride);
+            uint8x8_t t0 = load_u8_4x1(s + 0 * src_stride);
+            uint8x8_t t1 = load_u8_4x1(s + 1 * src_stride);
+            uint8x8_t t2 = load_u8_4x1(s + 2 * src_stride);
+            uint8x8_t t3 = load_u8_4x1(s + 3 * src_stride);
+            uint8x8_t t4 = load_u8_4x1(s + 4 * src_stride);
 
             int16x4_t s0 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
             int16x4_t s1 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -1288,10 +1288,10 @@ static INLINE void dist_wtd_convolve_y_6tap_dist_wtd_avg_neon(const uint8_t *src
             s += 5 * src_stride;
 
             do {
-                t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-                t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-                t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-                t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
+                t0 = load_u8_4x1(s + 0 * src_stride);
+                t1 = load_u8_4x1(s + 1 * src_stride);
+                t2 = load_u8_4x1(s + 2 * src_stride);
+                t3 = load_u8_4x1(s + 3 * src_stride);
 
                 int16x4_t s5 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
                 int16x4_t s6 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -1449,11 +1449,11 @@ static INLINE void dist_wtd_convolve_y_6tap_avg_neon(const uint8_t *src_ptr, int
             uint8_t       *d_u8   = dst8_ptr;
             int            height = h;
 
-            uint8x8_t t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-            uint8x8_t t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-            uint8x8_t t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-            uint8x8_t t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
-            uint8x8_t t4 = load_unaligned_u8_4x1(s + 4 * src_stride);
+            uint8x8_t t0 = load_u8_4x1(s + 0 * src_stride);
+            uint8x8_t t1 = load_u8_4x1(s + 1 * src_stride);
+            uint8x8_t t2 = load_u8_4x1(s + 2 * src_stride);
+            uint8x8_t t3 = load_u8_4x1(s + 3 * src_stride);
+            uint8x8_t t4 = load_u8_4x1(s + 4 * src_stride);
 
             int16x4_t s0 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
             int16x4_t s1 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -1464,10 +1464,10 @@ static INLINE void dist_wtd_convolve_y_6tap_avg_neon(const uint8_t *src_ptr, int
             s += 5 * src_stride;
 
             do {
-                t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-                t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-                t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-                t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
+                t0 = load_u8_4x1(s + 0 * src_stride);
+                t1 = load_u8_4x1(s + 1 * src_stride);
+                t2 = load_u8_4x1(s + 2 * src_stride);
+                t3 = load_u8_4x1(s + 3 * src_stride);
 
                 int16x4_t s5 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
                 int16x4_t s6 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -1596,11 +1596,11 @@ static INLINE void dist_wtd_convolve_y_6tap_neon(const uint8_t *src_ptr, int src
             CONV_BUF_TYPE *d      = dst_ptr;
             int            height = h;
 
-            uint8x8_t t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-            uint8x8_t t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-            uint8x8_t t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-            uint8x8_t t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
-            uint8x8_t t4 = load_unaligned_u8_4x1(s + 4 * src_stride);
+            uint8x8_t t0 = load_u8_4x1(s + 0 * src_stride);
+            uint8x8_t t1 = load_u8_4x1(s + 1 * src_stride);
+            uint8x8_t t2 = load_u8_4x1(s + 2 * src_stride);
+            uint8x8_t t3 = load_u8_4x1(s + 3 * src_stride);
+            uint8x8_t t4 = load_u8_4x1(s + 4 * src_stride);
 
             int16x4_t s0 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
             int16x4_t s1 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -1611,10 +1611,10 @@ static INLINE void dist_wtd_convolve_y_6tap_neon(const uint8_t *src_ptr, int src
             s += 5 * src_stride;
 
             do {
-                t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-                t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-                t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-                t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
+                t0 = load_u8_4x1(s + 0 * src_stride);
+                t1 = load_u8_4x1(s + 1 * src_stride);
+                t2 = load_u8_4x1(s + 2 * src_stride);
+                t3 = load_u8_4x1(s + 3 * src_stride);
 
                 int16x4_t s5 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
                 int16x4_t s6 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -1764,13 +1764,13 @@ static INLINE void dist_wtd_convolve_y_8tap_dist_wtd_avg_neon(const uint8_t *src
             __builtin_prefetch(s + 2 * src_stride);
             __builtin_prefetch(s + 3 * src_stride);
 
-            uint8x8_t t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-            uint8x8_t t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-            uint8x8_t t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-            uint8x8_t t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
-            uint8x8_t t4 = load_unaligned_u8_4x1(s + 4 * src_stride);
-            uint8x8_t t5 = load_unaligned_u8_4x1(s + 5 * src_stride);
-            uint8x8_t t6 = load_unaligned_u8_4x1(s + 6 * src_stride);
+            uint8x8_t t0 = load_u8_4x1(s + 0 * src_stride);
+            uint8x8_t t1 = load_u8_4x1(s + 1 * src_stride);
+            uint8x8_t t2 = load_u8_4x1(s + 2 * src_stride);
+            uint8x8_t t3 = load_u8_4x1(s + 3 * src_stride);
+            uint8x8_t t4 = load_u8_4x1(s + 4 * src_stride);
+            uint8x8_t t5 = load_u8_4x1(s + 5 * src_stride);
+            uint8x8_t t6 = load_u8_4x1(s + 6 * src_stride);
 
             int16x4_t s0 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
             int16x4_t s1 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -1788,10 +1788,10 @@ static INLINE void dist_wtd_convolve_y_8tap_dist_wtd_avg_neon(const uint8_t *src
             s += 7 * src_stride;
 
             do {
-                t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-                t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-                t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-                t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
+                t0 = load_u8_4x1(s + 0 * src_stride);
+                t1 = load_u8_4x1(s + 1 * src_stride);
+                t2 = load_u8_4x1(s + 2 * src_stride);
+                t3 = load_u8_4x1(s + 3 * src_stride);
 
                 int16x4_t s7  = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
                 int16x4_t s8  = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -1992,13 +1992,13 @@ static INLINE void dist_wtd_convolve_y_8tap_avg_neon(const uint8_t *src_ptr, int
             __builtin_prefetch(s + 2 * src_stride);
             __builtin_prefetch(s + 3 * src_stride);
 
-            uint8x8_t t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-            uint8x8_t t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-            uint8x8_t t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-            uint8x8_t t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
-            uint8x8_t t4 = load_unaligned_u8_4x1(s + 4 * src_stride);
-            uint8x8_t t5 = load_unaligned_u8_4x1(s + 5 * src_stride);
-            uint8x8_t t6 = load_unaligned_u8_4x1(s + 6 * src_stride);
+            uint8x8_t t0 = load_u8_4x1(s + 0 * src_stride);
+            uint8x8_t t1 = load_u8_4x1(s + 1 * src_stride);
+            uint8x8_t t2 = load_u8_4x1(s + 2 * src_stride);
+            uint8x8_t t3 = load_u8_4x1(s + 3 * src_stride);
+            uint8x8_t t4 = load_u8_4x1(s + 4 * src_stride);
+            uint8x8_t t5 = load_u8_4x1(s + 5 * src_stride);
+            uint8x8_t t6 = load_u8_4x1(s + 6 * src_stride);
 
             int16x4_t s0 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
             int16x4_t s1 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -2016,10 +2016,10 @@ static INLINE void dist_wtd_convolve_y_8tap_avg_neon(const uint8_t *src_ptr, int
             s += 7 * src_stride;
 
             do {
-                t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-                t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-                t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-                t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
+                t0 = load_u8_4x1(s + 0 * src_stride);
+                t1 = load_u8_4x1(s + 1 * src_stride);
+                t2 = load_u8_4x1(s + 2 * src_stride);
+                t3 = load_u8_4x1(s + 3 * src_stride);
 
                 int16x4_t s7  = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
                 int16x4_t s8  = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -2191,13 +2191,13 @@ static INLINE void dist_wtd_convolve_y_8tap_neon(const uint8_t *src_ptr, int src
             __builtin_prefetch(s + 2 * src_stride);
             __builtin_prefetch(s + 3 * src_stride);
 
-            uint8x8_t t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-            uint8x8_t t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-            uint8x8_t t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-            uint8x8_t t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
-            uint8x8_t t4 = load_unaligned_u8_4x1(s + 4 * src_stride);
-            uint8x8_t t5 = load_unaligned_u8_4x1(s + 5 * src_stride);
-            uint8x8_t t6 = load_unaligned_u8_4x1(s + 6 * src_stride);
+            uint8x8_t t0 = load_u8_4x1(s + 0 * src_stride);
+            uint8x8_t t1 = load_u8_4x1(s + 1 * src_stride);
+            uint8x8_t t2 = load_u8_4x1(s + 2 * src_stride);
+            uint8x8_t t3 = load_u8_4x1(s + 3 * src_stride);
+            uint8x8_t t4 = load_u8_4x1(s + 4 * src_stride);
+            uint8x8_t t5 = load_u8_4x1(s + 5 * src_stride);
+            uint8x8_t t6 = load_u8_4x1(s + 6 * src_stride);
 
             int16x4_t s0 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
             int16x4_t s1 = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));
@@ -2215,10 +2215,10 @@ static INLINE void dist_wtd_convolve_y_8tap_neon(const uint8_t *src_ptr, int src
             s += 7 * src_stride;
 
             do {
-                t0 = load_unaligned_u8_4x1(s + 0 * src_stride);
-                t1 = load_unaligned_u8_4x1(s + 1 * src_stride);
-                t2 = load_unaligned_u8_4x1(s + 2 * src_stride);
-                t3 = load_unaligned_u8_4x1(s + 3 * src_stride);
+                t0 = load_u8_4x1(s + 0 * src_stride);
+                t1 = load_u8_4x1(s + 1 * src_stride);
+                t2 = load_u8_4x1(s + 2 * src_stride);
+                t3 = load_u8_4x1(s + 3 * src_stride);
 
                 int16x4_t s7  = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t0)));
                 int16x4_t s8  = vreinterpret_s16_u16(vget_low_u16(vmovl_u8(t1)));

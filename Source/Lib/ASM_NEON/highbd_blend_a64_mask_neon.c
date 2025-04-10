@@ -74,9 +74,9 @@ void svt_aom_highbd_blend_a64_mask_neon(uint8_t *dst_8, uint32_t dst_stride, con
             } while (--h != 0);
         } else {
             do {
-                uint16x8_t m0 = vmovl_u8(load_unaligned_u8_4x2(mask, mask_stride));
-                uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);
-                uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);
+                uint16x8_t m0 = vmovl_u8(load_u8_4x2(mask, mask_stride));
+                uint16x8_t s0 = load_u16_4x2(src0, src0_stride);
+                uint16x8_t s1 = load_u16_4x2(src1, src1_stride);
 
                 uint16x8_t blend = alpha_blend_a64_u16x8(m0, s0, s1);
 
@@ -121,8 +121,8 @@ void svt_aom_highbd_blend_a64_mask_neon(uint8_t *dst_8, uint32_t dst_stride, con
                 uint8x8_t  m1 = vld1_u8(mask + 1 * mask_stride);
                 uint8x8_t  m2 = vld1_u8(mask + 2 * mask_stride);
                 uint8x8_t  m3 = vld1_u8(mask + 3 * mask_stride);
-                uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);
-                uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);
+                uint16x8_t s0 = load_u16_4x2(src0, src0_stride);
+                uint16x8_t s1 = load_u16_4x2(src1, src1_stride);
 
                 uint16x8_t m_avg = avg_blend_pairwise_long_u8x8_4(m0, m1, m2, m3);
                 uint16x8_t blend = alpha_blend_a64_u16x8(m_avg, s0, s1);
@@ -164,8 +164,8 @@ void svt_aom_highbd_blend_a64_mask_neon(uint8_t *dst_8, uint32_t dst_stride, con
             do {
                 uint8x8_t  m0 = vld1_u8(mask + 0 * mask_stride);
                 uint8x8_t  m1 = vld1_u8(mask + 1 * mask_stride);
-                uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);
-                uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);
+                uint16x8_t s0 = load_u16_4x2(src0, src0_stride);
+                uint16x8_t s1 = load_u16_4x2(src1, src1_stride);
 
                 uint16x8_t m_avg = vmovl_u8(vrshr_n_u8(vpadd_u8(m0, m1), 1));
                 uint16x8_t blend = alpha_blend_a64_u16x8(m_avg, s0, s1);
@@ -204,10 +204,10 @@ void svt_aom_highbd_blend_a64_mask_neon(uint8_t *dst_8, uint32_t dst_stride, con
             } while (--h != 0);
         } else {
             do {
-                uint8x8_t  m0_2 = load_unaligned_u8_4x2(mask + 0 * mask_stride, 2 * mask_stride);
-                uint8x8_t  m1_3 = load_unaligned_u8_4x2(mask + 1 * mask_stride, 2 * mask_stride);
-                uint16x8_t s0   = load_unaligned_u16_4x2(src0, src0_stride);
-                uint16x8_t s1   = load_unaligned_u16_4x2(src1, src1_stride);
+                uint8x8_t  m0_2 = load_u8_4x2(mask + 0 * mask_stride, 2 * mask_stride);
+                uint8x8_t  m1_3 = load_u8_4x2(mask + 1 * mask_stride, 2 * mask_stride);
+                uint16x8_t s0   = load_u16_4x2(src0, src0_stride);
+                uint16x8_t s1   = load_u16_4x2(src1, src1_stride);
 
                 uint16x8_t m_avg = vmovl_u8(vrhadd_u8(m0_2, m1_3));
                 uint16x8_t blend = alpha_blend_a64_u16x8(m_avg, s0, s1);
@@ -287,9 +287,9 @@ void svt_aom_highbd_blend_a64_mask_neon(uint8_t *dst_8, uint32_t dst_stride, con
                 } while (--h != 0);                                                                                   \
             } else {                                                                                                  \
                 do {                                                                                                  \
-                    uint16x8_t m0 = vmovl_u8(load_unaligned_u8_4x2(mask, mask_stride));                               \
-                    uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);                                        \
-                    uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);                                        \
+                    uint16x8_t m0 = vmovl_u8(load_u8_4x2(mask, mask_stride));                                         \
+                    uint16x8_t s0 = load_u16_4x2(src0, src0_stride);                                                  \
+                    uint16x8_t s1 = load_u16_4x2(src1, src1_stride);                                                  \
                                                                                                                       \
                     uint16x8_t blend = alpha_##bd##_blend_a64_d16_u16x8(m0, s0, s1, offset);                          \
                                                                                                                       \
@@ -331,8 +331,8 @@ void svt_aom_highbd_blend_a64_mask_neon(uint8_t *dst_8, uint32_t dst_stride, con
                     uint8x8_t  m1 = vld1_u8(mask + 1 * mask_stride);                                                  \
                     uint8x8_t  m2 = vld1_u8(mask + 2 * mask_stride);                                                  \
                     uint8x8_t  m3 = vld1_u8(mask + 3 * mask_stride);                                                  \
-                    uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);                                        \
-                    uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);                                        \
+                    uint16x8_t s0 = load_u16_4x2(src0, src0_stride);                                                  \
+                    uint16x8_t s1 = load_u16_4x2(src1, src1_stride);                                                  \
                                                                                                                       \
                     uint16x8_t m_avg = avg_blend_pairwise_long_u8x8_4(m0, m1, m2, m3);                                \
                     uint16x8_t blend = alpha_##bd##_blend_a64_d16_u16x8(m_avg, s0, s1, offset);                       \
@@ -372,8 +372,8 @@ void svt_aom_highbd_blend_a64_mask_neon(uint8_t *dst_8, uint32_t dst_stride, con
                 do {                                                                                                  \
                     uint8x8_t  m0 = vld1_u8(mask + 0 * mask_stride);                                                  \
                     uint8x8_t  m1 = vld1_u8(mask + 1 * mask_stride);                                                  \
-                    uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);                                        \
-                    uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);                                        \
+                    uint16x8_t s0 = load_u16_4x2(src0, src0_stride);                                                  \
+                    uint16x8_t s1 = load_u16_4x2(src1, src1_stride);                                                  \
                                                                                                                       \
                     uint16x8_t m_avg = vmovl_u8(vrshr_n_u8(vpadd_u8(m0, m1), 1));                                     \
                     uint16x8_t blend = alpha_##bd##_blend_a64_d16_u16x8(m_avg, s0, s1, offset);                       \
@@ -411,10 +411,10 @@ void svt_aom_highbd_blend_a64_mask_neon(uint8_t *dst_8, uint32_t dst_stride, con
                 } while (--h != 0);                                                                                   \
             } else {                                                                                                  \
                 do {                                                                                                  \
-                    uint8x8_t  m0_2 = load_unaligned_u8_4x2(mask + 0 * mask_stride, 2 * mask_stride);                 \
-                    uint8x8_t  m1_3 = load_unaligned_u8_4x2(mask + 1 * mask_stride, 2 * mask_stride);                 \
-                    uint16x8_t s0   = load_unaligned_u16_4x2(src0, src0_stride);                                      \
-                    uint16x8_t s1   = load_unaligned_u16_4x2(src1, src1_stride);                                      \
+                    uint8x8_t  m0_2 = load_u8_4x2(mask + 0 * mask_stride, 2 * mask_stride);                           \
+                    uint8x8_t  m1_3 = load_u8_4x2(mask + 1 * mask_stride, 2 * mask_stride);                           \
+                    uint16x8_t s0   = load_u16_4x2(src0, src0_stride);                                                \
+                    uint16x8_t s1   = load_u16_4x2(src1, src1_stride);                                                \
                                                                                                                       \
                     uint16x8_t m_avg = vmovl_u8(vrhadd_u8(m0_2, m1_3));                                               \
                     uint16x8_t blend = alpha_##bd##_blend_a64_d16_u16x8(m_avg, s0, s1, offset);                       \
@@ -503,10 +503,10 @@ void svt_aom_highbd_blend_a64_hmask_16bit_neon(uint16_t *dst, uint32_t dst_strid
             dst += dst_stride;
         } while (--h != 0);
     } else if (w == 4) {
-        const uint16x8_t m0 = vmovl_u8(load_unaligned_dup_u8_4x2(mask));
+        const uint16x8_t m0 = vmovl_u8(load_dup_u8_4x2(mask));
         do {
-            uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);
-            uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);
+            uint16x8_t s0 = load_u16_4x2(src0, src0_stride);
+            uint16x8_t s1 = load_u16_4x2(src1, src1_stride);
 
             uint16x8_t blend = alpha_blend_a64_u16x8(m0, s0, s1);
 
@@ -519,10 +519,10 @@ void svt_aom_highbd_blend_a64_hmask_16bit_neon(uint16_t *dst, uint32_t dst_strid
         } while (h != 0);
     } else {
         assert(w == 2);
-        const uint16x4_t m0 = vget_low_u16(vmovl_u8(load_unaligned_dup_u8_2x4(mask)));
+        const uint16x4_t m0 = vget_low_u16(vmovl_u8(load_dup_u8_2x4(mask)));
         do {
-            uint16x4_t s0 = load_unaligned_u16_2x2(src0, src0_stride);
-            uint16x4_t s1 = load_unaligned_u16_2x2(src1, src1_stride);
+            uint16x4_t s0 = load_u16_2x2(src0, src0_stride);
+            uint16x4_t s1 = load_u16_2x2(src1, src1_stride);
 
             uint16x4_t blend = alpha_blend_a64_u16x4(m0, s0, s1);
 
@@ -575,8 +575,8 @@ void svt_aom_highbd_blend_a64_vmask_16bit_neon(uint16_t *dst, uint32_t dst_strid
             uint16x4_t m1 = vdup_n_u16((uint16_t)mask[0]);
             uint16x4_t m2 = vdup_n_u16((uint16_t)mask[1]);
             uint16x8_t m  = vcombine_u16(m1, m2);
-            uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);
-            uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);
+            uint16x8_t s0 = load_u16_4x2(src0, src0_stride);
+            uint16x8_t s1 = load_u16_4x2(src1, src1_stride);
 
             uint16x8_t blend = alpha_blend_a64_u16x8(m, s0, s1);
 
@@ -595,8 +595,8 @@ void svt_aom_highbd_blend_a64_vmask_16bit_neon(uint16_t *dst, uint32_t dst_strid
             m0               = vld1_lane_u16((uint16_t *)mask, m0, 0);
             uint8x8_t m0_zip = vzip_u8(vreinterpret_u8_u16(m0), vreinterpret_u8_u16(m0)).val[0];
             m0               = vget_low_u16(vmovl_u8(m0_zip));
-            uint16x4_t s0    = load_unaligned_u16_2x2(src0, src0_stride);
-            uint16x4_t s1    = load_unaligned_u16_2x2(src1, src1_stride);
+            uint16x4_t s0    = load_u16_2x2(src0, src0_stride);
+            uint16x4_t s1    = load_u16_2x2(src1, src1_stride);
 
             uint16x4_t blend = alpha_blend_a64_u16x4(m0, s0, s1);
 

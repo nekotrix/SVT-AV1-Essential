@@ -172,7 +172,7 @@ static INLINE void obmc_variance_neon_4xh(const uint8_t *pre, int pre_stride, co
     int32x4_t sumv = vdupq_n_s32(0);
 
     do {
-        uint8x8_t pre_u8  = load_unaligned_u8(pre, pre_stride);
+        uint8x8_t pre_u8  = load_u8_4x2(pre, pre_stride);
         int16x8_t pre_s16 = vreinterpretq_s16_u16(vmovl_u8(pre_u8));
 
         obmc_variance_8x1_s16_neon(pre_s16, wsrc, mask, &ssev, &sumv);

@@ -24,8 +24,8 @@ static void var_filter_block2d_bil_w4(const uint8_t *src_ptr, uint8_t *dst_ptr, 
 
     int i = dst_height;
     do {
-        uint8x8_t  s0      = load_unaligned_u8(src_ptr, src_stride);
-        uint8x8_t  s1      = load_unaligned_u8(src_ptr + pixel_step, src_stride);
+        uint8x8_t  s0      = load_u8_4x2(src_ptr, src_stride);
+        uint8x8_t  s1      = load_u8_4x2(src_ptr + pixel_step, src_stride);
         uint16x8_t blend   = vmull_u8(s0, f0);
         blend              = vmlal_u8(blend, s1, f1);
         uint8x8_t blend_u8 = vrshrn_n_u16(blend, 3);

@@ -134,7 +134,7 @@ static INLINE unsigned int obmc_sad_4xh_neon(const uint8_t *ref, int ref_stride,
 
     int h = height / 2;
     do {
-        uint8x8_t r = load_unaligned_u8(ref, ref_stride);
+        uint8x8_t r = load_u8_4x2(ref, ref_stride);
 
         int16x8_t ref_s16 = vreinterpretq_s16_u16(vmovl_u8(r));
         obmc_sad_8x1_s16_neon(ref_s16, mask, wsrc, &sum);

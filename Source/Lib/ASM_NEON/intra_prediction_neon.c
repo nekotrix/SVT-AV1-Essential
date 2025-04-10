@@ -3069,7 +3069,7 @@ static INLINE void paeth_4or8_x_h_neon(uint8_t *dest, ptrdiff_t stride, const ui
         result                           = vbsl_u8(left_or_top_mask, result, top_left);
 
         if (width == 4) {
-            store_unaligned_u8_4x1(dest, result, 0);
+            store_u8_4x1(dest, result);
         } else {
             vst1_u8(dest, result);
         }

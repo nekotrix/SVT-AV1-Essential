@@ -137,8 +137,8 @@ static INLINE int64_t highbd_sse_4xh_sve(const uint16_t *src, int src_stride, co
     uint64x2_t sse = vdupq_n_u64(0);
 
     do {
-        uint16x8_t s = load_unaligned_u16_4x2(src, src_stride);
-        uint16x8_t r = load_unaligned_u16_4x2(ref, ref_stride);
+        uint16x8_t s = load_u16_4x2(src, src_stride);
+        uint16x8_t r = load_u16_4x2(ref, ref_stride);
 
         uint16x8_t abs_diff = vabdq_u16(s, r);
         sse                 = svt_udotq_u16(sse, abs_diff, abs_diff);

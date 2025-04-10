@@ -78,10 +78,10 @@ static INLINE void convolve8_horiz_2tap_neon(const uint8_t *src, ptrdiff_t src_s
 
     if (w == 4) {
         do {
-            uint8x8_t s0 = load_unaligned_u8(src + 0 * src_stride + 0, src_stride);
-            uint8x8_t s1 = load_unaligned_u8(src + 0 * src_stride + 1, src_stride);
-            uint8x8_t s2 = load_unaligned_u8(src + 2 * src_stride + 0, src_stride);
-            uint8x8_t s3 = load_unaligned_u8(src + 2 * src_stride + 1, src_stride);
+            uint8x8_t s0 = load_u8_4x2(src + 0 * src_stride + 0, src_stride);
+            uint8x8_t s1 = load_u8_4x2(src + 0 * src_stride + 1, src_stride);
+            uint8x8_t s2 = load_u8_4x2(src + 2 * src_stride + 0, src_stride);
+            uint8x8_t s3 = load_u8_4x2(src + 2 * src_stride + 1, src_stride);
 
             uint16x8_t sum0 = vmull_u8(s0, f0);
             sum0            = vmlal_u8(sum0, s1, f1);
@@ -168,8 +168,8 @@ static INLINE void convolve8_vert_4tap_neon(const uint8_t *src, ptrdiff_t src_st
     const int16x4_t filter = vshr_n_s16(vld1_s16(filter_y + 2), 1);
 
     if (w == 4) {
-        uint8x8_t t01 = load_unaligned_u8(src + 0 * src_stride, (int)src_stride);
-        uint8x8_t t12 = load_unaligned_u8(src + 1 * src_stride, (int)src_stride);
+        uint8x8_t t01 = load_u8_4x2(src + 0 * src_stride, (int)src_stride);
+        uint8x8_t t12 = load_u8_4x2(src + 1 * src_stride, (int)src_stride);
 
         int16x8_t s01 = vreinterpretq_s16_u16(vmovl_u8(t01));
         int16x8_t s12 = vreinterpretq_s16_u16(vmovl_u8(t12));
@@ -177,10 +177,10 @@ static INLINE void convolve8_vert_4tap_neon(const uint8_t *src, ptrdiff_t src_st
         src += 2 * src_stride;
 
         do {
-            uint8x8_t t23 = load_unaligned_u8(src + 0 * src_stride, (int)src_stride);
-            uint8x8_t t34 = load_unaligned_u8(src + 1 * src_stride, (int)src_stride);
-            uint8x8_t t45 = load_unaligned_u8(src + 2 * src_stride, (int)src_stride);
-            uint8x8_t t56 = load_unaligned_u8(src + 3 * src_stride, (int)src_stride);
+            uint8x8_t t23 = load_u8_4x2(src + 0 * src_stride, (int)src_stride);
+            uint8x8_t t34 = load_u8_4x2(src + 1 * src_stride, (int)src_stride);
+            uint8x8_t t45 = load_u8_4x2(src + 2 * src_stride, (int)src_stride);
+            uint8x8_t t56 = load_u8_4x2(src + 3 * src_stride, (int)src_stride);
 
             int16x8_t s23 = vreinterpretq_s16_u16(vmovl_u8(t23));
             int16x8_t s34 = vreinterpretq_s16_u16(vmovl_u8(t34));
@@ -252,10 +252,10 @@ static INLINE void convolve8_vert_2tap_neon(const uint8_t *src, ptrdiff_t src_st
 
     if (w == 4) {
         do {
-            uint8x8_t s0 = load_unaligned_u8(src + 0 * src_stride, (int)src_stride);
-            uint8x8_t s1 = load_unaligned_u8(src + 1 * src_stride, (int)src_stride);
-            uint8x8_t s2 = load_unaligned_u8(src + 2 * src_stride, (int)src_stride);
-            uint8x8_t s3 = load_unaligned_u8(src + 3 * src_stride, (int)src_stride);
+            uint8x8_t s0 = load_u8_4x2(src + 0 * src_stride, (int)src_stride);
+            uint8x8_t s1 = load_u8_4x2(src + 1 * src_stride, (int)src_stride);
+            uint8x8_t s2 = load_u8_4x2(src + 2 * src_stride, (int)src_stride);
+            uint8x8_t s3 = load_u8_4x2(src + 3 * src_stride, (int)src_stride);
 
             uint16x8_t sum0 = vmull_u8(s0, f0);
             sum0            = vmlal_u8(sum0, s1, f1);

@@ -95,8 +95,8 @@ static INLINE void diffwtd_mask_highbd_neon(uint8_t *mask, bool inverse, const u
             } while (--h != 0);
         } else if (w == 4) {
             do {
-                uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);
-                uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);
+                uint16x8_t s0 = load_u16_4x2(src0, src0_stride);
+                uint16x8_t s1 = load_u16_4x2(src1, src1_stride);
 
                 uint16x8_t diff_u16 = vabdq_u16(s0, s1);
                 uint8x8_t  diff_u8  = vshrn_n_u16(diff_u16, DIFF_FACTOR_LOG2);
@@ -184,8 +184,8 @@ static INLINE void diffwtd_mask_highbd_neon(uint8_t *mask, bool inverse, const u
             } while (--h != 0);
         } else if (w == 4) {
             do {
-                uint16x8_t s0 = load_unaligned_u16_4x2(src0, src0_stride);
-                uint16x8_t s1 = load_unaligned_u16_4x2(src1, src1_stride);
+                uint16x8_t s0 = load_u16_4x2(src0, src0_stride);
+                uint16x8_t s1 = load_u16_4x2(src1, src1_stride);
 
                 uint16x8_t diff_u16 = vabdq_u16(s0, s1);
                 uint8x8_t  diff_u8  = vshrn_n_u16(diff_u16, 2 + DIFF_FACTOR_LOG2);

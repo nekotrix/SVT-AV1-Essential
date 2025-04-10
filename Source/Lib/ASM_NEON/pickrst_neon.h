@@ -406,8 +406,8 @@ static INLINE void step3_win5_neon(const int16_t *d, const int32_t d_stride, con
                                    int16x8_t *ds, int32x4_t *deltas) {
     int32_t y = height;
     do {
-        ds[4] = load_unaligned_s16_4x2(d + 0 * d_stride, width);
-        ds[5] = load_unaligned_s16_4x2(d + 1 * d_stride, width);
+        ds[4] = load_s16_4x2(d + 0 * d_stride, width);
+        ds[5] = load_s16_4x2(d + 1 * d_stride, width);
 
         compute_delta_step3_two_lines(&deltas[0], ds[0], ds[0]);
         compute_delta_step3_two_lines(&deltas[1], ds[0], ds[1]);
