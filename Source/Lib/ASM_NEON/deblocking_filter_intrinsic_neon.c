@@ -732,39 +732,22 @@ void svt_aom_lpf_vertical_4_neon(uint8_t *src, int stride, const uint8_t *blimit
 
 void svt_aom_lpf_horizontal_14_neon(uint8_t *src, int stride, const uint8_t *blimit, const uint8_t *limit,
                                     const uint8_t *thresh) {
-    uint8x8_t p0q0, p1q1, p2q2, p3q3, p4q4, p5q5, p6q6;
-
-    p0q0 = p1q1 = p2q2 = p3q3 = p4q4 = p5q5 = p6q6 = vdup_n_u8(0);
-
-    load_u8_4x1(src - 7 * stride, &p6q6, 0);
-    load_u8_4x1(src - 6 * stride, &p5q5, 0);
-    load_u8_4x1(src - 5 * stride, &p4q4, 0);
-    load_u8_4x1(src - 4 * stride, &p3q3, 0);
-    load_u8_4x1(src - 3 * stride, &p2q2, 0);
-    load_u8_4x1(src - 2 * stride, &p1q1, 0);
-    load_u8_4x1(src - 1 * stride, &p0q0, 0);
-    load_u8_4x1(src + 0 * stride, &p0q0, 1);
-    load_u8_4x1(src + 1 * stride, &p1q1, 1);
-    load_u8_4x1(src + 2 * stride, &p2q2, 1);
-    load_u8_4x1(src + 3 * stride, &p3q3, 1);
-    load_u8_4x1(src + 4 * stride, &p4q4, 1);
-    load_u8_4x1(src + 5 * stride, &p5q5, 1);
-    load_u8_4x1(src + 6 * stride, &p6q6, 1);
+    uint8x8_t p6q6 = load_u8x4_strided_x2(src - 7 * stride, 13 * stride);
+    uint8x8_t p5q5 = load_u8x4_strided_x2(src - 6 * stride, 11 * stride);
+    uint8x8_t p4q4 = load_u8x4_strided_x2(src - 5 * stride, 9 * stride);
+    uint8x8_t p3q3 = load_u8x4_strided_x2(src - 4 * stride, 7 * stride);
+    uint8x8_t p2q2 = load_u8x4_strided_x2(src - 3 * stride, 5 * stride);
+    uint8x8_t p1q1 = load_u8x4_strided_x2(src - 2 * stride, 3 * stride);
+    uint8x8_t p0q0 = load_u8x4_strided_x2(src - 1 * stride, 1 * stride);
 
     lpf_14_neon(&p6q6, &p5q5, &p4q4, &p3q3, &p2q2, &p1q1, &p0q0, *blimit, *limit, *thresh);
 
-    store_u8_4x1(src - 6 * stride, p5q5, 0);
-    store_u8_4x1(src - 5 * stride, p4q4, 0);
-    store_u8_4x1(src - 4 * stride, p3q3, 0);
-    store_u8_4x1(src - 3 * stride, p2q2, 0);
-    store_u8_4x1(src - 2 * stride, p1q1, 0);
-    store_u8_4x1(src - 1 * stride, p0q0, 0);
-    store_u8_4x1(src + 0 * stride, p0q0, 1);
-    store_u8_4x1(src + 1 * stride, p1q1, 1);
-    store_u8_4x1(src + 2 * stride, p2q2, 1);
-    store_u8_4x1(src + 3 * stride, p3q3, 1);
-    store_u8_4x1(src + 4 * stride, p4q4, 1);
-    store_u8_4x1(src + 5 * stride, p5q5, 1);
+    store_u8x4_strided_x2(src - 6 * stride, 11 * stride, p5q5);
+    store_u8x4_strided_x2(src - 5 * stride, 9 * stride, p4q4);
+    store_u8x4_strided_x2(src - 4 * stride, 7 * stride, p3q3);
+    store_u8x4_strided_x2(src - 3 * stride, 5 * stride, p2q2);
+    store_u8x4_strided_x2(src - 2 * stride, 3 * stride, p1q1);
+    store_u8x4_strided_x2(src - 1 * stride, 1 * stride, p0q0);
 }
 
 void svt_aom_lpf_horizontal_8_neon(uint8_t *src, int stride, const uint8_t *blimit, const uint8_t *limit,
@@ -815,19 +798,11 @@ void svt_aom_lpf_horizontal_6_neon(uint8_t *src, int stride, const uint8_t *blim
 
 void svt_aom_lpf_horizontal_4_neon(uint8_t *src, int stride, const uint8_t *blimit, const uint8_t *limit,
                                    const uint8_t *thresh) {
-    uint8x8_t p0q0, p1q1;
-
-    p0q0 = p1q1 = vdup_n_u8(0);
-
-    load_u8_4x1(src - 2 * stride, &p1q1, 0);
-    load_u8_4x1(src - 1 * stride, &p0q0, 0);
-    load_u8_4x1(src + 0 * stride, &p0q0, 1);
-    load_u8_4x1(src + 1 * stride, &p1q1, 1);
+    uint8x8_t p1q1 = load_u8x4_strided_x2(src - 2 * stride, 3 * stride);
+    uint8x8_t p0q0 = load_u8x4_strided_x2(src - 1 * stride, 1 * stride);
 
     lpf_4_neon(&p1q1, &p0q0, *blimit, *limit, *thresh);
 
-    store_u8_4x1(src - 2 * stride, p1q1, 0);
-    store_u8_4x1(src - 1 * stride, p0q0, 0);
-    store_u8_4x1(src + 0 * stride, p0q0, 1);
-    store_u8_4x1(src + 1 * stride, p1q1, 1);
+    store_u8x4_strided_x2(src - 2 * stride, 3 * stride, p1q1);
+    store_u8x4_strided_x2(src - 1 * stride, 1 * stride, p0q0);
 }

@@ -161,7 +161,7 @@ static inline void compound_avg_convolve_vert_scale_8tap_neon(const int16_t *src
 
             uint8x8_t d0_u8 = vqrshrun_n_s16(d0_s16, 2 * FILTER_BITS - ROUND0_BITS - COMPOUND_ROUND1_BITS);
 
-            store_u8_4x1(dst8, d0_u8, 0);
+            store_u8_4x1(dst8, d0_u8);
 
             dst16 += dst16_stride;
             dst8 += dst8_stride;
@@ -249,7 +249,7 @@ static inline void compound_dist_wtd_convolve_vert_scale_8tap_neon(const int16_t
 
             uint8x8_t d0_u8 = vqmovun_s16(vcombine_s16(d0_s16, vdup_n_s16(0)));
 
-            store_u8_4x1(dst8, d0_u8, 0);
+            store_u8_4x1(dst8, d0_u8);
 
             dst16 += dst16_stride;
             dst8 += dst8_stride;
@@ -377,7 +377,7 @@ static inline void convolve_vert_scale_8tap_neon(const int16_t *src, int src_str
 
             uint8x8_t d = convolve8_4_v(s0, s1, s2, s3, s4, s5, s6, s7, filter, vert_offset);
 
-            store_u8_4x1(dst, d, 0);
+            store_u8_4x1(dst, d);
 
             dst += dst_stride;
             y_qn += y_step_qn;
@@ -569,7 +569,7 @@ static inline void compound_avg_convolve_vert_scale_6tap_neon(const int16_t *src
 
             uint8x8_t d0_u8 = vqrshrun_n_s16(d0_s16, 2 * FILTER_BITS - ROUND0_BITS - COMPOUND_ROUND1_BITS);
 
-            store_u8_4x1(dst8, d0_u8, 0);
+            store_u8_4x1(dst8, d0_u8);
 
             dst16 += dst16_stride;
             dst8 += dst8_stride;
@@ -657,7 +657,7 @@ static inline void compound_dist_wtd_convolve_vert_scale_6tap_neon(const int16_t
 
             uint8x8_t d0_u8 = vqmovun_s16(vcombine_s16(d0_s16, vdup_n_s16(0)));
 
-            store_u8_4x1(dst8, d0_u8, 0);
+            store_u8_4x1(dst8, d0_u8);
 
             dst16 += dst16_stride;
             dst8 += dst8_stride;
@@ -781,7 +781,7 @@ static inline void convolve_vert_scale_6tap_neon(const int16_t *src, int src_str
 
             uint8x8_t d = convolve6_4_v(s0, s1, s2, s3, s4, s5, filter, vert_offset);
 
-            store_u8_4x1(dst, d, 0);
+            store_u8_4x1(dst, d);
 
             dst += dst_stride;
             y_qn += y_step_qn;

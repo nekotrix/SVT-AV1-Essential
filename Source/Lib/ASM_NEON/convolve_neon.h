@@ -222,10 +222,8 @@ static INLINE void convolve_2d_sr_vert_6tap_neon(int16_t *src_ptr, int src_strid
             uint8x8_t d01 = vqmovun_s16(vsubq_s16(vcombine_s16(d0, d1), sub_const));
             uint8x8_t d23 = vqmovun_s16(vsubq_s16(vcombine_s16(d2, d3), sub_const));
 
-            store_u8_4x1(dst_ptr + 0 * dst_stride, d01, 0);
-            store_u8_4x1(dst_ptr + 1 * dst_stride, d01, 1);
-            store_u8_4x1(dst_ptr + 2 * dst_stride, d23, 0);
-            store_u8_4x1(dst_ptr + 3 * dst_stride, d23, 1);
+            store_u8x4_strided_x2(dst_ptr + 0 * dst_stride, dst_stride, d01);
+            store_u8x4_strided_x2(dst_ptr + 2 * dst_stride, dst_stride, d23);
 
             s0 = s4;
             s1 = s5;
@@ -345,10 +343,8 @@ static INLINE void convolve_2d_sr_vert_8tap_neon(int16_t *src_ptr, int src_strid
             uint8x8_t d01 = vqmovun_s16(vsubq_s16(vcombine_s16(d0, d1), sub_const));
             uint8x8_t d23 = vqmovun_s16(vsubq_s16(vcombine_s16(d2, d3), sub_const));
 
-            store_u8_4x1(dst_ptr + 0 * dst_stride, d01, 0);
-            store_u8_4x1(dst_ptr + 1 * dst_stride, d01, 1);
-            store_u8_4x1(dst_ptr + 2 * dst_stride, d23, 0);
-            store_u8_4x1(dst_ptr + 3 * dst_stride, d23, 1);
+            store_u8x4_strided_x2(dst_ptr + 0 * dst_stride, dst_stride, d01);
+            store_u8x4_strided_x2(dst_ptr + 2 * dst_stride, dst_stride, d23);
 
             s0 = s4;
             s1 = s5;
