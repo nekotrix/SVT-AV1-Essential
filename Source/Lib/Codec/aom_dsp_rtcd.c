@@ -622,7 +622,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_aom_sad128x64x4d, svt_aom_sad128x64x4d_c);
     SET_NEON(svt_av1_txb_init_levels, svt_av1_txb_init_levels_c, svt_av1_txb_init_levels_neon);
     SET_NEON(svt_aom_satd, svt_aom_satd_c, svt_aom_satd_neon);
-    SET_NEON(svt_av1_block_error, svt_av1_block_error_c, svt_av1_block_error_neon);
+    SET_NEON_SVE(svt_av1_block_error, svt_av1_block_error_c, svt_av1_block_error_neon, svt_av1_block_error_sve);
     SET_NEON(svt_aom_upsampled_pred, svt_aom_upsampled_pred_c, svt_aom_upsampled_pred_neon);
 
     SET_NEON(svt_aom_obmc_sad4x4, svt_aom_obmc_sad4x4_c, svt_aom_obmc_sad4x4_neon);

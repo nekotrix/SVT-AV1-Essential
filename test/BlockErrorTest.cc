@@ -222,5 +222,9 @@ INSTANTIATE_TEST_SUITE_P(AVX2, BlockErrorTest,
 #ifdef ARCH_AARCH64
 INSTANTIATE_TEST_SUITE_P(NEON, BlockErrorTest,
                          ::testing::Values(svt_av1_block_error_neon));
+#if HAVE_SVE
+INSTANTIATE_TEST_SUITE_P(SVE, BlockErrorTest,
+                         ::testing::Values(svt_av1_block_error_sve));
+#endif  // HAVE_SVE
 #endif  // HAVE_AARCH64
 }  // namespace
