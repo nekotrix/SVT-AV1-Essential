@@ -14,6 +14,7 @@
 #include "cabac_context_model.h"
 #include "common_utils.h"
 #include "full_loop.h"
+#include "mem_neon.h"
 #include "motion_estimation.h" //svt_aom_downsample_2d_c()
 
 void svt_av1_txb_init_levels_neon(const TranLow *const coeff, const int32_t width, const int32_t height,
@@ -594,17 +595,11 @@ void svt_av1_get_nz_map_contexts_neon(const uint8_t *const levels, const int16_t
     }
 }
 
-static inline uint8x8_t compute_sum(uint8x16_t *in, uint8x16_t *prev_in) {
-    int16x8_t prev_in_lo_half = vreinterpretq_s16_u16(vmovl_u8(vget_low_u8(*prev_in)));
-    int16x8_t prev_in_hi_half = vreinterpretq_s16_u16(vmovl_u8(vget_high_u8(*prev_in)));
+static inline uint8x8_t compute_sum(uint8x16_t in, uint8x16_t prev_in) {
+    uint16x8_t sum = vpaddlq_u8(in);
+    sum            = vpadalq_u8(sum, prev_in);
 
-    int16x8_t in_lo_half = vreinterpretq_s16_u16(vmovl_u8(vget_low_u8(*in)));
-    int16x8_t in_hi_half = vreinterpretq_s16_u16(vmovl_u8(vget_high_u8(*in)));
-
-    int16x8_t sum = vaddq_s16(vpaddq_s16(prev_in_lo_half, prev_in_hi_half), vpaddq_s16(in_lo_half, in_hi_half));
-    sum           = vrshrq_n_s16(sum, 2);
-
-    return vqmovun_s16(sum);
+    return vqrshrn_n_u16(sum, 2);
 }
 
 void svt_aom_downsample_2d_neon(uint8_t *input_samples, // input parameter, input samples Ptr
@@ -629,7 +624,7 @@ void svt_aom_downsample_2d_neon(uint8_t *input_samples, // input parameter, inpu
             for (uint32_t horiz_idx = 1; horiz_idx < width_align16; horiz_idx += 16) {
                 uint8x16_t prev_in  = vld1q_u8(prev_in_line + horiz_idx - 1);
                 uint8x16_t in       = vld1q_u8(in_ptr + horiz_idx - 1);
-                uint8x8_t  sum_epu8 = compute_sum(&in, &prev_in);
+                uint8x8_t  sum_epu8 = compute_sum(in, prev_in);
                 vst1_u8(out_ptr + decim_horizontal_index, sum_epu8);
                 decim_horizontal_index += 8;
             }
@@ -639,7 +634,7 @@ void svt_aom_downsample_2d_neon(uint8_t *input_samples, // input parameter, inpu
                 DECLARE_ALIGNED(16, uint8_t, tmp_buf[8]);
                 uint8x16_t prev_in  = vld1q_u8(prev_in_line + width_align16);
                 uint8x16_t in       = vld1q_u8(in_ptr + width_align16);
-                uint8x8_t  sum_epu8 = compute_sum(&in, &prev_in);
+                uint8x8_t  sum_epu8 = compute_sum(in, prev_in);
                 int        count    = (input_area_width - width_align16) >> 1;
                 vst1_u8(tmp_buf, sum_epu8);
                 memcpy(out_ptr + decim_horizontal_index, tmp_buf, count * sizeof(uint8_t));
@@ -649,33 +644,28 @@ void svt_aom_downsample_2d_neon(uint8_t *input_samples, // input parameter, inpu
             out_ptr += decim_stride;
         }
     } else if (decim_step == 4) {
-        const uint8_t values[] = {
-            0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x01, 0x03, 0x05, 0x07, 0x09, 0x0B, 0x0D, 0x0F};
-        const uint8x16_t mask = vld1q_u8(values);
         in_ptr += 2 * input_stride;
         for (uint32_t vertical_index = 2; vertical_index < input_area_height; vertical_index += 4) {
             uint8_t *prev_in_line           = in_ptr - input_stride;
             uint32_t decim_horizontal_index = 0;
 
             for (uint32_t horiz_idx = 2; horiz_idx < width_align16; horiz_idx += 16) {
-                uint8x16_t prev_in                              = vld1q_u8(prev_in_line + horiz_idx - 1);
-                uint8x16_t in                                   = vld1q_u8(in_ptr + horiz_idx - 1);
-                uint8x8_t  sum_epu8                             = compute_sum(&in, &prev_in);
-                uint8x16_t sum_epu8_ext                         = vcombine_u8(sum_epu8, vdup_n_u8(0));
-                sum_epu8_ext                                    = vqtbl1q_u8(sum_epu8_ext, mask);
-                *(uint32_t *)(out_ptr + decim_horizontal_index) = vgetq_lane_u32(vreinterpretq_u32_u8(sum_epu8_ext), 0);
+                uint8x16_t prev_in  = vld1q_u8(prev_in_line + horiz_idx - 1);
+                uint8x16_t in       = vld1q_u8(in_ptr + horiz_idx - 1);
+                uint8x8_t  sum_epu8 = compute_sum(in, prev_in);
+                sum_epu8            = vuzp1_u8(sum_epu8, sum_epu8);
+                store_u8_4x1(out_ptr + decim_horizontal_index, sum_epu8);
                 decim_horizontal_index += 4;
             }
 
             // complement when input_area_width is not multiple of 16
             if (width_align16 < input_area_width) {
-                uint8x16_t prev_in      = vld1q_u8(prev_in_line + width_align16 + 1);
-                uint8x16_t in           = vld1q_u8(in_ptr + width_align16 + 1);
-                uint8x8_t  sum_epu8     = compute_sum(&in, &prev_in);
-                uint8x16_t sum_epu8_ext = vcombine_u8(sum_epu8, vdup_n_u8(0));
-                sum_epu8_ext            = vqtbl1q_u8(sum_epu8_ext, mask);
-                int      count          = (input_area_width - width_align16) >> 2;
-                uint32_t tmp            = vgetq_lane_u32(vreinterpretq_u32_u8(sum_epu8_ext), 0);
+                uint8x16_t prev_in  = vld1q_u8(prev_in_line + width_align16 + 1);
+                uint8x16_t in       = vld1q_u8(in_ptr + width_align16 + 1);
+                uint8x8_t  sum_epu8 = compute_sum(in, prev_in);
+                sum_epu8            = vuzp1_u8(sum_epu8, sum_epu8);
+                int      count      = (input_area_width - width_align16) >> 2;
+                uint32_t tmp        = vget_lane_u32(vreinterpret_u32_u8(sum_epu8), 0);
                 memcpy(out_ptr + decim_horizontal_index, &tmp, count * sizeof(uint8_t));
             }
 
