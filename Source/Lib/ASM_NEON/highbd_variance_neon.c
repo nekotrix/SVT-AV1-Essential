@@ -43,7 +43,7 @@ void svt_aom_highbd_8_mse16x16_neon(const uint8_t *src_ptr, int src_stride, cons
     *sse = vaddvq_u32(vaddq_u32(sse_u32[0], sse_u32[1]));
 }
 
-static INLINE void highbd_variance_4xh_neon(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
+static inline void highbd_variance_4xh_neon(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
                                             int ref_stride, int h, uint64_t *sse, int64_t *sum) {
     int16x8_t sum_s16 = vdupq_n_s16(0);
     int32x4_t sse_s32 = vdupq_n_s32(0);
@@ -68,7 +68,7 @@ static INLINE void highbd_variance_4xh_neon(const uint16_t *src_ptr, int src_str
     *sse = vaddvq_s32(sse_s32);
 }
 
-static INLINE void highbd_variance_large_neon(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
+static inline void highbd_variance_large_neon(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
                                               int ref_stride, int w, int h, uint64_t *sse, int64_t *sum) {
     int32x4_t sum_s32    = vdupq_n_s32(0);
     int32x4_t sse_s32[2] = {vdupq_n_s32(0), vdupq_n_s32(0)};
@@ -97,27 +97,27 @@ static INLINE void highbd_variance_large_neon(const uint16_t *src_ptr, int src_s
     *sse = vaddlvq_u32(vreinterpretq_u32_s32(vaddq_s32(sse_s32[0], sse_s32[1])));
 }
 
-static INLINE void highbd_variance_8xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+static inline void highbd_variance_8xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
                                             int h, uint64_t *sse, int64_t *sum) {
     highbd_variance_large_neon(src, src_stride, ref, ref_stride, 8, h, sse, sum);
 }
 
-static INLINE void highbd_variance_16xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+static inline void highbd_variance_16xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
                                              int h, uint64_t *sse, int64_t *sum) {
     highbd_variance_large_neon(src, src_stride, ref, ref_stride, 16, h, sse, sum);
 }
 
-static INLINE void highbd_variance_32xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+static inline void highbd_variance_32xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
                                              int h, uint64_t *sse, int64_t *sum) {
     highbd_variance_large_neon(src, src_stride, ref, ref_stride, 32, h, sse, sum);
 }
 
-static INLINE void highbd_variance_64xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+static inline void highbd_variance_64xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
                                              int h, uint64_t *sse, int64_t *sum) {
     highbd_variance_large_neon(src, src_stride, ref, ref_stride, 64, h, sse, sum);
 }
 
-static INLINE void highbd_variance_128xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+static inline void highbd_variance_128xh_neon(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
                                               int h, uint64_t *sse, int64_t *sum) {
     highbd_variance_large_neon(src, src_stride, ref, ref_stride, 128, h, sse, sum);
 }

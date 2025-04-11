@@ -16,7 +16,7 @@
 #include "sum_neon.h"
 #include "var_filter_neon.h"
 
-static INLINE void variance_4xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
+static inline void variance_4xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
                                      uint32_t *sse, int *sum) {
     int16x8_t sum_s16 = vdupq_n_s16(0);
     int32x4_t sse_s32 = vdupq_n_s32(0);
@@ -45,7 +45,7 @@ static INLINE void variance_4xh_neon(const uint8_t *src, int src_stride, const u
     *sse = (uint32_t)vaddvq_s32(sse_s32);
 }
 
-static INLINE void variance_8xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
+static inline void variance_8xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
                                      uint32_t *sse, int *sum) {
     int16x8_t sum_s16    = vdupq_n_s16(0);
     int32x4_t sse_s32[2] = {vdupq_n_s32(0), vdupq_n_s32(0)};
@@ -73,7 +73,7 @@ static INLINE void variance_8xh_neon(const uint8_t *src, int src_stride, const u
     *sse = (uint32_t)vaddvq_s32(vaddq_s32(sse_s32[0], sse_s32[1]));
 }
 
-static INLINE void variance_16xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
+static inline void variance_16xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
                                       uint32_t *sse, int *sum) {
     int16x8_t sum_s16[2] = {vdupq_n_s16(0), vdupq_n_s16(0)};
     int32x4_t sse_s32[2] = {vdupq_n_s32(0), vdupq_n_s32(0)};
@@ -106,7 +106,7 @@ static INLINE void variance_16xh_neon(const uint8_t *src, int src_stride, const 
     *sse = (uint32_t)vaddvq_s32(vaddq_s32(sse_s32[0], sse_s32[1]));
 }
 
-static INLINE void variance_large_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int w,
+static inline void variance_large_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int w,
                                        int h, int h_limit, uint32_t *sse, int *sum) {
     int32x4_t sum_s32 = vdupq_n_s32(0);
 
@@ -160,17 +160,17 @@ static INLINE void variance_large_neon(const uint8_t *src, int src_stride, const
     *sse = (uint32_t)vaddvq_s32(vaddq_s32(vaddq_s32(sse_s32_0, sse_s32_1), vaddq_s32(sse_s32_2, sse_s32_3)));
 }
 
-static INLINE void variance_32xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
+static inline void variance_32xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
                                       uint32_t *sse, int *sum) {
     variance_large_neon(src, src_stride, ref, ref_stride, 32, h, 64, sse, sum);
 }
 
-static INLINE void variance_64xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
+static inline void variance_64xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
                                       uint32_t *sse, int *sum) {
     variance_large_neon(src, src_stride, ref, ref_stride, 64, h, 32, sse, sum);
 }
 
-static INLINE void variance_128xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
+static inline void variance_128xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int h,
                                        uint32_t *sse, int *sum) {
     variance_large_neon(src, src_stride, ref, ref_stride, 128, h, 16, sse, sum);
 }

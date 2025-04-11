@@ -17,7 +17,7 @@
 #include "definitions.h"
 #include "mem_neon.h"
 
-static INLINE uint8x16_t alpha_blend_a64_u8x16(uint8x16_t m, uint8x16_t a, uint8x16_t b) {
+static inline uint8x16_t alpha_blend_a64_u8x16(uint8x16_t m, uint8x16_t a, uint8x16_t b) {
     uint16x8_t       blend_u16_lo, blend_u16_hi;
     uint8x8_t        blend_u8_lo, blend_u8_hi;
     const uint8x16_t m_inv = vsubq_u8(vdupq_n_u8(AOM_BLEND_A64_MAX_ALPHA), m);
@@ -34,7 +34,7 @@ static INLINE uint8x16_t alpha_blend_a64_u8x16(uint8x16_t m, uint8x16_t a, uint8
     return vcombine_u8(blend_u8_lo, blend_u8_hi);
 }
 
-static INLINE uint8x8_t alpha_blend_a64_u8x8(uint8x8_t m, uint8x8_t a, uint8x8_t b) {
+static inline uint8x8_t alpha_blend_a64_u8x8(uint8x8_t m, uint8x8_t a, uint8x8_t b) {
     uint16x8_t      blend_u16 = vmull_u8(m, a);
     const uint8x8_t m_inv     = vsub_u8(vdup_n_u8(AOM_BLEND_A64_MAX_ALPHA), m);
 
@@ -205,7 +205,7 @@ void svt_aom_blend_a64_vmask_neon(uint8_t *dst, uint32_t dst_stride, const uint8
     }
 }
 
-static INLINE uint8x8_t alpha_blend_a64_d16_u16x8(uint16x8_t m, uint16x8_t a, uint16x8_t b, uint16x8_t round_offset) {
+static inline uint8x8_t alpha_blend_a64_d16_u16x8(uint16x8_t m, uint16x8_t a, uint16x8_t b, uint16x8_t round_offset) {
     const uint16x8_t m_inv = vsubq_u16(vdupq_n_u16(AOM_BLEND_A64_MAX_ALPHA), m);
 
     uint32x4_t blend_u32_lo = vmull_u16(vget_low_u16(m), vget_low_u16(a));

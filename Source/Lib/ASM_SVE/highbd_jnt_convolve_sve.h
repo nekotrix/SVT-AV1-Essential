@@ -18,7 +18,7 @@
 
 #include "definitions.h"
 
-static INLINE uint16x8_t highbd_convolve8_8_x(int16x8_t s0[8], int16x8_t filter, int64x2_t offset) {
+static inline uint16x8_t highbd_convolve8_8_x(int16x8_t s0[8], int16x8_t filter, int64x2_t offset) {
     int64x2_t sum[8];
     sum[0] = svt_sdotq_s16(offset, s0[0], filter);
     sum[1] = svt_sdotq_s16(offset, s0[1], filter);
@@ -40,7 +40,7 @@ static INLINE uint16x8_t highbd_convolve8_8_x(int16x8_t s0[8], int16x8_t filter,
     return vcombine_u16(vqrshrun_n_s32(sum0123, ROUND0_BITS), vqrshrun_n_s32(sum4567, ROUND0_BITS));
 }
 
-static INLINE uint16x4_t highbd_convolve4_4_x(int16x8_t s0, int16x8_t filter, int64x2_t offset,
+static inline uint16x4_t highbd_convolve4_4_x(int16x8_t s0, int16x8_t filter, int64x2_t offset,
                                               uint16x8x2_t permute_tbl) {
     int16x8_t permuted_samples0 = svt_tbl_s16(s0, permute_tbl.val[0]);
     int16x8_t permuted_samples1 = svt_tbl_s16(s0, permute_tbl.val[1]);
@@ -53,7 +53,7 @@ static INLINE uint16x4_t highbd_convolve4_4_x(int16x8_t s0, int16x8_t filter, in
     return vqrshrun_n_s32(sum0123, ROUND0_BITS);
 }
 
-static INLINE uint16x8_t highbd_convolve4_8_x(int16x8_t s0[4], int16x8_t filter, int64x2_t offset, uint16x8_t tbl) {
+static inline uint16x8_t highbd_convolve4_8_x(int16x8_t s0[4], int16x8_t filter, int64x2_t offset, uint16x8_t tbl) {
     int64x2_t sum04 = svt_svdot_lane_s16(offset, s0[0], filter, 0);
     int64x2_t sum15 = svt_svdot_lane_s16(offset, s0[1], filter, 0);
     int64x2_t sum26 = svt_svdot_lane_s16(offset, s0[2], filter, 0);

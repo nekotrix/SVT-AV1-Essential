@@ -23,7 +23,7 @@
 
 #define ROUND_SHIFT 2 * FILTER_BITS - ROUND0_BITS - COMPOUND_ROUND1_BITS
 
-static INLINE void highbd_comp_avg_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr, int dst_stride,
+static inline void highbd_comp_avg_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr, int dst_stride,
                                         int w, int h, ConvolveParams *conv_params, const int bd) {
     const int offset_bits = bd + 2 * FILTER_BITS - ROUND0_BITS;
     const int offset = (1 << (offset_bits - COMPOUND_ROUND1_BITS)) + (1 << (offset_bits - COMPOUND_ROUND1_BITS - 1));
@@ -81,7 +81,7 @@ static INLINE void highbd_comp_avg_neon(const uint16_t *src_ptr, int src_stride,
     }
 }
 
-static INLINE void highbd_jnt_comp_avg_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr, int dst_stride,
+static inline void highbd_jnt_comp_avg_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr, int dst_stride,
                                             int w, int h, ConvolveParams *conv_params, const int bd) {
     const int offset_bits = bd + 2 * FILTER_BITS - ROUND0_BITS;
     const int offset = (1 << (offset_bits - COMPOUND_ROUND1_BITS)) + (1 << (offset_bits - COMPOUND_ROUND1_BITS - 1));

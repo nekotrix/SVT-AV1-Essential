@@ -29,7 +29,7 @@
 
 /* Find the position of the first occurrence of 'value' in the vector 'x'.
  * Returns the position (index) of the first occurrence of 'value' in the vector 'x'. */
-static INLINE uint16_t findposq_u32(uint32x4_t x, uint32_t value) {
+static inline uint16_t findposq_u32(uint32x4_t x, uint32_t value) {
     uint32x4_t val_mask = vdupq_n_u32(value);
 
     /* Pack the information in the lower 64 bits of the register by considering only alternate
@@ -45,7 +45,7 @@ static INLINE uint16_t findposq_u32(uint32x4_t x, uint32_t value) {
     return res >> 4;
 }
 
-static INLINE void update_best_sad_u32(uint32x4_t sad4, uint64_t *best_sad, int16_t *x_search_center,
+static inline void update_best_sad_u32(uint32x4_t sad4, uint64_t *best_sad, int16_t *x_search_center,
                                        int16_t *y_search_center, int16_t x_search_index, int16_t y_search_index) {
     uint64_t temp_sad;
 
@@ -59,7 +59,7 @@ static INLINE void update_best_sad_u32(uint32x4_t sad4, uint64_t *best_sad, int1
     }
 }
 
-static INLINE void update_best_sad(uint64_t temp_sad, uint64_t *best_sad, int16_t *x_search_center,
+static inline void update_best_sad(uint64_t temp_sad, uint64_t *best_sad, int16_t *x_search_center,
                                    int16_t *y_search_center, int16_t x_search_index, int16_t y_search_index) {
     if (temp_sad < *best_sad) {
         *best_sad        = temp_sad;
@@ -68,7 +68,7 @@ static INLINE void update_best_sad(uint64_t temp_sad, uint64_t *best_sad, int16_
     }
 }
 
-static INLINE unsigned int sadwxh_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr,
+static inline unsigned int sadwxh_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr,
                                                int ref_stride, int w, int h) {
     // Only two accumulators are required for optimal instruction throughput of
     // the ABD, UDOT sequence on CPUs with either 2 or 4 Neon pipes.
@@ -99,22 +99,22 @@ static INLINE unsigned int sadwxh_neon_dotprod(const uint8_t *src_ptr, int src_s
     return vaddvq_u32(vaddq_u32(sum[0], sum[1]));
 }
 
-static INLINE unsigned int sad32xh_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr,
+static inline unsigned int sad32xh_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr,
                                                 int ref_stride, int h) {
     return sadwxh_neon_dotprod(src_ptr, src_stride, ref_ptr, ref_stride, 32, h);
 }
 
-static INLINE unsigned int sad64xh_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr,
+static inline unsigned int sad64xh_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr,
                                                 int ref_stride, int h) {
     return sadwxh_neon_dotprod(src_ptr, src_stride, ref_ptr, ref_stride, 64, h);
 }
 
-static INLINE void sad16_neon_dotprod(uint8x16_t src, uint8x16_t ref, uint32x4_t *const sad_sum) {
+static inline void sad16_neon_dotprod(uint8x16_t src, uint8x16_t ref, uint32x4_t *const sad_sum) {
     uint8x16_t abs_diff = vabdq_u8(src, ref);
     *sad_sum            = vdotq_u32(*sad_sum, abs_diff, vdupq_n_u8(1));
 }
 
-static INLINE uint32x4_t sadwxhx4d_large_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref,
+static inline uint32x4_t sadwxhx4d_large_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref,
                                                       int ref_stride, int w, int h) {
     uint32x4_t sum_lo[4] = {vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0)};
     uint32x4_t sum_hi[4] = {vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0)};
@@ -154,17 +154,17 @@ static INLINE uint32x4_t sadwxhx4d_large_neon_dotprod(const uint8_t *src, int sr
     return horizontal_add_4d_u32x4(sum);
 }
 
-static INLINE uint32x4_t sad64xhx4d_neon_dotprod(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
+static inline uint32x4_t sad64xhx4d_neon_dotprod(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
                                                  uint32_t ref_stride, uint32_t h) {
     return sadwxhx4d_large_neon_dotprod(src, src_stride, ref, ref_stride, 64, h);
 }
 
-static INLINE uint32x4_t sad32xhx4d_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
+static inline uint32x4_t sad32xhx4d_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
                                                  int h) {
     return sadwxhx4d_large_neon_dotprod(src, src_stride, ref, ref_stride, 32, h);
 }
 
-static INLINE uint32x4_t sad16xhx4d_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
+static inline uint32x4_t sad16xhx4d_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
                                                  int h) {
     uint32x4_t sum[4] = {vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0)};
 
@@ -182,7 +182,7 @@ static INLINE uint32x4_t sad16xhx4d_neon_dotprod(const uint8_t *src, int src_str
     return horizontal_add_4d_u32x4(sum);
 }
 
-static INLINE unsigned int sad16xh_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr,
+static inline unsigned int sad16xh_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr,
                                                 int ref_stride, int h) {
     uint32x4_t sum[2] = {vdupq_n_u32(0), vdupq_n_u32(0)};
 
@@ -222,7 +222,7 @@ static INLINE unsigned int sad16xh_neon_dotprod(const uint8_t *src_ptr, int src_
     return vaddvq_u32(vaddq_u32(sum[0], sum[1]));
 }
 
-static INLINE void svt_sad_loop_kernel16xh_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
+static inline void svt_sad_loop_kernel16xh_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
                                                         uint32_t ref_stride, uint32_t block_height, uint64_t *best_sad,
                                                         int16_t *x_search_center, int16_t *y_search_center,
                                                         uint32_t src_stride_raw, uint8_t skip_search_line,
@@ -257,7 +257,7 @@ static INLINE void svt_sad_loop_kernel16xh_neon_dotprod(uint8_t *src, uint32_t s
     } while (y_search_index < search_area_height);
 }
 
-static INLINE void svt_sad_loop_kernel16xh_small_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
+static inline void svt_sad_loop_kernel16xh_small_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
                                                               uint32_t ref_stride, uint32_t block_height,
                                                               uint64_t *best_sad, int16_t *x_search_center,
                                                               int16_t *y_search_center, uint32_t src_stride_raw,
@@ -293,7 +293,7 @@ static INLINE void svt_sad_loop_kernel16xh_small_neon_dotprod(uint8_t *src, uint
     } while (y_search_index < search_area_height);
 }
 
-static INLINE void svt_sad_loop_kernel32xh_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
+static inline void svt_sad_loop_kernel32xh_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
                                                         uint32_t ref_stride, uint32_t block_height, uint64_t *best_sad,
                                                         int16_t *x_search_center, int16_t *y_search_center,
                                                         uint32_t src_stride_raw, int16_t search_area_width,
@@ -316,7 +316,7 @@ static INLINE void svt_sad_loop_kernel32xh_neon_dotprod(uint8_t *src, uint32_t s
     } while (++y_search_index != search_area_height);
 }
 
-static INLINE void svt_sad_loop_kernel32xh_small_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
+static inline void svt_sad_loop_kernel32xh_small_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
                                                               uint32_t ref_stride, uint32_t block_height,
                                                               uint64_t *best_sad, int16_t *x_search_center,
                                                               int16_t *y_search_center, uint32_t src_stride_raw,
@@ -340,7 +340,7 @@ static INLINE void svt_sad_loop_kernel32xh_small_neon_dotprod(uint8_t *src, uint
     } while (++y_search_index != search_area_height);
 }
 
-static INLINE void svt_sad_loop_kernel64xh_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
+static inline void svt_sad_loop_kernel64xh_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
                                                         uint32_t ref_stride, uint32_t block_height, uint64_t *best_sad,
                                                         int16_t *x_search_center, int16_t *y_search_center,
                                                         uint32_t src_stride_raw, int16_t search_area_width,
@@ -363,7 +363,7 @@ static INLINE void svt_sad_loop_kernel64xh_neon_dotprod(uint8_t *src, uint32_t s
     } while (++y_search_index != search_area_height);
 }
 
-static INLINE void svt_sad_loop_kernel64xh_small_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
+static inline void svt_sad_loop_kernel64xh_small_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,
                                                               uint32_t ref_stride, uint32_t block_height,
                                                               uint64_t *best_sad, int16_t *x_search_center,
                                                               int16_t *y_search_center, uint32_t src_stride_raw,

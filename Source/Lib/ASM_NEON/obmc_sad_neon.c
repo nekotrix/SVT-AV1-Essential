@@ -15,7 +15,7 @@
 #include "sum_neon.h"
 #include "obmc_constants_neon.h"
 
-static INLINE void obmc_sad_8x1_s16_neon(int16x8_t ref_s16, const int32_t *mask, const int32_t *wsrc, uint32x4_t *sum) {
+static inline void obmc_sad_8x1_s16_neon(int16x8_t ref_s16, const int32_t *mask, const int32_t *wsrc, uint32x4_t *sum) {
     int32x4_t wsrc_lo = vld1q_s32(wsrc);
     int32x4_t wsrc_hi = vld1q_s32(wsrc + 4);
 
@@ -34,7 +34,7 @@ static INLINE void obmc_sad_8x1_s16_neon(int16x8_t ref_s16, const int32_t *mask,
     *sum = vrsraq_n_u32(*sum, abs_hi, 12);
 }
 
-static INLINE void obmc_sad_8x1_s32_neon(uint32x4_t ref_u32_lo, uint32x4_t ref_u32_hi, const int32_t *mask,
+static inline void obmc_sad_8x1_s32_neon(uint32x4_t ref_u32_lo, uint32x4_t ref_u32_hi, const int32_t *mask,
                                          const int32_t *wsrc, uint32x4_t sum[2]) {
     int32x4_t wsrc_lo = vld1q_s32(wsrc);
     int32x4_t wsrc_hi = vld1q_s32(wsrc + 4);
@@ -51,7 +51,7 @@ static INLINE void obmc_sad_8x1_s32_neon(uint32x4_t ref_u32_lo, uint32x4_t ref_u
     sum[1] = vrsraq_n_u32(sum[1], abs_hi, 12);
 }
 
-static INLINE unsigned int obmc_sad_large_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
+static inline unsigned int obmc_sad_large_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
                                                const int32_t *mask, int width, int height) {
     uint32x4_t sum[2] = {vdupq_n_u32(0), vdupq_n_u32(0)};
 
@@ -89,27 +89,27 @@ static INLINE unsigned int obmc_sad_large_neon(const uint8_t *ref, int ref_strid
     return vaddvq_u32(vaddq_u32(sum[0], sum[1]));
 }
 
-static INLINE unsigned int obmc_sad_128xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
+static inline unsigned int obmc_sad_128xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
                                                const int32_t *mask, int h) {
     return obmc_sad_large_neon(ref, ref_stride, wsrc, mask, 128, h);
 }
 
-static INLINE unsigned int obmc_sad_64xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
+static inline unsigned int obmc_sad_64xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
                                               const int32_t *mask, int h) {
     return obmc_sad_large_neon(ref, ref_stride, wsrc, mask, 64, h);
 }
 
-static INLINE unsigned int obmc_sad_32xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
+static inline unsigned int obmc_sad_32xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
                                               const int32_t *mask, int h) {
     return obmc_sad_large_neon(ref, ref_stride, wsrc, mask, 32, h);
 }
 
-static INLINE unsigned int obmc_sad_16xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
+static inline unsigned int obmc_sad_16xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
                                               const int32_t *mask, int h) {
     return obmc_sad_large_neon(ref, ref_stride, wsrc, mask, 16, h);
 }
 
-static INLINE unsigned int obmc_sad_8xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
+static inline unsigned int obmc_sad_8xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
                                              const int32_t *mask, int height) {
     uint32x4_t sum = vdupq_n_u32(0);
 
@@ -128,7 +128,7 @@ static INLINE unsigned int obmc_sad_8xh_neon(const uint8_t *ref, int ref_stride,
     return vaddvq_u32(sum);
 }
 
-static INLINE unsigned int obmc_sad_4xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
+static inline unsigned int obmc_sad_4xh_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc,
                                              const int32_t *mask, int height) {
     uint32x4_t sum = vdupq_n_u32(0);
 

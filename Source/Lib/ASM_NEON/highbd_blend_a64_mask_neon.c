@@ -17,7 +17,7 @@
 #include "definitions.h"
 #include "mem_neon.h"
 
-static INLINE uint16x8_t alpha_blend_a64_u16x8(uint16x8_t m, uint16x8_t a, uint16x8_t b) {
+static inline uint16x8_t alpha_blend_a64_u16x8(uint16x8_t m, uint16x8_t a, uint16x8_t b) {
     uint16x8_t m_inv = vsubq_u16(vdupq_n_u16(AOM_BLEND_A64_MAX_ALPHA), m);
 
     uint32x4_t blend_u32_lo = vmull_u16(vget_low_u16(a), vget_low_u16(m));
@@ -459,7 +459,7 @@ void svt_aom_highbd_blend_a64_d16_mask_neon(uint8_t *dst_8, uint32_t dst_stride,
     }
 }
 
-static INLINE uint16x4_t alpha_blend_a64_u16x4(uint16x4_t m, uint16x4_t a, uint16x4_t b) {
+static inline uint16x4_t alpha_blend_a64_u16x4(uint16x4_t m, uint16x4_t a, uint16x4_t b) {
     const uint16x4_t m_inv = vsub_u16(vdup_n_u16(AOM_BLEND_A64_MAX_ALPHA), m);
 
     uint32x4_t blend_u16 = vmull_u16(m, a);

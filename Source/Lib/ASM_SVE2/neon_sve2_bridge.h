@@ -23,7 +23,7 @@
 // remainder of the vector is unused - this approach is still beneficial when
 // compared to a Neon-only solution.
 
-static INLINE int16x8_t svt_tbl2_s16(int16x8_t s0, int16x8_t s1, uint16x8_t tbl) {
+static inline int16x8_t svt_tbl2_s16(int16x8_t s0, int16x8_t s1, uint16x8_t tbl) {
     svint16x2_t samples = svcreate2_s16(svset_neonq_s16(svundef_s16(), s0), svset_neonq_s16(svundef_s16(), s1));
     return svget_neonq_s16(svtbl2_s16(samples, svset_neonq_u16(svundef_u16(), tbl)));
 }

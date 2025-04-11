@@ -18,7 +18,7 @@
 #include "intra_prediction.h"
 
 /* ---------------------P R E D I C T I O N   Z 1--------------------------- */
-static INLINE void dr_prediction_z1_HxW_internal_neon_64(int H, int W, uint8x8_t *dst, const uint8_t *above,
+static inline void dr_prediction_z1_HxW_internal_neon_64(int H, int W, uint8x8_t *dst, const uint8_t *above,
                                                          int upsample_above, int dx) {
     const int frac_bits  = 6 - upsample_above;
     const int max_base_x = ((W + H) - 1) << upsample_above;
@@ -70,7 +70,7 @@ static INLINE void dr_prediction_z1_HxW_internal_neon_64(int H, int W, uint8x8_t
     }
 }
 
-static INLINE void dr_prediction_z1_4xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z1_4xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                              int upsample_above, int dx) {
     uint8x8_t dstvec[16];
 
@@ -78,7 +78,7 @@ static INLINE void dr_prediction_z1_4xN_neon(int N, uint8_t *dst, ptrdiff_t stri
     for (int i = 0; i < N; i++) { vst1_lane_u32((uint32_t *)(dst + stride * i), vreinterpret_u32_u8(dstvec[i]), 0); }
 }
 
-static INLINE void dr_prediction_z1_8xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z1_8xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                              int upsample_above, int dx) {
     uint8x8_t dstvec[32];
 
@@ -86,7 +86,7 @@ static INLINE void dr_prediction_z1_8xN_neon(int N, uint8_t *dst, ptrdiff_t stri
     for (int i = 0; i < N; i++) { vst1_u8(dst + stride * i, dstvec[i]); }
 }
 
-static INLINE void dr_prediction_z1_HxW_internal_neon(int H, int W, uint8x16_t *dst, const uint8_t *above,
+static inline void dr_prediction_z1_HxW_internal_neon(int H, int W, uint8x16_t *dst, const uint8_t *above,
                                                       int upsample_above, int dx) {
     const int frac_bits  = 6 - upsample_above;
     const int max_base_x = ((W + H) - 1) << upsample_above;
@@ -148,7 +148,7 @@ static INLINE void dr_prediction_z1_HxW_internal_neon(int H, int W, uint8x16_t *
     }
 }
 
-static INLINE void dr_prediction_z1_16xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z1_16xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                               int upsample_above, int dx) {
     uint8x16_t dstvec[64];
 
@@ -156,7 +156,7 @@ static INLINE void dr_prediction_z1_16xN_neon(int N, uint8_t *dst, ptrdiff_t str
     for (int i = 0; i < N; i++) { vst1q_u8(dst + stride * i, dstvec[i]); }
 }
 
-static INLINE void dr_prediction_z1_32xN_internal_neon(int N, uint8x16x2_t *dstvec, const uint8_t *above, int dx) {
+static inline void dr_prediction_z1_32xN_internal_neon(int N, uint8x16x2_t *dstvec, const uint8_t *above, int dx) {
     // here upsample_above is 0 by design of av1_use_intra_edge_upsample
     const int frac_bits  = 6;
     const int max_base_x = ((32 + N) - 1);
@@ -220,7 +220,7 @@ static INLINE void dr_prediction_z1_32xN_internal_neon(int N, uint8x16x2_t *dstv
     }
 }
 
-static INLINE void dr_prediction_z1_32xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above, int dx) {
+static inline void dr_prediction_z1_32xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above, int dx) {
     uint8x16x2_t dstvec[64];
     dr_prediction_z1_32xN_internal_neon(N, dstvec, above, dx);
     for (int i = 0; i < N; i++) {
@@ -229,7 +229,7 @@ static INLINE void dr_prediction_z1_32xN_neon(int N, uint8_t *dst, ptrdiff_t str
     }
 }
 
-static INLINE void dr_prediction_z1_64xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above, int dx) {
+static inline void dr_prediction_z1_64xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above, int dx) {
     // here upsample_above is 0 by design of av1_use_intra_edge_upsample
     const int frac_bits  = 6;
     const int max_base_x = ((64 + N) - 1);
@@ -331,7 +331,7 @@ static DECLARE_ALIGNED(16, uint8_t, LoadMaskz2[4][16]) = {
     {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0},
     {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
 
-static INLINE void vector_shift_x4(uint8x8_t *vec, uint8x8_t *v_zero, int shift_value) {
+static inline void vector_shift_x4(uint8x8_t *vec, uint8x8_t *v_zero, int shift_value) {
     switch (shift_value) {
     case 1: {
         *vec = vext_u8(*v_zero, *vec, 7);
@@ -348,7 +348,7 @@ static INLINE void vector_shift_x4(uint8x8_t *vec, uint8x8_t *v_zero, int shift_
     }
 }
 
-static INLINE void dr_prediction_z2_Nx4_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z2_Nx4_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                              const uint8_t *left, int upsample_above, int upsample_left, int dx,
                                              int dy) {
     const int min_base_x  = -(1 << upsample_above);
@@ -470,7 +470,7 @@ static INLINE void dr_prediction_z2_Nx4_neon(int N, uint8_t *dst, ptrdiff_t stri
     }
 }
 
-static INLINE void vector_shuffle(uint8x16_t *vec, uint8x16_t *vzero, int shift_value) {
+static inline void vector_shuffle(uint8x16_t *vec, uint8x16_t *vzero, int shift_value) {
     switch (shift_value) {
     case 1: {
         *vec = vextq_u8(*vzero, *vec, 15);
@@ -535,7 +535,7 @@ static INLINE void vector_shuffle(uint8x16_t *vec, uint8x16_t *vzero, int shift_
     }
 }
 
-static INLINE void dr_prediction_z2_Nx8_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z2_Nx8_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                              const uint8_t *left, int upsample_above, int upsample_left, int dx,
                                              int dy) {
     const int min_base_x  = -(1 << upsample_above);
@@ -667,7 +667,7 @@ static INLINE void dr_prediction_z2_Nx8_neon(int N, uint8_t *dst, ptrdiff_t stri
     }
 }
 
-static INLINE void dr_prediction_z2_HxW_neon(int H, int W, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z2_HxW_neon(int H, int W, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                              const uint8_t *left, int dx, int dy) {
     // here upsample_above and upsample_left are 0 by design of
     // av1_use_intra_edge_upsample
@@ -874,7 +874,7 @@ void svt_av1_dr_prediction_z2_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, i
 }
 
 /* ---------------------P R E D I C T I O N   Z 3--------------------------- */
-static INLINE void transpose4x16_neon(uint8x16_t *x, uint16x8x2_t *d) {
+static inline void transpose4x16_neon(uint8x16_t *x, uint16x8x2_t *d) {
     uint8x16x2_t w0, w1;
 
     w0 = vzipq_u8(x[0], x[1]);
@@ -884,7 +884,7 @@ static INLINE void transpose4x16_neon(uint8x16_t *x, uint16x8x2_t *d) {
     d[1] = vzipq_u16(vreinterpretq_u16_u8(w0.val[1]), vreinterpretq_u16_u8(w1.val[1]));
 }
 
-static INLINE void transpose4x8_8x4_low_neon(uint8x8_t *x, uint16x4x2_t *d) {
+static inline void transpose4x8_8x4_low_neon(uint8x8_t *x, uint16x4x2_t *d) {
     uint8x8x2_t w0, w1;
 
     w0 = vzip_u8(x[0], x[1]);
@@ -893,7 +893,7 @@ static INLINE void transpose4x8_8x4_low_neon(uint8x8_t *x, uint16x4x2_t *d) {
     *d = vzip_u16(vreinterpret_u16_u8(w0.val[0]), vreinterpret_u16_u8(w1.val[0]));
 }
 
-static INLINE void transpose4x8_8x4_neon(uint8x8_t *x, uint16x4x2_t *d) {
+static inline void transpose4x8_8x4_neon(uint8x8_t *x, uint16x4x2_t *d) {
     uint8x8x2_t w0, w1;
 
     w0 = vzip_u8(x[0], x[1]);
@@ -903,7 +903,7 @@ static INLINE void transpose4x8_8x4_neon(uint8x8_t *x, uint16x4x2_t *d) {
     d[1] = vzip_u16(vreinterpret_u16_u8(w0.val[1]), vreinterpret_u16_u8(w1.val[1]));
 }
 
-static INLINE void transpose8x8_low_neon(uint8x8_t *x, uint32x2x2_t *d) {
+static inline void transpose8x8_low_neon(uint8x8_t *x, uint32x2x2_t *d) {
     uint8x8x2_t  w0, w1, w2, w3;
     uint16x4x2_t w4, w5;
 
@@ -919,7 +919,7 @@ static INLINE void transpose8x8_low_neon(uint8x8_t *x, uint32x2x2_t *d) {
     d[1] = vzip_u32(vreinterpret_u32_u16(w4.val[1]), vreinterpret_u32_u16(w5.val[1]));
 }
 
-static INLINE void transpose8x8_neon(uint8x8_t *x, uint32x2x2_t *d) {
+static inline void transpose8x8_neon(uint8x8_t *x, uint32x2x2_t *d) {
     uint8x8x2_t  w0, w1, w2, w3;
     uint16x4x2_t w4, w5, w6, w7;
 
@@ -941,7 +941,7 @@ static INLINE void transpose8x8_neon(uint8x8_t *x, uint32x2x2_t *d) {
     d[3] = vzip_u32(vreinterpret_u32_u16(w6.val[1]), vreinterpret_u32_u16(w7.val[1]));
 }
 
-static INLINE void transpose16x8_8x16_neon(uint8x8_t *x, uint64x2_t *d) {
+static inline void transpose16x8_8x16_neon(uint8x8_t *x, uint64x2_t *d) {
     uint8x8x2_t  w0, w1, w2, w3, w8, w9, w10, w11;
     uint16x4x2_t w4, w5, w12, w13;
     uint32x2x2_t w6, w7, w14, w15;
@@ -989,7 +989,7 @@ static INLINE void transpose16x8_8x16_neon(uint8x8_t *x, uint64x2_t *d) {
     d[7] = vcombine_u64(vreinterpret_u64_u32(w7.val[1]), vreinterpret_u64_u32(w15.val[1]));
 }
 
-static INLINE void transpose8x16_16x8_neon(uint8x16_t *x, uint64x2_t *d) {
+static inline void transpose8x16_16x8_neon(uint8x16_t *x, uint64x2_t *d) {
     uint8x16x2_t w0, w1, w2, w3;
     uint16x8x2_t w4, w5, w6, w7;
     uint32x4x2_t w8, w9, w10, w11;
@@ -1019,7 +1019,7 @@ static INLINE void transpose8x16_16x8_neon(uint8x16_t *x, uint64x2_t *d) {
     d[7] = vzip2q_u64(vreinterpretq_u64_u32(w10.val[1]), vreinterpretq_u64_u32(w11.val[1]));
 }
 
-static INLINE void transpose16x16_neon(uint8x16_t *x, uint64x2_t *d) {
+static inline void transpose16x16_neon(uint8x16_t *x, uint64x2_t *d) {
     uint8x16x2_t w0, w1, w2, w3, w4, w5, w6, w7;
     uint16x8x2_t w8, w9, w10, w11;
     uint32x4x2_t w12, w13, w14, w15;
@@ -1074,7 +1074,7 @@ static INLINE void transpose16x16_neon(uint8x16_t *x, uint64x2_t *d) {
     d[15] = vzip2q_u64(vreinterpretq_u64_u32(w14.val[1]), vreinterpretq_u64_u32(w15.val[1]));
 }
 
-static INLINE void transpose16x32_neon(uint8x16x2_t *x, uint64x2x2_t *d) {
+static inline void transpose16x32_neon(uint8x16x2_t *x, uint64x2x2_t *d) {
     uint8x16x2_t w0, w1, w2, w3, w8, w9, w10, w11;
     uint16x8x2_t w4, w5, w12, w13;
     uint32x4x2_t w6, w7, w14, w15;
@@ -1185,7 +1185,7 @@ static INLINE void transpose16x32_neon(uint8x16x2_t *x, uint64x2x2_t *d) {
     d[15].val[1] = vzip2q_u64(vreinterpretq_u64_u32(w7.val[1]), vreinterpretq_u64_u32(w15.val[1]));
 }
 
-static INLINE void transpose_TX_16X16(const uint8_t *src, ptrdiff_t pitchSrc, uint8_t *dst, ptrdiff_t pitchDst) {
+static inline void transpose_TX_16X16(const uint8_t *src, ptrdiff_t pitchSrc, uint8_t *dst, ptrdiff_t pitchDst) {
     uint8x16_t r[16];
     uint64x2_t d[16];
     for (int i = 0; i < 16; i++) { r[i] = vld1q_u8(src + i * pitchSrc); }
@@ -1193,7 +1193,7 @@ static INLINE void transpose_TX_16X16(const uint8_t *src, ptrdiff_t pitchSrc, ui
     for (int i = 0; i < 16; i++) { vst1q_u8(dst + i * pitchDst, vreinterpretq_u8_u64(d[i])); }
 }
 
-static INLINE void transpose(const uint8_t *src, ptrdiff_t pitchSrc, uint8_t *dst, ptrdiff_t pitchDst, int width,
+static inline void transpose(const uint8_t *src, ptrdiff_t pitchSrc, uint8_t *dst, ptrdiff_t pitchDst, int width,
                              int height) {
     for (int j = 0; j < height; j += 16) {
         for (int i = 0; i < width; i += 16) {
@@ -1202,7 +1202,7 @@ static INLINE void transpose(const uint8_t *src, ptrdiff_t pitchSrc, uint8_t *ds
     }
 }
 
-static INLINE void dr_prediction_z3_4x4_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_4x4_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                              int dy) {
     uint8x8_t    dstvec[4];
     uint16x4x2_t dest;
@@ -1215,7 +1215,7 @@ static INLINE void dr_prediction_z3_4x4_neon(uint8_t *dst, ptrdiff_t stride, con
     vst1_lane_u32((uint32_t *)(dst + stride * 3), vreinterpret_u32_u16(dest.val[1]), 1);
 }
 
-static INLINE void dr_prediction_z3_8x8_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_8x8_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                              int dy) {
     uint8x8_t    dstvec[8];
     uint32x2x2_t d[4];
@@ -1232,7 +1232,7 @@ static INLINE void dr_prediction_z3_8x8_neon(uint8_t *dst, ptrdiff_t stride, con
     vst1_u32((uint32_t *)(dst + 7 * stride), d[3].val[1]);
 }
 
-static INLINE void dr_prediction_z3_4x8_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_4x8_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                              int dy) {
     uint8x8_t    dstvec[4];
     uint16x4x2_t d[2];
@@ -1249,7 +1249,7 @@ static INLINE void dr_prediction_z3_4x8_neon(uint8_t *dst, ptrdiff_t stride, con
     vst1_lane_u32((uint32_t *)(dst + stride * 7), vreinterpret_u32_u16(d[1].val[1]), 1);
 }
 
-static INLINE void dr_prediction_z3_8x4_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_8x4_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                              int dy) {
     uint8x8_t    dstvec[8];
     uint32x2x2_t d[2];
@@ -1262,7 +1262,7 @@ static INLINE void dr_prediction_z3_8x4_neon(uint8_t *dst, ptrdiff_t stride, con
     vst1_u32((uint32_t *)(dst + 3 * stride), d[1].val[1]);
 }
 
-static INLINE void dr_prediction_z3_8x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_8x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                               int dy) {
     uint8x16_t dstvec[8];
     uint64x2_t d[8];
@@ -1275,7 +1275,7 @@ static INLINE void dr_prediction_z3_8x16_neon(uint8_t *dst, ptrdiff_t stride, co
     }
 }
 
-static INLINE void dr_prediction_z3_16x8_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_16x8_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                               int dy) {
     uint8x8_t  dstvec[16];
     uint64x2_t d[8];
@@ -1285,7 +1285,7 @@ static INLINE void dr_prediction_z3_16x8_neon(uint8_t *dst, ptrdiff_t stride, co
     for (int i = 0; i < 8; i++) { vst1q_u8(dst + i * stride, vreinterpretq_u8_u64(d[i])); }
 }
 
-static INLINE void dr_prediction_z3_4x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_4x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                               int dy) {
     uint8x16_t   dstvec[4];
     uint16x8x2_t d[2];
@@ -1313,7 +1313,7 @@ static INLINE void dr_prediction_z3_4x16_neon(uint8_t *dst, ptrdiff_t stride, co
     vst1q_lane_u32((uint32_t *)(dst + stride * 15), vreinterpretq_u32_u16(d[1].val[1]), 3);
 }
 
-static INLINE void dr_prediction_z3_16x4_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_16x4_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                               int dy) {
     uint8x8_t  dstvec[16];
     uint64x2_t d[8];
@@ -1323,7 +1323,7 @@ static INLINE void dr_prediction_z3_16x4_neon(uint8_t *dst, ptrdiff_t stride, co
     for (int i = 0; i < 4; i++) { vst1q_u8(dst + i * stride, vreinterpretq_u8_u64(d[i])); }
 }
 
-static INLINE void dr_prediction_z3_8x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
+static inline void dr_prediction_z3_8x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8x16x2_t dstvec[16];
     uint64x2x2_t d[16];
     uint8x16_t   v_zero = vdupq_n_u8(0);
@@ -1339,7 +1339,7 @@ static INLINE void dr_prediction_z3_8x32_neon(uint8_t *dst, ptrdiff_t stride, co
     }
 }
 
-static INLINE void dr_prediction_z3_32x8_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_32x8_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                               int dy) {
     uint8x8_t  dstvec[32];
     uint64x2_t d[16];
@@ -1353,7 +1353,7 @@ static INLINE void dr_prediction_z3_32x8_neon(uint8_t *dst, ptrdiff_t stride, co
     }
 }
 
-static INLINE void dr_prediction_z3_16x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_16x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                                int dy) {
     uint8x16_t dstvec[16];
     uint64x2_t d[16];
@@ -1363,7 +1363,7 @@ static INLINE void dr_prediction_z3_16x16_neon(uint8_t *dst, ptrdiff_t stride, c
     for (int i = 0; i < 16; i++) { vst1q_u8(dst + i * stride, vreinterpretq_u8_u64(d[i])); }
 }
 
-static INLINE void dr_prediction_z3_32x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
+static inline void dr_prediction_z3_32x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8x16x2_t dstvec[32];
     uint64x2x2_t d[32];
     dr_prediction_z1_32xN_internal_neon(32, dstvec, left, dy);
@@ -1377,14 +1377,14 @@ static INLINE void dr_prediction_z3_32x32_neon(uint8_t *dst, ptrdiff_t stride, c
     }
 }
 
-static INLINE void dr_prediction_z3_64x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
+static inline void dr_prediction_z3_64x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     DECLARE_ALIGNED(16, uint8_t, dstT[64 * 64]);
 
     dr_prediction_z1_64xN_neon(64, dstT, 64, left, dy);
     transpose(dstT, 64, dst, stride, 64, 64);
 }
 
-static INLINE void dr_prediction_z3_16x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
+static inline void dr_prediction_z3_16x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8x16x2_t dstvec[16];
     uint64x2x2_t d[16];
     dr_prediction_z1_32xN_internal_neon(16, dstvec, left, dy);
@@ -1395,7 +1395,7 @@ static INLINE void dr_prediction_z3_16x32_neon(uint8_t *dst, ptrdiff_t stride, c
     }
 }
 
-static INLINE void dr_prediction_z3_32x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_32x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                                int dy) {
     uint8x16_t dstvec[32];
     uint64x2_t d[16];
@@ -1407,28 +1407,28 @@ static INLINE void dr_prediction_z3_32x16_neon(uint8_t *dst, ptrdiff_t stride, c
     }
 }
 
-static INLINE void dr_prediction_z3_32x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
+static inline void dr_prediction_z3_32x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8_t dstT[64 * 32];
 
     dr_prediction_z1_64xN_neon(32, dstT, 64, left, dy);
     transpose(dstT, 64, dst, stride, 32, 64);
 }
 
-static INLINE void dr_prediction_z3_64x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
+static inline void dr_prediction_z3_64x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8_t dstT[32 * 64];
 
     dr_prediction_z1_32xN_neon(64, dstT, 32, left, dy);
     transpose(dstT, 32, dst, stride, 64, 32);
 }
 
-static INLINE void dr_prediction_z3_16x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
+static inline void dr_prediction_z3_16x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8_t dstT[64 * 16];
 
     dr_prediction_z1_64xN_neon(16, dstT, 64, left, dy);
     transpose(dstT, 64, dst, stride, 16, 64);
 }
 
-static INLINE void dr_prediction_z3_64x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
+static inline void dr_prediction_z3_64x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
                                                int dy) {
     uint8x16_t dstvec[64];
     uint64x2_t d[16];
@@ -1670,14 +1670,14 @@ void svt_av1_filter_intra_predictor_neon(uint8_t *dst, ptrdiff_t stride, TxSize 
 
 /* ---------------------DC PREDICTOR--------------------------- */
 /* DC 4x4 */
-static INLINE uint16x8_t dc_load_sum_4(const uint8_t *in) {
+static inline uint16x8_t dc_load_sum_4(const uint8_t *in) {
     const uint8x8_t  a  = load_u8_4x1(in);
     const uint16x4_t p0 = vpaddl_u8(a);
     const uint16x4_t p1 = vpadd_u16(p0, p0);
     return vcombine_u16(p1, vdup_n_u16(0));
 }
 
-static INLINE void dc_store_4xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x8_t dc) {
+static inline void dc_store_4xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x8_t dc) {
     for (int i = 0; i < h; ++i) { store_u8_4x1(dst + i * stride, dc); }
 }
 
@@ -1711,7 +1711,7 @@ void svt_aom_dc_128_predictor_4x4_neon(uint8_t *dst, ptrdiff_t stride, const uin
 }
 
 /* DC 8x8 */
-static INLINE uint16x8_t dc_load_sum_8(const uint8_t *in) {
+static inline uint16x8_t dc_load_sum_8(const uint8_t *in) {
     /* This isn't used in the case where we want to load both above and left
    vectors, since we want to avoid performing the reduction twice.*/
     const uint8x8_t  a  = vld1_u8(in);
@@ -1721,13 +1721,13 @@ static INLINE uint16x8_t dc_load_sum_8(const uint8_t *in) {
     return vcombine_u16(p2, vdup_n_u16(0));
 }
 
-static INLINE uint16x8_t horizontal_add_and_broadcast_u16x8(uint16x8_t a) {
+static inline uint16x8_t horizontal_add_and_broadcast_u16x8(uint16x8_t a) {
     const uint16x8_t b = vpaddq_u16(a, a);
     const uint16x8_t c = vpaddq_u16(b, b);
     return vpaddq_u16(c, c);
 }
 
-static INLINE void dc_store_8xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x8_t dc) {
+static inline void dc_store_8xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x8_t dc) {
     for (int i = 0; i < h; ++i) { vst1_u8(dst + i * stride, dc); }
 }
 
@@ -1762,16 +1762,16 @@ void svt_aom_dc_128_predictor_8x8_neon(uint8_t *dst, ptrdiff_t stride, const uin
 }
 
 /* DC 16x16 */
-static INLINE uint16x8_t dc_load_partial_sum_16(const uint8_t *in) {
+static inline uint16x8_t dc_load_partial_sum_16(const uint8_t *in) {
     const uint8x16_t a = vld1q_u8(in);
     return vpaddlq_u8(a);
 }
 
-static INLINE uint16x8_t dc_load_sum_16(const uint8_t *in) {
+static inline uint16x8_t dc_load_sum_16(const uint8_t *in) {
     return horizontal_add_and_broadcast_u16x8(dc_load_partial_sum_16(in));
 }
 
-static INLINE void dc_store_16xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t dc) {
+static inline void dc_store_16xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t dc) {
     for (int i = 0; i < h; ++i) { vst1q_u8(dst + i * stride, dc); }
 }
 
@@ -1806,17 +1806,17 @@ void svt_aom_dc_128_predictor_16x16_neon(uint8_t *dst, ptrdiff_t stride, const u
 }
 
 /* DC 32x32 */
-static INLINE uint16x8_t dc_load_partial_sum_32(const uint8_t *in) {
+static inline uint16x8_t dc_load_partial_sum_32(const uint8_t *in) {
     const uint8x16_t a0 = vld1q_u8(in);
     const uint8x16_t a1 = vld1q_u8(in + 16);
     return vpadalq_u8(vpaddlq_u8(a0), a1);
 }
 
-static INLINE uint16x8_t dc_load_sum_32(const uint8_t *in) {
+static inline uint16x8_t dc_load_sum_32(const uint8_t *in) {
     return horizontal_add_and_broadcast_u16x8(dc_load_partial_sum_32(in));
 }
 
-static INLINE void dc_store_32xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t dc) {
+static inline void dc_store_32xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t dc) {
     for (int i = 0; i < h; ++i) {
         vst1q_u8(dst + i * stride, dc);
         vst1q_u8(dst + i * stride + 16, dc);
@@ -1854,7 +1854,7 @@ void svt_aom_dc_128_predictor_32x32_neon(uint8_t *dst, ptrdiff_t stride, const u
 }
 
 /* DC 64x64 */
-static INLINE uint16x8_t dc_load_partial_sum_64(const uint8_t *in) {
+static inline uint16x8_t dc_load_partial_sum_64(const uint8_t *in) {
     const uint8x16_t a0  = vld1q_u8(in);
     const uint8x16_t a1  = vld1q_u8(in + 16);
     const uint8x16_t a2  = vld1q_u8(in + 32);
@@ -1864,11 +1864,11 @@ static INLINE uint16x8_t dc_load_partial_sum_64(const uint8_t *in) {
     return vaddq_u16(p01, p23);
 }
 
-static INLINE uint16x8_t dc_load_sum_64(const uint8_t *in) {
+static inline uint16x8_t dc_load_sum_64(const uint8_t *in) {
     return horizontal_add_and_broadcast_u16x8(dc_load_partial_sum_64(in));
 }
 
-static INLINE void dc_store_64xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t dc) {
+static inline void dc_store_64xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t dc) {
     for (int i = 0; i < h; ++i) {
         vst1q_u8(dst + i * stride, dc);
         vst1q_u8(dst + i * stride + 16, dc);
@@ -1908,12 +1908,12 @@ void svt_aom_dc_128_predictor_64x64_neon(uint8_t *dst, ptrdiff_t stride, const u
 }
 
 /* DC rectangular cases */
-static INLINE int divide_using_multiply_shift(int num, int shift1, int multiplier, int shift2) {
+static inline int divide_using_multiply_shift(int num, int shift1, int multiplier, int shift2) {
     const int interm = num >> shift1;
     return interm * multiplier >> shift2;
 }
 
-static INLINE int calculate_dc_from_sum(int bw, int bh, uint32_t sum, int shift1, int multiplier) {
+static inline int calculate_dc_from_sum(int bw, int bh, uint32_t sum, int shift1, int multiplier) {
     const int expected_dc = divide_using_multiply_shift(sum + ((bw + bh) >> 1), shift1, multiplier, DC_SHIFT2);
     assert(expected_dc < (1 << 8));
     return expected_dc;
@@ -2116,10 +2116,10 @@ DC_PREDICTOR_TOP(64, 32, 6, q)
 
 /* ---------------------SMOOTH PREDICTOR--------------------------- */
 /* 256 - v = vneg_s8(v) */
-static INLINE uint8x8_t negate_s8(const uint8x8_t v) { return vreinterpret_u8_s8(vneg_s8(vreinterpret_s8_u8(v))); }
+static inline uint8x8_t negate_s8(const uint8x8_t v) { return vreinterpret_u8_s8(vneg_s8(vreinterpret_s8_u8(v))); }
 
-static void smooth_4xh_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *const top_row,
-                            const uint8_t *const left_column, const int height) {
+static inline void smooth_4xh_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *const top_row,
+                                   const uint8_t *const left_column, const int height) {
     const uint8_t        top_right   = top_row[3];
     const uint8_t        bottom_left = left_column[height - 1];
     const uint8_t *const weights_y   = sm_weight_arrays + height;
@@ -2149,13 +2149,13 @@ static void smooth_4xh_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *const
     } while (++y != height);
 }
 
-static INLINE uint8x8_t calculate_pred(const uint16x8_t weighted_top_bl, const uint16x8_t weighted_left_tr) {
+static inline uint8x8_t calculate_pred(const uint16x8_t weighted_top_bl, const uint16x8_t weighted_left_tr) {
     /* Maximum value of each parameter: 0xFF00 */
     const uint16x8_t avg = vhaddq_u16(weighted_top_bl, weighted_left_tr);
     return vmovn_u16(vrshlq_u16(avg, vdupq_n_s16(-sm_weight_log2_scale)));
 }
 
-static INLINE uint8x8_t calculate_weights_and_pred(const uint8x8_t top, const uint8x8_t left,
+static inline uint8x8_t calculate_weights_and_pred(const uint8x8_t top, const uint8x8_t left,
                                                    const uint16x8_t weighted_tr, const uint8x8_t bottom_left,
                                                    const uint8x8_t weights_x, const uint8x8_t scaled_weights_y,
                                                    const uint8x8_t weights_y) {
@@ -2165,8 +2165,8 @@ static INLINE uint8x8_t calculate_weights_and_pred(const uint8x8_t top, const ui
     return calculate_pred(weighted_top_bl, weighted_left_tr);
 }
 
-static void smooth_8xh_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *const top_row,
-                            const uint8_t *const left_column, const int height) {
+static inline void smooth_8xh_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *const top_row,
+                                   const uint8_t *const left_column, const int height) {
     const uint8_t        top_right   = top_row[7];
     const uint8_t        bottom_left = left_column[height - 1];
     const uint8_t *const weights_y   = sm_weight_arrays + height;
@@ -2206,7 +2206,7 @@ SMOOTH_NXM(4, 16)
 SMOOTH_NXM(8, 16)
 SMOOTH_NXM(8, 32)
 
-static INLINE uint8x16_t calculate_weights_and_predq(const uint8x16_t top, const uint8x8_t left,
+static inline uint8x16_t calculate_weights_and_predq(const uint8x16_t top, const uint8x8_t left,
                                                      const uint8x8_t top_right, const uint8x8_t weights_y,
                                                      const uint8x16_t weights_x, const uint8x16_t scaled_weights_x,
                                                      const uint16x8_t weighted_bl) {
@@ -2224,18 +2224,18 @@ static INLINE uint8x16_t calculate_weights_and_predq(const uint8x16_t top, const
 }
 
 /* 256 - v = vneg_s8(v) */
-static INLINE uint8x16_t negate_s8q(const uint8x16_t v) {
+static inline uint8x16_t negate_s8q(const uint8x16_t v) {
     return vreinterpretq_u8_s8(vnegq_s8(vreinterpretq_s8_u8(v)));
 }
 
 /* For width 16 and above. */
 #define SMOOTH_PREDICTOR_WIDE(W)                                                                                    \
-    static void smooth_##W##xh_wide_neon(uint8_t             *dst,                                                  \
-                                         ptrdiff_t            stride,                                               \
-                                         const uint8_t *const top_row,                                              \
-                                         const uint8_t *const left_column,                                          \
-                                         const int            height) {                                                        \
-        const uint8_t        top_right   = top_row[(W)-1];                                                          \
+    static inline void smooth_##W##xh_wide_neon(uint8_t             *dst,                                           \
+                                                ptrdiff_t            stride,                                        \
+                                                const uint8_t *const top_row,                                       \
+                                                const uint8_t *const left_column,                                   \
+                                                const int            height) {                                                 \
+        const uint8_t        top_right   = top_row[(W) - 1];                                                        \
         const uint8_t        bottom_left = left_column[height - 1];                                                 \
         const uint8_t *const weights_y   = sm_weight_arrays + height;                                               \
                                                                                                                     \
@@ -2341,12 +2341,12 @@ SMOOTH_NXM_WIDE(64, 64)
 
 /* For widths 4 and 8. */
 #define SMOOTH_H_PREDICTOR(W)                                                                                    \
-    static void smooth_h_##W##xh_neon(uint8_t             *dst,                                                  \
-                                      ptrdiff_t            stride,                                               \
-                                      const uint8_t *const top_row,                                              \
-                                      const uint8_t *const left_column,                                          \
-                                      const int            height) {                                                        \
-        const uint8_t top_right = top_row[(W)-1];                                                                \
+    static inline void smooth_h_##W##xh_neon(uint8_t             *dst,                                           \
+                                             ptrdiff_t            stride,                                        \
+                                             const uint8_t *const top_row,                                       \
+                                             const uint8_t *const left_column,                                   \
+                                             const int            height) {                                                 \
+        const uint8_t top_right = top_row[(W) - 1];                                                              \
                                                                                                                  \
         const uint8x8_t top_right_v = vdup_n_u8(top_right);                                                      \
         /* Over-reads for 4xN but still within the array. */                                                     \
@@ -2387,7 +2387,7 @@ SMOOTH_H_NXM(8, 8)
 SMOOTH_H_NXM(8, 16)
 SMOOTH_H_NXM(8, 32)
 
-static INLINE uint8x16_t calculate_horizontal_weights_and_pred(const uint8x8_t left, const uint8x8_t top_right,
+static inline uint8x16_t calculate_horizontal_weights_and_pred(const uint8x8_t left, const uint8x8_t top_right,
                                                                const uint8x16_t weights_x,
                                                                const uint8x16_t scaled_weights_x) {
     const uint16x8_t weighted_left_low    = vmull_u8(vget_low_u8(weights_x), left);
@@ -2403,12 +2403,12 @@ static INLINE uint8x16_t calculate_horizontal_weights_and_pred(const uint8x8_t l
 
 /* For width 16 and above. */
 #define SMOOTH_H_PREDICTOR_WIDE(W)                                                   \
-    static void smooth_h_##W##xh_wide_neon(uint8_t             *dst,                 \
-                                           ptrdiff_t            stride,              \
-                                           const uint8_t *const top_row,             \
-                                           const uint8_t *const left_column,         \
-                                           const int            height) {                       \
-        const uint8_t top_right = top_row[(W)-1];                                    \
+    static inline void smooth_h_##W##xh_wide_neon(uint8_t             *dst,          \
+                                                  ptrdiff_t            stride,       \
+                                                  const uint8_t *const top_row,      \
+                                                  const uint8_t *const left_column,  \
+                                                  const int            height) {                \
+        const uint8_t top_right = top_row[(W) - 1];                                  \
                                                                                      \
         const uint8x8_t top_right_v = vdup_n_u8(top_right);                          \
                                                                                      \
@@ -2485,11 +2485,11 @@ SMOOTH_H_NXM_WIDE(64, 64)
 
 /* For widths 4 and 8. */
 #define SMOOTH_V_PREDICTOR(W)                                                                                   \
-    static void smooth_v_##W##xh_neon(uint8_t             *dst,                                                 \
-                                      ptrdiff_t            stride,                                              \
-                                      const uint8_t *const top_row,                                             \
-                                      const uint8_t *const left_column,                                         \
-                                      const int            height) {                                                       \
+    static inline void smooth_v_##W##xh_neon(uint8_t             *dst,                                          \
+                                             ptrdiff_t            stride,                                       \
+                                             const uint8_t *const top_row,                                      \
+                                             const uint8_t *const left_column,                                  \
+                                             const int            height) {                                                \
         uint8x8_t            top_v;                                                                             \
         const uint8_t        bottom_left = left_column[height - 1];                                             \
         const uint8_t *const weights_y   = sm_weight_arrays + height;                                           \
@@ -2538,7 +2538,7 @@ SMOOTH_V_NXM(8, 8)
 SMOOTH_V_NXM(8, 16)
 SMOOTH_V_NXM(8, 32)
 
-static INLINE uint8x16_t calculate_vertical_weights_and_pred(const uint8x16_t top, const uint8x8_t weights_y,
+static inline uint8x16_t calculate_vertical_weights_and_pred(const uint8x16_t top, const uint8x8_t weights_y,
                                                              const uint16x8_t weighted_bl) {
     const uint16x8_t pred_low         = vmlal_u8(weighted_bl, weights_y, vget_low_u8(top));
     const uint16x8_t pred_high        = vmlal_u8(weighted_bl, weights_y, vget_high_u8(top));
@@ -2549,11 +2549,11 @@ static INLINE uint8x16_t calculate_vertical_weights_and_pred(const uint8x16_t to
 
 /* For width 16 and above. */
 #define SMOOTH_V_PREDICTOR_WIDE(W)                                                                                     \
-    static void smooth_v_##W##xh_wide_neon(uint8_t             *dst,                                                   \
-                                           ptrdiff_t            stride,                                                \
-                                           const uint8_t *const top_row,                                               \
-                                           const uint8_t *const left_column,                                           \
-                                           const int            height) {                                                         \
+    static inline void smooth_v_##W##xh_wide_neon(uint8_t             *dst,                                            \
+                                                  ptrdiff_t            stride,                                         \
+                                                  const uint8_t *const top_row,                                        \
+                                                  const uint8_t *const left_column,                                    \
+                                                  const int            height) {                                                  \
         const uint8_t        bottom_left = left_column[height - 1];                                                    \
         const uint8_t *const weights_y   = sm_weight_arrays + height;                                                  \
                                                                                                                        \
@@ -2620,19 +2620,19 @@ SMOOTH_V_NXM_WIDE(64, 32)
 SMOOTH_V_NXM_WIDE(64, 64)
 
 /* ---------------------V PREDICTOR--------------------------- */
-static INLINE void v_store_4xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x8_t d0) {
+static inline void v_store_4xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x8_t d0) {
     for (int i = 0; i < h; ++i) { store_u8_4x1(dst + i * stride, d0); }
 }
 
-static INLINE void v_store_8xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x8_t d0) {
+static inline void v_store_8xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x8_t d0) {
     for (int i = 0; i < h; ++i) { vst1_u8(dst + i * stride, d0); }
 }
 
-static INLINE void v_store_16xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t d0) {
+static inline void v_store_16xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t d0) {
     for (int i = 0; i < h; ++i) { vst1q_u8(dst + i * stride, d0); }
 }
 
-static INLINE void v_store_32xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t d0, uint8x16_t d1) {
+static inline void v_store_32xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t d0, uint8x16_t d1) {
     for (int i = 0; i < h; ++i) {
         vst1q_u8(dst + 0, d0);
         vst1q_u8(dst + 16, d1);
@@ -2640,7 +2640,7 @@ static INLINE void v_store_32xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_
     }
 }
 
-static INLINE void v_store_64xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t d0, uint8x16_t d1, uint8x16_t d2,
+static inline void v_store_64xh(uint8_t *dst, ptrdiff_t stride, int h, uint8x16_t d0, uint8x16_t d1, uint8x16_t d2,
                                 uint8x16_t d3) {
     for (int i = 0; i < h; ++i) {
         vst1q_u8(dst + 0, d0);
@@ -2767,7 +2767,7 @@ void svt_aom_v_predictor_64x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_
 }
 
 /* ---------------------H PREDICTOR--------------------------- */
-static INLINE void h_store_4x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
+static inline void h_store_4x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
     store_u8_4x1(dst + 0 * stride, vdup_lane_u8(d0, 0));
     store_u8_4x1(dst + 1 * stride, vdup_lane_u8(d0, 1));
     store_u8_4x1(dst + 2 * stride, vdup_lane_u8(d0, 2));
@@ -2778,7 +2778,7 @@ static INLINE void h_store_4x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
     store_u8_4x1(dst + 7 * stride, vdup_lane_u8(d0, 7));
 }
 
-static INLINE void h_store_8x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
+static inline void h_store_8x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
     vst1_u8(dst + 0 * stride, vdup_lane_u8(d0, 0));
     vst1_u8(dst + 1 * stride, vdup_lane_u8(d0, 1));
     vst1_u8(dst + 2 * stride, vdup_lane_u8(d0, 2));
@@ -2789,7 +2789,7 @@ static INLINE void h_store_8x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
     vst1_u8(dst + 7 * stride, vdup_lane_u8(d0, 7));
 }
 
-static INLINE void h_store_16x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
+static inline void h_store_16x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
     vst1q_u8(dst + 0 * stride, vdupq_lane_u8(d0, 0));
     vst1q_u8(dst + 1 * stride, vdupq_lane_u8(d0, 1));
     vst1q_u8(dst + 2 * stride, vdupq_lane_u8(d0, 2));
@@ -2800,7 +2800,7 @@ static INLINE void h_store_16x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
     vst1q_u8(dst + 7 * stride, vdupq_lane_u8(d0, 7));
 }
 
-static INLINE void h_store_32x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
+static inline void h_store_32x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
     vst1q_u8(dst + 0, vdupq_lane_u8(d0, 0));
     vst1q_u8(dst + 16, vdupq_lane_u8(d0, 0));
     dst += stride;
@@ -2826,7 +2826,7 @@ static INLINE void h_store_32x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
     vst1q_u8(dst + 16, vdupq_lane_u8(d0, 7));
 }
 
-static INLINE void h_store_64x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
+static inline void h_store_64x8(uint8_t *dst, ptrdiff_t stride, uint8x8_t d0) {
     vst1q_u8(dst + 0, vdupq_lane_u8(d0, 0));
     vst1q_u8(dst + 16, vdupq_lane_u8(d0, 0));
     vst1q_u8(dst + 32, vdupq_lane_u8(d0, 0));
@@ -3039,7 +3039,7 @@ void svt_aom_h_predictor_64x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_
 }
 
 /* ---------------------PAETH PREDICTOR--------------------------- */
-static INLINE void paeth_4or8_x_h_neon(uint8_t *dest, ptrdiff_t stride, const uint8_t *const top_row,
+static inline void paeth_4or8_x_h_neon(uint8_t *dest, ptrdiff_t stride, const uint8_t *const top_row,
                                        const uint8_t *const left_column, int width, int height) {
     uint8x8_t        top         = vdup_n_u8(0);
     const uint8x8_t  top_left    = vdup_n_u8(top_row[-1]);
@@ -3092,14 +3092,14 @@ PAETH_NXM(4, 16)
 PAETH_NXM(8, 32)
 
 /* Calculate X distance <= TopLeft distance and pack the resulting mask into uint8x8_t */
-static INLINE uint8x16_t x_le_top_left(const uint8x16_t x_dist, const uint16x8_t top_left_dist_low,
+static inline uint8x16_t x_le_top_left(const uint8x16_t x_dist, const uint16x8_t top_left_dist_low,
                                        const uint16x8_t top_left_dist_high) {
     const uint8x16_t top_left_dist = vcombine_u8(vqmovn_u16(top_left_dist_low), vqmovn_u16(top_left_dist_high));
     return vcleq_u8(x_dist, top_left_dist);
 }
 
 /* Select the closest values and collect them. */
-static INLINE uint8x16_t select_paeth(const uint8x16_t top, const uint8x16_t left, const uint8x16_t top_left,
+static inline uint8x16_t select_paeth(const uint8x16_t top, const uint8x16_t left, const uint8x16_t top_left,
                                       const uint8x16_t left_le_top, const uint8x16_t left_le_top_left,
                                       const uint8x16_t top_le_top_left) {
     const uint8x16_t left_mask        = vandq_u8(left_le_top, left_le_top_left);
@@ -3125,7 +3125,7 @@ static INLINE uint8x16_t select_paeth(const uint8x16_t top, const uint8x16_t lef
     const uint8x16_t top_le_top_left_##num = x_le_top_left( \
         top_dist, top_left_##num##_dist_low, top_left_##num##_dist_high)
 
-static INLINE void paeth16_plus_x_h_neon(uint8_t *dest, ptrdiff_t stride, const uint8_t *const top_row,
+static inline void paeth16_plus_x_h_neon(uint8_t *dest, ptrdiff_t stride, const uint8_t *const top_row,
                                          const uint8_t *const left_column, int width, int height) {
     const uint8x16_t top_left    = vdupq_n_u8(top_row[-1]);
     const uint16x8_t top_left_x2 = vdupq_n_u16(top_row[-1] + top_row[-1]);

@@ -15,7 +15,7 @@
 #include "definitions.h"
 #include "bitstream_unit.h"
 
-static INLINE int16x8_t constrain_neon(uint16x8_t a, uint16x8_t b, unsigned int threshold, int adjdamp) {
+static inline int16x8_t constrain_neon(uint16x8_t a, uint16x8_t b, unsigned int threshold, int adjdamp) {
     uint16x8_t       diff   = vabdq_u16(a, b);
     const uint16x8_t a_gt_b = vcgtq_u16(a, b);
     const uint16x8_t s      = vqsubq_u16(vdupq_n_u16(threshold), vshlq_u16(diff, vdupq_n_s16(-adjdamp)));
@@ -294,7 +294,7 @@ void svt_av1_cdef_filter_block_4xn_8_neon(uint8_t *dst, int32_t dstride, const u
     }
 }
 
-SIMD_INLINE int16x8_t constrain16(int16x8_t a, int16x8_t b, int16x8_t threshold, int16x8_t adjdamp) {
+AOM_FORCE_INLINE int16x8_t constrain16(int16x8_t a, int16x8_t b, int16x8_t threshold, int16x8_t adjdamp) {
     const int16x8_t sign = vreinterpretq_s16_u16(vcltq_s16(a, b));
 
     const int16x8_t abs_diff = vabdq_s16(a, b);

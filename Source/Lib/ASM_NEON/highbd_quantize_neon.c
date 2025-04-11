@@ -16,7 +16,7 @@
 #include "mem_neon.h"
 #include "sum_neon.h"
 
-static INLINE uint16x4_t quantize_4_b(const TranLow *coeff_ptr, TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr,
+static inline uint16x4_t quantize_4_b(const TranLow *coeff_ptr, TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr,
                                       int32x4_t v_quant_s32, int32x4_t v_dequant_s32, int32x4_t v_round_s32,
                                       int32x4_t v_zbin_s32, int32x4_t v_quant_shift_s32, int log_scale) {
     const int32x4_t v_coeff      = vld1q_s32(coeff_ptr);
@@ -52,7 +52,7 @@ static INLINE uint16x4_t quantize_4_b(const TranLow *coeff_ptr, TranLow *qcoeff_
     return vmovn_u32(nz_qcoeff_mask);
 }
 
-static INLINE int16x8_t get_max_lane_eob(const int16_t *iscan, int16x8_t v_eobmax, uint16x8_t v_mask) {
+static inline int16x8_t get_max_lane_eob(const int16_t *iscan, int16x8_t v_eobmax, uint16x8_t v_mask) {
     const int16x8_t v_iscan       = vld1q_s16(&iscan[0]);
     const int16x8_t v_iscan_plus1 = vaddq_s16(v_iscan, vdupq_n_s16(1));
     const int16x8_t v_nz_iscan    = vbslq_s16(v_mask, v_iscan_plus1, vdupq_n_s16(0));
@@ -174,7 +174,7 @@ void svt_aom_highbd_quantize_b_neon(const TranLow *coeff_ptr, intptr_t n_coeffs,
     *eob_ptr = (uint16_t)vmaxvq_s16(v_eobmax);
 }
 
-static INLINE uint16x4_t quantize_4_fp(const tran_low_t *coeff_ptr, tran_low_t *qcoeff_ptr, tran_low_t *dqcoeff_ptr,
+static inline uint16x4_t quantize_4_fp(const tran_low_t *coeff_ptr, tran_low_t *qcoeff_ptr, tran_low_t *dqcoeff_ptr,
                                        int32x4_t v_quant_s32, int32x4_t v_dequant_s32, int32x4_t v_round_s32,
                                        int log_scale) {
     const int32x4_t v_coeff      = vld1q_s32(coeff_ptr);

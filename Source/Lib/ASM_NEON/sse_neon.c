@@ -15,7 +15,7 @@
 #include "sum_neon.h"
 #include "transpose_neon.h"
 
-static INLINE void sse_16x1_neon(const uint8_t *src, const uint8_t *ref, uint32x4_t *sse) {
+static inline void sse_16x1_neon(const uint8_t *src, const uint8_t *ref, uint32x4_t *sse) {
     uint8x16_t s = vld1q_u8(src);
     uint8x16_t r = vld1q_u8(ref);
 
@@ -27,7 +27,7 @@ static INLINE void sse_16x1_neon(const uint8_t *src, const uint8_t *ref, uint32x
     *sse = vpadalq_u16(*sse, vmull_u8(abs_diff_hi, abs_diff_hi));
 }
 
-static INLINE void sse_8x1_neon(const uint8_t *src, const uint8_t *ref, uint32x4_t *sse) {
+static inline void sse_8x1_neon(const uint8_t *src, const uint8_t *ref, uint32x4_t *sse) {
     uint8x8_t s = vld1_u8(src);
     uint8x8_t r = vld1_u8(ref);
 
@@ -36,7 +36,7 @@ static INLINE void sse_8x1_neon(const uint8_t *src, const uint8_t *ref, uint32x4
     *sse = vpadalq_u16(*sse, vmull_u8(abs_diff, abs_diff));
 }
 
-static INLINE void sse_4x2_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
+static inline void sse_4x2_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
                                 uint32x4_t *sse) {
     uint8x8_t s = load_u8_4x2(src, src_stride);
     uint8x8_t r = load_u8_4x2(ref, ref_stride);
@@ -46,7 +46,7 @@ static INLINE void sse_4x2_neon(const uint8_t *src, int src_stride, const uint8_
     *sse = vpadalq_u16(*sse, vmull_u8(abs_diff, abs_diff));
 }
 
-static INLINE uint32_t sse_8xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
+static inline uint32_t sse_8xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
                                     int height) {
     uint32x4_t sse = vdupq_n_u32(0);
 
@@ -61,7 +61,7 @@ static INLINE uint32_t sse_8xh_neon(const uint8_t *src, int src_stride, const ui
     return vaddvq_u32(sse);
 }
 
-static INLINE uint32_t sse_4xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
+static inline uint32_t sse_4xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
                                     int height) {
     uint32x4_t sse = vdupq_n_u32(0);
 
@@ -77,7 +77,7 @@ static INLINE uint32_t sse_4xh_neon(const uint8_t *src, int src_stride, const ui
     return vaddvq_u32(sse);
 }
 
-static INLINE uint32_t sse_wxh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int width,
+static inline uint32_t sse_wxh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, int width,
                                     int height) {
     uint32x4_t sse = vdupq_n_u32(0);
     int        i, j;
@@ -112,7 +112,7 @@ static INLINE uint32_t sse_wxh_neon(const uint8_t *src, int src_stride, const ui
     return vaddvq_u32(sse);
 }
 
-static INLINE uint32_t sse_128xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
+static inline uint32_t sse_128xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
                                       int height) {
     uint32x4_t sse[2] = {vdupq_n_u32(0), vdupq_n_u32(0)};
 
@@ -134,7 +134,7 @@ static INLINE uint32_t sse_128xh_neon(const uint8_t *src, int src_stride, const 
     return vaddvq_u32(vaddq_u32(sse[0], sse[1]));
 }
 
-static INLINE uint32_t sse_64xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
+static inline uint32_t sse_64xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
                                      int height) {
     uint32x4_t sse[2] = {vdupq_n_u32(0), vdupq_n_u32(0)};
 
@@ -152,7 +152,7 @@ static INLINE uint32_t sse_64xh_neon(const uint8_t *src, int src_stride, const u
     return vaddvq_u32(vaddq_u32(sse[0], sse[1]));
 }
 
-static INLINE uint32_t sse_32xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
+static inline uint32_t sse_32xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
                                      int height) {
     uint32x4_t sse[2] = {vdupq_n_u32(0), vdupq_n_u32(0)};
 
@@ -168,7 +168,7 @@ static INLINE uint32_t sse_32xh_neon(const uint8_t *src, int src_stride, const u
     return vaddvq_u32(vaddq_u32(sse[0], sse[1]));
 }
 
-static INLINE uint32_t sse_16xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
+static inline uint32_t sse_16xh_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
                                      int height) {
     uint32x4_t sse[2] = {vdupq_n_u32(0), vdupq_n_u32(0)};
 

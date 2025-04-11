@@ -16,7 +16,7 @@
 #include "var_filter_neon.h"
 #include "obmc_constants_neon.h"
 
-static INLINE void obmc_variance_8x1_s16_neon(int16x8_t pre_s16, const int32_t *wsrc, const int32_t *mask,
+static inline void obmc_variance_8x1_s16_neon(int16x8_t pre_s16, const int32_t *wsrc, const int32_t *mask,
                                               int32x4_t *ssev, int32x4_t *sumv) {
     // For 4xh and 8xh we observe it is faster to avoid the double-widening of
     // pre. Instead we do a single widening step and narrow the mask to 16-bits
@@ -57,7 +57,7 @@ DECLARE_ALIGNED(16, const uint8_t, obmc_variance_permute_idx[]) = {
     255, 255, 6,   255, 255, 255, 7,   255, 255, 255, 8,   255, 255, 255, 9,   255, 255, 255, 10,  255, 255, 255,
     11,  255, 255, 255, 12,  255, 255, 255, 13,  255, 255, 255, 14,  255, 255, 255, 15,  255, 255, 255};
 
-static INLINE void obmc_variance_8x1_s32_neon(int32x4_t pre_lo, int32x4_t pre_hi, const int32_t *wsrc,
+static inline void obmc_variance_8x1_s32_neon(int32x4_t pre_lo, int32x4_t pre_hi, const int32_t *wsrc,
                                               const int32_t *mask, int32x4_t *ssev, int32x4_t *sumv) {
     int32x4_t wsrc_lo = vld1q_s32(&wsrc[0]);
     int32x4_t wsrc_hi = vld1q_s32(&wsrc[4]);
@@ -83,7 +83,7 @@ static INLINE void obmc_variance_8x1_s32_neon(int32x4_t pre_lo, int32x4_t pre_hi
     *ssev = vmlaq_s32(*ssev, round_hi, round_hi);
 }
 
-static INLINE void obmc_variance_large_neon(const uint8_t *pre, int pre_stride, const int32_t *wsrc,
+static inline void obmc_variance_large_neon(const uint8_t *pre, int pre_stride, const int32_t *wsrc,
                                             const int32_t *mask, int width, int height, unsigned *sse, int *sum) {
     assert(width % 16 == 0);
 
@@ -124,27 +124,27 @@ static INLINE void obmc_variance_large_neon(const uint8_t *pre, int pre_stride, 
     *sum = vaddvq_s32(sumv);
 }
 
-static INLINE void obmc_variance_neon_128xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc,
+static inline void obmc_variance_neon_128xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc,
                                             const int32_t *mask, int h, unsigned *sse, int *sum) {
     obmc_variance_large_neon(pre, pre_stride, wsrc, mask, 128, h, sse, sum);
 }
 
-static INLINE void obmc_variance_neon_64xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask,
+static inline void obmc_variance_neon_64xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask,
                                            int h, unsigned *sse, int *sum) {
     obmc_variance_large_neon(pre, pre_stride, wsrc, mask, 64, h, sse, sum);
 }
 
-static INLINE void obmc_variance_neon_32xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask,
+static inline void obmc_variance_neon_32xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask,
                                            int h, unsigned *sse, int *sum) {
     obmc_variance_large_neon(pre, pre_stride, wsrc, mask, 32, h, sse, sum);
 }
 
-static INLINE void obmc_variance_neon_16xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask,
+static inline void obmc_variance_neon_16xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask,
                                            int h, unsigned *sse, int *sum) {
     obmc_variance_large_neon(pre, pre_stride, wsrc, mask, 16, h, sse, sum);
 }
 
-static INLINE void obmc_variance_neon_8xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask,
+static inline void obmc_variance_neon_8xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask,
                                           int h, unsigned *sse, int *sum) {
     int32x4_t ssev = vdupq_n_s32(0);
     int32x4_t sumv = vdupq_n_s32(0);
@@ -164,7 +164,7 @@ static INLINE void obmc_variance_neon_8xh(const uint8_t *pre, int pre_stride, co
     *sum = vaddvq_s32(sumv);
 }
 
-static INLINE void obmc_variance_neon_4xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask,
+static inline void obmc_variance_neon_4xh(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask,
                                           int h, unsigned *sse, int *sum) {
     assert(h % 2 == 0);
 

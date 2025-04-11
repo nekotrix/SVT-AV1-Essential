@@ -32,7 +32,7 @@ DECLARE_ALIGNED(16, static const uint8_t, kMatMulPermuteTbl[32]) = {
     // clang-format on
 };
 
-static INLINE uint16x4_t convolve6_4_x(uint8x16_t samples, const int8x16_t x_filter, const uint8x16_t permute_tbl,
+static inline uint16x4_t convolve6_4_x(uint8x16_t samples, const int8x16_t x_filter, const uint8x16_t permute_tbl,
                                        const int32x4_t round_offset) {
     // Permute samples ready for matrix multiply.
     // { 0,  1,  2,  3,  4,  5,  6,  7,  2,  3,  4,  5,  6,  7,  8,  9 }
@@ -46,7 +46,7 @@ static INLINE uint16x4_t convolve6_4_x(uint8x16_t samples, const int8x16_t x_fil
     return vreinterpret_u16_s16(vshrn_n_s32(sum, ROUND0_BITS - 1));
 }
 
-static INLINE uint16x8_t convolve6_8_x(uint8x16_t samples, const int8x16_t x_filter, const uint8x16x2_t permute_tbl,
+static inline uint16x8_t convolve6_8_x(uint8x16_t samples, const int8x16_t x_filter, const uint8x16x2_t permute_tbl,
                                        const int32x4_t round_offset) {
     // Permute samples ready for matrix multiply.
     // { 0,  1,  2,  3,  4,  5,  6,  7,  2,  3,  4,  5,  6,  7,  8,  9 }
@@ -64,7 +64,7 @@ static INLINE uint16x8_t convolve6_8_x(uint8x16_t samples, const int8x16_t x_fil
     return vreinterpretq_u16_s16(res);
 }
 
-static INLINE uint16x8_t convolve8_8_x(uint8x16_t samples, const int8x8_t x_filter, const uint8x16x3_t permute_tbl,
+static inline uint16x8_t convolve8_8_x(uint8x16_t samples, const int8x8_t x_filter, const uint8x16x3_t permute_tbl,
                                        const int32x4_t round_offset) {
     uint8x16_t permuted_samples[3];
     int32x4_t  sum[2];
@@ -90,7 +90,7 @@ static INLINE uint16x8_t convolve8_8_x(uint8x16_t samples, const int8x8_t x_filt
     return vreinterpretq_u16_s16(res);
 }
 
-static INLINE void dist_wtd_convolve_x_dist_wtd_avg_6tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst,
+static inline void dist_wtd_convolve_x_dist_wtd_avg_6tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst,
                                                                    int dst_stride, uint8_t *dst8, int dst8_stride,
                                                                    int w, int h, const int16_t *x_filter_ptr,
                                                                    const uint16_t fwd_offset,
@@ -193,7 +193,7 @@ static INLINE void dist_wtd_convolve_x_dist_wtd_avg_6tap_neon_i8mm(const uint8_t
     }
 }
 
-static INLINE void dist_wtd_convolve_x_dist_wtd_avg_8tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst,
+static inline void dist_wtd_convolve_x_dist_wtd_avg_8tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst,
                                                                    int dst_stride, uint8_t *dst8, int dst8_stride,
                                                                    int w, int h, const int16_t *x_filter_ptr,
                                                                    const uint16_t fwd_offset,
@@ -265,7 +265,7 @@ static INLINE void dist_wtd_convolve_x_dist_wtd_avg_8tap_neon_i8mm(const uint8_t
     } while (h != 0);
 }
 
-static INLINE void dist_wtd_convolve_x_avg_6tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst,
+static inline void dist_wtd_convolve_x_avg_6tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst,
                                                           int dst_stride, uint8_t *dst8, int dst8_stride, int w, int h,
                                                           const int16_t *x_filter_ptr) {
     assert(w % 4 == 0);
@@ -352,7 +352,7 @@ static INLINE void dist_wtd_convolve_x_avg_6tap_neon_i8mm(const uint8_t *src, in
     }
 }
 
-static INLINE void dist_wtd_convolve_x_avg_8tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst,
+static inline void dist_wtd_convolve_x_avg_8tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst,
                                                           int dst_stride, uint8_t *dst8, int dst8_stride, int w, int h,
                                                           const int16_t *x_filter_ptr) {
     assert(w % 4 == 0);
@@ -408,7 +408,7 @@ static INLINE void dist_wtd_convolve_x_avg_8tap_neon_i8mm(const uint8_t *src, in
     } while (h != 0);
 }
 
-static INLINE void dist_wtd_convolve_x_6tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst, int dst_stride,
+static inline void dist_wtd_convolve_x_6tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst, int dst_stride,
                                                       int w, int h, const int16_t *x_filter_ptr) {
     assert(w % 4 == 0);
     assert(h % 4 == 0);
@@ -475,7 +475,7 @@ static INLINE void dist_wtd_convolve_x_6tap_neon_i8mm(const uint8_t *src, int sr
     }
 }
 
-static INLINE void dist_wtd_convolve_x_8tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst, int dst_stride,
+static inline void dist_wtd_convolve_x_8tap_neon_i8mm(const uint8_t *src, int src_stride, uint16_t *dst, int dst_stride,
                                                       int w, int h, const int16_t *x_filter_ptr) {
     assert(w % 4 == 0);
     assert(h % 4 == 0);
@@ -603,7 +603,7 @@ void svt_av1_jnt_convolve_x_neon_i8mm(const uint8_t *src, int src_stride, uint8_
     }
 }
 
-static INLINE int16x4_t convolve6_4_2d_h(uint8x16_t samples, const int8x16_t x_filter, const uint8x16_t permute_tbl,
+static inline int16x4_t convolve6_4_2d_h(uint8x16_t samples, const int8x16_t x_filter, const uint8x16_t permute_tbl,
                                          const int32x4_t horiz_const) {
     // Permute samples ready for matrix multiply.
     // { 0,  1,  2,  3,  4,  5,  6,  7,  2,  3,  4,  5,  6,  7,  8,  9 }
@@ -617,7 +617,7 @@ static INLINE int16x4_t convolve6_4_2d_h(uint8x16_t samples, const int8x16_t x_f
     return vshrn_n_s32(sum, ROUND0_BITS - 1);
 }
 
-static INLINE int16x8_t convolve6_8_2d_h(uint8x16_t samples, const int8x16_t x_filter, const uint8x16x2_t permute_tbl,
+static inline int16x8_t convolve6_8_2d_h(uint8x16_t samples, const int8x16_t x_filter, const uint8x16x2_t permute_tbl,
                                          const int32x4_t horiz_const) {
     // Permute samples ready for matrix multiply.
     // { 0,  1,  2,  3,  4,  5,  6,  7,  2,  3,  4,  5,  6,  7,  8,  9 }
@@ -634,7 +634,7 @@ static INLINE int16x8_t convolve6_8_2d_h(uint8x16_t samples, const int8x16_t x_f
     return vcombine_s16(vshrn_n_s32(sum0123, ROUND0_BITS - 1), vshrn_n_s32(sum4567, ROUND0_BITS - 1));
 }
 
-static INLINE void dist_wtd_convolve_2d_horiz_6tap_neon_i8mm(const uint8_t *src, int src_stride, int16_t *im_block,
+static inline void dist_wtd_convolve_2d_horiz_6tap_neon_i8mm(const uint8_t *src, int src_stride, int16_t *im_block,
                                                              const int im_stride, const int16_t *x_filter_ptr,
                                                              const int im_h, int w) {
     const int bd = 8;
@@ -731,7 +731,7 @@ static INLINE void dist_wtd_convolve_2d_horiz_6tap_neon_i8mm(const uint8_t *src,
     }
 }
 
-static INLINE int16x8_t convolve8_8_2d_h(uint8x16_t samples, const int8x8_t x_filter, const uint8x16x3_t permute_tbl,
+static inline int16x8_t convolve8_8_2d_h(uint8x16_t samples, const int8x8_t x_filter, const uint8x16x3_t permute_tbl,
                                          const int32x4_t horiz_const) {
     uint8x16_t permuted_samples[3];
     int32x4_t  sum[2];
@@ -756,7 +756,7 @@ static INLINE int16x8_t convolve8_8_2d_h(uint8x16_t samples, const int8x8_t x_fi
     return vcombine_s16(vshrn_n_s32(sum[0], ROUND0_BITS - 1), vshrn_n_s32(sum[1], ROUND0_BITS - 1));
 }
 
-static INLINE void dist_wtd_convolve_2d_horiz_8tap_neon_i8mm(const uint8_t *src, int src_stride, int16_t *im_block,
+static inline void dist_wtd_convolve_2d_horiz_8tap_neon_i8mm(const uint8_t *src, int src_stride, int16_t *im_block,
                                                              const int im_stride, const int16_t *x_filter_ptr,
                                                              const int im_h, int w) {
     const int bd = 8;

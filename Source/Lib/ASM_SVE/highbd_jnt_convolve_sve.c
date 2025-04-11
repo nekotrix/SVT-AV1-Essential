@@ -23,7 +23,7 @@ DECLARE_ALIGNED(16, static const uint16_t, kDotProdTbl[32]) = {
     0, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 3, 4, 5, 6, 4, 5, 6, 7, 5, 6, 7, 0, 6, 7, 0, 1, 7, 0, 1, 2,
 };
 
-static INLINE void highbd_dist_wtd_convolve_x_8tap_sve(const uint16_t *src, int src_stride, uint16_t *dst,
+static inline void highbd_dist_wtd_convolve_x_8tap_sve(const uint16_t *src, int src_stride, uint16_t *dst,
                                                        int dst_stride, int width, int height,
                                                        const int16_t *x_filter_ptr, const int bd) {
     const int64x1_t offset_vec = vcreate_s64((1 << (bd + FILTER_BITS)) + (1 << (bd + FILTER_BITS - 1)));
@@ -66,7 +66,7 @@ DECLARE_ALIGNED(16, static const uint16_t, kDeinterleaveTbl[8]) = {
 };
 // clang-format on
 
-static INLINE void highbd_dist_wtd_convolve_x_4tap_sve(const uint16_t *src, int src_stride, uint16_t *dst,
+static inline void highbd_dist_wtd_convolve_x_4tap_sve(const uint16_t *src, int src_stride, uint16_t *dst,
                                                        int dst_stride, int width, int height,
                                                        const int16_t *x_filter_ptr, const int bd) {
     const int64x2_t offset = vdupq_n_s64((1 << (bd + FILTER_BITS)) + (1 << (bd + FILTER_BITS - 1)));

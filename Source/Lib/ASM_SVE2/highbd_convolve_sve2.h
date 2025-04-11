@@ -37,7 +37,7 @@ DECLARE_ALIGNED(16, static const uint16_t, kDeinterleaveTbl[8]) = {
 };
 // clang-format on
 
-static INLINE void transpose_concat_4x4(int16x4_t s0, int16x4_t s1, int16x4_t s2, int16x4_t s3, int16x8_t res[2]) {
+static inline void transpose_concat_4x4(int16x4_t s0, int16x4_t s1, int16x4_t s2, int16x4_t s3, int16x8_t res[2]) {
     // Transpose 16-bit elements and concatenate result rows as follows:
     // s0: 00, 01, 02, 03
     // s1: 10, 11, 12, 13
@@ -61,7 +61,7 @@ static INLINE void transpose_concat_4x4(int16x4_t s0, int16x4_t s1, int16x4_t s2
     res[1] = s0123.val[1];
 }
 
-static INLINE void transpose_concat_8x4(int16x8_t s0, int16x8_t s1, int16x8_t s2, int16x8_t s3, int16x8_t res[4]) {
+static inline void transpose_concat_8x4(int16x8_t s0, int16x8_t s1, int16x8_t s2, int16x8_t s3, int16x8_t res[4]) {
     // Transpose 16-bit elements and concatenate result rows as follows:
     // s0: 00, 01, 02, 03, 04, 05, 06, 07
     // s1: 10, 11, 12, 13, 14, 15, 16, 17
@@ -84,14 +84,14 @@ static INLINE void transpose_concat_8x4(int16x8_t s0, int16x8_t s1, int16x8_t s2
     res[3] = s0123_hi.val[1];
 }
 
-static INLINE void svt_tbl2x4_s16(int16x8_t t0[4], int16x8_t t1[4], uint16x8_t tbl, int16x8_t res[4]) {
+static inline void svt_tbl2x4_s16(int16x8_t t0[4], int16x8_t t1[4], uint16x8_t tbl, int16x8_t res[4]) {
     res[0] = svt_tbl2_s16(t0[0], t1[0], tbl);
     res[1] = svt_tbl2_s16(t0[1], t1[1], tbl);
     res[2] = svt_tbl2_s16(t0[2], t1[2], tbl);
     res[3] = svt_tbl2_s16(t0[3], t1[3], tbl);
 }
 
-static INLINE void svt_tbl2x2_s16(int16x8_t t0[2], int16x8_t t1[2], uint16x8_t tbl, int16x8_t res[2]) {
+static inline void svt_tbl2x2_s16(int16x8_t t0[2], int16x8_t t1[2], uint16x8_t tbl, int16x8_t res[2]) {
     res[0] = svt_tbl2_s16(t0[0], t1[0], tbl);
     res[1] = svt_tbl2_s16(t0[1], t1[1], tbl);
 }

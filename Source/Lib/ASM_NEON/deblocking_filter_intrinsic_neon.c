@@ -14,7 +14,7 @@
 #include "mem_neon.h"
 #include "transpose_neon.h"
 
-static INLINE uint8x8_t lpf_mask(uint8x8_t p3q3, uint8x8_t p2q2, uint8x8_t p1q1, uint8x8_t p0q0, const uint8_t blimit,
+static inline uint8x8_t lpf_mask(uint8x8_t p3q3, uint8x8_t p2q2, uint8x8_t p1q1, uint8x8_t p0q0, const uint8_t blimit,
                                  const uint8_t limit) {
     // Calculate mask values for four samples
     uint32x2x2_t     p0q0_p1q1;
@@ -46,7 +46,7 @@ static INLINE uint8x8_t lpf_mask(uint8x8_t p3q3, uint8x8_t p2q2, uint8x8_t p1q1,
     return mask_8x8;
 }
 
-static INLINE uint8x8_t lpf_mask2(uint8x8_t p1q1, uint8x8_t p0q0, const uint8_t blimit, const uint8_t limit) {
+static inline uint8x8_t lpf_mask2(uint8x8_t p1q1, uint8x8_t p0q0, const uint8_t blimit, const uint8_t limit) {
     uint32x2x2_t     p0q0_p1q1;
     uint16x8_t       temp_16x8;
     uint16x4_t       temp0_16x4, temp1_16x4;
@@ -74,7 +74,7 @@ static INLINE uint8x8_t lpf_mask2(uint8x8_t p1q1, uint8x8_t p0q0, const uint8_t 
     return mask_8x8;
 }
 
-static INLINE uint8x8_t lpf_flat_mask4(uint8x8_t p3q3, uint8x8_t p2q2, uint8x8_t p1q1, uint8x8_t p0q0) {
+static inline uint8x8_t lpf_flat_mask4(uint8x8_t p3q3, uint8x8_t p2q2, uint8x8_t p1q1, uint8x8_t p0q0) {
     const uint8x8_t thresh_8x8 = vdup_n_u8(1); // for bd==8 threshold is always 1
     uint8x8_t       flat_8x8, temp_8x8;
 
@@ -89,7 +89,7 @@ static INLINE uint8x8_t lpf_flat_mask4(uint8x8_t p3q3, uint8x8_t p2q2, uint8x8_t
     return flat_8x8;
 }
 
-static INLINE uint8x8_t lpf_flat_mask3(uint8x8_t p2q2, uint8x8_t p1q1, uint8x8_t p0q0) {
+static inline uint8x8_t lpf_flat_mask3(uint8x8_t p2q2, uint8x8_t p1q1, uint8x8_t p0q0) {
     const uint8x8_t thresh_8x8 = vdup_n_u8(1); // for bd==8 threshold is always 1
     uint8x8_t       flat_8x8, temp_8x8;
 
@@ -103,7 +103,7 @@ static INLINE uint8x8_t lpf_flat_mask3(uint8x8_t p2q2, uint8x8_t p1q1, uint8x8_t
     return flat_8x8;
 }
 
-static INLINE uint8x8_t lpf_mask3_chroma(uint8x8_t p2q2, uint8x8_t p1q1, uint8x8_t p0q0, const uint8_t blimit,
+static inline uint8x8_t lpf_mask3_chroma(uint8x8_t p2q2, uint8x8_t p1q1, uint8x8_t p0q0, const uint8_t blimit,
                                          const uint8_t limit) {
     // Calculate mask3 values for four samples
     uint32x2x2_t     p0q0_p1q1;
@@ -134,7 +134,7 @@ static INLINE uint8x8_t lpf_mask3_chroma(uint8x8_t p2q2, uint8x8_t p1q1, uint8x8
     return mask_8x8;
 }
 
-static INLINE void filter4(const uint8x8_t p0q0, const uint8x8_t p1q1, uint8x8_t *p0q0_output, uint8x8_t *p1q1_output,
+static inline void filter4(const uint8x8_t p0q0, const uint8x8_t p1q1, uint8x8_t *p0q0_output, uint8x8_t *p1q1_output,
                            uint8x8_t mask_8x8, const uint8_t thresh) {
     const uint8x8_t thresh_f4 = vdup_n_u8(thresh);
     const int8x8_t  sign_mask = vdup_n_s8(0x80);
@@ -185,7 +185,7 @@ static INLINE void filter4(const uint8x8_t p0q0, const uint8x8_t p1q1, uint8x8_t
     *p1q1_output = vreinterpret_u8_s8(vext_s8(op1, oq1, 4));
 }
 
-static INLINE void filter8(const uint8x8_t p0q0, const uint8x8_t p1q1, const uint8x8_t p2q2, const uint8x8_t p3q3,
+static inline void filter8(const uint8x8_t p0q0, const uint8x8_t p1q1, const uint8x8_t p2q2, const uint8x8_t p3q3,
                            uint8x8_t *p0q0_output, uint8x8_t *p1q1_output, uint8x8_t *p2q2_output) {
     // Reverse p and q.
     uint8x8_t q0p0 = vext_u8(p0q0, p0q0, 4);
@@ -214,7 +214,7 @@ static INLINE void filter8(const uint8x8_t p0q0, const uint8x8_t p1q1, const uin
     *p2q2_output = vrshrn_n_u16(out_pq2, 3);
 }
 
-static INLINE void filter14(const uint8x8_t p0q0, const uint8x8_t p1q1, const uint8x8_t p2q2, const uint8x8_t p3q3,
+static inline void filter14(const uint8x8_t p0q0, const uint8x8_t p1q1, const uint8x8_t p2q2, const uint8x8_t p3q3,
                             const uint8x8_t p4q4, const uint8x8_t p5q5, const uint8x8_t p6q6, uint8x8_t *p0q0_output,
                             uint8x8_t *p1q1_output, uint8x8_t *p2q2_output, uint8x8_t *p3q3_output,
                             uint8x8_t *p4q4_output, uint8x8_t *p5q5_output) {
@@ -284,7 +284,7 @@ static INLINE void filter14(const uint8x8_t p0q0, const uint8x8_t p1q1, const ui
     *p5q5_output = vshrn_n_u16(out_pq5, 4);
 }
 
-static INLINE void lpf_14_neon(uint8x8_t *p6q6, uint8x8_t *p5q5, uint8x8_t *p4q4, uint8x8_t *p3q3, uint8x8_t *p2q2,
+static inline void lpf_14_neon(uint8x8_t *p6q6, uint8x8_t *p5q5, uint8x8_t *p4q4, uint8x8_t *p3q3, uint8x8_t *p2q2,
                                uint8x8_t *p1q1, uint8x8_t *p0q0, const uint8_t blimit, const uint8_t limit,
                                const uint8_t thresh) {
     uint8x8_t out_f14_pq0, out_f14_pq1, out_f14_pq2, out_f14_pq3, out_f14_pq4, out_f14_pq5;
@@ -395,7 +395,7 @@ static INLINE void lpf_14_neon(uint8x8_t *p6q6, uint8x8_t *p5q5, uint8x8_t *p4q4
     }
 }
 
-static INLINE void lpf_8_neon(uint8x8_t *p3q3, uint8x8_t *p2q2, uint8x8_t *p1q1, uint8x8_t *p0q0, const uint8_t blimit,
+static inline void lpf_8_neon(uint8x8_t *p3q3, uint8x8_t *p2q2, uint8x8_t *p1q1, uint8x8_t *p0q0, const uint8_t blimit,
                               const uint8_t limit, const uint8_t thresh) {
     uint8x8_t out_f7_pq0, out_f7_pq1, out_f7_pq2;
     uint8x8_t out_f4_pq0, out_f4_pq1;
@@ -441,7 +441,7 @@ static INLINE void lpf_8_neon(uint8x8_t *p3q3, uint8x8_t *p2q2, uint8x8_t *p1q1,
     }
 }
 
-static INLINE void filter6(const uint8x8_t p0q0, const uint8x8_t p1q1, const uint8x8_t p2q2, uint8x8_t *p0q0_output,
+static inline void filter6(const uint8x8_t p0q0, const uint8x8_t p1q1, const uint8x8_t p2q2, uint8x8_t *p0q0_output,
                            uint8x8_t *p1q1_output) {
     uint8x8_t q0p0 = vext_u8(p0q0, p0q0, 4);
 
@@ -461,7 +461,7 @@ static INLINE void filter6(const uint8x8_t p0q0, const uint8x8_t p1q1, const uin
     *p1q1_output = vrshrn_n_u16(out_pq1, 3);
 }
 
-static INLINE void lpf_6_neon(uint8x8_t *p2q2, uint8x8_t *p1q1, uint8x8_t *p0q0, const uint8_t blimit,
+static inline void lpf_6_neon(uint8x8_t *p2q2, uint8x8_t *p1q1, uint8x8_t *p0q0, const uint8_t blimit,
                               const uint8_t limit, const uint8_t thresh) {
     uint8x8_t out_f6_pq0, out_f6_pq1;
     uint8x8_t out_f4_pq0, out_f4_pq1;
@@ -507,7 +507,7 @@ static INLINE void lpf_6_neon(uint8x8_t *p2q2, uint8x8_t *p1q1, uint8x8_t *p0q0,
     }
 }
 
-static INLINE void lpf_4_neon(uint8x8_t *p1q1, uint8x8_t *p0q0, const uint8_t blimit, const uint8_t limit,
+static inline void lpf_4_neon(uint8x8_t *p1q1, uint8x8_t *p0q0, const uint8_t blimit, const uint8_t limit,
                               const uint8_t thresh) {
     uint8x8_t out_f4_pq0, out_f4_pq1;
 

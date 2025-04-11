@@ -20,7 +20,7 @@
 #define LIKELY(v) __builtin_expect(v, 1)
 #define UNLIKELY(v) __builtin_expect(v, 0)
 
-static INLINE void compute_dist_wtd_avg_4x4(uint16x4_t dd0, uint16x4_t dd1, uint16x4_t dd2, uint16x4_t dd3,
+static inline void compute_dist_wtd_avg_4x4(uint16x4_t dd0, uint16x4_t dd1, uint16x4_t dd2, uint16x4_t dd3,
                                             uint16x4_t d0, uint16x4_t d1, uint16x4_t d2, uint16x4_t d3,
                                             const uint16_t fwd_offset, const uint16_t bck_offset,
                                             const int16x8_t round_offset, uint8x8_t *d01_u8, uint8x8_t *d23_u8) {
@@ -48,7 +48,7 @@ static INLINE void compute_dist_wtd_avg_4x4(uint16x4_t dd0, uint16x4_t dd1, uint
     *d23_u8 = vqrshrun_n_s16(dst_23, FILTER_BITS - ROUND0_BITS);
 }
 
-static INLINE void compute_dist_wtd_avg_4x1(uint16x4_t dd0, uint16x4_t d0, const uint16_t fwd_offset,
+static inline void compute_dist_wtd_avg_4x1(uint16x4_t dd0, uint16x4_t d0, const uint16_t fwd_offset,
                                             const uint16_t bck_offset, const int16x4_t round_offset, uint8x8_t *d0_u8) {
     uint32x4_t blend0 = vmull_n_u16(dd0, fwd_offset);
     blend0            = vmlal_n_u16(blend0, d0, bck_offset);
@@ -62,7 +62,7 @@ static INLINE void compute_dist_wtd_avg_4x1(uint16x4_t dd0, uint16x4_t d0, const
     *d0_u8 = vqrshrun_n_s16(dst0q, FILTER_BITS - ROUND0_BITS);
 }
 
-static INLINE void compute_basic_avg_4x1(uint16x4_t dd0, uint16x4_t d0, const int16x4_t round_offset,
+static inline void compute_basic_avg_4x1(uint16x4_t dd0, uint16x4_t d0, const int16x4_t round_offset,
                                          uint8x8_t *d0_u8) {
     uint16x4_t avg0 = vhadd_u16(dd0, d0);
 
@@ -73,7 +73,7 @@ static INLINE void compute_basic_avg_4x1(uint16x4_t dd0, uint16x4_t d0, const in
     *d0_u8 = vqrshrun_n_s16(dst0q, FILTER_BITS - ROUND0_BITS);
 }
 
-static INLINE void compute_dist_wtd_avg_8x1(uint16x8_t dd0, uint16x8_t d0, const uint16_t fwd_offset,
+static inline void compute_dist_wtd_avg_8x1(uint16x8_t dd0, uint16x8_t d0, const uint16_t fwd_offset,
                                             const uint16_t bck_offset, const int16x8_t round_offset, uint8x8_t *d0_u8) {
     uint32x4_t blend0_lo = vmull_n_u16(vget_low_u16(dd0), fwd_offset);
     blend0_lo            = vmlal_n_u16(blend0_lo, vget_low_u16(d0), bck_offset);
@@ -88,7 +88,7 @@ static INLINE void compute_dist_wtd_avg_8x1(uint16x8_t dd0, uint16x8_t d0, const
     *d0_u8 = vqrshrun_n_s16(dst0, FILTER_BITS - ROUND0_BITS);
 }
 
-static INLINE void compute_basic_avg_8x1(uint16x8_t dd0, uint16x8_t d0, const int16x8_t round_offset,
+static inline void compute_basic_avg_8x1(uint16x8_t dd0, uint16x8_t d0, const int16x8_t round_offset,
                                          uint8x8_t *d0_u8) {
     uint16x8_t avg0 = vhaddq_u16(dd0, d0);
 
@@ -97,7 +97,7 @@ static INLINE void compute_basic_avg_8x1(uint16x8_t dd0, uint16x8_t d0, const in
     *d0_u8 = vqrshrun_n_s16(dst0, FILTER_BITS - ROUND0_BITS);
 }
 
-static INLINE void compute_basic_avg_4x4(uint16x4_t dd0, uint16x4_t dd1, uint16x4_t dd2, uint16x4_t dd3, uint16x4_t d0,
+static inline void compute_basic_avg_4x4(uint16x4_t dd0, uint16x4_t dd1, uint16x4_t dd2, uint16x4_t dd3, uint16x4_t d0,
                                          uint16x4_t d1, uint16x4_t d2, uint16x4_t d3, const int16x8_t round_offset,
                                          uint8x8_t *d01_u8, uint8x8_t *d23_u8) {
     uint16x4_t avg0 = vhadd_u16(dd0, d0);
@@ -115,7 +115,7 @@ static INLINE void compute_basic_avg_4x4(uint16x4_t dd0, uint16x4_t dd1, uint16x
     *d23_u8 = vqrshrun_n_s16(dst_23, FILTER_BITS - ROUND0_BITS);
 }
 
-static INLINE void compute_dist_wtd_avg_8x4(uint16x8_t dd0, uint16x8_t dd1, uint16x8_t dd2, uint16x8_t dd3,
+static inline void compute_dist_wtd_avg_8x4(uint16x8_t dd0, uint16x8_t dd1, uint16x8_t dd2, uint16x8_t dd3,
                                             uint16x8_t d0, uint16x8_t d1, uint16x8_t d2, uint16x8_t d3,
                                             const uint16_t fwd_offset, const uint16_t bck_offset,
                                             const int16x8_t round_offset, uint8x8_t *d0_u8, uint8x8_t *d1_u8,
@@ -160,7 +160,7 @@ static INLINE void compute_dist_wtd_avg_8x4(uint16x8_t dd0, uint16x8_t dd1, uint
     *d3_u8 = vqrshrun_n_s16(dst3, FILTER_BITS - ROUND0_BITS);
 }
 
-static INLINE void compute_basic_avg_8x4(uint16x8_t dd0, uint16x8_t dd1, uint16x8_t dd2, uint16x8_t dd3, uint16x8_t d0,
+static inline void compute_basic_avg_8x4(uint16x8_t dd0, uint16x8_t dd1, uint16x8_t dd2, uint16x8_t dd3, uint16x8_t d0,
                                          uint16x8_t d1, uint16x8_t d2, uint16x8_t d3, const int16x8_t round_offset,
                                          uint8x8_t *d0_u8, uint8x8_t *d1_u8, uint8x8_t *d2_u8, uint8x8_t *d3_u8) {
     uint16x8_t avg0 = vhaddq_u16(dd0, d0);
@@ -179,7 +179,7 @@ static INLINE void compute_basic_avg_8x4(uint16x8_t dd0, uint16x8_t dd1, uint16x
     *d3_u8 = vqrshrun_n_s16(dst3, FILTER_BITS - ROUND0_BITS);
 }
 
-static INLINE uint16x4_t convolve6_4_2d_v(const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
+static inline uint16x4_t convolve6_4_2d_v(const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
                                           const int16x4_t s3, const int16x4_t s4, const int16x4_t s5,
                                           const int16x8_t y_filter, const int32x4_t offset_const) {
     const int16x4_t y_filter_0_3 = vget_low_s16(y_filter);
@@ -197,7 +197,7 @@ static INLINE uint16x4_t convolve6_4_2d_v(const int16x4_t s0, const int16x4_t s1
     return vqrshrun_n_s32(sum, COMPOUND_ROUND1_BITS);
 }
 
-static INLINE uint16x8_t convolve6_8_2d_v(const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
+static inline uint16x8_t convolve6_8_2d_v(const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
                                           const int16x8_t s3, const int16x8_t s4, const int16x8_t s5,
                                           const int16x8_t y_filter, const int32x4_t offset_const) {
     const int16x4_t y_filter_0_3 = vget_low_s16(y_filter);
@@ -223,7 +223,7 @@ static INLINE uint16x8_t convolve6_8_2d_v(const int16x8_t s0, const int16x8_t s1
     return vcombine_u16(vqrshrun_n_s32(sum0, COMPOUND_ROUND1_BITS), vqrshrun_n_s32(sum1, COMPOUND_ROUND1_BITS));
 }
 
-static INLINE void dist_wtd_convolve_2d_vert_6tap_dist_wtd_avg_neon(int16_t *src_ptr, const int src_stride,
+static inline void dist_wtd_convolve_2d_vert_6tap_dist_wtd_avg_neon(int16_t *src_ptr, const int src_stride,
                                                                     uint8_t *dst8_ptr, int dst8_stride,
                                                                     ConvolveParams *conv_params,
                                                                     const int16x8_t y_filter, int h, int w) {
@@ -334,7 +334,7 @@ static INLINE void dist_wtd_convolve_2d_vert_6tap_dist_wtd_avg_neon(int16_t *src
     }
 }
 
-static INLINE void dist_wtd_convolve_2d_vert_6tap_avg_neon(int16_t *src_ptr, const int src_stride, uint8_t *dst8_ptr,
+static inline void dist_wtd_convolve_2d_vert_6tap_avg_neon(int16_t *src_ptr, const int src_stride, uint8_t *dst8_ptr,
                                                            int dst8_stride, ConvolveParams *conv_params,
                                                            const int16x8_t y_filter, int h, int w) {
     const int       bd           = 8;
@@ -427,7 +427,7 @@ static INLINE void dist_wtd_convolve_2d_vert_6tap_avg_neon(int16_t *src_ptr, con
     }
 }
 
-static INLINE void dist_wtd_convolve_2d_vert_6tap_neon(int16_t *src_ptr, const int src_stride,
+static inline void dist_wtd_convolve_2d_vert_6tap_neon(int16_t *src_ptr, const int src_stride,
                                                        ConvolveParams *conv_params, const int16x8_t y_filter, int h,
                                                        int w) {
     const int       bd           = 8;
@@ -499,7 +499,7 @@ static INLINE void dist_wtd_convolve_2d_vert_6tap_neon(int16_t *src_ptr, const i
     }
 }
 
-static INLINE uint16x4_t convolve8_4_2d_v(const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
+static inline uint16x4_t convolve8_4_2d_v(const int16x4_t s0, const int16x4_t s1, const int16x4_t s2,
                                           const int16x4_t s3, const int16x4_t s4, const int16x4_t s5,
                                           const int16x4_t s6, const int16x4_t s7, const int16x8_t y_filter,
                                           const int32x4_t offset_const) {
@@ -519,7 +519,7 @@ static INLINE uint16x4_t convolve8_4_2d_v(const int16x4_t s0, const int16x4_t s1
     return vqrshrun_n_s32(sum, COMPOUND_ROUND1_BITS);
 }
 
-static INLINE uint16x8_t convolve8_8_2d_v(const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
+static inline uint16x8_t convolve8_8_2d_v(const int16x8_t s0, const int16x8_t s1, const int16x8_t s2,
                                           const int16x8_t s3, const int16x8_t s4, const int16x8_t s5,
                                           const int16x8_t s6, const int16x8_t s7, const int16x8_t y_filter,
                                           const int32x4_t offset_const) {
@@ -549,7 +549,7 @@ static INLINE uint16x8_t convolve8_8_2d_v(const int16x8_t s0, const int16x8_t s1
     return vcombine_u16(vqrshrun_n_s32(sum0, COMPOUND_ROUND1_BITS), vqrshrun_n_s32(sum1, COMPOUND_ROUND1_BITS));
 }
 
-static INLINE void dist_wtd_convolve_2d_vert_8tap_dist_wtd_avg_neon(int16_t *src_ptr, const int src_stride,
+static inline void dist_wtd_convolve_2d_vert_8tap_dist_wtd_avg_neon(int16_t *src_ptr, const int src_stride,
                                                                     uint8_t *dst8_ptr, int dst8_stride,
                                                                     ConvolveParams *conv_params,
                                                                     const int16x8_t y_filter, int h, int w) {
@@ -664,7 +664,7 @@ static INLINE void dist_wtd_convolve_2d_vert_8tap_dist_wtd_avg_neon(int16_t *src
     }
 }
 
-static INLINE void dist_wtd_convolve_2d_vert_8tap_avg_neon(int16_t *src_ptr, const int src_stride, uint8_t *dst8_ptr,
+static inline void dist_wtd_convolve_2d_vert_8tap_avg_neon(int16_t *src_ptr, const int src_stride, uint8_t *dst8_ptr,
                                                            int dst8_stride, ConvolveParams *conv_params,
                                                            const int16x8_t y_filter, int h, int w) {
     const int       bd           = 8;
@@ -761,7 +761,7 @@ static INLINE void dist_wtd_convolve_2d_vert_8tap_avg_neon(int16_t *src_ptr, con
     }
 }
 
-static INLINE void dist_wtd_convolve_2d_vert_8tap_neon(int16_t *src_ptr, const int src_stride,
+static inline void dist_wtd_convolve_2d_vert_8tap_neon(int16_t *src_ptr, const int src_stride,
                                                        ConvolveParams *conv_params, const int16x8_t y_filter, int h,
                                                        int w) {
     const int       bd           = 8;

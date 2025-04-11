@@ -15,7 +15,7 @@
 #include "mem_neon.h"
 
 /* Store half of a vector. */
-static INLINE void vsth_u8(uint8_t *ptr, uint8x8_t val) { vst1_lane_u32((uint32_t *)ptr, vreinterpret_u32_u8(val), 0); }
+static inline void vsth_u8(uint8_t *ptr, uint8x8_t val) { vst1_lane_u32((uint32_t *)ptr, vreinterpret_u32_u8(val), 0); }
 
 /* Saturating negate 16-bit integers in a when the corresponding signed 16-bit
 integer in b is negative.
@@ -26,7 +26,7 @@ Notes:
   corresponding elements in b are zero. Because vsign is used twice in a
   row, with b in the first call becoming a in the second call, there's no
   impact from not zeroing out. */
-static int16x4_t vsign_s16(int16x4_t a, int16x4_t b) {
+static inline int16x4_t vsign_s16(int16x4_t a, int16x4_t b) {
     const int16x4_t mask = vshr_n_s16(b, 15);
     return veor_s16(vadd_s16(a, mask), mask);
 }
@@ -40,26 +40,26 @@ Notes:
   corresponding elements in b are zero. Because vsignq is used twice in a
   row, with b in the first call becoming a in the second call, there's no
   impact from not zeroing out. */
-static int16x8_t vsignq_s16(int16x8_t a, int16x8_t b) {
+static inline int16x8_t vsignq_s16(int16x8_t a, int16x8_t b) {
     const int16x8_t mask = vshrq_n_s16(b, 15);
     return veorq_s16(vaddq_s16(a, mask), mask);
 }
 
-static INLINE int16x4_t predict_w4(const int16_t *pred_buf_q3, int16x4_t alpha_sign, int abs_alpha_q12, int16x4_t dc) {
+static inline int16x4_t predict_w4(const int16_t *pred_buf_q3, int16x4_t alpha_sign, int abs_alpha_q12, int16x4_t dc) {
     const int16x4_t ac_q3       = vld1_s16(pred_buf_q3);
     const int16x4_t ac_sign     = veor_s16(alpha_sign, ac_q3);
     int16x4_t       scaled_luma = vqrdmulh_n_s16(vabs_s16(ac_q3), abs_alpha_q12);
     return vadd_s16(vsign_s16(scaled_luma, ac_sign), dc);
 }
 
-static INLINE int16x8_t predict_w8(const int16_t *pred_buf_q3, int16x8_t alpha_sign, int abs_alpha_q12, int16x8_t dc) {
+static inline int16x8_t predict_w8(const int16_t *pred_buf_q3, int16x8_t alpha_sign, int abs_alpha_q12, int16x8_t dc) {
     const int16x8_t ac_q3       = vld1q_s16(pred_buf_q3);
     const int16x8_t ac_sign     = veorq_s16(alpha_sign, ac_q3);
     int16x8_t       scaled_luma = vqrdmulhq_n_s16(vabsq_s16(ac_q3), abs_alpha_q12);
     return vaddq_s16(vsignq_s16(scaled_luma, ac_sign), dc);
 }
 
-static INLINE int16x8x2_t predict_w16(const int16_t *pred_buf_q3, int16x8_t alpha_sign, int abs_alpha_q12,
+static inline int16x8x2_t predict_w16(const int16_t *pred_buf_q3, int16x8_t alpha_sign, int abs_alpha_q12,
                                       int16x8_t dc) {
     const int16x8x2_t ac_q3         = vld1q_s16_x2(pred_buf_q3);
     const int16x8_t   ac_sign_0     = veorq_s16(alpha_sign, ac_q3.val[0]);
@@ -72,7 +72,7 @@ static INLINE int16x8x2_t predict_w16(const int16_t *pred_buf_q3, int16x8_t alph
     return result;
 }
 
-static INLINE int16x8x4_t predict_w32(const int16_t *pred_buf_q3, int16x8_t alpha_sign, int abs_alpha_q12,
+static inline int16x8x4_t predict_w32(const int16_t *pred_buf_q3, int16x8_t alpha_sign, int abs_alpha_q12,
                                       int16x8_t dc) {
     const int16x8x4_t ac_q3         = vld1q_s16_x4(pred_buf_q3);
     const int16x8_t   ac_sign_0     = veorq_s16(alpha_sign, ac_q3.val[0]);
@@ -129,22 +129,22 @@ void svt_aom_cfl_predict_lbd_neon(const int16_t *pred_buf_q3, uint8_t *pred, int
     }
 }
 
-static INLINE uint16x4_t clamp_s16(int16x4_t a, int16x4_t max) {
+static inline uint16x4_t clamp_s16(int16x4_t a, int16x4_t max) {
     return vreinterpret_u16_s16(vmax_s16(vmin_s16(a, max), vdup_n_s16(0)));
 }
 
-static INLINE uint16x8_t clampq_s16(int16x8_t a, int16x8_t max) {
+static inline uint16x8_t clampq_s16(int16x8_t a, int16x8_t max) {
     return vreinterpretq_u16_s16(vmaxq_s16(vminq_s16(a, max), vdupq_n_s16(0)));
 }
 
-static INLINE uint16x8x2_t clamp2q_s16(int16x8x2_t a, int16x8_t max) {
+static inline uint16x8x2_t clamp2q_s16(int16x8x2_t a, int16x8_t max) {
     uint16x8x2_t result;
     result.val[0] = vreinterpretq_u16_s16(vmaxq_s16(vminq_s16(a.val[0], max), vdupq_n_s16(0)));
     result.val[1] = vreinterpretq_u16_s16(vmaxq_s16(vminq_s16(a.val[1], max), vdupq_n_s16(0)));
     return result;
 }
 
-static INLINE uint16x8x4_t clamp4q_s16(int16x8x4_t a, int16x8_t max) {
+static inline uint16x8x4_t clamp4q_s16(int16x8x4_t a, int16x8_t max) {
     uint16x8x4_t result;
     result.val[0] = vreinterpretq_u16_s16(vmaxq_s16(vminq_s16(a.val[0], max), vdupq_n_s16(0)));
     result.val[1] = vreinterpretq_u16_s16(vmaxq_s16(vminq_s16(a.val[1], max), vdupq_n_s16(0)));

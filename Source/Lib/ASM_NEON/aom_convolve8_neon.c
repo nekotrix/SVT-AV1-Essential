@@ -18,7 +18,7 @@
 #include "mem_neon.h"
 #include "transpose_neon.h"
 
-static INLINE void convolve8_horiz_8tap_neon(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
+static inline void convolve8_horiz_8tap_neon(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
                                              ptrdiff_t dst_stride, const int16_t *filter_x, int w, int h) {
     // All filter values are even so halve them to reduce intermediate precision
     // requirements.
@@ -178,7 +178,7 @@ static INLINE void convolve8_horiz_8tap_neon(const uint8_t *src, ptrdiff_t src_s
     }
 }
 
-static INLINE void convolve8_horiz_4tap_neon(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
+static inline void convolve8_horiz_4tap_neon(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
                                              ptrdiff_t dst_stride, const int16_t *filter_x, int w, int h) {
     // All filter values are even, halve to reduce intermediate precision
     // requirements.
@@ -268,7 +268,7 @@ void svt_aom_convolve8_horiz_neon(const uint8_t *src, ptrdiff_t src_stride, uint
     }
 }
 
-static INLINE void convolve8_vert_8tap_neon(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
+static inline void convolve8_vert_8tap_neon(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
                                             ptrdiff_t dst_stride, const int16_t *filter_y, int w, int h) {
     // All filter values are even so halve them to reduce intermediate precision
     // requirements.

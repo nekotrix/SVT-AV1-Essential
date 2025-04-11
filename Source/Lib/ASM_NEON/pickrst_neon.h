@@ -38,23 +38,23 @@ static const int16_t mask_16bit[32] = {
 };
 // clang-format on
 
-static INLINE void madd_neon_pairwise(int32x4_t *sum, const int16x8_t src, const int16x8_t dgd) {
+static inline void madd_neon_pairwise(int32x4_t *sum, const int16x8_t src, const int16x8_t dgd) {
     const int32x4_t sd = vpaddq_s32(vmull_s16(vget_low_s16(src), vget_low_s16(dgd)),
                                     vmull_s16(vget_high_s16(src), vget_high_s16(dgd)));
     *sum               = vaddq_s32(*sum, sd);
 }
 
-static INLINE void madd_neon(int32x4_t *sum, const int16x8_t src, const int16x8_t dgd) {
+static inline void madd_neon(int32x4_t *sum, const int16x8_t src, const int16x8_t dgd) {
     *sum = vmlal_s16(*sum, vget_low_s16(src), vget_low_s16(dgd));
     *sum = vmlal_s16(*sum, vget_high_s16(src), vget_high_s16(dgd));
 }
 
-static INLINE void msub_neon(int32x4_t *sum, const int16x8_t src, const int16x8_t dgd) {
+static inline void msub_neon(int32x4_t *sum, const int16x8_t src, const int16x8_t dgd) {
     *sum = vmlsl_s16(*sum, vget_low_s16(src), vget_low_s16(dgd));
     *sum = vmlsl_s16(*sum, vget_high_s16(src), vget_high_s16(dgd));
 }
 
-static INLINE void compute_delta_step3(int32x4_t *sum, const int16x8_t src0, const int16x8_t src1, const int16x8_t dgd0,
+static inline void compute_delta_step3(int32x4_t *sum, const int16x8_t src0, const int16x8_t src1, const int16x8_t dgd0,
                                        const int16x8_t dgd1) {
     sum[0] = vmlsl_s16(sum[0], vget_low_s16(src0), vget_low_s16(dgd0));
     sum[0] = vmlal_s16(sum[0], vget_low_s16(src1), vget_low_s16(dgd1));
@@ -62,20 +62,20 @@ static INLINE void compute_delta_step3(int32x4_t *sum, const int16x8_t src0, con
     sum[1] = vmlal_s16(sum[1], vget_high_s16(src1), vget_high_s16(dgd1));
 }
 
-static INLINE int32x4_t hadd_four_32_neon(const int32x4_t src0, const int32x4_t src1, const int32x4_t src2,
+static inline int32x4_t hadd_four_32_neon(const int32x4_t src0, const int32x4_t src1, const int32x4_t src2,
                                           const int32x4_t src3) {
     int32x4_t src[4] = {src0, src1, src2, src3};
     return horizontal_add_4d_s32x4(src);
 }
 
-static INLINE void load_more_32_neon(const int16_t *const src, const int32_t width, int32x4_t dst[2]) {
+static inline void load_more_32_neon(const int16_t *const src, const int32_t width, int32x4_t dst[2]) {
     int32x4_t s0 = vld1q_dup_s32((int32_t *)src);
     int32x4_t s1 = vld1q_dup_s32((int32_t *)(src + width));
     dst[0]       = vextq_s32(dst[0], s0, 1);
     dst[1]       = vextq_s32(dst[1], s1, 1);
 }
 
-static INLINE void update_4_stats_neon(const int64_t *const src, const int32x4_t delta, int64_t *const dst) {
+static inline void update_4_stats_neon(const int64_t *const src, const int32x4_t delta, int64_t *const dst) {
     const int64x2_t s1 = vld1q_s64(src);
     const int64x2_t s2 = vld1q_s64(src + 2);
 
@@ -86,7 +86,7 @@ static INLINE void update_4_stats_neon(const int64_t *const src, const int32x4_t
     vst1q_s64(dst + 2, d2);
 }
 
-static INLINE void load_more_16_neon(const int16_t *const src, const int32_t width, const int16x8_t org[2],
+static inline void load_more_16_neon(const int16_t *const src, const int32_t width, const int16x8_t org[2],
                                      int16x8_t dst[2]) {
     int16x8_t s0 = vld1q_dup_s16(src);
     int16x8_t s1 = vld1q_dup_s16(src + width);
@@ -94,13 +94,13 @@ static INLINE void load_more_16_neon(const int16_t *const src, const int32_t wid
     dst[1]       = vextq_s16(org[1], s1, 1);
 }
 
-static INLINE void update_2_stats_neon(const int64_t *const src, const int64x2_t delta, int64_t *const dst) {
+static inline void update_2_stats_neon(const int64_t *const src, const int64x2_t delta, int64_t *const dst) {
     const int64x2_t s = vld1q_s64(src);
     const int64x2_t d = vaddq_s64(s, delta);
     vst1q_s64(dst, d);
 }
 
-static INLINE void step3_win3_neon(const int16_t **const d, const int32_t d_stride, const int32_t width,
+static inline void step3_win3_neon(const int16_t **const d, const int32_t d_stride, const int32_t width,
                                    const int32_t h4, int32x4_t dd[2], int32x4_t *deltas) {
     // 16-bit idx: 0, 2, 4, 6, 1, 3, 5, 7, 0, 2, 4, 6, 1, 3, 5, 7
     uint8_t          shf_values[] = {0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15};
@@ -144,7 +144,7 @@ static INLINE void step3_win3_neon(const int16_t **const d, const int32_t d_stri
     }
 }
 
-static INLINE void stats_left_win3_neon(const int16x8_t src[2], const int16_t *d, const int32_t d_stride,
+static inline void stats_left_win3_neon(const int16x8_t src[2], const int16_t *d, const int32_t d_stride,
                                         int32x4_t *sum) {
     int16x8_t dgds[WIN_3TAP];
 
@@ -159,7 +159,7 @@ static INLINE void stats_left_win3_neon(const int16x8_t src[2], const int16_t *d
     madd_neon(&sum[1], src[1], dgds[3]);
 }
 
-static INLINE void stats_top_win3_neon(const int16x8_t src[2], const int16x8_t dgd[2], const int16_t *const d,
+static inline void stats_top_win3_neon(const int16x8_t src[2], const int16x8_t dgd[2], const int16_t *const d,
                                        const int32_t d_stride, int32x4_t *sum_m, int32x4_t *sum_h) {
     int16x8_t dgds[WIENER_WIN_3TAP * 2];
 
@@ -181,7 +181,7 @@ static INLINE void stats_top_win3_neon(const int16x8_t src[2], const int16x8_t d
     madd_neon(&sum_h[2], dgd[1], dgds[5]);
 }
 
-static INLINE void derive_square_win3_neon(const int16x8_t *d_is, const int16x8_t *d_ie, const int16x8_t *d_js,
+static inline void derive_square_win3_neon(const int16x8_t *d_is, const int16x8_t *d_ie, const int16x8_t *d_js,
                                            const int16x8_t *d_je, int32x4_t deltas[][WIN_3TAP]) {
     msub_neon(&deltas[0][0], d_is[0], d_js[0]);
     msub_neon(&deltas[0][1], d_is[1], d_js[1]);
@@ -202,7 +202,7 @@ static INLINE void derive_square_win3_neon(const int16x8_t *d_is, const int16x8_
     madd_neon(&deltas[1][3], d_ie[3], d_je[3]);
 }
 
-static INLINE void load_square_win3_neon(const int16_t *const d_i, const int16_t *const d_j, const int32_t d_stride,
+static inline void load_square_win3_neon(const int16_t *const d_i, const int16_t *const d_j, const int32_t d_stride,
                                          const int32_t height, int16x8_t *d_is, int16x8_t *d_ie, int16x8_t *d_js,
                                          int16x8_t *d_je) {
     load_s16_8x2(d_i + 0, d_stride, &d_is[0], &d_is[2]);
@@ -216,7 +216,7 @@ static INLINE void load_square_win3_neon(const int16_t *const d_i, const int16_t
     load_s16_8x2(d_j + height * d_stride + 8, d_stride, &d_je[1], &d_je[3]);
 }
 
-static INLINE void load_triangle_win3_neon(const int16_t *const di, const int32_t d_stride, const int32_t height,
+static inline void load_triangle_win3_neon(const int16_t *const di, const int32_t d_stride, const int32_t height,
                                            int16x8_t *d_is, int16x8_t *d_ie) {
     d_is[0] = vld1q_s16(di + 0 * d_stride + 0);
     d_is[1] = vld1q_s16(di + 0 * d_stride + 8);
@@ -229,7 +229,7 @@ static INLINE void load_triangle_win3_neon(const int16_t *const di, const int32_
     d_ie[3] = vld1q_s16(di + (1 + height) * d_stride + 8);
 }
 
-static INLINE void derive_triangle_win3_neon(const int16x8_t *d_is, const int16x8_t *d_ie, int32x4_t *deltas) {
+static inline void derive_triangle_win3_neon(const int16x8_t *d_is, const int16x8_t *d_ie, int32x4_t *deltas) {
     msub_neon(&deltas[0], d_is[0], d_is[0]);
     msub_neon(&deltas[1], d_is[1], d_is[1]);
     msub_neon(&deltas[2], d_is[0], d_is[2]);
@@ -245,7 +245,7 @@ static INLINE void derive_triangle_win3_neon(const int16x8_t *d_is, const int16x
     madd_neon(&deltas[5], d_ie[3], d_ie[3]);
 }
 
-static INLINE void stats_top_win5_neon(const int16x8_t src[2], const int16x8_t dgd[2], const int16_t *const d,
+static inline void stats_top_win5_neon(const int16x8_t src[2], const int16x8_t dgd[2], const int16_t *const d,
                                        const int32_t d_stride, int32x4_t *sum_m, int32x4_t *sum_h) {
     int16x8_t dgds[WIENER_WIN_CHROMA * 2];
 
@@ -275,7 +275,7 @@ static INLINE void stats_top_win5_neon(const int16x8_t src[2], const int16x8_t d
     madd_neon(&sum_h[4], dgd[1], dgds[9]);
 }
 
-static INLINE void stats_left_win5_neon(const int16x8_t src[2], const int16_t *d, const int32_t d_stride,
+static inline void stats_left_win5_neon(const int16x8_t src[2], const int16_t *d, const int32_t d_stride,
                                         int32x4_t *sum) {
     int16x8_t dgds[WIN_CHROMA];
 
@@ -292,7 +292,7 @@ static INLINE void stats_left_win5_neon(const int16x8_t src[2], const int16_t *d
     madd_neon(&sum[3], src[1], dgds[7]);
 }
 
-static INLINE void derive_square_win5_neon(const int16x8_t *d_is, const int16x8_t *d_ie, const int16x8_t *d_js,
+static inline void derive_square_win5_neon(const int16x8_t *d_is, const int16x8_t *d_ie, const int16x8_t *d_js,
                                            const int16x8_t *d_je,
                                            int32x4_t        deltas[WIENER_WIN_CHROMA - 1][WIENER_WIN_CHROMA - 1]) {
     msub_neon(&deltas[0][0], d_is[0], d_js[0]);
@@ -368,7 +368,7 @@ static INLINE void derive_square_win5_neon(const int16x8_t *d_is, const int16x8_
     madd_neon(&deltas[3][3], d_ie[7], d_je[7]);
 }
 
-static INLINE void load_square_win5_neon(const int16_t *const di, const int16_t *const dj, const int32_t d_stride,
+static inline void load_square_win5_neon(const int16_t *const di, const int16_t *const dj, const int32_t d_stride,
                                          const int32_t height, int16x8_t *d_is, int16x8_t *d_ie, int16x8_t *d_js,
                                          int16x8_t *d_je) {
     load_s16_8x4(di + 0, d_stride, &d_is[0], &d_is[2], &d_is[4], &d_is[6]);
@@ -382,7 +382,7 @@ static INLINE void load_square_win5_neon(const int16_t *const di, const int16_t 
     load_s16_8x4(dj + height * d_stride + 8, d_stride, &d_je[1], &d_je[3], &d_je[5], &d_je[7]);
 }
 
-static INLINE void hadd_update_4_stats_neon(const int64_t *const src, const int32x4_t *deltas, int64_t *const dst) {
+static inline void hadd_update_4_stats_neon(const int64_t *const src, const int32x4_t *deltas, int64_t *const dst) {
     int32x4_t delta = horizontal_add_4d_s32x4(deltas);
 
     int64x2_t src0 = vld1q_s64(src);
@@ -391,18 +391,18 @@ static INLINE void hadd_update_4_stats_neon(const int64_t *const src, const int3
     vst1q_s64(dst + 2, vaddw_s32(src1, vget_high_s32(delta)));
 }
 
-static INLINE void update_5_stats_neon(const int64_t *const src, const int32x4_t delta, const int64_t delta4,
+static inline void update_5_stats_neon(const int64_t *const src, const int32x4_t delta, const int64_t delta4,
                                        int64_t *const dst) {
     update_4_stats_neon(src + 0, delta, dst + 0);
     dst[4] = src[4] + delta4;
 }
 
-static INLINE void compute_delta_step3_two_lines(int32x4_t *sum, const int16x8_t src, const int16x8_t dgd) {
+static inline void compute_delta_step3_two_lines(int32x4_t *sum, const int16x8_t src, const int16x8_t dgd) {
     *sum = vmlsl_s16(*sum, vget_low_s16(src), vget_low_s16(dgd));
     *sum = vmlal_s16(*sum, vget_high_s16(src), vget_high_s16(dgd));
 }
 
-static INLINE void step3_win5_neon(const int16_t *d, const int32_t d_stride, const int32_t width, const int32_t height,
+static inline void step3_win5_neon(const int16_t *d, const int32_t d_stride, const int32_t width, const int32_t height,
                                    int16x8_t *ds, int32x4_t *deltas) {
     int32_t y = height;
     do {
@@ -430,7 +430,7 @@ static INLINE void step3_win5_neon(const int16_t *d, const int32_t d_stride, con
     } while (y);
 }
 
-static INLINE void step3_win5_oneline_neon(const int16_t **const d, const int32_t d_stride, const int32_t width,
+static inline void step3_win5_oneline_neon(const int16_t **const d, const int32_t d_stride, const int32_t width,
                                            const int32_t height, int16x8_t *ds, int32x4_t *deltas) {
     int32_t y = height;
     do {
@@ -456,7 +456,7 @@ static INLINE void step3_win5_oneline_neon(const int16_t **const d, const int32_
     } while (--y);
 }
 
-static INLINE void derive_triangle_win5_neon(const int16x8_t *d_is, const int16x8_t *d_ie, int32x4_t *deltas) {
+static inline void derive_triangle_win5_neon(const int16x8_t *d_is, const int16x8_t *d_ie, int32x4_t *deltas) {
     msub_neon(&deltas[0], d_is[0], d_is[0]);
     msub_neon(&deltas[0], d_is[1], d_is[1]);
     msub_neon(&deltas[1], d_is[0], d_is[2]);
@@ -500,7 +500,7 @@ static INLINE void derive_triangle_win5_neon(const int16x8_t *d_is, const int16x
     madd_neon(&deltas[9], d_ie[7], d_ie[7]);
 }
 
-static INLINE void load_triangle_win5_neon(const int16_t *const di, const int32_t d_stride, const int32_t height,
+static inline void load_triangle_win5_neon(const int16_t *const di, const int32_t d_stride, const int32_t height,
                                            int16x8_t *d_is, int16x8_t *d_ie) {
     load_s16_8x4(di + 0, d_stride, &d_is[0], &d_is[2], &d_is[4], &d_is[6]);
     load_s16_8x4(di + 8, d_stride, &d_is[1], &d_is[3], &d_is[5], &d_is[7]);
@@ -509,7 +509,7 @@ static INLINE void load_triangle_win5_neon(const int16_t *const di, const int32_
     load_s16_8x4(di + height * d_stride + 8, d_stride, &d_ie[1], &d_ie[3], &d_ie[5], &d_ie[7]);
 }
 
-static INLINE void sub_deltas_step4(int16x8_t *A, int16x8_t *B, int32x4_t *deltas) {
+static inline void sub_deltas_step4(int16x8_t *A, int16x8_t *B, int32x4_t *deltas) {
     deltas[0] = vmlsl_s16(deltas[0], vget_low_s16(A[0]), vget_low_s16(B[0]));
     deltas[0] = vmlsl_s16(deltas[0], vget_high_s16(A[0]), vget_high_s16(B[0]));
     deltas[1] = vmlsl_s16(deltas[1], vget_low_s16(A[0]), vget_low_s16(B[1]));
@@ -530,7 +530,7 @@ static INLINE void sub_deltas_step4(int16x8_t *A, int16x8_t *B, int32x4_t *delta
     deltas[8] = vmlsl_s16(deltas[8], vget_high_s16(A[4]), vget_high_s16(B[0]));
 }
 
-static INLINE void add_deltas_step4(int16x8_t *A, int16x8_t *B, int32x4_t *deltas) {
+static inline void add_deltas_step4(int16x8_t *A, int16x8_t *B, int32x4_t *deltas) {
     deltas[0] = vmlal_s16(deltas[0], vget_low_s16(A[0]), vget_low_s16(B[0]));
     deltas[0] = vmlal_s16(deltas[0], vget_high_s16(A[0]), vget_high_s16(B[0]));
     deltas[1] = vmlal_s16(deltas[1], vget_low_s16(A[0]), vget_low_s16(B[1]));
@@ -551,7 +551,7 @@ static INLINE void add_deltas_step4(int16x8_t *A, int16x8_t *B, int32x4_t *delta
     deltas[8] = vmlal_s16(deltas[8], vget_high_s16(A[4]), vget_high_s16(B[0]));
 }
 
-static INLINE void stats_top_win7_neon(const int16x8_t src[2], const int16x8_t dgd[2], const int16_t *const d,
+static inline void stats_top_win7_neon(const int16x8_t src[2], const int16x8_t dgd[2], const int16_t *const d,
                                        const int32_t d_stride, int32x4_t *sum_m, int32x4_t *sum_h) {
     int16x8_t dgds[WIENER_WIN * 2];
 
@@ -589,7 +589,7 @@ static INLINE void stats_top_win7_neon(const int16x8_t src[2], const int16x8_t d
     madd_neon(&sum_h[6], dgd[1], dgds[13]);
 }
 
-static INLINE void derive_square_win7_neon(const int16x8_t *d_is, const int16x8_t *d_ie, const int16x8_t *d_js,
+static inline void derive_square_win7_neon(const int16x8_t *d_is, const int16x8_t *d_ie, const int16x8_t *d_js,
                                            const int16x8_t *d_je, int32x4_t deltas[][WIN_7]) {
     msub_neon(&deltas[0][0], d_is[0], d_js[0]);
     msub_neon(&deltas[0][0], d_is[1], d_js[1]);
@@ -748,7 +748,7 @@ static INLINE void derive_square_win7_neon(const int16x8_t *d_is, const int16x8_
     madd_neon(&deltas[5][5], d_ie[11], d_je[11]);
 }
 
-static INLINE void hadd_update_6_stats_neon(const int64_t *const src, const int32x4_t *deltas, int64_t *const dst) {
+static inline void hadd_update_6_stats_neon(const int64_t *const src, const int32x4_t *deltas, int64_t *const dst) {
     int32x4_t delta0123 = horizontal_add_4d_s32x4(&deltas[0]);
     int32x4_t delta2345 = horizontal_add_4d_s32x4(&deltas[2]);
 
@@ -761,12 +761,12 @@ static INLINE void hadd_update_6_stats_neon(const int64_t *const src, const int3
     vst1q_s64(dst + 4, vaddw_s32(src2, vget_high_s32(delta2345)));
 }
 
-static INLINE void update_8_stats_neon(const int64_t *const src, const int32x4_t *delta, int64_t *const dst) {
+static inline void update_8_stats_neon(const int64_t *const src, const int32x4_t *delta, int64_t *const dst) {
     update_4_stats_neon(src + 0, delta[0], dst + 0);
     update_4_stats_neon(src + 4, delta[1], dst + 4);
 }
 
-static INLINE void load_square_win7_neon(const int16_t *const di, const int16_t *const dj, const int32_t d_stride,
+static inline void load_square_win7_neon(const int16_t *const di, const int16_t *const dj, const int32_t d_stride,
                                          const int32_t height, int16x8_t *d_is, int16x8_t *d_ie, int16x8_t *d_js,
                                          int16x8_t *d_je) {
     load_s16_8x6(di + 0, d_stride, &d_is[0], &d_is[2], &d_is[4], &d_is[6], &d_is[8], &d_is[10]);
@@ -780,7 +780,7 @@ static INLINE void load_square_win7_neon(const int16_t *const di, const int16_t 
     load_s16_8x6(dj + height * d_stride + 8, d_stride, &d_je[1], &d_je[3], &d_je[5], &d_je[7], &d_je[9], &d_je[11]);
 }
 
-static INLINE void load_triangle_win7_neon(const int16_t *const di, const int32_t d_stride, const int32_t height,
+static inline void load_triangle_win7_neon(const int16_t *const di, const int32_t d_stride, const int32_t height,
                                            int16x8_t *d_is, int16x8_t *d_ie) {
     load_s16_8x6(di, d_stride, &d_is[0], &d_is[2], &d_is[4], &d_is[6], &d_is[8], &d_is[10]);
     load_s16_8x6(di + 8, d_stride, &d_is[1], &d_is[3], &d_is[5], &d_is[7], &d_is[9], &d_is[11]);
@@ -789,7 +789,7 @@ static INLINE void load_triangle_win7_neon(const int16_t *const di, const int32_
     load_s16_8x6(di + height * d_stride + 8, d_stride, &d_ie[1], &d_ie[3], &d_ie[5], &d_ie[7], &d_ie[9], &d_ie[11]);
 }
 
-static INLINE void stats_left_win7_neon(const int16x8_t src[2], const int16_t *d, const int32_t d_stride,
+static inline void stats_left_win7_neon(const int16x8_t src[2], const int16_t *d, const int32_t d_stride,
                                         int32x4_t *sum) {
     int16x8_t dgds[WIN_7];
 
@@ -810,7 +810,7 @@ static INLINE void stats_left_win7_neon(const int16x8_t src[2], const int16_t *d
     madd_neon(&sum[5], src[1], dgds[11]);
 }
 
-static INLINE void step3_win7_neon(const int16_t *d, const int32_t d_stride, const int32_t width, const int32_t height,
+static inline void step3_win7_neon(const int16_t *d, const int32_t d_stride, const int32_t width, const int32_t height,
                                    int16x8_t *ds, int32x4_t *deltas) {
     int32_t y = height;
     do {
@@ -842,7 +842,7 @@ static INLINE void step3_win7_neon(const int16_t *d, const int32_t d_stride, con
     } while (--y);
 }
 
-static INLINE void derive_triangle_win7_neon(const int16x8_t *d_is, const int16x8_t *d_ie, int32x4_t *deltas) {
+static inline void derive_triangle_win7_neon(const int16x8_t *d_is, const int16x8_t *d_ie, int32x4_t *deltas) {
     msub_neon(&deltas[0], d_is[0], d_is[0]);
     msub_neon(&deltas[0], d_is[1], d_is[1]);
     msub_neon(&deltas[1], d_is[0], d_is[2]);
@@ -940,7 +940,7 @@ static INLINE void derive_triangle_win7_neon(const int16x8_t *d_is, const int16x
     madd_neon(&deltas[20], d_ie[11], d_ie[11]);
 }
 
-static INLINE void diagonal_copy_stats_neon(const int32_t wiener_win2, int64_t *const H) {
+static inline void diagonal_copy_stats_neon(const int32_t wiener_win2, int64_t *const H) {
     for (int32_t i = 0; i < wiener_win2 - 1; i += 4) {
         int64x2_t in[8], out[8];
 
@@ -986,7 +986,7 @@ static INLINE void diagonal_copy_stats_neon(const int32_t wiener_win2, int64_t *
     }
 }
 
-static INLINE int64x2_t div4_neon(const int64x2_t src) {
+static inline int64x2_t div4_neon(const int64x2_t src) {
     uint64x2_t sign = vcltzq_s64(src);
     int64x2_t  dst  = vabsq_s64(src);
     // divide by 4
@@ -995,7 +995,7 @@ static INLINE int64x2_t div4_neon(const int64x2_t src) {
     return vbslq_s64(sign, vnegq_s64(dst), dst);
 }
 
-static INLINE void div4_4x4_neon(const int32_t wiener_win2, int64_t *const H, int64x2_t out[8]) {
+static inline void div4_4x4_neon(const int32_t wiener_win2, int64_t *const H, int64x2_t out[8]) {
     out[0] = vld1q_s64(H + 0 * wiener_win2 + 0);
     out[1] = vld1q_s64(H + 0 * wiener_win2 + 2);
     out[2] = vld1q_s64(H + 1 * wiener_win2 + 0);
@@ -1024,7 +1024,7 @@ static INLINE void div4_4x4_neon(const int32_t wiener_win2, int64_t *const H, in
     vst1q_s64(H + 3 * wiener_win2 + 2, out[7]);
 }
 
-static INLINE void div4_diagonal_copy_stats_neon(const int32_t wiener_win2, int64_t *const H) {
+static inline void div4_diagonal_copy_stats_neon(const int32_t wiener_win2, int64_t *const H) {
     for (int32_t i = 0; i < wiener_win2 - 1; i += 4) {
         int64x2_t in[8], out[8];
 

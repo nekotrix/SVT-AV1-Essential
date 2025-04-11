@@ -27,7 +27,7 @@ DECLARE_ALIGNED(16, static const uint16_t, kDotProdTbl[32]) = {
     // clang-format on
 };
 
-static INLINE uint16x8_t convolve8_8_x(int16x8_t s0[8], int16x8_t filter, int64x2_t offset, uint16x8_t max) {
+static inline uint16x8_t convolve8_8_x(int16x8_t s0[8], int16x8_t filter, int64x2_t offset, uint16x8_t max) {
     int64x2_t sum[8];
     sum[0] = svt_sdotq_s16(offset, s0[0], filter);
     sum[1] = svt_sdotq_s16(offset, s0[1], filter);
@@ -51,7 +51,7 @@ static INLINE uint16x8_t convolve8_8_x(int16x8_t s0[8], int16x8_t filter, int64x
     return vminq_u16(res, max);
 }
 
-static INLINE void highbd_convolve_x_sr_8tap_sve(const uint16_t *src, int src_stride, uint16_t *dst, int dst_stride,
+static inline void highbd_convolve_x_sr_8tap_sve(const uint16_t *src, int src_stride, uint16_t *dst, int dst_stride,
                                                  int width, int height, const int16_t *y_filter_ptr, int bd) {
     const uint16x8_t max = vdupq_n_u16((1 << bd) - 1);
     // This shim allows to do only one rounding shift instead of two.
@@ -94,7 +94,7 @@ DECLARE_ALIGNED(16, static const uint16_t, kDeinterleaveTbl[8]) = {
 };
 // clang-format on
 
-static INLINE uint16x4_t convolve4_4_x(int16x8_t s0, int16x8_t filter, int64x2_t offset, uint16x8x2_t permute_tbl,
+static inline uint16x4_t convolve4_4_x(int16x8_t s0, int16x8_t filter, int64x2_t offset, uint16x8x2_t permute_tbl,
                                        uint16x4_t max) {
     int16x8_t permuted_samples0 = svt_tbl_s16(s0, permute_tbl.val[0]);
     int16x8_t permuted_samples1 = svt_tbl_s16(s0, permute_tbl.val[1]);
@@ -108,7 +108,7 @@ static INLINE uint16x4_t convolve4_4_x(int16x8_t s0, int16x8_t filter, int64x2_t
     return vmin_u16(res, max);
 }
 
-static INLINE uint16x8_t convolve4_8_x(int16x8_t s0[4], int16x8_t filter, int64x2_t offset, uint16x8_t tbl,
+static inline uint16x8_t convolve4_8_x(int16x8_t s0[4], int16x8_t filter, int64x2_t offset, uint16x8_t tbl,
                                        uint16x8_t max) {
     int64x2_t sum04 = svt_svdot_lane_s16(offset, s0[0], filter, 0);
     int64x2_t sum15 = svt_svdot_lane_s16(offset, s0[1], filter, 0);
@@ -124,7 +124,7 @@ static INLINE uint16x8_t convolve4_8_x(int16x8_t s0[4], int16x8_t filter, int64x
     return vminq_u16(res, max);
 }
 
-static INLINE void highbd_convolve_x_sr_4tap_sve(const uint16_t *src, int src_stride, uint16_t *dst, int dst_stride,
+static inline void highbd_convolve_x_sr_4tap_sve(const uint16_t *src, int src_stride, uint16_t *dst, int dst_stride,
                                                  int width, int height, const int16_t *x_filter_ptr, int bd) {
     // This shim allows to do only one rounding shift instead of two.
     const int64x2_t offset = vdupq_n_s64(1 << (ROUND0_BITS - 1));

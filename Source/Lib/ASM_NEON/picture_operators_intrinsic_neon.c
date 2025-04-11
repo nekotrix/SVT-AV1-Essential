@@ -15,7 +15,7 @@
 #include "transpose_neon.h"
 #include "pack_unpack_c.h"
 
-static INLINE void residual_kernel4_neon(const uint8_t *restrict input, const uint32_t input_stride,
+static inline void residual_kernel4_neon(const uint8_t *restrict input, const uint32_t input_stride,
                                          const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
                                          const uint32_t residual_stride, const uint32_t area_height) {
     uint32x2_t in, pr;
@@ -40,7 +40,7 @@ static INLINE void residual_kernel4_neon(const uint8_t *restrict input, const ui
     } while (y);
 }
 
-static INLINE void residual_kernel_neon(const uint8_t *restrict input, const uint8_t *restrict pred,
+static inline void residual_kernel_neon(const uint8_t *restrict input, const uint8_t *restrict pred,
                                         int16_t *residual) {
     const uint8x8_t in = vld1_u8(input);
     const uint8x8_t pr = vld1_u8(pred);
@@ -48,7 +48,7 @@ static INLINE void residual_kernel_neon(const uint8_t *restrict input, const uin
     vst1q_s16(residual, re);
 }
 
-static INLINE void residual_kernel8_neon(const uint8_t *restrict input, const uint32_t input_stride,
+static inline void residual_kernel8_neon(const uint8_t *restrict input, const uint32_t input_stride,
                                          const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
                                          const uint32_t residual_stride, const uint32_t area_height) {
     uint32_t y = area_height;
@@ -63,7 +63,7 @@ static INLINE void residual_kernel8_neon(const uint8_t *restrict input, const ui
     } while (y);
 }
 
-static INLINE void residual_kernel16_neon(const uint8_t *restrict input, const uint32_t input_stride,
+static inline void residual_kernel16_neon(const uint8_t *restrict input, const uint32_t input_stride,
                                           const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
                                           const uint32_t residual_stride, const uint32_t area_height) {
     uint32_t y = area_height;
@@ -78,7 +78,7 @@ static INLINE void residual_kernel16_neon(const uint8_t *restrict input, const u
     } while (y);
 }
 
-static INLINE void residual_kernel32_neon(const uint8_t *restrict input, const uint32_t input_stride,
+static inline void residual_kernel32_neon(const uint8_t *restrict input, const uint32_t input_stride,
                                           const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
                                           const uint32_t residual_stride, const uint32_t area_height) {
     uint32_t y = area_height;
@@ -93,7 +93,7 @@ static INLINE void residual_kernel32_neon(const uint8_t *restrict input, const u
     } while (y);
 }
 
-static INLINE void residual_kernel64_neon(const uint8_t *restrict input, const uint32_t input_stride,
+static inline void residual_kernel64_neon(const uint8_t *restrict input, const uint32_t input_stride,
                                           const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
                                           const uint32_t residual_stride, const uint32_t area_height) {
     uint32_t y = area_height;
@@ -108,7 +108,7 @@ static INLINE void residual_kernel64_neon(const uint8_t *restrict input, const u
     } while (y);
 }
 
-static INLINE void residual_kernel128_neon(const uint8_t *restrict input, const uint32_t input_stride,
+static inline void residual_kernel128_neon(const uint8_t *restrict input, const uint32_t input_stride,
                                            const uint8_t *restrict pred, const uint32_t pred_stride, int16_t *residual,
                                            const uint32_t residual_stride, const uint32_t area_height) {
     uint32_t y = area_height;
@@ -201,7 +201,7 @@ void svt_full_distortion_kernel32_bits_neon(int32_t *coeff, uint32_t coeff_strid
     vst1q_s64((int64_t *)distortion_result, vpaddq_s64(residual_distortion, residual_prediction));
 }
 
-static INLINE void unpack_and_2bcompress_32_neon(uint16_t *in16b_buffer, uint8_t *out8b_buffer, uint8_t *out2b_buffer,
+static inline void unpack_and_2bcompress_32_neon(uint16_t *in16b_buffer, uint8_t *out8b_buffer, uint8_t *out2b_buffer,
                                                  uint32_t width_rep) {
     const uint16x8_t ymm_00ff = vdupq_n_u16(0x00FF);
     const uint16x8_t msk_2b   = vdupq_n_u16(0x0003); //0000.0000.0000.0011
@@ -245,7 +245,7 @@ static INLINE void unpack_and_2bcompress_32_neon(uint16_t *in16b_buffer, uint8_t
     }
 }
 
-static INLINE void svt_unpack_and_2bcompress_remainder(uint16_t *in16b_buffer, uint8_t *out8b_buffer,
+static inline void svt_unpack_and_2bcompress_remainder(uint16_t *in16b_buffer, uint8_t *out8b_buffer,
                                                        uint8_t *out2b_buffer, uint32_t width) {
     uint32_t col;
     uint16_t in_pixel;
@@ -342,7 +342,7 @@ void svt_unpack_and_2bcompress_neon(uint16_t *in16b_buffer, uint32_t in16b_strid
     }
 }
 
-static INLINE void compressed_packmsb_32x2h(uint8_t *in8_bit_buffer, uint32_t in8_stride, uint8_t *inn_bit_buffer,
+static inline void compressed_packmsb_32x2h(uint8_t *in8_bit_buffer, uint32_t in8_stride, uint8_t *inn_bit_buffer,
                                             uint32_t inn_stride, uint16_t *out16_bit_buffer, uint32_t out_stride,
                                             uint32_t height) {
     const uint8x16_t msk0 = vdupq_n_u8(0xC0); //1100.000
@@ -407,7 +407,7 @@ static INLINE void compressed_packmsb_32x2h(uint8_t *in8_bit_buffer, uint32_t in
     }
 }
 
-static INLINE void compressed_packmsb_64xh(uint8_t *in8_bit_buffer, uint32_t in8_stride, uint8_t *inn_bit_buffer,
+static inline void compressed_packmsb_64xh(uint8_t *in8_bit_buffer, uint32_t in8_stride, uint8_t *inn_bit_buffer,
                                            uint32_t inn_stride, uint16_t *out16_bit_buffer, uint32_t out_stride,
                                            uint32_t height) {
     const uint8x16_t msk0 = vdupq_n_u8(0xC0); //1100.000
@@ -470,7 +470,7 @@ static INLINE void compressed_packmsb_64xh(uint8_t *in8_bit_buffer, uint32_t in8
     }
 }
 
-static INLINE void compressed_packmsb_64(uint8_t *in8_bit_buffer, uint8_t *inn_bit_buffer, uint16_t *out16_bit_buffer,
+static inline void compressed_packmsb_64(uint8_t *in8_bit_buffer, uint8_t *inn_bit_buffer, uint16_t *out16_bit_buffer,
                                          uint32_t width_rep) {
     const uint8x16_t msk0 = vdupq_n_u8(0xC0); //1100.000
 

@@ -18,7 +18,7 @@
 #include "mem_neon.h"
 #include "utility.h"
 
-static INLINE void diffwtd_mask_highbd_neon(uint8_t *mask, bool inverse, const uint16_t *src0, int src0_stride,
+static inline void diffwtd_mask_highbd_neon(uint8_t *mask, bool inverse, const uint16_t *src0, int src0_stride,
                                             const uint16_t *src1, int src1_stride, int h, int w,
                                             const unsigned int bd) {
     assert(DIFF_FACTOR > 0);

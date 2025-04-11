@@ -39,7 +39,7 @@ void svt_aom_copy_rect8_8bit_to_16bit_neon(uint16_t *dst, int32_t dstride, const
 // This function computes (x1^2+y1^2)*C1 + (x2^2+y2^2)*C2 + ...
 // (x7^2+y2^7)*C7 + (x8^2+0^2)*C8 where the C1..C8 constants are in const1
 // and const2.
-static INLINE uint32x4_t fold_mul_and_sum_neon(int16x8_t partiala, int16x8_t partialb, uint32x4_t const1,
+static inline uint32x4_t fold_mul_and_sum_neon(int16x8_t partiala, int16x8_t partialb, uint32x4_t const1,
                                                uint32x4_t const2) {
     // Reverse partial B.
     // pattern = { 12 13 10 11 8 9 6 7 4 5 2 3 0 1 14 15 }.
@@ -91,7 +91,7 @@ static INLINE uint32x4_t fold_mul_and_sum_neon(int16x8_t partiala, int16x8_t par
 // two of them to compute each half of the new configuration, and pad the empty
 // spaces with zeros. Similar shifting is done for other directions, except
 // direction 6 which is straightforward as it's the vertical direction.
-static INLINE uint32x4_t compute_vert_directions_neon(int16x8_t lines[8], uint32_t cost[4]) {
+static inline uint32x4_t compute_vert_directions_neon(int16x8_t lines[8], uint32_t cost[4]) {
     const int16x8_t zero = vdupq_n_s16(0);
 
     // Partial sums for lines 0 and 1.
@@ -164,7 +164,7 @@ static INLINE uint32x4_t compute_vert_directions_neon(int16x8_t lines[8], uint32
     return costs[0];
 }
 
-static INLINE uint32x4_t fold_mul_and_sum_pairwise_neon(int16x8_t partiala, int16x8_t partialb, int16x8_t partialc,
+static inline uint32x4_t fold_mul_and_sum_pairwise_neon(int16x8_t partiala, int16x8_t partialb, int16x8_t partialc,
                                                         uint32x4_t const0) {
     // Reverse partial c.
     // pattern = { 10 11 8 9 6 7 4 5 2 3 0 1 12 13 14 15 }.
@@ -215,7 +215,7 @@ static INLINE uint32x4_t fold_mul_and_sum_pairwise_neon(int16x8_t partiala, int1
 //
 // Three vectors are needed to compute this, as well as some extra pairwise
 // additions.
-static INLINE uint32x4_t compute_horiz_directions_neon(int16x8_t lines[8], uint32_t cost[4]) {
+static inline uint32x4_t compute_horiz_directions_neon(int16x8_t lines[8], uint32_t cost[4]) {
     const int16x8_t zero = vdupq_n_s16(0);
 
     // Compute diagonal directions (1, 2, 3).

@@ -19,19 +19,19 @@
 #include "definitions.h"
 #include "mem_neon.h"
 
-static INLINE uint8x8_t avg_blend_pairwise_u8x8_4(uint8x8_t a, uint8x8_t b, uint8x8_t c, uint8x8_t d) {
+static inline uint8x8_t avg_blend_pairwise_u8x8_4(uint8x8_t a, uint8x8_t b, uint8x8_t c, uint8x8_t d) {
     uint8x8_t a_c = vpadd_u8(a, c);
     uint8x8_t b_d = vpadd_u8(b, d);
     return vrshr_n_u8(vqadd_u8(a_c, b_d), 2);
 }
 
-static INLINE uint16x8_t avg_blend_pairwise_long_u8x8_4(uint8x8_t a, uint8x8_t b, uint8x8_t c, uint8x8_t d) {
+static inline uint16x8_t avg_blend_pairwise_long_u8x8_4(uint8x8_t a, uint8x8_t b, uint8x8_t c, uint8x8_t d) {
     uint8x8_t a_c = vpadd_u8(a, c);
     uint8x8_t b_d = vpadd_u8(b, d);
     return vrshrq_n_u16(vaddl_u8(a_c, b_d), 2);
 }
 
-static INLINE uint8x16_t avg_blend_pairwise_u8x16_4(uint8x16_t a, uint8x16_t b, uint8x16_t c, uint8x16_t d) {
+static inline uint8x16_t avg_blend_pairwise_u8x16_4(uint8x16_t a, uint8x16_t b, uint8x16_t c, uint8x16_t d) {
     uint8x16_t a_c = vpaddq_u8(a, c);
     uint8x16_t b_d = vpaddq_u8(b, d);
     return vrshrq_n_u8(vqaddq_u8(a_c, b_d), 2);

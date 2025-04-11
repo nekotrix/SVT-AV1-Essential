@@ -22,7 +22,7 @@
 #include "transpose_neon.h"
 #include "utility.h"
 
-static INLINE void highbd_dist_wtd_comp_avg_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr,
+static inline void highbd_dist_wtd_comp_avg_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr,
                                                  int dst_stride, int w, int h, ConvolveParams *conv_params,
                                                  const int round_bits, const int offset, const int bd) {
     CONV_BUF_TYPE   *ref_ptr     = conv_params->dst;
@@ -96,7 +96,7 @@ static INLINE void highbd_dist_wtd_comp_avg_neon(const uint16_t *src_ptr, int sr
     }
 }
 
-static INLINE void highbd_comp_avg_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr, int dst_stride,
+static inline void highbd_comp_avg_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr, int dst_stride,
                                         int w, int h, ConvolveParams *conv_params, const int round_bits,
                                         const int offset, const int bd) {
     CONV_BUF_TYPE   *ref_ptr     = conv_params->dst;
@@ -160,7 +160,7 @@ static INLINE void highbd_comp_avg_neon(const uint16_t *src_ptr, int src_stride,
     }
 }
 
-static INLINE void highbd_convolve_2d_x_scale_8tap_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr,
+static inline void highbd_convolve_2d_x_scale_8tap_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr,
                                                         int dst_stride, int w, int h, const int subpel_x_qn,
                                                         const int x_step_qn, const InterpFilterParams *filter_params,
                                                         ConvolveParams *conv_params, const int offset) {
@@ -292,7 +292,7 @@ static INLINE void highbd_convolve_2d_x_scale_8tap_neon(const uint16_t *src_ptr,
     }
 }
 
-static INLINE void highbd_convolve_2d_y_scale_8tap_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr,
+static inline void highbd_convolve_2d_y_scale_8tap_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr,
                                                         int dst_stride, int w, int h, const int subpel_y_qn,
                                                         const int y_step_qn, const InterpFilterParams *filter_params,
                                                         const int round1_bits, const int offset) {
@@ -360,7 +360,7 @@ static INLINE void highbd_convolve_2d_y_scale_8tap_neon(const uint16_t *src_ptr,
     }
 }
 
-static INLINE void highbd_convolve_correct_offset_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr,
+static inline void highbd_convolve_correct_offset_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr,
                                                        int dst_stride, int w, int h, const int round_bits,
                                                        const int offset, const int bd) {
     const int32x4_t  round_shift_s32 = vdupq_n_s32(-round_bits);

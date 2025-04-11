@@ -15,7 +15,7 @@
 #include "definitions.h"
 #include "restoration.h"
 
-static INLINE void svt_calc_proj_params_r0_r1_lowbd_neon(const uint8_t *src8, int32_t width, int32_t height,
+static inline void svt_calc_proj_params_r0_r1_lowbd_neon(const uint8_t *src8, int32_t width, int32_t height,
                                                          int32_t src_stride, const uint8_t *dat8, int32_t dat_stride,
                                                          int32_t *flt0, int32_t flt0_stride, int32_t *flt1,
                                                          int32_t flt1_stride, double H[2][2], double C[2]) {
@@ -108,7 +108,7 @@ static INLINE void svt_calc_proj_params_r0_r1_lowbd_neon(const uint8_t *src8, in
     C[1] /= size;
 }
 
-static INLINE void svt_calc_proj_params_r0_r1_highbd_neon(const uint8_t *src8, int32_t width, int32_t height,
+static inline void svt_calc_proj_params_r0_r1_highbd_neon(const uint8_t *src8, int32_t width, int32_t height,
                                                           int32_t src_stride, const uint8_t *dat8, int32_t dat_stride,
                                                           int32_t *flt0, int32_t flt0_stride, int32_t *flt1,
                                                           int32_t flt1_stride, double H[2][2], double C[2]) {
@@ -205,7 +205,7 @@ static INLINE void svt_calc_proj_params_r0_r1_highbd_neon(const uint8_t *src8, i
     C[1] /= size;
 }
 
-static INLINE void svt_calc_proj_params_r0_lowbd_neon(const uint8_t *src8, int32_t width, int32_t height,
+static inline void svt_calc_proj_params_r0_lowbd_neon(const uint8_t *src8, int32_t width, int32_t height,
                                                       int32_t src_stride, const uint8_t *dat8, int32_t dat_stride,
                                                       int32_t *flt0, int32_t flt0_stride, double H[2][2], double C[2]) {
     const int32_t size   = width * height;
@@ -262,7 +262,7 @@ static INLINE void svt_calc_proj_params_r0_lowbd_neon(const uint8_t *src8, int32
     C[0] /= size;
 }
 
-static INLINE void svt_calc_proj_params_r0_highbd_neon(const uint8_t *src8, int32_t width, int32_t height,
+static inline void svt_calc_proj_params_r0_highbd_neon(const uint8_t *src8, int32_t width, int32_t height,
                                                        int32_t src_stride, const uint8_t *dat8, int32_t dat_stride,
                                                        int32_t *flt0, int32_t flt0_stride, double H[2][2],
                                                        double C[2]) {
@@ -324,7 +324,7 @@ static INLINE void svt_calc_proj_params_r0_highbd_neon(const uint8_t *src8, int3
     C[0] /= size;
 }
 
-static INLINE void svt_calc_proj_params_r1_lowbd_neon(const uint8_t *src8, int32_t width, int32_t height,
+static inline void svt_calc_proj_params_r1_lowbd_neon(const uint8_t *src8, int32_t width, int32_t height,
                                                       int32_t src_stride, const uint8_t *dat8, int32_t dat_stride,
                                                       int32_t *flt1, int32_t flt1_stride, double H[2][2], double C[2]) {
     const int32_t size   = width * height;
@@ -380,7 +380,7 @@ static INLINE void svt_calc_proj_params_r1_lowbd_neon(const uint8_t *src8, int32
     C[1] /= size;
 }
 
-static INLINE void svt_calc_proj_params_r1_highbd_neon(const uint8_t *src8, int32_t width, int32_t height,
+static inline void svt_calc_proj_params_r1_highbd_neon(const uint8_t *src8, int32_t width, int32_t height,
                                                        int32_t src_stride, const uint8_t *dat8, int32_t dat_stride,
                                                        int32_t *flt1, int32_t flt1_stride, double H[2][2],
                                                        double C[2]) {
@@ -448,7 +448,7 @@ static INLINE void svt_calc_proj_params_r1_highbd_neon(const uint8_t *src8, int3
 //    non-zero and need to be computed.
 // 3) When only params->r[1] > 0. In this case only H[1][1] and C[1] are
 //    non-zero and need to be computed.
-static INLINE void av1_calc_proj_params_lowbd_neon(const uint8_t *src8, int32_t width, int32_t height,
+static inline void av1_calc_proj_params_lowbd_neon(const uint8_t *src8, int32_t width, int32_t height,
                                                    int32_t src_stride, const uint8_t *dat8, int32_t dat_stride,
                                                    int32_t *flt0, int32_t flt0_stride, int32_t *flt1,
                                                    int32_t flt1_stride, double H[2][2], double C[2],
@@ -463,7 +463,7 @@ static INLINE void av1_calc_proj_params_lowbd_neon(const uint8_t *src8, int32_t 
     }
 }
 
-static INLINE void av1_calc_proj_params_highbd_neon(const uint8_t *src8, int32_t width, int32_t height,
+static inline void av1_calc_proj_params_highbd_neon(const uint8_t *src8, int32_t width, int32_t height,
                                                     int32_t src_stride, const uint8_t *dat8, int32_t dat_stride,
                                                     int32_t *flt0, int32_t flt0_stride, int32_t *flt1,
                                                     int32_t flt1_stride, double H[2][2], double C[2],

@@ -16,7 +16,7 @@
 #include "cdef.h"
 #include "definitions.h"
 
-static INLINE uint32_t sum32(const int32x4_t src) {
+static inline uint32_t sum32(const int32x4_t src) {
     int32x4_t dst;
 
     dst = vpaddq_s32(src, src);
@@ -25,19 +25,19 @@ static INLINE uint32_t sum32(const int32x4_t src) {
     return (uint32_t)vgetq_lane_s32(dst, 0);
 }
 
-static INLINE uint64_t sum64(const int64x2_t src) {
+static inline uint64_t sum64(const int64x2_t src) {
     const int64x2_t dst = vaddq_s64(src, vextq_s64(src, vdupq_n_s64(0), 1));
     return (uint64_t)vgetq_lane_s64(dst, 0);
 }
 
-static INLINE void sum_32_to_64(const int32x4_t src, int64x2_t *dst) {
+static inline void sum_32_to_64(const int32x4_t src, int64x2_t *dst) {
     const int32x4_t src_l = vzip1q_s32(src, vdupq_n_s32(0));
     const int32x4_t src_h = vzip2q_s32(src, vdupq_n_s32(0));
     *dst                  = vaddq_s64(*dst, vreinterpretq_s64_s32(src_l));
     *dst                  = vaddq_s64(*dst, vreinterpretq_s64_s32(src_h));
 }
 
-static INLINE uint64_t dist_8xn_8bit_neon(const uint8_t **src, const uint8_t *dst, const int32_t dstride,
+static inline uint64_t dist_8xn_8bit_neon(const uint8_t **src, const uint8_t *dst, const int32_t dstride,
                                           const int32_t coeff_shift, uint8_t height, uint8_t subsampling_factor) {
     int16x8_t ss = vdupq_n_s16(0);
     int16x8_t dd = vdupq_n_s16(0);
@@ -99,7 +99,7 @@ static INLINE uint64_t dist_8xn_8bit_neon(const uint8_t **src, const uint8_t *ds
                                (sqrt((20000 << 4 * coeff_shift) + svar * (double)dvar)));
 }
 
-static INLINE void mse_4xn_8bit_neon(const uint8_t **src, const uint8_t *dst, const int32_t dstride, int32x4_t *sum,
+static inline void mse_4xn_8bit_neon(const uint8_t **src, const uint8_t *dst, const int32_t dstride, int32x4_t *sum,
                                      uint8_t height, uint8_t subsampling_factor) {
     for (int32_t r = 0; r < height; r += 4 * subsampling_factor) {
         const uint32_t   aa = *(uint32_t *)(*src + (0 * subsampling_factor) * 4);
@@ -139,7 +139,7 @@ static INLINE void mse_4xn_8bit_neon(const uint8_t **src, const uint8_t *dst, co
     }
 }
 
-static INLINE void mse_8xn_8bit_neon(const uint8_t **src, const uint8_t *dst, const int32_t dstride, int32x4_t *sum,
+static inline void mse_8xn_8bit_neon(const uint8_t **src, const uint8_t *dst, const int32_t dstride, int32x4_t *sum,
                                      uint8_t height, uint8_t subsampling_factor) {
     for (int32_t r = 0; r < height; r += 2 * subsampling_factor) {
         const int16x8_t s_16_0 = vreinterpretq_s16_u16(vmovl_u8((vld1_u8(*src + subsampling_factor * 8))));
@@ -163,7 +163,7 @@ static INLINE void mse_8xn_8bit_neon(const uint8_t **src, const uint8_t *dst, co
     }
 }
 
-static INLINE void mse_4x4_8bit_2x_subsampled_neon(const uint8_t **src, const uint8_t *dst, const int32_t dstride,
+static inline void mse_4x4_8bit_2x_subsampled_neon(const uint8_t **src, const uint8_t *dst, const int32_t dstride,
                                                    int32x4_t *sum) {
     const uint8x16_t s = vld1q_u8(*src);
 
@@ -259,7 +259,7 @@ uint64_t svt_aom_compute_cdef_dist_8bit_neon(const uint8_t *dst8, int32_t dstrid
     return sum >> 2 * coeff_shift;
 }
 
-static INLINE uint64_t dist_8xn_16bit_neon(const uint16_t **src, const uint16_t *dst, const int32_t dstride,
+static inline uint64_t dist_8xn_16bit_neon(const uint16_t **src, const uint16_t *dst, const int32_t dstride,
                                            const int32_t coeff_shift, uint8_t height, uint8_t subsampling_factor) {
     int16x8_t ss = vdupq_n_s16(0);
     int16x8_t dd = vdupq_n_s16(0);
@@ -328,7 +328,7 @@ static INLINE uint64_t dist_8xn_16bit_neon(const uint16_t **src, const uint16_t 
                                (sqrt((20000 << 4 * coeff_shift) + svar * (double)dvar)));
 }
 
-static INLINE void mse_8xn_16bit_neon(const uint16_t **src, const uint16_t *dst, const int32_t dstride, int32x4_t *sum,
+static inline void mse_8xn_16bit_neon(const uint16_t **src, const uint16_t *dst, const int32_t dstride, int32x4_t *sum,
                                       uint8_t height, uint8_t subsampling_factor) {
     for (int32_t r = 0; r < height; r += 2 * subsampling_factor) {
         const int16x8_t s0 = vld1q_s16(
@@ -352,7 +352,7 @@ static INLINE void mse_8xn_16bit_neon(const uint16_t **src, const uint16_t *dst,
     }
 }
 
-static INLINE void mse_4xn_16bit_neon(const uint16_t **src, const uint16_t *dst, const int32_t dstride, int32x4_t *sum,
+static inline void mse_4xn_16bit_neon(const uint16_t **src, const uint16_t *dst, const int32_t dstride, int32x4_t *sum,
                                       uint8_t height, uint8_t subsampling_factor) {
     for (int32_t r = 0; r < height; r += 4 * subsampling_factor) {
         const int64_t   s0_val[] = {*(uint64_t *)(*src + (1 * subsampling_factor) * 4), *(uint64_t *)(*src + 0 * 4)};
@@ -384,7 +384,7 @@ static INLINE void mse_4xn_16bit_neon(const uint16_t **src, const uint16_t *dst,
     }
 }
 
-static INLINE void mse_4x4_16bit_2x_subsampled_neon(const uint16_t **src, const uint16_t *dst, const int32_t dstride,
+static inline void mse_4x4_16bit_2x_subsampled_neon(const uint16_t **src, const uint16_t *dst, const int32_t dstride,
                                                     int32x4_t *sum) {
     const int16x8_t s0 = vld1q_s16((const int16_t *)*src);
     const int16x8_t s1 = vld1q_s16((const int16_t *)(*src + 8));

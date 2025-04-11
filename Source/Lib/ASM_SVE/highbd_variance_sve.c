@@ -15,7 +15,7 @@
 #include "mem_neon.h"
 #include "neon_sve_bridge.h"
 
-static INLINE void highbd_variance_4xh_sve(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
+static inline void highbd_variance_4xh_sve(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
                                            int ref_stride, int h, uint64_t *sse, int64_t *sum) {
     int16x8_t sum_s16 = vdupq_n_s16(0);
     int64x2_t sse_s64 = vdupq_n_s64(0);
@@ -38,7 +38,7 @@ static INLINE void highbd_variance_4xh_sve(const uint16_t *src_ptr, int src_stri
     *sse = vaddvq_s64(sse_s64);
 }
 
-static INLINE void variance_8x1_sve(const uint16_t *src, const uint16_t *ref, int32x4_t *sum, int64x2_t *sse) {
+static inline void variance_8x1_sve(const uint16_t *src, const uint16_t *ref, int32x4_t *sum, int64x2_t *sse) {
     const uint16x8_t s = vld1q_u16(src);
     const uint16x8_t r = vld1q_u16(ref);
 
@@ -48,7 +48,7 @@ static INLINE void variance_8x1_sve(const uint16_t *src, const uint16_t *ref, in
     *sse = svt_sdotq_s16(*sse, diff, diff);
 }
 
-static INLINE void highbd_variance_8xh_sve(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
+static inline void highbd_variance_8xh_sve(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
                                            int ref_stride, int h, uint64_t *sse, int64_t *sum) {
     int32x4_t sum_s32 = vdupq_n_s32(0);
     int64x2_t sse_s64 = vdupq_n_s64(0);
@@ -64,7 +64,7 @@ static INLINE void highbd_variance_8xh_sve(const uint16_t *src_ptr, int src_stri
     *sse = vaddvq_s64(sse_s64);
 }
 
-static INLINE void highbd_variance_16xh_sve(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
+static inline void highbd_variance_16xh_sve(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
                                             int ref_stride, int h, uint64_t *sse, int64_t *sum) {
     int32x4_t sum_s32[] = {vdupq_n_s32(0), vdupq_n_s32(0)};
     int64x2_t sse_s64[] = {vdupq_n_s64(0), vdupq_n_s64(0)};
@@ -81,7 +81,7 @@ static INLINE void highbd_variance_16xh_sve(const uint16_t *src_ptr, int src_str
     *sse = vaddvq_s64(vaddq_s64(sse_s64[0], sse_s64[1]));
 }
 
-static INLINE void highbd_variance_large_sve(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
+static inline void highbd_variance_large_sve(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,
                                              int ref_stride, int w, int h, uint64_t *sse, int64_t *sum) {
     int32x4_t sum_s32[] = {vdupq_n_s32(0), vdupq_n_s32(0), vdupq_n_s32(0), vdupq_n_s32(0)};
     int64x2_t sse_s64[] = {vdupq_n_s64(0), vdupq_n_s64(0), vdupq_n_s64(0), vdupq_n_s64(0)};
@@ -110,17 +110,17 @@ static INLINE void highbd_variance_large_sve(const uint16_t *src_ptr, int src_st
     *sse       = vaddvq_s64(vaddq_s64(sse_s64[0], sse_s64[2]));
 }
 
-static INLINE void highbd_variance_32xh_sve(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+static inline void highbd_variance_32xh_sve(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
                                             int h, uint64_t *sse, int64_t *sum) {
     highbd_variance_large_sve(src, src_stride, ref, ref_stride, 32, h, sse, sum);
 }
 
-static INLINE void highbd_variance_64xh_sve(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+static inline void highbd_variance_64xh_sve(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
                                             int h, uint64_t *sse, int64_t *sum) {
     highbd_variance_large_sve(src, src_stride, ref, ref_stride, 64, h, sse, sum);
 }
 
-static INLINE void highbd_variance_128xh_sve(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
+static inline void highbd_variance_128xh_sve(const uint16_t *src, int src_stride, const uint16_t *ref, int ref_stride,
                                              int h, uint64_t *sse, int64_t *sum) {
     highbd_variance_large_sve(src, src_stride, ref, ref_stride, 128, h, sse, sum);
 }

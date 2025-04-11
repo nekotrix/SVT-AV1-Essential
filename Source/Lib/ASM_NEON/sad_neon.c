@@ -106,12 +106,10 @@ void svt_ext_sad_calculation_8x8_16x16_neon_intrin(uint8_t *src, uint32_t src_st
 /*******************************************
  * svt_ext_eight_sad_calculation_8x8_16x16_neon
  *******************************************/
-static void svt_ext_eight_sad_calculation_8x8_16x16_neon(uint8_t *src, uint32_t src_stride, uint8_t *ref,
-                                                         uint32_t ref_stride, uint32_t mv, uint32_t start_16x16_pos,
-                                                         uint32_t *p_best_sad_8x8, uint32_t *p_best_sad_16x16,
-                                                         uint32_t *p_best_mv8x8, uint32_t *p_best_mv16x16,
-                                                         uint32_t p_eight_sad16x16[16][8],
-                                                         uint32_t p_eight_sad8x8[64][8], bool sub_sad) {
+static inline void svt_ext_eight_sad_calculation_8x8_16x16_neon(
+    uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride, uint32_t mv, uint32_t start_16x16_pos,
+    uint32_t *p_best_sad_8x8, uint32_t *p_best_sad_16x16, uint32_t *p_best_mv8x8, uint32_t *p_best_mv16x16,
+    uint32_t p_eight_sad16x16[16][8], uint32_t p_eight_sad8x8[64][8], bool sub_sad) {
     (void)p_eight_sad8x8;
     const uint32_t start_8x8_pos = 4 * start_16x16_pos;
 

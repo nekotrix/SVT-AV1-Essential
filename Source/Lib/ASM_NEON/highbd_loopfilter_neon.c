@@ -16,11 +16,11 @@
 #include "mem_neon.h"
 #include "transpose_neon.h"
 
-static INLINE int16x4_t clip3_s16(const int16x4_t val, const int16x4_t low, const int16x4_t high) {
+static inline int16x4_t clip3_s16(const int16x4_t val, const int16x4_t low, const int16x4_t high) {
     return vmin_s16(vmax_s16(val, low), high);
 }
 
-static INLINE uint16x8_t convert_to_unsigned_pixel_u16(int16x8_t val, int bitdepth) {
+static inline uint16x8_t convert_to_unsigned_pixel_u16(int16x8_t val, int bitdepth) {
     const int16x8_t  low  = vdupq_n_s16(0);
     const uint16x8_t high = vdupq_n_u16((1 << bitdepth) - 1);
 
@@ -28,13 +28,13 @@ static INLINE uint16x8_t convert_to_unsigned_pixel_u16(int16x8_t val, int bitdep
 }
 
 // (abs(p1 - p0) > thresh) || (abs(q1 - q0) > thresh)
-static INLINE uint16x4_t hev(const uint16x8_t abd_p0p1_q0q1, const uint16_t thresh) {
+static inline uint16x4_t hev(const uint16x8_t abd_p0p1_q0q1, const uint16_t thresh) {
     const uint16x8_t a = vcgtq_u16(abd_p0p1_q0q1, vdupq_n_u16(thresh));
     return vorr_u16(vget_low_u16(a), vget_high_u16(a));
 }
 
 // abs(p0 - q0) * 2 + abs(p1 - q1) / 2 <= outer_thresh
-static INLINE uint16x4_t outer_threshold(const uint16x4_t p1, const uint16x4_t p0, const uint16x4_t q0,
+static inline uint16x4_t outer_threshold(const uint16x4_t p1, const uint16x4_t p0, const uint16x4_t q0,
                                          const uint16x4_t q1, const uint16_t outer_thresh) {
     const uint16x4_t abd_p0q0    = vabd_u16(p0, q0);
     const uint16x4_t abd_p1q1    = vabd_u16(p1, q1);
@@ -46,14 +46,14 @@ static INLINE uint16x4_t outer_threshold(const uint16x4_t p1, const uint16x4_t p
 
 // abs(p1 - p0) <= inner_thresh && abs(q1 - q0) <= inner_thresh &&
 //   outer_threshold()
-static INLINE uint16x4_t needs_filter4(const uint16x8_t abd_p0p1_q0q1, const uint16_t inner_thresh,
+static inline uint16x4_t needs_filter4(const uint16x8_t abd_p0p1_q0q1, const uint16_t inner_thresh,
                                        const uint16x4_t outer_mask) {
     const uint16x8_t a          = vcleq_u16(abd_p0p1_q0q1, vdupq_n_u16(inner_thresh));
     const uint16x4_t inner_mask = vand_u16(vget_low_u16(a), vget_high_u16(a));
     return vand_u16(inner_mask, outer_mask);
 }
 
-static INLINE void filter4_masks(const uint16x8_t p0q0, const uint16x8_t p1q1, const uint16_t hev_thresh,
+static inline void filter4_masks(const uint16x8_t p0q0, const uint16x8_t p1q1, const uint16_t hev_thresh,
                                  const uint16x4_t outer_mask, const uint16_t inner_thresh, uint16x4_t *const hev_mask,
                                  uint16x4_t *const needs_filter4_mask) {
     const uint16x8_t p0p1_q0q1 = vabdq_u16(p0q0, p1q1);
@@ -67,7 +67,7 @@ static INLINE void filter4_masks(const uint16x8_t p0q0, const uint16x8_t p1q1, c
     *hev_mask = vand_u16(hev_tmp_mask, *needs_filter4_mask);
 }
 
-static INLINE void filter4(const uint16x8_t p0q0, const uint16x8_t p0q1, const uint16x8_t p1q1,
+static inline void filter4(const uint16x8_t p0q0, const uint16x8_t p0q1, const uint16x8_t p1q1,
                            const uint16x4_t hev_mask, int bitdepth, uint16x8_t *const p1q1_result,
                            uint16x8_t *const p0q0_result) {
     const uint16x8_t q0p1 = vextq_u16(p0q0, p1q1, 4);
@@ -206,7 +206,7 @@ void svt_aom_highbd_lpf_vertical_4_neon(uint16_t *s, int pitch, const uint8_t *b
 // abs(p1 - p0) <= flat_thresh && abs(q1 - q0) <= flat_thresh &&
 //   abs(p2 - p0) <= flat_thresh && abs(q2 - q0) <= flat_thresh
 // |flat_thresh| == 4 for 10 bit decode.
-static INLINE uint16x4_t is_flat3(const uint16x8_t abd_p0p1_q0q1, const uint16x8_t abd_p0p2_q0q2, const int bitdepth) {
+static inline uint16x4_t is_flat3(const uint16x8_t abd_p0p1_q0q1, const uint16x8_t abd_p0p2_q0q2, const int bitdepth) {
     const int        flat_thresh = 1 << (bitdepth - 8);
     const uint16x8_t a           = vmaxq_u16(abd_p0p1_q0q1, abd_p0p2_q0q2);
     const uint16x8_t b           = vcleq_u16(a, vdupq_n_u16(flat_thresh));
@@ -216,7 +216,7 @@ static INLINE uint16x4_t is_flat3(const uint16x8_t abd_p0p1_q0q1, const uint16x8
 // abs(p2 - p1) <= inner_thresh && abs(p1 - p0) <= inner_thresh &&
 //   abs(q1 - q0) <= inner_thresh && abs(q2 - q1) <= inner_thresh &&
 //   outer_threshold()
-static INLINE uint16x4_t needs_filter6(const uint16x8_t abd_p0p1_q0q1, const uint16x8_t abd_p1p2_q1q2,
+static inline uint16x4_t needs_filter6(const uint16x8_t abd_p0p1_q0q1, const uint16x8_t abd_p1p2_q1q2,
                                        const uint16_t inner_thresh, const uint16x4_t outer_mask) {
     const uint16x8_t a          = vmaxq_u16(abd_p0p1_q0q1, abd_p1p2_q1q2);
     const uint16x8_t b          = vcleq_u16(a, vdupq_n_u16(inner_thresh));
@@ -224,7 +224,7 @@ static INLINE uint16x4_t needs_filter6(const uint16x8_t abd_p0p1_q0q1, const uin
     return vand_u16(inner_mask, outer_mask);
 }
 
-static INLINE void filter6_masks(const uint16x8_t p2q2, const uint16x8_t p1q1, const uint16x8_t p0q0,
+static inline void filter6_masks(const uint16x8_t p2q2, const uint16x8_t p1q1, const uint16x8_t p0q0,
                                  const uint16_t hev_thresh, const uint16x4_t outer_mask, const uint16_t inner_thresh,
                                  const int bitdepth, uint16x4_t *const needs_filter6_mask,
                                  uint16x4_t *const is_flat3_mask, uint16x4_t *const hev_mask) {
@@ -234,7 +234,7 @@ static INLINE void filter6_masks(const uint16x8_t p2q2, const uint16x8_t p1q1, c
     *needs_filter6_mask            = needs_filter6(abd_p0p1_q0q1, vabdq_u16(p1q1, p2q2), inner_thresh, outer_mask);
 }
 
-static INLINE void filter6(const uint16x8_t p2q2, const uint16x8_t p1q1, const uint16x8_t p0q0,
+static inline void filter6(const uint16x8_t p2q2, const uint16x8_t p1q1, const uint16x8_t p0q0,
                            uint16x8_t *const p1q1_output, uint16x8_t *const p0q0_output) {
     // Sum p1 and q1 output from opposite directions.
     // The formula is regrouped to allow 3 doubling operations to be combined.
@@ -436,7 +436,7 @@ void svt_aom_highbd_lpf_vertical_6_neon(uint16_t *s, int pitch, const uint8_t *b
 //   abs(p1 - p0) <= inner_thresh && abs(q1 - q0) <= inner_thresh &&
 //   abs(q2 - q1) <= inner_thresh && abs(q3 - q2) <= inner_thresh
 //   outer_threshold()
-static INLINE uint16x4_t needs_filter8(const uint16x8_t abd_p0p1_q0q1, const uint16x8_t abd_p1p2_q1q2,
+static inline uint16x4_t needs_filter8(const uint16x8_t abd_p0p1_q0q1, const uint16x8_t abd_p1p2_q1q2,
                                        const uint16x8_t abd_p2p3_q2q3, const uint16_t inner_thresh,
                                        const uint16x4_t outer_mask) {
     const uint16x8_t a          = vmaxq_u16(abd_p0p1_q0q1, abd_p1p2_q1q2);
@@ -451,7 +451,7 @@ static INLINE uint16x4_t needs_filter8(const uint16x8_t abd_p0p1_q0q1, const uin
 //   abs(p[N+1] - p0) <= flat_thresh && abs(q[N+1] - q0) <= flat_thresh &&
 //   abs(p[N+2] - p0) <= flat_thresh && abs(q[N+1] - q0) <= flat_thresh
 // |flat_thresh| == 4 for 10 bit decode.
-static INLINE uint16x4_t is_flat4(const uint16x8_t abd_pnp0_qnq0, const uint16x8_t abd_pn1p0_qn1q0,
+static inline uint16x4_t is_flat4(const uint16x8_t abd_pnp0_qnq0, const uint16x8_t abd_pn1p0_qn1q0,
                                   const uint16x8_t abd_pn2p0_qn2q0, const int bitdepth) {
     const int        flat_thresh = 1 << (bitdepth - 8);
     const uint16x8_t a           = vmaxq_u16(abd_pnp0_qnq0, abd_pn1p0_qn1q0);
@@ -460,7 +460,7 @@ static INLINE uint16x4_t is_flat4(const uint16x8_t abd_pnp0_qnq0, const uint16x8
     return vand_u16(vget_low_u16(c), vget_high_u16(c));
 }
 
-static INLINE void filter8_masks(const uint16x8_t p3q3, const uint16x8_t p2q2, const uint16x8_t p1q1,
+static inline void filter8_masks(const uint16x8_t p3q3, const uint16x8_t p2q2, const uint16x8_t p1q1,
                                  const uint16x8_t p0q0, const uint16_t hev_thresh, const uint16x4_t outer_mask,
                                  const uint16_t inner_thresh, const int bitdepth, uint16x4_t *const needs_filter8_mask,
                                  uint16x4_t *const is_flat4_mask, uint16x4_t *const hev_mask) {
@@ -477,7 +477,7 @@ static INLINE void filter8_masks(const uint16x8_t p3q3, const uint16x8_t p2q2, c
     *is_flat4_mask = vand_u16(v_is_flat4, *needs_filter8_mask);
 }
 
-static INLINE void filter8(const uint16x8_t p3q3, const uint16x8_t p2q2, const uint16x8_t p1q1, const uint16x8_t p0q0,
+static inline void filter8(const uint16x8_t p3q3, const uint16x8_t p2q2, const uint16x8_t p1q1, const uint16x8_t p0q0,
                            uint16x8_t *const p2q2_output, uint16x8_t *const p1q1_output,
                            uint16x8_t *const p0q0_output) {
     // Sum p2 and q2 output from opposite directions.
@@ -616,7 +616,7 @@ void svt_aom_highbd_lpf_horizontal_8_neon(uint16_t *s, int pitch, const uint8_t 
 
 static const uint8_t rev_low_half_tbl[16] = {6, 7, 4, 5, 2, 3, 0, 1, 8, 9, 10, 11, 12, 13, 14, 15};
 
-static INLINE uint16x8_t reverse_low_half(const uint16x8_t a) {
+static inline uint16x8_t reverse_low_half(const uint16x8_t a) {
     uint8x16_t idx = vld1q_u8(rev_low_half_tbl);
     return vreinterpretq_u16_u8(vqtbl1q_u8(vreinterpretq_u8_u16(a), idx));
 }
@@ -720,7 +720,7 @@ void svt_aom_highbd_lpf_vertical_8_neon(uint16_t *s, int pitch, const uint8_t *b
                   reverse_low_half(output[3]));
 }
 
-static INLINE void filter14(const uint16x8_t p6q6, const uint16x8_t p5q5, const uint16x8_t p4q4, const uint16x8_t p3q3,
+static inline void filter14(const uint16x8_t p6q6, const uint16x8_t p5q5, const uint16x8_t p4q4, const uint16x8_t p3q3,
                             const uint16x8_t p2q2, const uint16x8_t p1q1, const uint16x8_t p0q0,
                             uint16x8_t *const p5q5_output, uint16x8_t *const p4q4_output, uint16x8_t *const p3q3_output,
                             uint16x8_t *const p2q2_output, uint16x8_t *const p1q1_output,
@@ -973,7 +973,7 @@ void svt_aom_highbd_lpf_horizontal_14_neon(uint16_t *s, int pitch, const uint8_t
                    vget_high_u16(p5q5_output));
 }
 
-static INLINE uint16x8x2_t permute_acdb64(const uint16x8_t ab, const uint16x8_t cd) {
+static inline uint16x8x2_t permute_acdb64(const uint16x8_t ab, const uint16x8_t cd) {
     uint16x8x2_t acdb;
     // ab cd -> ac
     acdb.val[0] = vreinterpretq_u16_u64(vtrn1q_u64(vreinterpretq_u64_u16(ab), vreinterpretq_u64_u16(cd)));

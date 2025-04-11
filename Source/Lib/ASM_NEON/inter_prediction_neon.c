@@ -19,7 +19,7 @@
 #include "mem_neon.h"
 #include "utility.h"
 
-static INLINE void diffwtd_mask_d16_neon(uint8_t *mask, const bool inverse, const CONV_BUF_TYPE *src0, int src0_stride,
+static inline void diffwtd_mask_d16_neon(uint8_t *mask, const bool inverse, const CONV_BUF_TYPE *src0, int src0_stride,
                                          const CONV_BUF_TYPE *src1, int src1_stride, int h, int w, int bd) {
     const int       round     = 2 * FILTER_BITS - ROUND0_BITS - COMPOUND_ROUND1_BITS + (bd - 8);
     const int16x8_t round_vec = vdupq_n_s16((int16_t)(-round));
@@ -116,7 +116,7 @@ void svt_av1_build_compound_diffwtd_mask_d16_neon(uint8_t *mask, DIFFWTD_MASK_TY
     }
 }
 
-static INLINE void diffwtd_mask_neon(uint8_t *mask, const bool inverse, const uint8_t *src0, int src0_stride,
+static inline void diffwtd_mask_neon(uint8_t *mask, const bool inverse, const uint8_t *src0, int src0_stride,
                                      const uint8_t *src1, int src1_stride, int h, int w) {
     if (w >= 16) {
         int i = 0;
@@ -212,7 +212,7 @@ DECLARE_ALIGNED(16, static const uint8_t, obmc_variance_permute_idx[]) = {
 };
 // clang-format on
 
-static INLINE void weighted_pred_left_neon(int32_t *wsrc_ptr, int32_t *mask_ptr, int32x4_t tmp_lo, int32x4_t tmp_hi,
+static inline void weighted_pred_left_neon(int32_t *wsrc_ptr, int32_t *mask_ptr, int32x4_t tmp_lo, int32x4_t tmp_hi,
                                            int32x4_t m0_lo, int32x4_t m0_hi, int32x4_t m1_lo, int32x4_t m1_hi,
                                            int stride) {
     int32x4_t wsrc_lo_s32 = vld1q_s32(wsrc_ptr);

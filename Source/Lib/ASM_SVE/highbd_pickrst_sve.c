@@ -24,7 +24,7 @@
 #include "transpose_neon.h"
 #include "utility.h"
 
-static INLINE uint16_t highbd_find_average_sve(const uint16_t *src, int src_stride, int width, int height) {
+static inline uint16_t highbd_find_average_sve(const uint16_t *src, int src_stride, int width, int height) {
     uint64x2_t avg_u64 = vdupq_n_u64(0);
     uint16x8_t ones    = vdupq_n_u16(1);
 
@@ -50,7 +50,7 @@ static INLINE uint16_t highbd_find_average_sve(const uint16_t *src, int src_stri
     return (uint16_t)(vaddvq_u64(avg_u64) / (width * height));
 }
 
-static INLINE void sub_avg_block_highbd_sve(const uint16_t *buf, int buf_stride, int16_t avg, int width, int height,
+static inline void sub_avg_block_highbd_sve(const uint16_t *buf, int buf_stride, int16_t avg, int width, int height,
                                             int16_t *buf_avg, int buf_avg_stride) {
     uint16x8_t avg_u16 = vdupq_n_u16(avg);
 

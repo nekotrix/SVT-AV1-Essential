@@ -14,7 +14,7 @@
 #include "common_dsp_rtcd.h"
 #include "definitions.h"
 
-static INLINE uint64_t svt_aom_sum_squares_i16_4xn_neon(const int16_t *src, uint32_t n) {
+static inline uint64_t svt_aom_sum_squares_i16_4xn_neon(const int16_t *src, uint32_t n) {
     uint64x2_t sum_u64 = vdupq_n_u64(0);
 
     do {
@@ -30,7 +30,7 @@ static INLINE uint64_t svt_aom_sum_squares_i16_4xn_neon(const int16_t *src, uint
     return vaddvq_u64(sum_u64);
 }
 
-static INLINE uint64_t svt_aom_sum_squares_i16_8xn_neon(const int16_t *src, uint32_t n) {
+static inline uint64_t svt_aom_sum_squares_i16_8xn_neon(const int16_t *src, uint32_t n) {
     uint64x2_t sum_u64[2] = {vdupq_n_u64(0), vdupq_n_u64(0)};
 
     do {

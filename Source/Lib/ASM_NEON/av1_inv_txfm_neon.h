@@ -14,19 +14,19 @@
 
 #include "definitions.h"
 
-static INLINE void lowbd_inv_txfm2d_add_idtx_neon(const int32_t *input, uint8_t *output_r, int32_t stride_r,
+static inline void lowbd_inv_txfm2d_add_idtx_neon(const int32_t *input, uint8_t *output_r, int32_t stride_r,
                                                   uint8_t *output_w, int32_t stride_w, TxType tx_type, TxSize tx_size,
                                                   int32_t eob);
 
-static INLINE void lowbd_inv_txfm2d_add_v_identity_neon(const int32_t *input, uint8_t *output_r, int32_t stride_r,
+static inline void lowbd_inv_txfm2d_add_v_identity_neon(const int32_t *input, uint8_t *output_r, int32_t stride_r,
                                                         uint8_t *output_w, int32_t stride_w, TxType tx_type,
                                                         TxSize tx_size, int32_t eob);
 
-static INLINE void lowbd_inv_txfm2d_add_h_identity_neon(const int32_t *input, uint8_t *output_r, int32_t stride_r,
+static inline void lowbd_inv_txfm2d_add_h_identity_neon(const int32_t *input, uint8_t *output_r, int32_t stride_r,
                                                         uint8_t *output_w, int32_t stride_w, TxType tx_type,
                                                         TxSize tx_size, int32_t eob);
 
-static INLINE void lowbd_inv_txfm2d_add_no_identity_neon(const int32_t *input, uint8_t *output_r, int32_t stride_r,
+static inline void lowbd_inv_txfm2d_add_no_identity_neon(const int32_t *input, uint8_t *output_r, int32_t stride_r,
                                                          uint8_t *output_w, int32_t stride_w, TxType tx_type,
                                                          TxSize tx_size, int32_t eob);
 

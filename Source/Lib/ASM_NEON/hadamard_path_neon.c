@@ -17,7 +17,7 @@
 #include "mem_neon.h"
 #include "transpose_neon.h"
 
-static INLINE void hadamard8x8_one_pass(int16x8_t *a) {
+static inline void hadamard8x8_one_pass(int16x8_t *a) {
     const int16x8_t b0 = vaddq_s16(a[0], a[1]);
     const int16x8_t b1 = vsubq_s16(a[0], a[1]);
     const int16x8_t b2 = vaddq_s16(a[2], a[3]);

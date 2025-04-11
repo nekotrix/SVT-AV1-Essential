@@ -14,7 +14,7 @@
 
 #include <arm_neon.h>
 
-static INLINE void energy_computation_kernel_neon(const int32_t *const in, int64x2_t *const sum0,
+static inline void energy_computation_kernel_neon(const int32_t *const in, int64x2_t *const sum0,
                                                   int64x2_t *const sum1) {
     const int32x4_t input0 = vld1q_s32(in);
     const int32x4_t input1 = vld1q_s32(in + 4);
@@ -24,7 +24,7 @@ static INLINE void energy_computation_kernel_neon(const int32_t *const in, int64
     *sum1                  = vmlal_s32(*sum1, vget_high_s32(input1), vget_high_s32(input1));
 }
 
-static INLINE uint64_t energy_computation_wxh_neon(const int32_t *in, const int stride, uint32_t width,
+static inline uint64_t energy_computation_wxh_neon(const int32_t *in, const int stride, uint32_t width,
                                                    uint32_t height) {
     int64x2_t sum0 = vdupq_n_s64(0);
     int64x2_t sum1 = vdupq_n_s64(0);

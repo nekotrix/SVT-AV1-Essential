@@ -14,23 +14,23 @@
 
 #include <arm_neon.h>
 
-static INLINE uint32x4_t horizontal_add_4d_u32x4(const uint32x4_t sum[4]) {
+static inline uint32x4_t horizontal_add_4d_u32x4(const uint32x4_t sum[4]) {
     uint32x4_t res01 = vpaddq_u32(sum[0], sum[1]);
     uint32x4_t res23 = vpaddq_u32(sum[2], sum[3]);
     return vpaddq_u32(res01, res23);
 }
 
-static INLINE int32x4_t horizontal_add_4d_s32x4(const int32x4_t sum[4]) {
+static inline int32x4_t horizontal_add_4d_s32x4(const int32x4_t sum[4]) {
     int32x4_t res01 = vpaddq_s32(sum[0], sum[1]);
     int32x4_t res23 = vpaddq_s32(sum[2], sum[3]);
     return vpaddq_s32(res01, res23);
 }
 
-static INLINE uint32_t horizontal_long_add_u16x8(const uint16x8_t vec_lo, const uint16x8_t vec_hi) {
+static inline uint32_t horizontal_long_add_u16x8(const uint16x8_t vec_lo, const uint16x8_t vec_hi) {
     return vaddlvq_u16(vec_lo) + vaddlvq_u16(vec_hi);
 }
 
-static INLINE uint32x4_t horizontal_long_add_4d_u16x8(const uint16x8_t sum_lo[4], const uint16x8_t sum_hi[4]) {
+static inline uint32x4_t horizontal_long_add_4d_u16x8(const uint16x8_t sum_lo[4], const uint16x8_t sum_hi[4]) {
     const uint32x4_t a0 = vpaddlq_u16(sum_lo[0]);
     const uint32x4_t a1 = vpaddlq_u16(sum_lo[1]);
     const uint32x4_t a2 = vpaddlq_u16(sum_lo[2]);
@@ -44,25 +44,25 @@ static INLINE uint32x4_t horizontal_long_add_4d_u16x8(const uint16x8_t sum_lo[4]
     return vpaddq_u32(c0, c1);
 }
 
-static INLINE uint32x4_t horizontal_add_4d_u16x8(const uint16x8_t sum[4]) {
+static inline uint32x4_t horizontal_add_4d_u16x8(const uint16x8_t sum[4]) {
     const uint16x8_t a0 = vpaddq_u16(sum[0], sum[1]);
     const uint16x8_t a1 = vpaddq_u16(sum[2], sum[3]);
     const uint16x8_t b0 = vpaddq_u16(a0, a1);
     return vpaddlq_u16(b0);
 }
 
-static INLINE int32x4_t horizontal_add_4d_s16x8(const int16x8_t sum[4]) {
+static inline int32x4_t horizontal_add_4d_s16x8(const int16x8_t sum[4]) {
     const int16x8_t a0 = vpaddq_s16(sum[0], sum[1]);
     const int16x8_t a1 = vpaddq_s16(sum[2], sum[3]);
     const int16x8_t b0 = vpaddq_s16(a0, a1);
     return vpaddlq_s16(b0);
 }
 
-static INLINE uint64_t horizontal_long_add_u32x4_x2(const uint32x4_t a[2]) {
+static inline uint64_t horizontal_long_add_u32x4_x2(const uint32x4_t a[2]) {
     return vaddlvq_u32(a[0]) + vaddlvq_u32(a[1]);
 }
 
-static INLINE uint64_t horizontal_long_add_u32x4_x4(const uint32x4_t a[4]) {
+static inline uint64_t horizontal_long_add_u32x4_x4(const uint32x4_t a[4]) {
     uint64x2_t sum = vpaddlq_u32(a[0]);
     sum            = vpadalq_u32(sum, a[1]);
     sum            = vpadalq_u32(sum, a[2]);
@@ -71,7 +71,7 @@ static INLINE uint64_t horizontal_long_add_u32x4_x4(const uint32x4_t a[4]) {
     return vaddvq_u64(sum);
 }
 
-static INLINE uint64_t horizontal_long_add_u32x4_x8(const uint32x4_t a[8]) {
+static inline uint64_t horizontal_long_add_u32x4_x8(const uint32x4_t a[8]) {
     uint64x2_t sum[2];
     sum[0] = vpaddlq_u32(a[0]);
     sum[1] = vpaddlq_u32(a[1]);
