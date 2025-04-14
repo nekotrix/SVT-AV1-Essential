@@ -1125,7 +1125,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Combine(
         ::testing::ValuesIn(TEST_PATTERNS),
         ::testing::ValuesIn(TEST_SAD_PATTERNS),
-        ::testing::Values(svt_ext_sad_calculation_8x8_16x16_neon_intrin)));
+        ::testing::Values(svt_ext_sad_calculation_8x8_16x16_neon)));
 
 #if HAVE_NEON_DOTPROD
 INSTANTIATE_TEST_SUITE_P(

@@ -60,10 +60,10 @@ Calculate SAD for 16x16 and its 8x8 sublcoks
 and check if there is improvment, if yes keep
 the best SAD+MV
 *******************************************/
-void svt_ext_sad_calculation_8x8_16x16_neon_intrin(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
-                                                   uint32_t *p_best_sad_8x8, uint32_t *p_best_sad_16x16,
-                                                   uint32_t *p_best_mv8x8, uint32_t *p_best_mv16x16, uint32_t mv,
-                                                   uint32_t *p_sad16x16, uint32_t *p_sad8x8, bool sub_sad) {
+void svt_ext_sad_calculation_8x8_16x16_neon(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
+                                            uint32_t *p_best_sad_8x8, uint32_t *p_best_sad_16x16,
+                                            uint32_t *p_best_mv8x8, uint32_t *p_best_mv16x16, uint32_t mv,
+                                            uint32_t *p_sad16x16, uint32_t *p_sad8x8, bool sub_sad) {
     uint32_t   sad16x16;
     uint32x4_t sad;
     uint32x4_t best_sad_vec = vld1q_u32(p_best_sad_8x8);
