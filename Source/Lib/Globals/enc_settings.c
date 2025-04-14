@@ -832,12 +832,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     }
 
     if (config->variance_boost_strength < 1 || config->variance_boost_strength > 4) {
-        SVT_ERROR("Instance %u: Variance boost strength must be between 1 and 4\n", channel_number + 1);
+        SVT_ERROR("Instance %u: Variance Boost strength must be between 1 and 4\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
 
     if (config->variance_octile < 1 || config->variance_octile > 8) {
-        SVT_ERROR("Instance %u: Variance boost octile must be between 1 and 8\n", channel_number + 1);
+        SVT_ERROR("Instance %u: Variance Boost octile must be between 1 and 8\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
 
@@ -847,7 +847,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     }
 
     if (config->variance_boost_curve > 2) {
-        SVT_ERROR("Instance %u: Variance boost curve must be between 0 and 2\n", channel_number + 1);
+        SVT_ERROR("Instance %u: Variance Boost curve must be between 0 and 2\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
 
@@ -1108,11 +1108,11 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
         }
         if (config->rate_control_mode != SVT_AV1_RC_MODE_CBR) {
             if (!config->enable_variance_boost) {
-                SVT_INFO("SVT [config]: AQ mode / variance boost \t\t\t\t\t: %d / %d\n",
+                SVT_INFO("SVT [config]: AQ mode / Variance Boost \t\t\t\t\t: %d / %d\n",
                          config->enable_adaptive_quantization,
                          config->enable_variance_boost);
             } else {
-                SVT_INFO("SVT [config]: AQ mode / variance boost strength / octile / curve \t\t: %d / %d / %d / %d\n",
+                SVT_INFO("SVT [config]: AQ mode / Variance Boost strength / octile / curve \t\t: %d / %d / %d / %d\n",
                          config->enable_adaptive_quantization,
                          config->variance_boost_strength,
                          config->variance_octile,

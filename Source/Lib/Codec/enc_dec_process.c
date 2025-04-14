@@ -2716,7 +2716,7 @@ static void recode_loop_decision_maker(PictureControlSet *pcs, SequenceControlSe
         }
 
         // adjust SB qindex based on variance
-        // note: do not enable variance boost for CBR rate control mode
+        // note: do not enable Variance Boost for CBR rate control mode
         if (scs->static_config.enable_variance_boost && scs->static_config.rate_control_mode != SVT_AV1_RC_MODE_CBR) {
             svt_variance_adjust_qp(pcs);
         }

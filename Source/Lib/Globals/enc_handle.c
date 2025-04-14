@@ -3972,14 +3972,14 @@ static void set_param_based_on_input(SequenceControlSet *scs)
 
     if (scs->static_config.enable_variance_boost && scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR) {
         scs->static_config.enable_variance_boost = false;
-        SVT_WARN("Variance boost is incompatible with CBR rate control, disabling variance boost\n");
+        SVT_WARN("Variance Boost is incompatible with CBR rate control, disabling Variance Boost\n");
     }
     if (scs->static_config.enable_variance_boost && scs->static_config.enable_adaptive_quantization == 1) {
         scs->static_config.enable_variance_boost = false;
-        SVT_WARN("Variance AQ based on segmentation with variance boost not supported, disabling variance boost\n");
+        SVT_WARN("Variance AQ based on segmentation with Variance Boost not supported, disabling Variance Boost\n");
     }
     if (scs->static_config.variance_boost_strength >= 4) {
-        SVT_WARN("Aggressive variance boost strength used. This is a curve that's only useful under specific situations. Use with caution!\n");
+        SVT_WARN("Aggressive Variance Boost strength used. This is a curve that's only useful under specific situations. Use with caution!\n");
     }
     if (scs->static_config.intra_refresh_type == SVT_AV1_FWDKF_REFRESH && scs->static_config.hierarchical_levels != 4){
         scs->static_config.hierarchical_levels = 4;

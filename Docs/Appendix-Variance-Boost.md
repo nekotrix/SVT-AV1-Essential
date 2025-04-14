@@ -4,7 +4,7 @@
 
 ## Overview
 
-Variance boost is a Variance-based Adaptive Quantization (VAQ) implementation for SVT-AV1 that addresses inadequate quantization in low-contrast areas. It accomplishes this by "boosting" the quality (decreasing the qindex) of superblocks (64x64 pixel regions) that have lower variance, which helps increase the consistency of:
+Variance Boost is a Variance-based Adaptive Quantization (VAQ) implementation for SVT-AV1 that addresses inadequate quantization in low-contrast areas. It accomplishes this by "boosting" the quality (decreasing the qindex) of superblocks (64x64 pixel regions) that have lower variance, which helps increase the consistency of:
 
 - **Low-contrast areas**: clouds, skin, and delicate textures
 - **Low-contrast scenes**: night, foggy, and overexposed shots
@@ -20,17 +20,17 @@ All of the aforementioned artifacts are shown in the example below, which displa
 | ![novb](./img/vb_rock_novb_qp50.png)     | ![vb](./img/vb_rock_vb_qp53.png)  |
 | 22,848 bytes                             | 22,352 bytes                      |
 
-Through this example, we can observe that the quality appears uneven without variance boost. The high-contrast left side of the image retains detail with minimal artifacting, but as the image moves across the low-contrast right side, visual quality progressively worsens until there are no recognizable features left. The texture is distorted into low-frequency basis patterns and solid blocks on the right side.
+Through this example, we can observe that the quality appears uneven without Variance Boost. The high-contrast left side of the image retains detail with minimal artifacting, but as the image moves across the low-contrast right side, visual quality progressively worsens until there are no recognizable features left. The texture is distorted into low-frequency basis patterns and solid blocks on the right side.
 
-The image encoded with variance boost has significantly more balanced visual energy. Rock features remain consistent throughout the image, independent of contrast. Variance boost allows for a smarter allocation of bits. The image size is also a bit smaller (97.8% of the size of the fixed QP image).
+The image encoded with Variance Boost has significantly more balanced visual energy. Rock features remain consistent throughout the image, independent of contrast. Variance Boost allows for a smarter allocation of bits. The image size is also a bit smaller (97.8% of the size of the fixed QP image).
 
-**Note:** The example images were transcoded to lossy (dithered) PNG format from their original AVIFs for markdown viewer compatibility and file size reasons. This process has not compromised the positive effects of variance boost in any way.
+**Note:** The example images were transcoded to lossy (dithered) PNG format from their original AVIFs for markdown viewer compatibility and file size reasons. This process has not compromised the positive effects of Variance Boost in any way.
 
 ## Parameters
 
 ### `--enable-variance-boost [0-1]`
 
-Enables variance boost, the feature described in this document.
+Enables Variance Boost, the feature described in this document.
 
 ### `--variance-boost-strength [1-4]`
 
@@ -74,10 +74,10 @@ The default value is 6. Recommended values are between 4 and 7.
 
 |Image|Description|
 |-|-|
-|![orig](./img/vb_rock_sb_orig.png)  | 1. Variance boost (`svt_variance_adjust_qp()`) loops over all 64x64 superblocks; first horizontally, then vertically. |
+|![orig](./img/vb_rock_sb_orig.png)  | 1. Variance Boost (`svt_variance_adjust_qp()`) loops over all 64x64 superblocks; first horizontally, then vertically. |
 |![grid](./img/vb_rock_sb_grid.png)  | 2. The algorithm then splits each superblock into 8x8 subblocks and calculates the variance of each one of them, receiving 64 values in total. |
-|![var](./img/vb_rock_sb_var.png)    | 3. Each subblock's variance correlates to how much contrast there is for that area. Lower values equate to less contrast, and any value below 256 is considered *low variance*. In the superblock pictured, more than half of its subblocks are considered low variance.  |
-|![ord](./img/vb_rock_sb_var_ord.png)| 4. In `av1_get_deltaq_sb_variance_boost()`, these values are then ranked from lowest to highest variance. Then, one of these values is picked at the specified octile; in this case, octile 4 (the value at the end of the 4th row highlighted in magenta). |
+|![var](./img/vb_rock_sb_var.png)    | 3. Each subblock's variance correlates to how much contrast there is for that area. Lower values equate to less contrast, and any value below 256 (for curves 0 and 1), or 1024 (for curve 2) is considered *low variance*. In the superblock pictured, more than half of its subblocks are considered low variance when using curve 0.  |
+|![ord](./img/vb_rock_sb_var_ord.png)| 4. In `av1_get_deltaq_sb_variance_boost()`, these values are then ranked from lowest to highest variance. Then, three of these values are picked and averaged in a 1:2:1 ratio; in this case, octiles 3, 4, and 5 (i.e. the values at the end of the 3rd, 4th, and 5th row highlighted in magenta). |
 |![strength](./img/vb_strength.png)  | 5. This value is plugged into one of the four boost formulas, which then outputs a delta-q offset. More aggressive curves result in bigger offsets and thus bigger resulting adjustments. Quantization index boosts can range from 0 (for high variance areas) to 80 (for very low variance areas). |
 |![enc](./img/vb_rock_sb_enc.png)    | 6. Finally, the offset is applied to the superblock's qindex and the same process is repeated for the remaining superblocks. Once complete, other parts of the encoding process can run. |
 
