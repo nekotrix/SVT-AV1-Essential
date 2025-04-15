@@ -56,9 +56,8 @@ static AOM_FORCE_INLINE uint32x4_t compute8xh_sad_kernel_dual_neon(uint8_t *rest
 }
 
 /*******************************************
-Calculate SAD for 16x16 and its 8x8 sublcoks
-and check if there is improvment, if yes keep
-the best SAD+MV
+Calculate SAD for 16x16 and its 8x8 sublocks and check if there is an
+improvement, if yes keep the best SAD+MV.
 *******************************************/
 void svt_ext_sad_calculation_8x8_16x16_neon(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
                                             uint32_t *p_best_sad_8x8, uint32_t *p_best_sad_16x16,
