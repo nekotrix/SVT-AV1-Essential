@@ -61,20 +61,26 @@ typedef struct EncDecContext {
     uint8_t       txb_itr;
     bool          is_16bit; //enable 10 bit encode in CL
     uint32_t      bit_depth;
+#if !OPT_LD_MEM_3
     EbColorFormat color_format;
+#endif
     uint64_t      tot_intra_coded_area;
     uint64_t      tot_skip_coded_area;
     uint64_t      tot_hp_coded_area;
     uint64_t      three_quad_energy;
 
+#if !OPT_LD_MEM_3
     // Needed for DC prediction
     uint8_t  upsample_left;
     uint8_t  upsample_above;
+#endif
     uint16_t coded_area_sb;
     uint16_t coded_area_sb_uv;
 
+#if !OPT_LD_MEM_3
     uint8_t is_inter;
     uint8_t reduced_tx_set_used;
+#endif
     uint8_t md_skip_blk;
 
     uint16_t tile_group_index;

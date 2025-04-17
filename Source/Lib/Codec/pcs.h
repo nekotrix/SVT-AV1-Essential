@@ -41,19 +41,32 @@ extern "C" {
 #define HISTOGRAM_NUMBER_OF_BINS 256
 #define MAX_NUMBER_OF_REGIONS_IN_WIDTH 4
 #define MAX_NUMBER_OF_REGIONS_IN_HEIGHT 4
+#if !OPT_LD_MEM_2
 #define MAX_REF_QP_NUM 81
 #define QPS_SW_THRESH 8 // 100 to shut QPS/QPM (i.e. CORE only)
 // BDP OFF
+#endif
+#if OPT_LD_MEM_2
+enum {
+    MD_NEIGHBOR_ARRAY_INDEX, // Neighbour array for current block
+    NSQ_NEIGHBOR_ARRAY_INDEX, // Temp neighbour array to store SQ neighbour data when processing NSQ shapes
+    MULTI_STAGE_PD_NEIGHBOR_ARRAY_INDEX, // Temp neighbour array to store neighbour SB data when doing PD0
+    NA_TOT_CNT
+};
+#else
 #define MD_NEIGHBOR_ARRAY_INDEX 0
 #define MULTI_STAGE_PD_NEIGHBOR_ARRAY_INDEX 4
 #define NA_TOT_CNT 5
+#endif
 #define AOM_QM_BITS 5
 
+#if !OPT_LD_MEM_2
 typedef struct DepCntPicInfo {
     uint64_t pic_num;
     // increase(e.g 4L->5L) or decrease of dep cnt . not including the run-time decrease
     int32_t dep_cnt_diff;
 } DepCntPicInfo;
+#endif
 typedef struct EbDownScaledBufDescPtrArray {
     EbPictureBufferDesc *picture_ptr;
     EbPictureBufferDesc *quarter_picture_ptr;
@@ -61,6 +74,7 @@ typedef struct EbDownScaledBufDescPtrArray {
     uint64_t             picture_number;
 } EbDownScaledBufDescPtrArray;
 
+#if !OPT_LD_MEM_2
 typedef struct EbDownScaledObject {
     EbDctor dctor;
     // EbPictureBufferDesc *picture_ptr; original picture, just a pointer, don't allocate resource
@@ -78,6 +92,7 @@ typedef struct EbDownScaledObjectDescInitData {
     uint8_t enable_quarter_luma_input;
     uint8_t enable_sixteenth_luma_input;
 } EbDownScaledObjectDescInitData;
+#endif
 typedef struct MacroblockPlane {
     // Quantizer setings
     // These are used/accessed only in the quantization process
@@ -292,7 +307,9 @@ typedef struct PictureControlSet {
     uint8_t     *sb_intra;
     uint8_t     *sb_skip;
     uint8_t     *sb_64x64_mvp;
+#if !OPT_LD_MEM
     uint32_t    *sb_count_nz_coeffs;
+#endif
 #if OPT_DEPTHS_CTRL
     uint8_t     *sb_min_sq_size;
     uint8_t     *sb_max_sq_size;
@@ -399,9 +416,11 @@ typedef struct PictureControlSet {
     EncMode          enc_mode;
     InputCoeffLvl    coeff_lvl;
     bool             me_dist_mod; // Whether or not to modulate the level of prediction tools using me-distortion
+#if !OPT_LD_MEM_2
     int32_t          cdef_preset[MAX_TILE_CNTS][4];
     WienerInfo       wiener_info[MAX_TILE_CNTS][MAX_MB_PLANE];
     SgrprojInfo      sgrproj_info[MAX_TILE_CNTS][MAX_MB_PLANE];
+#endif
     SpeedFeatures    sf;
     SearchSiteConfig ss_cfg; // CHKN this might be a seq based
     HashTable        hash_table;
@@ -411,7 +430,9 @@ typedef struct PictureControlSet {
     FRAME_CONTEXT                  *ec_ctx_array;
     FRAME_CONTEXT                   md_frame_context;
     CdfControls                     cdf_ctrl;
+#if !OPT_LD_MEM_2
     FRAME_CONTEXT                   ref_frame_context[REF_FRAMES];
+#endif
     EbWarpedMotionParams            ref_global_motion[TOTAL_REFS_PER_FRAME];
     struct MdRateEstimationContext *md_rate_est_ctx;
     int8_t                          ref_frame_side[REF_FRAMES];
@@ -1116,9 +1137,10 @@ typedef struct PictureParentControlSet {
     int64_t ext_mg_size; // same as mg expect for MGops with [LDP-I] which are split into 2
     uint8_t tpl_valid_pic[MAX_TPL_EXT_GROUP_SIZE];
     uint8_t used_tpl_frame_num;
-
+#if !CLN_MISC
     // Tune TPL for better chroma.Only for 240P
     uint8_t            tune_tpl_for_chroma;
+#endif
     uint8_t            is_not_scaled;
     TfControls         tf_ctrls;
     GmControls         gm_ctrls;
@@ -1174,7 +1196,9 @@ typedef struct PictureParentControlSet {
     bool                            ld_enhanced_base_frame; // enhanced periodic base layer frames used in LD
     bool                            update_ref_count; // Update ref count
     bool                            use_accurate_part_ctx;
+#if !OPT_LD_MEM_2
     uint8_t                         bypass_cost_table_gen;
+#endif
     uint16_t                        max_can_count;
     uint8_t                         enable_me_8x8;
     uint8_t                         enable_me_16x16;
@@ -1287,6 +1311,9 @@ typedef struct PictureControlSetInitData {
     uint8_t variance_boost_strength;
     uint8_t variance_octile;
     uint8_t tf_strength;
+#if OPT_ALLINTRA_STILLIMAGE_2
+    bool    allintra;
+#endif
 } PictureControlSetInitData;
 
 typedef struct Av1Comp {

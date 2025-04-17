@@ -20,7 +20,11 @@ uint8_t svt_aom_get_update_cdf_level(EncMode enc_mode, SliceType is_islice, uint
 uint8_t svt_aom_get_chroma_level(EncMode enc_mode);
 uint8_t svt_aom_get_bypass_encdec(EncMode enc_mode, uint8_t encoder_bit_depth);
 #if OPT_REMOVE_NIC_QP_BANDS
+#if OPT_ALLINTRA_STILLIMAGE
+uint8_t svt_aom_get_nic_level(SequenceControlSet* scs, EncMode enc_mode, uint8_t is_base, bool rtc_tune);
+#else
 uint8_t svt_aom_get_nic_level(EncMode enc_mode, uint8_t is_base, bool rtc_tune);
+#endif
 #else
 uint8_t svt_aom_get_nic_level(EncMode enc_mode, uint8_t is_base, uint32_t qp, uint8_t seq_qp_mod, bool rtc_tune);
 #endif
@@ -34,8 +38,12 @@ void    svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureC
 void    svt_aom_sig_deriv_block(PictureControlSet *pcs, ModeDecisionContext *ctx);
 void    svt_aom_sig_deriv_pre_analysis_pcs(PictureParentControlSet *pcs);
 void    svt_aom_sig_deriv_pre_analysis_scs(SequenceControlSet *scs);
+#if CLN_MISC
+void    svt_aom_sig_deriv_multi_processes(SequenceControlSet* scs, PictureParentControlSet* pcs);
+#else
 void    svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentControlSet *pcs,
                                           PictureDecisionContext *context_ptr);
+#endif
 void    svt_aom_sig_deriv_me_tf(PictureParentControlSet *pcs, MeContext *me_ctx);
 
 void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionContext *ctx);
@@ -48,9 +56,14 @@ void    svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pc
 uint8_t svt_aom_derive_gm_level(PictureParentControlSet *pcs, bool super_res_off);
 
 void    svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level);
+#if OPT_ALLINTRA_STILLIMAGE_2
+uint8_t svt_aom_get_enable_sg(EncMode enc_mode, uint8_t input_resolution, uint8_t fast_decode, bool avif);
+uint8_t svt_aom_get_enable_restoration(EncMode enc_mode, int8_t config_enable_restoration, uint8_t input_resolution, uint8_t fast_decode, bool avif, bool allintra);
+#else
 uint8_t svt_aom_get_enable_sg(EncMode enc_mode, uint8_t input_resolution, uint8_t fast_decode);
 uint8_t svt_aom_get_enable_restoration(EncMode enc_mode, int8_t config_enable_restoration, uint8_t input_resolution,
                                        uint8_t fast_decode);
+#endif
 void    svt_aom_set_dist_based_ref_pruning_controls(ModeDecisionContext *ctx, uint8_t dist_based_ref_pruning_level);
 
 bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base);
@@ -74,7 +87,11 @@ uint8_t svt_aom_get_tpl_synthesizer_block_size(int8_t tpl_level, uint32_t pictur
 void svt_aom_set_mfmv_config(SequenceControlSet *scs);
 #if OPT_USE_EXP_HME_ME
 #if TUNE_MR_2
-void svt_aom_get_qp_based_th_scaling_factors(SequenceControlSet* scs, uint32_t *ret_q_weight, uint32_t *ret_q_weight_denom);
+#if OPT_ALLINTRA_STILLIMAGE
+void svt_aom_get_qp_based_th_scaling_factors(bool enable_qp_based_th_scaling, uint32_t *ret_q_weight, uint32_t *ret_q_weight_denom, uint32_t qp);
+#else
+void svt_aom_get_qp_based_th_scaling_factors(SequenceControlSet* scs, uint32_t *ret_q_weight, uint32_t *ret_q_weight_denom, uint32_t qp);
+#endif
 #else
 void svt_aom_get_qp_based_th_scaling_factors(uint32_t qp, uint32_t* ret_q_weight, uint32_t* ret_q_weight_denom);
 #endif

@@ -139,12 +139,61 @@ extern "C" {
 #define FIX_IFS_MDS1                1 // Perform IFS at a later MD stage if IFS-MD-stage is bypassed
 #define FIX_PME_REF_MV              1 // Fix ref mv in PME search
 #define CLN_IFS                     1 // Skip pred in IFS search for fullpel cands; keep pred as valid
-#define TUNE_MR_2                   0 // MR Tuning; slowing down MR with good BDR gain.
+#define TUNE_MR_2                   1 // MR Tuning; slowing down MR with good BDR gain.
 #define TUNE_REV_TUNE_M5_DIFFS      1 // Reverse two changes in TUNE_M5 for BDR gain: NIC level and Skip INTRA
 #define OPT_ALLINTRA                1 // Optimize allintra configuration
 #define CLN_REMOVE_LDP              1 // Remove unused SVT_AV1_PRED_LOW_DELAY_P
 #define OPT_CDEF_FD2_M5             1 // Change the cdef recon level that M5 uses in FD2 to level 1.
 #define FIX_CDEF_MSE                1 // Fix CDEF metric - use the same for luma and chroma
+#define OPT_SHUT_TF_LD              1 // Disable TF for LD
+#define OPT_NIC_TUNE_LPD1           1 // Adopting a new NIC level in M5 and adopting the pic lpd1 M7 level in M5.
+#define OPT_NEW_LD_RPS              1 // New rps for LD
+#define TUNE_M0_2                   1 // M0 Tuning; slowing down M0 with good trade-offs and spacing
+#define OPT_MDS0_M4                 1 // MDS0 Tuning. M4 takes the M5 level.
+#define OPT_CDEF_LEVEL1             1 // Use a more agressive level of zero_fs_cost_bias for decoder cycles gain.
+#define OPT_REF_INFO                1 // Opt features that rely on ref info to not use info from higher layers and use more refs
+#define TUNE_M1_2                   1 // M1 Tuning; Better spacing  
+#define FIX_NIC_QP_SCALING          1 // Fix QP scaling for NIC pruning thresholds
+#define OPT_ALLINTRA_STILLIMAGE     1 // Tune all-intra coding
+#define FIX_STILLIMAGE_HRES         1 // Remove >4K preset restriction for still-image coding
+#define OPT_NIC_2_PME_TUNE_DEP_REF  1 // Optimize NIC level 13; Optimize MD_PME level 3; Adopt the Depth Refinement M4 level in M5.
+#define CLN_MISC                    1 // Miscellaneous cleanups
+#define OPT_NIC_3                   1 // Optimize NIC Level 13 more.
+#define TUNE_M2_2                   1 // M2 Tuning; Good speed up.
+#define TUNE_M3_2                   1 // M3 Tuning; Good BD-rate gain with small speed up.
+#define TUNE_M4_2                   1 // M4 Tuning ; Good trade-offs.
+#define TUNE_CHROMA_RDOQ            0 // Tune RDOQ towards chroma BDR
+#define OPT_ALLINTRA_STILLIMAGE_2   1 // Tune all-intra coding
+#define FIX_LAMBDA                  1 // Fix the input to def_arf_rd_multiplier() to use q instead of qinde
+#define FTR_USE_KEY_IF_ALLINTRA     1 // Use key-frame for all-intra coding
+#define OPT_CDEF_LEVEL2             1 // Fix the onion ring in cdef_recon_level 2, affects M8 in all FDs and M7 in FD2.
+#define OPT_NIC_4                   1 // Tuning NIC M0/M1 levels.
+#define TUNE_M5_2                   1 // M5 Tuning; adopt same changes for RA/LD.
+#define OPT_NIC_5                   1 // Tuning NIC M7-M10 levels.
+#define FIX_NIC_LVL_ONION_RING      1 // Fix the onion ring in NIC levels 14-20.
+#define OPT_RTC                     1 // Opt rtc cbr
+#define CLN_NIC_LEVELS              1 // Clean NIC levels; Remove the signal force_1_cand_th; Change the NIC level used for PD0 to level 10 (previously named 19).
+#define TUNE_M4_LD                  1 // M4 Tuning; same chnages for RA & LD.
+#define TUNE_REENABLE_TF_LD_RTC     1 // Re-enable TF for RTC mode
+#define TUNE_M10_10BIT              1 // Tuning M10 for 10bit; 8bit is also impacted.
+#define TUNE_M9_10BIT               1 // Tuning M9 for 10bit; 8bit is also impacted.
+#define OPT_ALLINTRA_STILLIMAGE_3   1 // Tune all-intra coding
+#define TUNE_M7_3                   1 // M7 Tuning; Impact RA and LD (common changes).
+#define OPT_LD_MEM                  1 // Reduce memory usage (lossless)
+#define OPT_LD_MEM_2                1 // Reduce memory usage (lossless)
+#define TUNE_NIC_M5_LVL             1 // use more aggressive NIC level for M5 (extra speed-up).
+#define TUNE_M8_2                   1 // M8 Tuning; Better trade-offs.
+#define FIX_LD_CBR_CRASH            1 // Bypass cyclic_sb_qp_derivation() if sb128
+#define OPT_LD_MEM_3                1 // Reduce memory usage (lossless)
+#define CLN_4K_1080P_CHECKS         1 // Remove useless 4K/1080p checks
+#define CLN_CDEF_LEVEL3             1 // Remove redundant cdef_recon_level 3 (which is equal to level 2).
+#define TUNE_M5_3                   1 // M5 Tuning; Extra speed-up.
+#define TUNE_M9                     1 // M9 Tuning; Impact RA and LD (common changes).
+#define TUNE_M7_4                   1 // M7 Tuning; Impact RA/LD and 8bit/10bit (common changes).
+#define CLN_CDEF_SEARCH_LEVEL7      0 // Unify the use of cdef_search_level 7 for M8+ presets.
+#define CLN_PIC_LPD1_LEVEL          0 // Unify the pic_lpd1_level settings for M8 and M9.
+#define FIX_R2R                     1 // Bypass unpacking of obmc_buff_0 and obmc_buff_1 when generated for 8-bit, and use 10bit for ifs when hybrid
+#define CLN_REMOVE_P_SLICE          1 // Remove P_SLICE - fixes bug in OPT_NEW_LD_RPS
 
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection

@@ -1640,13 +1640,14 @@ void svt_av1_encode_mv(PictureParentControlSet *pcs, AomWriter *ec_writer, const
     //}
 }
 
+#if !OPT_LD_MEM_2
 ///InterpFilter av1_extract_interp_filter(uint32_t filters,
 //    int32_t x_filter) {
 //    return (InterpFilter)((filters >> (x_filter ? 16 : 0)) & 0xffff);
 //}
 #define INTER_FILTER_COMP_OFFSET (SWITCHABLE_FILTERS + 1)
 #define INTER_FILTER_DIR_OFFSET ((SWITCHABLE_FILTERS + 1) * 2)
-
+#endif
 //Returns a context number for the given MB prediction signal
 #if CLN_REMOVE_DEC_STRUCT
 static InterpFilter svt_aom_get_ref_filter_type(const BlockModeInfo* ref_mbmi, int dir, MvReferenceFrame ref_frame) {
@@ -4104,8 +4105,13 @@ static void av1_write_delta_q_index(FRAME_CONTEXT *frame_context, int32_t delta_
         aom_write_bit(w, sign);
 }
 #if CLN_REMOVE_MODE_INFO
+#if OPT_LD_MEM_2
+static void write_cdef(SequenceControlSet* scs, PictureControlSet* pcs, EntropyCodingContext* ctx,
+                       AomWriter *w, int32_t skip, int32_t mi_col,
+#else
 static void write_cdef(SequenceControlSet *scs, PictureControlSet * pcs,
                        uint16_t tile_idx, AomWriter *w, int32_t skip, int32_t mi_col,
+#endif
                        int32_t mi_row) {
     Av1Common   *cm      = pcs->ppcs->av1_cm;
     FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
@@ -4125,8 +4131,13 @@ static void write_cdef(SequenceControlSet *scs, PictureControlSet * pcs,
     // Initialise when at top left part of the superblock
     if (!(mi_row & (scs->seq_header.sb_mi_size - 1)) &&
         !(mi_col & (scs->seq_header.sb_mi_size - 1))) { // Top left?
+#if OPT_LD_MEM_2
+        ctx->cdef_transmitted[0] = ctx->cdef_transmitted[1] =
+            ctx->cdef_transmitted[2] = ctx->cdef_transmitted[3] = false;
+#else
         pcs->cdef_preset[tile_idx][0]     = pcs->cdef_preset[tile_idx][1] =
             pcs->cdef_preset[tile_idx][2] = pcs->cdef_preset[tile_idx][3] = -1;
+#endif
     }
 
     // Emit CDEF param at first non-skip coding block
@@ -4134,18 +4145,34 @@ static void write_cdef(SequenceControlSet *scs, PictureControlSet * pcs,
     const int32_t index = scs->seq_header.sb_size == BLOCK_128X128 ? !!(mi_col & mask) + 2 * !!(mi_row & mask)
                                                                           : 0;
 
+#if OPT_LD_MEM_2
+    if (!ctx->cdef_transmitted[index] && !skip) {
+        aom_write_literal(w, mbmi->cdef_strength, frm_hdr->cdef_params.cdef_bits);
+        ctx->cdef_transmitted[index] = true;
+    }
+#else
     if (pcs->cdef_preset[tile_idx][index] == -1 && !skip) {
         aom_write_literal(w, mbmi->cdef_strength, frm_hdr->cdef_params.cdef_bits);
         pcs->cdef_preset[tile_idx][index] = mbmi->cdef_strength;
     }
+#endif
 }
 
+#if OPT_LD_MEM_2
+void svt_av1_reset_loop_restoration(EntropyCodingContext* ctx) {
+    for (int32_t p = 0; p < MAX_MB_PLANE; ++p) {
+        set_default_wiener(ctx->wiener_info + p);
+        set_default_sgrproj(ctx->sgrproj_info + p);
+    }
+}
+#else
 void svt_av1_reset_loop_restoration(PictureControlSet *pcs, uint16_t tile_idx) {
     for (int32_t p = 0; p < 3; ++p) {
         set_default_wiener(pcs->wiener_info[tile_idx] + p);
         set_default_sgrproj(pcs->sgrproj_info[tile_idx] + p);
     }
 }
+#endif
 #else
 static void write_cdef(SequenceControlSet *seqCSetPtr, PictureControlSet *p_pcs_ptr,
                        //Av1Common *cm,
@@ -4268,6 +4295,11 @@ static void write_sgrproj_filter(const SgrprojInfo *sgrproj_info, SgrprojInfo *r
     svt_memcpy(ref_sgrproj_info, sgrproj_info, sizeof(*sgrproj_info));
 }
 
+#if OPT_LD_MEM_2
+static void loop_restoration_write_sb_coeffs(PictureControlSet* pcs, FRAME_CONTEXT* frame_context, EntropyCodingContext* ctx,
+    const RestorationUnitInfo* rui, AomWriter* const w, int32_t plane) {
+    const RestorationInfo* rsi = pcs->rst_info + plane;
+#else
 static void loop_restoration_write_sb_coeffs(PictureControlSet     *piCSetPtr, FRAME_CONTEXT           *frame_context,
     uint16_t tile_idx,
     //MacroBlockD *xd,
@@ -4276,6 +4308,7 @@ static void loop_restoration_write_sb_coeffs(PictureControlSet     *piCSetPtr, F
     FRAME_COUNTS *counts*/)
 {
     const RestorationInfo *rsi         = piCSetPtr->rst_info + plane;
+#endif
     RestorationType        frame_rtype = rsi->frame_restoration_type;
     if (frame_rtype == RESTORE_NONE)
         return;
@@ -4284,8 +4317,13 @@ static void loop_restoration_write_sb_coeffs(PictureControlSet     *piCSetPtr, F
     //    assert(!cm->all_lossless);
 
     const int32_t   wiener_win   = (plane > 0) ? WIENER_WIN_CHROMA : WIENER_WIN;
+#if OPT_LD_MEM_2
+    WienerInfo* wiener_info = &ctx->wiener_info[plane];
+    SgrprojInfo* sgrproj_info = &ctx->sgrproj_info[plane];
+#else
     WienerInfo     *wiener_info  = piCSetPtr->wiener_info[tile_idx] + plane;
     SgrprojInfo    *sgrproj_info = piCSetPtr->sgrproj_info[tile_idx] + plane;
+#endif
     RestorationType unit_rtype   = rui->restoration_type;
 
     assert(unit_rtype < CDF_SIZE(RESTORE_SWITCHABLE_TYPES));
@@ -5209,7 +5247,11 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
 
         write_cdef(scs,
                    pcs,
+#if OPT_LD_MEM_2
+                   ec_ctx,
+#else
                    tile_idx,
+#endif
 #if !CLN_REMOVE_MODE_INFO
                    blk_ptr->av1xd,
 #endif
@@ -5368,7 +5410,11 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
         write_inter_segment_id(pcs, frame_context, ec_writer, blk_geom, blk_org_x, blk_org_y, blk_ptr, skip_coeff, 0);
         write_cdef(scs,
                    pcs, /*cm,*/
+#if OPT_LD_MEM_2
+                   ec_ctx,
+#else
                    tile_idx,
+#endif
 #if !CLN_REMOVE_MODE_INFO
                    blk_ptr->av1xd,
 #endif
@@ -5858,12 +5904,21 @@ EB_EXTERN EbErrorType svt_aom_write_sb(EntropyCodingContext *ec_ctx, SuperBlock 
                             for (int32_t rcol = rcol0; rcol < rcol1; ++rcol) {
                                 const int32_t              runit_idx = tile_tl_idx + rcol + rrow * rstride;
                                 const RestorationUnitInfo *rui       = &pcs->rst_info[plane].unit_info[runit_idx];
+#if OPT_LD_MEM_2
+                                loop_restoration_write_sb_coeffs(pcs,
+                                                                 frame_context,
+                                                                 ec_ctx,
+                                                                 rui,
+                                                                 ec_writer,
+                                                                 plane);
+#else
                                 loop_restoration_write_sb_coeffs(pcs,
                                                                  frame_context,
                                                                  tile_idx,
                                                                  /*xd,*/ rui,
                                                                  ec_writer,
                                                                  plane);
+#endif
                             }
                         }
                     }

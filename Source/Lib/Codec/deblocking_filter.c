@@ -1064,7 +1064,11 @@ static void me_based_dlf_skip(PictureControlSet *pcs, uint16_t prev_dlf_dist_th,
                 uint8_t            ref_idx  = get_ref_frame_idx(rf[0]);
                 EbReferenceObject *ref_obj  = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
 
+#if OPT_REF_INFO
+                if (ref_obj->dlf_dist_dev >= 0 && ref_obj->tmp_layer_idx <= pcs->temporal_layer_index) {
+#else
                 if (ref_obj->dlf_dist_dev >= 0) {
+#endif
                     prev_dlf_dist += ref_obj->dlf_dist_dev;
                     tot_refs++;
                 }

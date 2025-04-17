@@ -20,7 +20,9 @@
 #include "cabac_context_model.h"
 #include "svt_log.h"
 #include "common_dsp_rtcd.h"
+#if !OPT_LD_MEM_2
 void svt_av1_reset_loop_restoration(PictureControlSet *piCSetPtr, uint16_t tile_idx);
+#endif
 
 static void rest_context_dctor(EbPtr p) {
     EbThreadContext      *thread_ctx = (EbThreadContext *)p;
@@ -67,6 +69,7 @@ static void entropy_coding_reset_neighbor_arrays(PictureControlSet *pcs, uint16_
     return;
 }
 
+#if !OPT_LD_MEM_2
 void svt_aom_get_syntax_rate_from_cdf(int32_t *costs, const AomCdfProb *cdf, const int32_t *inv_map);
 
 void svt_av1_cost_tokens_from_cdf(int32_t *costs, const AomCdfProb *cdf, const int32_t *inv_map) {
@@ -145,7 +148,7 @@ void svt_av1_build_nmv_cost_table(int32_t *mvjoint, int32_t *mvcost[2], const Nm
     build_nmv_component_cost_table(mvcost[0], &ctx->comps[0], precision);
     build_nmv_component_cost_table(mvcost[1], &ctx->comps[1], precision);
 }
-
+#endif
 /**************************************************
  * Reset Entropy Coding Picture
  **************************************************/
@@ -176,8 +179,19 @@ static void reset_entropy_coding_picture(EntropyCodingContext *ctx, PictureContr
         aom_start_encode(&ec->ec_writer, output_bitstream_ptr);
         // ADD Reset here
         const uint8_t primary_ref_frame = frm_hdr->primary_ref_frame;
+#if OPT_LD_MEM_2
+        if (primary_ref_frame != PRIMARY_REF_NONE) {
+            // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
+            // Therefore, add 1 to the primary ref frame (e.g. LAST --> LAST_FRAME)
+            const uint8_t list_idx = get_list_idx(primary_ref_frame + 1);
+            const uint8_t ref_idx = get_ref_frame_idx(primary_ref_frame + 1);
+            EbReferenceObject* ref = (EbReferenceObject*)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+            svt_memcpy(ec->fc, &ref->frame_context, sizeof(FRAME_CONTEXT));
+        }
+#else
         if (primary_ref_frame != PRIMARY_REF_NONE)
             svt_memcpy(ec->fc, &pcs->ref_frame_context[primary_ref_frame], sizeof(FRAME_CONTEXT));
+#endif
         else
             svt_aom_reset_entropy_coder(scs->enc_ctx, ec, entropy_coding_qp, pcs->slice_type);
 
@@ -265,7 +279,11 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
                     context_ptr->sb_origin_x = (x_sb_index + tile_sb_start_x) << sb_size_log2;
                     context_ptr->sb_origin_y = (y_sb_index + tile_sb_start_y) << sb_size_log2;
                     if (x_sb_index == 0 && y_sb_index == 0) {
+#if OPT_LD_MEM_2
+                        svt_av1_reset_loop_restoration(context_ptr);
+#else
                         svt_av1_reset_loop_restoration(pcs, tile_idx);
+#endif
                         context_ptr->tok = pcs->tile_tok[tile_row][tile_col];
                     }
 
@@ -290,6 +308,16 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
         svt_release_mutex(pcs->entropy_coding_pic_mutex);
         if (pic_ready) {
             if (pcs->ppcs->superres_total_recode_loop == 0) {
+#if CLN_REMOVE_P_SLICE
+                // Release the reference Pictures from both lists
+                for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
+                    const uint8_t list_idx = get_list_idx(ref + 1);
+                    const uint8_t ref_idx = get_ref_frame_idx(ref + 1);
+                    if (pcs->ref_pic_ptr_array[list_idx][ref_idx] != NULL) {
+                        svt_release_object(pcs->ref_pic_ptr_array[list_idx][ref_idx]);
+                    }
+                }
+#else
                 // Release the List 0 Reference Pictures
                 for (uint32_t ref_idx = 0; ref_idx < pcs->ppcs->ref_list0_count; ++ref_idx) {
                     if (pcs->ref_pic_ptr_array[0][ref_idx] != NULL) {
@@ -302,6 +330,7 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
                         svt_release_object(pcs->ref_pic_ptr_array[1][ref_idx]);
                     }
                 }
+#endif
 
                 //free palette data
                 if (pcs->tile_tok[0][0])

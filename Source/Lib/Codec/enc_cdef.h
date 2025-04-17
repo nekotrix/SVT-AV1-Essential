@@ -13,6 +13,9 @@
 
 #include "definitions.h"
 #include "cdef.h"
+#if CLN_MISC
+#include "rc_process.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {

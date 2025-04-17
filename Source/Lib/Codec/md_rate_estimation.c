@@ -338,6 +338,101 @@ MvClassType svt_av1_get_mv_class(int32_t z, int32_t *offset) {
     return c;
 }
 
+#if OPT_LD_MEM_2
+static void build_nmv_component_cost_table(int32_t* mvcost, const NmvComponent* const mvcomp,
+    MvSubpelPrecision precision) {
+    int32_t i, v;
+    int32_t sign_cost[2], class_cost[MV_CLASSES], class0_cost[CLASS0_SIZE];
+    int32_t bits_cost[MV_OFFSET_BITS][2];
+    int32_t class0_fp_cost[CLASS0_SIZE][MV_FP_SIZE], fp_cost[MV_FP_SIZE];
+    int32_t class0_hp_cost[2], hp_cost[2];
+
+    svt_aom_get_syntax_rate_from_cdf(sign_cost, mvcomp->sign_cdf, NULL);
+    svt_aom_get_syntax_rate_from_cdf(class_cost, mvcomp->classes_cdf, NULL);
+    svt_aom_get_syntax_rate_from_cdf(class0_cost, mvcomp->class0_cdf, NULL);
+    for (i = 0; i < MV_OFFSET_BITS; ++i) svt_aom_get_syntax_rate_from_cdf(bits_cost[i], mvcomp->bits_cdf[i], NULL);
+    for (i = 0; i < CLASS0_SIZE; ++i) svt_aom_get_syntax_rate_from_cdf(class0_fp_cost[i], mvcomp->class0_fp_cdf[i], NULL);
+    svt_aom_get_syntax_rate_from_cdf(fp_cost, mvcomp->fp_cdf, NULL);
+
+    if (precision > MV_SUBPEL_LOW_PRECISION) {
+        svt_aom_get_syntax_rate_from_cdf(class0_hp_cost, mvcomp->class0_hp_cdf, NULL);
+        svt_aom_get_syntax_rate_from_cdf(hp_cost, mvcomp->hp_cdf, NULL);
+    }
+    mvcost[0] = 0;
+    for (v = 1; v <= MV_MAX; ++v) {
+        int32_t z, c, o, d, e, f, cost = 0;
+        z = v - 1;
+        c = svt_av1_get_mv_class(z, &o);
+        cost += class_cost[c];
+        d = (o >> 3); /* int32_t mv data */
+        f = (o >> 1) & 3; /* fractional pel mv data */
+        e = (o & 1); /* high precision mv data */
+        if (c == MV_CLASS_0)
+            cost += class0_cost[d];
+        else {
+            const int32_t b = c + CLASS0_BITS - 1; /* number of bits */
+            for (i = 0; i < b; ++i) cost += bits_cost[i][((d >> i) & 1)];
+        }
+        if (precision > MV_SUBPEL_NONE) {
+            if (c == MV_CLASS_0)
+                cost += class0_fp_cost[d][f];
+            else
+                cost += fp_cost[f];
+            if (precision > MV_SUBPEL_LOW_PRECISION) {
+                if (c == MV_CLASS_0)
+                    cost += class0_hp_cost[e];
+                else
+                    cost += hp_cost[e];
+            }
+        }
+        mvcost[v] = cost + sign_cost[0];
+        mvcost[-v] = cost + sign_cost[1];
+    }
+}
+static void svt_av1_build_nmv_cost_table(int32_t* mvjoint, int32_t* mvcost[2], const NmvContext* ctx,
+    MvSubpelPrecision precision) {
+    svt_aom_get_syntax_rate_from_cdf(mvjoint, ctx->joints_cdf, NULL);
+    build_nmv_component_cost_table(mvcost[0], &ctx->comps[0], precision);
+    build_nmv_component_cost_table(mvcost[1], &ctx->comps[1], precision);
+}
+
+/**************************************************************************
+ * svt_aom_estimate_mv_rate()
+ * Estimate the rate of motion vectors
+ * based on the frame CDF
+ ***************************************************************************/
+void svt_aom_estimate_mv_rate(PictureControlSet* pcs, MdRateEstimationContext* md_rate_est_ctx, FRAME_CONTEXT* fc)  {
+    if (pcs->approx_inter_rate) {
+        memset(md_rate_est_ctx->nmv_vec_cost, 0, sizeof(int32_t) * MV_JOINTS);
+        memset(md_rate_est_ctx->nmv_costs, 0, sizeof(int32_t) * MV_VALS * 2);
+        md_rate_est_ctx->nmvcoststack[0] = &md_rate_est_ctx->nmv_costs[0][MV_MAX];
+        md_rate_est_ctx->nmvcoststack[1] = &md_rate_est_ctx->nmv_costs[1][MV_MAX];
+        return;
+    }
+    int32_t* nmvcost[2];
+    int32_t* nmvcost_hp[2];
+    FrameHeader* frm_hdr = &pcs->ppcs->frm_hdr;
+
+    nmvcost[0] = &md_rate_est_ctx->nmv_costs[0][MV_MAX];
+    nmvcost[1] = &md_rate_est_ctx->nmv_costs[1][MV_MAX];
+    nmvcost_hp[0] = &md_rate_est_ctx->nmv_costs_hp[0][MV_MAX];
+    nmvcost_hp[1] = &md_rate_est_ctx->nmv_costs_hp[1][MV_MAX];
+    const uint8_t allow_high_precision_mv = frm_hdr->allow_high_precision_mv;
+    svt_av1_build_nmv_cost_table(md_rate_est_ctx->nmv_vec_cost, // out
+        allow_high_precision_mv ? nmvcost_hp : nmvcost, // out
+        &fc->nmvc,
+        allow_high_precision_mv);
+    md_rate_est_ctx->nmvcoststack[0] = allow_high_precision_mv ? &md_rate_est_ctx->nmv_costs_hp[0][MV_MAX]
+        : &md_rate_est_ctx->nmv_costs[0][MV_MAX];
+    md_rate_est_ctx->nmvcoststack[1] = allow_high_precision_mv ? &md_rate_est_ctx->nmv_costs_hp[1][MV_MAX]
+        : &md_rate_est_ctx->nmv_costs[1][MV_MAX];
+
+    if (frm_hdr->allow_intrabc) {
+        int32_t* dvcost[2] = { &md_rate_est_ctx->dv_cost[0][MV_MAX], &md_rate_est_ctx->dv_cost[1][MV_MAX] };
+        svt_av1_build_nmv_cost_table(md_rate_est_ctx->dv_joint_cost, dvcost, &fc->ndvc, MV_SUBPEL_NONE);
+    }
+}
+#else
 //void svt_av1_build_nmv_cost_table(int32_t *mvjoint, int32_t *mvcost[2],
 //    const NmvContext *ctx,
 //    MvSubpelPrecision precision)
@@ -396,6 +491,7 @@ void svt_aom_estimate_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *m
         svt_av1_build_nmv_cost_table(md_rate_est_ctx->dv_joint_cost, dvcost, &fc->ndvc, MV_SUBPEL_NONE);
     }
 }
+#endif
 void copy_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *dst_rate) {
     FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
 

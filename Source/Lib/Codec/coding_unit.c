@@ -49,6 +49,44 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
     larget_coding_unit_ptr->org_y = sb_origin_y;
 
     larget_coding_unit_ptr->index = sb_index;
+#if OPT_LD_MEM
+    bool disallow_8x4_4x8 = true;
+    for (uint8_t is_base = 0; is_base <= 1; is_base++) {
+        for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
+            for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
+                if (!disallow_8x4_4x8)
+                    break;
+                const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(enc_mode, is_base, coeff_lvl);
+                //disallow_4x4 = MIN(disallow_4x4, (nsq_geom_lvl == 0 ? 1 : 0));
+                uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
+                svt_aom_set_nsq_geom_ctrls(NULL, nsq_geom_lvl, &allow_HVA_HVB, &allow_HV4, &min_nsq_bsize);
+                if (min_nsq_bsize < 8 /*|| (min_nsq_bsize < 16 && allow_HV4)*/)
+                    disallow_8x4_4x8 = false;
+            }
+        }
+    }
+
+    bool disallow_4x4 = true;
+    for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
+        for (uint8_t is_base = 0; is_base <= 1; is_base++) {
+            disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(enc_mode, is_base));
+        }
+    }
+    uint32_t tot_blk_num;
+    if (sb_size_pix == 128)
+        if (disallow_4x4 && disallow_8x4_4x8)
+            tot_blk_num = 256;
+        else if (disallow_4x4)
+            tot_blk_num = 512;
+        else
+            tot_blk_num = 1024;
+    else if (disallow_4x4 && disallow_8x4_4x8)
+        tot_blk_num = 64;
+    else if (disallow_4x4)
+        tot_blk_num = 128;
+    else
+        tot_blk_num = 256;
+#else
     bool disallow_nsq             = true;
     for (uint8_t is_base = 0; is_base <= 1; is_base++) {
         for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
@@ -81,6 +119,7 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
         tot_blk_num = 128;
     else
         tot_blk_num = 256;
+#endif
     EB_MALLOC_ARRAY(larget_coding_unit_ptr->final_blk_arr, tot_blk_num);
     EB_MALLOC_ARRAY(larget_coding_unit_ptr->av1xd, 1);
     // Do NOT initialize the final_blk_arr here

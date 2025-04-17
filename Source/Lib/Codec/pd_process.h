@@ -43,6 +43,9 @@ uint8_t     svt_aom_tf_max_ref_per_struct(uint32_t hierarchical_levels, uint8_t 
 EbErrorType svt_aom_prediction_structure_group_ctor(PredictionStructureGroup *pred_struct_group_ptr);
 bool        svt_aom_is_pic_used_as_ref(unsigned hierarchical_levels, unsigned temporal_layer, unsigned picture_index,
                                        unsigned referencing_scheme, bool is_overlay);
+#if CLN_REMOVE_P_SLICE
+bool svt_aom_is_incomp_mg_frame(PictureParentControlSet* pcs);
+#endif
 typedef struct DpbEntry {
     uint64_t picture_number;
     uint64_t decode_order;

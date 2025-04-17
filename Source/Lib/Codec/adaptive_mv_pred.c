@@ -2043,6 +2043,7 @@ void svt_aom_generate_av1_mvp_table(ModeDecisionContext *ctx, BlkStruct *blk_ptr
     //128x128 OFF, 4xN OFF, SQ only
 
     uint32_t ref_it;
+#if !OPT_REF_INFO
     ctx->bipred_available = 0;
     for (ref_it = 0; ref_it < tot_refs; ++ref_it) {
         MvReferenceFrame ref_frame = ref_frames[ref_it];
@@ -2050,11 +2051,13 @@ void svt_aom_generate_av1_mvp_table(ModeDecisionContext *ctx, BlkStruct *blk_ptr
             ctx->bipred_available = 1;
         }
     }
+#endif
     for (ref_it = 0; ref_it < tot_refs; ++ref_it) {
         MvReferenceFrame ref_frame = ref_frames[ref_it];
         MvReferenceFrame rf[2];
         av1_set_ref_frame(rf, ref_frame);
 
+#if !OPT_REF_INFO
         // Can skip MVP generation for unipred refs if not using any unipred candidates; only
         // supported for LPD1 If block is intra bordered we only inject NEW unipred, so must
         // generate MVPs If there is only 1 ME candidate, generate MVPs because that candidate will
@@ -2067,6 +2070,7 @@ void svt_aom_generate_av1_mvp_table(ModeDecisionContext *ctx, BlkStruct *blk_ptr
             pcs->ppcs->pa_me_data->me_results[ctx->me_sb_addr]->total_me_candidate_index[ctx->me_block_offset] > 1) {
             continue;
         }
+#endif
 
         xd->ref_mv_count[ref_frame] = 0;
         memset(ctx->ref_mv_stack[ref_frame], 0, sizeof(CandidateMv) * MAX_REF_MV_STACK_SIZE);

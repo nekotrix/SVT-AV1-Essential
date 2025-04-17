@@ -407,7 +407,9 @@ typedef struct MeContext {
     uint32_t           p_eight_sad32x32[4][8];
     uint32_t           p_eight_sad16x16[16][8];
     uint32_t           p_eight_sad8x8[64][8];
+#if !OPT_LD_MEM_2
     EbBitFraction     *mvd_bits_array;
+#endif
     uint8_t            hme_search_method;
     uint8_t            me_search_method;
     bool               enable_hme_flag;

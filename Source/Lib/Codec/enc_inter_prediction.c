@@ -2157,6 +2157,10 @@ void svt_aom_precompute_obmc_data(PictureControlSet *pcs, ModeDecisionContext *c
     int      dst_stride2[MAX_MB_PLANE] = {ctx->blk_geom->bwidth, ctx->blk_geom->bwidth, ctx->blk_geom->bwidth};
 
     if (ctx->hbd_md) {
+#if FIX_R2R
+        if (component_mask & PICTURE_BUFFER_DESC_LUMA_MASK)
+            ctx->obmc_is_luma_neigh_10bit = true;
+#endif
         dst_buf1[0] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[0]);
         dst_buf1[1] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[0] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight));
         dst_buf1[2] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[0] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight) * 2);
@@ -2192,14 +2196,14 @@ void svt_aom_precompute_obmc_data(PictureControlSet *pcs, ModeDecisionContext *c
                                    dst_buf2,
                                    dst_stride2,
                                    ctx->hbd_md);
-    ctx->neighbor_luma_pred_ready   = component_mask == PICTURE_BUFFER_DESC_FULL_MASK ||
+    ctx->obmc_neighbor_luma_pred_ready   = component_mask == PICTURE_BUFFER_DESC_FULL_MASK ||
             component_mask == PICTURE_BUFFER_DESC_LUMA_MASK
           ? true
-          : ctx->neighbor_luma_pred_ready;
-    ctx->neighbor_chroma_pred_ready = component_mask == PICTURE_BUFFER_DESC_FULL_MASK ||
+          : ctx->obmc_neighbor_luma_pred_ready;
+    ctx->obmc_neighbor_chroma_pred_ready = component_mask == PICTURE_BUFFER_DESC_FULL_MASK ||
             component_mask == PICTURE_BUFFER_DESC_CHROMA_MASK
         ? true
-        : ctx->neighbor_chroma_pred_ready;
+        : ctx->obmc_neighbor_chroma_pred_ready;
 #else
     build_prediction_by_above_preds(
         1, ctx->blk_geom->bsize, pcs, ctx->blk_ptr->av1xd, mi_row, mi_col, dst_buf1, dst_stride1, ctx->hbd_md);
@@ -5267,11 +5271,11 @@ static void av1_inter_prediction_obmc(PictureControlSet *pcs, BlkStruct *blk_ptr
 
     if (use_precomputed_obmc) {
 #if OPT_OBMC
-        if (!ctx->neighbor_luma_pred_ready &&
+        if (!ctx->obmc_neighbor_luma_pred_ready &&
             (component_mask == PICTURE_BUFFER_DESC_FULL_MASK || component_mask == PICTURE_BUFFER_DESC_LUMA_MASK))
             svt_aom_precompute_obmc_data(pcs, ctx, PICTURE_BUFFER_DESC_LUMA_MASK);
 
-        if (!ctx->neighbor_chroma_pred_ready &&
+        if (!ctx->obmc_neighbor_chroma_pred_ready &&
             (component_mask == PICTURE_BUFFER_DESC_FULL_MASK || component_mask == PICTURE_BUFFER_DESC_CHROMA_MASK))
             svt_aom_precompute_obmc_data(pcs, ctx, PICTURE_BUFFER_DESC_CHROMA_MASK);
 #endif
@@ -7721,13 +7725,19 @@ EbErrorType svt_aom_inter_pu_prediction_av1(uint8_t hbd_md, ModeDecisionContext 
 #else
         av1_is_interp_needed(cand_bf, pcs, ctx->blk_geom->bsize)) {
 #endif
+#if !FIX_R2R
         // If using hybrid MD for HBD content, use 8bit pic for the IFS search - TODO: are we using the right refs?
+#endif
         interpolation_filter_search(pcs,
                                     ctx,
                                     cand_bf,
                                     ref_pic_list0,
                                     ref_pic_list1,
+#if FIX_R2R
+                                    hbd_md ? EB_10_BIT_MD : EB_8_BIT_MD,
+#else
                                     ctx->hbd_md == EB_DUAL_BIT_MD ? EB_8_BIT_MD : ctx->hbd_md,
+#endif
                                     bit_depth);
     }
 #if CLN_IFS

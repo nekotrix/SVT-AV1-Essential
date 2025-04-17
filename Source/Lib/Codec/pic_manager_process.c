@@ -520,6 +520,14 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                     if (entry_ppcs->decode_order >
                         (context_ptr->consecutive_dec_order + scs->reference_picture_buffer_init_count - REF_FRAMES))
                         availability_flag = false;
+#if CLN_REMOVE_P_SLICE
+                    // For INTER frames, check that all references are available before starting the pic
+                    if (entry_ppcs->slice_type == B_SLICE) {
+                        for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
+                            // hardcode the reference for the overlay frame
+                            uint64_t ref_poc = entry_ppcs->is_overlay ? entry_ppcs->picture_number
+                                                                      : entry_ppcs->av1_ref_signal.ref_poc_array[ref];
+#else
                     if ((entry_ppcs->slice_type == P_SLICE) || (entry_ppcs->slice_type == B_SLICE)) {
                         uint8_t max_ref_count = (entry_ppcs->slice_type == B_SLICE) ? ALT + 1
                                                                                     : BWD; // no list1 refs for P_SLICE
@@ -534,6 +542,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                             if ((list_idx == 0 && ref_idx >= entry_ppcs->ref_list0_count) ||
                                 (list_idx == 1 && ref_idx >= entry_ppcs->ref_list1_count))
                                 continue;
+#endif
 #if OPT_LD_LATENCY2
                             svt_block_on_mutex(enc_ctx->ref_pic_list_mutex);
 #endif
@@ -784,6 +793,18 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                         EB_MEMSET(child_pcs->ref_pic_r0[REF_LIST_0], 0, REF_LIST_MAX_DEPTH * sizeof(double));
                         EB_MEMSET(child_pcs->ref_pic_r0[REF_LIST_1], 0, REF_LIST_MAX_DEPTH * sizeof(double));
                         int8_t ref_index = 0;
+#if CLN_REMOVE_P_SLICE
+                        if (entry_ppcs->slice_type == B_SLICE) {
+                            int8_t  max_temporal_index = -1;
+                            for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
+                                // hardcode the reference for the overlay frame
+                                uint64_t ref_poc = entry_ppcs->is_overlay
+                                    ? entry_ppcs->picture_number
+                                    : entry_ppcs->av1_ref_signal.ref_poc_array[ref];
+
+                                uint8_t list_idx = get_list_idx(ref + 1);
+                                uint8_t ref_idx  = get_ref_frame_idx(ref + 1);
+#else
                         if ((entry_ppcs->slice_type == P_SLICE) || (entry_ppcs->slice_type == B_SLICE)) {
                             int8_t  max_temporal_index = -1;
                             uint8_t max_ref_count      = (entry_ppcs->slice_type == B_SLICE)
@@ -801,6 +822,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                                 if ((list_idx == 0 && ref_idx >= entry_ppcs->ref_list0_count) ||
                                     (list_idx == 1 && ref_idx >= entry_ppcs->ref_list1_count))
                                     continue;
+#endif
 
                                 ref_entry = search_ref_in_ref_queue(enc_ctx, ref_poc);
                                 assert(ref_entry != 0);
@@ -808,12 +830,18 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
 
                                 /* clang-format off */
                                 if (entry_ppcs->frame_end_cdf_update_mode) {
+#if !OPT_LD_MEM_2
                                     child_pcs->ref_frame_context[svt_get_ref_frame_type(list_idx, ref_idx) - LAST_FRAME] =
                                         ((EbReferenceObject*)ref_entry->reference_object_ptr->object_ptr)->frame_context;
+#endif
                                     if (max_temporal_index < (int8_t)ref_entry->temporal_layer_index &&
                                         (int8_t)ref_entry->temporal_layer_index <= child_pcs->temporal_layer_index) {
                                         max_temporal_index = (int8_t)ref_entry->temporal_layer_index;
+
+                                        // Note the ref_index (used for primary ref frame) is stored as a REF_FRAME_MINUS1 type, rather than the
+                                        // LAST_FRAME type used elsewhere in the encoder
                                         ref_index = svt_get_ref_frame_type(list_idx, ref_idx) - LAST_FRAME;
+                                        assert(ref_index == ref);
                                         for (int frame = LAST_FRAME; frame <= ALTREF_FRAME; ++frame) {
                                             EbReferenceObject *ref_obj =
                                                 (EbReferenceObject *)ref_entry->reference_object_ptr->object_ptr;
@@ -852,6 +880,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
 #endif
                             }
 
+#if !CLN_REMOVE_P_SLICE // We now properly link all reference spots; no longer need the removed linking
                             /* clang-format off */
                             //fill the non used spots to be used in MFMV.
                             for (uint8_t ref_idx = entry_ppcs->ref_list0_count; ref_idx < 4; ++ref_idx)
@@ -880,6 +909,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                                 }
                             }
                             /* clang-format on */
+#endif
                         }
 
                         if (entry_ppcs->frame_end_cdf_update_mode) {

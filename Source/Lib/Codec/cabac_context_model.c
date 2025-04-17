@@ -347,6 +347,7 @@ static const AomCdfProb default_cfl_alpha_cdf[CFL_ALPHA_CONTEXTS][CDF_SIZE(CFL_A
     {AOM_CDF16(14738, 21678, 25779, 27901, 29024, 30302, 30980, 31843, 32144, 32413, 32520, 32594, 32622, 32656,
                32660)}};
 
+#if !OPT_LD_MEM_2
 //static const AomCdfProb
 //default_switchable_interp_cdf[SWITCHABLE_FILTER_CONTEXTS][CDF_SIZE(
 //SWITCHABLE_FILTERS)] = {
@@ -359,6 +360,7 @@ static const AomCdfProb default_cfl_alpha_cdf[CFL_ALPHA_CONTEXTS][CDF_SIZE(CFL_A
 //    { AOM_CDF3(31022, 32009) }, { AOM_CDF3(2963, 32093) },
 //    { AOM_CDF3(601, 943) }, { AOM_CDF3(14969, 21398) }
 //};
+#endif
 
 static const AomCdfProb default_newmv_cdf[NEWMV_MODE_CONTEXTS][CDF_SIZE(2)] = {
     {AOM_CDF2(24035)}, {AOM_CDF2(16630)}, {AOM_CDF2(15339)}, {AOM_CDF2(8386)}, {AOM_CDF2(12222)}, {AOM_CDF2(4676)}};

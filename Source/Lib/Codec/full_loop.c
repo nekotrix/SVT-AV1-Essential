@@ -1078,7 +1078,11 @@ static const int plane_rd_mult[REF_TYPES][PLANE_TYPES] = {
     {17, 13},
     {16, 10},
 #else
+#if TUNE_CHROMA_RDOQ
+    {17, 14},
+#else
     {17, 20},
+#endif
     {16, 20},
 #endif
 };

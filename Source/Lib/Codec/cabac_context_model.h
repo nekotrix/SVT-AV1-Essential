@@ -681,8 +681,9 @@ typedef struct FrameContexts {
     int32_t    initialized;
 } FRAME_CONTEXT;
 
+#if !OPT_LD_MEM_2
 extern const AomCdfProb svt_aom_default_kf_y_mode_cdf[KF_MODE_CONTEXTS][KF_MODE_CONTEXTS][CDF_SIZE(INTRA_MODES)];
-
+#endif
 static const int32_t av1_ext_tx_ind[EXT_TX_SET_TYPES][TX_TYPES] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},

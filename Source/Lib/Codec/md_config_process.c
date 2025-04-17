@@ -254,6 +254,18 @@ void set_reference_sg_ep(PictureControlSet *pcs) {
         cm->sg_ref_frame_ep[1] = -1;
         break;
     case B_SLICE:
+#if CLN_REMOVE_P_SLICE
+        ref_obj_l0 = (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+        cm->sg_ref_frame_ep[0] = ref_obj_l0->sg_frame_ep;
+        if (pcs->ppcs->ref_list1_count_try) {
+            ref_obj_l1 = (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+            cm->sg_ref_frame_ep[1] = ref_obj_l1->sg_frame_ep;
+        }
+        else {
+            cm->sg_ref_frame_ep[1] = 0;
+        }
+        break;
+#else
         ref_obj_l0             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
         ref_obj_l1             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
         cm->sg_ref_frame_ep[0] = ref_obj_l0->sg_frame_ep;
@@ -264,6 +276,7 @@ void set_reference_sg_ep(PictureControlSet *pcs) {
         cm->sg_ref_frame_ep[0] = ref_obj_l0->sg_frame_ep;
         cm->sg_ref_frame_ep[1] = 0;
         break;
+#endif
     default: SVT_LOG("SG: Not supported picture type"); break;
     }
 }
@@ -283,10 +296,22 @@ void mode_decision_configuration_init_qp_update(PictureControlSet *pcs) {
 
     md_rate_est_ctx = pcs->md_rate_est_ctx;
 
+#if OPT_LD_MEM_2
+    if (frm_hdr->primary_ref_frame != PRIMARY_REF_NONE) {
+        const uint8_t primary_ref_frame = frm_hdr->primary_ref_frame;
+        // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
+        // Therefore, add 1 to the primary ref frame (e.g. LAST --> LAST_FRAME)
+        const uint8_t list_idx = get_list_idx(primary_ref_frame + 1);
+        const uint8_t ref_idx = get_ref_frame_idx(primary_ref_frame + 1);
+        EbReferenceObject* ref = (EbReferenceObject*)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+        memcpy(&pcs->md_frame_context, &ref->frame_context, sizeof(FRAME_CONTEXT));
+    }
+#else
     if (pcs->ppcs->frm_hdr.primary_ref_frame != PRIMARY_REF_NONE)
         memcpy(&pcs->md_frame_context,
                &pcs->ref_frame_context[pcs->ppcs->frm_hdr.primary_ref_frame],
                sizeof(FRAME_CONTEXT));
+#endif
     else {
         svt_av1_default_coef_probs(&pcs->md_frame_context, frm_hdr->quantization_params.base_q_idx);
         svt_aom_init_mode_probs(&pcs->md_frame_context);
@@ -756,10 +781,22 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         context_ptr->qp_index = (uint8_t)frm_hdr->quantization_params.base_q_idx;
 
         md_rate_est_ctx = pcs->md_rate_est_ctx;
+#if OPT_LD_MEM_2
+        if (frm_hdr->primary_ref_frame != PRIMARY_REF_NONE) {
+            const uint8_t primary_ref_frame = frm_hdr->primary_ref_frame;
+            // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
+            // Therefore, add 1 to the primary ref frame (e.g. LAST --> LAST_FRAME)
+            const uint8_t list_idx = get_list_idx(primary_ref_frame + 1);
+            const uint8_t ref_idx = get_ref_frame_idx(primary_ref_frame + 1);
+            EbReferenceObject* ref = (EbReferenceObject*)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+            memcpy(&pcs->md_frame_context, &ref->frame_context, sizeof(FRAME_CONTEXT));
+        }
+#else
         if (pcs->ppcs->frm_hdr.primary_ref_frame != PRIMARY_REF_NONE)
             memcpy(&pcs->md_frame_context,
                    &pcs->ref_frame_context[pcs->ppcs->frm_hdr.primary_ref_frame],
                    sizeof(FRAME_CONTEXT));
+#endif
         else {
             svt_av1_default_coef_probs(&pcs->md_frame_context, frm_hdr->quantization_params.base_q_idx);
             svt_aom_init_mode_probs(&pcs->md_frame_context);
@@ -870,7 +907,11 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                         if (ref_obj_l0->ref_cdef_strengths[0][fs] > highest_sg)
                             highest_sg = ref_obj_l0->ref_cdef_strengths[0][fs];
                     }
+#if CLN_REMOVE_P_SLICE
+                    if (pcs->slice_type == B_SLICE && pcs->ppcs->ref_list1_count_try) {
+#else
                     if (pcs->slice_type == B_SLICE) {
+#endif
                         // Add filter from list1
                         EbReferenceObject *ref_obj_l1 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
@@ -913,7 +954,11 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                         (cdef_ctrls->first_pass_fs_num)++;
                     }
 
+#if CLN_REMOVE_P_SLICE
+                    if (pcs->slice_type == B_SLICE && pcs->ppcs->ref_list1_count_try) {
+#else
                     if (pcs->slice_type == B_SLICE) {
+#endif
                         EbReferenceObject *ref_obj_l1 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
                         // Add filter from list1, if different from default filter and list0 filter

@@ -322,8 +322,10 @@ enum {
 #define MAX_TXB_COUNT_UV 4 // Maximum number of transform blocks per depth for chroma planes
 #define MAX_LAD 120 // max lookahead-distance 2x60fps
 #define ROUND_UV(x) (((x) >> 3) << 3)
+#if !OPT_LD_MEM_2
 #define AV1_PROB_COST_SHIFT 9
 #define AOMINNERBORDERINPIXELS 160
+#endif
 #define SWITCHABLE_FILTER_CONTEXTS ((SWITCHABLE_FILTERS + 1) * 4)
 #define MAX_MB_PLANE 3
 #define CFL_MAX_BlockSize (BLOCK_32X32)
@@ -2133,6 +2135,13 @@ typedef enum MD_BIT_DEPTH_MODE
 /*
  * The SliceType type is used to describe the slice prediction type.
  */
+#if CLN_REMOVE_P_SLICE
+typedef enum ATTRIBUTE_PACKED {
+    B_SLICE = 0, // Inter frame
+    I_SLICE = 1, // Intra only frame
+    INVALID_SLICE = 0xFF
+} SliceType;
+#else
 typedef enum ATTRIBUTE_PACKED {
     B_SLICE = 0,
     P_SLICE = 1,
@@ -2140,6 +2149,7 @@ typedef enum ATTRIBUTE_PACKED {
     IDR_SLICE = 3,
     INVALID_SLICE = 0xFF
 } SliceType;
+#endif
 
 /** The EbModeType type is used to describe the PU type.
 */

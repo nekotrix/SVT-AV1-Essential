@@ -70,10 +70,12 @@ static INLINE InterpFilters av1_broadcast_interp_filter(InterpFilter filter) {
     return av1_make_interp_filters(filter, filter);
 }
 
+#if !OPT_LD_MEM_2
 #define LOG_SWITCHABLE_FILTERS 2 /* (1 << LOG_SWITCHABLE_FILTERS) > SWITCHABLE_FILTERS */
 
 #define MAX_SUBPEL_TAPS 12
 #define SWITCHABLE_FILTER_CONTEXTS ((SWITCHABLE_FILTERS + 1) * 4)
+#endif
 #define INTER_FILTER_COMP_OFFSET (SWITCHABLE_FILTERS + 1)
 #define INTER_FILTER_DIR_OFFSET ((SWITCHABLE_FILTERS + 1) * 2)
 

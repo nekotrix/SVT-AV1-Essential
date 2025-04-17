@@ -230,6 +230,10 @@ int svt_aom_compute_rd_mult_based_on_qindex(EbBitDepth bit_depth, SvtAv1FrameUpd
 struct PictureControlSet;
 int svt_aom_compute_rd_mult(struct PictureControlSet *pcs, uint8_t q_index, uint8_t me_q_index, uint8_t bit_depth);
 int svt_aom_compute_fast_lambda(struct PictureControlSet *pcs, uint8_t q_index, uint8_t me_q_index, uint8_t bit_depth);
+#if CLN_MISC
+void svt_aom_lambda_assign(struct PictureControlSet* pcs, uint32_t* fast_lambda, uint32_t* full_lambda, uint8_t bit_depth,
+    uint16_t qp_index, bool multiply_lambda);
+#endif
 struct PictureParentControlSet;
 void svt_aom_cyclic_refresh_init(struct PictureParentControlSet *ppcs);
 

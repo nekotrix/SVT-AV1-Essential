@@ -895,6 +895,15 @@ void finish_cdef_search(PictureControlSet *pcs) {
     int32_t    nb_strength_bits;
     uint64_t   lambda;
     uint32_t   fast_lambda, full_lambda = 0;
+#if CLN_MISC
+    svt_aom_lambda_assign(
+        pcs,
+        &fast_lambda,
+        &full_lambda,
+        (uint8_t)pcs->ppcs->enhanced_pic->bit_depth,
+        pcs->ppcs->frm_hdr.quantization_params.base_q_idx,
+        false);
+#else
     (*svt_aom_av1_lambda_assignment_function_table[pcs->ppcs->pred_structure])(
         pcs,
         &fast_lambda,
@@ -902,6 +911,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
         (uint8_t)pcs->ppcs->enhanced_pic->bit_depth,
         pcs->ppcs->frm_hdr.quantization_params.base_q_idx,
         false);
+#endif
     lambda   = full_lambda;
     mse[0]   = (uint64_t **)malloc(sizeof(*mse) * nvfb * nhfb);
     mse[1]   = (uint64_t **)malloc(sizeof(*mse) * nvfb * nhfb);

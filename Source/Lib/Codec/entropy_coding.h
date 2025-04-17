@@ -207,6 +207,9 @@ uint8_t svt_av1_get_intra_inter_context(const MacroBlockD *xd);
 void    svt_aom_get_kf_y_mode_ctx(const MacroBlockD *xd, uint8_t *above_ctx, uint8_t *left_ctx);
 uint8_t av1_get_skip_mode_context(const MacroBlockD *xd);
 uint8_t av1_get_skip_context(const MacroBlockD *xd);
+#if OPT_LD_MEM_2
+void svt_av1_reset_loop_restoration(struct EntropyCodingContext* ctx);
+#endif
 
 #ifdef __cplusplus
 }

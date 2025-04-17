@@ -755,7 +755,11 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
                     if (pcs->superres_total_recode_loop == 0) { // QThreshold or auto-solo mode
                         if (pcs->tpl_ctrls.enable) {
                             for (uint32_t i = 0; i < pcs->tpl_group_size; i++) {
+#if CLN_REMOVE_P_SLICE
+                                if (svt_aom_is_incomp_mg_frame(pcs->tpl_group[i])) {
+#else
                                 if (pcs->tpl_group[i]->slice_type == P_SLICE) {
+#endif
                                     if (pcs->tpl_group[i]->ext_mg_id == pcs->ext_mg_id + 1)
                                         svt_aom_release_pa_reference_objects(scs, pcs->tpl_group[i]);
                                 } else {

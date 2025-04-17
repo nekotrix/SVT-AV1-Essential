@@ -23,6 +23,9 @@
 #include "firstpass.h"
 #include "sequence_control_set.h"
 #include "entropy_coding.h"
+#if CLN_REMOVE_P_SLICE
+#include "pd_process.h"
+#endif
 
 static void init_gf_stats(GF_GROUP_STATS *gf_stats);
 // Calculate a modified Error used in distributing bits between easier and
@@ -901,7 +904,11 @@ static void process_first_pass_stats(PictureParentControlSet *pcs, FIRSTPASS_STA
 // For P pictures in the incomplete minigops, since there is no order, we search all of them and set the flag accordingly
 static void is_new_gf_group(PictureParentControlSet *pcs) {
     pcs->is_new_gf_group = 0;
+#if CLN_REMOVE_P_SLICE
+    if (!svt_aom_is_incomp_mg_frame(pcs))
+#else
     if (pcs->slice_type != P_SLICE)
+#endif
         pcs->is_new_gf_group = pcs->gf_update_due;
     else {
         for (int pic_i = 0; pic_i < pcs->gf_interval; ++pic_i)
@@ -909,7 +916,11 @@ static void is_new_gf_group(PictureParentControlSet *pcs) {
             if (pcs->gf_group[pic_i] &&
                 (int)ABS((int64_t)pcs->gf_group[pic_i]->picture_number - (int64_t)pcs->picture_number) <=
                     pcs->gf_interval &&
+#if CLN_REMOVE_P_SLICE
+                svt_aom_is_incomp_mg_frame(pcs->gf_group[pic_i]) && pcs->gf_group[pic_i]->gf_update_due)
+#else
                 pcs->gf_group[pic_i]->slice_type == P_SLICE && pcs->gf_group[pic_i]->gf_update_due)
+#endif
                 pcs->is_new_gf_group = 1;
         if (pcs->is_new_gf_group)
             for (int pic_i = 0; pic_i < pcs->gf_interval; ++pic_i)

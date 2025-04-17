@@ -415,6 +415,20 @@ void svt_aom_release_pa_reference_objects(SequenceControlSet *scs, PictureParent
     (void)scs;
     // PA Reference Pictures
     if (pcs->slice_type != I_SLICE) {
+#if CLN_REMOVE_P_SLICE
+        // Release the PA reference Pictures from both lists
+        for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
+            const uint8_t list_idx = get_list_idx(ref + 1);
+            const uint8_t ref_idx = get_ref_frame_idx(ref + 1);
+            if (pcs->ref_pa_pic_ptr_array[list_idx][ref_idx] != NULL) {
+                svt_release_object(pcs->ref_pa_pic_ptr_array[list_idx][ref_idx]);
+                if (pcs->ref_y8b_array[list_idx][ref_idx]) {
+                    //y8b  needs to get decremented at the same time of pa ref
+                    svt_release_object(pcs->ref_y8b_array[list_idx][ref_idx]);
+                }
+            }
+        }
+#else
         const uint32_t num_of_list_to_search = (pcs->slice_type == P_SLICE) ? 1 /*List 0 only*/ : 2 /*List 0 + 1*/;
 
         // List Loop
@@ -434,6 +448,7 @@ void svt_aom_release_pa_reference_objects(SequenceControlSet *scs, PictureParent
                 }
             }
         }
+#endif
     }
 
     if (pcs->pa_ref_pic_wrapper != NULL) {

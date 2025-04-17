@@ -1974,6 +1974,10 @@ static void perform_inter_coding_loop(SequenceControlSet *scs, PictureControlSet
     EbPictureBufferDesc *recon_buffer;
     EbPictureBufferDesc *coeff_buffer_sb = pcs->ppcs->enc_dec_ptr->quantized_coeff[sb_addr];
     ModeDecisionContext *md_ctx          = ctx->md_ctx;
+#if OPT_LD_MEM_3
+    const int is_inter = is_inter_block(&blk_ptr->block_mi);
+    assert(is_inter);
+#endif
 
     // Dereferencing early
     uint16_t tile_idx = ctx->tile_index;
@@ -2114,10 +2118,17 @@ static void perform_inter_coding_loop(SequenceControlSet *scs, PictureControlSet
     for (uint16_t tu_it = 0; tu_it < tot_tu; tu_it++) {
         uint8_t uv_pass       = tx_depth && tu_it ? 0 : 1; //NM: 128x128 exeption
         ctx->txb_itr          = (uint8_t)tu_it;
+#if OPT_LD_MEM_3
+        uint16_t txb_origin_x = ctx->blk_org_x +
+            (blk_geom->tx_org_x[is_inter][tx_depth][ctx->txb_itr] - blk_geom->org_x);
+        uint16_t txb_origin_y = ctx->blk_org_y +
+            (blk_geom->tx_org_y[is_inter][tx_depth][ctx->txb_itr] - blk_geom->org_y);
+#else
         uint16_t txb_origin_x = ctx->blk_org_x +
             (blk_geom->tx_org_x[ctx->is_inter][tx_depth][ctx->txb_itr] - blk_geom->org_x);
         uint16_t txb_origin_y = ctx->blk_org_y +
             (blk_geom->tx_org_y[ctx->is_inter][tx_depth][ctx->txb_itr] - blk_geom->org_y);
+#endif
         md_ctx->luma_txb_skip_context = 0;
         md_ctx->luma_dc_sign_context  = 0;
         svt_aom_get_txb_ctx(pcs,
@@ -2750,10 +2761,12 @@ EB_EXTERN void svt_aom_encode_decode(SequenceControlSet *scs, PictureControlSet 
 #else
             if (blk_ptr->prediction_mode_flag == INTRA_MODE) {
 #endif
+#if !OPT_LD_MEM_3
 #if CLN_MBMI_IN_BLKSTRUCT
                 ctx->is_inter = blk_ptr->block_mi.use_intrabc;
 #else
                 ctx->is_inter = blk_ptr->use_intrabc;
+#endif
 #endif
 
                 if (scs->static_config.encoder_bit_depth > EB_EIGHT_BIT && pcs->hbd_md == 0 &&
@@ -2793,7 +2806,9 @@ EB_EXTERN void svt_aom_encode_decode(SequenceControlSet *scs, PictureControlSet 
 #else
             } else if (blk_ptr->prediction_mode_flag == INTER_MODE) {
 #endif
+#if !OPT_LD_MEM_3
                 ctx->is_inter = true;
+#endif
                 perform_inter_coding_loop(scs, pcs, ctx, sb_ptr, sb_addr);
                 // Update Recon Samples Neighbor Arrays -INTER-
                 encode_pass_update_recon_sample_neighbour_arrays(
@@ -2841,7 +2856,9 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
     pcs->sb_intra[sb_addr]           = 0;
     pcs->sb_skip[sb_addr]            = 1;
     pcs->sb_64x64_mvp[sb_addr]       = 0;
+#if !OPT_LD_MEM
     pcs->sb_count_nz_coeffs[sb_addr] = 0;
+#endif
 #if OPT_DEPTHS_CTRL
     pcs->sb_min_sq_size[sb_addr]     = 128;
     pcs->sb_max_sq_size[sb_addr]     = 0;
@@ -2965,7 +2982,9 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
             pcs->sb_min_sq_size[sb_addr] = MIN(blk_geom->sq_size, pcs->sb_min_sq_size[sb_addr]);
             pcs->sb_max_sq_size[sb_addr] = MAX(blk_geom->sq_size, pcs->sb_max_sq_size[sb_addr]);
 #endif
+#if !OPT_LD_MEM
             pcs->sb_count_nz_coeffs[sb_addr] += md_ctx->blk_ptr->cnt_nz_coeff;
+#endif
             svt_block_on_mutex(pcs->ppcs->pcs_total_rate_mutex);
             pcs->ppcs->pcs_total_rate += blk_ptr->total_rate;
             svt_release_mutex(pcs->ppcs->pcs_total_rate_mutex);
@@ -3055,10 +3074,14 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
             // Loop over TX units only if needed
             if (pcs->cdf_ctrl.update_coef || (md_ctx->bypass_encdec && !(md_ctx->fixed_partition))) {
 #if CLN_MBMI_IN_BLKSTRUCT
+#if OPT_LD_MEM_3
+                const int is_inter = is_inter_block(&blk_ptr->block_mi);
+#else
 #if CLN_UNUSED_SIGS
                 ctx->is_inter = is_inter_block(&blk_ptr->block_mi);
 #else
                 ctx->is_inter = (blk_ptr->prediction_mode_flag == INTER_MODE || blk_ptr->block_mi.use_intrabc); // TODO: replace with is_inter_block()
+#endif
 #endif
 
                 // Initialize the Transform Loop
@@ -3075,10 +3098,17 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
                 for (uint16_t tu_it = 0; tu_it < tot_tu; tu_it++) {
                     uint8_t uv_pass       = tx_depth && tu_it ? 0 : 1; //NM: 128x128 exeption
                     ctx->txb_itr          = (uint8_t)tu_it;
+#if OPT_LD_MEM_3
+                    uint16_t txb_origin_x = ctx->blk_org_x +
+                        (blk_geom->tx_org_x[is_inter][tx_depth][ctx->txb_itr] - blk_geom->org_x);
+                    uint16_t txb_origin_y = ctx->blk_org_y +
+                        (blk_geom->tx_org_y[is_inter][tx_depth][ctx->txb_itr] - blk_geom->org_y);
+#else
                     uint16_t txb_origin_x = ctx->blk_org_x +
                         (blk_geom->tx_org_x[ctx->is_inter][tx_depth][ctx->txb_itr] - blk_geom->org_x);
                     uint16_t txb_origin_y = ctx->blk_org_y +
                         (blk_geom->tx_org_y[ctx->is_inter][tx_depth][ctx->txb_itr] - blk_geom->org_y);
+#endif
 
                     // Copy quantized coeffs to EncDec buffers if EncDec was bypassed;  if used pred depth only and NSQ is OFF data was copied directly to EncDec buffers in MD
                     if (md_ctx->bypass_encdec && !(md_ctx->fixed_partition)) {

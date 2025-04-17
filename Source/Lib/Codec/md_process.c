@@ -59,7 +59,9 @@ static void mode_decision_context_dctor(EbPtr p) {
     EB_FREE_ALIGNED_ARRAY(obj->cfl_temp_luma_recon);
     EB_FREE_ALIGNED_ARRAY(obj->pred_buf_q3);
     EB_FREE_ARRAY(obj->fast_cand_array);
+#if !OPT_LD_MEM_3
     EB_FREE_ARRAY(obj->fast_cand_ptr_array);
+#endif
     EB_FREE_2D(obj->injected_mvs);
     EB_FREE_ARRAY(obj->injected_ref_types);
     EB_FREE_ARRAY(obj->fast_cost_array);
@@ -107,11 +109,17 @@ static void mode_decision_context_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->mdc_sb_array.split_flag);
     EB_FREE_ARRAY(obj->mdc_sb_array.refined_split_flag);
     EB_FREE_ARRAY(obj->mdc_sb_array.consider_block);
+#if OPT_LD_MEM_3
+    EB_DELETE(obj->tx_search_recon_coeff_ptr);
+    EB_DELETE(obj->tx_search_recon_ptr);
+    EB_DELETE(obj->tx_search_quant_coeff_ptr);
+#else
     for (uint32_t txt_itr = 0; txt_itr < TX_TYPES; ++txt_itr) {
         EB_DELETE(obj->recon_coeff_ptr[txt_itr]);
         EB_DELETE(obj->recon_ptr[txt_itr]);
         EB_DELETE(obj->quant_coeff_ptr[txt_itr]);
     }
+#endif
     EB_DELETE(obj->tx_coeffs);
     EB_DELETE(obj->scratch_prediction_ptr);
     EB_DELETE(obj->temp_residual);
@@ -125,11 +133,7 @@ void svt_aom_set_nics(SequenceControlSet *scs, NicScalingCtrls *scaling_ctrls, u
 void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_CLASS_TOTAL],
 #endif
 #if OPT_REMOVE_NIC_QP_BANDS
-#if TUNE_MR_2
-                      uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type);
-#else
                       uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type, uint32_t qp);
-#endif
 #else
                       uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type);
 #endif
@@ -146,7 +150,11 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
                                                EncMode enc_mode, uint16_t max_block_cnt, uint32_t encoder_bit_depth,
                                                EbFifo *mode_decision_configuration_input_fifo_ptr,
                                                EbFifo *mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision,
+#if OPT_LD_MEM_3
+                                               uint8_t seq_qp_mod) {
+#else
                                                uint8_t cfg_palette, uint8_t seq_qp_mod) {
+#endif
     uint32_t buffer_index;
     uint32_t cand_index;
 
@@ -171,7 +179,11 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
         bool rtc_tune = (bool)rtc_itr;
         for (uint8_t is_base = 0; is_base < 2; is_base++) {
 #if OPT_REMOVE_NIC_QP_BANDS
+#if OPT_ALLINTRA_STILLIMAGE
+            uint8_t nic_level = svt_aom_get_nic_level(scs, enc_mode, is_base, rtc_tune);
+#else
             uint8_t nic_level = svt_aom_get_nic_level(enc_mode, is_base, rtc_tune);
+#endif
             uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
             min_nic_scaling_level = MIN(min_nic_scaling_level, nic_scaling_level);
 #else
@@ -199,7 +211,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
 #if OPT_REMOVE_NIC_QP_BANDS
             for (uint8_t qp = MIN_QP_VALUE; qp <= MAX_QP_VALUE; qp++) {
 #if TUNE_MR_2
-                svt_aom_set_nics(scs, &scaling_ctrls, mds1_count, mds2_count, mds3_count, pic_type);
+                svt_aom_set_nics(scs, &scaling_ctrls, mds1_count, mds2_count, mds3_count, pic_type, qp);
 #else
                 svt_aom_set_nics(&scaling_ctrls, mds1_count, mds2_count, mds3_count, pic_type, qp);
 #endif
@@ -294,16 +306,30 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
     uint16_t max_can_count = svt_aom_get_max_can_count(enc_mode) + ind_uv_cands;
     EB_MALLOC_ARRAY(ctx->fast_cand_array, max_can_count);
 
+#if OPT_LD_MEM_3
+    for (cand_index = 0; cand_index < max_can_count; ++cand_index) {
+        ctx->fast_cand_array[cand_index].palette_info = NULL;
+    }
+#else
     EB_MALLOC_ARRAY(ctx->fast_cand_ptr_array, max_can_count);
+#endif
     svt_aom_assert_err(max_can_count > ind_uv_cands, "Max. candidates is too low");
     EB_MALLOC_2D(ctx->injected_mvs, (uint16_t)(max_can_count - ind_uv_cands), 2);
     EB_MALLOC_ARRAY(ctx->injected_ref_types, (max_can_count - ind_uv_cands));
 
+#if !OPT_LD_MEM_3
     for (cand_index = 0; cand_index < max_can_count; ++cand_index) {
         ctx->fast_cand_ptr_array[cand_index]               = &ctx->fast_cand_array[cand_index];
         ctx->fast_cand_ptr_array[cand_index]->palette_info = NULL;
     }
+#endif
 
+#if OPT_LD_MEM_3
+    // Set buffers for MD palette search to NULL; will be init'd at runtime if needed
+    ctx->palette_buffer = NULL;
+    ctx->palette_cand_array = NULL;
+    ctx->palette_size_array_0 = NULL;
+#else
     // MD palette search
     if (cfg_palette) {
         EB_MALLOC(ctx->palette_buffer, sizeof(PALETTE_BUFFER));
@@ -317,6 +343,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
         ctx->palette_cand_array   = NULL;
         ctx->palette_size_array_0 = NULL;
     }
+#endif
 
     // Cost Arrays
     EB_MALLOC_ARRAY(ctx->fast_cost_array, ctx->max_nics_uv);
@@ -464,6 +491,12 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
     thirty_two_width_picture_buffer_desc_init_data.bot_padding        = 0;
     thirty_two_width_picture_buffer_desc_init_data.split_mode         = false;
 
+#if OPT_LD_MEM_3 // TODO: coeffs need to be 32x32 only
+    // Allocate temporary buffers used in TXT search
+    EB_NEW(ctx->tx_search_recon_coeff_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
+    EB_NEW(ctx->tx_search_recon_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&picture_buffer_desc_init_data);
+    EB_NEW(ctx->tx_search_quant_coeff_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
+#else
     for (uint32_t txt_itr = 0; txt_itr < TX_TYPES; ++txt_itr) {
         EB_NEW(ctx->recon_coeff_ptr[txt_itr],
                svt_picture_buffer_desc_ctor,
@@ -473,6 +506,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
                svt_picture_buffer_desc_ctor,
                (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
     }
+#endif
     EB_NEW(ctx->tx_coeffs, svt_picture_buffer_desc_ctor, (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
     EB_NEW(ctx->scratch_prediction_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&picture_buffer_desc_init_data);
     EbPictureBufferDescInitData double_width_picture_buffer_desc_init_data;
@@ -598,6 +632,7 @@ static void av1_lambda_assign_md(PictureControlSet *pcs, ModeDecisionContext *ct
     ctx->full_sb_lambda_md[1] = ctx->full_lambda_md[1];
 }
 
+#if !CLN_MISC
 static void av1_lambda_assign(PictureControlSet *pcs, uint32_t *fast_lambda, uint32_t *full_lambda, uint8_t bit_depth,
                               uint16_t qp_index, bool multiply_lambda) {
     if (bit_depth == 8) {
@@ -631,6 +666,7 @@ const EbAv1LambdaAssignFunc svt_aom_av1_lambda_assignment_function_table[4] = {
     av1_lambda_assign,
     av1_lambda_assign,
 };
+#endif
 
 void svt_aom_reset_mode_decision(SequenceControlSet *scs, ModeDecisionContext *ctx, PictureControlSet *pcs,
                                  uint16_t tile_group_idx, uint32_t segment_index) {

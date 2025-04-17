@@ -1494,6 +1494,12 @@ void scale_source_references(SequenceControlSet *scs, PictureParentControlSet *p
     const int32_t  num_planes            = 0; // Y only
     const uint32_t ss_x                  = scs->subsampling_x;
     const uint32_t ss_y                  = scs->subsampling_y;
+#if CLN_REMOVE_P_SLICE
+    for (uint8_t list_index = REF_LIST_0; list_index < MAX_NUM_OF_REF_PIC_LIST; ++list_index) {
+        const uint8_t num_of_ref_pic_to_search =
+            (list_index == REF_LIST_0) ? pcs->ref_list0_count : pcs->ref_list1_count;
+        for (uint8_t ref_pic_index = 0; ref_pic_index < num_of_ref_pic_to_search; ++ref_pic_index) {
+#else
     uint32_t       num_of_list_to_search = (pcs->slice_type == P_SLICE) ? 1 /*List 0 only*/ : 2 /*List 0 + 1*/;
 
     for (uint8_t list_index = REF_LIST_0; list_index < num_of_list_to_search; ++list_index) {
@@ -1502,6 +1508,7 @@ void scale_source_references(SequenceControlSet *scs, PictureParentControlSet *p
             : (list_index == REF_LIST_0)                                ? pcs->ref_list0_count
                                                                         : pcs->ref_list1_count;
         for (ref_pic_index = 0; ref_pic_index < num_of_ref_pic_to_search; ++ref_pic_index) {
+#endif
             ref_object = (EbPaReferenceObject *)pcs->ref_pa_pic_ptr_array[list_index][ref_pic_index]->object_ptr;
 
             uint64_t ref_picture_number = pcs->ref_pic_poc_array[list_index][ref_pic_index];
@@ -1637,6 +1644,12 @@ void svt_aom_scale_rec_references(PictureControlSet *pcs, EbPictureBufferDesc *i
     const int32_t  num_planes            = av1_num_planes(&scs->seq_header.color_config);
     const uint32_t ss_x                  = scs->subsampling_x;
     const uint32_t ss_y                  = scs->subsampling_y;
+#if CLN_REMOVE_P_SLICE
+    for (uint8_t list_index = REF_LIST_0; list_index < MAX_NUM_OF_REF_PIC_LIST; ++list_index) {
+        const uint8_t num_of_ref_pic_to_search =
+            (list_index == REF_LIST_0) ? ppcs->ref_list0_count : ppcs->ref_list1_count;
+        for (uint8_t ref_pic_index = 0; ref_pic_index < num_of_ref_pic_to_search; ++ref_pic_index) {
+#else
     uint32_t       num_of_list_to_search = (pcs->slice_type == P_SLICE) ? 1 /*List 0 only*/ : 2 /*List 0 + 1*/;
 
     for (uint8_t list_index = REF_LIST_0; list_index < num_of_list_to_search; ++list_index) {
@@ -1645,6 +1658,7 @@ void svt_aom_scale_rec_references(PictureControlSet *pcs, EbPictureBufferDesc *i
             : (list_index == REF_LIST_0)                                 ? ppcs->ref_list0_count
                                                                          : ppcs->ref_list1_count;
         for (ref_pic_index = 0; ref_pic_index < num_of_ref_pic_to_search; ++ref_pic_index) {
+#endif
             ref_object = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_index][ref_pic_index]->object_ptr;
 
             uint64_t ref_picture_number = ppcs->ref_pic_poc_array[list_index][ref_pic_index];

@@ -26,6 +26,9 @@
 #include "pic_analysis_process.h"
 #include "resize.h"
 #include "enc_mode_config.h"
+#if CLN_MISC
+#include "rc_process.h"
+#endif
 
 void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
 void copy_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *dst_rate);
@@ -60,7 +63,9 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
     thread_ctx->dctor = enc_dec_context_dctor;
 
     ed_ctx->is_16bit     = enc_handle_ptr->scs_instance_array[0]->scs->is_16bit_pipeline;
+#if !OPT_LD_MEM_3
     ed_ctx->color_format = color_format;
+#endif
 
     // Input/Output System Resource Manager FIFOs
     ed_ctx->mode_decision_input_fifo_ptr = svt_system_resource_get_consumer_fifo(
@@ -119,6 +124,20 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
                .split_mode         = false,
            });
     // Mode Decision Context
+#if OPT_LD_MEM_3
+    EB_NEW(ed_ctx->md_ctx,
+        svt_aom_mode_decision_context_ctor,
+        enc_handle_ptr->scs_instance_array[0]->scs,
+        color_format,
+        enc_handle_ptr->scs_instance_array[0]->scs->super_block_size,
+        static_config->enc_mode,
+        enc_handle_ptr->scs_instance_array[0]->scs->max_block_cnt,
+        static_config->encoder_bit_depth,
+        0,
+        0,
+        enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
+        enc_handle_ptr->scs_instance_array[0]->scs->seq_qp_mod);
+#else
 #if TUNE_MR_2
     EB_NEW(ed_ctx->md_ctx,
            svt_aom_mode_decision_context_ctor,
@@ -146,6 +165,7 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
            enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
            static_config->screen_content_mode,
            enc_handle_ptr->scs_instance_array[0]->scs->seq_qp_mod);
+#endif
 #endif
 
     if (enable_hbd_mode_decision)
@@ -196,7 +216,11 @@ static void reset_enc_dec(EncDecContext *ed_ctx, PictureControlSet *pcs, Sequenc
     ed_ctx->is_16bit        = scs->is_16bit_pipeline;
     ed_ctx->bit_depth       = scs->static_config.encoder_bit_depth;
     uint16_t tile_group_idx = ed_ctx->tile_group_index;
+#if CLN_MISC
+    svt_aom_lambda_assign(
+#else
     (*svt_aom_av1_lambda_assignment_function_table[pcs->ppcs->pred_structure])(
+#endif
         pcs,
         &ed_ctx->pic_fast_lambda[EB_8_BIT_MD],
         &ed_ctx->pic_full_lambda[EB_8_BIT_MD],
@@ -204,7 +228,11 @@ static void reset_enc_dec(EncDecContext *ed_ctx, PictureControlSet *pcs, Sequenc
         pcs->ppcs->frm_hdr.quantization_params.base_q_idx,
         true);
 
+#if CLN_MISC
+    svt_aom_lambda_assign(
+#else
     (*svt_aom_av1_lambda_assignment_function_table[pcs->ppcs->pred_structure])(
+#endif
         pcs,
         &ed_ctx->pic_fast_lambda[EB_10_BIT_MD],
         &ed_ctx->pic_full_lambda[EB_10_BIT_MD],
@@ -2337,7 +2365,11 @@ void update_pred_th_offset(PictureControlSet* pcs, ModeDecisionContext* ctx, con
             uint8_t  sb_min_sq_size = ref_obj_l0->sb_min_sq_size[ctx->sb_index];
             uint8_t  sb_max_sq_size = ref_obj_l0->sb_max_sq_size[ctx->sb_index];
 
+#if CLN_REMOVE_P_SLICE
+            if (pcs->slice_type == B_SLICE && is_ref_l1_avail && pcs->ppcs->ref_list1_count_try) {
+#else
             if (pcs->slice_type == B_SLICE && is_ref_l1_avail) {
+#endif
                 EbReferenceObject* ref_obj_l1 =
                     (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
                 sb_min_sq_size = MIN(sb_min_sq_size, ref_obj_l1->sb_min_sq_size[ctx->sb_index]);
@@ -2371,7 +2403,14 @@ static void is_parent_to_current_deviation_small(PictureControlSet* pcs, ModeDec
 #if OPT_USE_EXP_DEPTHS
             uint32_t q_weight, q_weight_denom;
 #if TUNE_MR_2
-            svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom);
+#if OPT_ALLINTRA_STILLIMAGE
+            svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.depths_qp_based_th_scaling,
+                                                    &q_weight,
+                                                    &q_weight_denom,
+                                                    pcs->scs->static_config.qp);
+#else
+            svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom, pcs->scs->static_config.qp);
+#endif
 #else
             svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
 #endif
@@ -2470,7 +2509,14 @@ static void is_child_to_current_deviation_small(PictureControlSet* pcs, ModeDeci
 #if OPT_USE_EXP_DEPTHS
             uint32_t q_weight, q_weight_denom;
 #if TUNE_MR_2
-            svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom);
+#if OPT_ALLINTRA_STILLIMAGE
+            svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.depths_qp_based_th_scaling,
+                                                    &q_weight,
+                                                    &q_weight_denom,
+                                                    pcs->scs->static_config.qp);
+#else
+            svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom, pcs->scs->static_config.qp);
+#endif
 #else
             svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
 #endif
@@ -3138,36 +3184,84 @@ static void exaustive_light_pd1_features(ModeDecisionContext *md_ctx, PicturePar
 /* Light-PD1 classifier used when cost/coeff info is available.  If PD0 is skipped, or the trasnsform is
 not performed, a separate detector (lpd1_detector_skip_pd0) is used. */
 static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *md_ctx, bool rtc_tune) {
+#if !OPT_REF_INFO
     // the frame size of reference pics are different if enable reference scaling.
     // sb info can not be reused because super blocks are mismatched, so we set
     // the reference pic unavailable to avoid using wrong info
     const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
     const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
+#endif
 
     for (int pd1_lvl = LPD1_LEVELS - 1; pd1_lvl > REGULAR_PD1; pd1_lvl--) {
         if (md_ctx->lpd1_ctrls.pd1_level == pd1_lvl) {
             if (md_ctx->lpd1_ctrls.use_lpd1_detector[pd1_lvl]) {
+#if OPT_REF_INFO
                 // Use info from ref frames (if available)
-                if (md_ctx->lpd1_ctrls.use_ref_info[pd1_lvl] && pcs->slice_type != I_SLICE && is_ref_l0_avail) {
-                    EbReferenceObject *ref_obj_l0 =
-                        (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-                    uint8_t l0_was_intra = ref_obj_l0->sb_intra[md_ctx->sb_index], l1_was_intra = 0;
-
-                    if (pcs->slice_type == B_SLICE && is_ref_l1_avail) {
-                        EbReferenceObject *ref_obj_l1 =
-                            (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-                        l1_was_intra = ref_obj_l1->sb_intra[md_ctx->sb_index];
+                if (md_ctx->lpd1_ctrls.use_ref_info[pd1_lvl] && pcs->slice_type != I_SLICE) {
+                    // Get list 0 refs' info
+                    uint8_t  l0_was_intra = 0;
+                    uint8_t l0_refs = 0;
+                    // the frame size of reference pics are different if enable reference scaling.
+                    // sb info can not be reused because super blocks are mismatched, so we set
+                    // the reference pic unavailable to avoid using wrong info
+                    const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
+                    if (pcs->ppcs->ref_list0_count_try && is_ref_l0_avail) {
+                        EbReferenceObject* ref_obj_l0 =
+                            (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+                        if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index) {
+                            l0_was_intra += ref_obj_l0->sb_intra[md_ctx->sb_index];
+                            l0_refs++;
+                        }
                     }
-                    if (l0_was_intra && l1_was_intra) {
-                        md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                        continue;
-                    } else if (l0_was_intra || l1_was_intra) {
+
+                    // Get list 1 refs' info
+                    uint8_t l1_was_intra = 0;
+                    uint8_t l1_refs = 0;
+                    const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
+                    if (pcs->ppcs->ref_list1_count_try && is_ref_l1_avail) {
+                        EbReferenceObject* ref_obj_l1 =
+                            (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+                        if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index) {
+                            l1_was_intra += ref_obj_l1->sb_intra[md_ctx->sb_index];
+                            l1_refs++;
+                        }
+                    }
+
+                    if ((l0_refs || l1_refs) && (!l0_refs || l0_was_intra) && (!l1_refs || l1_was_intra)) {
+                         md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
+                         continue;
+                    }
+                    else if ((l0_refs && l0_was_intra) || (l1_refs && l1_was_intra)) {
                         md_ctx->lpd1_ctrls.cost_th_dist[pd1_lvl] >>= 2;
                         md_ctx->lpd1_ctrls.cost_th_rate[pd1_lvl] >>= 2;
                         md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >>= 1;
                         md_ctx->lpd1_ctrls.nz_coeff_th[pd1_lvl] >>= 1;
                     }
                 }
+#else
+                // Use info from ref frames (if available)
+                if (md_ctx->lpd1_ctrls.use_ref_info[pd1_lvl] && pcs->slice_type != I_SLICE && is_ref_l0_avail) {
+                    EbReferenceObject* ref_obj_l0 =
+                        (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+                    uint8_t l0_was_intra = ref_obj_l0->sb_intra[md_ctx->sb_index], l1_was_intra = 0;
+
+                    if (pcs->slice_type == B_SLICE && is_ref_l1_avail) {
+                        EbReferenceObject* ref_obj_l1 =
+                            (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+                        l1_was_intra = ref_obj_l1->sb_intra[md_ctx->sb_index];
+                    }
+                    if (l0_was_intra && l1_was_intra) {
+                        md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
+                        continue;
+                    }
+                    else if (l0_was_intra || l1_was_intra) {
+                        md_ctx->lpd1_ctrls.cost_th_dist[pd1_lvl] >>= 2;
+                        md_ctx->lpd1_ctrls.cost_th_rate[pd1_lvl] >>= 2;
+                        md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >>= 1;
+                        md_ctx->lpd1_ctrls.nz_coeff_th[pd1_lvl] >>= 1;
+                    }
+                }
+#endif
 
                 /* Use the cost and coeffs of the 64x64 block to avoid looping over all tested blocks to find
                 the selected partitioning. */
@@ -3281,37 +3375,104 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
     const uint16_t left_sb_index = md_ctx->sb_index - 1;
     const uint16_t top_sb_index  = md_ctx->sb_index - (uint16_t)pic_width_in_sb;
 
+#if !OPT_REF_INFO
     // the frame size of reference pics are different if enable reference scaling.
     // sb info can not be reused because super blocks are mismatched, so we set
     // the reference pic unavailable to avoid using wrong info
     const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
     const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
+#endif
 
     for (int pd1_lvl = LPD1_LEVELS - 1; pd1_lvl > REGULAR_PD1; pd1_lvl--) {
         if (md_ctx->lpd1_ctrls.pd1_level == pd1_lvl) {
             if (md_ctx->lpd1_ctrls.use_lpd1_detector[pd1_lvl]) {
+#if OPT_REF_INFO
+                // Use info from ref. frames (if available)
+                if (md_ctx->lpd1_ctrls.use_ref_info[pd1_lvl] && pcs->slice_type != I_SLICE) {
+                    // Keep a complexity score for the SB, based on available information.
+                    // If the score is high, then reduce the lpd1_level to be used
+                    int16_t score = 0;
+                    uint8_t refs = 0;
+
+                    // Get list 0 refs' info
+                    // the frame size of reference pics are different if enable reference scaling.
+                    // sb info can not be reused because super blocks are mismatched, so we set
+                    // the reference pic unavailable to avoid using wrong info
+                    const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
+                    if (pcs->ppcs->ref_list0_count_try && is_ref_l0_avail) {
+                        EbReferenceObject* ref_obj_l0 =
+                            (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+                        if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index) {
+                            if (ref_obj_l0->slice_type != I_SLICE) {
+                                if (ref_obj_l0->sb_intra[md_ctx->sb_index])
+                                    score += 5;
+                                if (!ref_obj_l0->sb_skip[md_ctx->sb_index])
+                                    score += 5;
+                                if (pcs->ppcs->me_64x64_distortion[md_ctx->sb_index] > (ref_obj_l0->sb_me_64x64_dist[md_ctx->sb_index] * 3))
+                                    score += 5;
+                                if (pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] > (ref_obj_l0->sb_me_8x8_cost_var[md_ctx->sb_index] * 3))
+                                    score += 5;
+                            }
+                            else {
+                                score += 10;
+                            }
+
+                            refs++;
+                        }
+                    }
+
+                    // Get list 1 refs' info
+                    const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
+                    if (pcs->ppcs->ref_list1_count_try && is_ref_l1_avail) {
+                        EbReferenceObject* ref_obj_l1 =
+                            (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+                        if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index) {
+                            if (ref_obj_l1->slice_type != I_SLICE) {
+                                if (ref_obj_l1->sb_intra[md_ctx->sb_index])
+                                    score += 5;
+                                if (!ref_obj_l1->sb_skip[md_ctx->sb_index])
+                                    score += 5;
+                                if (pcs->ppcs->me_64x64_distortion[md_ctx->sb_index] > (ref_obj_l1->sb_me_64x64_dist[md_ctx->sb_index] * 3))
+                                    score += 5;
+                                if (pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] > (ref_obj_l1->sb_me_8x8_cost_var[md_ctx->sb_index] * 3))
+                                    score += 5;
+                            }
+                            else {
+                                score += 10;
+                            }
+
+                            refs++;
+                        }
+                    }
+
+                    if (refs && score >= 10 * refs) {
+                        md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
+                        continue;
+                    }
+                }
+#else
                 // Use info from ref. frames (if available)
                 if (md_ctx->lpd1_ctrls.use_ref_info[pd1_lvl] && pcs->slice_type != I_SLICE && is_ref_l0_avail) {
-                    EbReferenceObject *ref_obj_l0 =
-                        (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+                    EbReferenceObject* ref_obj_l0 =
+                        (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
                     uint8_t  l0_was_intra = ref_obj_l0->sb_intra[md_ctx->sb_index], l1_was_intra = 0;
                     uint8_t  l0_was_skip = ref_obj_l0->sb_skip[md_ctx->sb_index], l1_was_skip = 1;
-                    uint32_t l0_me_64x64_dist   = ref_obj_l0->slice_type != I_SLICE
-                          ? ref_obj_l0->sb_me_64x64_dist[md_ctx->sb_index]
-                          : 0,
-                             l1_me_64x64_dist   = 0;
+                    uint32_t l0_me_64x64_dist = ref_obj_l0->slice_type != I_SLICE
+                        ? ref_obj_l0->sb_me_64x64_dist[md_ctx->sb_index]
+                        : 0,
+                        l1_me_64x64_dist = 0;
                     uint32_t l0_me_8x8_cost_var = ref_obj_l0->slice_type != I_SLICE
                         ? ref_obj_l0->sb_me_8x8_cost_var[md_ctx->sb_index]
                         : 0,
-                             l1_me_8x8_cost_var = 0;
+                        l1_me_8x8_cost_var = 0;
                     if (pcs->slice_type == B_SLICE && is_ref_l1_avail) {
-                        EbReferenceObject *ref_obj_l1 =
-                            (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-                        l1_was_intra       = ref_obj_l1->sb_intra[md_ctx->sb_index];
-                        l1_was_skip        = ref_obj_l1->sb_skip[md_ctx->sb_index];
-                        l1_me_64x64_dist   = ref_obj_l1->slice_type != I_SLICE
-                              ? ref_obj_l1->sb_me_64x64_dist[md_ctx->sb_index]
-                              : 0;
+                        EbReferenceObject* ref_obj_l1 =
+                            (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+                        l1_was_intra = ref_obj_l1->sb_intra[md_ctx->sb_index];
+                        l1_was_skip = ref_obj_l1->sb_skip[md_ctx->sb_index];
+                        l1_me_64x64_dist = ref_obj_l1->slice_type != I_SLICE
+                            ? ref_obj_l1->sb_me_64x64_dist[md_ctx->sb_index]
+                            : 0;
                         l1_me_8x8_cost_var = ref_obj_l1->slice_type != I_SLICE
                             ? ref_obj_l1->sb_me_8x8_cost_var[md_ctx->sb_index]
                             : 0;
@@ -3339,7 +3500,8 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
                         if (pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] > (l0_me_8x8_cost_var * 3) ||
                             pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] > (l1_me_8x8_cost_var * 3))
                             score += 10;
-                    } else {
+                    }
+                    else {
                         score += 20;
                     }
 
@@ -3348,6 +3510,7 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
                         continue;
                     }
                 }
+#endif
 
                 // I_SLICE doesn't have ME info
                 if (pcs->slice_type != I_SLICE) {
@@ -3404,11 +3567,13 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
 /* Light-PD0 classifier. */
 static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, uint32_t pic_width_in_sb) {
     Lpd0Ctrls *lpd0_ctrls = &md_ctx->lpd0_ctrls;
+#if !OPT_RTC
     // the frame size of reference pics are different if enable reference scaling.
     // sb info can not be reused because super blocks are mismatched, so we set
     // the reference pic unavailable to avoid using wrong info
     const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
     const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
+#endif
 
     for (int pd0_lvl = LPD0_LEVELS - 1; pd0_lvl > REGULAR_PD0; pd0_lvl--) {
         if (lpd0_ctrls->pd0_level == pd0_lvl) {
@@ -3420,6 +3585,61 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
             }
 
             if (lpd0_ctrls->use_lpd0_detector[pd0_lvl]) {
+#if OPT_RTC
+                if (lpd0_ctrls->use_ref_info[pd0_lvl] && pcs->slice_type != I_SLICE) {
+                    // Get list 0 refs' info
+                    uint8_t l0_was_intra = 0;
+                    uint8_t l0_refs = 0;
+                    // the frame size of reference pics are different if enable reference scaling.
+                    // sb info can not be reused because super blocks are mismatched, so we set
+                    // the reference pic unavailable to avoid using wrong info
+                    const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
+                    if (pcs->ppcs->ref_list0_count_try && is_ref_l0_avail) {
+                        EbReferenceObject* ref_obj_l0 =
+                            (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+                        if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index) {
+                            l0_was_intra += ref_obj_l0->sb_intra[md_ctx->sb_index];
+                            l0_refs++;
+                        }
+                    }
+
+                    // Get list 1 refs' info
+                    uint8_t l1_was_intra = 0;
+                    uint8_t l1_refs = 0;
+                    const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
+                    if (pcs->ppcs->ref_list1_count_try && is_ref_l1_avail) {
+                        EbReferenceObject* ref_obj_l1 =
+                            (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+                        if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index) {
+                            l1_was_intra += ref_obj_l1->sb_intra[md_ctx->sb_index];
+                            l1_refs++;
+                        }
+                    }
+
+                    // use_ref_info level 1 (safest)
+                    if (lpd0_ctrls->use_ref_info[pd0_lvl] == 1) {
+                        if ((l0_refs && l0_was_intra) || (l1_refs && l1_was_intra)) {
+                            lpd0_ctrls->pd0_level = pd0_lvl - 1;
+                            continue;
+                        }
+                    }
+                    // use_ref_info level 2
+                    else if (lpd0_ctrls->use_ref_info[pd0_lvl] == 2) {
+                        if ((l0_refs || l1_refs) && (!l0_refs || l0_was_intra) && (!l1_refs || l1_was_intra)) {
+                            lpd0_ctrls->pd0_level = pd0_lvl - 1;
+                            continue;
+                        }
+                    }
+                    // use_ref_info level 3 (most aggressive)
+                    else {
+                        if ((l0_refs || l1_refs) && (!l0_refs || l0_was_intra) && (!l1_refs || l1_was_intra) &&
+                            pcs->ref_intra_percentage > MAX(1, 50 - (pcs->picture_qp >> 1))) {
+                            lpd0_ctrls->pd0_level = pd0_lvl - 1;
+                            continue;
+                        }
+                    }
+                }
+#else
                 // Use info from ref. frames (if available)
                 if (lpd0_ctrls->use_ref_info[pd0_lvl] && pcs->slice_type != I_SLICE && is_ref_l0_avail) {
                     EbReferenceObject *ref_obj_l0 =
@@ -3454,6 +3674,7 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
                         }
                     }
                 }
+#endif
 
                 // I_SLICE doesn't have ME info
                 if (pcs->slice_type != I_SLICE) {
@@ -3502,6 +3723,23 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
     assert(IMPLIES(pcs->slice_type == I_SLICE, lpd0_ctrls->pd0_level != VERY_LIGHT_PD0));
 }
 
+#if OPT_LD_MEM_3
+static EbErrorType rtime_alloc_palette_search_buffers(ModeDecisionContext* ctx) {
+    if (!ctx->palette_buffer)
+        EB_MALLOC(ctx->palette_buffer, sizeof(PALETTE_BUFFER));
+
+    if (!ctx->palette_cand_array) {
+        EB_MALLOC_ARRAY(ctx->palette_cand_array, MAX_PAL_CAND);
+        for (int cd = 0; cd < MAX_PAL_CAND; cd++)
+            EB_MALLOC_ARRAY(ctx->palette_cand_array[cd].color_idx_map, MAX_PALETTE_SQUARE);
+    }
+
+    if (!ctx->palette_size_array_0)
+        EB_MALLOC_ARRAY(ctx->palette_size_array_0, MAX_PAL_CAND);
+
+    return EB_ErrorNone;
+}
+#endif
 /* EncDec (Encode Decode) Kernel */
 /*********************************************************************************
  *
@@ -3767,10 +4005,19 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                         // signals set once per SB (i.e. not per PD)
                         svt_aom_sig_deriv_enc_dec_common(scs, pcs, ed_ctx->md_ctx);
 
+#if OPT_LD_MEM_3
+                        if (pcs->ppcs->palette_level) {
+                            rtime_alloc_palette_search_buffers(md_ctx);
+                            // Status of palette info alloc
+                            for (int i = 0; i < scs->max_block_cnt; ++i)
+                                ed_ctx->md_ctx->md_blk_arr_nsq[i].palette_mem = 0;
+                        }
+#else
                         if (pcs->ppcs->palette_level)
                             // Status of palette info alloc
                             for (int i = 0; i < scs->max_block_cnt; ++i)
                                 ed_ctx->md_ctx->md_blk_arr_nsq[i].palette_mem = 0;
+#endif
 
                         // Initialize is_subres_safe
                         ed_ctx->md_ctx->is_subres_safe = (uint8_t)~0;

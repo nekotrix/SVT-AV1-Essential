@@ -1055,7 +1055,9 @@ typedef struct ModeDecisionContext {
 
     EbFifo                       *mode_decision_configuration_input_fifo_ptr;
     EbFifo                       *mode_decision_output_fifo_ptr;
+#if !OPT_LD_MEM_3
     ModeDecisionCandidate       **fast_cand_ptr_array;
+#endif
     ModeDecisionCandidate        *fast_cand_array;
     ModeDecisionCandidateBuffer **cand_bf_ptr_array;
     ModeDecisionCandidateBuffer  *cand_bf_tx_depth_1;
@@ -1114,7 +1116,9 @@ typedef struct ModeDecisionContext {
     uint8_t        *palette_size_array_0;
     // simple geometry 64x64SB, Sq only, no 4xN
     uint8_t          sb64_sq_no4xn_geom;
+#if !OPT_LD_MEM_3
     uint8_t          pu_itr;
+#endif
     uint32_t        *best_candidate_index_array;
     uint16_t         blk_org_x;
     uint16_t         blk_org_y;
@@ -1332,9 +1336,16 @@ typedef struct ModeDecisionContext {
     ParentSqCmplxCtrls   psq_cplx_ctrls;
     NsqPsqTxsCtrls       nsq_psq_txs_ctrls;
     uint8_t              sb_size;
+#if OPT_LD_MEM_3
+    // Temp buffers to store results during TXT search
+    EbPictureBufferDesc* tx_search_recon_coeff_ptr;
+    EbPictureBufferDesc* tx_search_recon_ptr;
+    EbPictureBufferDesc* tx_search_quant_coeff_ptr;
+#else
     EbPictureBufferDesc *recon_coeff_ptr[TX_TYPES];
     EbPictureBufferDesc *recon_ptr[TX_TYPES];
     EbPictureBufferDesc *quant_coeff_ptr[TX_TYPES];
+#endif
     // buffer used to store transformed coeffs during TX/Q/IQ. TX'd coeffs are only needed
     // temporarily, so no need to save for each TX type.
     EbPictureBufferDesc *tx_coeffs;
@@ -1431,7 +1442,9 @@ typedef struct ModeDecisionContext {
     uint8_t     enable_psad;
     uint32_t    inter_depth_bias;
     uint32_t    d2_parent_bias;
+#if !OPT_REF_INFO
     uint8_t     bipred_available;
+#endif
     uint8_t     is_intra_bordered;
     uint8_t     updated_enable_pme;
     Lpd1TxCtrls lpd1_tx_ctrls;
@@ -1466,15 +1479,23 @@ typedef struct ModeDecisionContext {
     // SSIM_LVL_1: use ssim cost to find best candidate in product_full_mode_decision()
     // SSIM_LVL_2: addition to level 1, also use ssim cost to find best tx type in tx_type_search()
     SsimLevel tune_ssim_level;
+#if FIX_R2R
+    // OBMC control signals (flags related to OBMC prediction readiness and bit depth)
+#endif
 #if OPT_OBMC
-    bool weighted_pred_ready; // Flag indicating if weighted prediction is prepared
-    bool neighbor_luma_pred_ready; // Flag indicating if luma neighbor prediction is prepared
-    bool neighbor_chroma_pred_ready; // Flag indicating if luma neighbor prediction is prepared
+    bool obmc_weighted_pred_ready; // Flag indicating if weighted prediction is prepared
+    bool obmc_neighbor_luma_pred_ready; // Flag indicating if luma neighbor prediction is prepared
+    bool obmc_neighbor_chroma_pred_ready; // Flag indicating if luma neighbor prediction is prepared
+#endif
+#if FIX_R2R
+    bool obmc_is_luma_neigh_10bit; // Flag indicating if neighbor uses 10-bit data
 #endif
 } ModeDecisionContext;
 
+#if !CLN_MISC
 typedef void (*EbAv1LambdaAssignFunc)(PictureControlSet *pcs, uint32_t *fast_lambda, uint32_t *full_lambda,
                                       uint8_t bit_depth, uint16_t qp_index, bool multiply_lambda);
+#endif
 
 /**************************************
  * Extern Function Declarations
@@ -1487,9 +1508,15 @@ extern EbErrorType svt_aom_mode_decision_context_ctor(
     ModeDecisionContext *ctx, EbColorFormat color_format, uint8_t sb_size, EncMode enc_mode, uint16_t max_block_cnt,
 #endif
     uint32_t encoder_bit_depth, EbFifo *mode_decision_configuration_input_fifo_ptr,
+#if OPT_LD_MEM_3
+    EbFifo* mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision, uint8_t seq_qp_mod);
+#else
     EbFifo *mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision, uint8_t cfg_palette, uint8_t seq_qp_mod);
+#endif
 
+#if !CLN_MISC
 extern const EbAv1LambdaAssignFunc svt_aom_av1_lambda_assignment_function_table[4];
+#endif
 
 // Table that converts 0-63 Q-range values passed in outside to the Qindex
 // range used internally.

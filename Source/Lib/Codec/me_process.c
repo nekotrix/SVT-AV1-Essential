@@ -216,12 +216,18 @@ void *svt_aom_motion_estimation_kernel(void *input_ptr) {
                             me_context_ptr->me_ctx->me_type = ME_OPEN_LOOP;
 
                             if ((in_results_ptr->task_type == TASK_PAME) || (in_results_ptr->task_type == TASK_SUPERRES_RE_ME)) {
+#if CLN_REMOVE_P_SLICE
+                                me_context_ptr->me_ctx->num_of_list_to_search = MAX_NUM_OF_REF_PIC_LIST;
+#else
                                 me_context_ptr->me_ctx->num_of_list_to_search =
                                     (pcs->slice_type == P_SLICE) ? 1 /*List 0 only*/
                                     : 2 /*List 0 + 1*/;
+#endif
 
                                 me_context_ptr->me_ctx->num_of_ref_pic_to_search[0] = pcs->ref_list0_count_try;
+#if !CLN_REMOVE_P_SLICE
                                 if (pcs->slice_type == B_SLICE)
+#endif
                                     me_context_ptr->me_ctx->num_of_ref_pic_to_search[1] = pcs->ref_list1_count_try;
                                 me_context_ptr->me_ctx->temporal_layer_index = pcs->temporal_layer_index;
                                 me_context_ptr->me_ctx->is_ref = pcs->is_ref;

@@ -103,6 +103,17 @@ static void determine_best_references(PictureControlSet *pcs, ModeDecisionContex
     }
 
     if (pcs->slice_type == B_SLICE) {
+#if OPT_RTC
+        if (!is_last_added && pcs->ppcs->ref_list0_count_try) {
+            ref_arr[ri++] = LAST_FRAME;
+        }
+        if (!is_bwd_added && pcs->ppcs->ref_list1_count_try) {
+            ref_arr[ri++] = BWDREF_FRAME;
+        }
+        if (!is_last_bwd_added && pcs->ppcs->ref_list0_count_try && pcs->ppcs->ref_list1_count_try) {
+            ref_arr[ri++] = LAST_BWD_FRAME;
+        }
+#else
         if (!is_last_added) {
             ref_arr[ri++] = LAST_FRAME;
         }
@@ -112,6 +123,7 @@ static void determine_best_references(PictureControlSet *pcs, ModeDecisionContex
         if (!is_last_bwd_added) {
             ref_arr[ri++] = LAST_BWD_FRAME;
         }
+#endif
     }
     *tot_ref = ri;
 }
@@ -1196,7 +1208,9 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
 
     ModeDecisionCandidate *cand = cand_bf->cand;
     EbPictureBufferDesc   *pred = cand_bf->pred;
+#if !OPT_LD_MEM_3
     ctx->pu_itr                 = 0;
+#endif
     // Prediction
     ctx->uv_intra_comp_only = false;
 #if CLN_MBMI_IN_CAND
@@ -1608,7 +1622,9 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
 #endif
     ModeDecisionCandidate *cand = cand_bf->cand;
     EbPictureBufferDesc   *pred = cand_bf->pred;
+#if !OPT_LD_MEM_3
     ctx->pu_itr                 = 0;
+#endif
 #if FTR_RTC_MODE
     const bool rtc_tune = pcs->scs->static_config.rtc_mode;
 #endif
@@ -1904,11 +1920,7 @@ void svt_aom_set_nics(SequenceControlSet *scs, NicScalingCtrls *scaling_ctrls, u
 void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_CLASS_TOTAL],
 #endif
 #if OPT_REMOVE_NIC_QP_BANDS
-#if TUNE_MR_2
-                      uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type) {
-#else
                       uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type, uint32_t qp) {
-#endif
 #else
                       uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type) {
 #endif
@@ -1939,7 +1951,12 @@ void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_C
     uint32_t q_weight, q_weight_denom;
 #if OPT_USE_EXP_HME_ME
 #if TUNE_MR_2
-    svt_aom_get_qp_based_th_scaling_factors(scs, &q_weight, &q_weight_denom);
+#if OPT_ALLINTRA_STILLIMAGE
+    svt_aom_get_qp_based_th_scaling_factors(
+        scs->qp_based_th_scaling_ctrls.nic_max_qp_based_th_scaling, &q_weight, &q_weight_denom, qp);
+#else
+    svt_aom_get_qp_based_th_scaling_factors(scs, &q_weight, &q_weight_denom, qp);
+#endif
 #else
     svt_aom_get_qp_based_th_scaling_factors(qp, &q_weight, &q_weight_denom);
 #endif
@@ -1962,7 +1979,7 @@ void set_md_stage_counts(PictureControlSet *pcs, ModeDecisionContext *ctx) {
 #if OPT_REMOVE_NIC_QP_BANDS
     svt_aom_set_nics(
 #if TUNE_MR_2
-        pcs->scs, &ctx->nic_ctrls.scaling_ctrls, ctx->md_stage_1_count, ctx->md_stage_2_count, ctx->md_stage_3_count, pic_type);
+        pcs->scs, &ctx->nic_ctrls.scaling_ctrls, ctx->md_stage_1_count, ctx->md_stage_2_count, ctx->md_stage_3_count, pic_type, pcs->ppcs->scs->static_config.qp);
 #else
         &ctx->nic_ctrls.scaling_ctrls, ctx->md_stage_1_count, ctx->md_stage_2_count, ctx->md_stage_3_count, pic_type, pcs->ppcs->scs->static_config.qp);
 #endif
@@ -3471,7 +3488,11 @@ static void read_refine_me_mvs_light_pd1(PictureControlSet *pcs, EbPictureBuffer
 
     const bool skip_subpel_1 = !ctx->intra_ctrls.enable_intra || ctx->intra_ctrls.intra_mode_end == DC_PRED;
     const bool skip_subpel_2 = ctx->is_intra_bordered && ctx->cand_reduction_ctrls.use_neighbouring_mode_ctrls.enabled;
+#if OPT_REF_INFO
+    const bool no_mv_stack = ctx->shut_fast_rate;
+#else
     const bool no_mv_stack   = ctx->shut_fast_rate || ctx->cand_reduction_ctrls.reduce_unipred_candidates >= 3;
+#endif
 
     for (int ref_it = 0; ref_it < ctx->tot_ref_frame_types; ++ref_it) {
         const MvReferenceFrame ref_pair = ctx->ref_frame_type_arr[ref_it];
@@ -4230,7 +4251,14 @@ static void pme_search(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
     if (ctx->md_pme_ctrls.sa_q_weight) {
         uint32_t q_weight, q_weight_denom;
 #if TUNE_MR_2
-        svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom);
+#if OPT_ALLINTRA_STILLIMAGE
+        svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.pme_qp_based_th_scaling,
+                                                &q_weight,
+                                                &q_weight_denom,
+                                                pcs->scs->static_config.qp);
+#else
+        svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom, pcs->scs->static_config.qp);
+#endif
 #else
         svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
 #endif
@@ -5682,31 +5710,51 @@ static void tx_reset_neighbor_arrays(PictureControlSet *pcs, ModeDecisionContext
                                NEIGHBOR_ARRAY_UNIT_TOP_AND_LEFT_ONLY_MASK);
     }
 }
+#if OPT_LD_MEM_3
+static void copy_txt_data(ModeDecisionCandidateBuffer* cand_bf, ModeDecisionContext* ctx, uint32_t txb_origin_index) {
+#else
 static void copy_txt_data(ModeDecisionCandidateBuffer *cand_bf, ModeDecisionContext *ctx, uint32_t txb_origin_index,
                           TxType best_tx_type) {
+#endif
     uint8_t  tx_depth      = ctx->tx_depth;
     uint32_t txb_1d_offset = ctx->txb_1d_offset;
     uint8_t  tx_width      = ctx->blk_geom->tx_width[tx_depth];
     uint8_t  tx_height     = ctx->blk_geom->tx_height[tx_depth];
     // copy recon_coeff_ptr
     memcpy(((int32_t *)cand_bf->rec_coeff->buffer_y) + txb_1d_offset,
+#if OPT_LD_MEM_3
+    ((int32_t*)ctx->tx_search_recon_coeff_ptr->buffer_y) + txb_1d_offset,
+#else
            ((int32_t *)ctx->recon_coeff_ptr[best_tx_type]->buffer_y) + txb_1d_offset,
+#endif
            (tx_width * tx_height * sizeof(uint32_t)));
     // copy quant_coeff_ptr
     memcpy(((int32_t *)cand_bf->quant->buffer_y) + txb_1d_offset,
+#if OPT_LD_MEM_3
+    ((int32_t*)ctx->tx_search_quant_coeff_ptr->buffer_y) + txb_1d_offset,
+#else
            ((int32_t *)ctx->quant_coeff_ptr[best_tx_type]->buffer_y) + txb_1d_offset,
+#endif
            (tx_width * tx_height * sizeof(uint32_t)));
     // copy recon_ptr
     EbPictureBufferDesc *recon_ptr = cand_bf->recon;
     if (ctx->hbd_md) {
         for (uint32_t j = 0; j < tx_height; ++j)
             memcpy(((uint16_t *)recon_ptr->buffer_y) + txb_origin_index + j * recon_ptr->stride_y,
+#if OPT_LD_MEM_3
+            ((uint16_t*)ctx->tx_search_recon_ptr->buffer_y) + txb_origin_index + j * recon_ptr->stride_y,
+#else
                    ((uint16_t *)ctx->recon_ptr[best_tx_type]->buffer_y) + txb_origin_index + j * recon_ptr->stride_y,
+#endif
                    tx_width * sizeof(uint16_t));
     } else {
         for (uint32_t j = 0; j < tx_height; ++j)
             memcpy(recon_ptr->buffer_y + txb_origin_index + j * recon_ptr->stride_y,
+#if OPT_LD_MEM_3
+                ctx->tx_search_recon_ptr->buffer_y + txb_origin_index + j * recon_ptr->stride_y,
+#else
                    ctx->recon_ptr[best_tx_type]->buffer_y + txb_origin_index + j * recon_ptr->stride_y,
+#endif
                    ctx->blk_geom->tx_width[tx_depth]);
     }
 }
@@ -5982,7 +6030,14 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
     if (ctx->txt_ctrls.satd_th_q_weight) {
         uint32_t q_weight, q_weight_denom;
 #if TUNE_MR_2
-        svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom);
+#if OPT_ALLINTRA_STILLIMAGE
+        svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.txt_qp_based_th_scaling,
+                                                &q_weight,
+                                                &q_weight_denom,
+                                                pcs->scs->static_config.qp);
+#else
+        svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom, pcs->scs->static_config.qp);
+#endif
 #else
         svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
 #endif
@@ -6023,6 +6078,13 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
                             &ctx->luma_txb_skip_context,
                             &ctx->luma_dc_sign_context);
     TxType best_tx_type = DCT_DCT;
+#if OPT_LD_MEM_3
+    // buffer is 0 or 1 to alternate between using cand_bf buffers and temporary buffers.
+    // Data is stored for the best-so-far-TX data and the currently-being-searched TX type data. After the
+    // search, the cand_bf data will be updated with the best.
+    uint8_t txt_buffer = 0;
+    uint8_t best_txt_buffer = 0;
+#endif
     // local variables for all TX types
     uint16_t        eob_txt[TX_TYPES]                                              = {0};
     uint8_t         quantized_dc_txt[TX_TYPES]                                     = {0};
@@ -6064,12 +6126,19 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
                 }
             }
             // Do not use temporary buffers when TXT is OFF
+#if OPT_LD_MEM_3
+            assert(IMPLIES(tx_type == DCT_DCT, txt_buffer == 0));
+            EbPictureBufferDesc* recon_coeff_ptr = txt_buffer ? ctx->tx_search_recon_coeff_ptr : cand_bf->rec_coeff;
+            EbPictureBufferDesc* recon_ptr = txt_buffer ? ctx->tx_search_recon_ptr : cand_bf->recon;
+            EbPictureBufferDesc* quant_coeff_ptr = txt_buffer ? ctx->tx_search_quant_coeff_ptr : cand_bf->quant;
+#else
             EbPictureBufferDesc *recon_coeff_ptr = (tx_type == DCT_DCT) ? cand_bf->rec_coeff
                                                                         : ctx->recon_coeff_ptr[tx_type];
 
             EbPictureBufferDesc *recon_ptr       = (tx_type == DCT_DCT) ? cand_bf->recon : ctx->recon_ptr[tx_type];
             EbPictureBufferDesc *quant_coeff_ptr = (tx_type == DCT_DCT) ? cand_bf->quant
                                                                         : ctx->quant_coeff_ptr[tx_type];
+#endif
             ctx->three_quad_energy               = 0;
             if (!tx_search_skip_flag) {
                 // Y: T Q i_q
@@ -6267,6 +6336,10 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
                 best_cost_tx_search = cost;
                 best_tx_type        = tx_type;
                 best_tx_non_coeff   = eob_txt[tx_type];
+#if OPT_LD_MEM_3
+                best_txt_buffer = txt_buffer;
+                txt_buffer = !txt_buffer;
+#endif
                 if (tx_type == DCT_DCT)
                     dct_dct_cost = cost;
             }
@@ -6301,7 +6374,11 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
                 continue;
             }
 
+#if OPT_LD_MEM_3
+            EbPictureBufferDesc* recon_ptr = best_txt_buffer ? ctx->tx_search_recon_ptr : cand_bf->recon;
+#else
             EbPictureBufferDesc *recon_ptr = (tx_type == DCT_DCT) ? cand_bf->recon : ctx->recon_ptr[tx_type];
+#endif
 
             txb_full_distortion_txt[DIST_SSIM][tx_type][DIST_CALC_RESIDUAL] = svt_spatial_full_distortion_ssim_kernel(
                 input_pic->buffer_y,
@@ -6344,7 +6421,11 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
     // update with best_tx_type data
     (*y_coeff_bits) += y_txb_coeff_bits_txt[best_tx_type];
     if (ssim_level == SSIM_LVL_1) {
+#if OPT_LD_MEM_3
+        EbPictureBufferDesc* recon_ptr = best_txt_buffer ? ctx->tx_search_recon_ptr : cand_bf->recon;
+#else
         EbPictureBufferDesc *recon_ptr      = (best_tx_type == DCT_DCT) ? cand_bf->recon : ctx->recon_ptr[best_tx_type];
+#endif
         uint64_t             ssim_pred_dist = svt_spatial_full_distortion_ssim_kernel(input_pic->buffer_y,
                                                                           input_txb_origin_index,
                                                                           input_pic->stride_y,
@@ -6395,12 +6476,22 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
     cand_bf->y_has_coeff |= ((eob_txt[best_tx_type] > 0) << ctx->txb_itr);
     cand_bf->quant_dc.y[ctx->txb_itr] = quantized_dc_txt[best_tx_type];
     cand_bf->eob.y[ctx->txb_itr]      = eob_txt[best_tx_type];
+#if OPT_LD_MEM_3
+    // Do not copy when the best TXT data is already in cand_bf
+    if (best_txt_buffer) {
+        // txt_buffer is the buffer to be used for searching the next TX type (if applicable),
+        // so its value should not be the same as the best. This check is a sanity check.
+        assert(txt_buffer == 0);
+        copy_txt_data(cand_bf, ctx, txb_origin_index);
+    }
+#else
     // Do not copy when TXT is OFF
     // Data is already in cand_bf
     if (best_tx_type != DCT_DCT) {
         // copy best_tx_type data
         copy_txt_data(cand_bf, ctx, txb_origin_index, best_tx_type);
     }
+#endif
     ctx->txb_1d_offset += ctx->blk_geom->tx_width[ctx->tx_depth] *
         (ctx->blk_geom->tx_height[ctx->tx_depth] >> ctx->mds_subres_step);
     // For Inter blocks, transform type of chroma follows luma transfrom type
@@ -9941,7 +10032,13 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
     }
 
     // Set number of UV candidates to be tested in the full loop
+#if OPT_ALLINTRA_STILLIMAGE_2
+    unsigned int uv_mode_nfl_count = pcs->scs->static_config.avif || pcs->scs->allintra
+        ? ppcs->is_highest_layer ? 16 : 32
+        : pcs->slice_type == I_SLICE ? 64 : !ppcs->is_highest_layer ? 32 : 16;
+#else
     unsigned int uv_mode_nfl_count = pcs->slice_type == I_SLICE ? 64 : !ppcs->is_highest_layer ? 32 : 16;
+#endif
     uv_mode_nfl_count              = MAX(1, DIVIDE_AND_ROUND(uv_mode_nfl_count * ctx->uv_ctrls.uv_nic_scaling_num, 16));
     uv_mode_nfl_count              = MIN(uv_mode_nfl_count, uv_mode_total_count);
     uv_mode_nfl_count              = MAX(uv_mode_nfl_count, 1);
@@ -10410,18 +10507,42 @@ static void post_mds0_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
     uint32_t q_weight, q_weight_denom;
 #if OPT_USE_EXP_HME_ME
 #if TUNE_MR_2
-    svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs, &q_weight, &q_weight_denom);
+#if OPT_ALLINTRA_STILLIMAGE
+    svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.nic_pruning_qp_based_th_scaling,
+                                            &q_weight,
+                                            &q_weight_denom,
+                                            pcs->ppcs->scs->static_config.qp);
+#else
+    svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs, &q_weight, &q_weight_denom, pcs->ppcs->scs->static_config.qp);
+#endif
 #else
     svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
 #endif
 #else
     get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
 #endif
+#if FIX_NIC_QP_SCALING
+    uint64_t mds1_class_th = (pruning_ctrls.mds1_class_th == (uint64_t)~0)
+        ? pruning_ctrls.mds1_class_th 
+        : DIVIDE_AND_ROUND(pruning_ctrls.mds1_class_th * q_weight, q_weight_denom);
+
+    uint8_t  mds1_band_cnt            = pruning_ctrls.mds1_band_cnt;
+    uint16_t mds1_cand_th_rank_factor = pruning_ctrls.mds1_cand_th_rank_factor;
+
+    uint64_t mds1_cand_base_th_intra  = (pruning_ctrls.mds1_cand_base_th_intra == (uint64_t)~0)
+        ? pruning_ctrls.mds1_cand_base_th_intra
+        : DIVIDE_AND_ROUND(pruning_ctrls.mds1_cand_base_th_intra * q_weight, q_weight_denom);
+
+    uint64_t mds1_cand_base_th_inter = (pruning_ctrls.mds1_cand_base_th_inter == (uint64_t)~0)
+        ? pruning_ctrls.mds1_cand_base_th_inter 
+        : DIVIDE_AND_ROUND(pruning_ctrls.mds1_cand_base_th_inter * q_weight, q_weight_denom);
+#else
     uint64_t                      mds1_class_th = DIVIDE_AND_ROUND(pruning_ctrls.mds1_class_th * q_weight, q_weight_denom);
     uint8_t                       mds1_band_cnt = pruning_ctrls.mds1_band_cnt;
     uint16_t                      mds1_cand_th_rank_factor = pruning_ctrls.mds1_cand_th_rank_factor;
     uint64_t                      mds1_cand_base_th_intra = DIVIDE_AND_ROUND(pruning_ctrls.mds1_cand_base_th_intra * q_weight, q_weight_denom);
     uint64_t                      mds1_cand_base_th_inter = DIVIDE_AND_ROUND(pruning_ctrls.mds1_cand_base_th_inter * q_weight, q_weight_denom);
+#endif
 #else
     uint16_t                     mult          = pruning_ctrls.mds1_q_weight;
 
@@ -10501,15 +10622,32 @@ static void post_mds1_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
     uint32_t q_weight, q_weight_denom;
 #if OPT_USE_EXP_HME_ME
 #if TUNE_MR_2
-    svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs, &q_weight, &q_weight_denom);
+#if OPT_ALLINTRA_STILLIMAGE
+    svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.nic_pruning_qp_based_th_scaling,
+                                            &q_weight,
+                                            &q_weight_denom,
+                                            pcs->ppcs->scs->static_config.qp);
+#else
+    svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs, &q_weight, &q_weight_denom, pcs->ppcs->scs->static_config.qp);
+#endif
 #else
     svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
 #endif
 #else
     get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
 #endif
+#if FIX_NIC_QP_SCALING
+    const uint64_t mds2_cand_th = (pruning_ctrls.mds2_cand_base_th == (uint64_t)~0)
+        ? pruning_ctrls.mds2_cand_base_th
+        : DIVIDE_AND_ROUND(pruning_ctrls.mds2_cand_base_th * q_weight, q_weight_denom);
+
+    const uint64_t mds2_class_th = (pruning_ctrls.mds2_class_th == (uint64_t)~0)
+        ? pruning_ctrls.mds2_class_th
+        : DIVIDE_AND_ROUND(pruning_ctrls.mds2_class_th * q_weight, q_weight_denom);
+#else
     const uint64_t                mds2_cand_th         = DIVIDE_AND_ROUND(pruning_ctrls.mds2_cand_base_th * q_weight, q_weight_denom);
     const uint64_t                mds2_class_th        = DIVIDE_AND_ROUND(pruning_ctrls.mds2_class_th * q_weight, q_weight_denom);
+#endif
     const uint8_t                 mds2_band_cnt        = pruning_ctrls.mds2_band_cnt;
     const uint16_t                mds2_relative_dev_th = pruning_ctrls.mds2_relative_dev_th;
 #else
@@ -10601,15 +10739,32 @@ static void post_mds2_nic_pruning(PictureControlSet *pcs, ModeDecisionContext *c
     uint32_t q_weight, q_weight_denom;
 #if OPT_USE_EXP_HME_ME
 #if TUNE_MR_2
-    svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs, &q_weight, &q_weight_denom);
+#if OPT_ALLINTRA_STILLIMAGE
+    svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.nic_pruning_qp_based_th_scaling,
+                                            &q_weight,
+                                            &q_weight_denom,
+                                            pcs->ppcs->scs->static_config.qp);
+#else
+    svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs, &q_weight, &q_weight_denom, pcs->ppcs->scs->static_config.qp);
+#endif
 #else
     svt_aom_get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
 #endif
 #else
     get_qp_based_th_scaling_factors(pcs->ppcs->scs->static_config.qp, &q_weight, &q_weight_denom);
 #endif
+#if FIX_NIC_QP_SCALING
+    const uint64_t mds3_cand_th  = (pruning_ctrls.mds3_cand_base_th == (uint64_t)~0)
+        ? pruning_ctrls.mds3_cand_base_th 
+        : DIVIDE_AND_ROUND(pruning_ctrls.mds3_cand_base_th * q_weight, q_weight_denom);
+
+    const uint64_t mds3_class_th = (pruning_ctrls.mds3_class_th == (uint64_t)~0)
+        ? pruning_ctrls.mds3_class_th
+        : DIVIDE_AND_ROUND(pruning_ctrls.mds3_class_th * q_weight, q_weight_denom);
+#else
     const uint64_t                mds3_cand_th  = DIVIDE_AND_ROUND(pruning_ctrls.mds3_cand_base_th * q_weight, q_weight_denom);
     const uint64_t                mds3_class_th = DIVIDE_AND_ROUND(pruning_ctrls.mds3_class_th * q_weight, q_weight_denom);
+#endif
     const uint8_t                 mds3_band_cnt = pruning_ctrls.mds3_band_cnt;
 #else
     uint16_t mult = pruning_ctrls.mds3_q_weight;
@@ -12098,9 +12253,12 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
     ctx->blk_lambda_tuning      = pcs->ppcs->blk_lambda_tuning;
     ctx->tune_ssim_level        = SSIM_LVL_0;
 #if OPT_OBMC
-    ctx->weighted_pred_ready = 0;
-    ctx->neighbor_luma_pred_ready   = 0;
-    ctx->neighbor_chroma_pred_ready = 0;
+    ctx->obmc_weighted_pred_ready = false;
+    ctx->obmc_neighbor_luma_pred_ready   = false;
+    ctx->obmc_neighbor_chroma_pred_ready = false;
+#endif
+#if FIX_R2R
+    ctx->obmc_is_luma_neigh_10bit = false;
 #endif
     if (pcs->ppcs->frm_hdr.segmentation_params.segmentation_enabled) {
         SuperBlock *sb_ptr = ctx->sb_ptr;
@@ -13201,8 +13359,13 @@ static bool update_redundant(PictureControlSet *pcs, ModeDecisionContext *ctx) {
             svt_aom_copy_neighbour_arrays( //restore [1] in [0] after done last ns block
                 pcs,
                 ctx,
+#if OPT_LD_MEM_2
+                NSQ_NEIGHBOR_ARRAY_INDEX,
+                MD_NEIGHBOR_ARRAY_INDEX,
+#else
                 1,
                 0,
+#endif
                 ctx->blk_geom->sqi_mds);
 
         // Copy results
@@ -13407,8 +13570,13 @@ static void process_block(PictureControlSet *pcs, ModeDecisionContext *ctx, cons
             svt_aom_copy_neighbour_arrays( //restore [1] in [0] after done last ns block
                 pcs,
                 ctx,
+#if OPT_LD_MEM_2
+                NSQ_NEIGHBOR_ARRAY_INDEX,
+                MD_NEIGHBOR_ARRAY_INDEX,
+#else
                 1,
                 0,
+#endif
                 blk_geom->sqi_mds);
         }
 
@@ -13469,8 +13637,13 @@ static void update_d1_data(PictureControlSet *pcs, ModeDecisionContext *ctx, uin
                     svt_aom_copy_neighbour_arrays( //save a clean neigh in [1], encode uses [0], reload the clean in [0] after done last ns block in a partition
                         pcs,
                         ctx,
+#if OPT_LD_MEM_2
+                        MD_NEIGHBOR_ARRAY_INDEX,
+                        NSQ_NEIGHBOR_ARRAY_INDEX,
+#else
                         0,
                         1,
+#endif
                         ctx->blk_geom->sqi_mds);
                     ctx->copied_neigh_arrays = 1;
                 }
@@ -13850,8 +14023,13 @@ void svt_aom_mode_decision_sb(SequenceControlSet *scs, PictureControlSet *pcs, M
             svt_aom_copy_neighbour_arrays( //restore [1] in [0] after done last ns block
                 pcs,
                 ctx,
+#if OPT_LD_MEM_2
+                NSQ_NEIGHBOR_ARRAY_INDEX,
+                MD_NEIGHBOR_ARRAY_INDEX,
+#else
                 1,
                 0,
+#endif
                 ctx->blk_geom->sqi_mds);
 
         // Perform d2 inter-depth decision after final d1 block

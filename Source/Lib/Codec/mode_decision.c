@@ -2575,9 +2575,11 @@ static void inject_mvp_candidates_ii_light_pd1(PictureControlSet *pcs, ModeDecis
         if (rf[1] == NONE_FRAME) {
             MvReferenceFrame frame_type = rf[0];
             uint8_t          list_idx   = get_list_idx(rf[0]);
+#if !OPT_REF_INFO
             if (ctx->cand_reduction_ctrls.reduce_unipred_candidates >= 3 && ctx->bipred_available) {
                 continue;
             }
+#endif
             if (ctx->cand_reduction_ctrls.lpd1_mvp_best_me_list) {
                 const MeSbResults *me_results           = pcs->ppcs->pa_me_data->me_results[ctx->me_sb_addr];
                 const uint8_t      total_me_cnt         = me_results->total_me_candidate_index[ctx->me_block_offset];
@@ -5192,7 +5194,7 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
         return 1;
 
 #if OPT_OBMC
-    if (ctx->weighted_pred_ready == 0) {
+    if (ctx->obmc_weighted_pred_ready == false) {
         int mi_row = ctx->blk_org_y >> 2;
         int mi_col = ctx->blk_org_x >> 2;
 
@@ -5200,9 +5202,11 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
 
         uint8_t *dst_buf1_8b = junk_2b + 2 * MAX_MB_PLANE * MAX_SB_SQUARE,
                 *dst_buf2_8b = junk_2b + 4 * MAX_MB_PLANE * MAX_SB_SQUARE;
-
+#if FIX_R2R
+        if (ctx->obmc_is_luma_neigh_10bit) {
+#else
         if (ctx->hbd_md) {
-
+#endif
             svt_aom_un_pack2d((uint16_t *)ctx->obmc_buff_0,
                               ctx->blk_geom->bwidth,
                               dst_buf1_8b,
@@ -5228,12 +5232,20 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
                                   ctx->blk_ptr->av1xd,
                                   mi_row,
                                   mi_col,
+#if FIX_R2R
+                                  ctx->obmc_is_luma_neigh_10bit ? dst_buf1_8b : ctx->obmc_buff_0,
+#else
                                   ctx->hbd_md ? dst_buf1_8b : ctx->obmc_buff_0,
+#endif
                                   ctx->blk_geom->bwidth,
+#if FIX_R2R
+                                  ctx->obmc_is_luma_neigh_10bit ? dst_buf2_8b : ctx->obmc_buff_1,
+#else
                                   ctx->hbd_md ? dst_buf2_8b : ctx->obmc_buff_1,
+#endif
                                   ctx->blk_geom->bwidth);
 
-        ctx->weighted_pred_ready = 1;
+        ctx->obmc_weighted_pred_ready = true;
     }
 #endif
 #if CLN_UNUSED_SIGS
@@ -5502,7 +5514,7 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
         return 1;
 
 #if OPT_OBMC
-    if (ctx->weighted_pred_ready == 0) {
+    if (ctx->obmc_weighted_pred_ready == false) {
         int mi_row = ctx->blk_org_y >> 2;
         int mi_col = ctx->blk_org_x >> 2;
 
@@ -5543,7 +5555,7 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
                                   ctx->hbd_md ? dst_buf2_8b : ctx->obmc_buff_1,
                                   ctx->blk_geom->bwidth);
 
-        ctx->weighted_pred_ready = 1;
+        ctx->obmc_weighted_pred_ready = true;
     }
 #endif
     IntMv           best_pred_mv[2] = {{0}, {0}};
@@ -8246,7 +8258,11 @@ static void svt_aom_inject_inter_candidates(PictureControlSet *pcs, ModeDecision
 #endif
     }
 #if CLN_CAND_INJ
+#if CLN_REMOVE_P_SLICE
+    if (ctx->bipred3x3_ctrls.enabled && allow_bipred)
+#else
     if (ctx->bipred3x3_ctrls.enabled && allow_bipred && pcs->slice_type == B_SLICE)
+#endif
         bipred_3x3_candidates_injection(pcs, ctx, &cand_total_cnt);
 
     if (ctx->unipred3x3_injection)
