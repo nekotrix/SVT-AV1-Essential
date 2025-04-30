@@ -126,9 +126,9 @@ static INLINE uint64_t mse_4xn_8bit_c(const uint8_t *src, const uint8_t *dst, co
 }
 
 /* Compute MSE only on the blocks we filtered. */
-uint64_t svt_aom_compute_cdef_dist_c(const uint16_t *dst, int32_t dstride, const uint16_t *src, const CdefList *dlist,
-                                     int32_t cdef_count, BlockSize bsize, int32_t coeff_shift, int32_t pli,
-                                     uint8_t subsampling_factor) {
+uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t *dst, int32_t dstride, const uint16_t *src,
+                                           const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
+                                           int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor) {
     uint64_t sum = 0;
     int32_t  bi, bx, by;
     if (bsize == BLOCK_8X8) {

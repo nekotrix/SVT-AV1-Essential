@@ -831,15 +831,15 @@ class CDEFComputeCdefDist16Bit
                         for (uint8_t subsampling = 1; subsampling <= 2;
                              subsampling <<= 1) {
                             const uint64_t ref_mse =
-                                svt_aom_compute_cdef_dist_c(dst_data_,
-                                                            stride,
-                                                            src_data_,
-                                                            dlist,
-                                                            cdef_count,
-                                                            test_bs[i],
-                                                            coeff_shift,
-                                                            plane,
-                                                            subsampling);
+                                svt_aom_compute_cdef_dist_16bit_c(dst_data_,
+                                                                  stride,
+                                                                  src_data_,
+                                                                  dlist,
+                                                                  cdef_count,
+                                                                  test_bs[i],
+                                                                  coeff_shift,
+                                                                  plane,
+                                                                  subsampling);
 
                             const uint64_t test_mse = test_func_(dst_data_,
                                                                  stride,
