@@ -1261,6 +1261,9 @@ extern "C" {
     uint64_t svt_aom_compute_cdef_dist_8bit_neon(const uint8_t *dst8, int32_t dstride, const uint8_t *src8,
                                                  const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
                                                  int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor);
+    uint64_t svt_aom_compute_cdef_dist_8bit_neon_dotprod(const uint8_t *dst8, int32_t dstride, const uint8_t *src8,
+                                                 const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
+                                                 int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor);
 
     void svt_av1_fwd_txfm2d_4x4_N2_neon(int16_t *input, int32_t *output, uint32_t input_stride, TxType transform_type, uint8_t  bit_depth);
     void svt_av1_fwd_txfm2d_4x8_N2_neon(int16_t *input, int32_t *output, uint32_t input_stride, TxType transform_type, uint8_t  bit_depth);

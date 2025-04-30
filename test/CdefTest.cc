@@ -999,6 +999,12 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     NEON, CDEFComputeCdefDist8BitTest,
     ::testing::Values(svt_aom_compute_cdef_dist_8bit_neon));
+
+#if HAVE_NEON_DOTPROD
+INSTANTIATE_TEST_SUITE_P(
+    NEON_DOTPROD, CDEFComputeCdefDist8BitTest,
+    ::testing::Values(svt_aom_compute_cdef_dist_8bit_neon_dotprod));
+#endif  // HAVE_NEON_DOTPROD
 #endif  // ARCH_AARCH64
 
 /**

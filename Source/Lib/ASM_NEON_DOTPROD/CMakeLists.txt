@@ -20,6 +20,7 @@ add_library(ASM_NEON_DOTPROD OBJECT)
 target_sources(
   ASM_NEON_DOTPROD
   PUBLIC aom_convolve8_neon_dotprod.c
+  PUBLIC cdef_neon_dotprod.c
   PUBLIC compute_sad_neon_dotprod.c
   PUBLIC convolve_neon_dotprod.c
   PUBLIC convolve_scale_neon_dotprod.c
