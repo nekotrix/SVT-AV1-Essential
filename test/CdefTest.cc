@@ -830,6 +830,10 @@ class CDEFComputeCdefDist16Bit
                         // Allowable subsampling values are: 1, 2
                         for (uint8_t subsampling = 1; subsampling <= 2;
                              subsampling <<= 1) {
+                            // Subsampling factor can only be 1 for 4x4 blocks.
+                            if (i == 0 && subsampling == 2) {
+                                continue;
+                            }
                             const uint64_t ref_mse =
                                 svt_aom_compute_cdef_dist_16bit_c(dst_data_,
                                                                   stride,
@@ -937,6 +941,10 @@ class CDEFComputeCdefDist8BitTest
                         // Allowable subsampling values are: 1, 2
                         for (uint8_t subsampling = 1; subsampling <= 2;
                              subsampling <<= 1) {
+                            // Subsampling factor can only be 1 for 4x4 blocks.
+                            if (i == 0 && subsampling == 2) {
+                                continue;
+                            }
                             const uint64_t ref_mse =
                                 svt_aom_compute_cdef_dist_8bit_c(dst_data_,
                                                                  stride,
