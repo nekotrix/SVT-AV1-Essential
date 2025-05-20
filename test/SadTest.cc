@@ -787,30 +787,30 @@ class Allsad8x8_CalculationTest
             EXPECT_EQ(
                 0,
                 memcmp(best_sad8x8[0], best_sad8x8[1], sizeof(best_sad8x8[0])))
-                << "compare best_sad8x8 error sub_sad false";
+                << "compare best_sad8x8 error sub_sad " << sub_sad;
             EXPECT_EQ(
                 0, memcmp(best_mv8x8[0], best_mv8x8[1], sizeof(best_mv8x8[0])))
-                << "compare best_mv8x8 error sub_sad false";
+                << "compare best_mv8x8 error sub_sad " << sub_sad;
             EXPECT_EQ(0,
                       memcmp(best_sad16x16[0],
                              best_sad16x16[1],
                              sizeof(best_sad16x16[0])))
-                << "compare best_sad16x16 error sub_sad false";
+                << "compare best_sad16x16 error sub_sad " << sub_sad;
             EXPECT_EQ(
                 0,
                 memcmp(
                     best_mv16x16[0], best_mv16x16[1], sizeof(best_mv16x16[0])))
-                << "compare best_mv16x16 error sub_sad false";
+                << "compare best_mv16x16 error sub_sad " << sub_sad;
             EXPECT_EQ(
                 0,
                 memcmp(
                     eight_sad8x8[0], eight_sad8x8[1], sizeof(eight_sad8x8[0])))
-                << "compare eight_sad8x8 error sub_sad false";
+                << "compare eight_sad8x8 error sub_sad " << sub_sad;
             EXPECT_EQ(0,
                       memcmp(eight_sad16x16[0],
                              eight_sad16x16[1],
                              sizeof(eight_sad16x16[0])))
-                << "compare eight_sad16x16 error sub_sad false";
+                << "compare eight_sad16x16 error sub_sad " << sub_sad;
         }
     }
 
@@ -1076,18 +1076,18 @@ class Extsad8x8_CalculationTest
             EXPECT_EQ(
                 0,
                 memcmp(best_sad8x8[0], best_sad8x8[1], sizeof(best_sad8x8[0])))
-                << "compare best_sad8x8 error sub_sad false";
+                << "compare best_sad8x8 error sub_sad " << sub_sad;
             EXPECT_EQ(
                 0, memcmp(best_mv8x8[0], best_mv8x8[1], sizeof(best_mv8x8[0])))
-                << "compare best_mv8x8 error sub_sad false";
+                << "compare best_mv8x8 error sub_sad " << sub_sad;
             EXPECT_EQ(best_sad16x16[0], best_sad16x16[1])
-                << "compare best_sad16x16 error sub_sad false";
+                << "compare best_sad16x16 error sub_sad " << sub_sad;
             EXPECT_EQ(best_mv16x16[0], best_mv16x16[1])
-                << "compare best_mv16x16 error sub_sad false";
+                << "compare best_mv16x16 error sub_sad " << sub_sad;
             EXPECT_EQ(0, memcmp(sad_8x8[0], sad_8x8[1], sizeof(sad_8x8[0])))
-                << "compare sad_8x8 error sub_sad false";
+                << "compare sad_8x8 error sub_sad " << sub_sad;
             EXPECT_EQ(sad16x16[0], sad16x16[1])
-                << "compare sad16x16 error sub_sad false";
+                << "compare sad16x16 error sub_sad " << sub_sad;
         }
     }
 
