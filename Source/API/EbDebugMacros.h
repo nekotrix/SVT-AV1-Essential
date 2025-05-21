@@ -345,6 +345,13 @@ extern "C" {
 
 // Switch frame debugging code
 #define DEBUG_SFRAME            0
+#define FTR_SFRAME_RA           1 // Enable S-Frame feature in Random Access Mode
+#if FTR_SFRAME_RA
+#define FIX_NEAREST_ARF_RA      1 // Fix issue of S-Frame nearest ARF mode finding wrong ARF position in RA mode, since frames in decode order
+#define FIX_SFRAME_PRUNE_REF0   1 // Prune RefList0 when forward and backward both refer to S-Frame in RA mode, [LAST/LAST2/LAST3/GOLD] ref frame MVs to S-Frame are in reversed direction
+#define EN_SFRAME_E2E_TEST      0 // Enable S-Frame test cases in E2E test
+#endif
+#define FIX_SFRAME_ORDER_HINT   1 // Fix issue of dpd_order_hint is not relative with key position
 
 // Variance boost debugging code
 #define DEBUG_VAR_BOOST         0

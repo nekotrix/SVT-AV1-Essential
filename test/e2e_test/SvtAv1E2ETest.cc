@@ -303,6 +303,39 @@ static const std::vector<EncTestSetting> sframe_settings = {
     {"SframeTest25", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
     {"SframeTest26", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
     {"SframeTest27", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+
+#if FTR_SFRAME_RA
+    // S-Frame feature in Random Access Mode
+    {"SframeRATest1", {{"EncoderMode", "8"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest2", {{"EncoderMode", "8"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest3", {{"EncoderMode", "8"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest4", {{"EncoderMode", "8"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest5", {{"EncoderMode", "8"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest6", {{"EncoderMode", "8"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest7", {{"EncoderMode", "8"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest8", {{"EncoderMode", "8"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest9", {{"EncoderMode", "8"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+
+    {"SframeRATest10", {{"EncoderMode", "9"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest11", {{"EncoderMode", "9"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest12", {{"EncoderMode", "9"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest13", {{"EncoderMode", "9"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest14", {{"EncoderMode", "9"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest15", {{"EncoderMode", "9"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest16", {{"EncoderMode", "9"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest17", {{"EncoderMode", "9"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest18", {{"EncoderMode", "9"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+
+    {"SframeRATest19", {{"EncoderMode", "10"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest20", {{"EncoderMode", "10"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest21", {{"EncoderMode", "10"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest22", {{"EncoderMode", "10"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest23", {{"EncoderMode", "10"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest24", {{"EncoderMode", "10"}, {"SframeInterval", "32"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest25", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest26", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+    {"SframeRATest27", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
+#endif // FTR_SFRAME_RA
 };
 
 /* clang-format on */
@@ -366,7 +399,11 @@ INSTANTIATE_TEST_SUITE_P(SvtAv1, SuperResPresetConformanceTest,
 
 class SwitchFrameConformanceTest : public ConformanceDeathTest {};
 
+#if EN_SFRAME_E2E_TEST
+TEST_P(SwitchFrameConformanceTest, SwitchFrameTest) {
+#else
 TEST_P(SwitchFrameConformanceTest, DISABLED_SwitchFrameTest) {
+#endif  // EN_SFRAME_E2E_TEST
     run_death_test();
 }
 

@@ -1069,8 +1069,49 @@ bool svt_aom_is_pic_skipped(PictureParentControlSet *pcs) {
         return true;
     return false;
 }
+#if FIX_SFRAME_PRUNE_REF0
+static void prune_sframe_refs(PictureDecisionContext* ctx, PictureParentControlSet* ppcs, MvReferenceFrame ref_frame_arr[], uint8_t* tot_ref_frames) {
+    if (ctx->sframe_poc > 0 && ppcs->picture_number < ctx->sframe_poc && ppcs->scs->mfmv_enabled) {
+#if DEBUG_SFRAME
+        fprintf(stderr, "frame[%u] ref before prune:\t", ppcs->picture_number);
+        for (uint8_t i = 0; i < *tot_ref_frames; i++)
+            fprintf(stderr, "%u\t", ref_frame_arr[i]);
+#endif // DEBUG_SFRAME
+        // check every reference frames, if it's in ref_list0 and direct to S-Frame, remove it from array
+        uint32_t sframe_poc = ctx->sframe_poc % ((uint64_t)1 << (ppcs->scs->seq_header.order_hint_info.order_hint_bits));
+        uint8_t ref_idx = 0;
+        while (ref_idx < *tot_ref_frames) {
+            MvReferenceFrame rf[2];
+            av1_set_ref_frame(rf, ref_frame_arr[ref_idx]);
+            if ((rf[0] < BWDREF_FRAME && ppcs->ref_order_hint[rf[0]] == sframe_poc)
+            || (rf[1] < BWDREF_FRAME && ppcs->ref_order_hint[rf[1]] == sframe_poc)){
+                (*tot_ref_frames)--;
+                for (uint8_t i = ref_idx; i < *tot_ref_frames; i++) {
+                    ref_frame_arr[i] = ref_frame_arr[i + 1];
+                }
+                ppcs->sframe_ref_pruned = true;
+                // ref_idx not increase to prevent skipping next item
+                continue;
+            }
+            ref_idx++;
+        };
+        // only prune ref_list0 will not make the array zero item, but still add assertion here
+        assert(*tot_ref_frames > 0);
+#if DEBUG_SFRAME
+        fprintf(stderr, "\nframe[%u] ref after prune:\t", ppcs->picture_number);
+        for (uint8_t i = 0; i < *tot_ref_frames; i++)
+            fprintf(stderr, "%u\t", ref_frame_arr[i]);
+        fprintf(stderr, "\n");
+#endif // DEBUG_SFRAME
+    }
+}
+#endif // FIX_SFRAME_PRUNE_REF0
 //set the ref frame types used for this picture,
+#if FIX_SFRAME_PRUNE_REF0
+static void set_all_ref_frame_type(PictureDecisionContext *ctx, PictureParentControlSet  *ppcs, MvReferenceFrame ref_frame_arr[], uint8_t* tot_ref_frames)
+#else
 static void set_all_ref_frame_type(PictureParentControlSet  *ppcs, MvReferenceFrame ref_frame_arr[], uint8_t* tot_ref_frames)
+#endif // FIX_SFRAME_PRUNE_REF0
 {
     MvReferenceFrame rf[2];
     *tot_ref_frames = 0;
@@ -1121,6 +1162,13 @@ static void set_all_ref_frame_type(PictureParentControlSet  *ppcs, MvReferenceFr
         }
     }
 
+#if FIX_SFRAME_PRUNE_REF0
+    // S-Frame feature in RA mode will refresh all ref frames at S-Frame position (ARF),
+    // but in decode order, the rest frames in this miniGOP has [LAST/LAST2/LAST3/GOLD]
+    // ref to S-Frame; when MFMV enabled, the ref MVs to S-Frame are duplicated and in
+    // reversed direction, here to prune the ref frame types in ref_list0 to S-Frame
+    prune_sframe_refs(ctx, ppcs, ref_frame_arr, tot_ref_frames);
+#endif // FIX_SFRAME_PRUNE_REF0
 }
 
 static void prune_refs(Av1RpsNode *av1_rps, unsigned ref_list0_count, unsigned ref_list1_count)
@@ -1223,11 +1271,13 @@ static void set_key_frame_rps(PictureParentControlSet *pcs, PictureDecisionConte
 // Decide whether to make an inter frame into an S-Frame
 static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ctx, PictureDecisionContext *pd_ctx)
 {
+#if !FTR_SFRAME_RA
     SequenceControlSet* scs = ppcs->scs;
+#endif // !FTR_SFRAME_RA
     FrameHeader *frm_hdr = &ppcs->frm_hdr;
     const int sframe_dist = enc_ctx->sf_cfg.sframe_dist;
     const EbSFrameMode sframe_mode = enc_ctx->sf_cfg.sframe_mode;
-
+#if !FTR_SFRAME_RA
     // s-frame supports low-delay
 #if CLN_REMOVE_LDP
     svt_aom_assert_err(scs->static_config.pred_structure == LOW_DELAY,
@@ -1236,6 +1286,7 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
     svt_aom_assert_err(scs->static_config.pred_structure == 0 || scs->static_config.pred_structure == 1,
         "S-frame supports only low delay");
 #endif
+#endif // !FTR_SFRAME_RA
     // handle multiple hierarchical levels only, no flat IPPP support
     svt_aom_assert_err(ppcs->hierarchical_levels > 0, "S-frame doesn't support flat IPPP...");
 
@@ -1249,15 +1300,30 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
     }
     else {
         // SFRAME_NEAREST_ARF: if sframe will be inserted at the next available altref frame
-        if ((frames_since_key % sframe_dist) == 0) {
-            pd_ctx->sframe_due = 1;
+#if FIX_NEAREST_ARF_RA
+        if (ppcs->scs->static_config.pred_structure == RANDOM_ACCESS) {
+            // frames in PD are in decode order, when ARF position is in this miniGop range,
+            // the ARF should be the next S-Frame
+            if (is_arf && (frames_since_key % sframe_dist) < pd_ctx->mg_size) {
+                frm_hdr->frame_type = S_FRAME;
+            }
         }
-        if (pd_ctx->sframe_due && is_arf) {
-            frm_hdr->frame_type = S_FRAME;
-            pd_ctx->sframe_due = 0;
+        else {
+#endif // FIX_NEAREST_ARF_RA
+            if ((frames_since_key % sframe_dist) == 0) {
+                pd_ctx->sframe_due = 1;
+            }
+            if (pd_ctx->sframe_due && is_arf) {
+                frm_hdr->frame_type = S_FRAME;
+                pd_ctx->sframe_due = 0;
+            }
+#if FIX_NEAREST_ARF_RA
         }
+#endif // FIX_NEAREST_ARF_RA
     }
-
+#if FIX_SFRAME_PRUNE_REF0
+    ppcs->sframe_ref_pruned = false;
+#endif // FIX_SFRAME_PRUNE_REF0
 #if DEBUG_SFRAME
     if (frm_hdr->frame_type == S_FRAME) {
         fprintf(stderr, "\nFrame %d - set sframe\n", (int)ppcs->picture_number);
@@ -1345,7 +1411,12 @@ bool svt_aom_is_pic_used_as_ref(uint32_t hierarchical_levels, uint32_t temporal_
     return true;
 }
 
+#if FIX_SFRAME_PRUNE_REF0
+static void set_ref_list_counts(PictureParentControlSet* pcs, PictureDecisionContext* ctx) {
+#else
 static void set_ref_list_counts(PictureParentControlSet* pcs) {
+#endif // FIX_SFRAME_PRUNE_REF0
+
     if (pcs->slice_type == I_SLICE) {
         pcs->ref_list0_count = 0;
         pcs->ref_list1_count = 0;
@@ -1411,6 +1482,14 @@ static void set_ref_list_counts(PictureParentControlSet* pcs) {
 
             if (j <= GOLD && j + 1 > pcs->ref_list0_count)
                 continue;
+#if FIX_SFRAME_PRUNE_REF0
+            // in S-Frame of RA mode, since the ref_list0 will be pruned in set_all_ref_frame_type(),
+            // the rest frames in S-Frame miniGop should not remove the duplicated ref_list1, which
+            // causes no ref frames in ref_list1, skip the following check only for S-Frame miniGOP
+            if (pcs->scs->static_config.pred_structure == RANDOM_ACCESS && pcs->picture_number < ctx->sframe_poc && j <= GOLD && av1_rps->ref_poc_array[j] == ctx->sframe_poc) {
+                continue;
+            }
+#endif // FIX_SFRAME_PRUNE_REF0
             /*
             TODO: [PW] Add a check so that if we try accessing a top-layer pic when top-layer pics
             are not allowed (e.g. ref scheme 0) then we breakout.  A check to ensure that the picture
@@ -1493,7 +1572,11 @@ static void  av1_generate_rps_info(
 #endif
         if (frm_hdr->frame_type == KEY_FRAME) {
             set_key_frame_rps(pcs, ctx);
+#if FIX_SFRAME_PRUNE_REF0
+            set_ref_list_counts(pcs, ctx);
+#else
             set_ref_list_counts(pcs);
+#endif // FIX_SFRAME_PRUNE_REF0
             return;
         }
     }
@@ -1631,7 +1714,11 @@ static void  av1_generate_rps_info(
 
         update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
 
+#if FIX_SFRAME_PRUNE_REF0
+        set_ref_list_counts(pcs, ctx);
+#else
         set_ref_list_counts(pcs);
+#endif // FIX_SFRAME_PRUNE_REF0
         // to make sure the long base reference is in base layer
         if (/*scs->static_config.pred_structure == LOW_DELAY &&*/ (pcs->picture_number - ctx->last_long_base_pic) >= long_base_pic &&
             pcs->temporal_layer_index == 0) {
@@ -1782,7 +1869,11 @@ static void  av1_generate_rps_info(
 
         update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
 
+#if FIX_SFRAME_PRUNE_REF0
+        set_ref_list_counts(pcs, ctx);
+#else
         set_ref_list_counts(pcs);
+#endif // FIX_SFRAME_PRUNE_REF0
         prune_refs(av1_rps, pcs->ref_list0_count, pcs->ref_list1_count);
 
         av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle;
@@ -1879,7 +1970,11 @@ static void  av1_generate_rps_info(
         }
         update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
 
+#if FIX_SFRAME_PRUNE_REF0
+        set_ref_list_counts(pcs, ctx);
+#else
         set_ref_list_counts(pcs);
+#endif // FIX_SFRAME_PRUNE_REF0
         prune_refs(av1_rps, pcs->ref_list0_count, pcs->ref_list1_count);
 
         if (!set_frame_display_params(pcs, ctx, mg_idx)) {
@@ -2022,7 +2117,11 @@ static void  av1_generate_rps_info(
 
         update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
 
+#if FIX_SFRAME_PRUNE_REF0
+        set_ref_list_counts(pcs, ctx);
+#else
         set_ref_list_counts(pcs);
+#endif // FIX_SFRAME_PRUNE_REF0
         // to make sure the long base reference is in base layer
 #if CLN_REMOVE_LDP
         if (scs->static_config.pred_structure == LOW_DELAY && (pcs->picture_number - ctx->last_long_base_pic) >= long_base_pic &&
@@ -2238,7 +2337,11 @@ static void  av1_generate_rps_info(
 
         update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
 
+#if FIX_SFRAME_PRUNE_REF0
+        set_ref_list_counts(pcs, ctx);
+#else
         set_ref_list_counts(pcs);
+#endif // FIX_SFRAME_PRUNE_REF0
         prune_refs(av1_rps, pcs->ref_list0_count, pcs->ref_list1_count);
 
         if (!set_frame_display_params(pcs, ctx, mg_idx)) {
@@ -2546,7 +2649,11 @@ static void  av1_generate_rps_info(
 
         update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
 
+#if FIX_SFRAME_PRUNE_REF0
+        set_ref_list_counts(pcs, ctx);
+#else
         set_ref_list_counts(pcs);
+#endif // FIX_SFRAME_PRUNE_REF0
         prune_refs(av1_rps, pcs->ref_list0_count, pcs->ref_list1_count);
 
         if (!set_frame_display_params(pcs, ctx, mg_idx)) {
@@ -3029,7 +3136,11 @@ static void  av1_generate_rps_info(
 
         update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
 
+#if FIX_SFRAME_PRUNE_REF0
+        set_ref_list_counts(pcs, ctx);
+#else
         set_ref_list_counts(pcs);
+#endif // FIX_SFRAME_PRUNE_REF0
         prune_refs(av1_rps, pcs->ref_list0_count, pcs->ref_list1_count);
 
         if (!set_frame_display_params(pcs, ctx, mg_idx)) {
@@ -4186,7 +4297,19 @@ void update_count_try(SequenceControlSet* scs, PictureParentControlSet* pcs) {
 static void update_sframe_ref_order_hint(PictureParentControlSet *ppcs, PictureDecisionContext *pd_ctx)
 {
     assert(sizeof(ppcs->dpb_order_hint) == sizeof(pd_ctx->ref_order_hint));
+#if FIX_SFRAME_ORDER_HINT
+    if (ppcs->pred_structure == LOW_DELAY) {
+        for (int32_t i = 0; i < REF_FRAMES; i++) {
+            // dpd_order_hint should be updated with relative postion of key frame
+            ppcs->dpb_order_hint[i] = pd_ctx->ref_order_hint[i] - pd_ctx->key_poc;
+        }
+    }
+    else {
+        memcpy(ppcs->dpb_order_hint, pd_ctx->ref_order_hint, sizeof(ppcs->dpb_order_hint));
+    }
+#else
     memcpy(ppcs->dpb_order_hint, pd_ctx->ref_order_hint, sizeof(ppcs->dpb_order_hint));
+#endif // FIX_SFRAME_ORDER_HINT
     if (ppcs->av1_ref_signal.refresh_frame_mask != 0) {
         const uint32_t cur_order_hint = ppcs->picture_number % ((uint64_t)1 << (ppcs->scs->seq_header.order_hint_info.order_hint_bits));
         for (int32_t i = 0; i < REF_FRAMES; i++) {
@@ -4682,7 +4805,11 @@ static void init_pic_settings(SequenceControlSet* scs, PictureParentControlSet* 
     frm_hdr->skip_mode_params.skip_mode_flag = frm_hdr->skip_mode_params.skip_mode_allowed;
 
     //set the ref frame types used for this picture,
+#if FIX_SFRAME_PRUNE_REF0
+    set_all_ref_frame_type(ctx, pcs, pcs->ref_frame_type_arr, &pcs->tot_ref_frame_types);
+#else
     set_all_ref_frame_type(pcs, pcs->ref_frame_type_arr, &pcs->tot_ref_frame_types);
+#endif // FIX_SFRAME_PRUNE_REF0
 }
 
 // Create MG arrays with pics in decode order (ctx->mg_pictures_array) and dispaly order (ctx->mg_pictures_array_disp_order)

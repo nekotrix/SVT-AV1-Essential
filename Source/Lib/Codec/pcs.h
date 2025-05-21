@@ -1287,6 +1287,10 @@ typedef struct PictureParentControlSet {
 #if OPT_SC_ME
     uint32_t ahd_error;
 #endif
+
+#if FIX_SFRAME_PRUNE_REF0
+    bool sframe_ref_pruned;
+#endif // FIX_SFRAME_PRUNE_REF0
 } PictureParentControlSet;
 
 typedef struct TplDispResults {

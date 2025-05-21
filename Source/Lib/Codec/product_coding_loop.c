@@ -12152,7 +12152,15 @@ static void md_encode_block_light_pd1(PictureControlSet *pcs, ModeDecisionContex
     ctx->tot_ref_frame_types = pcs->ppcs->tot_ref_frame_types;
     memcpy(ctx->ref_frame_type_arr, pcs->ppcs->ref_frame_type_arr, sizeof(MvReferenceFrame) * MODE_CTX_REF_FRAMES);
 
+#if FIX_SFRAME_PRUNE_REF0
+    // ref_frame_type_arr is pruned in PD for S-Frame RA mode,
+    // determine_best_references() may add back some ref frame types
+    // skip it to avoid pruned types
+    if (pcs->ppcs->scs->mrp_ctrls.use_best_references == 3 && pcs->temporal_layer_index > 0 &&
+        !pcs->ppcs->sframe_ref_pruned)
+#else
     if (pcs->ppcs->scs->mrp_ctrls.use_best_references == 3 && pcs->temporal_layer_index > 0)
+#endif // FIX_SFRAME_PRUNE_REF0
         determine_best_references(pcs, ctx, ctx->ref_frame_type_arr, &ctx->tot_ref_frame_types);
 
     if (!ctx->shut_fast_rate && pcs->slice_type != I_SLICE) {
@@ -12548,7 +12556,14 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
 
     derive_me_offsets(pcs->ppcs->scs, pcs, ctx);
 
+#if FIX_SFRAME_PRUNE_REF0
+    // ref_frame_type_arr is pruned in PD for S-Frame RA mode,
+    // determine_best_references() may add back some ref frame types
+    // skip it to avoid pruned types
+    if (get_enable_use_best_me(pcs, ctx) && !pcs->ppcs->sframe_ref_pruned)
+#else
     if (get_enable_use_best_me(pcs, ctx))
+#endif // FIX_SFRAME_PRUNE_REF0
         determine_best_references(pcs, ctx, ctx->ref_frame_type_arr, &ctx->tot_ref_frame_types);
     svt_aom_init_xd(pcs, ctx);
     if (!ctx->shut_fast_rate) {

@@ -1119,6 +1119,9 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             pcs->valid_qindex_area        = 0;
             pcs->ts_duration              = (double)10000000 * (1 << 16) / scs->frame_rate;
             scs->enc_ctx->initial_picture = false;
+#if FIX_SFRAME_PRUNE_REF0
+            pcs->sframe_ref_pruned = false;
+#endif // FIX_SFRAME_PRUNE_REF0
 
             // Get Empty Reference Picture Object
             svt_get_empty_object(scs->enc_ctx->pa_reference_picture_pool_fifo_ptr, &ref_pic_wrapper);

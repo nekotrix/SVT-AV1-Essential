@@ -1365,13 +1365,14 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
 #if DEBUG_SFRAME
                                 if (scs->static_config.pass != ENC_FIRST_PASS) {
                                     fprintf(stderr,
-                                            "\nframe %d, layer %d, ref-list-0 count %u, ref "
+                                            "\nframe %d, layer %d, ref-list-[%u] count %u, ref "
                                             "frame %d, ref frame remain dep count %d\n",
                                             (int)child_pcs->picture_number,
                                             entry_ppcs->temporal_layer_index,
-                                            entry_ppcs->ref_list0_count,
-                                            (int)child_pcs->ppcs->ref_pic_poc_array[REF_LIST_0][ref_idx],
-                                            ref_entry->dependent_count);
+                                            list_idx,
+                                            list_idx == 0 ? entry_ppcs->ref_list0_count : entry_ppcs->ref_list1_count,
+                                            (int)child_pcs->ppcs->ref_pic_poc_array[list_idx][ref_idx],
+                                            ref_entry->reference_object_ptr->live_count);
                                 }
 #endif
                             }

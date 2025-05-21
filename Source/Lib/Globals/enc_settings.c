@@ -704,6 +704,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Error instance %u: switch frame interval must be >= 0\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if !FTR_SFRAME_RA
 #if CLN_REMOVE_LDP
     if (config->sframe_dist > 0 && config->pred_structure != LOW_DELAY) {
 #else
@@ -716,6 +717,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#endif // !FTR_SFRAME_RA
     if (config->sframe_dist > 0 && config->hierarchical_levels == 0) {
         SVT_ERROR("Error instance %u: switch frame feature does not support flat IPPP\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;

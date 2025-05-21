@@ -9397,6 +9397,90 @@ static INLINE void eliminate_candidate_based_on_pme_me_results(ModeDecisionConte
         }
     }
 }
+#if FIX_SFRAME_PRUNE_REF0
+static bool valid_ref_frame_type(MvReferenceFrame rf[2], const MvReferenceFrame ref_frame_type_arr[], uint8_t tot_ref_frame_types) {
+    // INTRA_FRAME is added in candidates sometimes, skip validation
+    if (rf[0] == INTRA_FRAME)
+        return true;
+
+    for (uint8_t i = 0; i < tot_ref_frame_types; i++) {
+        MvReferenceFrame rf_in_arr[2];
+        av1_set_ref_frame(rf_in_arr, ref_frame_type_arr[i]);
+        if (rf[0] == rf_in_arr[0] && rf[1] == rf_in_arr[1])
+            return true;
+    }
+    return false;
+}
+// refer to inject_zz_backup_candidate, but use BWD ref instead of LAST
+static void inject_sframe_backup_candidate(
+    PictureControlSet *pcs,
+    struct ModeDecisionContext *ctx,
+    uint32_t *candidate_total_cnt) {
+    ModeDecisionCandidate *cand_array = ctx->fast_cand_array;
+    Mv best_pred_mv[2] = { {{0}}, {{0}} };
+    uint32_t cand_total_cnt = (*candidate_total_cnt);
+    cand_array[cand_total_cnt].drl_index = 0;
+    svt_aom_choose_best_av1_mv_pred(ctx,
+#if !CLN_MV_BEST_PRED_FUNC
+        ctx->md_rate_est_ctx,
+        ctx->blk_ptr,
+#endif
+        svt_get_ref_frame_type(REF_LIST_1, 0),
+#if !CLN_MV_BEST_PRED_FUNC
+        0,
+#endif
+        NEWMV,
+#if CLN_MV_BEST_PRED_FUNC
+        (Mv){{0}}, (Mv){{0}},
+#else
+        0,0,
+        0,
+        0,
+#endif
+        &cand_array[cand_total_cnt].drl_index,
+        best_pred_mv);
+    if (!ctx->corrupted_mv_check || is_valid_mv_diff(best_pred_mv, (Mv) { {0, 0} }, (Mv) { {0, 0} }, 0)) {
+        ModeDecisionCandidate* cand = &cand_array[cand_total_cnt];
+        cand->block_mi.use_intrabc = 0;
+        cand->skip_mode_allowed = false;
+        cand->block_mi.mode = NEWMV;
+        cand->block_mi.motion_mode = SIMPLE_TRANSLATION;
+        cand->block_mi.mv[0] = (Mv){ {0, 0} };
+        cand->block_mi.ref_frame[0] = svt_get_ref_frame_type(REF_LIST_1, 0);
+        cand->block_mi.ref_frame[1] = NONE_FRAME;
+        cand->transform_type[0] = DCT_DCT;
+        cand->transform_type_uv = DCT_DCT;
+        cand->pred_mv[0].as_int = best_pred_mv[0].as_int;
+        cand->block_mi.is_interintra_used = 0;
+        cand->block_mi.motion_mode = SIMPLE_TRANSLATION;
+        cand->block_mi.num_proj_ref = ctx->wm_sample_info[svt_get_ref_frame_type(REF_LIST_1, 0)].num;
+        INC_MD_CAND_CNT (cand_total_cnt,pcs->ppcs->max_can_count);
+        // update the total number of candidates injected
+        (*candidate_total_cnt) = cand_total_cnt;
+    }
+}
+// in MD stage 0, candidates are injected by different tools, but for S-Frame in RA mode
+// the ref frame types in ref_list0 has be pruned in PD for the reversed direction of ref MVs
+// here to check and reject the candidates if mismatches the available frame types array
+static uint32_t reject_candidate_sframe(PictureControlSet* pcs, ModeDecisionContext* ctx, uint32_t cand_total_cnt) {
+    for (uint32_t i = 0; i < cand_total_cnt;) {
+        if (!valid_ref_frame_type(ctx->fast_cand_array[i].block_mi.ref_frame, ctx->ref_frame_type_arr, ctx->tot_ref_frame_types)) {
+            for (uint32_t j = i; j < cand_total_cnt; j++) {
+                memcpy(&ctx->fast_cand_array[j], &ctx->fast_cand_array[j + 1], sizeof(ModeDecisionCandidate));
+            }
+            cand_total_cnt--;
+            continue;
+        }
+        i++;
+    }
+    // zero candidate in fast cand array risks in md stage 0, add a candidate from ref list1 as backup
+    if (cand_total_cnt == 0)
+        inject_sframe_backup_candidate(pcs, ctx, &cand_total_cnt);
+    assert(cand_total_cnt > 0);
+    return cand_total_cnt;
+}
+#endif // FIX_SFRAME_PRUNE_REF0
+
 EbErrorType generate_md_stage_0_cand_light_pd0(
     ModeDecisionContext *ctx,
     uint32_t            *candidate_total_count_ptr,
@@ -9428,6 +9512,13 @@ EbErrorType generate_md_stage_0_cand_light_pd0(
             ctx,
             &cand_total_cnt);
     }
+
+#if FIX_SFRAME_PRUNE_REF0
+    if (pcs->ppcs->sframe_ref_pruned) {
+        cand_total_cnt = reject_candidate_sframe(pcs, ctx, cand_total_cnt);
+    }
+#endif // FIX_SFRAME_PRUNE_REF0
+
     *candidate_total_count_ptr = cand_total_cnt;
 
     return EB_ErrorNone;
@@ -9476,6 +9567,13 @@ void generate_md_stage_0_cand_light_pd1(
             ctx,
             &cand_total_cnt);
     }
+
+#if FIX_SFRAME_PRUNE_REF0
+    if (pcs->ppcs->sframe_ref_pruned) {
+        cand_total_cnt = reject_candidate_sframe(pcs, ctx, cand_total_cnt);
+    }
+#endif // FIX_SFRAME_PRUNE_REF0
+
     *candidate_total_count_ptr = cand_total_cnt;
 }
 EbErrorType generate_md_stage_0_cand(
@@ -9541,6 +9639,13 @@ EbErrorType generate_md_stage_0_cand(
             ctx,
             &cand_total_cnt);
     }
+
+#if FIX_SFRAME_PRUNE_REF0
+    if (pcs->ppcs->sframe_ref_pruned) {
+        cand_total_cnt = reject_candidate_sframe(pcs, ctx, cand_total_cnt);
+    }
+#endif // FIX_SFRAME_PRUNE_REF0
+
     *candidate_total_count_ptr = cand_total_cnt;
 
     memset(ctx->md_stage_0_count, 0, CAND_CLASS_TOTAL * sizeof(uint32_t));
