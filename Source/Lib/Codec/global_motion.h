@@ -54,14 +54,14 @@ typedef struct {
     int    num_inliers;
 } MotionModel;
 
-void svt_av1_convert_model_to_params(const double* params, EbWarpedMotionParams* model);
+void svt_av1_convert_model_to_params(const double* params, WarpedMotionParams* model);
 
 int svt_av1_is_enough_erroradvantage(double best_erroradvantage, int params_cost, int erroradv_type);
 
 // Returns the av1_warp_error between "dst" and the result of applying the
 // motion params that result from fine-tuning "wm" to "ref". Note that "wm" is
 // modified in place.
-int64_t svt_av1_refine_integerized_param(GmControls* gm_ctrls, EbWarpedMotionParams* wm, TransformationType wmtype,
+int64_t svt_av1_refine_integerized_param(GmControls* gm_ctrls, WarpedMotionParams* wm, TransformationType wmtype,
                                          uint8_t* ref, int r_width, int r_height, int r_stride, uint8_t* dst,
                                          int d_width, int d_height, int d_stride, int n_refinements, uint8_t chess_refn,
                                          int64_t best_frame_error, uint32_t pic_sad, int params_cost);

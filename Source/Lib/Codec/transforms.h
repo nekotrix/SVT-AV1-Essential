@@ -96,7 +96,7 @@ static INLINE int is_rect_tx_allowed_bsize(BlockSize bsize) {
 }
 #if CLN_MOVE_FIELDS_MBMI
 static INLINE int is_rect_tx_allowed(/*const MacroBlockD *xd,*/
-    const MbModeInfo* mbmi) {
+                                     const MbModeInfo *mbmi) {
     return is_rect_tx_allowed_bsize(mbmi->bsize) /*&&
             !xd->lossless[mbmi->segment_id]*/
         ;

@@ -1090,21 +1090,21 @@ static inline uint32x4_t get_mv_cost_vector(const struct svt_mv_cost_param *mv_c
                                             int16_t mvx, int16_t mvy, int16_t search_position_start_x,
                                             int16_t search_position_start_y) {
 #if CLN_UNIFY_MV_TYPE
-    const Mv   baseMv = {{(int16_t)(mvx + (search_position_start_x + col) * 8),
-                          (int16_t)(mvy + (search_position_start_y + row) * 8)}};
-    const Mv   mvs[4] = {{{baseMv.y, baseMv.x + 8 * 0}},
-                         {{baseMv.y, baseMv.x + 8 * 1}},
-                         {{baseMv.y, baseMv.x + 8 * 2}},
-                         {{baseMv.y, baseMv.x + 8 * 3}}};
+    const Mv baseMv = {
+        {(int16_t)(mvx + (search_position_start_x + col) * 8), (int16_t)(mvy + (search_position_start_y + row) * 8)}};
+    const Mv mvs[4] = {{{baseMv.y, baseMv.x + 8 * 0}},
+                       {{baseMv.y, baseMv.x + 8 * 1}},
+                       {{baseMv.y, baseMv.x + 8 * 2}},
+                       {{baseMv.y, baseMv.x + 8 * 3}}};
 #else
-    const MV   baseMv = {(int16_t)(mvy + (search_position_start_y + row) * 8),
-                         (int16_t)(mvx + (search_position_start_x + col) * 8)};
-    const MV   mvs[4] = {{baseMv.row, baseMv.col + 8 * 0},
-                         {baseMv.row, baseMv.col + 8 * 1},
-                         {baseMv.row, baseMv.col + 8 * 2},
-                         {baseMv.row, baseMv.col + 8 * 3}};
+    const MV baseMv = {(int16_t)(mvy + (search_position_start_y + row) * 8),
+                       (int16_t)(mvx + (search_position_start_x + col) * 8)};
+    const MV mvs[4] = {{baseMv.row, baseMv.col + 8 * 0},
+                       {baseMv.row, baseMv.col + 8 * 1},
+                       {baseMv.row, baseMv.col + 8 * 2},
+                       {baseMv.row, baseMv.col + 8 * 3}};
 #endif
-    uint32_t   costs[4];
+    uint32_t costs[4];
     costs[0] = (uint32_t)svt_aom_fp_mv_err_cost(&mvs[0], mv_cost_params);
     costs[1] = (uint32_t)svt_aom_fp_mv_err_cost(&mvs[1], mv_cost_params);
     costs[2] = (uint32_t)svt_aom_fp_mv_err_cost(&mvs[2], mv_cost_params);

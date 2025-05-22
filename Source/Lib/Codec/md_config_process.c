@@ -74,7 +74,7 @@ void set_global_motion_field(PictureControlSet *pcs) {
         const uint8_t ref_idx  = get_ref_frame_idx(frame_index);
         if (!ppcs->is_global_motion[list_idx][ref_idx])
             continue;
-        ppcs->global_motion[frame_index] = ppcs->svt_aom_global_motion_estimation[list_idx][ref_idx];
+        ppcs->global_motion[frame_index] = ppcs->global_motion_estimation[list_idx][ref_idx];
         uint8_t sf = ppcs->gm_downsample_level == GM_DOWN ? 2 : ppcs->gm_downsample_level == GM_DOWN16 ? 4 : 1;
         svt_aom_upscale_wm_params(&ppcs->global_motion[frame_index], sf);
         if (ppcs->global_motion[frame_index].wmtype == TRANSLATION) {
@@ -255,13 +255,12 @@ void set_reference_sg_ep(PictureControlSet *pcs) {
         break;
     case B_SLICE:
 #if CLN_REMOVE_P_SLICE
-        ref_obj_l0 = (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+        ref_obj_l0             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
         cm->sg_ref_frame_ep[0] = ref_obj_l0->sg_frame_ep;
         if (pcs->ppcs->ref_list1_count_try) {
-            ref_obj_l1 = (EbReferenceObject*)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+            ref_obj_l1             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
             cm->sg_ref_frame_ep[1] = ref_obj_l1->sg_frame_ep;
-        }
-        else {
+        } else {
             cm->sg_ref_frame_ep[1] = 0;
         }
         break;
@@ -272,7 +271,7 @@ void set_reference_sg_ep(PictureControlSet *pcs) {
         cm->sg_ref_frame_ep[1] = ref_obj_l1->sg_frame_ep;
         break;
     case P_SLICE:
-        ref_obj_l0             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+        ref_obj_l0 = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
         cm->sg_ref_frame_ep[0] = ref_obj_l0->sg_frame_ep;
         cm->sg_ref_frame_ep[1] = 0;
         break;
@@ -301,9 +300,9 @@ void mode_decision_configuration_init_qp_update(PictureControlSet *pcs) {
         const uint8_t primary_ref_frame = frm_hdr->primary_ref_frame;
         // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
         // Therefore, add 1 to the primary ref frame (e.g. LAST --> LAST_FRAME)
-        const uint8_t list_idx = get_list_idx(primary_ref_frame + 1);
-        const uint8_t ref_idx = get_ref_frame_idx(primary_ref_frame + 1);
-        EbReferenceObject* ref = (EbReferenceObject*)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+        const uint8_t      list_idx = get_list_idx(primary_ref_frame + 1);
+        const uint8_t      ref_idx  = get_ref_frame_idx(primary_ref_frame + 1);
+        EbReferenceObject *ref      = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
         memcpy(&pcs->md_frame_context, &ref->frame_context, sizeof(FRAME_CONTEXT));
     }
 #else
@@ -481,16 +480,16 @@ static int motion_field_projection(Av1Common *cm, PictureControlSet *pcs, MvRefe
                 if (pos_valid) {
                     const int mi_offset = mi_r * (cm->mi_stride >> 1) + mi_c;
 
-                    tpl_mvs_base[mi_offset].mfmv0.as_int  = fwd_mv.as_int;
+                    tpl_mvs_base[mi_offset].mfmv0.as_int     = fwd_mv.as_int;
                     tpl_mvs_base[mi_offset].ref_frame_offset = ref_frame_offset;
                 }
             }
 #else
-            MV                  fwd_mv = mv_ref->mv.as_mv;
+            MV fwd_mv = mv_ref->mv.as_mv;
 
             if (mv_ref->ref_frame > INTRA_FRAME) {
-                MV        this_mv;
-                int       mi_r, mi_c;
+                MV this_mv;
+                int mi_r, mi_c;
                 const int ref_frame_offset = ref_offset[mv_ref->ref_frame];
 
                 int pos_valid = abs(ref_frame_offset) <= MAX_FRAME_DISTANCE && ref_frame_offset > 0 &&
@@ -504,8 +503,8 @@ static int motion_field_projection(Av1Common *cm, PictureControlSet *pcs, MvRefe
                 if (pos_valid) {
                     const int mi_offset = mi_r * (cm->mi_stride >> 1) + mi_c;
 
-                    tpl_mvs_base[mi_offset].mfmv0.as_mv.row  = fwd_mv.row;
-                    tpl_mvs_base[mi_offset].mfmv0.as_mv.col  = fwd_mv.col;
+                    tpl_mvs_base[mi_offset].mfmv0.as_mv.row = fwd_mv.row;
+                    tpl_mvs_base[mi_offset].mfmv0.as_mv.col = fwd_mv.col;
                     tpl_mvs_base[mi_offset].ref_frame_offset = ref_frame_offset;
                 }
             }
@@ -786,9 +785,9 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             const uint8_t primary_ref_frame = frm_hdr->primary_ref_frame;
             // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
             // Therefore, add 1 to the primary ref frame (e.g. LAST --> LAST_FRAME)
-            const uint8_t list_idx = get_list_idx(primary_ref_frame + 1);
-            const uint8_t ref_idx = get_ref_frame_idx(primary_ref_frame + 1);
-            EbReferenceObject* ref = (EbReferenceObject*)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+            const uint8_t      list_idx = get_list_idx(primary_ref_frame + 1);
+            const uint8_t      ref_idx  = get_ref_frame_idx(primary_ref_frame + 1);
+            EbReferenceObject *ref      = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
             memcpy(&pcs->md_frame_context, &ref->frame_context, sizeof(FRAME_CONTEXT));
         }
 #else

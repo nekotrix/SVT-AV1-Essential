@@ -213,12 +213,18 @@ OBMCVARWXH(8, 32)
 OBMCVARWXH(32, 8)
 OBMCVARWXH(16, 64)
 OBMCVARWXH(64, 16)
-
+#if CLN_OBMC_BUILD_PRED
+void svt_av1_calc_target_weighted_pred_above_avx2(uint8_t is16bit, MacroBlockD *xd, int rel_mi_col, uint8_t nb_mi_width,
+                                                  MbModeInfo *nb_mi, void *fun_ctxt) {
+    (void)nb_mi;
+    (void)is16bit;
+#else
 void svt_av1_calc_target_weighted_pred_above_avx2(uint8_t is16bit, MacroBlockD *xd, int rel_mi_col, uint8_t nb_mi_width,
                                                   MbModeInfo *nb_mi, void *fun_ctxt, const int num_planes) {
     (void)nb_mi;
     (void)num_planes;
     (void)is16bit;
+#endif
     struct calc_target_weighted_pred_ctxt *ctxt = (struct calc_target_weighted_pred_ctxt *)fun_ctxt;
 
     const int            bw     = xd->n4_w << MI_SIZE_LOG2;
@@ -319,13 +325,18 @@ void svt_av1_calc_target_weighted_pred_above_avx2(uint8_t is16bit, MacroBlockD *
         }
     }
 }
-
+#if CLN_OBMC_BUILD_PRED
+void svt_av1_calc_target_weighted_pred_left_avx2(uint8_t is16bit, MacroBlockD *xd, int rel_mi_row, uint8_t nb_mi_height,
+                                                 MbModeInfo *nb_mi, void *fun_ctxt) {
+    (void)nb_mi;
+    (void)is16bit;
+#else
 void svt_av1_calc_target_weighted_pred_left_avx2(uint8_t is16bit, MacroBlockD *xd, int rel_mi_row, uint8_t nb_mi_height,
                                                  MbModeInfo *nb_mi, void *fun_ctxt, const int num_planes) {
     (void)nb_mi;
     (void)num_planes;
     (void)is16bit;
-
+#endif
     struct calc_target_weighted_pred_ctxt *ctxt = (struct calc_target_weighted_pred_ctxt *)fun_ctxt;
 
     const int            bw     = xd->n4_w << MI_SIZE_LOG2;

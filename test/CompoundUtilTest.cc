@@ -78,8 +78,8 @@ class CompBlendTest : public ::testing::TestWithParam<BlendTestParam> {
         const int iterations = 1000;
 #if FIX_COMPOUND_TEST
         /*
-          // max number of bits used by the source for d16 blends is as follows (from libaom):
-          static const int kSrcMaxBitsMask = (1 << 14) - 1;
+          // max number of bits used by the source for d16 blends is as follows
+          (from libaom): static const int kSrcMaxBitsMask = (1 << 14) - 1;
           static const int kSrcMaxBitsMaskHBD = (1 << 16) - 1;
         */
         int max = is_d16_ ? (bd_ == 8 ? 14 : 16) : bd_;
@@ -284,16 +284,16 @@ TEST_P(LbdCompBlendD16Test, BlendA64MaskD16) {
 }
 
 #if FIX_COMPOUND_TEST
- #ifdef ARCH_X86_64
- INSTANTIATE_TEST_SUITE_P(
+#ifdef ARCH_X86_64
+INSTANTIATE_TEST_SUITE_P(
     SSE4_1, LbdCompBlendD16Test,
     ::testing::ValuesIn({make_tuple(svt_aom_lowbd_blend_a64_d16_mask_c,
                                     svt_aom_lowbd_blend_a64_d16_mask_sse4_1)}));
- INSTANTIATE_TEST_SUITE_P(
+INSTANTIATE_TEST_SUITE_P(
     AVX2, LbdCompBlendD16Test,
     ::testing::ValuesIn({make_tuple(svt_aom_lowbd_blend_a64_d16_mask_c,
                                     svt_aom_lowbd_blend_a64_d16_mask_avx2)}));
- #endif  // ARCH_X86_64
+#endif  // ARCH_X86_64
 #else
 // TODO: Re-enable when the overflow is fixed.
 // #ifdef ARCH_X86_64

@@ -24,45 +24,45 @@ typedef struct EbReferenceObject {
     EbPictureBufferDesc *downscaled_reference_picture[NUM_SR_SCALES + 1][NUM_RESIZE_SCALES + 1];
     uint64_t             downscaled_picture_number[NUM_SR_SCALES + 1]
                                       [NUM_RESIZE_SCALES + 1]; // save the picture_number for each denom
-    EbHandle             resize_mutex[NUM_SR_SCALES + 1][NUM_RESIZE_SCALES + 1];
-    uint64_t             ref_poc;
-    uint16_t             qp;
-    SliceType            slice_type;
-    uint8_t              intra_coded_area; //percentage of intra coded area 0-100%
-    uint8_t              skip_coded_area;
-    uint8_t              hp_coded_area;
-    uint8_t              is_mfmv_used;
-    uint8_t              tmp_layer_idx;
-    bool                 is_scene_change;
-    uint16_t             pic_avg_variance;
-    AomFilmGrain         film_grain_params; //Film grain parameters for a reference frame
-    int8_t               sg_frame_ep;
-    FRAME_CONTEXT        frame_context;
-    EbWarpedMotionParams global_motion[TOTAL_REFS_PER_FRAME];
-    MV_REF              *mvs;
-    FrameType            frame_type;
-    uint32_t             order_hint;
-    uint32_t             ref_order_hint[7];
-    double               r0;
-    int32_t              filter_level[2];
-    int32_t              filter_level_u;
-    int32_t              filter_level_v;
-    int32_t              dlf_dist_dev;
-    int32_t              cdef_dist_dev;
-    uint32_t             ref_cdef_strengths_num;
-    uint8_t              ref_cdef_strengths[2][TOTAL_STRENGTHS];
-    uint8_t             *sb_intra;
-    uint8_t             *sb_skip;
-    uint8_t             *sb_64x64_mvp;
-    uint32_t            *sb_me_64x64_dist;
-    uint32_t            *sb_me_8x8_cost_var;
+    EbHandle           resize_mutex[NUM_SR_SCALES + 1][NUM_RESIZE_SCALES + 1];
+    uint64_t           ref_poc;
+    uint16_t           qp;
+    SliceType          slice_type;
+    uint8_t            intra_coded_area; //percentage of intra coded area 0-100%
+    uint8_t            skip_coded_area;
+    uint8_t            hp_coded_area;
+    uint8_t            is_mfmv_used;
+    uint8_t            tmp_layer_idx;
+    bool               is_scene_change;
+    uint16_t           pic_avg_variance;
+    AomFilmGrain       film_grain_params; //Film grain parameters for a reference frame
+    int8_t             sg_frame_ep;
+    FRAME_CONTEXT      frame_context;
+    WarpedMotionParams global_motion[TOTAL_REFS_PER_FRAME];
+    MV_REF            *mvs;
+    FrameType          frame_type;
+    uint32_t           order_hint;
+    uint32_t           ref_order_hint[7];
+    double             r0;
+    int32_t            filter_level[2];
+    int32_t            filter_level_u;
+    int32_t            filter_level_v;
+    int32_t            dlf_dist_dev;
+    int32_t            cdef_dist_dev;
+    uint32_t           ref_cdef_strengths_num;
+    uint8_t            ref_cdef_strengths[2][TOTAL_STRENGTHS];
+    uint8_t           *sb_intra;
+    uint8_t           *sb_skip;
+    uint8_t           *sb_64x64_mvp;
+    uint32_t          *sb_me_64x64_dist;
+    uint32_t          *sb_me_8x8_cost_var;
 #if OPT_DEPTHS_CTRL
-    uint8_t             *sb_min_sq_size;
-    uint8_t             *sb_max_sq_size;
+    uint8_t *sb_min_sq_size;
+    uint8_t *sb_max_sq_size;
 #endif
-    int32_t              mi_cols;
-    int32_t              mi_rows;
-    WienerUnitInfo     **unit_info; // per plane, per rest. unit; used for fwding wiener info to future frames
+    int32_t          mi_cols;
+    int32_t          mi_rows;
+    WienerUnitInfo **unit_info; // per plane, per rest. unit; used for fwding wiener info to future frames
 } EbReferenceObject;
 
 typedef struct EbReferenceObjectDescInitData {

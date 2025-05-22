@@ -419,7 +419,7 @@ void svt_aom_release_pa_reference_objects(SequenceControlSet *scs, PictureParent
         // Release the PA reference Pictures from both lists
         for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
             const uint8_t list_idx = get_list_idx(ref + 1);
-            const uint8_t ref_idx = get_ref_frame_idx(ref + 1);
+            const uint8_t ref_idx  = get_ref_frame_idx(ref + 1);
             if (pcs->ref_pa_pic_ptr_array[list_idx][ref_idx] != NULL) {
                 svt_release_object(pcs->ref_pa_pic_ptr_array[list_idx][ref_idx]);
                 if (pcs->ref_y8b_array[list_idx][ref_idx]) {

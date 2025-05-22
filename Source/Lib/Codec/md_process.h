@@ -280,12 +280,11 @@ typedef struct DepthCtrls {
 } DepthCtrls;
 #endif
 #define MAX_RANGE_CNT 8
-#define MAX_RANGE_CNT 8
 
 #if OPT_DEPTHS_CTRL
-#define PD0_DEPTH_NO_RESTRICTION  0  // No depth restriction
-#define PD0_DEPTH_ADAPTIVE        1  // Adaptive depth control
-#define PD0_DEPTH_PRED_PART_ONLY  2  // Pred-part only
+#define PD0_DEPTH_NO_RESTRICTION 0 // No depth restriction
+#define PD0_DEPTH_ADAPTIVE 1 // Adaptive depth control
+#define PD0_DEPTH_PRED_PART_ONLY 2 // Pred-part only
 typedef struct DepthRefinementCtrls {
     // Mode selection:
     // 0 - No depth restriction
@@ -522,6 +521,7 @@ typedef struct MdSubPelSearchCtrls {
     int32_t
         bias_fp; // Bias towards fpel at the MD subpel-search: apply a penalty to the cost of fractional positions during the subpel-search each time we check against a full-pel MV
 } MdSubPelSearchCtrls;
+#if !CLN_REMOVE_PSQ_FEAT
 typedef struct ParentSqCmplxCtrls {
     bool enabled;
 
@@ -546,6 +546,7 @@ typedef struct ParentSqCmplxCtrls {
     // level of action to use if parent SQ has 1 luma coeff
     uint8_t one_coeff_action;
 } ParentSqCmplxCtrls;
+#endif
 typedef struct NsqPsqTxsCtrls {
     uint8_t enabled;
     uint32_t
@@ -646,15 +647,17 @@ typedef struct NicPruningCtrls {
 
     // enable skipping MDS1 in PD1 when there is only 1 cand post-mds0
     bool enable_skipping_mds1;
+#if !CLN_REMOVE_FORCE_1_CAND
     // if (best_mds0_distortion/QP < TH) consider only the best candidate after MDS0; 0: OFF,
     // higher: more aggressive.
     uint32_t force_1_cand_th;
+#endif
 #if !OPT_REMOVE_NIC_QP_BANDS
     uint16_t mds1_q_weight;
     uint16_t mds2_q_weight;
     uint16_t mds3_q_weight;
 #endif
-    uint8_t  merge_inter_cands_mult;
+    uint8_t merge_inter_cands_mult;
 } NicPruningCtrls;
 typedef struct NicCtrls {
     NicPruningCtrls pruning_ctrls;
@@ -681,8 +684,10 @@ typedef struct NsqSearchCtrls {
     // compute overhead. If not enabled, NSQ shapes may still be allowed by nsq_geom_ctrls, but no search will be performed
     // (therefore, each depth  must specify one block to be tested at MD, whether SQ or NSQ).
     bool enabled;
+#if !CLN_REMOVE_PSQ_FEAT
     // Set the level for coeff-based NSQ accuracy reduction
     uint8_t psq_cplx_lvl;
+#endif
     // Weighting (expressed as a percentage) applied to square shape costs for determining if a and
     // b shapes should be skipped. Namely: skip HA, HB, and H4 if h_cost > (weighted sq_cost) skip
     // VA, VB, and V4 if v_cost > (weighted sq_cost)
@@ -747,10 +752,6 @@ typedef struct TxsControls {
     int depth1_txt_group_offset;
     // Offset to be subtracted from default txt-group to derive the txt-group of depth-2
     int depth2_txt_group_offset;
-#if OPT_TXS_D2_IFF_D1_BEST
-    // Test depth 2 only if depth 1 is best depth
-    bool test_d2_iff_d1_best;
-#endif
     // Min. sq size to use TXS for
     uint16_t min_sq_size;
 
@@ -991,12 +992,10 @@ typedef struct CandReductionCtrls {
     UseNeighbouringModeCtrls use_neighbouring_mode_ctrls;
     CandEliminationCtlrs     cand_elimination_ctrls;
     uint8_t                  reduce_unipred_candidates;
-#if !OPT_FILTER_INTRA
 #if OPT_INTRA
-    uint8_t                  reduce_filter_intra;
+    uint8_t reduce_filter_intra;
 #else
-    uint8_t                  mds0_reduce_intra;
-#endif
+    uint8_t mds0_reduce_intra;
 #endif
 } CandReductionCtrls;
 typedef struct SkipSubDepthCtrls {
@@ -1015,9 +1014,6 @@ typedef struct FilterIntraCtrls {
     // Set the max filter intra mode to test. The max filter intra level will also depend on ctx->intra_ctrls.intra_mode_end.
     // The max mode to be test will be min(max_filter_intra_mode, ctx->intra_ctrls.intra_mode_end).
     FilterIntraMode max_filter_intra_mode;
-#if OPT_FILTER_INTRA
-    uint8_t reduce_filter_intra;
-#endif
 } FilterIntraCtrls;
 
 #if CLN_UNIFY_MV_TYPE
@@ -1028,11 +1024,11 @@ typedef struct CompoundPredictionStore {
     //pred1 for NEAR_NEAR could be retrived from  NRST_NRST
     uint8_t  pred0_cnt; //actual size for available predictions
     uint8_t *pred0_buf[4]; //stores prediction for up to 4 different MVs (NEAREST + 3 NEAR)
-    Mv    pred0_mv[4]; //MVs for availble predictions
+    Mv       pred0_mv[4]; //MVs for availble predictions
 
     uint8_t  pred1_cnt;
     uint8_t *pred1_buf[4];
-    Mv    pred1_mv[4];
+    Mv       pred1_mv[4];
 } CompoundPredictionStore;
 #else
 typedef struct CompoundPredictionStore {
@@ -1040,23 +1036,23 @@ typedef struct CompoundPredictionStore {
     //example: NRST_NRST:  (0,0) (1,2)
     //         NEAR_NEAR:  (1,0) (1,2)
     //pred1 for NEAR_NEAR could be retrived from  NRST_NRST
-    uint8_t  pred0_cnt; //actual size for available predictions
+    uint8_t pred0_cnt; //actual size for available predictions
     uint8_t *pred0_buf[4]; //stores prediction for up to 4 different MVs (NEAREST + 3 NEAR)
-    IntMv    pred0_mv[4]; //MVs for availble predictions
+    IntMv pred0_mv[4]; //MVs for availble predictions
 
-    uint8_t  pred1_cnt;
+    uint8_t pred1_cnt;
     uint8_t *pred1_buf[4];
-    IntMv    pred1_mv[4];
+    IntMv pred1_mv[4];
 } CompoundPredictionStore;
 #endif
 
 typedef struct ModeDecisionContext {
     EbDctor dctor;
 
-    EbFifo                       *mode_decision_configuration_input_fifo_ptr;
-    EbFifo                       *mode_decision_output_fifo_ptr;
+    EbFifo *mode_decision_configuration_input_fifo_ptr;
+    EbFifo *mode_decision_output_fifo_ptr;
 #if !OPT_LD_MEM_3
-    ModeDecisionCandidate       **fast_cand_ptr_array;
+    ModeDecisionCandidate **fast_cand_ptr_array;
 #endif
     ModeDecisionCandidate        *fast_cand_array;
     ModeDecisionCandidateBuffer **cand_bf_ptr_array;
@@ -1115,9 +1111,9 @@ typedef struct ModeDecisionContext {
     PaletteInfo    *palette_cand_array;
     uint8_t        *palette_size_array_0;
     // simple geometry 64x64SB, Sq only, no 4xN
-    uint8_t          sb64_sq_no4xn_geom;
+    uint8_t sb64_sq_no4xn_geom;
 #if !OPT_LD_MEM_3
-    uint8_t          pu_itr;
+    uint8_t pu_itr;
 #endif
     uint32_t        *best_candidate_index_array;
     uint16_t         blk_org_x;
@@ -1183,30 +1179,30 @@ typedef struct ModeDecisionContext {
     bool              blk_skip_decision;
     int8_t            rdoq_level;
 #if CLN_MV_ARRAYS
-    Mv                sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
+    Mv sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
 #else
-    int16_t           sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
+    int16_t sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
 #endif
     // Store ME MV of the square to use with NSQ shapes; 4x4 will also use the 8x8 ME MVs
 #if CLN_MV_ARRAYS
     Mv sq_sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
 #else
-    int16_t  sq_sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
+    int16_t sq_sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
 #endif
 #if CLN_UNIFY_MV_TYPE
-    Mv       fp_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
-    Mv       sub_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+    Mv fp_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+    Mv sub_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
 #else
-    MV       fp_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
-    MV       sub_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+    MV fp_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+    MV sub_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
 #endif
     uint32_t post_subpel_me_mv_cost[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
 #if CLN_MV_ARRAYS
     Mv best_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
 #else
-    int16_t  best_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
+    int16_t best_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
 #endif
-    int8_t   valid_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
+    int8_t valid_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
     // Store MVP during MD search - only results are forwarded to encdec
     CandidateMv ref_mv_stack[MODE_CTX_REF_FRAMES][MAX_REF_MV_STACK_SIZE];
     // Store inter_mode_ctx for each reference during MD search - only ctx for winning ref frame is forwarded to encdec
@@ -1294,17 +1290,17 @@ typedef struct ModeDecisionContext {
     DepthRemovalCtrls depth_removal_ctrls;
 #if !OPT_DEPTHS_CTRL
     // control which depths can be considered in PD1
-    DepthCtrls           depth_ctrls;
+    DepthCtrls depth_ctrls;
 #endif
     DepthRefinementCtrls depth_refinement_ctrls;
     SkipSubDepthCtrls    skip_sub_depth_ctrls;
 #if !OPT_DEPTHS_CTRL
-    int64_t              parent_to_current_deviation;
-    int64_t              child_to_current_deviation;
+    int64_t parent_to_current_deviation;
+    int64_t child_to_current_deviation;
 #endif
-    SubresCtrls          subres_ctrls;
-    uint8_t              is_subres_safe;
-    PfCtrls              pf_ctrls;
+    SubresCtrls subres_ctrls;
+    uint8_t     is_subres_safe;
+    PfCtrls     pf_ctrls;
     // Control signals for MD sparse search (used for increasing ME search for active clips)
     MdSqMotionSearchCtrls  md_sq_me_ctrls;
     MdNsqMotionSearchCtrls md_nsq_me_ctrls;
@@ -1332,15 +1328,17 @@ typedef struct ModeDecisionContext {
     uint8_t             disallow_4x4;
     uint8_t             md_disallow_nsq_search;
     uint8_t             params_status; // specifies the status of MD parameters; 0: default, 1: modified
+#if !CLN_REMOVE_PSQ_FEAT
     // was parent_sq_coeff_area_based_cycles_reduction_ctrls
-    ParentSqCmplxCtrls   psq_cplx_ctrls;
-    NsqPsqTxsCtrls       nsq_psq_txs_ctrls;
-    uint8_t              sb_size;
+    ParentSqCmplxCtrls psq_cplx_ctrls;
+#endif
+    NsqPsqTxsCtrls nsq_psq_txs_ctrls;
+    uint8_t        sb_size;
 #if OPT_LD_MEM_3
     // Temp buffers to store results during TXT search
-    EbPictureBufferDesc* tx_search_recon_coeff_ptr;
-    EbPictureBufferDesc* tx_search_recon_ptr;
-    EbPictureBufferDesc* tx_search_quant_coeff_ptr;
+    EbPictureBufferDesc *tx_search_recon_coeff_ptr;
+    EbPictureBufferDesc *tx_search_recon_ptr;
+    EbPictureBufferDesc *tx_search_quant_coeff_ptr;
 #else
     EbPictureBufferDesc *recon_coeff_ptr[TX_TYPES];
     EbPictureBufferDesc *recon_ptr[TX_TYPES];
@@ -1365,15 +1363,15 @@ typedef struct ModeDecisionContext {
     uint32_t best_fp_mvp_dist[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     uint32_t fp_me_dist[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     // Start/end position for MD sparse search
-    int16_t         sprs_lev0_start_x;
-    int16_t         sprs_lev0_end_x;
-    int16_t         sprs_lev0_start_y;
-    int16_t         sprs_lev0_end_y;
-    NicCtrls        nic_ctrls;
+    int16_t  sprs_lev0_start_x;
+    int16_t  sprs_lev0_end_x;
+    int16_t  sprs_lev0_start_y;
+    int16_t  sprs_lev0_end_y;
+    NicCtrls nic_ctrls;
 #if CLN_UNIFY_MV_TYPE
-    Mv              ref_mv;
+    Mv ref_mv;
 #else
-    MV              ref_mv;
+    MV ref_mv;
 #endif
     uint16_t        sb_index;
     uint64_t        mds0_best_cost_per_class[CAND_CLASS_TOTAL];
@@ -1408,10 +1406,10 @@ typedef struct ModeDecisionContext {
     bool fixed_partition;
     // Indicates whether only pred depth refinement is used in PD1 (set per frame) Per frame is
     // necessary because some shortcuts can only be taken if the whole frame uses pred depth only
-    bool                pic_pred_depth_only;
-    uint16_t            coded_area_sb;
-    uint16_t            coded_area_sb_uv;
-    Lpd0Ctrls           lpd0_ctrls;
+    bool      pic_pred_depth_only;
+    uint16_t  coded_area_sb;
+    uint16_t  coded_area_sb_uv;
+    Lpd0Ctrls lpd0_ctrls;
 #if !CLN_HIGH_FREQUENCY
     DetectHighFreqCtrls detect_high_freq_ctrls;
 #endif
@@ -1430,7 +1428,7 @@ typedef struct ModeDecisionContext {
 
     uint16_t init_max_block_cnt;
 #if !CLN_PRED_SIGS
-    uint8_t  end_plane;
+    uint8_t end_plane;
 #endif
     // set to true if MDS3 needs to perform a full 10bit compensation in MDS3 (to make MDS3
     // conformant when using bypass_encdec)
@@ -1439,11 +1437,11 @@ typedef struct ModeDecisionContext {
     // be removed)
     uint8_t approx_inter_rate;
     // Enable pSad
-    uint8_t     enable_psad;
-    uint32_t    inter_depth_bias;
-    uint32_t    d2_parent_bias;
+    uint8_t  enable_psad;
+    uint32_t inter_depth_bias;
+    uint32_t d2_parent_bias;
 #if !OPT_REF_INFO
-    uint8_t     bipred_available;
+    uint8_t bipred_available;
 #endif
     uint8_t     is_intra_bordered;
     uint8_t     updated_enable_pme;
@@ -1463,7 +1461,7 @@ typedef struct ModeDecisionContext {
     uint8_t        corrupted_mv_check;
     uint8_t        pred_mode_depth_refine;
     // when MD is done on 8bit, scale palette colors to 10bit (valid when bypass is 1)
-    uint8_t  scale_palette;
+    uint8_t scale_palette;
 #if !CLN_HIGH_FREQUENCY
     uint8_t  high_freq_present;
     uint32_t high_freq_satd_to_me;
@@ -1509,7 +1507,7 @@ extern EbErrorType svt_aom_mode_decision_context_ctor(
 #endif
     uint32_t encoder_bit_depth, EbFifo *mode_decision_configuration_input_fifo_ptr,
 #if OPT_LD_MEM_3
-    EbFifo* mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision, uint8_t seq_qp_mod);
+    EbFifo *mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision, uint8_t seq_qp_mod);
 #else
     EbFifo *mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision, uint8_t cfg_palette, uint8_t seq_qp_mod);
 #endif

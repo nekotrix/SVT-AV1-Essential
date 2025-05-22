@@ -243,14 +243,14 @@ typedef struct SequenceControlSet {
     double       double_frame_rate;
     ScaleFactors sf_identity;
 #if !OPT_LD_MEM_2
-    int32_t      nmv_vec_cost[MV_JOINTS];
-    int32_t      nmv_costs[2][MV_VALS];
-    uint8_t      mvrate_set;
+    int32_t nmv_vec_cost[MV_JOINTS];
+    int32_t nmv_costs[2][MV_VALS];
+    uint8_t mvrate_set;
 #endif
-    VqCtrls      vq_ctrls;
-    uint8_t      calc_hist;
-    TfControls   tf_params_per_type[3]; // [I_SLICE][BASE][L1]
-    MrpCtrls     mrp_ctrls;
+    VqCtrls    vq_ctrls;
+    uint8_t    calc_hist;
+    TfControls tf_params_per_type[3]; // [I_SLICE][BASE][L1]
+    MrpCtrls   mrp_ctrls;
     /*!< The RC stat generation pass mode (0: The default, 1: optimized)*/
     uint8_t rc_stat_gen_pass_mode;
     int     cqp_base_q_tf;
@@ -329,7 +329,7 @@ typedef struct SequenceControlSet {
     // 1: Use the qp to calculate ret_q_weight and to ret_q_weight_denom.
     QpBasedThScaling qp_based_th_scaling_ctrls;
 #else
-    // Control whether we use the qp in calculating the scaling factors for the exponential QP-based function 
+    // Control whether we use the qp in calculating the scaling factors for the exponential QP-based function
     // for HME/ME search area scaling.
     // 0: Automatically assign 1 to ret_q_weight and to ret_q_weight_denom.
     // 1: Use the qp to calculate ret_q_weight and to ret_q_weight_denom.

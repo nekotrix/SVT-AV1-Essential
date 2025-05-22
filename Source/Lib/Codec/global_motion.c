@@ -48,7 +48,7 @@ static void convert_to_params(const double* params, int32_t* model) {
     }
 }
 
-static INLINE TransformationType get_wmtype(const EbWarpedMotionParams* gm) {
+static INLINE TransformationType get_wmtype(const WarpedMotionParams* gm) {
     if (gm->wmmat[5] == (1 << WARPEDMODEL_PREC_BITS) && !gm->wmmat[4] && gm->wmmat[2] == (1 << WARPEDMODEL_PREC_BITS) &&
         !gm->wmmat[3]) {
         return ((!gm->wmmat[1] && !gm->wmmat[0]) ? IDENTITY : TRANSLATION);
@@ -59,7 +59,7 @@ static INLINE TransformationType get_wmtype(const EbWarpedMotionParams* gm) {
         return AFFINE;
 }
 
-void svt_av1_convert_model_to_params(const double* params, EbWarpedMotionParams* model) {
+void svt_av1_convert_model_to_params(const double* params, WarpedMotionParams* model) {
     convert_to_params(params, model->wmmat);
     model->wmtype  = get_wmtype(model);
     model->invalid = 0;
@@ -91,7 +91,7 @@ static int32_t add_param_offset(int param_index, int32_t param_value, int32_t of
     return param_value + (is_one_centered << WARPEDMODEL_PREC_BITS);
 }
 
-static void force_wmtype(EbWarpedMotionParams* wm, TransformationType wmtype) {
+static void force_wmtype(WarpedMotionParams* wm, TransformationType wmtype) {
     switch (wmtype) {
     case IDENTITY:
         wm->wmmat[0] = 0;
@@ -111,7 +111,7 @@ static void force_wmtype(EbWarpedMotionParams* wm, TransformationType wmtype) {
     wm->wmtype = wmtype;
 }
 
-int64_t svt_av1_refine_integerized_param(GmControls* gm_ctrls, EbWarpedMotionParams* wm, TransformationType wmtype,
+int64_t svt_av1_refine_integerized_param(GmControls* gm_ctrls, WarpedMotionParams* wm, TransformationType wmtype,
                                          uint8_t* ref, int r_width, int r_height, int r_stride, uint8_t* dst,
                                          int d_width, int d_height, int d_stride, int n_refinements, uint8_t chess_refn,
                                          int64_t best_frame_error, uint32_t pic_sad, int params_cost) {
@@ -287,9 +287,9 @@ static void correspondence_from_mvs(PictureParentControlSet* pcs, Correspondence
                         if (list_idx == me_cand->ref0_list && ref_idx == me_cand->ref_idx_l0) {
 #if CLN_REMOVE_MVCAND
                             mv.as_int = pcs->pa_me_data->me_results[b64_idx]
-                                ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
-                                (list_idx ? pcs->pa_me_data->max_l0 : 0) + ref_idx]
-                                .as_int;
+                                            ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
+                                                          (list_idx ? pcs->pa_me_data->max_l0 : 0) + ref_idx]
+                                            .as_int;
 #else
                             mv.x = pcs->pa_me_data->me_results[b64_idx]
                                        ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
@@ -308,9 +308,9 @@ static void correspondence_from_mvs(PictureParentControlSet* pcs, Correspondence
                         if (list_idx == me_cand->ref1_list && ref_idx == me_cand->ref_idx_l1) {
 #if CLN_REMOVE_MVCAND
                             mv.as_int = pcs->pa_me_data->me_results[b64_idx]
-                                ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
-                                (list_idx ? pcs->pa_me_data->max_l0 : 0) + ref_idx]
-                                .as_int;
+                                            ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
+                                                          (list_idx ? pcs->pa_me_data->max_l0 : 0) + ref_idx]
+                                            .as_int;
 #else
                             mv.x = pcs->pa_me_data->me_results[b64_idx]
                                        ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +

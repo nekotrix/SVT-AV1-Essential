@@ -1608,7 +1608,7 @@ class PmeSadLoopTest
         search_position_start_x = rnd.random();
         search_position_start_y = rnd.random();
 #if CLN_UNIFY_MV_TYPE
-        ref_mv = { {(int16_t)(76), (int16_t)(23)} };
+        ref_mv = {{(int16_t)(76), (int16_t)(23) }};
 #else
         ref_mv = {(int16_t)(23), (int16_t)(76)};
 #endif
@@ -1645,8 +1645,9 @@ class PmeSadLoopTest
 
         mv_cost_params.ref_mv = &ref_mv;
 #if CLN_UNIFY_MV_TYPE
-        mv_cost_params.full_ref_mv = { {(int16_t)GET_MV_RAWPEL(76),
-                                        (int16_t)GET_MV_RAWPEL(23)} };
+        mv_cost_params.full_ref_mv = {
+            {(int16_t)GET_MV_RAWPEL(76),
+             (int16_t)GET_MV_RAWPEL(23) }};
 #else
         mv_cost_params.full_ref_mv = {(int16_t)GET_MV_RAWPEL(23),
                                       (int16_t)GET_MV_RAWPEL(76)};
@@ -1731,8 +1732,9 @@ class PmeSadLoopTest
 
         mv_cost_params.ref_mv = &ref_mv;
 #if CLN_UNIFY_MV_TYPE
-        mv_cost_params.full_ref_mv = { {(int16_t)GET_MV_RAWPEL(76),
-                                        (int16_t)GET_MV_RAWPEL(23)} };
+        mv_cost_params.full_ref_mv = {
+            {(int16_t)GET_MV_RAWPEL(76),
+             (int16_t)GET_MV_RAWPEL(23) }};
 #else
         mv_cost_params.full_ref_mv = {(int16_t)GET_MV_RAWPEL(23),
                                       (int16_t)GET_MV_RAWPEL(76)};

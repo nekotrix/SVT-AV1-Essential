@@ -162,8 +162,8 @@ class CopyMiMapGridTest : public ::testing::TestWithParam<CopyMiMapGridParam> {
         SVTRandom rnd(0, (1 << 10) - 1);
         const int max_size = 100;
 #if CLN_REMOVE_MODE_INFO
-        MbModeInfo* mi_grid_ref[max_size * max_size];
-        MbModeInfo* mi_grid_tst[max_size * max_size];
+        MbModeInfo *mi_grid_ref[max_size * max_size];
+        MbModeInfo *mi_grid_tst[max_size * max_size];
 #else
         ModeInfo *mi_grid_ref[max_size * max_size];
         ModeInfo *mi_grid_tst[max_size * max_size];
@@ -177,7 +177,8 @@ class CopyMiMapGridTest : public ::testing::TestWithParam<CopyMiMapGridParam> {
         memset(mi_grid_tst, 0xcd, sizeof(mi_grid_ref));
 
 #if CLN_REMOVE_MODE_INFO
-        mi_grid_ref[0] = mi_grid_tst[0] = (MbModeInfo*)((uint64_t)rnd.random());
+        mi_grid_ref[0] = mi_grid_tst[0] =
+            (MbModeInfo *)((uint64_t)rnd.random());
 #else
         mi_grid_ref[0] = mi_grid_tst[0] = (ModeInfo *)((uint64_t)rnd.random());
 #endif
@@ -197,7 +198,7 @@ class CopyMiMapGridTest : public ::testing::TestWithParam<CopyMiMapGridParam> {
 
 #if CLN_REMOVE_MODE_INFO
             mi_grid_ref[0] = mi_grid_tst[0] =
-                (MbModeInfo*)((uint64_t)rnd.random());
+                (MbModeInfo *)((uint64_t)rnd.random());
 #else
             mi_grid_ref[0] = mi_grid_tst[0] =
                 (ModeInfo *)((uint64_t)rnd.random());

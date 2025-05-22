@@ -231,9 +231,13 @@ INSTANTIATE_TEST_SUITE_P(NEON, OBMCSubPixelVarianceTest,
                          ::testing::ValuesIn(GEN_TEST_PARAMS(
                              GEN_OBMC_SUB_PIX_VAR_TEST_PARAM, neon)));
 #endif  // ARCH_AARCH64
-
+#if CLN_OBMC_BUILD_PRED
+using CalcTargetWeightedPredFn = void (*)(uint8_t, MacroBlockD *, int, uint8_t,
+                                          MbModeInfo *, void *);
+#else
 using CalcTargetWeightedPredFn = void (*)(uint8_t, MacroBlockD *, int, uint8_t,
                                           MbModeInfo *, void *, const int);
+#endif
 using CalcTargetWeightedPredParam =
     tuple<int, CalcTargetWeightedPredFn, CalcTargetWeightedPredFn>;
 
@@ -292,8 +296,13 @@ class CalcTargetWeightedPredTest
                 tmp_ref[j] = tmp_tst[j] = rnd_.random() % 255;
             }
             uint8_t size = (width_ >> 1) < 1 ? 1 : (width_ >> 1);
+#if CLN_OBMC_BUILD_PRED
+            func_ref_(0, &xd, 0, size, NULL, &ctxt_ref);
+            func_tst_(0, &xd, 0, size, NULL, &ctxt_tst);
+#else
             func_ref_(0, &xd, 0, size, NULL, &ctxt_ref, 0);
             func_tst_(0, &xd, 0, size, NULL, &ctxt_tst, 0);
+#endif
 
             if (memcmp(mask_buf_ref,
                        mask_buf_tst,

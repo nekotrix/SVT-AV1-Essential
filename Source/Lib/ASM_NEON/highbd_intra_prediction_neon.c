@@ -381,7 +381,7 @@ HIGHBD_SMOOTH_H_NXM(8, 32)
                                                     const uint16_t *const top_row,                                 \
                                                     const uint16_t *const left_column,                             \
                                                     const int             height) {                                            \
-        const uint16_t top_right = top_row[(W) - 1];                                                               \
+        const uint16_t top_right = top_row[(W)-1];                                                                 \
                                                                                                                    \
         uint16x4_t weights_x_low[(W) >> 3];                                                                        \
         uint16x4_t weights_x_high[(W) >> 3];                                                                       \
@@ -389,7 +389,7 @@ HIGHBD_SMOOTH_H_NXM(8, 32)
         uint32x4_t weighted_tr_high[(W) >> 3];                                                                     \
         for (int i = 0; i < (W) >> 3; ++i) {                                                                       \
             const int x         = i << 3;                                                                          \
-            weights_x_low[i]    = vld1_u16(sm_weight_arrays_u16 + (W) - 4 + x);                                    \
+            weights_x_low[i]    = vld1_u16(sm_weight_arrays_u16 + (W)-4 + x);                                      \
             weighted_tr_low[i]  = vmull_n_u16(negate_s8(weights_x_low[i]), top_right);                             \
             weights_x_high[i]   = vld1_u16(sm_weight_arrays_u16 + (W) + x);                                        \
             weighted_tr_high[i] = vmull_n_u16(negate_s8(weights_x_high[i]), top_right);                            \
@@ -529,7 +529,7 @@ HIGHBD_SMOOTH_NXM(8, 32)
                                                   const uint16_t *const top_row,                      \
                                                   const uint16_t *const left_column,                  \
                                                   const int             height) {                                 \
-        const uint16_t        top_right   = top_row[(W) - 1];                                         \
+        const uint16_t        top_right   = top_row[(W)-1];                                           \
         const uint16_t        bottom_left = left_column[height - 1];                                  \
         const uint16_t *const weights_y   = sm_weight_arrays_u16 + height - 4;                        \
                                                                                                       \
@@ -539,7 +539,7 @@ HIGHBD_SMOOTH_NXM(8, 32)
         const uint32x4_t offset = vdupq_n_u32(1 << SMOOTH_WEIGHT_LOG2_SCALE);                         \
         for (int i = 0; i < (W) >> 3; ++i) {                                                          \
             const int        x              = i << 3;                                                 \
-            const uint16x4_t weights_x_low  = vld1_u16(sm_weight_arrays_u16 + (W) - 4 + x);           \
+            const uint16x4_t weights_x_low  = vld1_u16(sm_weight_arrays_u16 + (W)-4 + x);             \
             weighted_tr_low[i]              = vmull_n_u16(negate_s8(weights_x_low), top_right);       \
             const uint16x4_t weights_x_high = vld1_u16(sm_weight_arrays_u16 + (W) + x);               \
             weighted_tr_high[i]             = vmull_n_u16(negate_s8(weights_x_high), top_right);      \
@@ -555,7 +555,7 @@ HIGHBD_SMOOTH_NXM(8, 32)
                 const uint32x4_t weighted_corners_low  = vaddq_u32(weighted_bl, weighted_tr_low[i]);  \
                 const uint32x4_t weighted_corners_high = vaddq_u32(weighted_bl, weighted_tr_high[i]); \
                 /* Accumulate weighted edge values and store. */                                      \
-                const uint16x8_t weights_x = vld1q_u16(sm_weight_arrays_u16 + (W) - 4 + x);           \
+                const uint16x8_t weights_x = vld1q_u16(sm_weight_arrays_u16 + (W)-4 + x);             \
                 highbd_calculate_pred8(dst_x,                                                         \
                                        weighted_corners_low,                                          \
                                        weighted_corners_high,                                         \

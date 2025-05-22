@@ -1078,11 +1078,7 @@ static const int plane_rd_mult[REF_TYPES][PLANE_TYPES] = {
     {17, 13},
     {16, 10},
 #else
-#if TUNE_CHROMA_RDOQ
-    {17, 14},
-#else
     {17, 20},
-#endif
     {16, 20},
 #endif
 };
@@ -1481,12 +1477,13 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
     const QmVal    *q_matrix  = pcs->ppcs->gqmatrix[qmatrix_level][plane][adjusted_tx_size];
     const QmVal    *iq_matrix = pcs->ppcs->giqmatrix[qmatrix_level][plane][adjusted_tx_size];
 #if OPT_DELTA_QP
-    int32_t         q_index = pcs->ppcs->frm_hdr.delta_q_params.delta_q_present && (!pcs->ppcs->tpl_ctrls.enable || pcs->ppcs->r0_delta_qp_quant)
+    int32_t q_index = pcs->ppcs->frm_hdr.delta_q_params.delta_q_present &&
+            (!pcs->ppcs->tpl_ctrls.enable || pcs->ppcs->r0_delta_qp_quant)
 #else
-    int32_t         q_index   = pcs->ppcs->frm_hdr.delta_q_params.delta_q_present
+    int32_t q_index = pcs->ppcs->frm_hdr.delta_q_params.delta_q_present
 #endif
-                  ? qindex
-                  : pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
+        ? qindex
+        : pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
     if (segmentation_qp_offset != 0) {
         q_index = CLIP3(0, 255, q_index + segmentation_qp_offset);
     }
@@ -1961,14 +1958,16 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
 
 #if CLN_MBMI_IN_CAND
     const uint8_t tx_depth = cand_bf->cand->block_mi.tx_depth;
-    const bool    is_inter = (is_inter_mode(cand_bf->cand->block_mi.mode) || cand_bf->cand->block_mi.use_intrabc) ? true : false;
-    const int     tu_count = tx_depth ? 1 : ctx->blk_geom->txb_count[cand_bf->cand->block_mi.tx_depth]; //NM: 128x128 exeption
+    const bool    is_inter = (is_inter_mode(cand_bf->cand->block_mi.mode) || cand_bf->cand->block_mi.use_intrabc) ? true
+                                                                                                                  : false;
+    const int     tu_count = tx_depth ? 1
+                                      : ctx->blk_geom->txb_count[cand_bf->cand->block_mi.tx_depth]; //NM: 128x128 exeption
 #else
     const uint8_t tx_depth = cand_bf->cand->tx_depth;
     const bool    is_inter = (is_inter_mode(cand_bf->cand->pred_mode) || cand_bf->cand->use_intrabc) ? true : false;
     const int     tu_count = tx_depth ? 1 : ctx->blk_geom->txb_count[cand_bf->cand->tx_depth]; //NM: 128x128 exeption
 #endif
-    uint32_t      txb_1d_offset = 0;
+    uint32_t txb_1d_offset = 0;
 
     int txb_itr = 0;
     do {

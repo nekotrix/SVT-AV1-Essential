@@ -642,7 +642,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     }
 #if FIX_STILLIMAGE_HRES
     // Block the use of M4 or lower for resolutions higher than 4K, unless still-image coding is used (due to memory constraints)
-    if (!scs->static_config.avif && (uint64_t)(scs->max_input_luma_width * scs->max_input_luma_height) > INPUT_SIZE_4K_TH &&
+    if (!scs->static_config.avif &&
+        (uint64_t)(scs->max_input_luma_width * scs->max_input_luma_height) > INPUT_SIZE_4K_TH &&
         config->enc_mode <= ENC_M4) {
 #else
     // Limit 8K & 16K configurations ( due to  memory constraints)
@@ -842,9 +843,13 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Startup MG size supported [0, 2, 3, 4]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-
+#if FIX_STARTUP_MG
+    if (config->startup_mg_size > config->hierarchical_levels) {
+        SVT_ERROR("Instance %u: Startup MG size must less than or equal to hierarchical levels\n", channel_number + 1);
+#else
     if (config->startup_mg_size >= config->hierarchical_levels) {
         SVT_ERROR("Instance %u: Startup MG size must less than Hierarchical Levels\n", channel_number + 1);
+#endif
         return_error = EB_ErrorBadParameter;
     }
     if (config->startup_mg_size != 0 && config->rate_control_mode != SVT_AV1_RC_MODE_CQP_OR_CRF) {
@@ -947,7 +952,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->fast_decode                  = 0;
     config_ptr->encoder_color_format         = EB_YUV420;
 #if FTR_RTC_MODE
-    config_ptr->rtc_mode                     = 0;
+    config_ptr->rtc_mode = 0;
 #endif
     // Rate control options
     // Set the default value toward more flexible rate allocation
@@ -1093,9 +1098,9 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                  config->tune == 0       ? "VQ"
                      : config->tune == 1 ? "PSNR"
                                          : "SSIM",
-                 config->pred_structure == SVT_AV1_PRED_LOW_DELAY       ? "low delay"
+                 config->pred_structure == SVT_AV1_PRED_LOW_DELAY           ? "low delay"
                      : config->pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? "random access"
-                                                   : "Unknown pred structure");
+                                                                            : "Unknown pred structure");
 #else
         SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t\t: %d / %s / %s\n",
                  config->enc_mode,

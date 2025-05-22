@@ -192,24 +192,24 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
     // Loop over all filter blocks (64x64)
     for (uint32_t fbr = y_b64_start_idx; fbr < y_b64_end_idx; ++fbr) {
         for (uint32_t fbc = x_b64_start_idx; fbc < x_b64_end_idx; ++fbc) {
-            int32_t           dirinit = 0;
-            const uint32_t    lc      = MI_SIZE_64X64 * fbc;
-            const uint32_t    lr      = MI_SIZE_64X64 * fbr;
-            int               nhb     = AOMMIN(MI_SIZE_64X64, mi_cols - lc);
-            int               nvb     = AOMMIN(MI_SIZE_64X64, mi_rows - lr);
-            int               hb_step = 1; //these should be all time with 64x64 SBs
-            int               vb_step = 1;
-            BlockSize         bs      = BLOCK_64X64;
+            int32_t        dirinit = 0;
+            const uint32_t lc      = MI_SIZE_64X64 * fbc;
+            const uint32_t lr      = MI_SIZE_64X64 * fbr;
+            int            nhb     = AOMMIN(MI_SIZE_64X64, mi_cols - lc);
+            int            nvb     = AOMMIN(MI_SIZE_64X64, mi_rows - lr);
+            int            hb_step = 1; //these should be all time with 64x64 SBs
+            int            vb_step = 1;
+            BlockSize      bs      = BLOCK_64X64;
 #if CLN_REMOVE_MODE_INFO
-            const MbModeInfo* mbmi = pcs->mi_grid_base[lr * cm->mi_stride + lc];
+            const MbModeInfo *mbmi = pcs->mi_grid_base[lr * cm->mi_stride + lc];
 #else
-            ModeInfo        **mi      = pcs->mi_grid_base + lr * cm->mi_stride + lc;
-            const MbModeInfo *mbmi    = &mi[0]->mbmi;
+            ModeInfo        **mi    = pcs->mi_grid_base + lr * cm->mi_stride + lc;
+            const MbModeInfo *mbmi  = &mi[0]->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
-            const BlockSize   bsize = mbmi->bsize;
+            const BlockSize bsize = mbmi->bsize;
 #else
-            const BlockSize   bsize   = mbmi->block_mi.bsize;
+            const BlockSize   bsize = mbmi->block_mi.bsize;
 #endif
             if (((fbc & 1) && (bsize == BLOCK_128X128 || bsize == BLOCK_128X64)) ||
                 ((fbr & 1) && (bsize == BLOCK_128X128 || bsize == BLOCK_64X128)))

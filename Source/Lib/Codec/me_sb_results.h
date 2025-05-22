@@ -46,11 +46,11 @@ typedef union MvCandidate {
 #endif
 // move this to a new file with ctor & dtor
 typedef struct MeSbResults {
-    EbDctor      dctor;
-    uint8_t     *total_me_candidate_index;
+    EbDctor  dctor;
+    uint8_t *total_me_candidate_index;
 #if CLN_REMOVE_MVCAND
     // ME MVs are stored in fullpel precision
-    Mv* me_mv_array;
+    Mv *me_mv_array;
 #else
     MvCandidate *me_mv_array;
 #endif

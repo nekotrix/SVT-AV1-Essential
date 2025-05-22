@@ -52,27 +52,27 @@ typedef struct EncDecContext {
     //  Context Variables---------------------------------
     BlkStruct *blk_ptr;
     //const CodedBlockStats                *cu_stats;
-    uint16_t      blk_org_x; // within the picture
-    uint16_t      blk_org_y; // within the picture
-    uint32_t      sb_index;
+    uint16_t blk_org_x; // within the picture
+    uint16_t blk_org_y; // within the picture
+    uint32_t sb_index;
 #if !CLN_UNUSED_SIGS
-    MvUnit        mv_unit;
+    MvUnit mv_unit;
 #endif
-    uint8_t       txb_itr;
-    bool          is_16bit; //enable 10 bit encode in CL
-    uint32_t      bit_depth;
+    uint8_t  txb_itr;
+    bool     is_16bit; //enable 10 bit encode in CL
+    uint32_t bit_depth;
 #if !OPT_LD_MEM_3
     EbColorFormat color_format;
 #endif
-    uint64_t      tot_intra_coded_area;
-    uint64_t      tot_skip_coded_area;
-    uint64_t      tot_hp_coded_area;
-    uint64_t      three_quad_energy;
+    uint64_t tot_intra_coded_area;
+    uint64_t tot_skip_coded_area;
+    uint64_t tot_hp_coded_area;
+    uint64_t three_quad_energy;
 
 #if !OPT_LD_MEM_3
     // Needed for DC prediction
-    uint8_t  upsample_left;
-    uint8_t  upsample_above;
+    uint8_t upsample_left;
+    uint8_t upsample_above;
 #endif
     uint16_t coded_area_sb;
     uint16_t coded_area_sb_uv;

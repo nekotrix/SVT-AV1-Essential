@@ -308,11 +308,11 @@ typedef struct PictureControlSet {
     uint8_t     *sb_skip;
     uint8_t     *sb_64x64_mvp;
 #if !OPT_LD_MEM
-    uint32_t    *sb_count_nz_coeffs;
+    uint32_t *sb_count_nz_coeffs;
 #endif
 #if OPT_DEPTHS_CTRL
-    uint8_t     *sb_min_sq_size;
-    uint8_t     *sb_max_sq_size;
+    uint8_t *sb_min_sq_size;
+    uint8_t *sb_max_sq_size;
 #endif
     // qindex per 64x64 using ME distortions (to be used for lambda modulation only; not at Q/Q-1)
     // Mode Decision Neighbor Arrays
@@ -369,8 +369,8 @@ typedef struct PictureControlSet {
     SegmentationNeighborMap *segmentation_neighbor_map;
 
 #if CLN_REMOVE_MODE_INFO
-    MbModeInfo** mi_grid_base;
-    MbModeInfo* mip;
+    MbModeInfo **mi_grid_base;
+    MbModeInfo  *mip;
 #else
     ModeInfo **mi_grid_base; // 2 SB Rows of mi Data are enough
 
@@ -409,17 +409,17 @@ typedef struct PictureControlSet {
     uint8_t pic_depth_removal_level;
     uint8_t pic_depth_removal_level_rtc;
     // block_based_depth_refinement_level signal set at the picture level
-    uint8_t          pic_block_based_depth_refinement_level;
-    uint8_t          pic_lpd0_lvl; // lpd0_lvl signal set at the picture level
-    uint8_t          pic_lpd1_lvl; // lpd1_lvl signal set at the picture level
-    bool             pic_bypass_encdec;
-    EncMode          enc_mode;
-    InputCoeffLvl    coeff_lvl;
-    bool             me_dist_mod; // Whether or not to modulate the level of prediction tools using me-distortion
+    uint8_t       pic_block_based_depth_refinement_level;
+    uint8_t       pic_lpd0_lvl; // lpd0_lvl signal set at the picture level
+    uint8_t       pic_lpd1_lvl; // lpd1_lvl signal set at the picture level
+    bool          pic_bypass_encdec;
+    EncMode       enc_mode;
+    InputCoeffLvl coeff_lvl;
+    bool          me_dist_mod; // Whether or not to modulate the level of prediction tools using me-distortion
 #if !OPT_LD_MEM_2
-    int32_t          cdef_preset[MAX_TILE_CNTS][4];
-    WienerInfo       wiener_info[MAX_TILE_CNTS][MAX_MB_PLANE];
-    SgrprojInfo      sgrproj_info[MAX_TILE_CNTS][MAX_MB_PLANE];
+    int32_t     cdef_preset[MAX_TILE_CNTS][4];
+    WienerInfo  wiener_info[MAX_TILE_CNTS][MAX_MB_PLANE];
+    SgrprojInfo sgrproj_info[MAX_TILE_CNTS][MAX_MB_PLANE];
 #endif
     SpeedFeatures    sf;
     SearchSiteConfig ss_cfg; // CHKN this might be a seq based
@@ -427,13 +427,13 @@ typedef struct PictureControlSet {
     CRC_CALCULATOR   crc_calculator1;
     CRC_CALCULATOR   crc_calculator2;
 
-    FRAME_CONTEXT                  *ec_ctx_array;
-    FRAME_CONTEXT                   md_frame_context;
-    CdfControls                     cdf_ctrl;
+    FRAME_CONTEXT *ec_ctx_array;
+    FRAME_CONTEXT  md_frame_context;
+    CdfControls    cdf_ctrl;
 #if !OPT_LD_MEM_2
-    FRAME_CONTEXT                   ref_frame_context[REF_FRAMES];
+    FRAME_CONTEXT ref_frame_context[REF_FRAMES];
 #endif
-    EbWarpedMotionParams            ref_global_motion[TOTAL_REFS_PER_FRAME];
+    WarpedMotionParams              ref_global_motion[TOTAL_REFS_PER_FRAME];
     struct MdRateEstimationContext *md_rate_est_ctx;
     int8_t                          ref_frame_side[REF_FRAMES];
     TPL_MV_REF                     *tpl_mvs;
@@ -463,17 +463,17 @@ typedef struct PictureControlSet {
     uint64_t max_me_clpx;
     // use approximate rate for inter cost (set at pic-level b/c some pic-level initializations will
     // be removed)
-    uint8_t    approx_inter_rate;
-    uint8_t    skip_intra;
+    uint8_t approx_inter_rate;
+    uint8_t skip_intra;
 #if !CLN_HIGH_FREQUENCY
     PicVqCtrls vq_ctrls;
 #endif
-    uint16_t   lambda_weight;
+    uint16_t lambda_weight;
     // scaled input picture is only used in loop restoration for recon size is
     // different with input frame when reference scaling is enabled
     EbPictureBufferDesc *scaled_input_pic;
 #if !FTR_RTC_MODE
-    bool                 rtc_tune;
+    bool rtc_tune;
 #endif
     // lossless[s] is true if segment 's' is coded losslessly.
     bool    lossless[MAX_SEGMENTS];
@@ -918,13 +918,13 @@ typedef struct PictureParentControlSet {
     uint32_t *me_16x16_distortion;
     uint32_t *me_8x8_distortion;
     // Global motion estimation results
-    bool                 is_global_motion[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
-    EbWarpedMotionParams svt_aom_global_motion_estimation[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
-    int8_t               is_gm_on; //-1 invalid, 1: gm on in one of the ref frames,  0:gm off for all ref frames
-    uint16_t             me_processed_b64_count;
-    EbHandle             me_processed_b64_mutex;
-    double               ts_duration;
-    double               r0;
+    bool               is_global_motion[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+    WarpedMotionParams global_motion_estimation[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+    int8_t             is_gm_on; //-1 invalid, 1: gm on in one of the ref frames,  0:gm off for all ref frames
+    uint16_t           me_processed_b64_count;
+    EbHandle           me_processed_b64_mutex;
+    double             ts_duration;
+    double             r0;
     // track pictures that are processd in two different TPL groups
     uint8_t tpl_src_data_ready;
     bool    blk_lambda_tuning;
@@ -1015,18 +1015,18 @@ typedef struct PictureParentControlSet {
 
     // Resolution of delta quant
     // int32_t delta_q_res;
-    int32_t              allow_comp_inter_inter;
-    int16_t              pan_mvx;
-    int16_t              pan_mvy;
-    int16_t              tilt_mvx;
-    int16_t              tilt_mvy;
-    EbWarpedMotionParams global_motion[TOTAL_REFS_PER_FRAME];
-    PictureControlSet   *child_pcs;
-    EncDecSet           *enc_dec_ptr;
-    Macroblock          *av1x;
-    int32_t              film_grain_params_present; // todo (AN): Do we need this flag at picture level?
-    int8_t               cdef_level;
-    bool                 enable_restoration; // true if restoration filtering is enabled for the current frame
+    int32_t            allow_comp_inter_inter;
+    int16_t            pan_mvx;
+    int16_t            pan_mvy;
+    int16_t            tilt_mvx;
+    int16_t            tilt_mvy;
+    WarpedMotionParams global_motion[TOTAL_REFS_PER_FRAME];
+    PictureControlSet *child_pcs;
+    EncDecSet         *enc_dec_ptr;
+    Macroblock        *av1x;
+    int32_t            film_grain_params_present; // todo (AN): Do we need this flag at picture level?
+    int8_t             cdef_level;
+    bool               enable_restoration; // true if restoration filtering is enabled for the current frame
 
     uint8_t palette_level;
 
@@ -1139,7 +1139,7 @@ typedef struct PictureParentControlSet {
     uint8_t used_tpl_frame_num;
 #if !CLN_MISC
     // Tune TPL for better chroma.Only for 240P
-    uint8_t            tune_tpl_for_chroma;
+    uint8_t tune_tpl_for_chroma;
 #endif
     uint8_t            is_not_scaled;
     TfControls         tf_ctrls;
@@ -1197,26 +1197,26 @@ typedef struct PictureParentControlSet {
     bool                            update_ref_count; // Update ref count
     bool                            use_accurate_part_ctx;
 #if !OPT_LD_MEM_2
-    uint8_t                         bypass_cost_table_gen;
+    uint8_t bypass_cost_table_gen;
 #endif
-    uint16_t                        max_can_count;
-    uint8_t                         enable_me_8x8;
-    uint8_t                         enable_me_16x16;
-    uint8_t                         use_best_me_unipred_cand_only; // if MRP is OFF, use one ME unipred candidate only
-    IntraBCCtrls                    intraBC_ctrls;
-    PaletteCtrls                    palette_ctrls;
+    uint16_t     max_can_count;
+    uint8_t      enable_me_8x8;
+    uint8_t      enable_me_16x16;
+    uint8_t      use_best_me_unipred_cand_only; // if MRP is OFF, use one ME unipred candidate only
+    IntraBCCtrls intraBC_ctrls;
+    PaletteCtrls palette_ctrls;
 
-    uint32_t         tf_tot_vert_blks; // total vertical motion blocks in TF
-    uint32_t         tf_tot_horz_blks; // total horizontal motion blocks in TF
-    int8_t           tf_motion_direction; // motion direction in TF   -1:invalid   0:horz  1:vert
-    int32_t          is_noise_level;
+    uint32_t tf_tot_vert_blks; // total vertical motion blocks in TF
+    uint32_t tf_tot_horz_blks; // total horizontal motion blocks in TF
+    int8_t   tf_motion_direction; // motion direction in TF   -1:invalid   0:horz  1:vert
+    int32_t  is_noise_level;
 #if OPT_DELTA_QP
-    bool             r0_gen;
-    bool             r0_qps;
-    bool             r0_delta_qp_md;
-    bool             r0_delta_qp_quant;
+    bool r0_gen;
+    bool r0_qps;
+    bool r0_delta_qp_md;
+    bool r0_delta_qp_quant;
 #else
-    bool             r0_based_qps_qpm;
+    bool      r0_based_qps_qpm;
 #endif
     uint32_t         dpb_order_hint[REF_FRAMES]; // spec 6.8.2. ref_order_hint[]
     DGDetectorSeg   *dg_detector; // dg detector segments control struct
@@ -1312,7 +1312,7 @@ typedef struct PictureControlSetInitData {
     uint8_t variance_octile;
     uint8_t tf_strength;
 #if OPT_ALLINTRA_STILLIMAGE_2
-    bool    allintra;
+    bool allintra;
 #endif
 } PictureControlSetInitData;
 

@@ -28,7 +28,7 @@ extern "C" {
 #define CHECK_MV_EQUAL(mv1, mv2) (((mv1).y == (mv2).y) && ((mv1).x == (mv2).x))
 #else
 #define MARK_MV_INVALID(mv) \
-    do { ((int_mv *)(mv))->as_int = INVALID_MV; } while (0);
+    do { ((int_mv*)(mv))->as_int = INVALID_MV; } while (0);
 #define CHECK_MV_EQUAL(x, y) (((x).row == (y).row) && ((x).col == (y).col))
 
 typedef union int_mv {
@@ -73,8 +73,8 @@ typedef struct MvUnit {
 #endif
 
 typedef struct CandidateMv {
-    Mv this_mv;
-    Mv comp_mv;
+    Mv      this_mv;
+    Mv      comp_mv;
     int32_t weight;
 } CandidateMv;
 
@@ -82,12 +82,12 @@ typedef struct CandidateMv {
 #define GET_MV_SUBPEL(x) ((x)*8)
 
 static AOM_INLINE Mv get_fullmv_from_mv(const Mv* subpel_mv) {
-    const Mv full_mv = { {(int16_t)GET_MV_RAWPEL(subpel_mv->x), (int16_t)GET_MV_RAWPEL(subpel_mv->y)} };
+    const Mv full_mv = {{(int16_t)GET_MV_RAWPEL(subpel_mv->x), (int16_t)GET_MV_RAWPEL(subpel_mv->y)}};
     return full_mv;
 }
 
 static AOM_INLINE Mv get_mv_from_fullmv(const Mv* full_mv) {
-    const Mv subpel_mv = { {(int16_t)GET_MV_SUBPEL(full_mv->x), (int16_t)GET_MV_SUBPEL(full_mv->y)} };
+    const Mv subpel_mv = {{(int16_t)GET_MV_SUBPEL(full_mv->x), (int16_t)GET_MV_SUBPEL(full_mv->y)}};
     return subpel_mv;
 }
 static INLINE void clamp_mv(Mv* mv, int32_t min_col, int32_t max_col, int32_t min_row, int32_t max_row) {

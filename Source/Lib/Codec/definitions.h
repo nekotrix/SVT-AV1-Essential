@@ -68,7 +68,7 @@ void svt_aom_assert_err(uint32_t condition, char *err_msg);
 #define VQ_NOISE_LVL_TH 15000
 #define VQ_STABILITY_ME_VAR_TH 750
 #define VQ_PIC_AVG_VARIANCE_TH 1000
-#if !OPT_FILTER_INTRA
+#if !OPT_INTRA
 #define MDS0_REDUCE_ANGULAR_INTRA_TH 25
 #endif
 #define NUM_MV_COMPONENTS 2
@@ -2008,12 +2008,12 @@ typedef enum TransformationType
 //      [x'     (m2 m3 m0   [x
 //  z .  y'  =   m4 m5 m1 *  y
 //       1]       0  0 1)    1]
-typedef struct EbWarpedMotionParams {
+typedef struct WarpedMotionParams {
     TransformationType wmtype;
     int32_t wmmat[MAX_PARAMDIM];
     int16_t alpha, beta, gamma, delta;
     int8_t invalid;
-} EbWarpedMotionParams;
+} WarpedMotionParams;
 
 /*! Scale factors and scaling function pointers  when reference and current frame dimensions are not equal */
 typedef struct ScaleFactors {
@@ -2027,7 +2027,7 @@ typedef struct ScaleFactors {
 } ScaleFactors;
 
 /* clang-format off */
-static const EbWarpedMotionParams default_warp_params = {
+static const WarpedMotionParams default_warp_params = {
     IDENTITY,
 { 0, 0, (1 << WARPEDMODEL_PREC_BITS), 0, 0, (1 << WARPEDMODEL_PREC_BITS) },
 0, 0, 0, 0,

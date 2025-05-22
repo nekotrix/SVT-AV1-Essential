@@ -339,8 +339,8 @@ MvClassType svt_av1_get_mv_class(int32_t z, int32_t *offset) {
 }
 
 #if OPT_LD_MEM_2
-static void build_nmv_component_cost_table(int32_t* mvcost, const NmvComponent* const mvcomp,
-    MvSubpelPrecision precision) {
+static void build_nmv_component_cost_table(int32_t *mvcost, const NmvComponent *const mvcomp,
+                                           MvSubpelPrecision precision) {
     int32_t i, v;
     int32_t sign_cost[2], class_cost[MV_CLASSES], class0_cost[CLASS0_SIZE];
     int32_t bits_cost[MV_OFFSET_BITS][2];
@@ -351,7 +351,8 @@ static void build_nmv_component_cost_table(int32_t* mvcost, const NmvComponent* 
     svt_aom_get_syntax_rate_from_cdf(class_cost, mvcomp->classes_cdf, NULL);
     svt_aom_get_syntax_rate_from_cdf(class0_cost, mvcomp->class0_cdf, NULL);
     for (i = 0; i < MV_OFFSET_BITS; ++i) svt_aom_get_syntax_rate_from_cdf(bits_cost[i], mvcomp->bits_cdf[i], NULL);
-    for (i = 0; i < CLASS0_SIZE; ++i) svt_aom_get_syntax_rate_from_cdf(class0_fp_cost[i], mvcomp->class0_fp_cdf[i], NULL);
+    for (i = 0; i < CLASS0_SIZE; ++i)
+        svt_aom_get_syntax_rate_from_cdf(class0_fp_cost[i], mvcomp->class0_fp_cdf[i], NULL);
     svt_aom_get_syntax_rate_from_cdf(fp_cost, mvcomp->fp_cdf, NULL);
 
     if (precision > MV_SUBPEL_LOW_PRECISION) {
@@ -385,12 +386,12 @@ static void build_nmv_component_cost_table(int32_t* mvcost, const NmvComponent* 
                     cost += hp_cost[e];
             }
         }
-        mvcost[v] = cost + sign_cost[0];
+        mvcost[v]  = cost + sign_cost[0];
         mvcost[-v] = cost + sign_cost[1];
     }
 }
-static void svt_av1_build_nmv_cost_table(int32_t* mvjoint, int32_t* mvcost[2], const NmvContext* ctx,
-    MvSubpelPrecision precision) {
+static void svt_av1_build_nmv_cost_table(int32_t *mvjoint, int32_t *mvcost[2], const NmvContext *ctx,
+                                         MvSubpelPrecision precision) {
     svt_aom_get_syntax_rate_from_cdf(mvjoint, ctx->joints_cdf, NULL);
     build_nmv_component_cost_table(mvcost[0], &ctx->comps[0], precision);
     build_nmv_component_cost_table(mvcost[1], &ctx->comps[1], precision);
@@ -401,7 +402,7 @@ static void svt_av1_build_nmv_cost_table(int32_t* mvjoint, int32_t* mvcost[2], c
  * Estimate the rate of motion vectors
  * based on the frame CDF
  ***************************************************************************/
-void svt_aom_estimate_mv_rate(PictureControlSet* pcs, MdRateEstimationContext* md_rate_est_ctx, FRAME_CONTEXT* fc)  {
+void svt_aom_estimate_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *md_rate_est_ctx, FRAME_CONTEXT *fc) {
     if (pcs->approx_inter_rate) {
         memset(md_rate_est_ctx->nmv_vec_cost, 0, sizeof(int32_t) * MV_JOINTS);
         memset(md_rate_est_ctx->nmv_costs, 0, sizeof(int32_t) * MV_VALS * 2);
@@ -409,26 +410,26 @@ void svt_aom_estimate_mv_rate(PictureControlSet* pcs, MdRateEstimationContext* m
         md_rate_est_ctx->nmvcoststack[1] = &md_rate_est_ctx->nmv_costs[1][MV_MAX];
         return;
     }
-    int32_t* nmvcost[2];
-    int32_t* nmvcost_hp[2];
-    FrameHeader* frm_hdr = &pcs->ppcs->frm_hdr;
+    int32_t     *nmvcost[2];
+    int32_t     *nmvcost_hp[2];
+    FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
 
-    nmvcost[0] = &md_rate_est_ctx->nmv_costs[0][MV_MAX];
-    nmvcost[1] = &md_rate_est_ctx->nmv_costs[1][MV_MAX];
-    nmvcost_hp[0] = &md_rate_est_ctx->nmv_costs_hp[0][MV_MAX];
-    nmvcost_hp[1] = &md_rate_est_ctx->nmv_costs_hp[1][MV_MAX];
+    nmvcost[0]                            = &md_rate_est_ctx->nmv_costs[0][MV_MAX];
+    nmvcost[1]                            = &md_rate_est_ctx->nmv_costs[1][MV_MAX];
+    nmvcost_hp[0]                         = &md_rate_est_ctx->nmv_costs_hp[0][MV_MAX];
+    nmvcost_hp[1]                         = &md_rate_est_ctx->nmv_costs_hp[1][MV_MAX];
     const uint8_t allow_high_precision_mv = frm_hdr->allow_high_precision_mv;
     svt_av1_build_nmv_cost_table(md_rate_est_ctx->nmv_vec_cost, // out
-        allow_high_precision_mv ? nmvcost_hp : nmvcost, // out
-        &fc->nmvc,
-        allow_high_precision_mv);
+                                 allow_high_precision_mv ? nmvcost_hp : nmvcost, // out
+                                 &fc->nmvc,
+                                 allow_high_precision_mv);
     md_rate_est_ctx->nmvcoststack[0] = allow_high_precision_mv ? &md_rate_est_ctx->nmv_costs_hp[0][MV_MAX]
-        : &md_rate_est_ctx->nmv_costs[0][MV_MAX];
+                                                               : &md_rate_est_ctx->nmv_costs[0][MV_MAX];
     md_rate_est_ctx->nmvcoststack[1] = allow_high_precision_mv ? &md_rate_est_ctx->nmv_costs_hp[1][MV_MAX]
-        : &md_rate_est_ctx->nmv_costs[1][MV_MAX];
+                                                               : &md_rate_est_ctx->nmv_costs[1][MV_MAX];
 
     if (frm_hdr->allow_intrabc) {
-        int32_t* dvcost[2] = { &md_rate_est_ctx->dv_cost[0][MV_MAX], &md_rate_est_ctx->dv_cost[1][MV_MAX] };
+        int32_t *dvcost[2] = {&md_rate_est_ctx->dv_cost[0][MV_MAX], &md_rate_est_ctx->dv_cost[1][MV_MAX]};
         svt_av1_build_nmv_cost_table(md_rate_est_ctx->dv_joint_cost, dvcost, &fc->ndvc, MV_SUBPEL_NONE);
     }
 }
@@ -601,8 +602,8 @@ static INLINE AomCdfProb *get_y_mode_cdf(FRAME_CONTEXT *tile_ctx, const MacroBlo
     return tile_ctx->kf_y_cdf[above_ctx][left_ctx];
 }
 #if !CLN_MOVE_FUNCS
-int         svt_aom_has_second_ref(const MbModeInfo *mbmi);
-int         svt_aom_has_uni_comp_refs(const MbModeInfo *mbmi);
+int svt_aom_has_second_ref(const MbModeInfo *mbmi);
+int svt_aom_has_uni_comp_refs(const MbModeInfo *mbmi);
 #endif
 AomCdfProb *svt_aom_get_reference_mode_cdf(const MacroBlockD *xd);
 AomCdfProb *svt_aom_get_comp_reference_type_cdf(const MacroBlockD *xd);
@@ -705,7 +706,7 @@ static void update_mv_component_stats(int comp, NmvComponent *mvcomp, MvSubpelPr
  ******************************************************************************/
 #if CLN_UNIFY_MV_TYPE
 static void av1_update_mv_stats(const Mv *mv, const Mv *ref, NmvContext *mvctx, MvSubpelPrecision precision) {
-    const Mv          diff = { {mv->x - ref->x, mv->y - ref->y} };
+    const Mv          diff = {{mv->x - ref->x, mv->y - ref->y}};
     const MvJointType j    = svt_av1_get_mv_joint(&diff);
 
     update_cdf(mvctx->joints_cdf, j, MV_JOINTS);
@@ -774,11 +775,11 @@ static AOM_INLINE void update_palette_cdf(MacroBlockD *xd, const MbModeInfo *con
         }
     }
 #if CLN_MBMI_IN_BLKSTRUCT
-    uint32_t  intra_chroma_mode = blk_ptr->block_mi.uv_mode;
+    uint32_t intra_chroma_mode = blk_ptr->block_mi.uv_mode;
 #else
-    uint32_t  intra_chroma_mode = blk_ptr->intra_chroma_mode;
+    uint32_t                intra_chroma_mode = blk_ptr->intra_chroma_mode;
 #endif
-    const int uv_dc_pred        = intra_chroma_mode == UV_DC_PRED && is_chroma_reference(mi_row, mi_col, bsize, 1, 1);
+    const int uv_dc_pred = intra_chroma_mode == UV_DC_PRED && is_chroma_reference(mi_row, mi_col, bsize, 1, 1);
 
     if (uv_dc_pred) {
         const int n                   = blk_ptr->palette_size[1];
@@ -793,19 +794,19 @@ static AOM_INLINE void update_palette_cdf(MacroBlockD *xd, const MbModeInfo *con
  ******************************************************************************/
 static AOM_INLINE void sum_intra_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, const int intraonly,
                                        const int mi_row, const int mi_col) {
-    MacroBlockD            *xd       = blk_ptr->av1xd;
+    MacroBlockD *xd = blk_ptr->av1xd;
 #if CLN_REMOVE_MODE_INFO
-    const MbModeInfo *const mbmi     = xd->mi[0];
+    const MbModeInfo *const mbmi = xd->mi[0];
 #else
-    const MbModeInfo *const mbmi     = &xd->mi[0]->mbmi;
+    const MbModeInfo *const mbmi              = &xd->mi[0]->mbmi;
 #endif
-    FRAME_CONTEXT          *fc       = xd->tile_ctx;
-    const PredictionMode    y_mode   = mbmi->block_mi.mode;
-    const BlockGeom        *blk_geom = get_blk_geom_mds(blk_ptr->mds_idx);
+    FRAME_CONTEXT       *fc       = xd->tile_ctx;
+    const PredictionMode y_mode   = mbmi->block_mi.mode;
+    const BlockGeom     *blk_geom = get_blk_geom_mds(blk_ptr->mds_idx);
 #if CLN_MOVE_FIELDS_MBMI
-    const BlockSize         bsize = mbmi->bsize;
+    const BlockSize bsize = mbmi->bsize;
 #else
-    const BlockSize         bsize    = mbmi->block_mi.bsize;
+    const BlockSize         bsize             = mbmi->block_mi.bsize;
 #endif
     assert(bsize < BlockSizeS_ALL);
     assert(y_mode < 13);
@@ -914,12 +915,12 @@ static AOM_INLINE void sum_intra_stats(PictureControlSet *pcs, BlkStruct *blk_pt
  ******************************************************************************/
 void svt_aom_update_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, int mi_row, int mi_col) {
     //    const AV1_COMMON *const cm   = pcs->ppcs->av1_cm;
-    FrameHeader            *frm_hdr = &pcs->ppcs->frm_hdr;
-    MacroBlockD            *xd      = blk_ptr->av1xd;
+    FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
+    MacroBlockD *xd      = blk_ptr->av1xd;
 #if CLN_REMOVE_MODE_INFO
-    const MbModeInfo *const mbmi    = xd->mi[0];
+    const MbModeInfo *const mbmi = xd->mi[0];
 #else
-    const MbModeInfo *const mbmi    = &xd->mi[0]->mbmi;
+    const MbModeInfo *const mbmi = &xd->mi[0]->mbmi;
 #endif
 
     const BlockGeom *blk_geom = get_blk_geom_mds(blk_ptr->mds_idx);
@@ -968,7 +969,7 @@ void svt_aom_update_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, int mi_row
 #if CLN_MOVE_FUNCS
             if (has_second_ref(&mbmi->block_mi)) {
                 const CompReferenceType comp_ref_type = has_uni_comp_refs(&mbmi->block_mi) ? UNIDIR_COMP_REFERENCE
-                                                                                        : BIDIR_COMP_REFERENCE;
+                                                                                           : BIDIR_COMP_REFERENCE;
 #else
             if (svt_aom_has_second_ref(mbmi)) {
                 const CompReferenceType comp_ref_type = svt_aom_has_uni_comp_refs(mbmi) ? UNIDIR_COMP_REFERENCE
@@ -1023,15 +1024,15 @@ void svt_aom_update_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, int mi_row
 #if CLN_MBMI_IN_BLKSTRUCT
                 if (blk_ptr->block_mi.is_interintra_used) {
                     update_cdf(fc->interintra_cdf[bsize_group], 1, 2);
-                    update_cdf(fc->interintra_mode_cdf[bsize_group], blk_ptr->block_mi.interintra_mode, INTERINTRA_MODES);
+                    update_cdf(
+                        fc->interintra_mode_cdf[bsize_group], blk_ptr->block_mi.interintra_mode, INTERINTRA_MODES);
                     if (svt_aom_is_interintra_wedge_used(bsize)) {
                         update_cdf(fc->wedge_interintra_cdf[bsize], blk_ptr->block_mi.use_wedge_interintra, 2);
                         if (blk_ptr->block_mi.use_wedge_interintra) {
                             update_cdf(fc->wedge_idx_cdf[bsize], blk_ptr->block_mi.interintra_wedge_index, 16);
                         }
                     }
-                }
-                else {
+                } else {
                     update_cdf(fc->interintra_cdf[bsize_group], 0, 2);
                 }
 #else
@@ -1066,8 +1067,7 @@ void svt_aom_update_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, int mi_row
 #if CLN_MBMI_IN_BLKSTRUCT
                 if (motion_allowed == WARPED_CAUSAL) {
                     update_cdf(fc->motion_mode_cdf[bsize], blk_ptr->block_mi.motion_mode, MOTION_MODES);
-                }
-                else if (motion_allowed == OBMC_CAUSAL) {
+                } else if (motion_allowed == OBMC_CAUSAL) {
                     update_cdf(fc->obmc_cdf[bsize], blk_ptr->block_mi.motion_mode == OBMC_CAUSAL, 2);
                 }
 #else
@@ -1138,8 +1138,8 @@ void svt_aom_update_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, int mi_row
         update_filter_type_cdf(xd, mbmi, pcs->scs->seq_header.enable_dual_filter);
     }
     if (inter_block && !seg_ref_active) {
-        const PredictionMode mode = mbmi->block_mi.mode;
-        MvReferenceFrame rf[2] = { blk_ptr->block_mi.ref_frame[0], blk_ptr->block_mi.ref_frame[1] };
+        const PredictionMode mode  = mbmi->block_mi.mode;
+        MvReferenceFrame     rf[2] = {blk_ptr->block_mi.ref_frame[0], blk_ptr->block_mi.ref_frame[1]};
 #else
     if (inter_block && frm_hdr->interpolation_filter == SWITCHABLE && blk_ptr->motion_mode != WARPED_CAUSAL &&
         !svt_aom_is_nontrans_global_motion_ec(
@@ -1147,11 +1147,11 @@ void svt_aom_update_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, int mi_row
         update_filter_type_cdf(xd, mbmi, pcs->scs->seq_header.enable_dual_filter);
     }
     if (inter_block && !seg_ref_active) {
-        const PredictionMode mode = mbmi->block_mi.mode;
+        const PredictionMode mode  = mbmi->block_mi.mode;
 #if CLN_CAND_REF_FRAME
-        MvReferenceFrame rf[2] = { blk_ptr->ref_frame[0], blk_ptr->ref_frame[1] };
+        MvReferenceFrame     rf[2] = {blk_ptr->ref_frame[0], blk_ptr->ref_frame[1]};
 #else
-        MvReferenceFrame     rf[2];
+        MvReferenceFrame rf[2];
         av1_set_ref_frame(rf, blk_ptr->ref_frame_type);
 #endif
 #endif

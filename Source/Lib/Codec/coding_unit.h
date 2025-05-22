@@ -60,11 +60,11 @@ static const uint32_t intra_luma_to_chroma[INTRA_MODES] = // EB_INTRA_PLANAR
 
 #if CLN_UNIFY_MV_TYPE
 typedef struct {
-    Mv mfmv0;
+    Mv      mfmv0;
     uint8_t ref_frame_offset;
 } TPL_MV_REF;
 typedef struct {
-    Mv mv;
+    Mv               mv;
     MvReferenceFrame ref_frame;
 } MV_REF;
 #else
@@ -117,18 +117,18 @@ typedef struct MacroBlockPlane {
 
 typedef struct MacroBlockD {
     // block dimension in the unit of mode_info.
-    uint8_t    n8_w, n8_h;
-    uint8_t    n4_w, n4_h; // for warped motion
-    uint8_t    ref_mv_count[MODE_CTX_REF_FRAMES];
-    uint8_t    is_sec_rect;
-    int8_t     up_available;
-    int8_t     left_available;
-    int8_t     chroma_up_available;
-    int8_t     chroma_left_available;
-    TileInfo   tile;
-    int32_t    mi_stride;
+    uint8_t  n8_w, n8_h;
+    uint8_t  n4_w, n4_h; // for warped motion
+    uint8_t  ref_mv_count[MODE_CTX_REF_FRAMES];
+    uint8_t  is_sec_rect;
+    int8_t   up_available;
+    int8_t   left_available;
+    int8_t   chroma_up_available;
+    int8_t   chroma_left_available;
+    TileInfo tile;
+    int32_t  mi_stride;
 #if CLN_REMOVE_MODE_INFO
-    MbModeInfo** mi;
+    MbModeInfo **mi;
 #else
     ModeInfo **mi;
 #endif
@@ -178,7 +178,7 @@ typedef struct IntraBcContext {
     // Store the best motion vector during motion search
     IntMv best_mv;
     // Store the second best motion vector during full-pixel motion search
-    IntMv        second_best_mv;
+    IntMv second_best_mv;
 #endif
     MacroBlockD *xd;
     int         *nmv_vec_cost;
@@ -245,8 +245,8 @@ typedef struct BlkStruct {
     uint8_t inter_pred_direction_index; // TODO: remove this
 #endif
 
-    uint32_t   overlappable_neighbors;
-    int16_t                inter_mode_ctx;
+    uint32_t overlappable_neighbors;
+    int16_t  inter_mode_ctx;
     // equivalent of leaf_index in the nscu context. we will keep both for now and use the right one
     // on a case by case basis.
     uint16_t mds_idx;
@@ -257,19 +257,19 @@ typedef struct BlkStruct {
     // Store the drl ctx in coding loop to avoid storing final_ref_mv_stack and ref_mv_count for EC
     int8_t drl_ctx[2];
     // Store the drl ctx in coding loop to avoid storing final_ref_mv_stack and ref_mv_count for EC
-    int8_t         drl_ctx_near[2];
+    int8_t drl_ctx_near[2];
 
     uint8_t segment_id;
 
-    PartitionType  part;
-    uint16_t       best_d1_blk;
+    PartitionType part;
+    uint16_t      best_d1_blk;
 
     PartitionContextType left_neighbor_partition;
     PartitionContextType above_neighbor_partition;
 
     // wm
-    EbWarpedMotionParams wm_params_l0;
-    EbWarpedMotionParams wm_params_l1;
+    WarpedMotionParams wm_params_l0;
+    WarpedMotionParams wm_params_l1;
 
     unsigned cnt_nz_coeff : 12;
 #if !CLN_UNUSED_SIGS
@@ -310,17 +310,17 @@ typedef struct BlkStruct {
     uint8_t      palette_size[2];
 
 #if CLN_MV_IDX
-    Mv mv[2]; // unipred MV stored in idx 0
-    Mv predmv[2]; // unipred MV stored in idx 0
+    Mv           mv[2]; // unipred MV stored in idx 0
+    Mv           predmv[2]; // unipred MV stored in idx 0
 #else
-    Mv      mv[MAX_NUM_OF_REF_PIC_LIST]; // 16-bytes
+    Mv       mv[MAX_NUM_OF_REF_PIC_LIST]; // 16-bytes
 #if CLN_UNIFY_MV_TYPE
-    Mv      predmv[MAX_NUM_OF_REF_PIC_LIST];
+    Mv       predmv[MAX_NUM_OF_REF_PIC_LIST];
 #else
-    IntMv   predmv[MAX_NUM_OF_REF_PIC_LIST];
+    IntMv predmv[MAX_NUM_OF_REF_PIC_LIST];
 #endif
 #endif
-    uint8_t inter_pred_direction_index;
+    uint8_t      inter_pred_direction_index;
 
     // Intra Mode
     int8_t           angle_delta[PLANE_TYPES];
@@ -329,17 +329,17 @@ typedef struct BlkStruct {
 #if CLN_CAND_REF_FRAME
     MvReferenceFrame ref_frame[2];
 #else
-    uint8_t    ref_frame_type;
+    uint8_t  ref_frame_type;
 #endif
-    MotionMode motion_mode;
+    MotionMode       motion_mode;
 #if CLN_WM_CTRLS
-    uint8_t   num_proj_ref;
+    uint8_t          num_proj_ref;
 #else
-    uint16_t   num_proj_ref;
+    uint16_t num_proj_ref;
 #endif
-    uint32_t   overlappable_neighbors;
-    uint8_t    cfl_alpha_idx; // Index of the alpha Cb and alpha Cr combination
-    uint8_t    cfl_alpha_signs; // Joint sign of alpha Cb and alpha Cr
+    uint32_t         overlappable_neighbors;
+    uint8_t          cfl_alpha_idx; // Index of the alpha Cb and alpha Cr combination
+    uint8_t          cfl_alpha_signs; // Joint sign of alpha Cb and alpha Cr
 
     InterInterCompoundData interinter_comp;
     uint32_t               interp_filters;
@@ -377,8 +377,8 @@ typedef struct BlkStruct {
     PartitionContextType above_neighbor_partition;
 
     // wm
-    EbWarpedMotionParams wm_params_l0;
-    EbWarpedMotionParams wm_params_l1;
+    WarpedMotionParams wm_params_l0;
+    WarpedMotionParams wm_params_l1;
 
     unsigned cnt_nz_coeff : 12;
     unsigned prediction_mode_flag : 2;
@@ -392,12 +392,12 @@ typedef struct EcBlkStruct {
     TxType       tx_type[MAX_TXB_COUNT];
     TxType       tx_type_uv;
 
-    PaletteInfo           *palette_info;
-    uint8_t                palette_size[2];
+    PaletteInfo *palette_info;
+    uint8_t      palette_size[2];
 #if CLN_UNIFY_MV_TYPE
-    Mv                  predmv[2];
+    Mv predmv[2];
 #else
-    IntMv                  predmv[2];
+    IntMv predmv[2];
 #endif
 #if !CLN_MOVE_FIELDS_MBMI
     InterInterCompoundData interinter_comp;
@@ -408,11 +408,11 @@ typedef struct EcBlkStruct {
     MotionMode motion_mode;
     uint16_t   num_proj_ref;
 #endif
-    uint32_t   overlappable_neighbors;
+    uint32_t overlappable_neighbors;
 #if !CLN_MOVE_FIELDS_MBMI
-    uint8_t    cfl_alpha_idx; // Index of the alpha Cb and alpha Cr combination
-    uint8_t    cfl_alpha_signs; // Joint sign of alpha Cb and alpha Cr
-    uint8_t    interintra_wedge_index;
+    uint8_t cfl_alpha_idx; // Index of the alpha Cb and alpha Cr combination
+    uint8_t cfl_alpha_signs; // Joint sign of alpha Cb and alpha Cr
+    uint8_t interintra_wedge_index;
 #endif
     int16_t inter_mode_ctx;
     // equivalent of leaf_index in the nscu context. we will keep both for now and use the right one
@@ -436,28 +436,28 @@ typedef struct EcBlkStruct {
 } EcBlkStruct;
 
 typedef struct TplStats {
-    int64_t  srcrf_dist;
-    int64_t  recrf_dist;
-    int64_t  srcrf_rate;
-    int64_t  recrf_rate;
-    int64_t  mc_dep_rate;
-    int64_t  mc_dep_dist;
+    int64_t srcrf_dist;
+    int64_t recrf_dist;
+    int64_t srcrf_rate;
+    int64_t recrf_rate;
+    int64_t mc_dep_rate;
+    int64_t mc_dep_dist;
 #if CLN_UNIFY_MV_TYPE
-    Mv       mv;
+    Mv mv;
 #else
-    MV       mv;
+    MV    mv;
 #endif
     uint64_t ref_frame_poc;
 } TplStats;
 
 typedef struct TplSrcStats {
-    int64_t        srcrf_dist;
-    int64_t        srcrf_rate;
-    uint64_t       ref_frame_poc;
+    int64_t  srcrf_dist;
+    int64_t  srcrf_rate;
+    uint64_t ref_frame_poc;
 #if CLN_UNIFY_MV_TYPE
-    Mv             mv;
+    Mv mv;
 #else
-    MV             mv;
+    MV    mv;
 #endif
     uint8_t        best_mode;
     int32_t        best_rf_idx;

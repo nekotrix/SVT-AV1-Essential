@@ -58,12 +58,12 @@ typedef struct fullpel_mv {
 static INLINE int is_zero_mv(const Mv *mv) { return *((const uint32_t *)mv) == 0; }
 
 static AOM_INLINE Mv get_fullmv_from_mv(const Mv *subpel_mv) {
-    const Mv full_mv = { {(int16_t)GET_MV_RAWPEL(subpel_mv->x), (int16_t)GET_MV_RAWPEL(subpel_mv->y)} };
+    const Mv full_mv = {{(int16_t)GET_MV_RAWPEL(subpel_mv->x), (int16_t)GET_MV_RAWPEL(subpel_mv->y)}};
     return full_mv;
 }
 
 static AOM_INLINE Mv get_mv_from_fullmv(const Mv *full_mv) {
-    const Mv subpel_mv = { {(int16_t)GET_MV_SUBPEL(full_mv->x), (int16_t)GET_MV_SUBPEL(full_mv->y)} };
+    const Mv subpel_mv = {{(int16_t)GET_MV_SUBPEL(full_mv->x), (int16_t)GET_MV_SUBPEL(full_mv->y)}};
     return subpel_mv;
 }
 #else
@@ -89,8 +89,8 @@ typedef struct OisMbResults {
 #if !CLN_MOVE_MV_FIELDS
 #if CLN_UNIFY_MV_TYPE
 typedef struct CandidateMv {
-    Mv this_mv;
-    Mv comp_mv;
+    Mv      this_mv;
+    Mv      comp_mv;
     int32_t weight;
 } CandidateMv;
 #else
@@ -142,22 +142,22 @@ typedef struct InterIntraModeParams {
 #if CLN_MOVE_FIELDS_MBMI
 typedef struct BlockModeInfo {
     /*! \brief The prediction mode used */
-    PredictionMode   mode;
+    PredictionMode mode;
     /*! \brief The UV mode when intra is used */
     UvPredictionMode uv_mode; // Only for INTRA blocks
 
-  /*****************************************************************************
+    /*****************************************************************************
    * \name Inter Mode Info
    ****************************************************************************/
-   /**@{*/
+    /**@{*/
 #if CLN_MV_IDX
-   /*! \brief The motion vectors used by the current inter mode. Unipred MV stored
+    /*! \brief The motion vectors used by the current inter mode. Unipred MV stored
    in idx 0.*/
     Mv mv[2];
 #else
-   /*! \brief The motion vectors used by the current inter mode */
+    /*! \brief The motion vectors used by the current inter mode */
 #if CLN_UNIFY_MV_TYPE
-    Mv mv[2];
+    Mv       mv[2];
 #else
     IntMv mv[2];
 #endif
@@ -182,15 +182,14 @@ typedef struct BlockModeInfo {
 #if CLN_MBMI_IN_CAND
     int8_t interintra_wedge_index;
 #else
-    uint8_t interintra_wedge_index;
+    uint8_t  interintra_wedge_index;
 #endif
-
 
     /*****************************************************************************
      * \name Intra Mode Info
      ****************************************************************************/
-     /**@{*/
-     /*! \brief Directional mode delta: the angle is base angle + (angle_delta *
+    /**@{*/
+    /*! \brief Directional mode delta: the angle is base angle + (angle_delta *
       * step). */
     int8_t angle_delta[PLANE_TYPES];
     /*! \brief The type of filter intra mode used (if applicable). */
@@ -213,7 +212,7 @@ typedef struct BlockModeInfo {
 
     /*!< 1 indicates that this block will use some default settings and skip mode info.
      * 0 indicates that the mode info is not skipped. */
-     // possible values: 0,1; skip mode_info + coeff. as defined in section 6.10.10 of the av1 text
+    // possible values: 0,1; skip mode_info + coeff. as defined in section 6.10.10 of the av1 text
     uint8_t skip_mode : 1;
     /*! \brief Whether intrabc is used. */
     uint8_t use_intrabc : 1;
@@ -245,7 +244,7 @@ typedef struct BlockModeInfo {
 
     /*!< 1 indicates that this block will use some default settings and skip mode info.
      * 0 indicates that the mode info is not skipped. */
-     // possible values: 0,1; skip mode_info + coeff. as defined in section 6.10.10 of the av1 text
+    // possible values: 0,1; skip mode_info + coeff. as defined in section 6.10.10 of the av1 text
     uint8_t skip_mode : 1;
     uint8_t use_intrabc : 1; // possible values: 0,1
 
@@ -364,8 +363,8 @@ typedef struct BlockModeInfo {
     uint8_t palette_size[MAX_MB_PLANE - 1];
 
     /*mi_row & mi_col wrt a super block*/
-    int8_t mi_row_in_sb;
-    int8_t mi_col_in_sb;
+    int8_t  mi_row_in_sb;
+    int8_t  mi_col_in_sb;
 
 #if MODE_INFO_DBG
     int32_t mi_row;
@@ -383,34 +382,30 @@ typedef struct MbModeInfo {
 #endif
 #endif
 #if CLN_REMOVE_DEC_STRUCT
-    BlockModeInfo    block_mi;
+    BlockModeInfo block_mi;
 #else
-    BlockModeInfoEnc    block_mi;
+    BlockModeInfoEnc block_mi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
-    BlockSize        bsize;
-    PartitionType    partition;
-    uint8_t segment_id;
+    BlockSize     bsize;
+    PartitionType partition;
+    uint8_t       segment_id;
 #endif
     PaletteLumaModeInfo palette_mode_info;
     int8_t              cdef_strength;
 } MbModeInfo;
 
 #if CLN_MOVE_FUNCS
-static AOM_INLINE int has_second_ref(const BlockModeInfo* block_mi) {
-    return block_mi->ref_frame[1] > INTRA_FRAME;
-}
+static AOM_INLINE int has_second_ref(const BlockModeInfo *block_mi) { return block_mi->ref_frame[1] > INTRA_FRAME; }
 
-static AOM_INLINE int has_uni_comp_refs(const BlockModeInfo* block_mi) {
+static AOM_INLINE int has_uni_comp_refs(const BlockModeInfo *block_mi) {
     return has_second_ref(block_mi) &&
         (!((block_mi->ref_frame[0] >= BWDREF_FRAME) ^ (block_mi->ref_frame[1] >= BWDREF_FRAME)));
 }
 
-static AOM_INLINE int is_intrabc_block(const BlockModeInfo* block_mi) {
-    return block_mi->use_intrabc;
-}
+static AOM_INLINE int is_intrabc_block(const BlockModeInfo *block_mi) { return block_mi->use_intrabc; }
 
-static AOM_INLINE int is_inter_block(const BlockModeInfo* block_mi) {
+static AOM_INLINE int is_inter_block(const BlockModeInfo *block_mi) {
     return is_intrabc_block(block_mi) || block_mi->ref_frame[0] > INTRA_FRAME;
 }
 #endif

@@ -334,7 +334,11 @@ void svt_aom_asm_set_convolve_hbd_asm_table(void);
 void svt_aom_init_intra_dc_predictors_c_internal(void);
 void svt_aom_init_intra_predictors_internal(void);
 void svt_av1_init_me_luts(void);
+#if TUNE_VBR
+uint8_t svt_aom_get_tpl_group_level(uint8_t tpl, int8_t enc_mode);
+#else
 uint8_t svt_aom_get_tpl_group_level(uint8_t tpl, int8_t enc_mode, SvtAv1RcMode rc_mode);
+#endif
 uint8_t svt_aom_set_tpl_group(PictureParentControlSet* pcs, uint8_t tpl_group_level, uint32_t source_width, uint32_t source_height);
 static void enc_switch_to_real_time(){
 #if !defined(_WIN32)
@@ -1550,12 +1554,19 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
             MAX(mrp_ctrl->sc_base_ref_list1_count,
                 MAX(mrp_ctrl->base_ref_list1_count,
                     MAX(mrp_ctrl->sc_non_base_ref_list1_count, mrp_ctrl->non_base_ref_list1_count)));
+#if TUNE_VBR
+        input_data.tpl_synth_size = svt_aom_set_tpl_group(
+            NULL,
+            svt_aom_get_tpl_group_level(1, enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enc_mode),
+            input_data.picture_width, input_data.picture_height);
+#else
         input_data.tpl_synth_size = svt_aom_set_tpl_group(NULL,
             svt_aom_get_tpl_group_level(
                 1,
                 enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enc_mode,
                 enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rate_control_mode),
             input_data.picture_width, input_data.picture_height);
+#endif
         input_data.enable_adaptive_quantization = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enable_adaptive_quantization;
 
         input_data.calculate_variance = enc_handle_ptr->scs_instance_array[instance_index]->scs->calculate_variance;
@@ -3379,6 +3390,7 @@ static void derive_tf_params(SequenceControlSet *scs) {
 #endif
         tf_level = 2;
     }
+#if !TUNE_M3_3
 #if TUNE_M4_2
     else if (enc_mode <= ENC_M3) {
 #else
@@ -3386,6 +3398,7 @@ static void derive_tf_params(SequenceControlSet *scs) {
 #endif
         tf_level = 3;
     }
+#endif
     else if (enc_mode <= ENC_M7) {
         tf_level = 5;
 #if !TUNE_M8_2
@@ -3854,7 +3867,7 @@ static void set_mrp_ctrl(SequenceControlSet* scs, uint8_t mrp_level) {
         assert(0);
         break;
     }
-#if OPT_RTC
+#if OPT_RTC && !TUNE_LD_RTC
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY && scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR) {
         mrp_ctrl->sc_base_ref_list1_count = 0;
         mrp_ctrl->sc_non_base_ref_list1_count = 0;
@@ -4058,6 +4071,70 @@ static void validate_scaling_params(SequenceControlSet *scs) {
 }
 #if OPT_ALLINTRA_STILLIMAGE //
 void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
+#if TUNE_M0_3
+    if (scs->static_config.avif || scs->allintra) {
+#if TUNE_M1_3
+#if TUNE_M2_3
+#if TUNE_M3_5
+        if (scs->static_config.enc_mode <= ENC_M3) {
+#else
+        if (scs->static_config.enc_mode <= ENC_M2) {
+#endif
+#else
+        if (scs->static_config.enc_mode <= ENC_M1) {
+#endif
+#else
+        if (scs->static_config.enc_mode <= ENC_M0) {
+#endif
+            scs->qp_based_th_scaling_ctrls.tf_me_qp_based_th_scaling       = 0;
+            scs->qp_based_th_scaling_ctrls.tf_ref_qp_based_th_scaling      = 0;
+            scs->qp_based_th_scaling_ctrls.depths_qp_based_th_scaling      = 0;
+            scs->qp_based_th_scaling_ctrls.hme_qp_based_th_scaling         = 0;
+            scs->qp_based_th_scaling_ctrls.me_qp_based_th_scaling          = 0;
+            scs->qp_based_th_scaling_ctrls.nsq_qp_based_th_scaling         = 0;
+            scs->qp_based_th_scaling_ctrls.nic_max_qp_based_th_scaling     = 1;
+            scs->qp_based_th_scaling_ctrls.nic_pruning_qp_based_th_scaling = 1;
+            scs->qp_based_th_scaling_ctrls.pme_qp_based_th_scaling         = 0;
+            scs->qp_based_th_scaling_ctrls.txt_qp_based_th_scaling         = 1;
+        } else {
+            scs->qp_based_th_scaling_ctrls.tf_me_qp_based_th_scaling       = 1;
+            scs->qp_based_th_scaling_ctrls.tf_ref_qp_based_th_scaling      = 1;
+            scs->qp_based_th_scaling_ctrls.depths_qp_based_th_scaling      = 1;
+            scs->qp_based_th_scaling_ctrls.hme_qp_based_th_scaling         = 1;
+            scs->qp_based_th_scaling_ctrls.me_qp_based_th_scaling          = 1;
+            scs->qp_based_th_scaling_ctrls.nsq_qp_based_th_scaling         = 1;
+            scs->qp_based_th_scaling_ctrls.nic_max_qp_based_th_scaling     = 1;
+            scs->qp_based_th_scaling_ctrls.nic_pruning_qp_based_th_scaling = 1;
+            scs->qp_based_th_scaling_ctrls.pme_qp_based_th_scaling         = 1;
+            scs->qp_based_th_scaling_ctrls.txt_qp_based_th_scaling         = 1;
+        }
+    }
+    else {
+        if (scs->static_config.enc_mode <= ENC_MR) {
+            scs->qp_based_th_scaling_ctrls.tf_me_qp_based_th_scaling       = 0;
+            scs->qp_based_th_scaling_ctrls.tf_ref_qp_based_th_scaling      = 0;
+            scs->qp_based_th_scaling_ctrls.depths_qp_based_th_scaling      = 0;
+            scs->qp_based_th_scaling_ctrls.hme_qp_based_th_scaling         = 0;
+            scs->qp_based_th_scaling_ctrls.me_qp_based_th_scaling          = 0;
+            scs->qp_based_th_scaling_ctrls.nsq_qp_based_th_scaling         = 0;
+            scs->qp_based_th_scaling_ctrls.nic_max_qp_based_th_scaling     = 0;
+            scs->qp_based_th_scaling_ctrls.nic_pruning_qp_based_th_scaling = 0;
+            scs->qp_based_th_scaling_ctrls.pme_qp_based_th_scaling         = 0;
+            scs->qp_based_th_scaling_ctrls.txt_qp_based_th_scaling         = 0;
+        } else {
+            scs->qp_based_th_scaling_ctrls.tf_me_qp_based_th_scaling       = 1;
+            scs->qp_based_th_scaling_ctrls.tf_ref_qp_based_th_scaling      = 1;
+            scs->qp_based_th_scaling_ctrls.depths_qp_based_th_scaling      = 1;
+            scs->qp_based_th_scaling_ctrls.hme_qp_based_th_scaling         = 1;
+            scs->qp_based_th_scaling_ctrls.me_qp_based_th_scaling          = 1;
+            scs->qp_based_th_scaling_ctrls.nsq_qp_based_th_scaling         = 1;
+            scs->qp_based_th_scaling_ctrls.nic_max_qp_based_th_scaling     = 1;
+            scs->qp_based_th_scaling_ctrls.nic_pruning_qp_based_th_scaling = 1;
+            scs->qp_based_th_scaling_ctrls.pme_qp_based_th_scaling         = 1;
+            scs->qp_based_th_scaling_ctrls.txt_qp_based_th_scaling         = 1;
+        }
+    }
+#else
     if (scs->static_config.enc_mode <= ENC_MR) {
         scs->qp_based_th_scaling_ctrls.tf_me_qp_based_th_scaling       = 0;
         scs->qp_based_th_scaling_ctrls.tf_ref_qp_based_th_scaling      = 0;
@@ -4081,6 +4158,7 @@ void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
         scs->qp_based_th_scaling_ctrls.pme_qp_based_th_scaling         = 1;
         scs->qp_based_th_scaling_ctrls.txt_qp_based_th_scaling         = 1;
     }
+#endif
 }
 #endif
 static void set_param_based_on_input(SequenceControlSet *scs)
@@ -4326,7 +4404,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
                 scs->super_block_size = 128;
         }
 #endif
+#if TUNE_NEW_M6
+        else if (scs->static_config.enc_mode <= ENC_M5) {
+#else
         else if (scs->static_config.enc_mode <= ENC_M6) {
+#endif
             if (scs->static_config.qp <= 57)
                 scs->super_block_size = 64;
             else
@@ -4591,6 +4673,19 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         }
 #endif
 #endif
+#if TUNE_VBR
+        else if (scs->static_config.enc_mode <= ENC_M8)
+            mrp_level = 6;
+        else if (scs->static_config.enc_mode <= ENC_M9)
+            mrp_level = scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? 7 : 8;
+        else
+            if (scs->static_config.encoder_bit_depth == EB_EIGHT_BIT) {
+                    mrp_level = scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? 10 : 0;
+            }
+            else {
+                    mrp_level = scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? 7 : 0;
+            }
+#else
         // any changes for preset ENC_M5 and higher should be separated for VBR and CRF in the control structure below
         else if (scs->static_config.rate_control_mode != SVT_AV1_RC_MODE_VBR) {
 
@@ -4636,6 +4731,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         else {
             mrp_level = 9;
         }
+#endif
 #else
 #if FTR_RTC_MODE
     if (scs->static_config.rtc_mode) {

@@ -91,7 +91,7 @@ static const InterpFilterParams av1_interp_filter_params_list[SWITCHABLE_FILTERS
     {(const int16_t *)bilinear_filters, SUBPEL_TAPS, SUBPEL_SHIFTS, BILINEAR}};
 #if !CLN_MOVE_MV_FIELDS
 #if CLN_UNIFY_MV_TYPE
-static INLINE void clamp_mv(Mv* mv, int32_t min_col, int32_t max_col, int32_t min_row, int32_t max_row) {
+static INLINE void clamp_mv(Mv *mv, int32_t min_col, int32_t max_col, int32_t min_row, int32_t max_row) {
     mv->x = (int16_t)clamp(mv->x, min_col, max_col);
     mv->y = (int16_t)clamp(mv->y, min_row, max_row);
 }
@@ -121,8 +121,8 @@ void svt_inter_predictor_light_pd0(const uint8_t *src, int32_t src_stride, uint8
                                    int32_t h, SubpelParams *subpel_params, ConvolveParams *conv_params);
 #if CLN_IF_PARAMS
 void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_stride, uint8_t *dst, int32_t dst_stride,
-                                   int32_t w, int32_t h, InterpFilters interp_filters,
-                                   SubpelParams *subpel_params, ConvolveParams *conv_params, int32_t bd);
+                                   int32_t w, int32_t h, InterpFilters interp_filters, SubpelParams *subpel_params,
+                                   ConvolveParams *conv_params, int32_t bd);
 #else
 void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_stride, uint8_t *dst, int32_t dst_stride,
                                    int32_t w, int32_t h, InterpFilterParams *filter_x, InterpFilterParams *filter_y,
@@ -340,7 +340,7 @@ static INLINE int check_sb_border(const int mi_row, const int mi_col, const int 
 static INLINE int is_neighbor_overlappable(const MbModeInfo *mbmi) { return mbmi->block_mi.ref_frame[0] > INTRA_FRAME; }
 
 #if CLN_UNIFY_MV_TYPE
-static INLINE int32_t is_mv_valid(const Mv* mv) {
+static INLINE int32_t is_mv_valid(const Mv *mv) {
     return mv->y > MV_LOW && mv->y < MV_UPP && mv->x > MV_LOW && mv->x < MV_UPP;
 }
 #else
@@ -353,7 +353,7 @@ static INLINE int32_t is_mv_valid(const MV *mv) {
 #define IS_BACKWARD_REF_FRAME(ref_frame) CHECK_BACKWARD_REFS(ref_frame)
 
 #if CLN_UNIFY_MV_TYPE
-void svt_aom_find_ref_dv(Mv* ref_dv, const TileInfo* const tile, int mib_size, int mi_row, int mi_col);
+void svt_aom_find_ref_dv(Mv *ref_dv, const TileInfo *const tile, int mib_size, int mi_row, int mi_col);
 #else
 void svt_aom_find_ref_dv(IntMv *ref_dv, const TileInfo *const tile, int mib_size, int mi_row, int mi_col);
 #endif
@@ -490,8 +490,8 @@ static INLINE uint32_t have_nearmv_in_inter_mode(PredictionMode mode) {
 
 #if !CLN_MOVE_FUNCS
 #if CLN_REMOVE_DEC_STRUCT
-static INLINE int is_intrabc_block(const BlockModeInfo* block_mi) { return block_mi->use_intrabc; }
-static INLINE int is_inter_block(const BlockModeInfo* bloc_mi) {
+static INLINE int is_intrabc_block(const BlockModeInfo *block_mi) { return block_mi->use_intrabc; }
+static INLINE int is_inter_block(const BlockModeInfo *bloc_mi) {
     return is_intrabc_block(bloc_mi) || bloc_mi->ref_frame[0] > INTRA_FRAME;
 }
 #else
@@ -613,10 +613,10 @@ static INLINE void av1_set_ref_frame(MvReferenceFrame *rf, int8_t ref_frame_type
       | List1            BWD         ALT2         ALT                  |
       |----------------------------------------------------------------|
 */
-static uint8_t              ref_type_to_list_idx[REFS_PER_FRAME + 1] = {0, 0, 0, 0, 0, 1, 1, 1};
-static INLINE uint8_t       get_list_idx(uint8_t ref_type) { return ref_type_to_list_idx[ref_type]; }
-static uint8_t              ref_type_to_ref_idx[REFS_PER_FRAME + 1] = {0, 0, 1, 2, 3, 0, 1, 2};
-static INLINE uint8_t       get_ref_frame_idx(uint8_t ref_type) { return ref_type_to_ref_idx[ref_type]; };
+static uint8_t        ref_type_to_list_idx[REFS_PER_FRAME + 1] = {0, 0, 0, 0, 0, 1, 1, 1};
+static INLINE uint8_t get_list_idx(uint8_t ref_type) { return ref_type_to_list_idx[ref_type]; }
+static uint8_t        ref_type_to_ref_idx[REFS_PER_FRAME + 1] = {0, 0, 1, 2, 3, 0, 1, 2};
+static INLINE uint8_t get_ref_frame_idx(uint8_t ref_type) { return ref_type_to_ref_idx[ref_type]; };
 #if !CLN_UNUSED_SIGS
 #if CLN_CAND_REF_FRAME
 static INLINE PredDirection av1_get_pred_dir(MvReferenceFrame rf[2]) {

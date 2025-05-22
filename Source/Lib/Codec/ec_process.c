@@ -183,9 +183,9 @@ static void reset_entropy_coding_picture(EntropyCodingContext *ctx, PictureContr
         if (primary_ref_frame != PRIMARY_REF_NONE) {
             // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
             // Therefore, add 1 to the primary ref frame (e.g. LAST --> LAST_FRAME)
-            const uint8_t list_idx = get_list_idx(primary_ref_frame + 1);
-            const uint8_t ref_idx = get_ref_frame_idx(primary_ref_frame + 1);
-            EbReferenceObject* ref = (EbReferenceObject*)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+            const uint8_t      list_idx = get_list_idx(primary_ref_frame + 1);
+            const uint8_t      ref_idx  = get_ref_frame_idx(primary_ref_frame + 1);
+            EbReferenceObject *ref      = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
             svt_memcpy(ec->fc, &ref->frame_context, sizeof(FRAME_CONTEXT));
         }
 #else
@@ -312,7 +312,7 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
                 // Release the reference Pictures from both lists
                 for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
                     const uint8_t list_idx = get_list_idx(ref + 1);
-                    const uint8_t ref_idx = get_ref_frame_idx(ref + 1);
+                    const uint8_t ref_idx  = get_ref_frame_idx(ref + 1);
                     if (pcs->ref_pic_ptr_array[list_idx][ref_idx] != NULL) {
                         svt_release_object(pcs->ref_pic_ptr_array[list_idx][ref_idx]);
                     }

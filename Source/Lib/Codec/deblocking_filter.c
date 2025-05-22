@@ -147,13 +147,13 @@ static INLINE TxSize get_transform_size(const MbModeInfo *const mbmi, const Edge
 #if CLN_MOVE_FIELDS_MBMI
     TxSize tx_size = (plane == COMPONENT_LUMA)
         ? (is_skip ? tx_depth_to_tx_size[0][mbmi->bsize]
-            : tx_depth_to_tx_size[mbmi->block_mi.tx_depth][mbmi->bsize]) // use max_tx_size
+                   : tx_depth_to_tx_size[mbmi->block_mi.tx_depth][mbmi->bsize]) // use max_tx_size
         : av1_get_max_uv_txsize(mbmi->bsize, plane_ptr->subsampling_x, plane_ptr->subsampling_y);
 #else
-    TxSize tx_size = (plane == COMPONENT_LUMA)
-        ? (is_skip ? tx_depth_to_tx_size[0][mbmi->block_mi.bsize]
-                   : tx_depth_to_tx_size[mbmi->block_mi.tx_depth][mbmi->block_mi.bsize]) // use max_tx_size
-        : av1_get_max_uv_txsize(mbmi->block_mi.bsize, plane_ptr->subsampling_x, plane_ptr->subsampling_y);
+    TxSize     tx_size = (plane == COMPONENT_LUMA)
+            ? (is_skip ? tx_depth_to_tx_size[0][mbmi->block_mi.bsize]
+                       : tx_depth_to_tx_size[mbmi->block_mi.tx_depth][mbmi->block_mi.bsize]) // use max_tx_size
+            : av1_get_max_uv_txsize(mbmi->block_mi.bsize, plane_ptr->subsampling_x, plane_ptr->subsampling_y);
 #endif
     assert(tx_size < TX_SIZES_ALL);
 
@@ -196,12 +196,12 @@ static TxSize set_lpf_parameters(Av1DeblockingParameters *const params, const ui
     uint32_t      mi_stride = pcs->mi_stride;
     const int32_t offset    = mi_row * mi_stride + mi_col;
 #if CLN_REMOVE_MODE_INFO
-    MbModeInfo** mi = pcs->mi_grid_base + offset;
-    const MbModeInfo* mbmi = mi[0];
+    MbModeInfo      **mi   = pcs->mi_grid_base + offset;
+    const MbModeInfo *mbmi = mi[0];
 #else
-    ModeInfo    **mi        = (pcs->mi_grid_base + offset);
+    ModeInfo **mi      = (pcs->mi_grid_base + offset);
     //MbModeInfo **mi = cm->mi_grid_visible + mi_row * cm->mi_stride + mi_col;
-    const MbModeInfo *mbmi = &mi[0]->mbmi;
+    const MbModeInfo *mbmi       = &mi[0]->mbmi;
 #endif
 
     // If current mbmi is not correctly setup, return an invalid value to stop
@@ -212,7 +212,7 @@ static TxSize set_lpf_parameters(Av1DeblockingParameters *const params, const ui
 #if CLN_MOVE_FIELDS_MBMI
     const uint8_t segment_id = mbmi->segment_id;
 #else
-    const uint8_t segment_id   = mbmi->block_mi.segment_id;
+    const uint8_t     segment_id = mbmi->block_mi.segment_id;
 #endif
     const int32_t curr_skipped = mbmi->block_mi.skip && is_inter_block_no_intrabc(mbmi->block_mi.ref_frame[0]);
     const TxSize  ts           = get_transform_size(mbmi, edge_dir, plane, plane_ptr, curr_skipped);
@@ -241,7 +241,7 @@ static TxSize set_lpf_parameters(Av1DeblockingParameters *const params, const ui
             uint32_t level = curr_level;
             if (coord) {
 #if CLN_REMOVE_MODE_INFO
-                const MbModeInfo* const mi_prev = *(mi - mode_step);
+                const MbModeInfo *const mi_prev = *(mi - mode_step);
 #else
                 //const ModeInfo *const mi_prev = *(mi - mode_step);
                 const ModeInfo *const   mi_prev_temp = *(mi - mode_step);
@@ -271,7 +271,7 @@ static TxSize set_lpf_parameters(Av1DeblockingParameters *const params, const ui
 #if CLN_MOVE_FIELDS_MBMI
                     assert(mode < MB_MODE_COUNT);
                     pv_lvl = lfi_n->lvl[plane][mi_prev->segment_id][edge_dir][mi_prev->block_mi.ref_frame[0]]
-                        [mode_lf_lut[mode]];
+                                       [mode_lf_lut[mode]];
 #else
                     assert(mode < 25);
                     pv_lvl = lfi_n->lvl[plane][mi_prev->block_mi.segment_id][edge_dir][mi_prev->block_mi.ref_frame[0]]

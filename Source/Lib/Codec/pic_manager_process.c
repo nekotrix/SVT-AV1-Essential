@@ -795,7 +795,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                         int8_t ref_index = 0;
 #if CLN_REMOVE_P_SLICE
                         if (entry_ppcs->slice_type == B_SLICE) {
-                            int8_t  max_temporal_index = -1;
+                            int8_t max_temporal_index = -1;
                             for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
                                 // hardcode the reference for the overlay frame
                                 uint64_t ref_poc = entry_ppcs->is_overlay
@@ -841,7 +841,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                                         // Note the ref_index (used for primary ref frame) is stored as a REF_FRAME_MINUS1 type, rather than the
                                         // LAST_FRAME type used elsewhere in the encoder
                                         ref_index = svt_get_ref_frame_type(list_idx, ref_idx) - LAST_FRAME;
-                                        assert(ref_index == ref);
+                                        assert(ref_index == (int)ref);
                                         for (int frame = LAST_FRAME; frame <= ALTREF_FRAME; ++frame) {
                                             EbReferenceObject *ref_obj =
                                                 (EbReferenceObject *)ref_entry->reference_object_ptr->object_ptr;

@@ -1893,13 +1893,12 @@ static bool is_valid_palette_nb_colors(const uint8_t *src, int stride, int rows,
 // Estimate if the source frame is screen content, based on the portion of
 // blocks that have no more than 4 (experimentally selected) luma colors.
 void svt_aom_is_screen_content(PictureParentControlSet *pcs) {
-
 #if OPT_SC_ME
     int blk_w = 16;
     int blk_h = 16;
     // These threshold values are selected experimentally.
     int color_thresh = 4;
-    int var_thresh = 0;
+    int var_thresh   = 0;
 #else
     const int blk_w = 16;
     const int blk_h = 16;
@@ -1952,7 +1951,7 @@ void svt_aom_is_screen_content(PictureParentControlSet *pcs) {
     blk_h = 8;
     // These threshold values are selected experimentally.
     color_thresh = 4;
-    var_thresh = 16;
+    var_thresh   = 16;
     // Counts of blocks with no more than color_thresh colors.
     counts_1 = 0;
     // Counts of blocks with no more than color_thresh colors and variance larger
@@ -1961,7 +1960,7 @@ void svt_aom_is_screen_content(PictureParentControlSet *pcs) {
     for (int r = 0; r + blk_h <= input_pic->height; r += blk_h) {
         for (int c = 0; c + blk_w <= input_pic->width; c += blk_w) {
             {
-                uint8_t* src = input_pic->buffer_y + (input_pic->org_y + r) * input_pic->stride_y + input_pic->org_x +
+                uint8_t *src = input_pic->buffer_y + (input_pic->org_y + r) * input_pic->stride_y + input_pic->org_x +
                     c;
 
                 if (is_valid_palette_nb_colors(src, input_pic->stride_y, blk_w, blk_h, color_thresh)) {
@@ -1975,7 +1974,8 @@ void svt_aom_is_screen_content(PictureParentControlSet *pcs) {
     }
     //pcs->sc_class4 = (counts_1 * blk_h * blk_w * 10 > input_pic->width * input_pic->height) && (counts_2 * blk_h * blk_w * 12 > input_pic->width * input_pic->height);
     // v0 pcs->sc_class4 = (counts_1 * blk_h * blk_w * 12 > input_pic->width * input_pic->height) && (counts_2 * blk_h * blk_w * 13 > input_pic->width * input_pic->height);
-    pcs->sc_class4 = (counts_1 * blk_h * blk_w * 18 > input_pic->width * input_pic->height) && (counts_2 * blk_h * blk_w * 20 > input_pic->width * input_pic->height);
+    pcs->sc_class4 = (counts_1 * blk_h * blk_w * 18 > input_pic->width * input_pic->height) &&
+        (counts_2 * blk_h * blk_w * 20 > input_pic->width * input_pic->height);
 #endif
 }
 

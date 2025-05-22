@@ -408,12 +408,12 @@ EbErrorType pcs_update_param(PictureControlSet *pcs) {
         svt_picture_buffer_desc_update(pcs->input_frame16bit, (EbPtr)&coeff_buffer_desc_init_data);
     }
 #if OPT_ALLINTRA_STILLIMAGE_2
-	if (svt_aom_get_enable_restoration(scs->static_config.enc_mode,
-		scs->static_config.enable_restoration_filtering,
-		scs->input_resolution,
-		scs->static_config.fast_decode,
-		scs->static_config.avif,
-        scs->allintra)) {
+    if (svt_aom_get_enable_restoration(scs->static_config.enc_mode,
+                                       scs->static_config.enable_restoration_filtering,
+                                       scs->input_resolution,
+                                       scs->static_config.fast_decode,
+                                       scs->static_config.avif,
+                                       scs->allintra)) {
 #else
     if (svt_aom_get_enable_restoration(scs->static_config.enc_mode,
                                        scs->static_config.enable_restoration_filtering,
@@ -513,11 +513,11 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     object_ptr->scaled_input_pic                  = (EbPictureBufferDesc *)NULL;
 #if OPT_ALLINTRA_STILLIMAGE_2
     if (svt_aom_get_enable_restoration(init_data_ptr->enc_mode,
-        init_data_ptr->static_config.enable_restoration_filtering,
-        init_data_ptr->input_resolution,
-        init_data_ptr->static_config.fast_decode,
-        init_data_ptr->static_config.avif,
-        init_data_ptr->allintra)) {
+                                       init_data_ptr->static_config.enable_restoration_filtering,
+                                       init_data_ptr->input_resolution,
+                                       init_data_ptr->static_config.fast_decode,
+                                       init_data_ptr->static_config.avif,
+                                       init_data_ptr->allintra)) {
 #else
     if (svt_aom_get_enable_restoration(init_data_ptr->enc_mode,
                                        init_data_ptr->static_config.enable_restoration_filtering,

@@ -67,7 +67,7 @@ EbErrorType svt_sequence_control_set_ctor(SequenceControlSet *scs, EbPtr object_
     scs->b64_geom = NULL;
 
 #if !OPT_LD_MEM_2
-    scs->mvrate_set                   = 0;
+    scs->mvrate_set = 0;
 #endif
     scs->bits_for_picture_order_count = 16;
     scs->film_grain_random_seed       = 7391;

@@ -159,8 +159,7 @@ static const vector<uint8_t> default_pred_structure = {
     SVT_AV1_PRED_RANDOM_ACCESS,
 };
 static const vector<uint8_t> valid_pred_structure = {
-    SVT_AV1_PRED_LOW_DELAY,
-    SVT_AV1_PRED_RANDOM_ACCESS };
+    SVT_AV1_PRED_LOW_DELAY, SVT_AV1_PRED_RANDOM_ACCESS};
 #else
 /* Prediction structure used to construct GOP. There are two main structures
  * supported, which are: Low Delay (P or b) and Random Access.

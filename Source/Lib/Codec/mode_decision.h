@@ -34,12 +34,12 @@ extern "C" {
 /*! \brief Holds the motion samples for warp motion model estimation
  */
 typedef struct WarpSampleInfo {
-  //! Number of samples.
-  uint8_t num;
-  //! Sample locations in current frame.
-  int pts[SAMPLES_ARRAY_SIZE];
-  //! Sample location in the reference frame.
-  int pts_inref[SAMPLES_ARRAY_SIZE];
+    //! Number of samples.
+    uint8_t num;
+    //! Sample locations in current frame.
+    int pts[SAMPLES_ARRAY_SIZE];
+    //! Sample location in the reference frame.
+    int pts_inref[SAMPLES_ARRAY_SIZE];
 } WarpSampleInfo;
 #endif
 // Create incomplete struct definition for the following function pointer typedefs
@@ -51,18 +51,18 @@ struct ModeDecisionContext;
     **************************************/
 #if CLN_MBMI_IN_CAND
 typedef struct ModeDecisionCandidate {
-    BlockModeInfo block_mi;
-    Mv                     pred_mv[2]; // unipred MV stored in idx 0
-    PaletteInfo* palette_info;
-    EbWarpedMotionParams   wm_params_l0;
-    EbWarpedMotionParams   wm_params_l1;
-    TxType                 transform_type[MAX_TXB_COUNT];
-    TxType                 transform_type_uv;
-    uint8_t                palette_size[PLANE_TYPES];
+    BlockModeInfo      block_mi;
+    Mv                 pred_mv[2]; // unipred MV stored in idx 0
+    PaletteInfo       *palette_info;
+    WarpedMotionParams wm_params_l0;
+    WarpedMotionParams wm_params_l1;
+    TxType             transform_type[MAX_TXB_COUNT];
+    TxType             transform_type_uv;
+    uint8_t            palette_size[PLANE_TYPES];
 
-    CandClass      cand_class;
-    bool           skip_mode_allowed;
-    uint8_t        drl_index;
+    CandClass cand_class;
+    bool      skip_mode_allowed;
+    uint8_t   drl_index;
 } ModeDecisionCandidate;
 #else
 typedef struct ModeDecisionCandidate {
@@ -70,20 +70,20 @@ typedef struct ModeDecisionCandidate {
     Mv                     mv[2]; // unipred MV stored in idx 0
     Mv                     pred_mv[2]; // unipred MV stored in idx 0
 #else
-    Mv                     mv[MAX_NUM_OF_REF_PIC_LIST];
-    Mv                     pred_mv[MAX_NUM_OF_REF_PIC_LIST];
+    Mv       mv[MAX_NUM_OF_REF_PIC_LIST];
+    Mv       pred_mv[MAX_NUM_OF_REF_PIC_LIST];
 #endif
     PaletteInfo           *palette_info;
     uint32_t               interp_filters;
-    EbWarpedMotionParams   wm_params_l0;
-    EbWarpedMotionParams   wm_params_l1;
+    WarpedMotionParams     wm_params_l0;
+    WarpedMotionParams     wm_params_l1;
     InterInterCompoundData interinter_comp;
     TxType                 transform_type[MAX_TXB_COUNT];
     TxType                 transform_type_uv;
 #if CLN_WM_CTRLS
-    uint8_t               num_proj_ref;
+    uint8_t                num_proj_ref;
 #else
-    uint16_t               num_proj_ref;
+    uint16_t num_proj_ref;
 #endif
     uint8_t                palette_size[PLANE_TYPES];
 
@@ -104,17 +104,17 @@ typedef struct ModeDecisionCandidate {
 #if CLN_CAND_REF_FRAME
     MvReferenceFrame ref_frame[2];
 #else
-    uint8_t        ref_frame_type;
+    uint8_t  ref_frame_type;
 #endif
-    uint8_t        drl_index;
-    MotionMode     motion_mode;
-    uint8_t        tx_depth;
-    uint8_t        compound_idx;
-    uint8_t        comp_group_idx;
-    InterIntraMode interintra_mode;
-    uint8_t        is_interintra_used;
-    uint8_t        use_wedge_interintra;
-    int8_t         interintra_wedge_index;
+    uint8_t          drl_index;
+    MotionMode       motion_mode;
+    uint8_t          tx_depth;
+    uint8_t          compound_idx;
+    uint8_t          comp_group_idx;
+    InterIntraMode   interintra_mode;
+    uint8_t          is_interintra_used;
+    uint8_t          use_wedge_interintra;
+    int8_t           interintra_wedge_index;
 } ModeDecisionCandidate;
 #endif
 
@@ -168,16 +168,16 @@ typedef struct ModeDecisionCandidateBuffer {
     EbPictureBufferDesc *recon;
 
     // Costs
-    uint64_t   *fast_cost;
-    uint64_t   *full_cost;
-    uint64_t   *full_cost_ssim;
-    uint64_t    fast_luma_rate;
-    uint64_t    fast_chroma_rate;
-    uint64_t    total_rate;
-    uint32_t    luma_fast_dist;
+    uint64_t *fast_cost;
+    uint64_t *full_cost;
+    uint64_t *full_cost_ssim;
+    uint64_t  fast_luma_rate;
+    uint64_t  fast_chroma_rate;
+    uint64_t  total_rate;
+    uint32_t  luma_fast_dist;
 #if !CLN_MDS0
 #if OPT_OBMC
-    uint32_t    chroma_fast_dist;
+    uint32_t chroma_fast_dist;
 #endif
 #endif
     uint32_t    full_dist;
@@ -212,10 +212,10 @@ extern EbErrorType svt_aom_mode_decision_scratch_cand_bf_ctor(ModeDecisionCandid
 uint32_t product_full_mode_decision_light_pd0(struct ModeDecisionContext *ctx, BlkStruct *blk_ptr,
                                               ModeDecisionCandidateBuffer **buffer_ptr_array);
 #if CLN_MBMI_IN_BLKSTRUCT
-void svt_aom_product_full_mode_decision_light_pd1(PictureControlSet* pcs, struct ModeDecisionContext *ctx,
+void     svt_aom_product_full_mode_decision_light_pd1(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
                                                       uint32_t sb_addr, ModeDecisionCandidateBuffer *cand_bf);
-uint32_t svt_aom_product_full_mode_decision(PictureControlSet* pcs, struct ModeDecisionContext *ctx,
-                                            uint32_t sb_addr, ModeDecisionCandidateBuffer **buffer_ptr_array,
+uint32_t svt_aom_product_full_mode_decision(PictureControlSet *pcs, struct ModeDecisionContext *ctx, uint32_t sb_addr,
+                                            ModeDecisionCandidateBuffer **buffer_ptr_array,
                                             uint32_t candidate_total_count, uint32_t *best_candidate_index_array);
 #else
 void     svt_aom_product_full_mode_decision_light_pd1(struct ModeDecisionContext *ctx, BlkStruct *blk_ptr,
@@ -235,17 +235,17 @@ extern uint8_t svt_aom_wm_motion_refinement(PictureControlSet *pcs, struct ModeD
 #endif
 #if CLN_MV_IDX
 uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
-                                              ModeDecisionCandidate *cand, int refine_level);
+                                       ModeDecisionCandidate *cand, int refine_level);
 #else
 extern uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
                                               ModeDecisionCandidate *cand, uint8_t ref_list_idx, int refine_level);
 #endif
-EbErrorType    generate_md_stage_0_cand(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
-                                        uint32_t *fast_candidate_total_count);
-void           generate_md_stage_0_cand_light_pd1(struct ModeDecisionContext *ctx, uint32_t *fast_candidate_total_count,
-                                                  PictureControlSet *pcs);
-EbErrorType    generate_md_stage_0_cand_light_pd0(struct ModeDecisionContext *ctx, uint32_t *fast_candidate_total_count,
-                                                  PictureControlSet *pcs);
+EbErrorType generate_md_stage_0_cand(PictureControlSet *pcs, struct ModeDecisionContext *ctx,
+                                     uint32_t *fast_candidate_total_count);
+void        generate_md_stage_0_cand_light_pd1(struct ModeDecisionContext *ctx, uint32_t *fast_candidate_total_count,
+                                               PictureControlSet *pcs);
+EbErrorType generate_md_stage_0_cand_light_pd0(struct ModeDecisionContext *ctx, uint32_t *fast_candidate_total_count,
+                                               PictureControlSet *pcs);
 
 static INLINE int svt_aom_is_interintra_allowed_bsize(const BlockSize bsize) {
     return (bsize >= BLOCK_8X8) && (bsize <= BLOCK_32X32);
@@ -276,9 +276,9 @@ void svt_aom_choose_best_av1_mv_pred(struct ModeDecisionContext *ctx, struct MdR
 #endif
                                      uint8_t *bestDrlIndex, // output
 #if CLN_UNIFY_MV_TYPE
-                                     Mv    best_pred_mv[2] // output
+                                     Mv best_pred_mv[2] // output
 #else
-                                     IntMv    best_pred_mv[2] // output
+                                     IntMv best_pred_mv[2] // output
 #endif
 );
 static const uint32_t me_idx_85[] = {

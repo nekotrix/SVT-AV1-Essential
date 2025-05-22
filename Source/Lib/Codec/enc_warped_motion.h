@@ -20,9 +20,9 @@ extern "C" {
 
 // Returns the error between the result of applying motion 'wm' to the frame
 // described by 'ref' and the frame described by 'dst'.
-int64_t svt_av1_warp_error(EbWarpedMotionParams *wm, const uint8_t *ref, int width, int height, int stride,
-                           uint8_t *dst, int p_col, int p_row, int p_width, int p_height, int p_stride,
-                           int subsampling_x, int subsampling_y, uint8_t chess_refn, int64_t best_error);
+int64_t svt_av1_warp_error(WarpedMotionParams *wm, const uint8_t *ref, int width, int height, int stride, uint8_t *dst,
+                           int p_col, int p_row, int p_width, int p_height, int p_stride, int subsampling_x,
+                           int subsampling_y, uint8_t chess_refn, int64_t best_error);
 
 #ifdef __cplusplus
 }

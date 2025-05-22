@@ -44,8 +44,8 @@
 #if CLN_UNIFY_MV_TYPE
 static INLINE int svt_mv_err_cost(const Mv *mv, const Mv *ref_mv, const int *mvjcost, const int *const mvcost[2],
                                   int error_per_bit, MV_COST_TYPE mv_cost_type) {
-    const Mv diff = { { mv->x - ref_mv->x, mv->y - ref_mv->y} };
-    const Mv abs_diff = { { abs(diff.x), abs(diff.y)} };
+    const Mv diff     = {{mv->x - ref_mv->x, mv->y - ref_mv->y}};
+    const Mv abs_diff = {{abs(diff.x), abs(diff.y)}};
 
     switch (mv_cost_type) {
     case MV_COST_ENTROPY:
@@ -251,9 +251,9 @@ static AOM_FORCE_INLINE unsigned int svt_check_better(MacroBlockD *xd, const str
 }
 
 static INLINE Mv get_best_diag_step(int step_size, unsigned int left_cost, unsigned int right_cost,
-                                        unsigned int up_cost, unsigned int down_cost) {
-    const Mv diag_step = { { left_cost <= right_cost ? -step_size : step_size,
-                           up_cost <= down_cost ? -step_size : step_size} };
+                                    unsigned int up_cost, unsigned int down_cost) {
+    const Mv diag_step = {
+        {left_cost <= right_cost ? -step_size : step_size, up_cost <= down_cost ? -step_size : step_size}};
 
     return diag_step;
 }
@@ -264,10 +264,10 @@ static AOM_FORCE_INLINE Mv svt_first_level_check(MacroBlockD *xd, const struct A
                                                  const MV_COST_PARAMS *mv_cost_params, unsigned int *besterr,
                                                  unsigned int *sse1, int *distortion) {
     int      dummy     = 0;
-    const Mv left_mv   = {{ this_mv.x - hstep, this_mv.y}};
-    const Mv right_mv  = {{ this_mv.x + hstep, this_mv.y}};
-    const Mv top_mv    = {{ this_mv.x, this_mv.y - hstep}};
-    const Mv bottom_mv = {{ this_mv.x, this_mv.y + hstep}};
+    const Mv left_mv   = {{this_mv.x - hstep, this_mv.y}};
+    const Mv right_mv  = {{this_mv.x + hstep, this_mv.y}};
+    const Mv top_mv    = {{this_mv.x, this_mv.y - hstep}};
+    const Mv bottom_mv = {{this_mv.x, this_mv.y + hstep}};
 
     const unsigned int left = svt_check_better(
         xd, cm, &left_mv, best_mv, mv_limits, var_params, mv_cost_params, besterr, sse1, distortion, &dummy);
@@ -279,7 +279,7 @@ static AOM_FORCE_INLINE Mv svt_first_level_check(MacroBlockD *xd, const struct A
         xd, cm, &bottom_mv, best_mv, mv_limits, var_params, mv_cost_params, besterr, sse1, distortion, &dummy);
 
     const Mv diag_step = get_best_diag_step(hstep, left, right, up, down);
-    const Mv diag_mv = { { this_mv.x + diag_step.x, this_mv.y + diag_step.y} };
+    const Mv diag_mv   = {{this_mv.x + diag_step.x, this_mv.y + diag_step.y}};
 
     // Check the diagonal direction with the best mv
     svt_check_better(
@@ -308,9 +308,9 @@ static AOM_FORCE_INLINE void svt_second_level_check_v2(MacroBlockD *xd, const st
         diag_step.x *= -1;
     }
 
-    const Mv row_bias_mv  = { { best_mv->x, best_mv->y + diag_step.y} };
-    const Mv col_bias_mv  = { { best_mv->x + diag_step.x, best_mv->y} };
-    const Mv diag_bias_mv = { { best_mv->x + diag_step.x, best_mv->y + diag_step.y} };
+    const Mv row_bias_mv   = {{best_mv->x, best_mv->y + diag_step.y}};
+    const Mv col_bias_mv   = {{best_mv->x + diag_step.x, best_mv->y}};
+    const Mv diag_bias_mv  = {{best_mv->x + diag_step.x, best_mv->y + diag_step.y}};
     int      has_better_mv = 0;
     svt_check_better(xd,
                      cm,
@@ -372,12 +372,12 @@ static AOM_FORCE_INLINE Mv first_level_check_fast(MacroBlockD *xd, const struct 
                                                   unsigned int orgerr, unsigned int *sse1, int *distortion,
                                                   int is_scaled) {
     // Check the four cardinal directions
-    const Mv           left_mv = { { this_mv.x - hstep, this_mv.y} };
+    const Mv           left_mv = {{this_mv.x - hstep, this_mv.y}};
     int                dummy   = 0;
     const unsigned int left    = svt_check_better_fast(
         xd, cm, &left_mv, best_mv, mv_limits, var_params, mv_cost_params, besterr, sse1, distortion, &dummy, is_scaled);
 
-    const Mv           right_mv = { { this_mv.x + hstep, this_mv.y} };
+    const Mv           right_mv = {{this_mv.x + hstep, this_mv.y}};
     const unsigned int right    = svt_check_better_fast(xd,
                                                      cm,
                                                      &right_mv,
@@ -391,11 +391,11 @@ static AOM_FORCE_INLINE Mv first_level_check_fast(MacroBlockD *xd, const struct 
                                                      &dummy,
                                                      is_scaled);
 
-    const Mv           top_mv = { { this_mv.x, this_mv.y - hstep} };
+    const Mv           top_mv = {{this_mv.x, this_mv.y - hstep}};
     const unsigned int up     = svt_check_better_fast(
         xd, cm, &top_mv, best_mv, mv_limits, var_params, mv_cost_params, besterr, sse1, distortion, &dummy, is_scaled);
 
-    const Mv           bottom_mv = { {this_mv.x, this_mv.y + hstep} };
+    const Mv           bottom_mv = {{this_mv.x, this_mv.y + hstep}};
     const unsigned int down      = svt_check_better_fast(xd,
                                                     cm,
                                                     &bottom_mv,
@@ -410,7 +410,7 @@ static AOM_FORCE_INLINE Mv first_level_check_fast(MacroBlockD *xd, const struct 
                                                     is_scaled);
 
     const Mv diag_step = get_best_diag_step(hstep, left, right, up, down);
-    const Mv diag_mv = { { this_mv.x + diag_step.x, this_mv.y + diag_step.y} };
+    const Mv diag_mv   = {{this_mv.x + diag_step.x, this_mv.y + diag_step.y}};
     if (*besterr >= orgerr)
         return diag_step;
     // Check the diagonal direction with the best mv
@@ -496,7 +496,7 @@ static AOM_FORCE_INLINE void second_level_check_fast(MacroBlockD *xd, const stru
                               is_scaled);
 
         // Search in the direction opposite of the best quadrant
-        const Mv rev_mv = { { bc, br - diag_step.y} };
+        const Mv rev_mv = {{bc, br - diag_step.y}};
         svt_check_better_fast(xd,
                               cm,
                               &rev_mv,
@@ -512,8 +512,8 @@ static AOM_FORCE_INLINE void second_level_check_fast(MacroBlockD *xd, const stru
     } else if (tr != br && tc == bc) {
         assert(diag_step.y == br - tr);
         // Continue searching in the best direction
-        const Mv right_long_mv = { {bc + hstep, br + diag_step.y } };
-        const Mv left_long_mv = { { bc - hstep, br + diag_step.y } };
+        const Mv right_long_mv = {{bc + hstep, br + diag_step.y}};
+        const Mv left_long_mv  = {{bc - hstep, br + diag_step.y}};
         svt_check_better_fast(xd,
                               cm,
                               &right_long_mv,
@@ -540,7 +540,7 @@ static AOM_FORCE_INLINE void second_level_check_fast(MacroBlockD *xd, const stru
                               is_scaled);
 
         // Search in the direction opposite of the best quadrant
-        const Mv rev_mv = { { bc - diag_step.x, br} };
+        const Mv rev_mv = {{bc - diag_step.x, br}};
         svt_check_better_fast(xd,
                               cm,
                               &rev_mv,

@@ -1476,7 +1476,7 @@ static void  av1_generate_rps_info(
     uint64_t* ref_poc_array = av1_rps->ref_poc_array;
 
 #if OPT_NEW_LD_RPS
-#if OPT_RTC
+#if OPT_RTC && !TUNE_LD_RTC
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) {
 #else
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY && scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF) {
@@ -1507,7 +1507,7 @@ static void  av1_generate_rps_info(
         const uint8_t lay1_pic_idx = (hierarchical_levels == 0) ? 0 : ((1 << (hierarchical_levels - 1)) - 1);
         // When list1 is not used, the pics after the layer 1 pic should use the layer 1 pic as ref instead of previous base
         ref_dpb_index[LAST] = (pic_idx > lay1_pic_idx) && !is_base && ref_list1_count == 0 ? lay1_2_idx : base2_idx;
-#if OPT_RTC
+#if OPT_RTC && !TUNE_LD_RTC
         ref_dpb_index[LAST2] = ref_list1_count == 0 ? base1_idx : lay1_1_idx;
         ref_dpb_index[LAST3] = ref_list1_count == 0 ? lay1_2_idx : long_base_idx;
 #else

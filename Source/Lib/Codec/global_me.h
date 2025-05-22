@@ -17,6 +17,6 @@
 #include "me_context.h"
 
 void                    svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBufferDesc *input_pic);
-void                    svt_aom_upscale_wm_params(EbWarpedMotionParams *wm_params, uint8_t scale_factor);
+void                    svt_aom_upscale_wm_params(WarpedMotionParams *wm_params, uint8_t scale_factor);
 extern MvReferenceFrame svt_get_ref_frame_type(uint8_t list, uint8_t ref_idx);
 #endif // EbGlobalMotionEstimation_h

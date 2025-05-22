@@ -240,11 +240,18 @@ static inline void weighted_pred_left_neon(int32_t *wsrc_ptr, int32_t *mask_ptr,
     vst1q_s32(mask_ptr + stride, mask_hi_s32);
 }
 
+#if CLN_OBMC_BUILD_PRED
+void svt_av1_calc_target_weighted_pred_left_neon(uint8_t is16bit, MacroBlockD *xd, int rel_mi_row, uint8_t nb_mi_height,
+                                                 MbModeInfo *nb_mi, void *fun_ctxt) {
+    (void)nb_mi;
+    (void)is16bit;
+#else
 void svt_av1_calc_target_weighted_pred_left_neon(uint8_t is16bit, MacroBlockD *xd, int rel_mi_row, uint8_t nb_mi_height,
                                                  MbModeInfo *nb_mi, void *fun_ctxt, const int num_planes) {
     (void)nb_mi;
     (void)num_planes;
     (void)is16bit;
+#endif
 
     // Use tbl for doing a double-width zero extension from 8->32 bits since we
     // can do this in one instruction rather than two.

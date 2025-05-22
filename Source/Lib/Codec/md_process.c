@@ -133,7 +133,8 @@ void svt_aom_set_nics(SequenceControlSet *scs, NicScalingCtrls *scaling_ctrls, u
 void svt_aom_set_nics(NicScalingCtrls *scaling_ctrls, uint32_t mds1_count[CAND_CLASS_TOTAL],
 #endif
 #if OPT_REMOVE_NIC_QP_BANDS
-                      uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type, uint32_t qp);
+                      uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type,
+                      uint32_t qp);
 #else
                       uint32_t mds2_count[CAND_CLASS_TOTAL], uint32_t mds3_count[CAND_CLASS_TOTAL], uint8_t pic_type);
 #endif
@@ -185,12 +186,12 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
             uint8_t nic_level = svt_aom_get_nic_level(enc_mode, is_base, rtc_tune);
 #endif
             uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
-            min_nic_scaling_level = MIN(min_nic_scaling_level, nic_scaling_level);
+            min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
 #else
             for (uint8_t qp = MIN_QP_VALUE; qp <= MAX_QP_VALUE; qp++) {
-                uint8_t nic_level         = svt_aom_get_nic_level(enc_mode, is_base, qp, seq_qp_mod, rtc_tune);
+                uint8_t nic_level = svt_aom_get_nic_level(enc_mode, is_base, qp, seq_qp_mod, rtc_tune);
                 uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
-                min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
+                min_nic_scaling_level = MIN(min_nic_scaling_level, nic_scaling_level);
             }
 #endif
         }
@@ -231,9 +232,20 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
     }
 
     // If independent chroma search is used, need to allocate additional 84 candidate buffers
+#if TUNE_M0_3
+    bool is_chroma_mode_0 = false;
+    for (uint8_t is_i_slice = 0; is_i_slice < 2; is_i_slice++) {
+        is_chroma_mode_0 = svt_aom_set_chroma_controls(NULL, svt_aom_get_chroma_level(enc_mode, is_i_slice)) ==
+            CHROMA_MODE_0;
+        if (is_chroma_mode_0)
+            break;
+    }
+    const uint8_t ind_uv_cands = is_chroma_mode_0 ? 84 : 0;
+#else
     const uint8_t ind_uv_cands = svt_aom_set_chroma_controls(NULL, svt_aom_get_chroma_level(enc_mode)) == CHROMA_MODE_0
         ? 84
         : 0;
+#endif
     max_nics += CAND_CLASS_TOTAL; //need one extra temp buffer for each fast loop call
     ctx->max_nics    = max_nics;
     ctx->max_nics_uv = max_nics + ind_uv_cands;
@@ -326,8 +338,8 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
 
 #if OPT_LD_MEM_3
     // Set buffers for MD palette search to NULL; will be init'd at runtime if needed
-    ctx->palette_buffer = NULL;
-    ctx->palette_cand_array = NULL;
+    ctx->palette_buffer       = NULL;
+    ctx->palette_cand_array   = NULL;
     ctx->palette_size_array_0 = NULL;
 #else
     // MD palette search
@@ -339,8 +351,8 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
 
         EB_MALLOC_ARRAY(ctx->palette_size_array_0, MAX_PAL_CAND);
     } else {
-        ctx->palette_buffer       = NULL;
-        ctx->palette_cand_array   = NULL;
+        ctx->palette_buffer = NULL;
+        ctx->palette_cand_array = NULL;
         ctx->palette_size_array_0 = NULL;
     }
 #endif
@@ -493,9 +505,13 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
 
 #if OPT_LD_MEM_3 // TODO: coeffs need to be 32x32 only
     // Allocate temporary buffers used in TXT search
-    EB_NEW(ctx->tx_search_recon_coeff_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
+    EB_NEW(ctx->tx_search_recon_coeff_ptr,
+           svt_picture_buffer_desc_ctor,
+           (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
     EB_NEW(ctx->tx_search_recon_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&picture_buffer_desc_init_data);
-    EB_NEW(ctx->tx_search_quant_coeff_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
+    EB_NEW(ctx->tx_search_quant_coeff_ptr,
+           svt_picture_buffer_desc_ctor,
+           (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
 #else
     for (uint32_t txt_itr = 0; txt_itr < TX_TYPES; ++txt_itr) {
         EB_NEW(ctx->recon_coeff_ptr[txt_itr],

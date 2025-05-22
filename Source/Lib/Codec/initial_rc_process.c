@@ -176,15 +176,21 @@ void validate_pic_for_tpl(PictureParentControlSet *pcs, uint32_t pic_index) {
         }
     }
 }
-
+#if TUNE_VBR
+uint8_t svt_aom_get_tpl_group_level(uint8_t tpl, int8_t enc_mode) {
+#else
 uint8_t svt_aom_get_tpl_group_level(uint8_t tpl, int8_t enc_mode, SvtAv1RcMode rc_mode) {
+#endif
     uint8_t tpl_group_level;
     if (!tpl)
         tpl_group_level = 0;
     else if (enc_mode <= ENC_M5)
         tpl_group_level = 1;
-
+#if TUNE_VBR
+    else if (enc_mode <= ENC_M8)
+#else
     else if (enc_mode <= ENC_M8 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M9))
+#endif
         tpl_group_level = 3;
     else
         tpl_group_level = 4;
@@ -278,17 +284,31 @@ uint8_t svt_aom_set_tpl_group(PictureParentControlSet *pcs, uint8_t tpl_group_le
     memcpy(&pcs->tpl_ctrls, tpl_ctrls, sizeof(TplControls));
     return tpl_ctrls->synth_blk_size;
 }
-
+#if TUNE_VBR
+static uint8_t get_tpl_params_level(int8_t enc_mode) {
+#else
 static uint8_t get_tpl_params_level(int8_t enc_mode, SvtAv1RcMode rc_mode) {
+#endif
     uint8_t tpl_params_level;
 #if TUNE_M3
+#if TUNE_M3_3
+    if (enc_mode <= ENC_M2) {
+#else
     if (enc_mode <= ENC_M3) {
+#endif
 #else
     if (enc_mode <= ENC_M2) {
 #endif
         tpl_params_level = 1;
-
+#if TUNE_VBR
+#if TUNE_M8_3
+    } else if (enc_mode <= ENC_M7) {
+#else
+    } else if (enc_mode <= ENC_M8) {
+#endif
+#else
     } else if (enc_mode <= ENC_M8 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M9)) {
+#endif
         tpl_params_level = 4;
     } else {
         tpl_params_level = 5;
@@ -472,9 +492,13 @@ void store_extended_group(PictureParentControlSet *pcs, InitialRateControlContex
 
     for (uint32_t pic_index = 0; pic_index < pcs->tpl_group_size; pic_index++) {
         if (!pcs->tpl_group[pic_index]->tpl_params_ready) {
+#if TUNE_VBR
+            set_tpl_params(pcs->tpl_group[pic_index], get_tpl_params_level(pcs->scs->static_config.enc_mode));
+#else
             set_tpl_params(
                 pcs->tpl_group[pic_index],
                 get_tpl_params_level(pcs->scs->static_config.enc_mode, pcs->scs->static_config.rate_control_mode));
+#endif
             pcs->tpl_group[pic_index]->tpl_params_ready = 1;
         }
     }
@@ -696,40 +720,41 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
 
             pcs->tpl_params_ready = 0;
             svt_aom_set_tpl_group(pcs,
+#if TUNE_VBR
+                                  svt_aom_get_tpl_group_level(scs->tpl, scs->static_config.enc_mode),
+#else
                                   svt_aom_get_tpl_group_level(
                                       scs->tpl, scs->static_config.enc_mode, scs->static_config.rate_control_mode),
+#endif
                                   scs->max_input_luma_width,
                                   scs->max_input_luma_height);
 #if OPT_DELTA_QP
             // If TPL results are needed for the current hierarchical layer, but are not available, shut r0-based QPS/QPM
             if (!pcs->tpl_ctrls.enable ||
-                (pcs->tpl_ctrls.reduced_tpl_group >= 0 && pcs->temporal_layer_index > pcs->tpl_ctrls.reduced_tpl_group)) {
+                (pcs->tpl_ctrls.reduced_tpl_group >= 0 &&
+                 pcs->temporal_layer_index > pcs->tpl_ctrls.reduced_tpl_group)) {
                 pcs->r0_gen            = 0;
                 pcs->r0_qps            = 0;
                 pcs->r0_delta_qp_md    = 0;
                 pcs->r0_delta_qp_quant = 0;
 
-            }
-            else {
+            } else {
                 pcs->r0_gen = 1;
                 if (pcs->hierarchical_levels == 5) { // 6L
-                    pcs->r0_qps = pcs->r0_gen;
-                    pcs->r0_delta_qp_md = pcs->r0_gen && pcs->temporal_layer_index <= 3;
+                    pcs->r0_qps            = pcs->r0_gen;
+                    pcs->r0_delta_qp_md    = pcs->r0_gen && pcs->temporal_layer_index <= 3;
                     pcs->r0_delta_qp_quant = pcs->r0_delta_qp_md && pcs->temporal_layer_index == 0;
-                }
-                else if (pcs->hierarchical_levels == 4) { // 5L
-                    pcs->r0_qps = pcs->r0_gen;
-                    pcs->r0_delta_qp_md = pcs->r0_gen && pcs->temporal_layer_index <= 2;
+                } else if (pcs->hierarchical_levels == 4) { // 5L
+                    pcs->r0_qps            = pcs->r0_gen;
+                    pcs->r0_delta_qp_md    = pcs->r0_gen && pcs->temporal_layer_index <= 2;
                     pcs->r0_delta_qp_quant = pcs->r0_delta_qp_md && pcs->temporal_layer_index == 0;
-                }
-                else if (pcs->hierarchical_levels == 3) { // 4L
-                    pcs->r0_qps = pcs->r0_gen;
-                    pcs->r0_delta_qp_md = pcs->r0_gen && pcs->temporal_layer_index <= 1;
+                } else if (pcs->hierarchical_levels == 3) { // 4L
+                    pcs->r0_qps            = pcs->r0_gen;
+                    pcs->r0_delta_qp_md    = pcs->r0_gen && pcs->temporal_layer_index <= 1;
                     pcs->r0_delta_qp_quant = pcs->r0_delta_qp_md && pcs->slice_type == I_SLICE;
-                }
-                else { // 3L
-                    pcs->r0_qps = pcs->r0_gen && pcs->temporal_layer_index == 0;
-                    pcs->r0_delta_qp_md = pcs->r0_gen && pcs->temporal_layer_index == 0;
+                } else { // 3L
+                    pcs->r0_qps            = pcs->r0_gen && pcs->temporal_layer_index == 0;
+                    pcs->r0_delta_qp_md    = pcs->r0_gen && pcs->temporal_layer_index == 0;
                     pcs->r0_delta_qp_quant = (pcs->r0_delta_qp_md && pcs->slice_type == I_SLICE);
                 }
             }

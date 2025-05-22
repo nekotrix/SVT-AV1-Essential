@@ -53,7 +53,7 @@ typedef struct EntropyCodingContext {
     uint32_t pu_width;
     uint32_t pu_height;
 #if !CLN_UNUSED_SIGS
-    MvUnit   mv_unit;
+    MvUnit mv_unit;
 #endif
 
     uint32_t txb_itr;
@@ -85,14 +85,14 @@ typedef struct EntropyCodingContext {
      */
     bool cdef_transmitted[4];
 
-   /**
+    /**
    * \name Default values for the two restoration filters for each plane.
    * Default values for the two restoration filters for each plane.
    * These values are used as reference values when writing the bitstream. That
    * is, we transmit the delta between the actual values in
    * pcs->rst_info[plane].unit_info[runit_idx] and these reference values.
    */
-    WienerInfo wiener_info[MAX_MB_PLANE];
+    WienerInfo  wiener_info[MAX_MB_PLANE];
     SgrprojInfo sgrproj_info[MAX_MB_PLANE];
 #endif
 } EntropyCodingContext;

@@ -329,12 +329,12 @@ typedef struct SearchAreaMinMax {
 typedef struct SearchInfo {
     SearchArea sa; // search area sizes
 #if CLN_UNIFY_MV_TYPE
-    Mv      best_mv; // best mv
+    Mv best_mv; // best mv
 #else
-    IntMv      best_mv; // best mv
+    IntMv best_mv; // best mv
 #endif
-    uint64_t   sad; // best sad
-    uint8_t    valid; //1 if the mv+sad are valid; invalid for some pruned references.
+    uint64_t sad; // best sad
+    uint8_t  valid; //1 if the mv+sad are valid; invalid for some pruned references.
 } SearchInfo;
 
 typedef struct PreHmeCtrls {
@@ -380,35 +380,35 @@ typedef struct MeContext {
     uint8_t *b64_src_ptr;
     uint32_t b64_src_stride;
 
-    uint8_t           *quarter_b64_buffer;
-    uint32_t           quarter_b64_buffer_stride;
-    uint8_t           *sixteenth_b64_buffer;
-    uint32_t           sixteenth_b64_buffer_stride;
-    uint8_t           *integer_buffer_ptr[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
-    uint32_t          *p_best_sad_8x8;
-    uint32_t          *p_best_sad_16x16;
-    uint32_t          *p_best_sad_32x32;
-    uint32_t          *p_best_sad_64x64;
-    uint32_t          *p_best_mv8x8;
-    uint32_t          *p_best_mv16x16;
-    uint32_t          *p_best_mv32x32;
-    uint32_t          *p_best_mv64x64;
-    uint32_t           p_sad32x32[4];
-    uint32_t           p_sad16x16[16];
-    uint32_t           p_sad8x8[64];
-    uint32_t           p_sb_best_sad[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][SQUARE_PU_COUNT];
-    uint32_t           p_sb_best_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][SQUARE_PU_COUNT];
-    uint32_t          *p_best_full_pel_mv8x8;
-    uint32_t          *p_best_full_pel_mv16x16;
-    uint32_t          *p_best_full_pel_mv32x32;
-    uint32_t          *p_best_full_pel_mv64x64;
-    uint8_t            full_quarter_pel_refinement;
-    uint16_t          *p_eight_pos_sad16x16;
-    uint32_t           p_eight_sad32x32[4][8];
-    uint32_t           p_eight_sad16x16[16][8];
-    uint32_t           p_eight_sad8x8[64][8];
+    uint8_t  *quarter_b64_buffer;
+    uint32_t  quarter_b64_buffer_stride;
+    uint8_t  *sixteenth_b64_buffer;
+    uint32_t  sixteenth_b64_buffer_stride;
+    uint8_t  *integer_buffer_ptr[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
+    uint32_t *p_best_sad_8x8;
+    uint32_t *p_best_sad_16x16;
+    uint32_t *p_best_sad_32x32;
+    uint32_t *p_best_sad_64x64;
+    uint32_t *p_best_mv8x8;
+    uint32_t *p_best_mv16x16;
+    uint32_t *p_best_mv32x32;
+    uint32_t *p_best_mv64x64;
+    uint32_t  p_sad32x32[4];
+    uint32_t  p_sad16x16[16];
+    uint32_t  p_sad8x8[64];
+    uint32_t  p_sb_best_sad[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][SQUARE_PU_COUNT];
+    uint32_t  p_sb_best_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][SQUARE_PU_COUNT];
+    uint32_t *p_best_full_pel_mv8x8;
+    uint32_t *p_best_full_pel_mv16x16;
+    uint32_t *p_best_full_pel_mv32x32;
+    uint32_t *p_best_full_pel_mv64x64;
+    uint8_t   full_quarter_pel_refinement;
+    uint16_t *p_eight_pos_sad16x16;
+    uint32_t  p_eight_sad32x32[4][8];
+    uint32_t  p_eight_sad16x16[16][8];
+    uint32_t  p_eight_sad8x8[64][8];
 #if !OPT_LD_MEM_2
-    EbBitFraction     *mvd_bits_array;
+    EbBitFraction *mvd_bits_array;
 #endif
     uint8_t            hme_search_method;
     uint8_t            me_search_method;

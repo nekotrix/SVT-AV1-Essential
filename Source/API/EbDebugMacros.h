@@ -37,7 +37,6 @@ extern "C" {
 // svt-15 macros
 #define OPT_MAXP0P1                 1 // Modulate TH for intra modes
 #define CLN_REMOVE_TXS_ME_MOD       1 // Remove Me-based modulation of TXS level
-#define OPT_TXS_D2_IFF_D1_BEST      0 // Test TXS depth 2 iff depth 1 is best
 #define OPT_MDS_FEATS_PRUNING       1 // Optimize the feautres used in MDS1/2 and enable MDS2 pruning when MDS2 is skipped (using MDS1 cost)
 #define CLN_MDS_SIGS                1 // Cleanup MD staging signals
 #if CLN_MDS_SIGS
@@ -48,7 +47,6 @@ extern "C" {
 #define OPT_DEPTHS_CTRL             1 // Remove depths_ctrls, and rework depth_refinement_ctrls
 #define OPT_INTRA                   1 // Optimize INTRA levels
 #define OPT_MDS_BYPASS_NICS         1 // Don't update NIC counts when a stage is bypassed. Update pruning THs to adapt.
-#define OPT_FILTER_INTRA            0 // Optimize Filter-INTRA levels
 #define OPT_DR_SETTINGS             1 // Optimize the depth-removal settings
 #define CLN_HIGH_FREQUENCY          1 // delete high frequency modulation
 #define OPT_TXS                     1 // TXS Tuning
@@ -152,7 +150,7 @@ extern "C" {
 #define OPT_MDS0_M4                 1 // MDS0 Tuning. M4 takes the M5 level.
 #define OPT_CDEF_LEVEL1             1 // Use a more agressive level of zero_fs_cost_bias for decoder cycles gain.
 #define OPT_REF_INFO                1 // Opt features that rely on ref info to not use info from higher layers and use more refs
-#define TUNE_M1_2                   1 // M1 Tuning; Better spacing  
+#define TUNE_M1_2                   1 // M1 Tuning; Better spacing
 #define FIX_NIC_QP_SCALING          1 // Fix QP scaling for NIC pruning thresholds
 #define OPT_ALLINTRA_STILLIMAGE     1 // Tune all-intra coding
 #define FIX_STILLIMAGE_HRES         1 // Remove >4K preset restriction for still-image coding
@@ -162,7 +160,6 @@ extern "C" {
 #define TUNE_M2_2                   1 // M2 Tuning; Good speed up.
 #define TUNE_M3_2                   1 // M3 Tuning; Good BD-rate gain with small speed up.
 #define TUNE_M4_2                   1 // M4 Tuning ; Good trade-offs.
-#define TUNE_CHROMA_RDOQ            0 // Tune RDOQ towards chroma BDR
 #define OPT_ALLINTRA_STILLIMAGE_2   1 // Tune all-intra coding
 #define FIX_LAMBDA                  1 // Fix the input to def_arf_rd_multiplier() to use q instead of qinde
 #define FTR_USE_KEY_IF_ALLINTRA     1 // Use key-frame for all-intra coding
@@ -172,7 +169,7 @@ extern "C" {
 #define OPT_NIC_5                   1 // Tuning NIC M7-M10 levels.
 #define FIX_NIC_LVL_ONION_RING      1 // Fix the onion ring in NIC levels 14-20.
 #define OPT_RTC                     1 // Opt rtc cbr
-#define CLN_NIC_LEVELS              1 // Clean NIC levels; Remove the signal force_1_cand_th; Change the NIC level used for PD0 to level 10 (previously named 19).
+#define CLN_NIC_LEVELS              1 // Clean NIC levels; Change the NIC level used for PD0 to level 10 (previously named 19).
 #define TUNE_M4_LD                  1 // M4 Tuning; same chnages for RA & LD.
 #define TUNE_REENABLE_TF_LD_RTC     1 // Re-enable TF for RTC mode
 #define TUNE_M10_10BIT              1 // Tuning M10 for 10bit; 8bit is also impacted.
@@ -190,10 +187,42 @@ extern "C" {
 #define TUNE_M5_3                   1 // M5 Tuning; Extra speed-up.
 #define TUNE_M9                     1 // M9 Tuning; Impact RA and LD (common changes).
 #define TUNE_M7_4                   1 // M7 Tuning; Impact RA/LD and 8bit/10bit (common changes).
-#define CLN_CDEF_SEARCH_LEVEL7      0 // Unify the use of cdef_search_level 7 for M8+ presets.
-#define CLN_PIC_LPD1_LEVEL          0 // Unify the pic_lpd1_level settings for M8 and M9.
+#define CLN_CDEF_SEARCH_LEVEL7      1 // Unify the use of cdef_search_level 7 for M8+ presets.
+#define CLN_PIC_LPD1_LEVEL          1 // Unify the pic_lpd1_level settings for M8 and M9.
 #define FIX_R2R                     1 // Bypass unpacking of obmc_buff_0 and obmc_buff_1 when generated for 8-bit, and use 10bit for ifs when hybrid
 #define CLN_REMOVE_P_SLICE          1 // Remove P_SLICE - fixes bug in OPT_NEW_LD_RPS
+#define CLN_VARIANCE_DR             1 // Remove the use of variance for depth removal.
+#define TUNE_NEW_M6                 1 // Create a new M6
+#define CLN_OBMC_BUILD_PRED         1 // Add a per-plane loop for left-pred, and remove num_planes from the input(s)
+#define FIX_R2R_2                   1 // Re-compute obmc_buff_0 and obmc_buff_1 if 10bit compensation, but pre-computation done using 8bit
+#define TUNE_M9_SC                  1 // Tuning M9 for SC.
+#define TUNE_M8_SC                  1 // Tuning M8 for SC.
+#define TUNE_M7_5                   1 // Tuning M7 to fix the M8-M7-M6 spacing.
+#define TUNE_M0_3                   1 // Tune M0
+#define TUNE_M7_6                   1 // M7 Tuning.
+#define TUNE_M1_3                   1 // Tune M1 (still-image, all-intra)
+#define TUNE_M3_3                   1 // Tune M3
+#define TUNE_M7_SC                  1 // Tuning M7 for SC.
+#define TUNE_M6_SC                  1 // Tuning M6 for SC.
+#define FIX_R2R_3                   1 // Compute ii data if 10bit compensation, but pre-computation done using 8bit
+#define FIX_STARTUP_MG              1 // Do not block stratup-mg if stratup-mg = default (hierarchical_levels)
+#define TUNE_M3_SC                  1 // Tuning M3 for SC.
+#define TUNE_M5_4                   1 // M5 Tuning.
+#define TUNE_LD_RTC                 1 // Tune LD RTC
+#define TUNE_VBR                    1 // Adopt the MRP CRF levels in VBR for M5+, and the TPL group + TPL params CRF levels in VBR for M9; Fix the M10 MRP level for LD non-RTC.
+#define CLN_REMOVE_PSQ_FEAT         1 // remove psq_cplx_lvl under nsq search controls because it is unused
+#define CLN_REMOVE_FORCE_1_CAND     1 // Remove force_1_cand_th under nic pruning controls because it is unused
+#define FIX_SSSE_MDS2               1 // Don't skip MDS2 for inter cands if spatial SSE is first used in MDS2
+#define TUNE_M2_3                   1 // Tune M2 (still-image, all-intra)
+#define TUNE_M1_SC                  1 // Tuning M1 for SC.
+#define TUNE_M6_2                   1 // Tune the new M6.
+#define TUNE_M8_3                   1 // Tune M8 for better slope.
+#define TUNE_M3_4                   1 // Tune M3 for better slope.
+#define TUNE_M3_5                   1 // Tune M3 (still-image, all-intra)
+#define CLN_CAND_INJ_2              1 // Cleanup cand injection funcs
+#define CLN_FULL_LOOP_INPUTS        1 // Cleanup inputs to the full loop
+#define CLN_SUBRES_DET              1 // Move subres detector to its own function
+#define CLN_TXS_CHECKS              1 // Move checks that change start/end TX depth into get_start_end_tx_depth
 
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection
