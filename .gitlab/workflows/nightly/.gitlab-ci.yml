@@ -1,6 +1,5 @@
-image: registry.gitlab.com/aomediacodec/aom-testing/ubuntu2004
-
 Nightly runs:
+  image: ubuntu:24.04
   stage: compile
   script:
     - echo nightly test
