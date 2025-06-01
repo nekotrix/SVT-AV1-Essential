@@ -846,6 +846,7 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is false.
      */
     bool enable_qm;
+
     /**
      * @brief Min quant matrix flatness. Applicable when enable_qm is true.
      * Min value is 0.
@@ -988,6 +989,23 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is false.
      */
     bool avif;
+
+    /**
+     * @brief Min chroma quant matrix flatness. Applicable when enable_qm is true.
+     * Min value is 0.
+     * Max value is 15.
+     * Default is 8.
+     */
+    uint8_t min_chroma_qm_level;
+
+    /**
+     * @brief Max chroma quant matrix flatness. Applicable when enable_qm is true.
+     * Min value is 0.
+     * Max value is 15.
+     * Default is 15.
+     */
+    uint8_t max_chroma_qm_level;
+
 #if FTR_RTC_MODE
     /* @brief Signal to the library to enable real-time coding
      *
@@ -997,7 +1015,7 @@ typedef struct EbSvtAv1EncConfiguration {
 #endif
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
-    uint8_t padding[128
+    uint8_t padding[128 - (sizeof(uint8_t) * 2)
 #if FTR_RTC_MODE
         - sizeof(bool)
 #endif

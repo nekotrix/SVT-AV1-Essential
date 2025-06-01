@@ -184,6 +184,8 @@
 #define ENABLE_QM_TOKEN "--enable-qm"
 #define MIN_QM_LEVEL_TOKEN "--qm-min"
 #define MAX_QM_LEVEL_TOKEN "--qm-max"
+#define MIN_CHROMA_QM_LEVEL_TOKEN "--chroma-qm-min"
+#define MAX_CHROMA_QM_LEVEL_TOKEN "--chroma-qm-max"
 
 #define STARTUP_MG_SIZE_TOKEN "--startup-mg-size"
 #define STARTUP_QP_OFFSET_TOKEN "--startup-qp-offset"
@@ -786,6 +788,8 @@ ConfigDescription config_entry_rc[] = {
     {ENABLE_QM_TOKEN, "Enable quantisation matrices, default is 0 [0-1]"},
     {MIN_QM_LEVEL_TOKEN, "Min quant matrix flatness, default is 8 [0-15]"},
     {MAX_QM_LEVEL_TOKEN, "Max quant matrix flatness, default is 15 [0-15]"},
+    {MIN_CHROMA_QM_LEVEL_TOKEN, "Min chroma quant matrix flatness, default is 8 [0-15]"},
+    {MAX_CHROMA_QM_LEVEL_TOKEN, "Max chroma quant matrix flatness, default is 15 [0-15]"},
 #endif
     {ROI_MAP_FILE_TOKEN, "Enable Region Of Interest and specify a picture based QP Offset map file, default is off"},
     // TF Strength
@@ -1114,6 +1118,8 @@ ConfigEntry config_entry[] = {
     {ENABLE_QM_TOKEN, "EnableQM", set_cfg_generic_token},
     {MIN_QM_LEVEL_TOKEN, "MinQmLevel", set_cfg_generic_token},
     {MAX_QM_LEVEL_TOKEN, "MaxQmLevel", set_cfg_generic_token},
+    {MIN_CHROMA_QM_LEVEL_TOKEN, "MinChromaQmLevel", set_cfg_generic_token},
+    {MAX_CHROMA_QM_LEVEL_TOKEN, "MaxChromaQmLevel", set_cfg_generic_token},
 #endif
     // ROI
     {ROI_MAP_FILE_TOKEN, "RoiMapFile", set_cfg_roi_map_file},

@@ -5712,8 +5712,15 @@ static void copy_api_from_app(
     scs->static_config.enable_qm = config_struct->enable_qm;
     scs->static_config.min_qm_level = config_struct->min_qm_level;
     scs->static_config.max_qm_level = config_struct->max_qm_level;
-    if (scs->static_config.enable_qm && scs->static_config.min_qm_level == 15 && scs->static_config.max_qm_level == 15) {
-        SVT_WARN("Quantization matrices will be forced off since both min and max quant matrix levels are set to 15\n");
+    scs->static_config.min_chroma_qm_level = config_struct->min_chroma_qm_level;
+    scs->static_config.max_chroma_qm_level = config_struct->max_chroma_qm_level;
+    if (scs->static_config.enable_qm &&
+        scs->static_config.min_qm_level == 15 &&
+        scs->static_config.max_qm_level == 15 &&
+        scs->static_config.min_chroma_qm_level == 15 &&
+        scs->static_config.max_chroma_qm_level == 15)
+    {
+        SVT_WARN("Quantization matrices will be forced off since all min/max quant matrix levels are set to 15\n");
         scs->static_config.enable_qm = 0;
     }
     if (scs->static_config.enable_qm && scs->static_config.lossless) {
