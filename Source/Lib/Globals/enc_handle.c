@@ -517,7 +517,7 @@ static EbErrorType load_default_buffer_configuration_settings(
     me_seg_w = scs->me_segment_column_count_array[0];
 
 #if CLN_REMOVE_LDP
-    const bool is_low_delay = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY);
+    const bool is_low_delay = (scs->static_config.pred_structure == LOW_DELAY);
 #else
     const bool is_low_delay = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_P ||
         scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B);
@@ -3330,7 +3330,11 @@ static void derive_vq_params(SequenceControlSet* scs) {
 #endif
     }
     // Do not use scene_transition if LD or 1st pass or middle pass
+#if CLN_REMOVE_LDP
+    if (scs->static_config.pred_structure != RANDOM_ACCESS || scs->static_config.pass == ENC_FIRST_PASS)
+#else
     if (scs->static_config.pred_structure != SVT_AV1_PRED_RANDOM_ACCESS || scs->static_config.pass == ENC_FIRST_PASS)
+#endif
         vq_ctrl->sharpness_ctrls.scene_transition = 0;
 }
 /*
@@ -3346,7 +3350,7 @@ static void derive_tf_params(SequenceControlSet *scs) {
     const EncMode enc_mode = scs->static_config.enc_mode;
     uint8_t tf_level = 0;
 #if CLN_REMOVE_LDP
-    if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+    if (scs->static_config.pred_structure == LOW_DELAY) {
 #else
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_P || scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
 #endif
@@ -3868,7 +3872,7 @@ static void set_mrp_ctrl(SequenceControlSet* scs, uint8_t mrp_level) {
         break;
     }
 #if OPT_RTC && !TUNE_LD_RTC
-    if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY && scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR) {
+    if (scs->static_config.pred_structure == LOW_DELAY && scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR) {
         mrp_ctrl->sc_base_ref_list1_count = 0;
         mrp_ctrl->sc_non_base_ref_list1_count = 0;
         mrp_ctrl->base_ref_list1_count = 0;
@@ -3877,10 +3881,10 @@ static void set_mrp_ctrl(SequenceControlSet* scs, uint8_t mrp_level) {
 #else
     // For low delay mode, list1 references are not used
 #if OPT_NEW_LD_RPS
-    if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY && scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR) {
+    if (scs->static_config.pred_structure == LOW_DELAY && scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR) {
 #else
 #if CLN_REMOVE_LDP
-    if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+    if (scs->static_config.pred_structure == LOW_DELAY) {
 #else
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
 #endif
@@ -3937,7 +3941,7 @@ static uint8_t get_tpl(uint8_t pred_structure, uint8_t superres_mode, uint8_t re
         return 0;
     }
 #if CLN_REMOVE_LDP
-    else if (pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+    else if (pred_structure == LOW_DELAY) {
 #else
     else if (pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
 #endif
@@ -4048,7 +4052,7 @@ static void validate_scaling_params(SequenceControlSet *scs) {
     }
     if (scs->static_config.resize_mode == RESIZE_DYNAMIC) {
 #if CLN_REMOVE_LDP
-        if (scs->static_config.pred_structure != SVT_AV1_PRED_LOW_DELAY ||
+        if (scs->static_config.pred_structure != LOW_DELAY ||
 #else
         if (scs->static_config.pred_structure != 1 ||
 #endif
@@ -4303,7 +4307,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
 
     // no future minigop is used for lowdelay prediction structure
 #if CLN_REMOVE_LDP
-    if (scs->static_config.avif ||scs->allintra ||  scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+    if (scs->static_config.avif ||scs->allintra ||  scs->static_config.pred_structure == LOW_DELAY) {
 #else
 #if OPT_ALLINTRA
     if (scs->allintra || scs->static_config.avif || scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_P || scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
@@ -4544,7 +4548,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     // Enforce starting frame in decode order (at PicMgr)
     // Does not wait for feedback from PKT
 #if OPT_LD_MEM
-    if (scs->static_config.level_of_parallelism == 1 || scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY)
+    if (scs->static_config.level_of_parallelism == 1 || scs->static_config.pred_structure == LOW_DELAY)
 #else
     if (scs->static_config.level_of_parallelism == 1)
 #endif
@@ -4557,7 +4561,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     scs->enable_dec_order = 1;
 #else
 #if OPT_LD_MEM
-    if (scs->static_config.level_of_parallelism == 1 || scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY)
+    if (scs->static_config.level_of_parallelism == 1 || scs->static_config.pred_structure == LOW_DELAY)
 #else
     if (scs->static_config.level_of_parallelism == 1)
 #endif
@@ -4606,7 +4610,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->input_resolution >= INPUT_SIZE_4K_RANGE ||
         scs->static_config.fast_decode !=0 ||
 #if CLN_REMOVE_LDP
-        scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY || scs->static_config.pass != ENC_SINGLE_PASS || scs->static_config.enc_mode >= ENC_M8)
+        scs->static_config.pred_structure == LOW_DELAY || scs->static_config.pass != ENC_SINGLE_PASS || scs->static_config.enc_mode >= ENC_M8)
 #else
         scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B || scs->static_config.pass != ENC_SINGLE_PASS || scs->static_config.enc_mode >= ENC_M8)
 #endif
@@ -4677,6 +4681,16 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         else if (scs->static_config.enc_mode <= ENC_M8)
             mrp_level = 6;
         else if (scs->static_config.enc_mode <= ENC_M9)
+#if CLN_REMOVE_LDP
+            mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 7 : 8;
+        else
+            if (scs->static_config.encoder_bit_depth == EB_EIGHT_BIT) {
+                mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 10 : 0;
+            }
+            else {
+                mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 7 : 0;
+            }
+#else
             mrp_level = scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? 7 : 8;
         else
             if (scs->static_config.encoder_bit_depth == EB_EIGHT_BIT) {
@@ -4685,6 +4699,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
             else {
                     mrp_level = scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? 7 : 0;
             }
+#endif
 #else
         // any changes for preset ENC_M5 and higher should be separated for VBR and CRF in the control structure below
         else if (scs->static_config.rate_control_mode != SVT_AV1_RC_MODE_VBR) {
@@ -4708,21 +4723,38 @@ static void set_param_based_on_input(SequenceControlSet *scs)
                 mrp_level = 6;
             else if (scs->static_config.enc_mode <= ENC_M9)
 #if OPT_NEW_LD_RPS
+#if CLN_REMOVE_LDP
+                mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 7 : 8;
+#else
                 mrp_level = scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? 7 : 8;
+#endif
 #else
                 mrp_level = 7;
 #endif
             else
 #if OPT_NEW_LD_RPS
 #if TUNE_M10_10BIT
+#if CLN_REMOVE_LDP
+                if (scs->static_config.encoder_bit_depth == EB_EIGHT_BIT) {
+                    mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 10 : 0;
+                }
+                else {
+                    mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 7 : 8;
+                }
+#else
                 if (scs->static_config.encoder_bit_depth == EB_EIGHT_BIT) {
                     mrp_level = scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? 10 : 0;
                 }
                 else {
                     mrp_level = scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? 7 : 8;
                 }
+#endif
+#else
+#if CLN_REMOVE_LDP
+                mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 10 : 0;
 #else
                 mrp_level = scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? 10 : 0;
+#endif
 #endif
 #else
                 mrp_level = 0;
@@ -4803,9 +4835,17 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     scs->resize_pending_params.resize_state = ORIG;
     scs->resize_pending_params.resize_denom = SCALE_NUMERATOR;
 #if FTR_RTC_MODE
+#if CLN_REMOVE_LDP
+    scs->stats_based_sb_lambda_modulation = (scs->static_config.pred_structure == RANDOM_ACCESS || !scs->static_config.rtc_mode) &&
+#else
     scs->stats_based_sb_lambda_modulation = (scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS || !scs->static_config.rtc_mode) &&
+#endif
+#else
+#if CLN_REMOVE_LDP
+    scs->stats_based_sb_lambda_modulation = scs->static_config.pred_structure == RANDOM_ACCESS &&
 #else
     scs->stats_based_sb_lambda_modulation = scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS &&
+#endif
 #endif
                                                 scs->static_config.rate_control_mode != SVT_AV1_RC_MODE_CBR
         ? 1
@@ -4838,9 +4878,9 @@ static void copy_api_from_app(
     // Tpl is disabled in low delay applications
 #if CLN_REMOVE_LDP
 #if OPT_ALLINTRA_STILLIMAGE_2
-    if (scs->static_config.avif || scs->allintra || scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+    if (scs->static_config.avif || scs->allintra || scs->static_config.pred_structure == LOW_DELAY) {
 #else
-    if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY || scs->static_config.avif) {
+    if (scs->static_config.pred_structure == LOW_DELAY || scs->static_config.avif) {
 #endif
 #else
     if (scs->static_config.pred_structure == 0 || scs->static_config.avif) {
@@ -4881,7 +4921,11 @@ static void copy_api_from_app(
     svt_aom_derive_input_resolution(
         &input_resolution,
         scs->max_input_luma_width * scs->max_input_luma_height);
+#if CLN_REMOVE_LDP
+    if (scs->static_config.pred_structure == RANDOM_ACCESS && scs->static_config.enc_mode > ENC_M9 && input_resolution >= INPUT_SIZE_4K_RANGE) {
+#else
     if (scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS && scs->static_config.enc_mode > ENC_M9 && input_resolution >= INPUT_SIZE_4K_RANGE) {
+#endif
         scs->static_config.enc_mode = ENC_M9;
         SVT_WARN("Setting preset to M9 as it is the highest supported preset for 4k and higher resolutions in Random Access mode\n");
     }
@@ -4986,7 +5030,7 @@ static void copy_api_from_app(
     scs->static_config.rate_control_mode = ((EbSvtAv1EncConfiguration*)config_struct)->rate_control_mode;
 #if FTR_RTC_MODE
 #if CLN_REMOVE_LDP
-    if (scs->static_config.pred_structure != SVT_AV1_PRED_LOW_DELAY) {
+    if (scs->static_config.pred_structure != LOW_DELAY) {
 #else
     if (scs->static_config.pred_structure != SVT_AV1_PRED_LOW_DELAY_P && scs->static_config.pred_structure != SVT_AV1_PRED_LOW_DELAY_B) {
 #endif
@@ -5019,14 +5063,14 @@ static void copy_api_from_app(
     // Set the default hierarchical levels
     if (scs->static_config.hierarchical_levels == 0) {
 #if OPT_NEW_LD_RPS
-        scs->static_config.hierarchical_levels = scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY &&
+        scs->static_config.hierarchical_levels = scs->static_config.pred_structure == LOW_DELAY &&
             (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR || !(scs->static_config.enc_mode <= ENC_M9)) ?
             2 :
-            scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY ?
+            scs->static_config.pred_structure == LOW_DELAY ?
             3 :
 #else
 #if CLN_REMOVE_LDP
-        scs->static_config.hierarchical_levels = scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY ?
+        scs->static_config.hierarchical_levels = scs->static_config.pred_structure == LOW_DELAY ?
 #else
         scs->static_config.hierarchical_levels = scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B ?
 #endif
@@ -5040,7 +5084,7 @@ static void copy_api_from_app(
                 : 5;
     }
 #if CLN_REMOVE_LDP
-    if (scs->static_config.pass == ENC_SINGLE_PASS && scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+    if (scs->static_config.pass == ENC_SINGLE_PASS && scs->static_config.pred_structure == LOW_DELAY) {
 #else
     if (scs->static_config.pass == ENC_SINGLE_PASS && scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
 #endif
@@ -5973,7 +6017,7 @@ static EbErrorType validate_on_the_fly_settings(EbBufferHeaderType *input_ptr, S
                 return EB_ErrorBadParameter;
             }
 #if CLN_REMOVE_LDP
-            else if (scs->static_config.pred_structure != SVT_AV1_PRED_LOW_DELAY) {
+            else if (scs->static_config.pred_structure != LOW_DELAY) {
 #else
             else if (scs->static_config.pred_structure != SVT_AV1_PRED_LOW_DELAY_B) {
 #endif
@@ -6033,7 +6077,7 @@ static EbErrorType validate_on_the_fly_settings(EbBufferHeaderType *input_ptr, S
             }
             if ((scs->static_config.target_bit_rate != node_data->target_bit_rate) &&
 #if CLN_REMOVE_LDP
-                !((scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) && (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR))) {
+                !((scs->static_config.pred_structure == LOW_DELAY) && (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR))) {
 #else
                 !((scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) && (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR))) {
 #endif
@@ -6234,7 +6278,7 @@ EB_API EbErrorType svt_av1_enc_get_packet(
     }
 
 #if CLN_REMOVE_LDP
-    if (pic_send_done || cfg->pred_structure == SVT_AV1_PRED_LOW_DELAY)
+    if (pic_send_done || cfg->pred_structure == LOW_DELAY)
 #else
     if (pic_send_done || cfg->pred_structure == SVT_AV1_PRED_LOW_DELAY_B)
 #endif

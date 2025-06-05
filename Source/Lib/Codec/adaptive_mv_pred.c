@@ -2024,7 +2024,11 @@ void svt_aom_generate_av1_mvp_table(ModeDecisionContext *ctx, BlkStruct *blk_ptr
     IntMv mv_ref0[64];
 #endif
     if (pcs->temporal_layer_index > 0)
+#if CLN_REMOVE_LDP
+        if (pcs->ppcs->scs->static_config.pred_structure == RANDOM_ACCESS)
+#else
         if (pcs->ppcs->scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS)
+#endif
             if (tot_refs == 3 && ref_frames[0] == LAST_FRAME && ref_frames[1] == BWDREF_FRAME &&
                 ref_frames[2] == LAST_BWD_FRAME)
                 symteric_refs = 1;
@@ -2315,8 +2319,7 @@ void svt_aom_update_mi_map(BlkStruct *blk_ptr, uint32_t blk_org_x, uint32_t blk_
     // copy mbmi data
 #if CLN_MBMI_IN_BLKSTRUCT
     svt_memcpy(block_mi, &blk_ptr->block_mi, sizeof(BlockModeInfo));
-    //block_mi->tx_depth       = blk_ptr->tx_depth;
-    //block_mi->comp_group_idx = blk_ptr->comp_group_idx;
+
     if (svt_av1_allow_palette(pcs->ppcs->palette_level, blk_geom->bsize)) {
         mbmi->palette_mode_info.palette_size = blk_ptr->palette_size[0];
         svt_memcpy(mbmi->palette_mode_info.palette_colors,
@@ -2328,39 +2331,7 @@ void svt_aom_update_mi_map(BlkStruct *blk_ptr, uint32_t blk_org_x, uint32_t blk_
 
     mbmi->bsize     = blk_geom->bsize;
     mbmi->partition = from_shape_to_part[blk_geom->shape];
-    //block_mi->mode         = blk_ptr->pred_mode;
-    //block_mi->skip         = (blk_ptr->block_has_coeff) ? false : true;
-    //block_mi->skip_mode    = (int8_t)blk_ptr->skip_mode;
-    //block_mi->uv_mode      = blk_ptr->intra_chroma_mode;
-    //block_mi->use_intrabc  = blk_ptr->use_intrabc;
-    //block_mi->ref_frame[0] = blk_ptr->ref_frame[0];
-    //block_mi->ref_frame[1] = blk_ptr->ref_frame[1];
     assert(IMPLIES(blk_ptr->block_mi.is_interintra_used, block_mi->ref_frame[1] == INTRA_FRAME));
-    //if (blk_ptr->prediction_mode_flag == INTER_MODE || block_mi->use_intrabc) {
-    //    // unipred MVs always stored in idx0
-    //    block_mi->mv[0].as_int = blk_ptr->mv[0].as_int;
-    //    if (blk_ptr->inter_pred_direction_index == BI_PRED) {
-    //        block_mi->mv[1].as_int = blk_ptr->mv[1].as_int;
-    //    }
-
-    //    block_mi->compound_idx   = blk_ptr->compound_idx;
-    //    block_mi->interp_filters = blk_ptr->interp_filters;
-    //    block_mi->interinter_comp = blk_ptr->interinter_comp;
-    //    block_mi->motion_mode = blk_ptr->motion_mode;
-    //    block_mi->is_interintra_used = blk_ptr->is_interintra_used;
-    //    block_mi->interintra_mode = blk_ptr->interintra_mode;
-    //    block_mi->use_wedge_interintra = blk_ptr->use_wedge_interintra;
-    //    block_mi->interintra_wedge_index = blk_ptr->interintra_wedge_index;
-    //    block_mi->num_proj_ref = blk_ptr->num_proj_ref;
-    //}
-    //if (blk_ptr->prediction_mode_flag == INTRA_MODE) {
-    //    block_mi->angle_delta[PLANE_TYPE_Y] = blk_ptr->angle_delta[PLANE_TYPE_Y];
-    //    block_mi->angle_delta[PLANE_TYPE_UV] = blk_ptr->angle_delta[PLANE_TYPE_UV];
-    //    block_mi->cfl_alpha_idx = blk_ptr->cfl_alpha_idx;
-    //    block_mi->cfl_alpha_signs = blk_ptr->cfl_alpha_signs;
-    //    block_mi->filter_intra_mode = blk_ptr->filter_intra_mode;
-
-    //}
 #else
     block_mi->tx_depth       = blk_ptr->tx_depth;
     block_mi->comp_group_idx = blk_ptr->comp_group_idx;

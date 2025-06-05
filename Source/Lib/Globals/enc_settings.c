@@ -54,15 +54,19 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 #if CLN_REMOVE_LDP
-    if (config->pred_structure > SVT_AV1_PRED_RANDOM_ACCESS || config->pred_structure < SVT_AV1_PRED_LOW_DELAY) {
+    if (config->pred_structure > RANDOM_ACCESS || config->pred_structure < LOW_DELAY) {
+        SVT_ERROR("Instance %u: Pred Structure must be [%d (low delay) or %d (random access)]\n",
+                  channel_number + 1,
+                  LOW_DELAY,
+                  RANDOM_ACCESS);
 #else
     if (config->pred_structure > 2 || config->pred_structure < 1) {
-#endif
         SVT_ERROR("Instance %u: Pred Structure must be [1 or 2]\n", channel_number + 1);
+#endif
         return_error = EB_ErrorBadParameter;
     }
 #if CLN_REMOVE_LDP
-    if (config->pred_structure == SVT_AV1_PRED_LOW_DELAY && config->pass > 0) {
+    if (config->pred_structure == LOW_DELAY && config->pass > 0) {
 #else
     if (config->pred_structure == 1 && config->pass > 0) {
 #endif
@@ -144,7 +148,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             channel_number + 1);
 
     if (config->force_key_frames &&
+#if CLN_REMOVE_LDP
+        (config->rate_control_mode == SVT_AV1_RC_MODE_CBR || config->pred_structure != RANDOM_ACCESS)) {
+#else
         (config->rate_control_mode == SVT_AV1_RC_MODE_CBR || config->pred_structure != SVT_AV1_PRED_RANDOM_ACCESS)) {
+#endif
         SVT_WARN(
             "Instance %u: Force key frames is now supported for lowdelay but the force_key_frames flag"
             " does not need to be set be on. Please follow the app samples shown by the FTR_KF_ON_FLY_SAMPLE"
@@ -160,16 +168,22 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Max Bitrate only supported with CRF mode\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if CLN_REMOVE_LDP
+    if (config->rate_control_mode == SVT_AV1_RC_MODE_CBR && config->pred_structure == RANDOM_ACCESS) {
+        SVT_ERROR("CBR Rate control is currently not supported for RANDOM_ACCESS, use VBR mode\n");
+#else
     if (config->rate_control_mode == SVT_AV1_RC_MODE_CBR && config->pred_structure == SVT_AV1_PRED_RANDOM_ACCESS) {
         SVT_ERROR("CBR Rate control is currently not supported for SVT_AV1_PRED_RANDOM_ACCESS, use VBR mode\n");
+#endif
         return_error = EB_ErrorBadParameter;
     }
 #if CLN_REMOVE_LDP
-    if (config->rate_control_mode == SVT_AV1_RC_MODE_VBR && config->pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+    if (config->rate_control_mode == SVT_AV1_RC_MODE_VBR && config->pred_structure == LOW_DELAY) {
+        SVT_ERROR("VBR Rate control is currently not supported for LOW_DELAY, use CBR mode\n");
 #else
     if (config->rate_control_mode == SVT_AV1_RC_MODE_VBR && config->pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
-#endif
         SVT_ERROR("VBR Rate control is currently not supported for SVT_AV1_PRED_LOW_DELAY_B, use CBR mode\n");
+#endif
         return_error = EB_ErrorBadParameter;
     }
     if (config->rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF && config->target_bit_rate != DEFAULT_TBR) {
@@ -532,7 +546,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
     if (config->tune == 2) {
+#if CLN_REMOVE_LDP
+        if (config->rate_control_mode != 0 || config->pred_structure != RANDOM_ACCESS) {
+#else
         if (config->rate_control_mode != 0 || config->pred_structure != SVT_AV1_PRED_RANDOM_ACCESS) {
+#endif
             SVT_ERROR("Instance %u: tune SSIM only supports CRF rate control mode currently\n",
                       channel_number + 1,
                       config->tune);
@@ -687,7 +705,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 #if CLN_REMOVE_LDP
-    if (config->sframe_dist > 0 && config->pred_structure != SVT_AV1_PRED_LOW_DELAY) {
+    if (config->sframe_dist > 0 && config->pred_structure != LOW_DELAY) {
 #else
     if (config->sframe_dist > 0 && config->pred_structure != SVT_AV1_PRED_LOW_DELAY_P &&
         config->pred_structure != SVT_AV1_PRED_LOW_DELAY_B) {
@@ -794,7 +812,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     }
 
 #if CLN_REMOVE_LDP
-    if (config->pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+    if (config->pred_structure == LOW_DELAY) {
 #else
     if (config->pred_structure == 1) {
 #endif
@@ -943,7 +961,11 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->multiply_keyint              = false;
     config_ptr->intra_refresh_type           = 2;
     config_ptr->hierarchical_levels          = 0;
-    config_ptr->pred_structure               = SVT_AV1_PRED_RANDOM_ACCESS;
+#if CLN_REMOVE_LDP
+    config_ptr->pred_structure = RANDOM_ACCESS;
+#else
+    config_ptr->pred_structure = SVT_AV1_PRED_RANDOM_ACCESS;
+#endif
     config_ptr->enable_dlf_flag              = true;
     config_ptr->cdef_level                   = DEFAULT;
     config_ptr->enable_restoration_filtering = DEFAULT;
@@ -1098,9 +1120,9 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                  config->tune == 0       ? "VQ"
                      : config->tune == 1 ? "PSNR"
                                          : "SSIM",
-                 config->pred_structure == SVT_AV1_PRED_LOW_DELAY           ? "low delay"
-                     : config->pred_structure == SVT_AV1_PRED_RANDOM_ACCESS ? "random access"
-                                                                            : "Unknown pred structure");
+                 config->pred_structure == LOW_DELAY           ? "low delay"
+                     : config->pred_structure == RANDOM_ACCESS ? "random access"
+                                                               : "Unknown pred structure");
 #else
         SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t\t: %d / %s / %s\n",
                  config->enc_mode,

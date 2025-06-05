@@ -709,12 +709,14 @@ static const uint32_t MD_STAGE_NICS_SCAL_NUM[NICS_SCALING_LEVELS][MD_STAGE_TOTAL
     {0, 2, 0, 0}, // LEVEL 14
     {0, 0, 0, 0} // LEVEL 15
 };
+#if !CLN_UNUSED_SIGS
 // NICS
 #define MAX_FRAME_TYPE 3 // Max number of frame type allowed for nics
 #define ALL_S0 -1 // Allow all candidates from stage0
 #define MAX_REF_TYPE_CAND 30
 #define PRUNE_REC_TH 5
 #define PRUNE_REF_ME_TH 2
+#endif
 typedef enum {
     EIGHTTAP_REGULAR,
     EIGHTTAP_SMOOTH,
@@ -1442,8 +1444,10 @@ MAX_NUM_TEMPORAL_LAYERS * MAX_NUM_SPATIAL_LAYERS
 static INLINE int32_t is_valid_seq_level_idx(uint8_t seq_level_idx) {
     return seq_level_idx < 24 || seq_level_idx == 31;
 }
+#if !CLN_UNUSED_SIGS
 #define TXCOEFF_TIMER 0
 #define TXCOEFF_COST_TIMER 0
+#endif
 
 typedef enum
 {
@@ -1887,10 +1891,12 @@ typedef enum FrameContextIndex {
 // Total number of QM sets stored
 #define QM_LEVEL_BITS 4
 #define NUM_QM_LEVELS (1 << QM_LEVEL_BITS)
+#if !CLN_UNUSED_SIGS
 //**********************************************************************************************************************//
 // blockd.h
 #define NO_FILTER_FOR_IBC 1 // Disable in-loop filters for frame with intrabc
 //**********************************************************************************************************************//
+#endif
 // av1_loopfilter.h
 #define MAX_LOOP_FILTER 63
 #define MAX_SHARPNESS 7
@@ -1918,10 +1924,12 @@ struct LoopFilter {
 #define MAX_SEGMENTS 8
 #define MAX_MB_PLANE 3
 
+#if !CLN_UNUSED_SIGS
 #define MAX_LOOP_FILTER 63
 #define MAX_SHARPNESS 7
 
 #define SIMD_WIDTH 16
+#endif
 // Need to align this structure so when it is declared and
 // passed it can be loaded into vector registers.
 typedef struct LoopFilterThresh {
@@ -1944,7 +1952,7 @@ typedef struct LoopFilterInfoN {
 // Given the general homography:
 //      [x'     (a  b  c   [x
 //  z .  y'  =   d  e  f *  y
-//       1]      g  h  i)    1]
+//       1]      0  0  1)    1]
 //
 // Constants using the name ALPHA here are related to parameters
 // a, b, d, e. Constants using the name TRANS are related
@@ -1994,8 +2002,7 @@ typedef struct LoopFilterInfoN {
 #define GM_ALPHA_MIN -GM_ALPHA_MAX
 #define GM_ROW3HOMO_MIN -GM_ROW3HOMO_MAX
 /* clang-format off */
-typedef enum TransformationType
-{
+typedef enum TransformationType {
     IDENTITY = 0,      // identity transformation, 0-parameter
     TRANSLATION = 1,   // translational motion 2-parameter
     ROTZOOM = 2,       // simplified affine with rotation + zoom only, 4-parameter
@@ -2132,6 +2139,33 @@ typedef enum MD_BIT_DEPTH_MODE
     EB_DUAL_BIT_MD  = 2     // Auto: 8bit & 10bit mode decision
 } MD_BIT_DEPTH_MODE;
 
+#if CLN_REMOVE_LDP
+#if SVT_AV1_CHECK_VERSION(4,0,0)
+ /* Indicates what prediction structure to use
+  */
+typedef enum PredStructure {
+    LOW_DELAY = 0,
+    RANDOM_ACCESS = 1,
+    PRED_TOTAL_COUNT = 2,
+    PRED_INVALID = 0xFF
+} PredStructure;
+#else
+ /* Indicates what prediction structure to use
+  *
+  * SVT_AV1_PRED_UNUSED is not used, and not supported in the code. It is a placeholder after removing SVT_AV1_PRED_LOW_DELAY_P
+  * so that the values for --pred-struct don't need to change.
+  *
+  * TODO: At v4.0 remove PRED_UNUSED to have only LOW_DELAY and RANDOM_ACCESS. Need to update documentation for --pred-struct
+  */
+typedef enum PredStructure {
+    PRED_UNUSED = 0, // Do not use
+    LOW_DELAY = 1,
+    RANDOM_ACCESS = 2,
+    PRED_TOTAL_COUNT = 3,
+    PRED_INVALID = 0xFF
+} PredStructure;
+#endif
+#endif
 /*
  * The SliceType type is used to describe the slice prediction type.
  */
@@ -2151,6 +2185,7 @@ typedef enum ATTRIBUTE_PACKED {
 } SliceType;
 #endif
 
+#if !CLN_UNUSED_SIGS
 /** The EbModeType type is used to describe the PU type.
 */
 typedef uint8_t EbModeType;
@@ -2158,6 +2193,7 @@ typedef uint8_t EbModeType;
 #define INTRA_MODE 2
 
 #define INVALID_MODE 0xFFu
+#endif
 #define SPEED_CONTROL_INIT_MOD ENC_M5;
 typedef enum ATTRIBUTE_PACKED {
     REF_LIST_0 = 0,
@@ -2271,10 +2307,11 @@ typedef struct EbMemoryMapEntry
     EbPtr                    prev_entry;     // pointer to the prev entry
 } EbMemoryMapEntry;
 
+#if !CLN_UNUSED_SIGS
 // Rate Control
 #define THRESHOLD1QPINCREASE     1
 #define THRESHOLD2QPINCREASE     2
-
+#endif
 #define ALVALUE 64
 
 #define EB_CREATE_SEMAPHORE(pointer, initial_count, max_count) \
@@ -2321,9 +2358,11 @@ svt_memcpy_intrin_sse(void* dst_ptr, const void* src_ptr, size_t size);
 #define EB_MEMSET(dst, val, count) \
 memset(dst, val, count)
 
+#if !CLN_UNUSED_SIGS
 //#ifdef __cplusplus
 //}
 //#endif // __cplusplus
+#endif
 
 /**************************************
 * Callback Functions
@@ -2345,23 +2384,29 @@ void(*error_handler)(
 
 //***Encoding Parameters***
 
+#if !CLN_UNUSED_SIGS
 #define INTERNAL_BIT_DEPTH                          8 // to be modified
 #define MAX_SAMPLE_VALUE                            ((1 << INTERNAL_BIT_DEPTH) - 1)
 #define MAX_SAMPLE_VALUE_10BIT                      0x3FF
+#endif
 #define BLOCK_SIZE_64                                64u
 #define LOG2F_MAX_SB_SIZE                          6u
 #define LOG2_64_SIZE                                6 // log2(BLOCK_SIZE_64)
 #define MAX_LEVEL_COUNT                             5 // log2(BLOCK_SIZE_64) - log2(MIN_BLOCK_SIZE)
 #define LOG_MIN_BLOCK_SIZE                          3
 #define MIN_BLOCK_SIZE                              (1 << LOG_MIN_BLOCK_SIZE)
+#if !CLN_UNUSED_SIGS
 #define LOG_MIN_PU_SIZE                             2
 #define MIN_PU_SIZE                                 (1 << LOG_MIN_PU_SIZE)
 #define MAX_NUM_OF_PU_PER_CU                        1
+#endif
 #define MAX_NUM_OF_REF_PIC_LIST                     2
+#if !CLN_UNUSED_SIGS
 #define MAX_NUM_OF_PART_SIZE                        8
 #define MIN_CU_BLK_COUNT                            ((BLOCK_SIZE_64 / MIN_BLOCK_SIZE) * (BLOCK_SIZE_64 / MIN_BLOCK_SIZE))
 #define MAX_NUM_OF_TU_PER_CU                        21
 #define MIN_NUM_OF_TU_PER_CU                        5
+#endif
 // super-resolution definitions
 #define MIN_SUPERRES_DENOM                          8
 #define MAX_SUPERRES_DENOM                          16
@@ -2383,6 +2428,7 @@ void(*error_handler)(
 #define _MVXT(mv) ( (int16_t)((mv) &  0xFFFF) )
 #define _MVYT(mv) ( (int16_t)((mv) >> 16    ) )
 
+#if !CLN_UNUSED_SIGS
 //***MCP***
 
 #define InternalBitDepth            8                                     // to be modified
@@ -2391,7 +2437,7 @@ void(*error_handler)(
 #define IF_Prec                     14                                    // to be modified
 #define IF_Negative_Offset          (IF_Prec - 1)                         // to be modified
 #define InternalBitDepthIncrement   (InternalBitDepth - 8)
-
+#endif
 #define MIN_QP_VALUE                     0
 #define MAX_QP_VALUE                    63
 // Noise detection
@@ -2632,7 +2678,9 @@ typedef struct StatStruct
     uint8_t    worst_qindex;
     uint8_t    temporal_layer_index;
 } StatStruct;
+#if !CLN_UNUSED_SIGS
 #define SC_MAX_LEVEL 2 // 2 sets of HME/ME settings are used depending on the scene content mode
+#endif
 static const uint8_t me_idx_85_8x8_to_16x16_conversion[] = {
     5,5,      6,6,      7,7,      8,8,
     5,5,      6,6,      7,7,      8,8,

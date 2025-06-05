@@ -174,19 +174,18 @@ typedef enum EbSFrameMode {
 } EbSFrameMode;
 
 #if CLN_REMOVE_LDP
-/* Indicates what prediction structure to use
- * was PredStructure in definitions.h
- *
- * SVT_AV1_PRED_UNUSED is not used, and not supported in the code. It is a placeholder after removing SVT_AV1_PRED_LOW_DELAY_P
- * so that the values for --pred-struct don't need to change.
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
+/* Do not use the values in SvtAv1PredStructure. Use PredStructure (in definitions.h) instead.
+ * SvtAv1PredStructure will be deprecated in v4.0.
  */
 typedef enum SvtAv1PredStructure {
-    SVT_AV1_PRED_UNUSED        = 0, // Do not use
-    SVT_AV1_PRED_LOW_DELAY     = 1,
+    SVT_AV1_PRED_LOW_DELAY_P   = 0, // No longer active
+    SVT_AV1_PRED_LOW_DELAY_B   = 1,
     SVT_AV1_PRED_RANDOM_ACCESS = 2,
     SVT_AV1_PRED_TOTAL_COUNT   = 3,
     SVT_AV1_PRED_INVALID       = 0xFF,
 } SvtAv1PredStructure;
+#endif
 #else
 /* Indicates what prediction structure to use
  * was PredStructure in definitions.h
@@ -272,6 +271,22 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is 5 upt to M12 4, for M13. */
     uint32_t hierarchical_levels;
 
+#if CLN_REMOVE_LDP
+    /* Prediction structure used to construct GOP. There are two main structures
+     * supported, which are: Low Delay and Random Access.
+     *
+     * In Low Delay structure, pictures within a mini GOP refer to the previously
+     * encoded pictures in display order. In other words, pictures with display
+     * order N can only be referenced by pictures with display order greater than
+     * N, and it can only refer pictures with picture order lower than N.
+     *
+     * In Random Access structure, the B/b pictures can refer to reference pictures
+     * from both directions (past and future).
+     *
+     * Refer to PredStructure enum for valid values.
+     *
+     * Default is RANDOM_ACCESS. */
+#else
     /* Prediction structure used to construct GOP. There are two main structures
      * supported, which are: Low Delay (P or B) and Random Access.
      *
@@ -290,6 +305,7 @@ typedef struct EbSvtAv1EncConfiguration {
      * Refer to SvtAv1PredStructure enum for valid values.
      *
      * Default is SVT_AV1_PRED_RANDOM_ACCESS. */
+#endif
     uint8_t pred_structure;
 
     // Input Info

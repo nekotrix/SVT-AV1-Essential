@@ -1137,7 +1137,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             // Get Empty Output Results Object
             // For the low delay mode, buffering for receiving EOS does not happen
 #if CLN_REMOVE_LDP
-            if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+            if (scs->static_config.pred_structure == LOW_DELAY) {
 #else
             if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
 #endif

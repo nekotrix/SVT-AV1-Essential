@@ -374,7 +374,7 @@ typedef struct PictureControlSet {
 #else
     ModeInfo **mi_grid_base; // 2 SB Rows of mi Data are enough
 
-    ModeInfo *mip;
+    ModeInfo           *mip;
 #endif
 
     int32_t mi_stride;
@@ -929,10 +929,14 @@ typedef struct PictureParentControlSet {
     uint8_t tpl_src_data_ready;
     bool    blk_lambda_tuning;
     // Dynamic GOP
+#if CLN_REMOVE_LDP
+    PredStructure pred_structure;
+#else
     SvtAv1PredStructure pred_structure;
-    uint8_t             hierarchical_levels;
-    bool                init_pred_struct_position_flag;
-    int8_t              hierarchical_layers_diff;
+#endif
+    uint8_t hierarchical_levels;
+    bool    init_pred_struct_position_flag;
+    int8_t  hierarchical_layers_diff;
     // HME Flags
     bool enable_hme_flag;
     bool enable_hme_level0_flag;
@@ -1216,7 +1220,7 @@ typedef struct PictureParentControlSet {
     bool r0_delta_qp_md;
     bool r0_delta_qp_quant;
 #else
-    bool      r0_based_qps_qpm;
+    bool                r0_based_qps_qpm;
 #endif
     uint32_t         dpb_order_hint[REF_FRAMES]; // spec 6.8.2. ref_order_hint[]
     DGDetectorSeg   *dg_detector; // dg detector segments control struct

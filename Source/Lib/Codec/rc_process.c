@@ -990,7 +990,7 @@ static int cqp_qindex_calc(PictureControlSet *pcs, int qindex) {
         : MAX(q_val - (q_val * percents[pcs->ppcs->hierarchical_levels <= 4][offset_idx] / 100), 0.0);
 
 #if CLN_REMOVE_LDP
-    if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY) {
+    if (scs->static_config.pred_structure == LOW_DELAY) {
 #else
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_P ||
         scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {

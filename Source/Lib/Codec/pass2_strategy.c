@@ -1073,7 +1073,11 @@ void svt_aom_one_pass_rt_rate_alloc(PictureParentControlSet *pcs) {
      */
     // resize dynamic mode only works with 1-pass CBR low delay mode
     if (scs->static_config.resize_mode == RESIZE_DYNAMIC && scs->static_config.pass == ENC_SINGLE_PASS &&
+#if CLN_REMOVE_LDP
+        scs->static_config.pred_structure == LOW_DELAY) {
+#else
         scs->static_config.pred_structure == 1) {
+#endif
         dynamic_resize_one_pass_cbr(pcs);
         if (rc->resize_state != scs->resize_pending_params.resize_state) {
             if (rc->resize_state == ORIG)

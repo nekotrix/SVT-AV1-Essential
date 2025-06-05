@@ -4429,7 +4429,7 @@ EbErrorType svt_av1_init_temporal_filtering(
         list_input_picture_ptr[i] = pcs_list[i]->enhanced_unscaled_pic;
 
 #if CLN_REMOVE_LDP
-    if (centre_pcs->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY)
+    if (centre_pcs->scs->static_config.pred_structure == LOW_DELAY)
 #else
     if(centre_pcs->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B)
 #endif
