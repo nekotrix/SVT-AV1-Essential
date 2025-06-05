@@ -39,8 +39,7 @@ typedef struct position {
 static INLINE Mv get_block_mv(const MbModeInfo *candidate, int32_t which_mv) {
     return candidate->block_mi.mv[which_mv];
 }
-#else
-#if CLN_REMOVE_MODE_INFO
+#elif CLN_REMOVE_MODE_INFO
 static INLINE IntMv get_block_mv(const MbModeInfo *candidate, int32_t which_mv) {
     return candidate->block_mi.mv[which_mv];
 }
@@ -49,7 +48,6 @@ static INLINE IntMv get_sub_block_mv(const ModeInfo *candidate, int32_t which_mv
     (void)search_col;
     return candidate->mbmi.block_mi.mv[which_mv];
 }
-#endif
 #endif
 static INLINE int32_t is_inside(const TileInfo *const tile, int32_t mi_col, int32_t mi_row, const Position *mi_pos) {
     return !(mi_row + mi_pos->row < tile->mi_row_start || mi_col + mi_pos->col < tile->mi_col_start ||

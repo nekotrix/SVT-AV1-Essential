@@ -3972,6 +3972,13 @@ static bool get_sb_tpl_inter_stats(PictureControlSet *pcs, ModeDecisionContext *
         const int      tpl_blk_size    = ppcs->tpl_ctrls.dispenser_search_level == 0 ? 16
                     : ppcs->tpl_ctrls.dispenser_search_level == 1                    ? 32
                                                                                      : 64;
+#if FIX_TPL_RESULTS_USE
+        // tpl_src_stats_buffer is created for 16x16 always, so TPL dispenser is for larger block sizes
+        // the step between blocks must be adjusted
+        const int tpl_blk_step = ppcs->tpl_ctrls.dispenser_search_level == 0 ? 1
+            : ppcs->tpl_ctrls.dispenser_search_level == 1                    ? 2
+                                                                             : 4;
+#endif
 
         // Get actual SB width (for cases of incomplete SBs)
         SbGeom   *sb_geom = &ppcs->sb_geom[ctx->sb_index];
@@ -3984,12 +3991,17 @@ static bool get_sb_tpl_inter_stats(PictureControlSet *pcs, ModeDecisionContext *
 
         // Loop over all blocks in the SB
         for (int i = 0; i < sb_rows; i++) {
+#if FIX_TPL_RESULTS_USE
+            TplSrcStats *tpl_src_stats_buffer =
+                &ppcs->pa_me_data->tpl_src_stats_buffer[((mb_origin_y >> 4) + (i * tpl_blk_step)) * aligned16_width +
+                                                        (mb_origin_x >> 4)];
+#else
             TplSrcStats *tpl_src_stats_buffer =
                 &ppcs->pa_me_data
                      ->tpl_src_stats_buffer[((mb_origin_y >> 4) + i) * aligned16_width + (mb_origin_x >> 4)];
+#endif
             for (int j = 0; j < sb_cols; j++) {
                 tot_cnt++;
-
                 if (!is_intra_mode(tpl_src_stats_buffer->best_mode)) {
                     uint8_t list_index    = tpl_src_stats_buffer->best_rf_idx < 4 ? 0 : 1;
                     uint8_t ref_pic_index = tpl_src_stats_buffer->best_rf_idx >= 4
@@ -4000,7 +4012,11 @@ static bool get_sb_tpl_inter_stats(PictureControlSet *pcs, ModeDecisionContext *
                     inter_cnt++;
                 }
 
+#if FIX_TPL_RESULTS_USE
+                tpl_src_stats_buffer += tpl_blk_step;
+#else
                 tpl_src_stats_buffer++;
+#endif
             }
         }
 

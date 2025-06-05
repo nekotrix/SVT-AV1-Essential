@@ -21,10 +21,7 @@
 #include "md_process.h"
 #include "adaptive_mv_pred.h"
 
-#if CLN_UNIFY_MV_TYPE
-int svt_av1_refining_search_sad(IntraBcContext *x, Mv *ref_mv, int error_per_bit, int search_range,
-                                const AomVarianceFnPtr *fn_ptr, const Mv *center_mv);
-#else
+#if !CLN_UNIFY_MV_TYPE
 int svt_aom_is_dv_valid(const MV dv, const MacroBlockD *xd, int mi_row, int mi_col, BlockSize bsize, int mib_size_log2);
 int svt_av1_refining_search_sad(IntraBcContext *x, MV *ref_mv, int error_per_bit, int search_range,
                                 const AomVarianceFnPtr *fn_ptr, const MV *center_mv);
@@ -521,6 +518,67 @@ int svt_av1_diamond_search_sad_c(IntraBcContext *x, const SearchSiteConfig *cfg,
     return bestsad;
 }
 
+static int svt_av1_refining_search_sad(IntraBcContext *x, Mv *ref_mv, int error_per_bit, int search_range,
+                                       const AomVarianceFnPtr *fn_ptr, const Mv *center_mv) {
+    const Mv                  neighbors[4] = {{{0, -1}}, {{-1, 0}}, {{1, 0}}, {{0, 1}}};
+    const struct Buf2D *const what         = &x->plane[0].src;
+    const struct Buf2D *const in_what      = &x->xdplane[0].pre[0];
+    const Mv                  fcenter_mv   = {{center_mv->x >> 3, center_mv->y >> 3}};
+    const uint8_t            *best_address = get_buf_from_mv(in_what, ref_mv);
+    unsigned int              best_sad     = fn_ptr->sdf(what->buf, what->stride, best_address, in_what->stride) +
+        mvsad_err_cost(x, ref_mv, &fcenter_mv, error_per_bit);
+    for (int i = 0; i < search_range; i++) {
+        int       best_site = -1;
+        const int all_in    = (ref_mv->y - 1) > x->mv_limits.row_min && (ref_mv->y + 1) < x->mv_limits.row_max &&
+            (ref_mv->x - 1) > x->mv_limits.col_min && (ref_mv->x + 1) < x->mv_limits.col_max;
+
+        if (all_in) {
+            unsigned int         sads[4];
+            const uint8_t *const positions[4] = {
+                best_address - in_what->stride, best_address - 1, best_address + 1, best_address + in_what->stride};
+
+            fn_ptr->sdx4df(what->buf, what->stride, positions, in_what->stride, sads);
+
+            for (int j = 0; j < 4; ++j) {
+                if (sads[j] < best_sad) {
+                    const Mv mv = {{ref_mv->x + neighbors[j].x, ref_mv->y + neighbors[j].y}};
+                    sads[j] += mvsad_err_cost(x, &mv, &fcenter_mv, error_per_bit);
+                    if (sads[j] < best_sad) {
+                        best_sad  = sads[j];
+                        best_site = j;
+                    }
+                }
+            }
+        } else {
+            for (int j = 0; j < 4; ++j) {
+                const Mv mv = {{ref_mv->x + neighbors[j].x, ref_mv->y + neighbors[j].y}};
+
+                if (is_mv_in(&x->mv_limits, &mv)) {
+                    unsigned int sad = fn_ptr->sdf(
+                        what->buf, what->stride, get_buf_from_mv(in_what, &mv), in_what->stride);
+                    if (sad < best_sad) {
+                        sad += mvsad_err_cost(x, &mv, &fcenter_mv, error_per_bit);
+                        if (sad < best_sad) {
+                            best_sad  = sad;
+                            best_site = j;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (best_site == -1) {
+            break;
+        } else {
+            x->second_best_mv = *ref_mv;
+            ref_mv->y += neighbors[best_site].y;
+            ref_mv->x += neighbors[best_site].x;
+            best_address = get_buf_from_mv(in_what, ref_mv);
+        }
+    }
+
+    return best_sad;
+}
 /* do_refine: If last step (1-away) of n-step search doesn't pick the center
               point as the best match, we will do a final 1-away diamond
               refining search  */
@@ -654,67 +712,6 @@ static int full_pixel_exhaustive(PictureControlSet *pcs, IntraBcContext *x, cons
     return bestsme;
 }
 
-int svt_av1_refining_search_sad(IntraBcContext *x, Mv *ref_mv, int error_per_bit, int search_range,
-                                const AomVarianceFnPtr *fn_ptr, const Mv *center_mv) {
-    const Mv                  neighbors[4] = {{{0, -1}}, {{-1, 0}}, {{1, 0}}, {{0, 1}}};
-    const struct Buf2D *const what         = &x->plane[0].src;
-    const struct Buf2D *const in_what      = &x->xdplane[0].pre[0];
-    const Mv                  fcenter_mv   = {{center_mv->x >> 3, center_mv->y >> 3}};
-    const uint8_t            *best_address = get_buf_from_mv(in_what, ref_mv);
-    unsigned int              best_sad     = fn_ptr->sdf(what->buf, what->stride, best_address, in_what->stride) +
-        mvsad_err_cost(x, ref_mv, &fcenter_mv, error_per_bit);
-    for (int i = 0; i < search_range; i++) {
-        int       best_site = -1;
-        const int all_in    = (ref_mv->y - 1) > x->mv_limits.row_min && (ref_mv->y + 1) < x->mv_limits.row_max &&
-            (ref_mv->x - 1) > x->mv_limits.col_min && (ref_mv->x + 1) < x->mv_limits.col_max;
-
-        if (all_in) {
-            unsigned int         sads[4];
-            const uint8_t *const positions[4] = {
-                best_address - in_what->stride, best_address - 1, best_address + 1, best_address + in_what->stride};
-
-            fn_ptr->sdx4df(what->buf, what->stride, positions, in_what->stride, sads);
-
-            for (int j = 0; j < 4; ++j) {
-                if (sads[j] < best_sad) {
-                    const Mv mv = {{ref_mv->x + neighbors[j].x, ref_mv->y + neighbors[j].y}};
-                    sads[j] += mvsad_err_cost(x, &mv, &fcenter_mv, error_per_bit);
-                    if (sads[j] < best_sad) {
-                        best_sad  = sads[j];
-                        best_site = j;
-                    }
-                }
-            }
-        } else {
-            for (int j = 0; j < 4; ++j) {
-                const Mv mv = {{ref_mv->x + neighbors[j].x, ref_mv->y + neighbors[j].y}};
-
-                if (is_mv_in(&x->mv_limits, &mv)) {
-                    unsigned int sad = fn_ptr->sdf(
-                        what->buf, what->stride, get_buf_from_mv(in_what, &mv), in_what->stride);
-                    if (sad < best_sad) {
-                        sad += mvsad_err_cost(x, &mv, &fcenter_mv, error_per_bit);
-                        if (sad < best_sad) {
-                            best_sad  = sad;
-                            best_site = j;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (best_site == -1) {
-            break;
-        } else {
-            x->second_best_mv = *ref_mv;
-            ref_mv->y += neighbors[best_site].y;
-            ref_mv->x += neighbors[best_site].x;
-            best_address = get_buf_from_mv(in_what, ref_mv);
-        }
-    }
-
-    return best_sad;
-}
 static int get_obmc_mvpred_var(const IntraBcContext *x, const int32_t *wsrc, const int32_t *mask, const Mv *best_mv,
                                const Mv *center_mv, const AomVarianceFnPtr *vfp, int use_mvcost, int is_second) {
     const struct Buf2D *in_what = (const struct Buf2D *)(&x->xdplane[0].pre[is_second]);

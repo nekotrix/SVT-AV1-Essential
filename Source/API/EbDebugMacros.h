@@ -223,6 +223,7 @@ extern "C" {
 #define CLN_FULL_LOOP_INPUTS        1 // Cleanup inputs to the full loop
 #define CLN_SUBRES_DET              1 // Move subres detector to its own function
 #define CLN_TXS_CHECKS              1 // Move checks that change start/end TX depth into get_start_end_tx_depth
+#define FIX_TPL_RESULTS_USE         1 // Fix how TPL results are accessed to ensure valid data is used
 
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection
