@@ -88,8 +88,8 @@ $`f`$ is a nonlinear constraint function, $`S`$ is the
 filter strength and $`D`$ is the filter damping.
 
 When $`|p(m,n)-p(i,j)|`$ is small, $`f(p(m,n)-p(i,j),S,D)=p(m,n)-p(i,j)`$, implying that the filter
-behaves as an FIR filter. When $`|p(m,n)-p(i,j)|$ is large,
-$f(p(m,n)-p(i,j),S,D)=0`$ and no filtering is applied to the sample. The function $`f`$
+behaves as an FIR filter. When $`|p(m,n)-p(i,j)|`$ is large,
+$`f(p(m,n)-p(i,j),S,D)=0`$ and no filtering is applied to the sample. The function $`f`$
 de-emphasizes neighboring pixels $`p(m,n)`$ with large
 contrast (i.e. large magnitude of $`p(m,n)-p(i,j)`$. The strength
 $`S`$ and damping $`D`$ parameters control the attenuation of the large magnitude differences.

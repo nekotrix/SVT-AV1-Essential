@@ -156,7 +156,7 @@ The figure below illustrates the main idea behind the filter.
 
 The derivation of the filter parameters is outlined below.
 
-  - Compute the mean $`\mu`$ and the square of the variance $`\sigma^2$ of a $(2r+1)x(2r+1)`$ window `w` around the sample $`\mathbf{p_r}`$ in the reconstructed image.
+  - Compute the mean $`\mu`$ and the square of the variance $`\sigma^2`$ of a $`(2r+1)`$x$`(2r+1)`$ window `w` around the sample $`\mathbf{p_r}`$ in the reconstructed image.
   - Define $`f=\frac{\sigma^2}{\sigma^2+\varepsilon}`$, $`\mathbf{g=(1-f)\mu}`$.
     The parameter $`\varepsilon`$ is used to tune the filter.
   - Repeat the same computations above for every sample in the window

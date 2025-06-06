@@ -165,11 +165,11 @@ Edge Variance Mask (Hev\_Mask), Flat\_Mask, Flat\_Mask2
 
         If
 
-        - $`ABS(\pi-(\pi-1)) > limit, i=1,…,n`$; OR
+        - $`ABS(p_{i} - p_{i-1}) > limit, i=1,…,n`$; OR
 
-        - $`ABS(q_{i} – q_{i-1}) > limit, i=1,…,n`$; OR
+        - $`ABS(q_{i} - q_{i-1}) > limit, i=1,…,n`$; OR
 
-        - $`ABS(p_{0} - q_{0}) * 2 + ABS(p_{1} -q_{1}) / 2 > blimit`$.
+        - $`ABS(p_{0} - q_{0}) * 2 + ABS(p_{1} - q_{1}) / 2 > blimit`$.
 
         then the edge is most likely a true edge. In that case, do not filter
         the tested samples and set Filter\_Mask to zero. Otherwise,
@@ -178,7 +178,7 @@ Edge Variance Mask (Hev\_Mask), Flat\_Mask, Flat\_Mask2
   - Hev\_Mask: Used to identify edges with large change in pixel values
     on either side of the edge. (See the function ```hev_mask```)
 
-       If $`ABS(p_1-p_0) > thresh$ OR $ABS(p_1-p_0) > thresh`$, then $`Hev\_Mask = 1`$,
+       If $`ABS(p_{1}-p_{0}) > thresh`$ OR $`ABS(q_{1}-q_{0}) > thresh`$, then $`Hev\_Mask = 1`$,
        else $`Hev\_Mask = 0`$.
 
   - Flat\_Mask: Considered when Filter\_Length \>= 6. Indicates whether
@@ -190,7 +190,7 @@ Edge Variance Mask (Hev\_Mask), Flat\_Mask, Flat\_Mask2
 
     - $`ABS(p_{i} - p_{0}) <= thresh, i=1,…,n`$; AND
 
-    - $`ABS(p_{i} - p_{0}) <= thresh, i=1,…,n`$
+    - $`ABS(q_{i} - q_{0}) <= thresh, i=1,…,n`$
 
     Otherwise, Flat\_Mask = 0.
 
