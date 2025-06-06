@@ -1309,7 +1309,11 @@ static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
                     search_area_height *= me_ctx->mv_based_sa_adj.sa_multiplier;
             }
 #if OPT_SC_ME
+#if OPT_SC_ME_2
+            if (me_ctx->sc_class_me_boost &&
+#else
             if (me_ctx->sc_class4_me_boost &&
+#endif
                 (pcs->ahd_error == (uint32_t)~0 || // Use ahd_error only when it is derived
                  pcs->ahd_error < ((((20 * pcs->enhanced_pic->width * pcs->enhanced_pic->height) / 128)) * (uint32_t) (INPUT_SIZE_COUNT - pcs->input_resolution)))) { // Only if there are low temporal variations between frames
 
@@ -2919,7 +2923,9 @@ static void perform_gm_detection(
         *me_ctx // input parameter, ME Context Ptr, used to store decimated/interpolated SB/SR
 ) {
     SequenceControlSet *scs        = pcs->scs;
+#if !CLN_GMV_UNUSED_SIGS
     uint64_t            stationary_cnt = 0;
+#endif
     uint64_t            per_sig_cnt[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH][NUM_MV_COMPONENTS]
                         [NUM_MV_HIST];
     uint64_t tot_cnt = 0;
@@ -2948,6 +2954,9 @@ static void perform_gm_detection(
                 : me_candidate->ref_idx_l1;
 
             // Active block detection
+#if CLN_GMV_UNUSED_SIGS
+            const int active_th = 4;
+#else
             uint64_t pcs_pic_num = pcs->picture_number;
             uint64_t ref_pic_num =
                 me_ctx->me_ds_ref_array[list_index][ref_pic_index].picture_number;
@@ -2955,7 +2964,7 @@ static void perform_gm_detection(
                 (int16_t)(MAX(pcs_pic_num, ref_pic_num) - MIN(pcs_pic_num, ref_pic_num)));
             int active_th = (pcs->gm_ctrls.use_distance_based_active_th) ? MAX(dist >> 1, 4)
                                                                              : 4;
-
+#endif
             int mx = _MVXT(me_ctx->p_sb_best_mv[list_index][ref_pic_index][n_idx]) << 2;
             if (mx < -active_th)
                 per_sig_cnt[list_index][ref_pic_index][0][0]++;
@@ -2967,11 +2976,12 @@ static void perform_gm_detection(
             else if (my > active_th)
                 per_sig_cnt[list_index][ref_pic_index][1][1]++;
 
+#if !CLN_GMV_UNUSED_SIGS
             // Stationary block detection
             int stationary_th = 0;
             if (abs(mx) <= stationary_th && abs(my) <= stationary_th)
                 stationary_cnt++;
-
+#endif
             tot_cnt++;
         }
     } else {
@@ -2993,12 +3003,15 @@ static void perform_gm_detection(
                 : me_candidate->ref_idx_l1;
 
             // Active block detection
+#if CLN_GMV_UNUSED_SIGS
+            const int active_th = 32;
+#else
             uint16_t dist = ABS(
                 (int16_t)(pcs->picture_number -
                           me_ctx->me_ds_ref_array[list_index][ref_pic_index].picture_number));
             int active_th = (pcs->gm_ctrls.use_distance_based_active_th) ? MAX(dist * 16, 32)
                                                                              : 32;
-
+#endif
             int mx = _MVXT(me_ctx->p_sb_best_mv[list_index][ref_pic_index][n_idx]) << 2;
             if (mx < -active_th)
                 per_sig_cnt[list_index][ref_pic_index][0][0]++;
@@ -3010,19 +3023,21 @@ static void perform_gm_detection(
             else if (my > active_th)
                 per_sig_cnt[list_index][ref_pic_index][1][1]++;
 
+#if !CLN_GMV_UNUSED_SIGS
             // Stationary block detection
             int stationary_th = 4;
             if (abs(mx) <= stationary_th && abs(my) <= stationary_th)
                 stationary_cnt++;
-
+#endif
             tot_cnt++;
         }
     }
 
+#if !CLN_GMV_UNUSED_SIGS
     // Set stationary_block_present_sb to 1 if stationary_cnt is higher than 5%
     if (stationary_cnt > ((tot_cnt * 5) / 100))
         pcs->stationary_block_present_sb[sb_index] = 1;
-
+#endif
     for (int l = 0; l < MAX_NUM_OF_REF_PIC_LIST; l++) {
         for (int r = 0; r < REF_LIST_MAX_DEPTH; r++) {
             for (int c = 0; c < NUM_MV_COMPONENTS; c++) {
@@ -3220,7 +3235,9 @@ EbErrorType svt_aom_motion_estimation_b64(
             compute_distortion(pcs, b64_index, me_ctx);
 
         // Perform GM detection if GM is enabled
+#if !CLN_GMV_UNUSED_SIGS
         pcs->stationary_block_present_sb[b64_index] = 0;
+#endif
         pcs->rc_me_allow_gm[b64_index]              = 0;
 
         if (pcs->gm_ctrls.enabled)

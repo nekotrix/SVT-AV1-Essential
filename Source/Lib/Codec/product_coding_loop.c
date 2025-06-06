@@ -5928,7 +5928,11 @@ static INLINE bool search_dct_dct_only(PictureControlSet *pcs, ModeDecisionConte
     // If previous MD stages have 0 coeffs, use DCT_DCT only
     if (ctx->md_stage == MD_STAGE_3 && ctx->use_tx_shortcuts_mds3) {
         return 1;
+#if CLN_BYPASS_TX_ZCOEFF
+    } else if (ctx->tx_shortcut_ctrls.bypass_tx_th && ctx->md_stage == MD_STAGE_3 && ctx->perform_mds1 &&
+#else
     } else if (ctx->tx_shortcut_ctrls.bypass_tx_when_zcoeff && ctx->md_stage == MD_STAGE_3 && ctx->perform_mds1 &&
+#endif
                !cand_bf->block_has_coeff &&
                ((cand_bf->luma_fast_dist * ctx->tx_shortcut_ctrls.bypass_tx_th) <
                 (uint32_t)(ctx->blk_geom->bheight * ctx->blk_geom->bwidth * ctx->qp_index))) {
@@ -6795,7 +6799,11 @@ static void perform_tx_partitioning(ModeDecisionCandidateBuffer *cand_bf, ModeDe
             }
             uint8_t tx_search_skip_flag = 0;
             // only have prev. stage coeff info if mds1/2 were performed
+#if CLN_BYPASS_TX_ZCOEFF
+            if (ctx->tx_shortcut_ctrls.bypass_tx_th && ctx->md_stage == MD_STAGE_3 && ctx->perform_mds1 &&
+#else
             if (ctx->tx_shortcut_ctrls.bypass_tx_when_zcoeff && ctx->md_stage == MD_STAGE_3 && ctx->perform_mds1 &&
+#endif
                 !cand_bf->block_has_coeff &&
                 ((cand_bf->luma_fast_dist * ctx->tx_shortcut_ctrls.bypass_tx_th) <
                  (uint32_t)(ctx->blk_geom->bheight * ctx->blk_geom->bwidth * ctx->qp_index)))
@@ -8142,7 +8150,11 @@ static INLINE void get_start_end_tx_depth(PictureParentControlSet *ppcs, ModeDec
     }
 
 #if CLN_TXS_CHECKS
+#if CLN_BYPASS_TX_ZCOEFF
+    if (ctx->perform_mds1 && ctx->md_stage == MD_STAGE_3 && ctx->tx_shortcut_ctrls.bypass_tx_th &&
+#else
     if (ctx->perform_mds1 && ctx->md_stage == MD_STAGE_3 && ctx->tx_shortcut_ctrls.bypass_tx_when_zcoeff &&
+#endif
         !cand_bf->block_has_coeff &&
         ((cand_bf->luma_fast_dist * ctx->tx_shortcut_ctrls.bypass_tx_th) <
          (uint32_t)(ctx->blk_geom->bheight * ctx->blk_geom->bwidth * ctx->qp_index))) {
@@ -8799,7 +8811,11 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
                             is_inter)) { // TXT off
 
         uint8_t tx_search_skip_flag = 0;
+#if CLN_BYPASS_TX_ZCOEFF
+        if (ctx->perform_mds1 && ctx->md_stage == MD_STAGE_3 && ctx->tx_shortcut_ctrls.bypass_tx_th &&
+#else
         if (ctx->perform_mds1 && ctx->md_stage == MD_STAGE_3 && ctx->tx_shortcut_ctrls.bypass_tx_when_zcoeff &&
+#endif
             !cand_bf->block_has_coeff &&
             ((cand_bf->luma_fast_dist * ctx->tx_shortcut_ctrls.bypass_tx_th) <
              (uint32_t)(ctx->blk_geom->bheight * ctx->blk_geom->bwidth * ctx->qp_index)))
@@ -9294,7 +9310,11 @@ static void md_stage_3(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
 #else
     ctx->mds_do_ifs = (ctx->ifs_ctrls.level == IFS_MDS3);
 #endif
-    ctx->mds_do_txs  = ctx->txs_ctrls.enabled && (ctx->blk_geom->sq_size >= ctx->txs_ctrls.min_sq_size);
+#if CLN_TXS_MIN_SQ_SIZE
+    ctx->mds_do_txs = ctx->txs_ctrls.enabled;
+#else
+    ctx->mds_do_txs = ctx->txs_ctrls.enabled && (ctx->blk_geom->sq_size >= ctx->txs_ctrls.min_sq_size);
+#endif
     ctx->mds_do_rdoq = true;
 #if TUNE_MR_2
     ctx->mds_do_spatial_sse = ctx->spatial_sse_ctrls.level <= SSSE_MDS3;

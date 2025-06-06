@@ -496,7 +496,11 @@ typedef struct MeContext {
     int32_t  prune_me_candidates_th;
     uint8_t  use_best_unipred_cand_only; // Use only the best unipred candidate when MRP is off
 #if OPT_SC_ME
+#if OPT_SC_ME_2
+    uint8_t sc_class_me_boost;
+#else
     uint8_t sc_class4_me_boost;
+#endif
 #endif
     uint8_t  reduce_hme_l0_sr_th_min;
     uint8_t  reduce_hme_l0_sr_th_max;

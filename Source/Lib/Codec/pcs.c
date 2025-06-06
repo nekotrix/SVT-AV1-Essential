@@ -1192,7 +1192,9 @@ static void picture_parent_control_set_dctor(EbPtr ptr) {
         EB_FREE_PTR_ARRAY(obj->picture_histogram, MAX_NUMBER_OF_REGIONS_IN_WIDTH);
     }
     EB_FREE_ARRAY(obj->rc_me_distortion);
+#if !CLN_GMV_UNUSED_SIGS
     EB_FREE_ARRAY(obj->stationary_block_present_sb);
+#endif
     EB_FREE_ARRAY(obj->rc_me_allow_gm);
     EB_FREE_ARRAY(obj->me_64x64_distortion);
     EB_FREE_ARRAY(obj->me_32x32_distortion);
@@ -1347,7 +1349,9 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
     object_ptr->r0 = 0;
 
     EB_MALLOC_ARRAY(object_ptr->rc_me_distortion, object_ptr->b64_total_count);
+#if !CLN_GMV_UNUSED_SIGS
     EB_MALLOC_ARRAY(object_ptr->stationary_block_present_sb, object_ptr->b64_total_count);
+#endif
     EB_MALLOC_ARRAY(object_ptr->rc_me_allow_gm, object_ptr->b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->me_64x64_distortion, object_ptr->b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->me_32x32_distortion, object_ptr->b64_total_count);

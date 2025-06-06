@@ -60,7 +60,7 @@ extern "C" {
 #define TUNE_M3                     1 // Tune M3
 #define OPT_USE_EXP_HME_ME          1 // Use an exponential (instead of a linear) QP-based function for HME/ME search area scaling
 #define TUNE_M2                     1 // Tune M2
-#define OPT_SC_ME                   1 // Opt SC for ME; new variant of the SC classifier that operates at the 8×8 block level instead of the 16×16 block level, aiming to enhance SC detection, particularly for sub-1080p SC clips (sc_class4)
+#define OPT_SC_ME                   1 // Opt SC for ME; new variant of the SC classifier that operates at the 8x8 block level instead of the 16x16 block level, aiming to enhance SC detection, particularly for sub-1080p SC clips (sc_class4)
 #define OPT_ME                      1 // ME Tuning
 #define FIX_GM_CANDS                1 // Allow translation bipred for GM; enable GM for 4xN blocks for rotzoom
 #define OPT_NSQ_SEARCH_M5_LVL       1 // Change M5 level of the NSQ SEARCH from 15 to 16.
@@ -226,6 +226,13 @@ extern "C" {
 #define FIX_TPL_RESULTS_USE         1 // Fix how TPL results are accessed to ensure valid data is used
 #define CLN_FUNCS_HEADER            1 // Move stray function declarations to header files
 #define TUNE_RTC_USE_LD             1 // If rtc is specified in the CLI, force LD to be used, rather than disabling rtc
+#define CLN_ME_DIST_MOD             1 // Limit the use of me_dist_mod to NSQ.
+#define CLN_TXS_MIN_SQ_SIZE         1 // Remove the TXS sub-signal min_sq_size as it is always set to 0.
+#define CLN_BYPASS_TX_ZCOEFF        1 // Remove the tx_shortcut_level sub-signal bypass_tx_when_zcoeff as it is useless.
+#define CLN_INTER_COMP_LVLS         1 // Remove inter_comp_mode level 5, along with sub-signals use_rate and distortion_exit_th.
+#define CLN_GMV_UNUSED_SIGS         1 // Remove useless GMV level signals (that are always set to 0).
+#define TUNE_M6_SC_2                1 // Tuning M6 (2) For SC.
+#define OPT_SC_ME_2                 1 // Re-optimize SC for ME (all presets); activate ME booster to MR-M8 for SC class 1.
 
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection

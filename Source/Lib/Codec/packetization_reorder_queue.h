@@ -33,7 +33,11 @@ typedef struct PacketizationReorderEntry {
     uint64_t start_time_seconds;
     uint64_t start_time_u_seconds;
 
-    uint8_t    slice_type;
+#if CLN_REMOVE_P_SLICE
+    SliceType slice_type;
+#else
+    uint8_t slice_type;
+#endif
     uint64_t   ref_poc_list0;
     uint64_t   ref_poc_list1;
     uint64_t   ref_poc_array[7];

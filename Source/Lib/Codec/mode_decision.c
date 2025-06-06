@@ -1564,14 +1564,14 @@ static void inj_comp_modes(PictureControlSet *pcs, struct ModeDecisionContext *c
             abs(avg_cand->block_mi.mv[1].x) > max_mv_length || abs(avg_cand->block_mi.mv[1].y) > max_mv_length)
             return;
     }
-
+#if !CLN_INTER_COMP_LVLS
     // Skip compound on subpel/pme distortion
     if (ctx->inter_comp_ctrls.distortion_exit_th) {
         if (MIN(ctx->md_me_dist, ctx->md_pme_dist) <
             (uint32_t)ctx->inter_comp_ctrls.distortion_exit_th * (ctx->blk_geom->bwidth * ctx->blk_geom->bheight))
             return;
     }
-
+#endif
     // If compound modes are to be tested for this block, generate the buffers that will be used in the DIFF/WEDGE search.
     // Even if DIFF/WEDGE are not used, still call the function because it is needed for pred0_to_pred1_mult to work.
     if (tot_comp_types > MD_COMP_DIST) {
@@ -7209,8 +7209,10 @@ static void inject_global_candidates(PictureControlSet *pcs, ModeDecisionContext
 
         //single ref/list
         if (rf[1] == NONE_FRAME) {
+#if !CLN_GMV_UNUSED_SIGS
             if (pcs->ppcs->gm_ctrls.bipred_only)
                 continue;
+#endif
             MvReferenceFrame frame_type = rf[0];
             uint8_t          list_idx   = get_list_idx(rf[0]);
             uint8_t          ref_idx    = get_ref_frame_idx(rf[0]);

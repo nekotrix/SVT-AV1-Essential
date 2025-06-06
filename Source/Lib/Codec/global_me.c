@@ -45,22 +45,26 @@ void svt_aom_gm_pre_processor(PictureParentControlSet *pcs, PictureParentControl
 
     //fill gm controls to be used locally for the preprocessor gm pass.
     //final gm controls will be set later for the final gm detection pass.
-    pcs->gm_ctrls.enabled                      = 1;
-    pcs->gm_ctrls.identiy_exit                 = 1;
-    pcs->gm_ctrls.search_start_model           = TRANSLATION;
-    pcs->gm_ctrls.search_end_model             = ROTZOOM;
-    pcs->gm_ctrls.bipred_only                  = 0;
-    pcs->gm_ctrls.bypass_based_on_me           = 1;
+    pcs->gm_ctrls.enabled            = 1;
+    pcs->gm_ctrls.identiy_exit       = 1;
+    pcs->gm_ctrls.search_start_model = TRANSLATION;
+    pcs->gm_ctrls.search_end_model   = ROTZOOM;
+#if !CLN_GMV_UNUSED_SIGS
+    pcs->gm_ctrls.bipred_only = 0;
+#endif
+    pcs->gm_ctrls.bypass_based_on_me = 1;
+#if !CLN_GMV_UNUSED_SIGS
     pcs->gm_ctrls.use_stationary_block         = 0;
     pcs->gm_ctrls.use_distance_based_active_th = 0;
-    pcs->gm_ctrls.params_refinement_steps      = 2;
-    pcs->gm_ctrls.downsample_level             = GM_FULL;
-    pcs->gm_ctrls.corners                      = 2;
-    pcs->gm_ctrls.chess_rfn                    = 1;
-    pcs->gm_ctrls.match_sz                     = 7;
-    pcs->gm_ctrls.inj_psq_glb                  = true;
-    pcs->gm_ctrls.rfn_early_exit               = 1;
-    pcs->gm_ctrls.correspondence_method        = CORNERS;
+#endif
+    pcs->gm_ctrls.params_refinement_steps = 2;
+    pcs->gm_ctrls.downsample_level        = GM_FULL;
+    pcs->gm_ctrls.corners                 = 2;
+    pcs->gm_ctrls.chess_rfn               = 1;
+    pcs->gm_ctrls.match_sz                = 7;
+    pcs->gm_ctrls.inj_psq_glb             = true;
+    pcs->gm_ctrls.rfn_early_exit          = 1;
+    pcs->gm_ctrls.correspondence_method   = CORNERS;
 
     PictureParentControlSet *ref_pcs_list[2];
     PictureParentControlSet *cur_pcs   = pcs_list[0];
@@ -166,12 +170,16 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
     }
 #endif
     // Derive total_me_sad
-    uint32_t total_me_sad        = 0;
+    uint32_t total_me_sad = 0;
+#if !CLN_GMV_UNUSED_SIGS
     uint32_t total_stationary_sb = 0;
-    uint32_t total_gm_sbs        = 0;
+#endif
+    uint32_t total_gm_sbs = 0;
     for (uint16_t b64_index = 0; b64_index < pcs->b64_total_count; ++b64_index) {
         total_me_sad += pcs->rc_me_distortion[b64_index];
+#if !CLN_GMV_UNUSED_SIGS
         total_stationary_sb += pcs->stationary_block_present_sb[b64_index];
+#endif
         total_gm_sbs += pcs->rc_me_allow_gm[b64_index];
     }
     uint32_t average_me_sad = total_me_sad / (input_pic->width * input_pic->height);
@@ -209,10 +217,14 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
     }
 
     if (pcs->gm_ctrls.bypass_based_on_me) {
+#if CLN_GMV_UNUSED_SIGS
+        if ((total_gm_sbs < (uint32_t)(pcs->b64_total_count >> 1)))
+#else
         if ((total_gm_sbs < (uint32_t)(pcs->b64_total_count >> 1)) ||
             (pcs->gm_ctrls.use_stationary_block &&
              (total_stationary_sb > (uint32_t)((pcs->b64_total_count * 5) /
                                                100)))) // if more than 5% of SB(s) have stationary block(s) then shut gm
+#endif
             global_motion_estimation_level = 0;
     }
     if (global_motion_estimation_level) {

@@ -425,7 +425,9 @@ typedef struct PictureControlSet {
     bool          pic_bypass_encdec;
     EncMode       enc_mode;
     InputCoeffLvl coeff_lvl;
-    bool          me_dist_mod; // Whether or not to modulate the level of prediction tools using me-distortion
+#if !CLN_ME_DIST_MOD
+    bool me_dist_mod; // Whether or not to modulate the level of prediction tools using me-distortion
+#endif
 #if !OPT_LD_MEM_2
     int32_t     cdef_preset[MAX_TILE_CNTS][4];
     WienerInfo  wiener_info[MAX_TILE_CNTS][MAX_MB_PLANE];
@@ -617,20 +619,24 @@ typedef struct GmControls {
     uint8_t search_start_model;
     // Set the end model to be searched for GM (TRANSLATION, ROTZOOM, AFFINE)
     uint8_t search_end_model;
+#if !CLN_GMV_UNUSED_SIGS
     // 0: Inject both unipred and bipred global candidates in MD, 1: test bipred only
     uint8_t bipred_only;
+#endif
 #if OPT_NO_GM_IDENTITY
     // when true, don't inject GM candidates if one or both of the GM types is IDENTITY. When false, allow IDENTITY to be tested
     uint8_t skip_identity;
 #endif
     // 0: Do not bypass GM search based on the uniformity of motion estimation MVs. 1 : Enable bypass of GM search on ME MVs
     uint8_t bypass_based_on_me;
+#if !CLN_GMV_UNUSED_SIGS
     // 0: do not consider stationary_block info @ me-based bypass, 1: consider stationary_block info
     // @ me-based bypass (only if bypass_based_on_me=1)
     uint8_t use_stationary_block;
     // 0: used default active_th,1: increase active_th baed on distance to ref (only if
     // bypass_based_on_me=1)
     uint8_t use_distance_based_active_th;
+#endif
     // The number of refinement steps to use in the GM params refinement
     uint8_t params_refinement_steps;
     // GM_FULL: Use full resolution pic in GM search;
@@ -917,9 +923,11 @@ typedef struct PictureParentControlSet {
     // Motion Estimation Results
     uint8_t   max_number_of_pus_per_sb;
     uint32_t *rc_me_distortion;
+#if !CLN_GMV_UNUSED_SIGS
     // 1 when a % of the SB is stationary relative to reference frame(s) ((0,0) MV: decode order), 0
     // otherwise
     uint8_t *stationary_block_present_sb;
+#endif
     uint8_t *rc_me_allow_gm;
 
     uint32_t *me_8x8_cost_variance;

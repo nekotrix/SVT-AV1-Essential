@@ -112,8 +112,10 @@ typedef struct InterCompCtrls {
     uint8_t pred0_to_pred1_mult;
     // Skip compound if any of the MV components are greater than max_mv_length
     uint16_t max_mv_length;
+#if !CLN_INTER_COMP_LVLS
     // skip compound if block per-pixel distortion (from subpel/pme) is below the TH
     uint16_t distortion_exit_th;
+#endif
     // Skip MVP compound based on ref frame type and neighbour ref frame types
     bool skip_on_ref_info;
     // if true, use rate @ compound params derivation
@@ -752,9 +754,10 @@ typedef struct TxsControls {
     int depth1_txt_group_offset;
     // Offset to be subtracted from default txt-group to derive the txt-group of depth-2
     int depth2_txt_group_offset;
+#if !CLN_TXS_MIN_SQ_SIZE
     // Min. sq size to use TXS for
     uint16_t min_sq_size;
-
+#endif
     //skip depth if cost of processed sublocks of curent depth > th% of normalized
     //parent cost. th is the smaller the faster (sf)
     int32_t quadrant_th_sf;
@@ -820,7 +823,7 @@ typedef struct SpatialSSECtrls {
 #if TUNE_MR_2
     // Specifies the MD Stage where the spatial SSE will start being used in the full loop (SSSE_MDS1, SSSE_MDS2, or
     // SSSE_MDS3 for respectively MD Stage 1, MD Stage 2, and MD Stage 3).  Spatial SSE will also be enabled
-    // in all subsequent MD stages, beyond the stage in which it’s first enabled.  For example, if set to SSSE_MDS2,
+    // in all subsequent MD stages, beyond the stage in which it's first enabled.  For example, if set to SSSE_MDS2,
     // spatial SSE would be enabled in MDS2 and MDS3.
     SpatialSseLevel level;
 #else
@@ -956,10 +959,15 @@ typedef struct IntraCtrls {
 #endif
 } IntraCtrls;
 typedef struct TxShortcutCtrls {
+#if CLN_BYPASS_TX_ZCOEFF
+    // Skip TX at MDS3 if the prev MD stage gave 0 coeffs and MDS0 Distortion is less than the TH. 0 is off, lower is more aggressive
+    uint32_t bypass_tx_th;
+#else
     // Skip TX at MDS3 if the MDS1 TX gave 0 coeffs
     uint8_t bypass_tx_when_zcoeff;
     // Skip TX at MDS3 if the MDS0 Distortion is less than certain threshold
     uint32_t bypass_tx_th;
+#endif
     // Apply pf based on the number of coeffs
     uint8_t apply_pf_on_coeffs;
     // Use a detector to protect chroma from aggressive actions based on luma info: 0: OFF, 1:

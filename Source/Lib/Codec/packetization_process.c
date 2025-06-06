@@ -738,10 +738,21 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
         output_stream_ptr->n_filled_len = 0;
         output_stream_ptr->pts          = pcs->ppcs->input_ptr->pts;
         // we output one temporal unit a time, so dts alwasy equals to pts.
-        output_stream_ptr->dts                  = output_stream_ptr->pts;
-        output_stream_ptr->pic_type             = pcs->ppcs->is_ref
-                        ? pcs->ppcs->idr_flag ? EB_AV1_KEY_PICTURE : (EbAv1PictureType)pcs->slice_type
-                        : EB_AV1_NON_REF_PICTURE;
+        output_stream_ptr->dts = output_stream_ptr->pts;
+#if CLN_REMOVE_P_SLICE
+        if (pcs->ppcs->idr_flag)
+            output_stream_ptr->pic_type = EB_AV1_KEY_PICTURE;
+        else if (pcs->slice_type == I_SLICE)
+            output_stream_ptr->pic_type = EB_AV1_INTRA_ONLY_PICTURE;
+        else if (pcs->ppcs->is_ref)
+            output_stream_ptr->pic_type = EB_AV1_INTER_PICTURE;
+        else
+            output_stream_ptr->pic_type = EB_AV1_NON_REF_PICTURE;
+#else
+        output_stream_ptr->pic_type = pcs->ppcs->is_ref
+            ? pcs->ppcs->idr_flag ? EB_AV1_KEY_PICTURE : (EbAv1PictureType)pcs->slice_type
+            : EB_AV1_NON_REF_PICTURE;
+#endif
         output_stream_ptr->p_app_private        = pcs->ppcs->input_ptr->p_app_private;
         output_stream_ptr->temporal_layer_index = pcs->ppcs->temporal_layer_index;
         output_stream_ptr->qp                   = pcs->ppcs->picture_qp;
