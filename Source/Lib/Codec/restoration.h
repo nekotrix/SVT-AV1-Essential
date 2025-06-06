@@ -329,9 +329,20 @@ int32_t svt_av1_loop_restoration_corners_in_sb(struct Av1Common *cm, SeqHeader *
                                                int32_t mi_row, int32_t mi_col, BlockSize bsize, int32_t *rcol0,
                                                int32_t *rcol1, int32_t *rrow0, int32_t *rrow1, int32_t *tile_tl_idx);
 
+#if CLN_FUNCS_HEADER
+void svt_av1_loop_restoration_save_boundary_lines(const Yv12BufferConfig *frame, struct Av1Common *cm,
+                                                  int32_t after_cdef);
+void svt_aom_foreach_rest_unit_in_frame(struct Av1Common *cm, int32_t plane, RestTileStartVisitor on_tile,
+                                        RestUnitVisitor on_rest_unit, void *priv);
+void svt_aom_foreach_rest_unit_in_frame_seg(struct Av1Common *cm, int32_t plane, RestTileStartVisitor on_tile,
+                                            RestUnitVisitor on_rest_unit, void *priv,
+                                            uint8_t rest_segments_column_count, uint8_t rest_segments_row_count,
+                                            uint32_t segment_index);
+#else
 //void svt_av1_loop_restoration_save_boundary_lines(const Yv12BufferConfig *frame,
 //                                                  struct AV1Common *cm,
 //                                                  int32_t after_cdef);
+#endif
 
 // Returns 1 if a superres upscaled frame is unscaled and 0 otherwise.
 static INLINE int32_t av1_superres_unscaled(const FrameSize *frm_size) {

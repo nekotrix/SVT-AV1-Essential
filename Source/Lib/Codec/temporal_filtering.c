@@ -33,6 +33,9 @@
 #include "svt_log.h"
 #include <limits.h>
 #include "pack_unpack_c.h"
+#if CLN_FUNCS_HEADER
+#include "pic_operators.h"
+#endif
 
 #undef _MM_HINT_T2
 #define _MM_HINT_T2 1
@@ -80,9 +83,11 @@ static const uint32_t idx_32x32_to_idx_8x8[4][4][4] = {
 int32_t svt_aom_get_frame_update_type(SequenceControlSet *scs, PictureParentControlSet *pcs);
 int32_t svt_av1_compute_qdelta_fp(int32_t qstart_fp8, int32_t qtarget_fp8, EbBitDepth bit_depth);
 int32_t svt_av1_compute_qdelta(double qstart, double qtarget, EbBitDepth bit_depth);
+#if !CLN_FUNCS_HEADER
 void svt_c_unpack_compressed_10bit(const uint8_t *inn_bit_buffer, uint32_t inn_stride,
                                    uint8_t *in_compn_bit_buffer, uint32_t out_stride,
                                    uint32_t height);
+#endif
 #if DEBUG_SCALING
 // save YUV to file - auxiliary function for debug
 void save_YUV_to_file(char *filename, EbByte buffer_y, EbByte buffer_u, EbByte buffer_v,
@@ -151,6 +156,7 @@ void save_YUV_to_file_highbd(char *filename, uint16_t *buffer_y, uint16_t *buffe
     }
 }
 #endif
+#if !CLN_FUNCS_HEADER
 void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
                      uint32_t ss_y, bool include_padding) {
     uint16_t width  = pic_ptr->stride_y;
@@ -232,6 +238,7 @@ void svt_aom_unpack_highbd_pic(uint16_t *buffer_highbd[3], EbPictureBufferDesc *
             (width + ss_x) >> ss_x,
             (height + ss_y) >> ss_y);
 }
+#endif
 
 static void derive_tf_32x32_block_split_flag(MeContext *me_ctx) {
     int      subblock_errors[4];

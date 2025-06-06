@@ -1331,12 +1331,14 @@ static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx,
     }
 }
 
+#if !CLN_FUNCS_HEADER
 static INLINE void set_dc_sign(int32_t *cul_level, int32_t dc_val) {
     if (dc_val < 0)
         *cul_level |= 1 << COEFF_CONTEXT_BITS;
     else if (dc_val > 0)
         *cul_level += 2 << COEFF_CONTEXT_BITS;
 }
+#endif
 static INLINE TxSize aom_av1_get_adjusted_tx_size(TxSize tx_size) {
     switch (tx_size) {
     case TX_64X64:

@@ -17,6 +17,14 @@
 extern "C" {
 #endif
 
+#if CLN_FUNCS_HEADER
+#define RS_SUBPEL_BITS 6
+#define RS_SUBPEL_MASK ((1 << RS_SUBPEL_BITS) - 1)
+#define RS_SCALE_SUBPEL_BITS 14
+#define RS_SCALE_SUBPEL_MASK ((1 << RS_SCALE_SUBPEL_BITS) - 1)
+#define RS_SCALE_EXTRA_BITS (RS_SCALE_SUBPEL_BITS - RS_SUBPEL_BITS)
+#define RS_SCALE_EXTRA_OFF (1 << (RS_SCALE_EXTRA_BITS - 1))
+#endif
 #define UPSCALE_NORMATIVE_TAPS 8
 
 static const int16_t av1_resize_filter_normative[(1 << RS_SUBPEL_BITS)][UPSCALE_NORMATIVE_TAPS] = {
@@ -49,6 +57,10 @@ static const int16_t av1_resize_filter_normative[(1 << RS_SUBPEL_BITS)][UPSCALE_
 };
 // Filters for interpolation (full-band) - no filtering for integer pixels
 
+#if CLN_FUNCS_HEADER
+void svt_av1_upscale_normative_rows(const Av1Common* cm, const uint8_t* src, int src_stride, uint8_t* dst,
+                                    int dst_stride, int rows, int sub_x, int bd, bool is_16bit_pipeline);
+#endif
 #ifdef __cplusplus
 }
 #endif

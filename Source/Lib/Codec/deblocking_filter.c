@@ -27,7 +27,9 @@ const uint32_t disable_dlf_th[DLF_MAX_LVL][INPUT_SIZE_COUNT] = {{0, 0, 0, 0, 0, 
                                                                 {100, 200, 500, 800, 1000, 1000, 1000},
                                                                 {900, 1000, 2000, 3000, 4000, 4000, 4000},
                                                                 {6000, 7000, 8000, 9000, 10000, 10000, 10000}};
-void           svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#if !CLN_FUNCS_HEADER
+void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#endif
 /*************************************************************************************************
  * svt_av1_loop_filter_init
  * Initialize the loop filter limits and thresholds
@@ -872,8 +874,10 @@ uint64_t picture_sse_calculations(PictureControlSet *pcs, EbPictureBufferDesc *r
 * Returns the filtering SSE
 *************************************************************************************************/
 static int64_t try_filter_frame(
+#if !CLN_FUNCS_HEADER
     //const Yv12BufferConfig *sd,
     //Av1Comp *const cpi,
+#endif
     const EbPictureBufferDesc *sd, EbPictureBufferDesc *temp_lf_recon_buffer, PictureControlSet *pcs,
     int32_t filt_level, int32_t partial_frame, int32_t plane, int32_t dir) {
     (void)sd;
@@ -918,7 +922,9 @@ static int64_t try_filter_frame(
 * Perform a search for the best filter level for the picture data plane
 *************************************************************************************************/
 static int32_t search_filter_level(
+#if !CLN_FUNCS_HEADER
     //const Yv12BufferConfig *sd, Av1Comp *cpi,
+#endif
     EbPictureBufferDesc *sd, // source
     EbPictureBufferDesc *temp_lf_recon_buffer, PictureControlSet *pcs, int32_t partial_frame,
     const int32_t *last_frame_filter_level, double *best_cost_ret, int32_t plane, int32_t dir) {

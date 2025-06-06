@@ -87,6 +87,14 @@ static INLINE uint8_t major_minor_to_seq_level_idx(BitstreamLevel bl) {
     return ((bl.major - LEVEL_MAJOR_MIN) << LEVEL_MINOR_BITS) + bl.minor;
 }
 
+#if CLN_FUNCS_HEADER
+static INLINE void set_dc_sign(int32_t *cul_level, int32_t dc_val) {
+    if (dc_val < 0)
+        *cul_level |= 1 << COEFF_CONTEXT_BITS;
+    else if (dc_val > 0)
+        *cul_level += 2 << COEFF_CONTEXT_BITS;
+}
+#endif
 //**********************************************************************************************************//
 //encoder.h
 static INLINE int32_t get_ref_frame_map_idx(const PictureParentControlSet *pcs, MvReferenceFrame ref_frame) {

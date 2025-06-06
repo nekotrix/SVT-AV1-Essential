@@ -45,8 +45,10 @@ extern const uint8_t sm_weight_arrays[2 * MAX_BLOCK_DIM];
 #define SHIFT_INTRA_SCALE_BITS 15 - FILTER_INTRA_SCALE_BITS
 extern const int8_t eb_av1_filter_intra_taps[FILTER_INTRA_MODES][8][8];
 
+#if !CLN_FUNCS_HEADER
 /////####.... To make functions common between EbIntraPrediction.c &
 void *svt_aom_memset16(void *dest, int32_t val, size_t length);
+#endif
 
 int32_t svt_aom_use_intra_edge_upsample(int32_t bs0, int32_t bs1, int32_t delta, int32_t type);
 

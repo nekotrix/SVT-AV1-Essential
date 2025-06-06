@@ -13,6 +13,7 @@
 #include "common_dsp_rtcd.h"
 #include "bitstream_unit.h"
 
+#if !CLN_FUNCS_HEADER
 //-------memory stuff
 
 #define ADDRESS_STORAGE_SIZE sizeof(size_t)
@@ -78,8 +79,8 @@ void *svt_aom_memset16(void *dest, int32_t val, size_t length) {
     return dest;
 }
 //-------------------------------
-
 extern int32_t get_msb(uint32_t n);
+#endif
 
 static INLINE int32_t sign(int32_t i) { return i < 0 ? -1 : 1; }
 static INLINE int32_t constrain(int32_t diff, int32_t threshold, int32_t damping) {

@@ -493,6 +493,7 @@ void svt_aom_estimate_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *m
     }
 }
 #endif
+#if !CLN_FUNCS_HEADER
 void copy_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *dst_rate) {
     FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
 
@@ -514,6 +515,7 @@ void copy_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *dst_rate) {
         memcpy(dst_rate->dv_joint_cost, pcs->md_rate_est_ctx->dv_joint_cost, MV_JOINTS * sizeof(int32_t));
     }
 }
+#endif
 /**************************************************************************
  * svt_aom_estimate_coefficients_rate()
  * Estimate the rate of the quantised coefficient

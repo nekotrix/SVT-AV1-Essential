@@ -224,6 +224,7 @@ extern "C" {
 #define CLN_SUBRES_DET              1 // Move subres detector to its own function
 #define CLN_TXS_CHECKS              1 // Move checks that change start/end TX depth into get_start_end_tx_depth
 #define FIX_TPL_RESULTS_USE         1 // Fix how TPL results are accessed to ensure valid data is used
+#define CLN_FUNCS_HEADER            1 // Move stray function declarations to header files
 
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection
@@ -247,7 +248,9 @@ extern "C" {
 // Super-resolution debugging code
 #define DEBUG_SCALING           0
 #define DEBUG_TF                0
+#if !CLN_FUNCS_HEADER
 #define DEBUG_UPSCALING         0
+#endif
 #define DEBUG_SUPERRES_RECODE   0
 #define DEBUG_SUPERRES_ENERGY   0
 #define DEBUG_RC_CAP_LOG        0 // Prints for RC cap

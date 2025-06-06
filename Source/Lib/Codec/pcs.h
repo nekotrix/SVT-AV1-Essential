@@ -22,13 +22,19 @@
 #include "pred_structure.h"
 #include "neighbor_arrays.h"
 #include "enc_dec_segments.h"
+#if !CLN_FUNCS_HEADER
 #include "restoration.h"
+#endif
 #include "object.h"
 #include "noise_model.h"
 #include "segmentation_params.h"
 #include "av1_structs.h"
 #include "md_rate_estimation.h"
+#if CLN_FUNCS_HEADER
+#include "cdef.h"
+#else
 #include "enc_cdef.h"
+#endif
 #include "av1_common.h"
 
 #include "av1me.h"
@@ -151,6 +157,7 @@ typedef struct MacroblockdPlane {
     int32_t      subsampling_y;
     struct Buf2D dst;
     int32_t      is_16bit;
+#if !CLN_FUNCS_HEADER
     // struct Buf2D pre[2];
     // EntropyContext *above_context;
     // EntropyContext *left_context;
@@ -168,8 +175,10 @@ typedef struct MacroblockdPlane {
     //  They use a hardwired Q3 coeff shift and do not necessarily match
     //  the TX scale in use.
     // const int16_t *dequant_Q3;
+#endif
 } MacroblockdPlane;
 
+#if !CLN_FUNCS_HEADER
 struct PredictionUnit;
 
 /**************************************
@@ -193,6 +202,7 @@ typedef struct MdcSbData {
     // 0: do not encode, 1: current or parent depth(s), 2: child depth(s)
     uint8_t *consider_block;
 } MdcSbData;
+#endif
 /**************************************
  * Picture Control Set
  **************************************/
@@ -1320,9 +1330,11 @@ typedef struct PictureControlSetInitData {
 #endif
 } PictureControlSetInitData;
 
+#if !CLN_FUNCS_HEADER
 typedef struct Av1Comp {
     Yv12BufferConfig trial_frame_rst;
 } Av1Comp;
+#endif
 
 /**************************************
  * Extern Function Declarations

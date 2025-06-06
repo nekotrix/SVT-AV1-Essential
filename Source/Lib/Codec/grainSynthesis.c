@@ -177,6 +177,7 @@ static int32_t grain_max;
 
 static uint16_t random_register = 0; // random number generator register
 
+#if !CLN_FUNCS_HEADER
 //----------------------------------------------------------------------
 // todo: aomlib memory functions (to be replaced by Eb functions)
 /*
@@ -239,7 +240,7 @@ void svt_aom_free(void *memblk) {
 }
 */
 //--------------------------------------------------------------------
-
+#endif
 static void init_arrays(AomFilmGrain *params, int32_t luma_stride, int32_t chroma_stride, int32_t ***pred_pos_luma_p,
                         int32_t ***pred_pos_chroma_p, int32_t **luma_grain_block, int32_t **cb_grain_block,
                         int32_t **cr_grain_block, int32_t **y_line_buf, int32_t **cb_line_buf, int32_t **cr_line_buf,

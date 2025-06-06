@@ -96,6 +96,19 @@ void pad_input_picture(EbByte src_pic, uint32_t src_stride, uint32_t original_sr
 void svt_aom_pad_input_picture_16bit(uint16_t *src_pic, uint32_t src_stride, uint32_t original_src_width,
                                      uint32_t original_src_height, uint32_t pad_right, uint32_t pad_bottom);
 
+#if CLN_FUNCS_HEADER
+void svt_aom_pack_2d_pic(EbPictureBufferDesc *input_picture, uint16_t *packed[3]);
+void svt_aom_convert_pic_8bit_to_16bit(EbPictureBufferDesc *src_8bit, EbPictureBufferDesc *dst_16bit, uint16_t ss_x,
+                                       uint16_t ss_y);
+void svt_aom_copy_buffer_info(EbPictureBufferDesc *src_ptr, EbPictureBufferDesc *dst_ptr);
+void svt_aom_yv12_copy_y_c(const Yv12BufferConfig *src_ybc, Yv12BufferConfig *dst_ybc);
+void svt_aom_yv12_copy_u_c(const Yv12BufferConfig *src_bc, Yv12BufferConfig *dst_bc);
+void svt_aom_yv12_copy_v_c(const Yv12BufferConfig *src_bc, Yv12BufferConfig *dst_bc);
+void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
+                             uint32_t ss_y, bool include_padding);
+void svt_aom_unpack_highbd_pic(uint16_t *buffer_highbd[3], EbPictureBufferDesc *pic_ptr, uint32_t ss_x, uint32_t ss_y,
+                               bool include_padding);
+#endif
 #ifdef __cplusplus
 }
 #endif

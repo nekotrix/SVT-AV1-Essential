@@ -49,6 +49,10 @@ void svt_convert_8bit_to_16bit_c(uint8_t *src, uint32_t src_stride, uint16_t *ds
 
 void svt_convert_16bit_to_8bit_c(uint16_t *src, uint32_t src_stride, uint8_t *dst, uint32_t dst_stride, uint32_t width,
                                  uint32_t height);
+#if CLN_FUNCS_HEADER
+void svt_c_unpack_compressed_10bit(const uint8_t *inn_bit_buffer, uint32_t inn_stride, uint8_t *in_compn_bit_buffer,
+                                   uint32_t out_stride, uint32_t height);
+#endif
 #ifdef __cplusplus
 }
 #endif

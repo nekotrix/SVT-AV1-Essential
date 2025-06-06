@@ -25,6 +25,9 @@
 #include "EbSvtAv1ErrorCodes.h"
 #include "entropy_coding.h"
 #include "svt_log.h"
+#if CLN_FUNCS_HEADER
+#include "pic_operators.h"
+#endif
 
 // Token buffer is only used for palette tokens.
 static INLINE unsigned int get_token_alloc(int mb_rows, int mb_cols, int sb_size_log2, const int num_planes) {
@@ -90,6 +93,7 @@ EbErrorType svt_aom_picture_manager_context_ctor(EbThreadContext *thread_ctx, co
     return EB_ErrorNone;
 }
 
+#if !CLN_FUNCS_HEADER
 void svt_aom_copy_buffer_info(EbPictureBufferDesc *src_ptr, EbPictureBufferDesc *dst_ptr) {
     dst_ptr->width             = src_ptr->width;
     dst_ptr->height            = src_ptr->height;
@@ -107,6 +111,7 @@ void svt_aom_copy_buffer_info(EbPictureBufferDesc *src_ptr, EbPictureBufferDesc 
     dst_ptr->luma_size         = src_ptr->luma_size;
     dst_ptr->chroma_size       = src_ptr->chroma_size;
 }
+#endif
 
 void svt_aom_set_tile_info(PictureParentControlSet *pcs);
 /*

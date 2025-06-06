@@ -19,11 +19,16 @@
 #include "mathutils.h"
 #include "svt_log.h"
 #include "aom_dsp_rtcd.h"
+#if CLN_FUNCS_HEADER
+#include "pic_operators.h"
+#endif
 
 static const int32_t k_max_lag = 4;
 
+#if !CLN_FUNCS_HEADER
 void *svt_aom_memalign(size_t align, size_t size);
 void  svt_aom_free(void *memblk);
+#endif
 
 void svt_aom_un_pack2d(uint16_t *in16_bit_buffer, uint32_t in_stride, uint8_t *out8_bit_buffer, uint32_t out8_stride,
                        uint8_t *outn_bit_buffer, uint32_t outn_stride, uint32_t width, uint32_t height);
@@ -2193,7 +2198,7 @@ static int32_t denoise_and_model_realloc_if_necessary(struct AomDenoiseAndModel 
     ctx->noise_psd[1] = ctx->noise_psd[2] = uv_noise_level;
     return 1;
 }
-
+#if !CLN_FUNCS_HEADER
 void svt_aom_pack_2d_pic(EbPictureBufferDesc *input_picture, uint16_t *packed[3]) {
     const uint32_t input_luma_offset = ((input_picture->org_y) * input_picture->stride_y) + (input_picture->org_x);
     const uint32_t input_bit_inc_luma_offset = ((input_picture->org_y) * input_picture->stride_bit_inc_y >> 2) +
@@ -2234,6 +2239,7 @@ void svt_aom_pack_2d_pic(EbPictureBufferDesc *input_picture, uint16_t *packed[3]
                                input_picture->width >> 1,
                                input_picture->height >> 1);
 }
+#endif
 
 static void unpack_2d_pic(uint8_t *packed[3], EbPictureBufferDesc *outputPicturePtr) {
     uint32_t luma_buffer_offset = ((outputPicturePtr->org_y) * outputPicturePtr->stride_y) + (outputPicturePtr->org_x);

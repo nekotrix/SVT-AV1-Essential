@@ -27,12 +27,14 @@ extern "C" {
 #define REF_NO_SCALE (1 << REF_SCALE_SHIFT)
 #define REF_INVALID_SCALE -1
 
+#if !CLN_FUNCS_HEADER
 #define RS_SUBPEL_BITS 6
 #define RS_SUBPEL_MASK ((1 << RS_SUBPEL_BITS) - 1)
 #define RS_SCALE_SUBPEL_BITS 14
 #define RS_SCALE_SUBPEL_MASK ((1 << RS_SCALE_SUBPEL_BITS) - 1)
 #define RS_SCALE_EXTRA_BITS (RS_SCALE_SUBPEL_BITS - RS_SUBPEL_BITS)
 #define RS_SCALE_EXTRA_OFF (1 << (RS_SCALE_EXTRA_BITS - 1))
+#endif
 #define MV_BORDER (16 << 3) // Allow 16 pels in 1/8th pel units
 
 #define NELEMENTS(x) (int)(sizeof(x) / sizeof(x[0]))

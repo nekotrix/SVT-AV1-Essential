@@ -83,8 +83,10 @@ void av1_init_dsmotion_compensation(SearchSiteConfig *cfg, int stride);
 void svt_av1_init3smotion_compensation(SearchSiteConfig *cfg, int stride);
 #if CLN_UNIFY_MV_TYPE
 void svt_av1_set_mv_search_range(MvLimits *mv_limits, const Mv *mv);
+#if !CLN_FUNCS_HEADER
 struct Av1Comp;
 struct SpeedFeatures;
+#endif
 
 int svt_av1_full_pixel_search(struct PictureControlSet *pcs, IntraBcContext /*MACROBLOCK*/ *x, BlockSize bsize,
                               Mv *mvp_full, int step_param, int method, int run_mesh_search, int error_per_bit,

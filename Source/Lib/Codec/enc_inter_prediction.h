@@ -177,7 +177,9 @@ EbPictureBufferDesc *svt_aom_get_ref_pic_buffer(PictureControlSet *pcs, MvRefere
 EbPictureBufferDesc *svt_aom_get_ref_pic_buffer(PictureControlSet *pcs, uint8_t is_highbd, uint8_t list_idx,
                                                 uint8_t ref_idx);
 #endif
-
+#if CLN_FUNCS_HEADER
+void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#endif
 EbErrorType svt_aom_inter_pu_prediction_av1_obmc(uint8_t hbd_md, struct ModeDecisionContext *ctx,
                                                  PictureControlSet *pcs, ModeDecisionCandidateBuffer *cand_bf);
 

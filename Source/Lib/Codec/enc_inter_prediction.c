@@ -19,7 +19,29 @@
 #include "resize.h"
 #include "av1me.h"
 
-void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#if CLN_FUNCS_HEADER
+void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd) {
+    if (!is_highbd) {
+        if (pcs->ppcs->is_ref == true)
+            *recon_ptr = ((EbReferenceObject *)pcs->ppcs->ref_pic_wrapper->object_ptr)->reference_picture;
+        else
+            *recon_ptr = pcs->ppcs->enc_dec_ptr->recon_pic; // OMK
+    } else {
+        *recon_ptr = pcs->ppcs->enc_dec_ptr->recon_pic_16bit;
+    }
+
+    // recon buffer is created in full resolution, it is resized to difference size
+    // when reference scaling enabled. recon width and height should be adjusted to
+    // upscaled render size
+    if (*recon_ptr &&
+        (pcs->ppcs->render_width != (*recon_ptr)->width || pcs->ppcs->render_height != (*recon_ptr)->height)) {
+        (*recon_ptr)->width  = pcs->ppcs->render_width;
+        (*recon_ptr)->height = pcs->ppcs->render_height;
+    }
+}
+#else
+void                 svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#endif
 #if CLN_GET_REF_PIC
 EbPictureBufferDesc *svt_aom_get_ref_pic_buffer(PictureControlSet *pcs, MvReferenceFrame rf) {
     if (rf <= INTRA_FRAME || rf >= REF_FRAMES)

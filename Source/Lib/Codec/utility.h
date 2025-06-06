@@ -188,17 +188,21 @@ typedef struct CodedBlockStats {
     uint8_t parent32x32_index;
 } CodedBlockStats;
 
-extern void*                  svt_aom_memalign(size_t align, size_t size);
-extern void*                  svt_aom_malloc(size_t size);
-extern void                   svt_aom_free(void* memblk);
-extern void*                  svt_aom_memset16(void* dest, int32_t val, size_t length);
+#if !CLN_FUNCS_HEADER
+extern void* svt_aom_memalign(size_t align, size_t size);
+extern void* svt_aom_malloc(size_t size);
+extern void  svt_aom_free(void* memblk);
+extern void* svt_aom_memset16(void* dest, int32_t val, size_t length);
+#endif
 extern const CodedBlockStats* svt_aom_get_coded_blk_stats(const uint32_t cu_idx);
 
+#if !CLN_FUNCS_HEADER
 #define PU_ORIGIN_ADJUST(cu_origin, cu_size, offset) ((((cu_size) * (offset)) >> 2) + (cu_origin))
 #define PU_SIZE_ADJUST(cu_size, puSize) (((cu_size) * (puSize)) >> 2)
 
 #define TU_ORIGIN_ADJUST(cu_origin, cu_size, offset) ((((cu_size) * (offset)) >> 2) + (cu_origin))
 #define TU_SIZE_ADJUST(cu_size, tuDepth) ((cu_size) >> (tuDepth))
+#endif
 
 /****************************
      * MACROS

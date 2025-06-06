@@ -23,9 +23,11 @@
 
 void svt_aom_set_tile_info(PictureParentControlSet *pcs);
 
+#if !CLN_FUNCS_HEADER
 void *svt_aom_memalign(size_t align, size_t size);
 void  svt_aom_free(void *memblk);
 void *svt_aom_malloc(size_t size);
+#endif
 
 EbErrorType svt_av1_alloc_restoration_buffers(PictureControlSet *pcs, Av1Common *cm);
 EbErrorType svt_av1_hash_table_create(HashTable *p_hash_table);

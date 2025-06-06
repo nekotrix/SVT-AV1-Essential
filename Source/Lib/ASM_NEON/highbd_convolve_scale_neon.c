@@ -21,6 +21,9 @@
 #include "mem_neon.h"
 #include "transpose_neon.h"
 #include "utility.h"
+#if CLN_FUNCS_HEADER
+#include "svt_malloc.h"
+#endif
 
 static inline void highbd_dist_wtd_comp_avg_neon(const uint16_t *src_ptr, int src_stride, uint16_t *dst_ptr,
                                                  int dst_stride, int w, int h, ConvolveParams *conv_params,

@@ -20,12 +20,15 @@
 #include "sequence_control_set.h"
 #include "pcs.h"
 #include "aom_dsp_rtcd.h"
+#if CLN_FUNCS_HEADER
+#include "pic_operators.h"
+#else
 void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
 void svt_av1_loop_restoration_save_boundary_lines(const Yv12BufferConfig *frame, Av1Common *cm, int32_t after_cdef);
 void svt_convert_pic_8bit_to_16bit(EbPictureBufferDesc *src_8bit, EbPictureBufferDesc *dst_16bit, uint16_t ss_x,
                                    uint16_t ss_y);
-
 extern void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#endif
 
 static void dlf_context_dctor(EbPtr p) {
     EbThreadContext *thread_ctx = (EbThreadContext *)p;
@@ -79,17 +82,25 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
 
         bool is_16bit = scs->is_16bit_pipeline;
         if (is_16bit && scs->static_config.encoder_bit_depth == EB_EIGHT_BIT) {
+#if CLN_FUNCS_HEADER
+            svt_aom_convert_pic_8bit_to_16bit(pcs->ppcs->enhanced_pic,
+#else
             svt_convert_pic_8bit_to_16bit(pcs->ppcs->enhanced_pic,
-                                          pcs->input_frame16bit,
-                                          pcs->ppcs->scs->subsampling_x,
-                                          pcs->ppcs->scs->subsampling_y);
+#endif
+                                              pcs->input_frame16bit,
+                                              pcs->ppcs->scs->subsampling_x,
+                                              pcs->ppcs->scs->subsampling_y);
             // convert 8-bit recon to 16-bit for it bypass encdec process
             if (pcs->pic_bypass_encdec) {
                 EbPictureBufferDesc *recon_pic;
                 EbPictureBufferDesc *recon_picture_16bit_ptr;
                 svt_aom_get_recon_pic(pcs, &recon_pic, 0);
                 svt_aom_get_recon_pic(pcs, &recon_picture_16bit_ptr, 1);
+#if CLN_FUNCS_HEADER
+                svt_aom_convert_pic_8bit_to_16bit(
+#else
                 svt_convert_pic_8bit_to_16bit(
+#endif
                     recon_pic, recon_picture_16bit_ptr, pcs->ppcs->scs->subsampling_x, pcs->ppcs->scs->subsampling_y);
             }
         }

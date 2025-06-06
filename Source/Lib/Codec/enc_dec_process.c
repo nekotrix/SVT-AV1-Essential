@@ -30,10 +30,36 @@
 #include "rc_process.h"
 #endif
 
+#if CLN_FUNCS_HEADER
+#include "pack_unpack_c.h"
+
+static void copy_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *dst_rate) {
+    FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
+
+    memcpy(dst_rate->nmv_vec_cost, pcs->md_rate_est_ctx->nmv_vec_cost, MV_JOINTS * sizeof(int32_t));
+
+    if (frm_hdr->allow_high_precision_mv) {
+        memcpy(dst_rate->nmv_costs_hp, pcs->md_rate_est_ctx->nmv_costs_hp, 2 * MV_VALS * sizeof(int32_t));
+    } else {
+        memcpy(dst_rate->nmv_costs, pcs->md_rate_est_ctx->nmv_costs, 2 * MV_VALS * sizeof(int32_t));
+    }
+
+    dst_rate->nmvcoststack[0] = frm_hdr->allow_high_precision_mv ? &dst_rate->nmv_costs_hp[0][MV_MAX]
+                                                                 : &dst_rate->nmv_costs[0][MV_MAX];
+    dst_rate->nmvcoststack[1] = frm_hdr->allow_high_precision_mv ? &dst_rate->nmv_costs_hp[1][MV_MAX]
+                                                                 : &dst_rate->nmv_costs[1][MV_MAX];
+
+    if (frm_hdr->allow_intrabc) {
+        memcpy(dst_rate->dv_cost, pcs->md_rate_est_ctx->dv_cost, 2 * MV_VALS * sizeof(int32_t));
+        memcpy(dst_rate->dv_joint_cost, pcs->md_rate_est_ctx->dv_joint_cost, MV_JOINTS * sizeof(int32_t));
+    }
+}
+#else
 void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
 void copy_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *dst_rate);
 void svt_c_unpack_compressed_10bit(const uint8_t *inn_bit_buffer, uint32_t inn_stride, uint8_t *in_compn_bit_buffer,
                                    uint32_t out_stride, uint32_t height);
+#endif
 
 static void enc_dec_context_dctor(EbPtr p) {
     EbThreadContext *thread_ctx = (EbThreadContext *)p;
@@ -2579,7 +2605,7 @@ void update_pred_th_offset(ModeDecisionContext *ctx, const BlockGeom *blk_geom, 
     // may not have a valid SQ default_cost, so we need to check that the SQ block is available before using the default_cost
     if (ctx->avail_blk_flag[blk_geom->sqi_mds] && ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost <= max_cost) {
         uint64_t band_size = max_cost / ctx->depth_refinement_ctrls.max_band_cnt;
-        uint64_t band_idx = ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost / band_size;
+        uint64_t band_idx  = ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost / band_size;
         if (ctx->depth_refinement_ctrls.decrement_per_band[band_idx] == MAX_SIGNED_VALUE) {
             *s_depth = 0;
             *e_depth = 0;
@@ -2612,7 +2638,7 @@ static uint8_t is_parent_to_current_deviation_small(PictureControlSet *pcs, Mode
     if (lower_depth_split_cost_th && ctx->avail_blk_flag[parent_depth_idx_mds]) {
         const uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
                                                  : ctx->full_sb_lambda_md[EB_8_BIT_MD];
-        const uint64_t split_cost = svt_aom_partition_rate_cost(pcs->ppcs,
+        const uint64_t split_cost  = svt_aom_partition_rate_cost(pcs->ppcs,
                                                                 ctx,
                                                                 parent_depth_idx_mds,
                                                                 PARTITION_SPLIT,
@@ -2626,14 +2652,14 @@ static uint8_t is_parent_to_current_deviation_small(PictureControlSet *pcs, Mode
 
     int64_t parent_to_current_th = ctx->depth_refinement_ctrls.parent_to_current_th;
     if (ctx->depth_refinement_ctrls.q_weight) {
-        const uint32_t mult = ctx->depth_refinement_ctrls.q_weight;
+        const uint32_t mult      = ctx->depth_refinement_ctrls.q_weight;
         const uint32_t cost_part = (uint32_t)MAX(
             (ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost /
              (uint64_t)(((uint64_t)blk_geom->bwidth * (uint64_t)blk_geom->bheight) << 10)),
             1);
         const int q_weight_unscaled = (int)((mult * cost_part * ((5 * (int)pcs->ppcs->scs->static_config.qp) - 100)) /
                                             10);
-        const uint32_t q_weight = CLIP3(100, 2000, q_weight_unscaled);
+        const uint32_t q_weight     = CLIP3(100, 2000, q_weight_unscaled);
 
         parent_to_current_th = (parent_to_current_th * q_weight) / 2000;
     }
@@ -2666,13 +2692,13 @@ static uint8_t is_child_to_current_deviation_small(PictureControlSet *pcs, ModeD
 
     assert(blk_geom->depth < 6);
     const uint32_t ns_depth_plus1_offset = ns_depth_offset[blk_geom->svt_aom_geom_idx][blk_geom->depth + 1];
-    const uint32_t child_block_idx_1 = blk_index + ns_d1_offset;
-    const uint32_t child_block_idx_2 = child_block_idx_1 + ns_depth_plus1_offset;
-    const uint32_t child_block_idx_3 = child_block_idx_2 + ns_depth_plus1_offset;
-    const uint32_t child_block_idx_4 = child_block_idx_3 + ns_depth_plus1_offset;
+    const uint32_t child_block_idx_1     = blk_index + ns_d1_offset;
+    const uint32_t child_block_idx_2     = child_block_idx_1 + ns_depth_plus1_offset;
+    const uint32_t child_block_idx_3     = child_block_idx_2 + ns_depth_plus1_offset;
+    const uint32_t child_block_idx_4     = child_block_idx_3 + ns_depth_plus1_offset;
 
     uint64_t child_cost = 0;
-    uint8_t child_cnt = 0;
+    uint8_t  child_cnt  = 0;
     if (ctx->avail_blk_flag[child_block_idx_1]) {
         child_cost += ctx->md_blk_arr_nsq[child_block_idx_1].default_cost;
         child_cnt++;
@@ -2691,7 +2717,7 @@ static uint8_t is_child_to_current_deviation_small(PictureControlSet *pcs, ModeD
     }
 
     if (child_cnt) {
-        child_cost = (child_cost / child_cnt) * 4;
+        child_cost                 = (child_cost / child_cnt) * 4;
         const uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
                                                  : ctx->full_sb_lambda_md[EB_8_BIT_MD];
         child_cost += svt_aom_partition_rate_cost(
@@ -2723,12 +2749,12 @@ static uint8_t is_child_to_current_deviation_small(PictureControlSet *pcs, ModeD
             split_cost_th += 20;
 
             // Parent neighbour arrays should be set in case parent depth was not allowed
-            ctx->md_blk_arr_nsq[blk_geom->sqi_mds].left_neighbor_partition = INVALID_NEIGHBOR_DATA;
+            ctx->md_blk_arr_nsq[blk_geom->sqi_mds].left_neighbor_partition  = INVALID_NEIGHBOR_DATA;
             ctx->md_blk_arr_nsq[blk_geom->sqi_mds].above_neighbor_partition = INVALID_NEIGHBOR_DATA;
         }
         const uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
                                                  : ctx->full_sb_lambda_md[EB_8_BIT_MD];
-        const uint64_t split_cost = svt_aom_partition_rate_cost(pcs->ppcs,
+        const uint64_t split_cost  = svt_aom_partition_rate_cost(pcs->ppcs,
                                                                 ctx,
                                                                 blk_geom->sqi_mds,
                                                                 PARTITION_SPLIT,
@@ -2742,14 +2768,14 @@ static uint8_t is_child_to_current_deviation_small(PictureControlSet *pcs, ModeD
 
     int64_t sub_to_current_th = ctx->depth_refinement_ctrls.sub_to_current_th;
     if (ctx->depth_refinement_ctrls.q_weight) {
-        const uint32_t mult = ctx->depth_refinement_ctrls.q_weight;
+        const uint32_t mult      = ctx->depth_refinement_ctrls.q_weight;
         const uint32_t cost_part = (uint32_t)MAX(
             (ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost /
              (uint64_t)(((uint64_t)blk_geom->bwidth * (uint64_t)blk_geom->bheight) << 10)),
             1);
         const int q_weight_unscaled = (int)((mult * cost_part * ((5 * (int)pcs->ppcs->scs->static_config.qp) - 100)) /
                                             10);
-        const uint32_t q_weight = CLIP3(100, 2000, q_weight_unscaled);
+        const uint32_t q_weight     = CLIP3(100, 2000, q_weight_unscaled);
 
         sub_to_current_th = (sub_to_current_th * q_weight) / 2000;
     }
@@ -2995,7 +3021,7 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
 
                         // Add block indices of upper depth(s)
                         // Block-based depth refinement using cost is applicable for only [s_depth=-1, e_depth=1]
-                        uint8_t add_parent_depth = 1;
+                        uint8_t add_parent_depth         = 1;
                         ctx->parent_to_current_deviation = MIN_SIGNED_VALUE;
                         if (ctx->depth_refinement_ctrls.enabled && s_depth == -1 &&
                             // Check avail_blk_flag b/c use default_cost inside, and default_cost may not be
@@ -3007,7 +3033,7 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
 
                         // Add block indices of lower depth(s)
                         // Block-based depth refinement using cost is applicable for only [s_depth=-1, e_depth=1]
-                        uint8_t add_sub_depth = 1;
+                        uint8_t add_sub_depth           = 1;
                         ctx->child_to_current_deviation = MIN_SIGNED_VALUE;
                         if (ctx->depth_refinement_ctrls.enabled && e_depth == 1 &&
                             // Check avail_blk_flag b/c use default_cost inside, and default_cost may not be
@@ -3450,12 +3476,12 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
                 if (md_ctx->lpd1_ctrls.use_ref_info[pd1_lvl] && pcs->slice_type != I_SLICE && is_ref_l0_avail) {
                     EbReferenceObject *ref_obj_l0 =
                         (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-                    uint8_t l0_was_intra = ref_obj_l0->sb_intra[md_ctx->sb_index], l1_was_intra = 0;
-                    uint8_t l0_was_skip = ref_obj_l0->sb_skip[md_ctx->sb_index], l1_was_skip = 1;
-                    uint32_t l0_me_64x64_dist = ref_obj_l0->slice_type != I_SLICE
-                        ? ref_obj_l0->sb_me_64x64_dist[md_ctx->sb_index]
-                        : 0,
-                             l1_me_64x64_dist = 0;
+                    uint8_t  l0_was_intra = ref_obj_l0->sb_intra[md_ctx->sb_index], l1_was_intra = 0;
+                    uint8_t  l0_was_skip = ref_obj_l0->sb_skip[md_ctx->sb_index], l1_was_skip = 1;
+                    uint32_t l0_me_64x64_dist   = ref_obj_l0->slice_type != I_SLICE
+                          ? ref_obj_l0->sb_me_64x64_dist[md_ctx->sb_index]
+                          : 0,
+                             l1_me_64x64_dist   = 0;
                     uint32_t l0_me_8x8_cost_var = ref_obj_l0->slice_type != I_SLICE
                         ? ref_obj_l0->sb_me_8x8_cost_var[md_ctx->sb_index]
                         : 0,
@@ -3463,11 +3489,11 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
                     if (pcs->slice_type == B_SLICE && is_ref_l1_avail) {
                         EbReferenceObject *ref_obj_l1 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-                        l1_was_intra = ref_obj_l1->sb_intra[md_ctx->sb_index];
-                        l1_was_skip = ref_obj_l1->sb_skip[md_ctx->sb_index];
-                        l1_me_64x64_dist = ref_obj_l1->slice_type != I_SLICE
-                            ? ref_obj_l1->sb_me_64x64_dist[md_ctx->sb_index]
-                            : 0;
+                        l1_was_intra       = ref_obj_l1->sb_intra[md_ctx->sb_index];
+                        l1_was_skip        = ref_obj_l1->sb_skip[md_ctx->sb_index];
+                        l1_me_64x64_dist   = ref_obj_l1->slice_type != I_SLICE
+                              ? ref_obj_l1->sb_me_64x64_dist[md_ctx->sb_index]
+                              : 0;
                         l1_me_8x8_cost_var = ref_obj_l1->slice_type != I_SLICE
                             ? ref_obj_l1->sb_me_8x8_cost_var[md_ctx->sb_index]
                             : 0;

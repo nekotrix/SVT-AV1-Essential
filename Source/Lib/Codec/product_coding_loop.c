@@ -49,7 +49,9 @@ uint64_t svt_spatial_full_distortion_ssim_kernel(uint8_t *input, uint32_t input_
 void     aom_av1_set_ssim_rdmult(struct ModeDecisionContext *ctx, PictureControlSet *pcs, const int mi_row,
                                  const int mi_col);
 
-void             svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#if !CLN_FUNCS_HEADER
+void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#endif
 extern IntraSize svt_aom_intra_unit[];
 
 const EbPredictionFunc svt_product_prediction_fun_table_light_pd0[2] = {svt_av1_intra_prediction_cl,

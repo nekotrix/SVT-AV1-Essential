@@ -16,7 +16,11 @@
 #include "svt_log.h"
 #include "intra_prediction.h"
 #include "pcs.h"
-
+#if CLN_FUNCS_HEADER
+#include "super_res.h"
+#include "pic_operators.h"
+#include "convolve.h"
+#else
 void svt_av1_upscale_normative_rows(const Av1Common *cm, const uint8_t *src, int src_stride, uint8_t *dst,
                                     int dst_stride, int rows, int sub_x, int bd, bool is_16bit_pipeline);
 
@@ -26,11 +30,13 @@ void svt_aom_foreach_rest_unit_in_frame(Av1Common *cm, int32_t plane, RestTileSt
 void svt_aom_yv12_copy_y_c(const Yv12BufferConfig *src_ybc, Yv12BufferConfig *dst_ybc);
 void svt_aom_yv12_copy_u_c(const Yv12BufferConfig *src_bc, Yv12BufferConfig *dst_bc);
 void svt_aom_yv12_copy_v_c(const Yv12BufferConfig *src_bc, Yv12BufferConfig *dst_bc);
+#endif
 
 int32_t svt_aom_realloc_frame_buffer(Yv12BufferConfig *ybf, int32_t width, int32_t height, int32_t ss_x, int32_t ss_y,
                                      int32_t use_highbitdepth, int32_t border, int32_t byte_alignment,
                                      AomCodecFrameBuffer *fb, AomGetFrameBufferCbFn cb, void *cb_priv);
 
+#if !CLN_FUNCS_HEADER
 #define FILTER_BITS 7
 #define WIENER_ROUND0_BITS 3
 
@@ -74,6 +80,7 @@ static INLINE ConvolveParams get_conv_params_wiener(int32_t bd) {
 
 void *svt_aom_memalign(size_t align, size_t size);
 void  svt_aom_free(void *memblk);
+#endif
 
 // The 's' values are calculated based on original 'r' and 'e' values in the
 // spec using GenSgrprojVtable().

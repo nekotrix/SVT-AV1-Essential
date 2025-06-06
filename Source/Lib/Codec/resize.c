@@ -23,6 +23,9 @@
 #include "enc_inter_prediction.h"
 #include "svt_log.h"
 #include "random.h"
+#if CLN_FUNCS_HEADER
+#include "pic_operators.h"
+#endif
 
 #define DIVIDE_AND_ROUND(x, y) (((x) + ((y) >> 1)) / (y))
 
@@ -733,11 +736,13 @@ EbErrorType svt_av1_highbd_resize_plane_horizontal(const uint16_t *const input, 
     return EB_ErrorNone;
 }
 
+#if !CLN_FUNCS_HEADER
 void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
                              uint32_t ss_y, bool include_padding);
 
 void svt_aom_unpack_highbd_pic(uint16_t *buffer_highbd[3], EbPictureBufferDesc *pic_ptr, uint32_t ss_x, uint32_t ss_y,
                                bool include_padding);
+#endif
 #if DEBUG_SCALING
 void save_YUV_to_file(char *filename, EbByte buffer_y, EbByte buffer_u, EbByte buffer_v, uint16_t width,
                       uint16_t height, uint16_t stride_y, uint16_t stride_u, uint16_t stride_v, uint16_t org_y,

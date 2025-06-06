@@ -18,8 +18,13 @@
 #include "aom_dsp_rtcd.h"
 #include "svt_log.h"
 #include "rd_cost.h"
+#if CLN_MISC
+#include "rc_process.h"
+#endif
 
+#if !CLN_FUNCS_HEADER
 void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#endif
 #if !FIX_CDEF_MSE
 static INLINE uint64_t dist_8xn_16bit_c(const uint16_t *src, const uint16_t *dst, const int32_t dstride,
                                         const int32_t coeff_shift, int8_t height, uint8_t subsampling_factor) {
@@ -234,7 +239,11 @@ uint64_t svt_aom_compute_cdef_dist_8bit_c(const uint8_t *dst8, int32_t dstride, 
     return sum >> 2 * coeff_shift;
 }
 
+#if CLN_FUNCS_HEADER
+static int32_t svt_sb_all_skip(PictureControlSet *pcs, const Av1Common *const cm, int32_t mi_row, int32_t mi_col) {
+#else
 int32_t svt_sb_all_skip(PictureControlSet *pcs, const Av1Common *const cm, int32_t mi_row, int32_t mi_col) {
+#endif
     int32_t maxc, maxr;
     maxc = cm->mi_cols - mi_col;
     maxr = cm->mi_rows - mi_row;

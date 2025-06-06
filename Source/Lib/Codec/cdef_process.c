@@ -25,13 +25,198 @@
 #include "utility.h"
 #include "pcs.h"
 #include "resize.h"
+#if CLN_FUNCS_HEADER
+#include "super_res.h"
 
-void svt_aom_copy_sb8_16(uint16_t *dst, int32_t dstride, const uint8_t *src, int32_t src_voffset, int32_t src_hoffset,
-                         int32_t sstride, int32_t vsize, int32_t hsize, bool is_16bit);
+static void set_unscaled_input_16bit(PictureControlSet *pcs) {
+    EbPictureBufferDesc *input_pic  = pcs->ppcs->enhanced_unscaled_pic;
+    EbPictureBufferDesc *output_pic = pcs->input_frame16bit;
+    uint16_t             ss_x       = pcs->ppcs->scs->subsampling_x;
+    uint16_t             ss_y       = pcs->ppcs->scs->subsampling_y;
+    svt_aom_copy_buffer_info(input_pic, pcs->input_frame16bit);
+    if (input_pic->bit_depth == EB_EIGHT_BIT)
+        svt_aom_convert_pic_8bit_to_16bit(input_pic, output_pic, ss_x, ss_y);
+    else {
+        uint16_t *planes[3] = {
+            (uint16_t *)output_pic->buffer_y + (output_pic->org_y * output_pic->stride_y) + (output_pic->org_x),
+            (uint16_t *)output_pic->buffer_cb + (((output_pic->org_y) >> ss_y) * output_pic->stride_cb) +
+                ((output_pic->org_x) >> ss_x),
+            (uint16_t *)output_pic->buffer_cr + (((output_pic->org_y) >> ss_y) * output_pic->stride_cr) +
+                ((output_pic->org_x) >> ss_x)};
+        svt_aom_pack_2d_pic(input_pic, planes);
+    }
+}
 
-void   *svt_aom_memalign(size_t align, size_t size);
-void    svt_aom_free(void *memblk);
-void   *svt_aom_malloc(size_t size);
+static void derive_blk_pointers_enc(EbPictureBufferDesc *recon_picture_buf, int32_t plane, int32_t blk_col_px,
+                                    int32_t blk_row_px, void **pp_blk_recon_buf, int32_t *recon_stride, int32_t sub_x,
+                                    int32_t sub_y, bool use_highbd) {
+    int32_t block_offset;
+
+    if (plane == 0) {
+        block_offset = (recon_picture_buf->org_y + blk_row_px) * recon_picture_buf->stride_y +
+            (recon_picture_buf->org_x + blk_col_px);
+        *recon_stride = recon_picture_buf->stride_y;
+    } else if (plane == 1) {
+        block_offset = ((recon_picture_buf->org_y >> sub_y) + blk_row_px) * recon_picture_buf->stride_cb +
+            ((recon_picture_buf->org_x >> sub_x) + blk_col_px);
+        *recon_stride = recon_picture_buf->stride_cb;
+    } else {
+        block_offset = ((recon_picture_buf->org_y >> sub_y) + blk_row_px) * recon_picture_buf->stride_cr +
+            ((recon_picture_buf->org_x >> sub_x) + blk_col_px);
+        *recon_stride = recon_picture_buf->stride_cr;
+    }
+
+    if (use_highbd) { //16bit
+        if (plane == 0)
+            *pp_blk_recon_buf = (void *)((uint16_t *)recon_picture_buf->buffer_y + block_offset);
+        else if (plane == 1)
+            *pp_blk_recon_buf = (void *)((uint16_t *)recon_picture_buf->buffer_cb + block_offset);
+        else
+            *pp_blk_recon_buf = (void *)((uint16_t *)recon_picture_buf->buffer_cr + block_offset);
+    } else {
+        if (plane == 0)
+            *pp_blk_recon_buf = (void *)((uint8_t *)recon_picture_buf->buffer_y + block_offset);
+        else if (plane == 1)
+            *pp_blk_recon_buf = (void *)((uint8_t *)recon_picture_buf->buffer_cb + block_offset);
+        else
+            *pp_blk_recon_buf = (void *)((uint8_t *)recon_picture_buf->buffer_cr + block_offset);
+    }
+}
+
+static EbErrorType copy_recon_enc(SequenceControlSet *scs, EbPictureBufferDesc *recon_picture_src,
+                                  EbPictureBufferDesc *recon_picture_dst, int num_planes, int skip_copy) {
+    recon_picture_dst->org_x        = recon_picture_src->org_x;
+    recon_picture_dst->org_y        = recon_picture_src->org_y;
+    recon_picture_dst->origin_bot_y = recon_picture_src->origin_bot_y;
+    recon_picture_dst->width        = recon_picture_src->width;
+    recon_picture_dst->height       = recon_picture_src->height;
+    recon_picture_dst->max_width    = recon_picture_src->max_width;
+    recon_picture_dst->max_height   = recon_picture_src->max_height;
+    recon_picture_dst->bit_depth    = recon_picture_src->bit_depth;
+    recon_picture_dst->color_format = recon_picture_src->color_format;
+
+    recon_picture_dst->stride_y  = recon_picture_src->stride_y;
+    recon_picture_dst->stride_cb = recon_picture_src->stride_cb;
+    recon_picture_dst->stride_cr = recon_picture_src->stride_cr;
+
+    recon_picture_dst->luma_size   = recon_picture_src->luma_size;
+    recon_picture_dst->chroma_size = recon_picture_src->chroma_size;
+    recon_picture_dst->packed_flag = recon_picture_src->packed_flag;
+
+    recon_picture_dst->stride_bit_inc_y  = recon_picture_src->stride_bit_inc_y;
+    recon_picture_dst->stride_bit_inc_cb = recon_picture_src->stride_bit_inc_cb;
+    recon_picture_dst->stride_bit_inc_cr = recon_picture_src->stride_bit_inc_cr;
+
+    recon_picture_dst->buffer_enable_mask = scs->seq_header.color_config.mono_chrome ? PICTURE_BUFFER_DESC_LUMA_MASK
+                                                                                     : PICTURE_BUFFER_DESC_FULL_MASK;
+
+    uint32_t bytesPerPixel = scs->is_16bit_pipeline ? 2 : 1;
+
+    // Allocate the Picture Buffers (luma & chroma)
+    if (recon_picture_dst->buffer_enable_mask & PICTURE_BUFFER_DESC_Y_FLAG) {
+        EB_MALLOC_ALIGNED(recon_picture_dst->buffer_y, recon_picture_dst->luma_size * bytesPerPixel);
+        memset(recon_picture_dst->buffer_y, 0, recon_picture_dst->luma_size * bytesPerPixel);
+    } else
+        recon_picture_dst->buffer_y = 0;
+    if (recon_picture_dst->buffer_enable_mask & PICTURE_BUFFER_DESC_Cb_FLAG) {
+        EB_MALLOC_ALIGNED(recon_picture_dst->buffer_cb, recon_picture_dst->chroma_size * bytesPerPixel);
+        memset(recon_picture_dst->buffer_cb, 0, recon_picture_dst->chroma_size * bytesPerPixel);
+    } else
+        recon_picture_dst->buffer_cb = 0;
+    if (recon_picture_dst->buffer_enable_mask & PICTURE_BUFFER_DESC_Cr_FLAG) {
+        EB_MALLOC_ALIGNED(recon_picture_dst->buffer_cr, recon_picture_dst->chroma_size * bytesPerPixel);
+        memset(recon_picture_dst->buffer_cr, 0, recon_picture_dst->chroma_size * bytesPerPixel);
+    } else
+        recon_picture_dst->buffer_cr = 0;
+
+    int use_highbd = scs->is_16bit_pipeline;
+
+    if (!skip_copy) {
+        for (int plane = 0; plane < num_planes; ++plane) {
+            uint8_t *src_buf, *dst_buf;
+            int32_t  src_stride, dst_stride;
+
+            int sub_x = plane ? scs->subsampling_x : 0;
+            int sub_y = plane ? scs->subsampling_y : 0;
+
+            derive_blk_pointers_enc(
+                recon_picture_src, plane, 0, 0, (void *)&src_buf, &src_stride, sub_x, sub_y, use_highbd);
+            derive_blk_pointers_enc(
+                recon_picture_dst, plane, 0, 0, (void *)&dst_buf, &dst_stride, sub_x, sub_y, use_highbd);
+
+            int height = ((recon_picture_src->height + sub_y) >> sub_y);
+            for (int row = 0; row < height; ++row) {
+                svt_memcpy(
+                    dst_buf, src_buf, ((recon_picture_src->width + sub_x) >> sub_x) * sizeof(*src_buf) << use_highbd);
+                src_buf += src_stride << use_highbd;
+                dst_buf += dst_stride << use_highbd;
+            }
+        }
+    }
+
+    return EB_ErrorNone;
+}
+
+static void svt_av1_superres_upscale_frame(struct Av1Common *cm, PictureControlSet *pcs, SequenceControlSet *scs) {
+    // Set these parameters for testing since they are not correctly populated yet
+    EbPictureBufferDesc *recon_ptr;
+
+    bool is_16bit = scs->is_16bit_pipeline;
+
+    svt_aom_get_recon_pic(pcs, &recon_ptr, is_16bit);
+
+    uint16_t  ss_x       = scs->subsampling_x;
+    uint16_t  ss_y       = scs->subsampling_y;
+    const int num_planes = scs->seq_header.color_config.mono_chrome ? 1 : MAX_MB_PLANE;
+
+    EbPictureBufferDesc  recon_pic_temp;
+    EbPictureBufferDesc *ps_recon_pic_temp;
+    ps_recon_pic_temp = &recon_pic_temp;
+
+    EbErrorType return_error = copy_recon_enc(scs, recon_ptr, ps_recon_pic_temp, num_planes, 0);
+
+    if (return_error != EB_ErrorNone) {
+        ps_recon_pic_temp = NULL;
+        assert(0);
+    }
+
+    EbPictureBufferDesc *src = ps_recon_pic_temp;
+    EbPictureBufferDesc *dst = recon_ptr;
+
+    // get the bit-depth from the encoder config instead of from the recon ptr
+    int bit_depth = scs->static_config.encoder_bit_depth;
+
+    for (int plane = 0; plane < num_planes; ++plane) {
+        uint8_t *src_buf, *dst_buf;
+        int32_t  src_stride, dst_stride;
+
+        int sub_x = plane ? ss_x : 0;
+        int sub_y = plane ? ss_y : 0;
+        derive_blk_pointers_enc(src, plane, 0, 0, (void *)&src_buf, &src_stride, sub_x, sub_y, is_16bit);
+        derive_blk_pointers_enc(dst, plane, 0, 0, (void *)&dst_buf, &dst_stride, sub_x, sub_y, is_16bit);
+
+        svt_av1_upscale_normative_rows(cm,
+                                       (const uint8_t *)src_buf,
+                                       src_stride,
+                                       dst_buf,
+                                       dst_stride,
+                                       (src->height + sub_y) >> sub_y,
+                                       sub_x,
+                                       bit_depth,
+                                       is_16bit);
+    }
+
+    // free the memory
+    EB_FREE_ALIGNED_ARRAY(ps_recon_pic_temp->buffer_y);
+    EB_FREE_ALIGNED_ARRAY(ps_recon_pic_temp->buffer_cb);
+    EB_FREE_ALIGNED_ARRAY(ps_recon_pic_temp->buffer_cr);
+}
+#else
+void  svt_aom_copy_sb8_16(uint16_t *dst, int32_t dstride, const uint8_t *src, int32_t src_voffset, int32_t src_hoffset,
+                          int32_t sstride, int32_t vsize, int32_t hsize, bool is_16bit);
+void *svt_aom_memalign(size_t align, size_t size);
+void  svt_aom_free(void *memblk);
+void *svt_aom_malloc(size_t size);
 int32_t svt_sb_all_skip(PictureControlSet *pcs, const Av1Common *const cm, int32_t mi_row, int32_t mi_col);
 int32_t svt_sb_compute_cdef_list(PictureControlSet *pcs, const Av1Common *const cm, int32_t mi_row, int32_t mi_col,
                                  CdefList *dlist, BlockSize bs);
@@ -40,8 +225,8 @@ void    svt_av1_cdef_frame(SequenceControlSet *scs, PictureControlSet *pcs);
 void    svt_av1_loop_restoration_save_boundary_lines(const Yv12BufferConfig *frame, Av1Common *cm, int32_t after_cdef);
 void    svt_av1_superres_upscale_frame(struct Av1Common *cm, PictureControlSet *pcs, SequenceControlSet *scs);
 void    set_unscaled_input_16bit(PictureControlSet *pcs);
-
-void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+void    svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#endif
 
 /**************************************
  * Cdef Context

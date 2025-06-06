@@ -29,7 +29,9 @@
 #include "pack_unpack_c.h"
 #include "enc_inter_prediction.h"
 
-void               svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#if !CLN_FUNCS_HEADER
+void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
+#endif
 void               aom_av1_set_ssim_rdmult(struct ModeDecisionContext *ctx, PictureControlSet *pcs, const int mi_row,
                                            const int mi_col);
 static EbErrorType ec_rtime_alloc_palette_info(EcBlkStruct *md_blk_arr_nsq) {

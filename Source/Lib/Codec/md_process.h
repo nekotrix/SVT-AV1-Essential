@@ -1046,6 +1046,25 @@ typedef struct CompoundPredictionStore {
 } CompoundPredictionStore;
 #endif
 
+#if CLN_FUNCS_HEADER
+typedef struct EbMdcLeafData {
+    uint32_t mds_idx;
+    // array containing all shapes to be tested for the current SQ block
+    Part shapes[PART_S];
+    // total number of shapes to test for the current SQ block
+    uint8_t tot_shapes;
+    bool    is_child; // does is it belong to the child depth(s); relative to PRED (the output of PD0)
+} EbMdcLeafData;
+
+typedef struct MdcSbData {
+    uint32_t       leaf_count;
+    EbMdcLeafData *leaf_data_array;
+    bool          *split_flag;
+    uint8_t       *refined_split_flag;
+    // 0: do not encode, 1: current or parent depth(s), 2: child depth(s)
+    uint8_t *consider_block;
+} MdcSbData;
+#endif
 typedef struct ModeDecisionContext {
     EbDctor dctor;
 

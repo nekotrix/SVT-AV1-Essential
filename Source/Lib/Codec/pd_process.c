@@ -3053,8 +3053,10 @@ bool svt_aom_is_delayed_intra(PictureParentControlSet *pcs) {
         return 0;
 }
 void first_pass_frame_end_one_pass(PictureParentControlSet *pcs);
+#if !CLN_FUNCS_HEADER
 void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
     uint32_t ss_y, bool include_padding);
+#endif
 #define HIGH_BAND 250000
 /* modulate_ref_pics()
  For INTRA, the modulation uses the noise level, and towards increasing the number of ref_pics

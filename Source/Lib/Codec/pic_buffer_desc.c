@@ -522,8 +522,10 @@ void svt_aom_link_eb_to_aom_buffer_desc(EbPictureBufferDesc *picBuffDsc, Yv12Buf
     }
 }
 
+#if !CLN_FUNCS_HEADER
 void *svt_aom_memalign(size_t align, size_t size);
 void  svt_aom_free(void *memblk);
+#endif
 
 #define yv12_align_addr(addr, align) (void *)(((size_t)(addr) + ((align)-1)) & (size_t) - (align))
 

@@ -42,9 +42,11 @@ typedef struct RestContext {
     int32_t *rst_tmpbuf;
 } RestContext;
 
-void        svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
-                                    uint32_t ss_y, bool include_padding);
-void        svt_aom_copy_buffer_info(EbPictureBufferDesc *src_ptr, EbPictureBufferDesc *dst_ptr);
+#if !CLN_FUNCS_HEADER
+void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
+                             uint32_t ss_y, bool include_padding);
+void svt_aom_copy_buffer_info(EbPictureBufferDesc *src_ptr, EbPictureBufferDesc *dst_ptr);
+#endif
 void        svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs);
 void        svt_av1_loop_restoration_filter_frame(int32_t *rst_tmpbuf, Yv12BufferConfig *frame, Av1Common *cm,
                                                   int32_t optimized_lr);
@@ -54,12 +56,14 @@ void        pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *sc
 void        restoration_seg_search(int32_t *rst_tmpbuf, Yv12BufferConfig *org_fts, const Yv12BufferConfig *src,
                                    Yv12BufferConfig *trial_frame_rst, PictureControlSet *pcs, uint32_t segment_index);
 void        rest_finish_search(PictureControlSet *pcs);
-void        svt_av1_upscale_normative_rows(const Av1Common *cm, const uint8_t *src, int src_stride, uint8_t *dst,
-                                           int dst_stride, int rows, int sub_x, int bd, bool is_16bit_pipeline);
+#if !CLN_FUNCS_HEADER
+void svt_av1_upscale_normative_rows(const Av1Common *cm, const uint8_t *src, int src_stride, uint8_t *dst,
+                                    int dst_stride, int rows, int sub_x, int bd, bool is_16bit_pipeline);
 #if DEBUG_UPSCALING
 void save_YUV_to_file(char *filename, EbByte buffer_y, EbByte buffer_u, EbByte buffer_v, uint16_t width,
                       uint16_t height, uint16_t stride_y, uint16_t stride_u, uint16_t stride_v, uint16_t org_y,
                       uint16_t org_x, uint32_t ss_x, uint32_t ss_y);
+#endif
 #endif
 
 static void rest_context_dctor(EbPtr p) {
@@ -145,6 +149,7 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
 
     return EB_ErrorNone;
 }
+#if !CLN_FUNCS_HEADER
 extern void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd) {
     if (!is_highbd) {
         if (pcs->ppcs->is_ref == true)
@@ -164,6 +169,7 @@ extern void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **
         (*recon_ptr)->height = pcs->ppcs->render_height;
     }
 }
+#endif
 
 // If using boundaries during the filter search, copy the recon pic to a new buffer (to
 // avoid race conidition from many threads modifying the same recon pic).
@@ -245,6 +251,7 @@ static EbPictureBufferDesc *get_own_recon(SequenceControlSet *scs, PictureContro
     return context_ptr->org_rec_frame;
 }
 
+#if !CLN_FUNCS_HEADER
 void svt_convert_pic_8bit_to_16bit(EbPictureBufferDesc *src_8bit, EbPictureBufferDesc *dst_16bit, uint16_t ss_x,
                                    uint16_t ss_y) {
     //copy input from 8bit to 16bit
@@ -469,6 +476,7 @@ void svt_av1_superres_upscale_frame(struct Av1Common *cm, PictureControlSet *pcs
     EB_FREE_ALIGNED_ARRAY(ps_recon_pic_temp->buffer_cb);
     EB_FREE_ALIGNED_ARRAY(ps_recon_pic_temp->buffer_cr);
 }
+#endif
 
 static void copy_statistics_to_ref_obj_ect(PictureControlSet *pcs, SequenceControlSet *scs) {
     EbReferenceObject *obj = (EbReferenceObject *)pcs->ppcs->ref_pic_wrapper->object_ptr;

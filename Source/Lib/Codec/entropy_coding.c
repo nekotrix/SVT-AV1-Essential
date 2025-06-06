@@ -499,13 +499,14 @@ static void av1_write_tx_type(PictureParentControlSet *pcs, FRAME_CONTEXT *frame
         }
     }
 }
-
+#if !CLN_FUNCS_HEADER
 static INLINE void set_dc_sign(int32_t *cul_level, int32_t dc_val) {
     if (dc_val < 0)
         *cul_level |= 1 << COEFF_CONTEXT_BITS;
     else if (dc_val > 0)
         *cul_level += 2 << COEFF_CONTEXT_BITS;
 }
+#endif
 
 static int32_t av1_write_coeffs_txb_1d(PictureParentControlSet *ppcs, FRAME_CONTEXT *frame_context, MbModeInfo *mbmi,
                                        AomWriter *ec_writer, EcBlkStruct *blk_ptr, TxSize tx_size, uint32_t pu_index,
