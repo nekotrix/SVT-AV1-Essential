@@ -4050,7 +4050,7 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
 
                         // If LPD0 is used, a more conservative level can be set for complex SBs
 #if FTR_RTC_MODE
-                        const bool rtc_tune = scs->static_config.rtc_mode;
+                        const bool rtc_tune = scs->static_config.rtc;
 #else
                         const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true
                                                                                                               : false;

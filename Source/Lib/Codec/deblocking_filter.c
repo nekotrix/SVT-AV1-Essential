@@ -875,8 +875,8 @@ uint64_t picture_sse_calculations(PictureControlSet *pcs, EbPictureBufferDesc *r
 *************************************************************************************************/
 static int64_t try_filter_frame(
 #if !CLN_FUNCS_HEADER
-    //const Yv12BufferConfig *sd,
-    //Av1Comp *const cpi,
+//const Yv12BufferConfig *sd,
+//Av1Comp *const cpi,
 #endif
     const EbPictureBufferDesc *sd, EbPictureBufferDesc *temp_lf_recon_buffer, PictureControlSet *pcs,
     int32_t filt_level, int32_t partial_frame, int32_t plane, int32_t dir) {
@@ -923,7 +923,7 @@ static int64_t try_filter_frame(
 *************************************************************************************************/
 static int32_t search_filter_level(
 #if !CLN_FUNCS_HEADER
-    //const Yv12BufferConfig *sd, Av1Comp *cpi,
+//const Yv12BufferConfig *sd, Av1Comp *cpi,
 #endif
     EbPictureBufferDesc *sd, // source
     EbPictureBufferDesc *temp_lf_recon_buffer, PictureControlSet *pcs, int32_t partial_frame,

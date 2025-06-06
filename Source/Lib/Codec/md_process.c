@@ -687,7 +687,7 @@ const EbAv1LambdaAssignFunc svt_aom_av1_lambda_assignment_function_table[4] = {
 void svt_aom_reset_mode_decision(SequenceControlSet *scs, ModeDecisionContext *ctx, PictureControlSet *pcs,
                                  uint16_t tile_group_idx, uint32_t segment_index) {
 #if FTR_RTC_MODE
-    const bool rtc_tune = scs->static_config.rtc_mode;
+    const bool rtc_tune = scs->static_config.rtc;
 #endif
     ctx->hbd_md = pcs->hbd_md;
     // Reset MD rate Estimation table to initial values by copying from md_rate_est_ctx

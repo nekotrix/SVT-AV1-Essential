@@ -53,6 +53,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Source Height must be at least 4\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if TUNE_RTC_USE_LD
+    if (config->rtc && config->pred_structure != LOW_DELAY) {
+        config->pred_structure = LOW_DELAY;
+        SVT_WARN("Instance %u: Force low delay pred strucutre to be used for rtc.\n");
+    }
+#endif
 #if CLN_REMOVE_LDP
     if (config->pred_structure > RANDOM_ACCESS || config->pred_structure < LOW_DELAY) {
         SVT_ERROR("Instance %u: Pred Structure must be [%d (low delay) or %d (random access)]\n",
@@ -974,7 +980,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->fast_decode                  = 0;
     config_ptr->encoder_color_format         = EB_YUV420;
 #if FTR_RTC_MODE
-    config_ptr->rtc_mode = 0;
+    config_ptr->rtc = 0;
 #endif
     // Rate control options
     // Set the default value toward more flexible rate allocation
@@ -2162,7 +2168,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"lossless", &config_struct->lossless},
         {"avif", &config_struct->avif},
 #if FTR_RTC_MODE
-        {"rtc-mode", &config_struct->rtc_mode},
+        {"rtc", &config_struct->rtc},
 #endif
     };
     const size_t bool_opts_size = sizeof(bool_opts) / sizeof(bool_opts[0]);

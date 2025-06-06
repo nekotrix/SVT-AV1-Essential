@@ -2140,16 +2140,6 @@ typedef enum MD_BIT_DEPTH_MODE
 } MD_BIT_DEPTH_MODE;
 
 #if CLN_REMOVE_LDP
-#if SVT_AV1_CHECK_VERSION(4,0,0)
- /* Indicates what prediction structure to use
-  */
-typedef enum PredStructure {
-    LOW_DELAY = 0,
-    RANDOM_ACCESS = 1,
-    PRED_TOTAL_COUNT = 2,
-    PRED_INVALID = 0xFF
-} PredStructure;
-#else
  /* Indicates what prediction structure to use
   *
   * SVT_AV1_PRED_UNUSED is not used, and not supported in the code. It is a placeholder after removing SVT_AV1_PRED_LOW_DELAY_P
@@ -2164,7 +2154,6 @@ typedef enum PredStructure {
     PRED_TOTAL_COUNT = 3,
     PRED_INVALID = 0xFF
 } PredStructure;
-#endif
 #endif
 /*
  * The SliceType type is used to describe the slice prediction type.

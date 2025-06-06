@@ -240,7 +240,7 @@ uint8_t svt_aom_derive_gm_level(PictureParentControlSet *pcs, bool super_res_off
  ************************************************/
 static void set_hme_search_params(PictureParentControlSet *pcs, MeContext *me_ctx, EbInputResolution input_resolution) {
 #if FTR_RTC_MODE
-    const bool rtc_tune = pcs->scs->static_config.rtc_mode;
+    const bool rtc_tune = pcs->scs->static_config.rtc;
 #else
     const bool rtc_tune = (pcs->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -379,7 +379,7 @@ static void set_me_search_params(SequenceControlSet *scs, PictureParentControlSe
     uint32_t hierarchical_levels = pcs->hierarchical_levels;
 #endif
 #if FTR_RTC_MODE
-    const bool rtc_tune = scs->static_config.rtc_mode;
+    const bool rtc_tune = scs->static_config.rtc;
 #else
     const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -989,7 +989,7 @@ void svt_aom_sig_deriv_me(SequenceControlSet *scs, PictureParentControlSet *pcs,
 #endif
     EbInputResolution input_resolution = scs->input_resolution;
 #if FTR_RTC_MODE
-    const bool rtc_tune = scs->static_config.rtc_mode;
+    const bool rtc_tune = scs->static_config.rtc;
 #else
     const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -2073,7 +2073,7 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
     const EbInputResolution input_resolution = pcs->input_resolution;
     const uint8_t           fast_decode      = scs->static_config.fast_decode;
 #if FTR_RTC_MODE
-    const bool rtc_tune = scs->static_config.rtc_mode;
+    const bool rtc_tune = scs->static_config.rtc;
 #else
     const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -4622,7 +4622,7 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
                                      uint8_t ref_skip_perc) {
     CandReductionCtrls *cand_reduction_ctrls = &ctx->cand_reduction_ctrls;
 #if FTR_RTC_MODE
-    const bool rtc_tune = pcs->scs->static_config.rtc_mode;
+    const bool rtc_tune = pcs->scs->static_config.rtc;
 #else
     const bool rtc_tune = (pcs->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -9157,7 +9157,7 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
     }
 #endif
 #if FTR_RTC_MODE
-    const bool rtc_tune = scs->static_config.rtc_mode;
+    const bool rtc_tune = scs->static_config.rtc;
 #else
     const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -9411,7 +9411,7 @@ void svt_aom_sig_deriv_enc_dec_light_pd0(SequenceControlSet *scs, PictureControl
     PictureParentControlSet *ppcs      = pcs->ppcs;
     const uint8_t            is_islice = pcs->slice_type == I_SLICE;
 #if FTR_RTC_MODE
-    const bool rtc_tune = scs->static_config.rtc_mode;
+    const bool rtc_tune = scs->static_config.rtc;
 #else
     const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -9561,7 +9561,7 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
     uint8_t        l0_was_skip = 0, l1_was_skip = 0;
     uint8_t        l0_was_64x64_mvp = 0, l1_was_64x64_mvp = 0;
 #if FTR_RTC_MODE
-    const bool rtc_tune = pcs->scs->static_config.rtc_mode;
+    const bool rtc_tune = pcs->scs->static_config.rtc;
 #else
     const bool rtc_tune = (pcs->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -9812,7 +9812,7 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
     uint8_t        l0_was_skip = 0, l1_was_skip = 0;
     uint8_t        ref_skip_perc = pcs->ref_skip_percentage;
 #if FTR_RTC_MODE
-    const bool rtc_tune = scs->static_config.rtc_mode;
+    const bool rtc_tune = scs->static_config.rtc;
 #else
     const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -10541,7 +10541,7 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
     const bool    transition_present = (ppcs->transition_present == 1);
     const uint8_t sc_class1          = ppcs->sc_class1;
 #if FTR_RTC_MODE
-    const bool rtc_tune = pcs->scs->static_config.rtc_mode;
+    const bool rtc_tune = pcs->scs->static_config.rtc;
 #else
     const bool rtc_tune = (ppcs->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -10936,7 +10936,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     const uint32_t           hierarchical_levels = ppcs->hierarchical_levels;
     const bool               transition_present  = (ppcs->transition_present == 1);
 #if FTR_RTC_MODE
-    const bool rtc_tune = scs->static_config.rtc_mode;
+    const bool rtc_tune = scs->static_config.rtc;
 #else
     const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -12193,7 +12193,7 @@ set lpd0_level
 void svt_aom_set_mfmv_config(SequenceControlSet *scs) {
     if (scs->static_config.enable_mfmv == DEFAULT) {
 #if FTR_RTC_MODE
-        const bool rtc_tune = scs->static_config.rtc_mode;
+        const bool rtc_tune = scs->static_config.rtc;
 #else
         const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif

@@ -1057,7 +1057,7 @@ static void fast_loop_core_light_pd0(ModeDecisionCandidateBuffer *cand_bf, Pictu
     ModeDecisionCandidate *cand = cand_bf->cand;
     EbPictureBufferDesc   *pred = cand_bf->pred;
 #if FTR_RTC_MODE
-    const bool rtc_tune = pcs->scs->static_config.rtc_mode;
+    const bool rtc_tune = pcs->scs->static_config.rtc;
 #endif
     if (ctx->lpd0_ctrls.pd0_level == VERY_LIGHT_PD0) {
 #if CLN_MBMI_IN_CAND
@@ -1229,7 +1229,7 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
     uint8_t                *pred_y = pred->buffer_y + loc->blk_origin_index;
     uint8_t                *src_y  = input_pic->buffer_y + loc->input_origin_index;
 #if FTR_RTC_MODE
-    const bool rtc_tune = pcs->scs->static_config.rtc_mode;
+    const bool rtc_tune = pcs->scs->static_config.rtc;
 #endif
     // The variance is shifted because fast_lambda is used, and variance is much larger than SAD (for which
     // fast_lambda was designed), so a scaling is needed to make the values closer.  3 was chosen empirically.
@@ -1643,7 +1643,7 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
     ctx->pu_itr = 0;
 #endif
 #if FTR_RTC_MODE
-    const bool rtc_tune = pcs->scs->static_config.rtc_mode;
+    const bool rtc_tune = pcs->scs->static_config.rtc;
 #endif
     // Prediction
     ctx->uv_intra_comp_only = false;
@@ -11199,7 +11199,7 @@ static void md_encode_block_light_pd0(PictureControlSet *pcs, ModeDecisionContex
         (ctx->blk_org_x + input_pic->org_x);
     const uint32_t blk_origin_index = blk_geom->org_x + blk_geom->org_y * ctx->sb_size;
 #if FTR_RTC_MODE
-    const bool rtc_tune = pcs->scs->static_config.rtc_mode;
+    const bool rtc_tune = pcs->scs->static_config.rtc;
 #endif
     BlkStruct *blk_ptr = ctx->blk_ptr;
     if (!ctx->skip_intra) {

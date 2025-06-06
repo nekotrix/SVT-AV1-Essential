@@ -198,7 +198,7 @@
 #define LOSSLESS_TOKEN "--lossless"
 #define AVIF_TOKEN "--avif"
 #if FTR_RTC_MODE
-#define RTC_TOKEN "--rtc-mode"
+#define RTC_TOKEN "--rtc"
 #endif
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
@@ -998,7 +998,7 @@ ConfigEntry config_entry_intra_refresh[] = {
 #if FTR_RTC_MODE
     {SINGLE_INPUT,
      RTC_TOKEN,
-     "Enables fast settings for rtc when using low-delay mode, "
+     "Enables fast settings for rtc when using low-delay mode. Forces low-delay pred struct to be used, "
      "default is 0, [0-1]]",
      set_cfg_generic_token},
 #endif

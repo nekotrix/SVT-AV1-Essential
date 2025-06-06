@@ -31,7 +31,11 @@
 #include "global_me.h"
 #include "aom_dsp_rtcd.h"
 #define MAX_MESH_SPEED 5 // Max speed setting for mesh motion method
+#if CLN_FUNCS_HEADER
+static const MeshPattern good_quality_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
+#else
 static MeshPattern good_quality_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
+#endif
     {{64, 8}, {28, 4}, {15, 1}, {7, 1}},
     {{64, 8}, {28, 4}, {15, 1}, {7, 1}},
     {{64, 8}, {14, 2}, {7, 1}, {7, 1}},
@@ -41,7 +45,11 @@ static MeshPattern good_quality_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP]
 };
 // TODO: These settings are pretty relaxed, tune them for
 // each speed setting
-static MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
+#if CLN_FUNCS_HEADER
+static const MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
+#else
+static MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP]      = {
+#endif
     {{256, 1}, {256, 1}, {0, 0}, {0, 0}},
     {{256, 1}, {256, 1}, {0, 0}, {0, 0}},
     {{64, 1}, {64, 1}, {0, 0}, {0, 0}},
@@ -49,7 +57,11 @@ static MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
     {{64, 4}, {16, 1}, {0, 0}, {0, 0}},
     {{64, 4}, {16, 1}, {0, 0}, {0, 0}},
 };
-void set_global_motion_field(PictureControlSet *pcs) {
+#if CLN_FUNCS_HEADER
+static void set_global_motion_field(PictureControlSet *pcs) {
+#else
+void               set_global_motion_field(PictureControlSet *pcs) {
+#endif
     // Init Global Motion Vector
     uint8_t frame_index;
     for (frame_index = INTRA_FRAME; frame_index <= ALTREF_FRAME; ++frame_index) {
@@ -191,7 +203,11 @@ static INLINE int aom_get_qmlevel(int qindex, int first, int last) {
     return first + (qindex * (last + 1 - first)) / QINDEX_RANGE;
 }
 
-void svt_av1_qm_init(PictureParentControlSet *pcs) {
+#if CLN_FUNCS_HEADER
+static void svt_av1_qm_init(PictureParentControlSet *pcs) {
+#else
+void               svt_av1_qm_init(PictureParentControlSet *pcs) {
+#endif
     const uint8_t num_planes = 3; // MAX_MB_PLANE;// NM- No monochroma
     uint8_t       q, c, t;
     int32_t       current;
@@ -241,7 +257,11 @@ void svt_av1_qm_init(PictureParentControlSet *pcs) {
 /******************************************************
 * Set the reference sg ep for a given picture
 ******************************************************/
-void set_reference_sg_ep(PictureControlSet *pcs) {
+#if CLN_FUNCS_HEADER
+static void set_reference_sg_ep(PictureControlSet *pcs) {
+#else
+void               set_reference_sg_ep(PictureControlSet *pcs) {
+#endif
     Av1Common         *cm = pcs->ppcs->av1_cm;
     EbReferenceObject *ref_obj_l0, *ref_obj_l1;
     memset(cm->sg_frame_ep_cnt, 0, SGRPROJ_PARAMS * sizeof(int32_t));
@@ -271,7 +291,7 @@ void set_reference_sg_ep(PictureControlSet *pcs) {
         cm->sg_ref_frame_ep[1] = ref_obj_l1->sg_frame_ep;
         break;
     case P_SLICE:
-        ref_obj_l0 = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+        ref_obj_l0             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
         cm->sg_ref_frame_ep[0] = ref_obj_l0->sg_frame_ep;
         cm->sg_ref_frame_ep[1] = 0;
         break;
@@ -488,8 +508,8 @@ static int motion_field_projection(Av1Common *cm, PictureControlSet *pcs, MvRefe
             MV fwd_mv = mv_ref->mv.as_mv;
 
             if (mv_ref->ref_frame > INTRA_FRAME) {
-                MV this_mv;
-                int mi_r, mi_c;
+                MV        this_mv;
+                int       mi_r, mi_c;
                 const int ref_frame_offset = ref_offset[mv_ref->ref_frame];
 
                 int pos_valid = abs(ref_frame_offset) <= MAX_FRAME_DISTANCE && ref_frame_offset > 0 &&
@@ -503,8 +523,8 @@ static int motion_field_projection(Av1Common *cm, PictureControlSet *pcs, MvRefe
                 if (pos_valid) {
                     const int mi_offset = mi_r * (cm->mi_stride >> 1) + mi_c;
 
-                    tpl_mvs_base[mi_offset].mfmv0.as_mv.row = fwd_mv.row;
-                    tpl_mvs_base[mi_offset].mfmv0.as_mv.col = fwd_mv.col;
+                    tpl_mvs_base[mi_offset].mfmv0.as_mv.row  = fwd_mv.row;
+                    tpl_mvs_base[mi_offset].mfmv0.as_mv.col  = fwd_mv.col;
                     tpl_mvs_base[mi_offset].ref_frame_offset = ref_frame_offset;
                 }
             }
@@ -752,7 +772,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
 
         FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
 #if FTR_RTC_MODE
-        const bool rtc_tune = scs->static_config.rtc_mode;
+        const bool rtc_tune = scs->static_config.rtc;
 #else
         pcs->rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif

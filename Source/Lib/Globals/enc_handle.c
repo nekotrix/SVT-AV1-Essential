@@ -1582,7 +1582,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         input_data.is_scale = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.superres_mode > SUPERRES_NONE ||
                               enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.resize_mode > RESIZE_NONE;
 #if FTR_RTC_MODE
-        input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc_mode;
+        input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc;
 #else
         input_data.rtc_tune = (enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
@@ -1667,7 +1667,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
                                   enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.resize_mode > RESIZE_NONE;
 
 #if FTR_RTC_MODE
-            input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc_mode;
+            input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc;
 #endif
 #if OPT_ALLINTRA_STILLIMAGE_2
             input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
@@ -1736,7 +1736,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
                                   enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.resize_mode > RESIZE_NONE;
 
 #if FTR_RTC_MODE
-            input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc_mode;
+            input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc;
 #endif
 #if OPT_ALLINTRA_STILLIMAGE_2
             input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
@@ -3358,7 +3358,7 @@ static void derive_tf_params(SequenceControlSet *scs) {
         // For LD, only use TF for non-SC content in RTC mode; the TF is tuned for RTC content
         if (!do_tf ||
             scs->static_config.screen_content_mode == 1 ||
-            !scs->static_config.rtc_mode) {
+            !scs->static_config.rtc) {
             tf_level = 0;
         }
         else if (enc_mode <= ENC_M7) {
@@ -4348,7 +4348,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     if ((scs->static_config.fast_decode && scs->static_config.qp <= 56 && !(scs->input_resolution <= INPUT_SIZE_360p_RANGE)) ||
         scs->static_config.resize_mode > RESIZE_NONE ||
 #if FTR_RTC_MODE
-        scs->static_config.rtc_mode ||
+        scs->static_config.rtc ||
 #else
         scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B ||
 #endif
@@ -4629,7 +4629,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     uint8_t mrp_level;
 #if OPT_MRP
 #if FTR_RTC_MODE
-    if (scs->static_config.rtc_mode) {
+    if (scs->static_config.rtc) {
 #else
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
 #endif
@@ -4766,7 +4766,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
 #endif
 #else
 #if FTR_RTC_MODE
-    if (scs->static_config.rtc_mode) {
+    if (scs->static_config.rtc) {
 #else
     if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
 #endif
@@ -4836,9 +4836,9 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     scs->resize_pending_params.resize_denom = SCALE_NUMERATOR;
 #if FTR_RTC_MODE
 #if CLN_REMOVE_LDP
-    scs->stats_based_sb_lambda_modulation = (scs->static_config.pred_structure == RANDOM_ACCESS || !scs->static_config.rtc_mode) &&
+    scs->stats_based_sb_lambda_modulation = (scs->static_config.pred_structure == RANDOM_ACCESS || !scs->static_config.rtc) &&
 #else
-    scs->stats_based_sb_lambda_modulation = (scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS || !scs->static_config.rtc_mode) &&
+    scs->stats_based_sb_lambda_modulation = (scs->static_config.pred_structure == SVT_AV1_PRED_RANDOM_ACCESS || !scs->static_config.rtc) &&
 #endif
 #else
 #if CLN_REMOVE_LDP
@@ -4851,7 +4851,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         ? 1
         : 0;
 #if FTR_RTC_MODE // low_latency_kf
-    scs->low_latency_kf = (scs->static_config.rtc_mode &&
+    scs->low_latency_kf = (scs->static_config.rtc &&
 #else
     scs->low_latency_kf = ((scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_P
         || scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) &&
@@ -4873,7 +4873,7 @@ static void copy_api_from_app(
 
     scs->static_config.avif = ((EbSvtAv1EncConfiguration*)config_struct)->avif;
 #if FTR_RTC_MODE
-    scs->static_config.rtc_mode = ((EbSvtAv1EncConfiguration*)config_struct)->rtc_mode;
+    scs->static_config.rtc = ((EbSvtAv1EncConfiguration*)config_struct)->rtc;
 #endif
     // Tpl is disabled in low delay applications
 #if CLN_REMOVE_LDP
@@ -5028,24 +5028,26 @@ static void copy_api_from_app(
         SVT_WARN("Switched to CQP mode since lossless coding is enabled\n");
     } else
     scs->static_config.rate_control_mode = ((EbSvtAv1EncConfiguration*)config_struct)->rate_control_mode;
+#if !TUNE_RTC_USE_LD
 #if FTR_RTC_MODE
 #if CLN_REMOVE_LDP
     if (scs->static_config.pred_structure != LOW_DELAY) {
 #else
     if (scs->static_config.pred_structure != SVT_AV1_PRED_LOW_DELAY_P && scs->static_config.pred_structure != SVT_AV1_PRED_LOW_DELAY_B) {
 #endif
-        if (scs->static_config.rtc_mode) {
-            scs->static_config.rtc_mode = 0;
+        if (scs->static_config.rtc) {
+            scs->static_config.rtc = 0;
 #if CLN_REMOVE_LDP
-            SVT_WARN("Instance %u: The use of rtc-mode settings is supported for only low delay. \n");
+            SVT_WARN("Instance %u: The use of rtc settings is supported for only low delay. \n");
 #else
-            SVT_WARN("Instance %u: The use of rtc-mode settings is supported for only LDP and LDB. \n");
+            SVT_WARN("Instance %u: The use of rtc settings is supported for only LDP and LDB. \n");
 #endif
         }
     }
 #endif
+#endif
 #if FTR_RTC_MODE
-    if (scs->static_config.pass == ENC_SINGLE_PASS && scs->static_config.rtc_mode) {
+    if (scs->static_config.pass == ENC_SINGLE_PASS && scs->static_config.rtc) {
 #else
     if (scs->static_config.pass == ENC_SINGLE_PASS && scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
 #endif

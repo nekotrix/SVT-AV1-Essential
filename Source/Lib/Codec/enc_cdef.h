@@ -31,7 +31,7 @@ int32_t svt_sb_compute_cdef_list(PictureControlSet* pcs, const Av1Common* const 
 void    finish_cdef_search(PictureControlSet* pcs);
 void    svt_av1_cdef_frame(struct SequenceControlSet* scs, PictureControlSet* pcs);
 #else
-void copy_cdef_16bit_to_16bit(uint16_t *dst, int32_t dstride, uint16_t *src, CdefList *dlist, int32_t cdef_count,
+void copy_cdef_16bit_to_16bit(uint16_t* dst, int32_t dstride, uint16_t* src, CdefList* dlist, int32_t cdef_count,
                               int32_t bsize);
 #endif
 #ifdef __cplusplus

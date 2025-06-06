@@ -106,7 +106,7 @@ extern "C" {
 #define CLN_MOVE_FUNCS              1 // Move block info funcs to block_structures.h to avoid duplicate definitions
 #define OPT_NSQ_GEOM_MR_M0_LVL      1 // change the MR/M0 level of the NSQ SEARCH to 1 (for regular/low coeff lvl).
 #define FIX_IFS_10BIT               1 // Enable OBMC and inter-intra during IFS search for 10bit
-#define FTR_RTC_MODE                1 // Create a new rtc-mode API and use it to enable rtc settings throughout the encoder.
+#define FTR_RTC_MODE                1 // Create a new rtc API and use it to enable rtc settings throughout the encoder.
 #define CLN_MBMI_IN_CAND            1 // Use BlockModeInfo struct in MD candidates
 #define OPT_MRP                     1 // Create a new set of levels for MRP, and tune MRP for M3-M5.
 #define CLN_MBMI_IN_BLKSTRUCT       1 // Use BlockModeInfo struct in BlkStruct
@@ -225,6 +225,7 @@ extern "C" {
 #define CLN_TXS_CHECKS              1 // Move checks that change start/end TX depth into get_start_end_tx_depth
 #define FIX_TPL_RESULTS_USE         1 // Fix how TPL results are accessed to ensure valid data is used
 #define CLN_FUNCS_HEADER            1 // Move stray function declarations to header files
+#define TUNE_RTC_USE_LD             1 // If rtc is specified in the CLI, force LD to be used, rather than disabling rtc
 
 //FOR DEBUGGING - Do not remove
 #define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection
