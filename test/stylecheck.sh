@@ -67,6 +67,10 @@ while read -r filename; do
         printf "No newline at end of %s\n" "$filename"
         ret=1
     fi
+    if grep -axv --color '.*' "$file"; then
+        printf "Invalid utf-8 in %s, cannot run clang-format\n" "$filename"
+        ret=2
+    fi
 done << EOF
 $(git -C "$REPO_DIR" diff --name-only --diff-filter=d "$MERGE_BASE" -- "$@")
 EOF
@@ -88,6 +92,11 @@ while read -r i; do
 done << EOF
 $(git -C "$REPO_DIR" rev-list HEAD "^$MERGE_BASE")
 EOF
+
+if test "${ret:-0}" -eq 2; then
+    echo "ERROR: Invalid utf-8 detected, cannot run clang-format-diff check" >&2
+    exit 2
+fi
 
 if ! type python3 > /dev/null 2>&1; then
     echo "Warning: python3 not found, skipping clang-format-diff check" >&2
@@ -111,7 +120,13 @@ if ! test -f "$CLANG_FORMAT_DIFF"; then
     exit "${ret:-0}"
 fi
 
-diff_output=$(cd "$REPO_DIR" && git diff "$MERGE_BASE" -- "$@" | python3 "$CLANG_FORMAT_DIFF" -p1) || true
+diff_output=$(
+    cd "$REPO_DIR"
+    if git diff "$MERGE_BASE" -- "$@" | grep -qaxv '.*'; then
+        echo "Warning: Invalid utf-8 detected in pre-image, clang-format might not be accurate" >&2
+    fi
+    git diff "$MERGE_BASE" -- "$@" | iconv -c | python3 "$CLANG_FORMAT_DIFF" -p1
+) || true
 if [ -n "$diff_output" ]; then
     cat >&2 << 'FOE'
 clang-format check failed!
