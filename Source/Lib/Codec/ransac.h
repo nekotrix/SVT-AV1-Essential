@@ -43,7 +43,7 @@ typedef struct {
     // to generate a model.
     //
     // This should be set as small as possible. This is due to an observation
-    // from section 4 of "Optimal Ransac" by A. Hast, J. Nysjö and
+    // from section 4 of "Optimal Ransac" by A. Hast, J. NysjÃ¶ and
     // A. Marchetti (https://dspace5.zcu.cz/bitstream/11025/6869/1/Hast.pdf):
     // using the minimum possible number of points in the initial model maximizes
     // the chance that all of the selected points are inliers.
