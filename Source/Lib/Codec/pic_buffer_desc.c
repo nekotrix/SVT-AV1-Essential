@@ -527,7 +527,7 @@ void *svt_aom_memalign(size_t align, size_t size);
 void  svt_aom_free(void *memblk);
 #endif
 
-#define yv12_align_addr(addr, align) (void *)(((size_t)(addr) + ((align)-1)) & (size_t) - (align))
+#define yv12_align_addr(addr, align) (void *)(((size_t)(addr) + ((align) - 1)) & (size_t)-(align))
 
 int32_t svt_aom_realloc_frame_buffer(Yv12BufferConfig *ybf, int32_t width, int32_t height, int32_t ss_x, int32_t ss_y,
                                      int32_t use_highbitdepth, int32_t border, int32_t byte_alignment,

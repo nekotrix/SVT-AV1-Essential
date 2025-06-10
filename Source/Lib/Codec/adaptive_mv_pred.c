@@ -261,13 +261,13 @@ static void scan_row_mbmi(const Av1Common *cm, const MacroBlockD *xd, int32_t mi
 #if CLN_REMOVE_MODE_INFO
         const MbModeInfo *const candidate = candidate_mi0[col_offset + i];
 #else
-        const ModeInfo *const   candidate_mi    = candidate_mi0[col_offset + i];
-        const MbModeInfo *const candidate       = &candidate_mi->mbmi;
+        const ModeInfo *const   candidate_mi = candidate_mi0[col_offset + i];
+        const MbModeInfo *const candidate    = &candidate_mi->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
         const int32_t candidate_bsize = candidate->bsize;
 #else
-        const int32_t           candidate_bsize = candidate->block_mi.bsize;
+        const int32_t candidate_bsize = candidate->block_mi.bsize;
 #endif
         assert(candidate_bsize < BlockSizeS_ALL);
         const int32_t n8_w = mi_size_wide[candidate_bsize];
@@ -350,13 +350,13 @@ static void scan_col_mbmi(const Av1Common *cm, const MacroBlockD *xd, int32_t mi
 #if CLN_REMOVE_MODE_INFO
         const MbModeInfo *const candidate = xd->mi[(row_offset + i) * xd->mi_stride + col_offset];
 #else
-        const ModeInfo *const   candidate_mi    = xd->mi[(row_offset + i) * xd->mi_stride + col_offset];
-        const MbModeInfo *const candidate       = &candidate_mi->mbmi;
+        const ModeInfo *const   candidate_mi = xd->mi[(row_offset + i) * xd->mi_stride + col_offset];
+        const MbModeInfo *const candidate    = &candidate_mi->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
         const int32_t candidate_bsize = candidate->bsize;
 #else
-        const int32_t           candidate_bsize = candidate->block_mi.bsize;
+        const int32_t candidate_bsize = candidate->block_mi.bsize;
 #endif
         assert(candidate_bsize < BlockSizeS_ALL);
         const int32_t n8_h = mi_size_high[candidate_bsize];
@@ -631,12 +631,12 @@ static int add_tpl_ref_mv(const Av1Common *cm, PictureControlSet *pcs, const Mac
     return 1;
 }
 #else
-static int  add_tpl_ref_mv(const Av1Common *cm, PictureControlSet *pcs, const MacroBlockD *xd, int mi_row, int mi_col,
-                           MvReferenceFrame ref_frame, int blk_row, int blk_col, IntMv *gm_mv_candidates,
-                           uint8_t *const refmv_count, uint8_t two_symetric_refs, IntMv *mv_ref0, int cur_offset_0,
-                           int cur_offset_1,
+static int add_tpl_ref_mv(const Av1Common *cm, PictureControlSet *pcs, const MacroBlockD *xd, int mi_row, int mi_col,
+                          MvReferenceFrame ref_frame, int blk_row, int blk_col, IntMv *gm_mv_candidates,
+                          uint8_t *const refmv_count, uint8_t two_symetric_refs, IntMv *mv_ref0, int cur_offset_0,
+                          int cur_offset_1,
 
-                           CandidateMv ref_mv_stack[MAX_REF_MV_STACK_SIZE], int16_t *mode_context) {
+                          CandidateMv ref_mv_stack[MAX_REF_MV_STACK_SIZE], int16_t *mode_context) {
     Position mi_pos;
     mi_pos.row = (mi_row & 0x01) ? blk_row : blk_row + 1;
     mi_pos.col = (mi_col & 0x01) ? blk_col : blk_col + 1;
@@ -946,15 +946,15 @@ void scan_row_col_light(const Av1Common *cm, const MacroBlockD *xd, int32_t mi_r
         //CHKN  scan ROW=-1 again but with more relaxed constraints
         for (int32_t idx = 0; ABS(max_row_offset) >= 1 && idx < mi_size;) {
 #if CLN_REMOVE_MODE_INFO
-            const MbModeInfo *const candidate       = xd->mi[-xd->mi_stride + idx];
+            const MbModeInfo *const candidate = xd->mi[-xd->mi_stride + idx];
 #else
-            const ModeInfo *const   candidate_mi    = xd->mi[-xd->mi_stride + idx];
-            const MbModeInfo *const candidate       = &candidate_mi->mbmi;
+            const ModeInfo *const   candidate_mi = xd->mi[-xd->mi_stride + idx];
+            const MbModeInfo *const candidate    = &candidate_mi->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
-            const int32_t           candidate_bsize = candidate->bsize;
+            const int32_t candidate_bsize = candidate->bsize;
 #else
-            const int32_t           candidate_bsize = candidate->block_mi.bsize;
+            const int32_t candidate_bsize = candidate->block_mi.bsize;
 #endif
 
             for (uint8_t rf_idx = 0; rf_idx < 2; ++rf_idx) {
@@ -981,15 +981,15 @@ void scan_row_col_light(const Av1Common *cm, const MacroBlockD *xd, int32_t mi_r
         //CHKN  scan COL=-1 again but with more relaxed constraints
         for (int32_t idx = 0; ABS(max_col_offset) >= 1 && idx < mi_size;) {
 #if CLN_REMOVE_MODE_INFO
-            const MbModeInfo *const candidate       = xd->mi[idx * xd->mi_stride - 1];
+            const MbModeInfo *const candidate = xd->mi[idx * xd->mi_stride - 1];
 #else
-            const ModeInfo *const   candidate_mi    = xd->mi[idx * xd->mi_stride - 1];
-            const MbModeInfo *const candidate       = &candidate_mi->mbmi;
+            const ModeInfo *const   candidate_mi = xd->mi[idx * xd->mi_stride - 1];
+            const MbModeInfo *const candidate    = &candidate_mi->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
-            const int32_t           candidate_bsize = candidate->bsize;
+            const int32_t candidate_bsize = candidate->bsize;
 #else
-            const int32_t           candidate_bsize = candidate->block_mi.bsize;
+            const int32_t candidate_bsize = candidate->block_mi.bsize;
 #endif
 
             for (uint8_t rf_idx = 0; rf_idx < 2; ++rf_idx) {
@@ -1058,15 +1058,15 @@ void scan_row_col_light(const Av1Common *cm, const MacroBlockD *xd, int32_t mi_r
         //CHKN TODO: confirm this could be avoided if we have already 2(DRL:OFF), or 4(DRL:ON) candidates
         for (int32_t idx = 0; ABS(max_row_offset) >= 1 && idx < mi_size && *refmv_count < MAX_MV_REF_CANDIDATES;) {
 #if CLN_REMOVE_MODE_INFO
-            const MbModeInfo *const candidate       = xd->mi[-xd->mi_stride + idx];
+            const MbModeInfo *const candidate = xd->mi[-xd->mi_stride + idx];
 #else
-            const ModeInfo *const   candidate_mi    = xd->mi[-xd->mi_stride + idx];
-            const MbModeInfo *const candidate       = &candidate_mi->mbmi;
+            const ModeInfo *const   candidate_mi = xd->mi[-xd->mi_stride + idx];
+            const MbModeInfo *const candidate    = &candidate_mi->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
-            const int32_t           candidate_bsize = candidate->bsize;
+            const int32_t candidate_bsize = candidate->bsize;
 #else
-            const int32_t           candidate_bsize = candidate->block_mi.bsize;
+            const int32_t candidate_bsize = candidate->block_mi.bsize;
 #endif
 
             for (int32_t rf_idx = 0; rf_idx < 2; ++rf_idx) {
@@ -1097,15 +1097,15 @@ void scan_row_col_light(const Av1Common *cm, const MacroBlockD *xd, int32_t mi_r
         //CHKn if count is still < 2, re-scan COL=-1 with less constraints. the added candidates are stored as we go at the bottom of the Stack.
         for (int32_t idx = 0; ABS(max_col_offset) >= 1 && idx < mi_size && *refmv_count < MAX_MV_REF_CANDIDATES;) {
 #if CLN_REMOVE_MODE_INFO
-            const MbModeInfo *const candidate       = xd->mi[idx * xd->mi_stride - 1];
+            const MbModeInfo *const candidate = xd->mi[idx * xd->mi_stride - 1];
 #else
-            const ModeInfo *const   candidate_mi    = xd->mi[idx * xd->mi_stride - 1];
-            const MbModeInfo *const candidate       = &candidate_mi->mbmi;
+            const ModeInfo *const   candidate_mi = xd->mi[idx * xd->mi_stride - 1];
+            const MbModeInfo *const candidate    = &candidate_mi->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
-            const int32_t           candidate_bsize = candidate->bsize;
+            const int32_t candidate_bsize = candidate->bsize;
 #else
-            const int32_t           candidate_bsize = candidate->block_mi.bsize;
+            const int32_t candidate_bsize = candidate->block_mi.bsize;
 #endif
 
             for (uint8_t rf_idx = 0; rf_idx < 2; ++rf_idx) {
@@ -2278,7 +2278,7 @@ MbModeInfo *get_mbmi(PictureControlSet *pcs, uint32_t blk_org_x, uint32_t blk_or
 #else
     ModeInfo *mi_ptr = *(pcs->mi_grid_base + offset);
     // use idx 0 as that's the first mbmmi in the block
-    MbModeInfo *mbmi   = &mi_ptr[0].mbmi;
+    MbModeInfo *mbmi = &mi_ptr[0].mbmi;
 #endif
 
     return mbmi;
@@ -2306,11 +2306,11 @@ void svt_aom_update_mi_map(BlkStruct *blk_ptr, uint32_t blk_org_x, uint32_t blk_
     MbModeInfo    *mbmi     = *(pcs->mi_grid_base + offset);
     BlockModeInfo *block_mi = &(mbmi->block_mi);
 #else
-    ModeInfo   *mi_ptr = *(pcs->mi_grid_base + offset);
+    ModeInfo *mi_ptr = *(pcs->mi_grid_base + offset);
     // use idx 0 as that's the first mbmmi in the block
-    MbModeInfo    *mbmi      = &mi_ptr[0].mbmi;
+    MbModeInfo *mbmi = &mi_ptr[0].mbmi;
 #if CLN_REMOVE_DEC_STRUCT
-    BlockModeInfo *block_mi  = &mi_ptr[0].mbmi.block_mi;
+    BlockModeInfo *block_mi = &mi_ptr[0].mbmi.block_mi;
 #else
     BlockModeInfoEnc *block_mi = &mi_ptr[0].mbmi.block_mi;
 #endif
@@ -2345,26 +2345,26 @@ void svt_aom_update_mi_map(BlkStruct *blk_ptr, uint32_t blk_org_x, uint32_t blk_
     }
 
 #if CLN_MOVE_FIELDS_MBMI
-    mbmi->bsize            = blk_geom->bsize;
-    mbmi->partition        = from_shape_to_part[blk_geom->shape];
-    block_mi->mode         = blk_ptr->pred_mode;
-    block_mi->skip         = (blk_ptr->block_has_coeff) ? false : true;
+    mbmi->bsize     = blk_geom->bsize;
+    mbmi->partition = from_shape_to_part[blk_geom->shape];
+    block_mi->mode  = blk_ptr->pred_mode;
+    block_mi->skip  = (blk_ptr->block_has_coeff) ? false : true;
 #else
-    block_mi->bsize            = blk_geom->bsize;
-    block_mi->mode             = blk_ptr->pred_mode;
-    block_mi->skip             = (blk_ptr->block_has_coeff) ? false : true;
-    block_mi->partition        = from_shape_to_part[blk_geom->shape];
+    block_mi->bsize     = blk_geom->bsize;
+    block_mi->mode      = blk_ptr->pred_mode;
+    block_mi->skip      = (blk_ptr->block_has_coeff) ? false : true;
+    block_mi->partition = from_shape_to_part[blk_geom->shape];
 #endif
-    block_mi->skip_mode    = (int8_t)blk_ptr->skip_mode;
-    block_mi->uv_mode      = blk_ptr->intra_chroma_mode;
-    block_mi->use_intrabc  = blk_ptr->use_intrabc;
+    block_mi->skip_mode   = (int8_t)blk_ptr->skip_mode;
+    block_mi->uv_mode     = blk_ptr->intra_chroma_mode;
+    block_mi->use_intrabc = blk_ptr->use_intrabc;
 #if CLN_CAND_REF_FRAME
     block_mi->ref_frame[0] = blk_ptr->ref_frame[0];
     block_mi->ref_frame[1] = blk_ptr->ref_frame[1];
     assert(IMPLIES(blk_ptr->is_interintra_used, block_mi->ref_frame[1] == INTRA_FRAME));
 #else
-    block_mi->ref_frame[0]     = rf[0];
-    block_mi->ref_frame[1]     = (blk_ptr->is_interintra_used) ? INTRA_FRAME : rf[1];
+    block_mi->ref_frame[0] = rf[0];
+    block_mi->ref_frame[1] = (blk_ptr->is_interintra_used) ? INTRA_FRAME : rf[1];
 #endif
     if (blk_ptr->prediction_mode_flag == INTER_MODE || block_mi->use_intrabc) {
 #if CLN_MV_IDX
@@ -2399,8 +2399,8 @@ void svt_aom_update_mi_map(BlkStruct *blk_ptr, uint32_t blk_org_x, uint32_t blk_
 #endif
 #endif
 
-        block_mi->compound_idx           = blk_ptr->compound_idx;
-        block_mi->interp_filters         = blk_ptr->interp_filters;
+        block_mi->compound_idx   = blk_ptr->compound_idx;
+        block_mi->interp_filters = blk_ptr->interp_filters;
 #if CLN_MOVE_FIELDS_MBMI
         block_mi->interinter_comp        = blk_ptr->interinter_comp;
         block_mi->motion_mode            = blk_ptr->motion_mode;
@@ -2450,8 +2450,8 @@ static INLINE void record_samples(MbModeInfo *mbmi, int *pts, int *pts_inref, in
     uint8_t bw = block_size_wide[mbmi->bsize];
     uint8_t bh = block_size_high[mbmi->bsize];
 #else
-    uint8_t bw   = block_size_wide[mbmi->block_mi.bsize];
-    uint8_t bh   = block_size_high[mbmi->block_mi.bsize];
+    uint8_t bw = block_size_wide[mbmi->block_mi.bsize];
+    uint8_t bh = block_size_high[mbmi->block_mi.bsize];
 #endif
     int x = col_offset * MI_SIZE + sign_c * AOMMAX(bw, MI_SIZE) / 2 - 1;
     int y = row_offset * MI_SIZE + sign_r * AOMMAX(bh, MI_SIZE) / 2 - 1;
@@ -2499,7 +2499,7 @@ static int av1_find_samples(const Av1Common *cm, const BlockSize sb_size, MacroB
 #if CLN_MOVE_FIELDS_MBMI
         uint8_t n4_w = mi_size_wide[mbmi->bsize];
 #else
-        uint8_t     n4_w = mi_size_wide[mbmi->block_mi.bsize];
+        uint8_t n4_w = mi_size_wide[mbmi->block_mi.bsize];
 #endif
 
         if (xd->n4_w <= n4_w) {
@@ -2564,7 +2564,7 @@ static int av1_find_samples(const Av1Common *cm, const BlockSize sb_size, MacroB
 #if CLN_MOVE_FIELDS_MBMI
         uint8_t n4_h = mi_size_high[mbmi->bsize];
 #else
-        uint8_t     n4_h = mi_size_high[mbmi->block_mi.bsize];
+        uint8_t n4_h = mi_size_high[mbmi->block_mi.bsize];
 #endif
 
         if (xd->n4_h <= n4_h) {
@@ -2851,7 +2851,7 @@ uint8_t wm_find_samples(BlkStruct *blk_ptr, MvReferenceFrame rf0, PictureControl
 uint16_t wm_find_samples(BlkStruct *blk_ptr, const BlockGeom *blk_geom, uint16_t blk_org_x, uint16_t blk_org_y,
                          MvReferenceFrame rf0, PictureControlSet *pcs, int32_t *pts, int32_t *pts_inref,
                          int *adjacent_samples, int *top_left_present, int *top_right_present) {
-    Av1Common *cm = pcs->ppcs->av1_cm;
+    Av1Common   *cm = pcs->ppcs->av1_cm;
     MacroBlockD *xd = blk_ptr->av1xd;
 
     int32_t mi_row = blk_org_y >> MI_SIZE_LOG2;
@@ -2933,10 +2933,10 @@ bool svt_aom_warped_motion_parameters(PictureControlSet *pcs, BlkStruct *blk_ptr
     const int mi_row = xd->mi_row;
     const int mi_col = xd->mi_col;
 #else
-    int32_t    mi_row  = blk_org_y >> MI_SIZE_LOG2;
-    int32_t    mi_col  = blk_org_x >> MI_SIZE_LOG2;
-    xd->n4_w           = blk_geom->bwidth >> MI_SIZE_LOG2;
-    xd->n4_h           = blk_geom->bheight >> MI_SIZE_LOG2;
+    int32_t mi_row = blk_org_y >> MI_SIZE_LOG2;
+    int32_t mi_col = blk_org_x >> MI_SIZE_LOG2;
+    xd->n4_w       = blk_geom->bwidth >> MI_SIZE_LOG2;
+    xd->n4_h       = blk_geom->bheight >> MI_SIZE_LOG2;
 #endif
 
     *num_samples = 0;
@@ -2975,10 +2975,10 @@ bool svt_aom_warped_motion_parameters(PictureControlSet *pcs, BlkStruct *blk_ptr
 #if CLN_WM_CTRLS
     uint8_t nsamples = wm_find_samples(blk_ptr, rf[0], pcs, pts, pts_inref);
 #else
-    int adjacent_samples = 0;
-    int top_left_present = 0;
-    int top_right_present = 0;
-    uint16_t nsamples = wm_find_samples(blk_ptr,
+    int      adjacent_samples  = 0;
+    int      top_left_present  = 0;
+    int      top_right_present = 0;
+    uint16_t nsamples          = wm_find_samples(blk_ptr,
                                         blk_geom,
                                         blk_org_x,
                                         blk_org_y,
@@ -3014,7 +3014,7 @@ bool svt_aom_warped_motion_parameters(PictureControlSet *pcs, BlkStruct *blk_ptr
     Mv mv = {.as_int = mv_unit->mv[0].as_int};
 #else
 #if CLN_UNIFY_MV_TYPE
-    Mv      mv;
+    Mv mv;
     mv.as_int = mv_unit->mv[mv_unit->pred_direction % BI_PRED].as_int;
 #else
     MV mv;
@@ -3034,7 +3034,7 @@ bool svt_aom_warped_motion_parameters(PictureControlSet *pcs, BlkStruct *blk_ptr
     apply_wm = !svt_find_projection(
         (int)nsamples, pts, pts_inref, bsize, mv.y, mv.x, wm_params, (int)mi_row, (int)mi_col);
 #else
-    apply_wm  = !svt_find_projection(
+    apply_wm = !svt_find_projection(
         (int)nsamples, pts, pts_inref, bsize, mv.row, mv.col, wm_params, (int)mi_row, (int)mi_col);
 #endif
 #endif
@@ -3056,8 +3056,8 @@ static uint32_t count_overlappable_nb_above(const Av1Common *cm, MacroBlockD *xd
     if (!xd->up_available)
         return nb_count;
 
-        // prev_row_mi points into the mi array, starting at the beginning of the
-        // previous row.
+    // prev_row_mi points into the mi array, starting at the beginning of the
+    // previous row.
 #if CLN_REMOVE_MODE_INFO
     MbModeInfo **prev_row_mi = xd->mi - mi_col - 1 * xd->mi_stride;
 #else
@@ -3105,8 +3105,8 @@ static uint32_t count_overlappable_nb_left(const Av1Common *cm, MacroBlockD *xd,
     if (!xd->left_available)
         return nb_count;
 
-        // prev_col_mi points into the mi array, starting at the top of the
-        // previous column
+    // prev_col_mi points into the mi array, starting at the top of the
+    // previous column
 #if CLN_REMOVE_MODE_INFO
     MbModeInfo **prev_col_mi = xd->mi - 1 - mi_row * xd->mi_stride;
 #else

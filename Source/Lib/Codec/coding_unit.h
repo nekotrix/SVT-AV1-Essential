@@ -310,17 +310,17 @@ typedef struct BlkStruct {
     uint8_t      palette_size[2];
 
 #if CLN_MV_IDX
-    Mv           mv[2]; // unipred MV stored in idx 0
-    Mv           predmv[2]; // unipred MV stored in idx 0
+    Mv mv[2]; // unipred MV stored in idx 0
+    Mv predmv[2]; // unipred MV stored in idx 0
 #else
-    Mv       mv[MAX_NUM_OF_REF_PIC_LIST]; // 16-bytes
+    Mv mv[MAX_NUM_OF_REF_PIC_LIST]; // 16-bytes
 #if CLN_UNIFY_MV_TYPE
-    Mv       predmv[MAX_NUM_OF_REF_PIC_LIST];
+    Mv predmv[MAX_NUM_OF_REF_PIC_LIST];
 #else
     IntMv predmv[MAX_NUM_OF_REF_PIC_LIST];
 #endif
 #endif
-    uint8_t      inter_pred_direction_index;
+    uint8_t inter_pred_direction_index;
 
     // Intra Mode
     int8_t           angle_delta[PLANE_TYPES];
@@ -329,17 +329,17 @@ typedef struct BlkStruct {
 #if CLN_CAND_REF_FRAME
     MvReferenceFrame ref_frame[2];
 #else
-    uint8_t  ref_frame_type;
+    uint8_t ref_frame_type;
 #endif
-    MotionMode       motion_mode;
+    MotionMode motion_mode;
 #if CLN_WM_CTRLS
-    uint8_t          num_proj_ref;
+    uint8_t num_proj_ref;
 #else
     uint16_t num_proj_ref;
 #endif
-    uint32_t         overlappable_neighbors;
-    uint8_t          cfl_alpha_idx; // Index of the alpha Cb and alpha Cr combination
-    uint8_t          cfl_alpha_signs; // Joint sign of alpha Cb and alpha Cr
+    uint32_t overlappable_neighbors;
+    uint8_t  cfl_alpha_idx; // Index of the alpha Cb and alpha Cr combination
+    uint8_t  cfl_alpha_signs; // Joint sign of alpha Cb and alpha Cr
 
     InterInterCompoundData interinter_comp;
     uint32_t               interp_filters;
@@ -445,7 +445,7 @@ typedef struct TplStats {
 #if CLN_UNIFY_MV_TYPE
     Mv mv;
 #else
-    MV    mv;
+    MV mv;
 #endif
     uint64_t ref_frame_poc;
 } TplStats;
@@ -457,7 +457,7 @@ typedef struct TplSrcStats {
 #if CLN_UNIFY_MV_TYPE
     Mv mv;
 #else
-    MV    mv;
+    MV mv;
 #endif
     uint8_t        best_mode;
     int32_t        best_rf_idx;

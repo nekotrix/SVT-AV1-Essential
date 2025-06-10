@@ -45,8 +45,8 @@ void    svt_aom_sig_deriv_pre_analysis_scs(SequenceControlSet *scs);
 #if CLN_MISC
 void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentControlSet *pcs);
 #else
-void    svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentControlSet *pcs,
-                                          PictureDecisionContext *context_ptr);
+void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentControlSet *pcs,
+                                       PictureDecisionContext *context_ptr);
 #endif
 void svt_aom_sig_deriv_me_tf(PictureParentControlSet *pcs, MeContext *me_ctx);
 
@@ -102,6 +102,6 @@ void svt_aom_get_qp_based_th_scaling_factors(SequenceControlSet *scs, uint32_t *
                                              uint32_t *ret_q_weight_denom, uint32_t qp);
 #endif
 #else
-void    svt_aom_get_qp_based_th_scaling_factors(uint32_t qp, uint32_t *ret_q_weight, uint32_t *ret_q_weight_denom);
+void svt_aom_get_qp_based_th_scaling_factors(uint32_t qp, uint32_t *ret_q_weight, uint32_t *ret_q_weight_denom);
 #endif
 #endif

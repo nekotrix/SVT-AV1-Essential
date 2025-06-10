@@ -475,7 +475,7 @@ static int find_affine_int(int np, const int *pts1, const int *pts2, BlockSize b
     int32_t vy = mv.y * (1 << (WARPEDMODEL_PREC_BITS - 3)) -
         (isux * wm->wmmat[4] + isuy * (wm->wmmat[5] - (1 << WARPEDMODEL_PREC_BITS)));
 #else
-    int32_t   vx  = mvx * (1 << (WARPEDMODEL_PREC_BITS - 3)) -
+    int32_t vx = mvx * (1 << (WARPEDMODEL_PREC_BITS - 3)) -
         (isux * (wm->wmmat[2] - (1 << WARPEDMODEL_PREC_BITS)) + isuy * wm->wmmat[3]);
     int32_t vy = mvy * (1 << (WARPEDMODEL_PREC_BITS - 3)) -
         (isux * wm->wmmat[4] + isuy * (wm->wmmat[5] - (1 << WARPEDMODEL_PREC_BITS)));

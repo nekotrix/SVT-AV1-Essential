@@ -2443,13 +2443,13 @@ static void is_parent_to_current_deviation_small(PictureControlSet *pcs, ModeDec
                 1);
             const int q_weight_unscaled =
                 (int)((mult * cost_part * ((5 * (int)pcs->ppcs->scs->static_config.qp) - 100)) / 100);
-            const uint32_t q_weight  = CLIP3(100, 2000, q_weight_unscaled);
-            s1_parent_to_current_th  = s1_parent_to_current_th == (uint8_t)~0
-                 ? MIN_SIGNED_VALUE
-                 : (s1_parent_to_current_th * q_weight) / 2000;
-            s2_parent_to_current_th  = s2_parent_to_current_th == (uint8_t)~0
-                 ? MIN_SIGNED_VALUE
-                 : (s2_parent_to_current_th * q_weight) / 2000;
+            const uint32_t q_weight = CLIP3(100, 2000, q_weight_unscaled);
+            s1_parent_to_current_th = s1_parent_to_current_th == (uint8_t)~0
+                ? MIN_SIGNED_VALUE
+                : (s1_parent_to_current_th * q_weight) / 2000;
+            s2_parent_to_current_th = s2_parent_to_current_th == (uint8_t)~0
+                ? MIN_SIGNED_VALUE
+                : (s2_parent_to_current_th * q_weight) / 2000;
 #endif
         }
 

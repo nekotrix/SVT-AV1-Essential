@@ -2235,7 +2235,7 @@ static inline uint8x16_t negate_s8q(const uint8x16_t v) {
                                                 const uint8_t *const top_row,                                       \
                                                 const uint8_t *const left_column,                                   \
                                                 const int            height) {                                                 \
-        const uint8_t        top_right   = top_row[(W)-1];                                                          \
+        const uint8_t        top_right   = top_row[(W) - 1];                                                        \
         const uint8_t        bottom_left = left_column[height - 1];                                                 \
         const uint8_t *const weights_y   = sm_weight_arrays + height;                                               \
                                                                                                                     \
@@ -2346,7 +2346,7 @@ SMOOTH_NXM_WIDE(64, 64)
                                              const uint8_t *const top_row,                                       \
                                              const uint8_t *const left_column,                                   \
                                              const int            height) {                                                 \
-        const uint8_t top_right = top_row[(W)-1];                                                                \
+        const uint8_t top_right = top_row[(W) - 1];                                                              \
                                                                                                                  \
         const uint8x8_t top_right_v = vdup_n_u8(top_right);                                                      \
         /* Over-reads for 4xN but still within the array. */                                                     \
@@ -2408,7 +2408,7 @@ static inline uint8x16_t calculate_horizontal_weights_and_pred(const uint8x8_t l
                                                   const uint8_t *const top_row,      \
                                                   const uint8_t *const left_column,  \
                                                   const int            height) {                \
-        const uint8_t top_right = top_row[(W)-1];                                    \
+        const uint8_t top_right = top_row[(W) - 1];                                  \
                                                                                      \
         const uint8x8_t top_right_v = vdup_n_u8(top_right);                          \
                                                                                      \

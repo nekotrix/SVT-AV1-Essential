@@ -2227,7 +2227,7 @@ static int calc_active_best_quality_no_stats_cbr(PictureControlSet *pcs, int act
 
         //Derive the temporal layer of the reference picture
         uint8_t ref_tmp_layer = ref_obj_l0->tmp_layer_idx;
-        rc->arf_q = MAX(0, ((int)(pcs->ref_pic_qp_array[0][0] << 2) + 2) - 30);
+        rc->arf_q             = MAX(0, ((int)(pcs->ref_pic_qp_array[0][0] << 2) + 2) - 30);
 #endif
         active_best_quality = rtc_minq[rc->arf_q];
         int q               = active_worst_quality;

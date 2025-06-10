@@ -67,11 +67,11 @@ typedef struct ModeDecisionCandidate {
 #else
 typedef struct ModeDecisionCandidate {
 #if CLN_MV_IDX
-    Mv                     mv[2]; // unipred MV stored in idx 0
-    Mv                     pred_mv[2]; // unipred MV stored in idx 0
+    Mv mv[2]; // unipred MV stored in idx 0
+    Mv pred_mv[2]; // unipred MV stored in idx 0
 #else
-    Mv       mv[MAX_NUM_OF_REF_PIC_LIST];
-    Mv       pred_mv[MAX_NUM_OF_REF_PIC_LIST];
+    Mv mv[MAX_NUM_OF_REF_PIC_LIST];
+    Mv pred_mv[MAX_NUM_OF_REF_PIC_LIST];
 #endif
     PaletteInfo           *palette_info;
     uint32_t               interp_filters;
@@ -81,11 +81,11 @@ typedef struct ModeDecisionCandidate {
     TxType                 transform_type[MAX_TXB_COUNT];
     TxType                 transform_type_uv;
 #if CLN_WM_CTRLS
-    uint8_t                num_proj_ref;
+    uint8_t num_proj_ref;
 #else
     uint16_t num_proj_ref;
 #endif
-    uint8_t                palette_size[PLANE_TYPES];
+    uint8_t palette_size[PLANE_TYPES];
 
     CandClass      cand_class;
     PredictionMode pred_mode;
@@ -104,17 +104,17 @@ typedef struct ModeDecisionCandidate {
 #if CLN_CAND_REF_FRAME
     MvReferenceFrame ref_frame[2];
 #else
-    uint8_t  ref_frame_type;
+    uint8_t ref_frame_type;
 #endif
-    uint8_t          drl_index;
-    MotionMode       motion_mode;
-    uint8_t          tx_depth;
-    uint8_t          compound_idx;
-    uint8_t          comp_group_idx;
-    InterIntraMode   interintra_mode;
-    uint8_t          is_interintra_used;
-    uint8_t          use_wedge_interintra;
-    int8_t           interintra_wedge_index;
+    uint8_t        drl_index;
+    MotionMode     motion_mode;
+    uint8_t        tx_depth;
+    uint8_t        compound_idx;
+    uint8_t        comp_group_idx;
+    InterIntraMode interintra_mode;
+    uint8_t        is_interintra_used;
+    uint8_t        use_wedge_interintra;
+    int8_t         interintra_wedge_index;
 } ModeDecisionCandidate;
 #endif
 

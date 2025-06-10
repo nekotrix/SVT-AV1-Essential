@@ -27,7 +27,7 @@
 #define DEFAULT_ALIGNMENT (2 * sizeof(void*))
 #define AOM_MAX_ALLOCABLE_MEMORY 8589934592 // 8 GB
 /*returns an addr aligned to the byte boundary specified by align*/
-#define align_addr(addr, align) (void*)(((size_t)(addr) + ((align)-1)) & ~(size_t)((align)-1))
+#define align_addr(addr, align) (void*)(((size_t)(addr) + ((align) - 1)) & ~(size_t)((align) - 1))
 
 // Returns 0 in case of overflow of nmemb * size.
 static inline int32_t check_size_argument_overflow(uint64_t nmemb, uint64_t size) {

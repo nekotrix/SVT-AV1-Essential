@@ -155,10 +155,10 @@ int svt_aom_fp_mv_err_cost(const MV *mv, const MV_COST_PARAMS *mv_cost_params);
 static INLINE void svt_av1_set_subpel_mv_search_range(SubpelMvLimits *subpel_limits, const FullMvLimits *mv_limits,
                                                       const MV *ref_mv) {
     const int max_mv = GET_MV_SUBPEL(MAX_FULL_PEL_VAL);
-    const int minc = AOMMAX(GET_MV_SUBPEL(mv_limits->col_min), ref_mv->col - max_mv);
-    const int maxc = AOMMIN(GET_MV_SUBPEL(mv_limits->col_max), ref_mv->col + max_mv);
-    const int minr = AOMMAX(GET_MV_SUBPEL(mv_limits->row_min), ref_mv->row - max_mv);
-    const int maxr = AOMMIN(GET_MV_SUBPEL(mv_limits->row_max), ref_mv->row + max_mv);
+    const int minc   = AOMMAX(GET_MV_SUBPEL(mv_limits->col_min), ref_mv->col - max_mv);
+    const int maxc   = AOMMIN(GET_MV_SUBPEL(mv_limits->col_max), ref_mv->col + max_mv);
+    const int minr   = AOMMAX(GET_MV_SUBPEL(mv_limits->row_min), ref_mv->row - max_mv);
+    const int maxr   = AOMMIN(GET_MV_SUBPEL(mv_limits->row_max), ref_mv->row + max_mv);
 
     subpel_limits->col_min = AOMMAX(MV_LOW + 1, minc);
     subpel_limits->col_max = AOMMIN(MV_UPP - 1, maxc);

@@ -47,7 +47,7 @@ typedef struct mv32 {
 #endif
 #if !CLN_MOVE_MV_FIELDS
 #define GET_MV_RAWPEL(x) (((x) + 3 + ((x) >= 0)) >> 3)
-#define GET_MV_SUBPEL(x) ((x)*8)
+#define GET_MV_SUBPEL(x) ((x) * 8)
 
 // The motion vector in units of full pixel
 typedef struct fullpel_mv {
@@ -157,7 +157,7 @@ typedef struct BlockModeInfo {
 #else
     /*! \brief The motion vectors used by the current inter mode */
 #if CLN_UNIFY_MV_TYPE
-    Mv       mv[2];
+    Mv mv[2];
 #else
     IntMv mv[2];
 #endif
@@ -182,7 +182,7 @@ typedef struct BlockModeInfo {
 #if CLN_MBMI_IN_CAND
     int8_t interintra_wedge_index;
 #else
-    uint8_t  interintra_wedge_index;
+    uint8_t interintra_wedge_index;
 #endif
 
     /*****************************************************************************
@@ -363,8 +363,8 @@ typedef struct BlockModeInfo {
     uint8_t palette_size[MAX_MB_PLANE - 1];
 
     /*mi_row & mi_col wrt a super block*/
-    int8_t  mi_row_in_sb;
-    int8_t  mi_col_in_sb;
+    int8_t mi_row_in_sb;
+    int8_t mi_col_in_sb;
 
 #if MODE_INFO_DBG
     int32_t mi_row;

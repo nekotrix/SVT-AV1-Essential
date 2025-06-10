@@ -1044,13 +1044,13 @@ typedef struct CompoundPredictionStore {
     //example: NRST_NRST:  (0,0) (1,2)
     //         NEAR_NEAR:  (1,0) (1,2)
     //pred1 for NEAR_NEAR could be retrived from  NRST_NRST
-    uint8_t pred0_cnt; //actual size for available predictions
+    uint8_t  pred0_cnt; //actual size for available predictions
     uint8_t *pred0_buf[4]; //stores prediction for up to 4 different MVs (NEAREST + 3 NEAR)
-    IntMv pred0_mv[4]; //MVs for availble predictions
+    IntMv    pred0_mv[4]; //MVs for availble predictions
 
-    uint8_t pred1_cnt;
+    uint8_t  pred1_cnt;
     uint8_t *pred1_buf[4];
-    IntMv pred1_mv[4];
+    IntMv    pred1_mv[4];
 } CompoundPredictionStore;
 #endif
 

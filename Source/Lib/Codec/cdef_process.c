@@ -388,13 +388,13 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
 #if CLN_REMOVE_MODE_INFO
             const MbModeInfo *mbmi = pcs->mi_grid_base[lr * cm->mi_stride + lc];
 #else
-            ModeInfo        **mi    = pcs->mi_grid_base + lr * cm->mi_stride + lc;
-            const MbModeInfo *mbmi  = &mi[0]->mbmi;
+            ModeInfo        **mi   = pcs->mi_grid_base + lr * cm->mi_stride + lc;
+            const MbModeInfo *mbmi = &mi[0]->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
             const BlockSize bsize = mbmi->bsize;
 #else
-            const BlockSize   bsize = mbmi->block_mi.bsize;
+            const BlockSize bsize = mbmi->block_mi.bsize;
 #endif
             if (((fbc & 1) && (bsize == BLOCK_128X128 || bsize == BLOCK_128X64)) ||
                 ((fbr & 1) && (bsize == BLOCK_128X128 || bsize == BLOCK_64X128)))

@@ -189,9 +189,9 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
             min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
 #else
             for (uint8_t qp = MIN_QP_VALUE; qp <= MAX_QP_VALUE; qp++) {
-                uint8_t nic_level = svt_aom_get_nic_level(enc_mode, is_base, qp, seq_qp_mod, rtc_tune);
+                uint8_t nic_level         = svt_aom_get_nic_level(enc_mode, is_base, qp, seq_qp_mod, rtc_tune);
                 uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
-                min_nic_scaling_level = MIN(min_nic_scaling_level, nic_scaling_level);
+                min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
             }
 #endif
         }
@@ -351,8 +351,8 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
 
         EB_MALLOC_ARRAY(ctx->palette_size_array_0, MAX_PAL_CAND);
     } else {
-        ctx->palette_buffer = NULL;
-        ctx->palette_cand_array = NULL;
+        ctx->palette_buffer       = NULL;
+        ctx->palette_cand_array   = NULL;
         ctx->palette_size_array_0 = NULL;
     }
 #endif

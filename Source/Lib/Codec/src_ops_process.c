@@ -823,8 +823,8 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                 x_curr_mv = (me_results->me_mv_array[me_offset].x) << 3;
                 y_curr_mv = (me_results->me_mv_array[me_offset].y) << 3;
 #else
-                x_curr_mv                = (me_results->me_mv_array[me_offset].x_mv) << 3;
-                y_curr_mv                = (me_results->me_mv_array[me_offset].y_mv) << 3;
+                x_curr_mv = (me_results->me_mv_array[me_offset].x_mv) << 3;
+                y_curr_mv = (me_results->me_mv_array[me_offset].y_mv) << 3;
 #endif
 
                 ref_pic_ptr =
@@ -845,7 +845,7 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
 #if CLN_UNIFY_MV_TYPE
                 Mv best_mv = {{x_curr_mv, y_curr_mv}};
 #else
-                MV      best_mv          = {y_curr_mv, x_curr_mv};
+                MV best_mv = {y_curr_mv, x_curr_mv};
 #endif
 
                 if (pcs->tpl_ctrls.subpel_depth != FULL_PEL) {

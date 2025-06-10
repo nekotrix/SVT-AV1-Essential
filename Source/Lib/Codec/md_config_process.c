@@ -48,7 +48,7 @@ static MeshPattern good_quality_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP]
 #if CLN_FUNCS_HEADER
 static const MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
 #else
-static MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP]      = {
+static MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
 #endif
     {{256, 1}, {256, 1}, {0, 0}, {0, 0}},
     {{256, 1}, {256, 1}, {0, 0}, {0, 0}},
@@ -60,7 +60,7 @@ static MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP]     
 #if CLN_FUNCS_HEADER
 static void set_global_motion_field(PictureControlSet *pcs) {
 #else
-void               set_global_motion_field(PictureControlSet *pcs) {
+void set_global_motion_field(PictureControlSet *pcs) {
 #endif
     // Init Global Motion Vector
     uint8_t frame_index;
@@ -206,7 +206,7 @@ static INLINE int aom_get_qmlevel(int qindex, int first, int last) {
 #if CLN_FUNCS_HEADER
 static void svt_av1_qm_init(PictureParentControlSet *pcs) {
 #else
-void               svt_av1_qm_init(PictureParentControlSet *pcs) {
+void svt_av1_qm_init(PictureParentControlSet *pcs) {
 #endif
     const uint8_t num_planes = 3; // MAX_MB_PLANE;// NM- No monochroma
     uint8_t       q, c, t;
@@ -260,7 +260,7 @@ void               svt_av1_qm_init(PictureParentControlSet *pcs) {
 #if CLN_FUNCS_HEADER
 static void set_reference_sg_ep(PictureControlSet *pcs) {
 #else
-void               set_reference_sg_ep(PictureControlSet *pcs) {
+void set_reference_sg_ep(PictureControlSet *pcs) {
 #endif
     Av1Common         *cm = pcs->ppcs->av1_cm;
     EbReferenceObject *ref_obj_l0, *ref_obj_l1;

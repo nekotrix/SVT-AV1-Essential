@@ -35,9 +35,9 @@ void svt_aom_get_av1_mv_pred_drl(struct ModeDecisionContext *ctx, BlkStruct *blk
                                  uint8_t is_compound, PredictionMode mode, uint8_t drl_index, Mv nearestmv[2],
                                  Mv nearmv[2], Mv ref_mv[2]);
 #else
-void     svt_aom_get_av1_mv_pred_drl(struct ModeDecisionContext *ctx, BlkStruct *blk_ptr, MvReferenceFrame ref_frame,
-                                     uint8_t is_compound, PredictionMode mode, uint8_t drl_index, IntMv nearestmv[2],
-                                     IntMv nearmv[2], IntMv ref_mv[2]);
+void svt_aom_get_av1_mv_pred_drl(struct ModeDecisionContext *ctx, BlkStruct *blk_ptr, MvReferenceFrame ref_frame,
+                                 uint8_t is_compound, PredictionMode mode, uint8_t drl_index, IntMv nearestmv[2],
+                                 IntMv nearmv[2], IntMv ref_mv[2]);
 #endif
 MbModeInfo *get_mbmi(PictureControlSet *pcs, uint32_t blk_org_x, uint32_t blk_org_y);
 void        svt_aom_update_mi_map(BlkStruct *blk_ptr, uint32_t blk_org_x, uint32_t blk_org_y, const BlockGeom *blk_geom,
@@ -98,9 +98,9 @@ int svt_aom_is_dv_valid(const Mv dv, const MacroBlockD *xd, int mi_row, int mi_c
 Mv svt_aom_gm_get_motion_vector_enc(const WarpedMotionParams *gm, int32_t allow_hp, BlockSize bsize, int32_t mi_col,
                                     int32_t mi_row, int32_t is_integer);
 #else
-void     svt_av1_find_best_ref_mvs_from_stack(int allow_hp, CandidateMv ref_mv_stack[][MAX_REF_MV_STACK_SIZE],
-                                              MacroBlockD *xd, MvReferenceFrame ref_frame, IntMv *nearest_mv,
-                                              IntMv *near_mv, int is_integer);
+void svt_av1_find_best_ref_mvs_from_stack(int allow_hp, CandidateMv ref_mv_stack[][MAX_REF_MV_STACK_SIZE],
+                                          MacroBlockD *xd, MvReferenceFrame ref_frame, IntMv *nearest_mv,
+                                          IntMv *near_mv, int is_integer);
 int svt_aom_is_dv_valid(const MV dv, const MacroBlockD *xd, int mi_row, int mi_col, BlockSize bsize, int mib_size_log2);
 
 IntMv svt_aom_gm_get_motion_vector_enc(const WarpedMotionParams *gm, int32_t allow_hp, BlockSize bsize, int32_t mi_col,

@@ -2301,7 +2301,7 @@ int svt_av1_full_pixel_search(PictureControlSet *pcs, IntraBcContext *x, BlockSi
             if (var > exhuastive_thr) {
                 int var_ex;
 #if CLN_UNIFY_MV_TYPE
-                Mv  tmp_mv_ex;
+                Mv tmp_mv_ex;
                 var_ex = full_pixel_exhaustive(
                     pcs, x, &x->best_mv.as_mv, error_per_bit, cost_list, fn_ptr, ref_mv, &tmp_mv_ex);
 #else

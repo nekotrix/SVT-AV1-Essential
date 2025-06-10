@@ -19,10 +19,10 @@
  * Macros
  **********************************************************/
 #if CLN_REMOVE_LDP
-#define PRED_STRUCT_INDEX(hierarchicalLevelCount, predType) ((hierarchicalLevelCount)*PRED_TOTAL_COUNT + (predType))
+#define PRED_STRUCT_INDEX(hierarchicalLevelCount, predType) ((hierarchicalLevelCount) * PRED_TOTAL_COUNT + (predType))
 #else
 #define PRED_STRUCT_INDEX(hierarchicalLevelCount, predType) \
-    ((hierarchicalLevelCount)*SVT_AV1_PRED_TOTAL_COUNT + (predType))
+    ((hierarchicalLevelCount) * SVT_AV1_PRED_TOTAL_COUNT + (predType))
 #endif
 
 /**********************************************************

@@ -431,7 +431,7 @@ void svt_av1_cdef_frame(SequenceControlSet *scs, PictureControlSet *pcs) {
             else
                 frame_right = 1;
 
-                // Find the index of the CDEF strength for the filter block
+            // Find the index of the CDEF strength for the filter block
 #if CLN_REMOVE_MODE_INFO
             const int32_t mbmi_cdef_strength =
                 pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc]->cdef_strength;
@@ -464,7 +464,7 @@ void svt_av1_cdef_frame(SequenceControlSet *scs, PictureControlSet *pcs) {
 #if CLN_REMOVE_MODE_INFO
                 const MbModeInfo *mbmi = pcs->mi_grid_base[lr * cm->mi_stride + lc];
 #else
-                ModeInfo **mi = pcs->mi_grid_base + lr * cm->mi_stride + lc;
+                ModeInfo        **mi   = pcs->mi_grid_base + lr * cm->mi_stride + lc;
                 const MbModeInfo *mbmi = &mi[0]->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
@@ -815,7 +815,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
 #if CLN_REMOVE_MODE_INFO
                 const MbModeInfo *mbmi = pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc];
 #else
-                ModeInfo **mi = pcs->mi_grid_base + MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc;
+                ModeInfo        **mi   = pcs->mi_grid_base + MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc;
                 const MbModeInfo *mbmi = &mi[0]->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
@@ -864,7 +864,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
             BlockSize bsize = pcs->mi_grid_base[sb_index[i]]->mbmi.block_mi.bsize;
             switch (bsize) {
             case BLOCK_128X128:
-                pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64]->mbmi.cdef_strength = (int8_t)best_gi;
+                pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64]->mbmi.cdef_strength                  = (int8_t)best_gi;
                 pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64 * pcs->mi_stride]->mbmi.cdef_strength = (int8_t)best_gi;
                 pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64 * pcs->mi_stride + MI_SIZE_64X64]->mbmi.cdef_strength =
                     (int8_t)best_gi;
@@ -926,7 +926,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
 #if CLN_REMOVE_MODE_INFO
             const MbModeInfo *mbmi = pcs->mi_grid_base[MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc];
 #else
-            ModeInfo **mi = pcs->mi_grid_base + MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc;
+            ModeInfo        **mi   = pcs->mi_grid_base + MI_SIZE_64X64 * fbr * cm->mi_stride + MI_SIZE_64X64 * fbc;
             const MbModeInfo *mbmi = &mi[0]->mbmi;
 #endif
 #if CLN_MOVE_FIELDS_MBMI
@@ -1071,7 +1071,7 @@ void finish_cdef_search(PictureControlSet *pcs) {
 
         switch (bsize) {
         case BLOCK_128X128:
-            pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64]->mbmi.cdef_strength = (int8_t)best_gi;
+            pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64]->mbmi.cdef_strength                  = (int8_t)best_gi;
             pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64 * pcs->mi_stride]->mbmi.cdef_strength = (int8_t)best_gi;
             pcs->mi_grid_base[sb_index[i] + MI_SIZE_64X64 * pcs->mi_stride + MI_SIZE_64X64]->mbmi.cdef_strength =
                 (int8_t)best_gi;

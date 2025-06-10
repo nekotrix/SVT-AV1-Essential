@@ -384,7 +384,7 @@ typedef struct PictureControlSet {
 #else
     ModeInfo **mi_grid_base; // 2 SB Rows of mi Data are enough
 
-    ModeInfo           *mip;
+    ModeInfo *mip;
 #endif
 
     int32_t mi_stride;
@@ -1238,7 +1238,7 @@ typedef struct PictureParentControlSet {
     bool r0_delta_qp_md;
     bool r0_delta_qp_quant;
 #else
-    bool                r0_based_qps_qpm;
+    bool r0_based_qps_qpm;
 #endif
     uint32_t         dpb_order_hint[REF_FRAMES]; // spec 6.8.2. ref_order_hint[]
     DGDetectorSeg   *dg_detector; // dg detector segments control struct

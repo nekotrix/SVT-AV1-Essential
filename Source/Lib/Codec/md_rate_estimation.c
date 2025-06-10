@@ -779,7 +779,7 @@ static AOM_INLINE void update_palette_cdf(MacroBlockD *xd, const MbModeInfo *con
 #if CLN_MBMI_IN_BLKSTRUCT
     uint32_t intra_chroma_mode = blk_ptr->block_mi.uv_mode;
 #else
-    uint32_t                intra_chroma_mode = blk_ptr->intra_chroma_mode;
+    uint32_t intra_chroma_mode = blk_ptr->intra_chroma_mode;
 #endif
     const int uv_dc_pred = intra_chroma_mode == UV_DC_PRED && is_chroma_reference(mi_row, mi_col, bsize, 1, 1);
 
@@ -800,7 +800,7 @@ static AOM_INLINE void sum_intra_stats(PictureControlSet *pcs, BlkStruct *blk_pt
 #if CLN_REMOVE_MODE_INFO
     const MbModeInfo *const mbmi = xd->mi[0];
 #else
-    const MbModeInfo *const mbmi              = &xd->mi[0]->mbmi;
+    const MbModeInfo *const mbmi = &xd->mi[0]->mbmi;
 #endif
     FRAME_CONTEXT       *fc       = xd->tile_ctx;
     const PredictionMode y_mode   = mbmi->block_mi.mode;
@@ -808,7 +808,7 @@ static AOM_INLINE void sum_intra_stats(PictureControlSet *pcs, BlkStruct *blk_pt
 #if CLN_MOVE_FIELDS_MBMI
     const BlockSize bsize = mbmi->bsize;
 #else
-    const BlockSize         bsize             = mbmi->block_mi.bsize;
+    const BlockSize bsize = mbmi->block_mi.bsize;
 #endif
     assert(bsize < BlockSizeS_ALL);
     assert(y_mode < 13);
@@ -1149,9 +1149,9 @@ void svt_aom_update_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, int mi_row
         update_filter_type_cdf(xd, mbmi, pcs->scs->seq_header.enable_dual_filter);
     }
     if (inter_block && !seg_ref_active) {
-        const PredictionMode mode  = mbmi->block_mi.mode;
+        const PredictionMode mode = mbmi->block_mi.mode;
 #if CLN_CAND_REF_FRAME
-        MvReferenceFrame     rf[2] = {blk_ptr->ref_frame[0], blk_ptr->ref_frame[1]};
+        MvReferenceFrame rf[2] = {blk_ptr->ref_frame[0], blk_ptr->ref_frame[1]};
 #else
         MvReferenceFrame rf[2];
         av1_set_ref_frame(rf, blk_ptr->ref_frame_type);

@@ -1660,8 +1660,8 @@ void svt_aom_scale_rec_references(PictureControlSet *pcs, EbPictureBufferDesc *i
     for (uint8_t list_index = REF_LIST_0; list_index < num_of_list_to_search; ++list_index) {
         uint8_t ref_pic_index;
         uint8_t num_of_ref_pic_to_search = (ppcs->slice_type == P_SLICE) ? ppcs->ref_list0_count
-            : (list_index == REF_LIST_0) ? ppcs->ref_list0_count
-                                         : ppcs->ref_list1_count;
+            : (list_index == REF_LIST_0)                                 ? ppcs->ref_list0_count
+                                                                         : ppcs->ref_list1_count;
         for (ref_pic_index = 0; ref_pic_index < num_of_ref_pic_to_search; ++ref_pic_index) {
 #endif
             ref_object = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_index][ref_pic_index]->object_ptr;

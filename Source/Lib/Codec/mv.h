@@ -79,7 +79,7 @@ typedef struct CandidateMv {
 } CandidateMv;
 
 #define GET_MV_RAWPEL(x) (((x) + 3 + ((x) >= 0)) >> 3)
-#define GET_MV_SUBPEL(x) ((x)*8)
+#define GET_MV_SUBPEL(x) ((x) * 8)
 
 static AOM_INLINE Mv get_fullmv_from_mv(const Mv* subpel_mv) {
     const Mv full_mv = {{(int16_t)GET_MV_RAWPEL(subpel_mv->x), (int16_t)GET_MV_RAWPEL(subpel_mv->y)}};

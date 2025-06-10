@@ -1471,10 +1471,12 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
     SequenceControlSet *scs     = pcs->scs;
     EncodeContext      *enc_ctx = scs->enc_ctx;
     int32_t plane = component_type == COMPONENT_LUMA ? AOM_PLANE_Y : COMPONENT_CHROMA_CB ? AOM_PLANE_U : AOM_PLANE_V;
-    int32_t qmatrix_level    = (IS_2D_TRANSFORM(tx_type) && pcs->ppcs->frm_hdr.quantization_params.using_qmatrix)
-           ? pcs->ppcs->frm_hdr.quantization_params.qm[plane]
-           : NUM_QM_LEVELS - 1;
-    TxSize  adjusted_tx_size = aom_av1_get_adjusted_tx_size(txsize);
+
+    int32_t qmatrix_level = (IS_2D_TRANSFORM(tx_type) && pcs->ppcs->frm_hdr.quantization_params.using_qmatrix)
+        ? pcs->ppcs->frm_hdr.quantization_params.qm[plane]
+        : NUM_QM_LEVELS - 1;
+
+    TxSize          adjusted_tx_size = aom_av1_get_adjusted_tx_size(txsize);
     MacroblockPlane candidate_plane;
     const QmVal    *q_matrix  = pcs->ppcs->gqmatrix[qmatrix_level][plane][adjusted_tx_size];
     const QmVal    *iq_matrix = pcs->ppcs->giqmatrix[qmatrix_level][plane][adjusted_tx_size];

@@ -1659,9 +1659,9 @@ bool load_twopass_stats_in(EbConfig *cfg) {
     struct _stat file_stat;
     int          ret = _fstat(fd, &file_stat);
 #else
-    int fd = fileno(cfg->input_stat_file);
+    int         fd = fileno(cfg->input_stat_file);
     struct stat file_stat;
-    int ret = fstat(fd, &file_stat);
+    int         ret = fstat(fd, &file_stat);
 #endif
     if (ret) {
         return false;
