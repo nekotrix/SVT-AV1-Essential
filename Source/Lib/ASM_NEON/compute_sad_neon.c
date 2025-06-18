@@ -564,15 +564,15 @@ static inline uint32x4_t sad48xhx4d_neon(const uint8_t *src, uint32_t src_stride
     return vaddq_u32(sad4_0, sad4_1);
 }
 
-DECLARE_ALIGNED(16, static const uint8_t, kPermTable[48]) = {0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6,  6,  7,  7,  8,
-                                                             2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8,  8,  9,  9,  10,
-                                                             4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12};
+DECLARE_ALIGNED(16, static const uint8_t, kPermTable2xh[48]) = {0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6,  6,  7,  7,  8,
+                                                                2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8,  8,  9,  9,  10,
+                                                                4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12};
 
 static inline uint16x8_t sad4xhx8d_neon(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
                                         uint32_t ref_stride, uint32_t h) {
     /* Initialize 'res' to store the sum of absolute differences (SAD) of 8 search spaces. */
     uint16x8_t   res      = vdupq_n_u16(0);
-    uint8x16x2_t perm_tbl = vld1q_u8_x2(kPermTable);
+    uint8x16x2_t perm_tbl = vld1q_u8_x2(kPermTable2xh);
 
     do {
         uint8x16_t src0 = vreinterpretq_u8_u16(vld1q_dup_u16((const uint16_t *)src));
@@ -597,7 +597,7 @@ static inline uint16x8_t sad6xhx8d_neon(const uint8_t *src, uint32_t src_stride,
                                         uint32_t ref_stride, uint32_t h) {
     /* Initialize 'res' to store the sum of absolute differences (SAD) of 8 search spaces. */
     uint16x8_t   res      = vdupq_n_u16(0);
-    uint8x16x3_t perm_tbl = vld1q_u8_x3(kPermTable);
+    uint8x16x3_t perm_tbl = vld1q_u8_x3(kPermTable2xh);
 
     do {
         uint8x16_t src0 = vreinterpretq_u8_u16(vld1q_dup_u16((const uint16_t *)src));
@@ -920,63 +920,174 @@ static inline void svt_sad_loop_kernel128xh_neon(uint8_t *src, uint32_t src_stri
     }
 }
 
-uint32_t svt_sad_nxm_combined_neon(const uint8_t *src, uint32_t src_stride, const uint8_t *ref, uint32_t ref_stride,
-                                   int32_t height, int32_t width) {
-    // these must match block widths implemented in svt_nxm_sad_kernel_helper_neon
-    // 1, 2, 3 are added for convenience and will be handled by C code
-    static const int available_widths[] = {1, 2, 3, 4, 8, 16, 24, 32, 40, 48, 56, 64};
-    int              i                  = sizeof(available_widths) / sizeof(available_widths[0]);
-    uint32_t         sad                = 0;
-    while (width > 0) {
-        while (--i >= 0) {
-            int w = available_widths[i];
-            if (w <= width) {
-                if (w == 4 && (height & 1)) {
-                    // sad4xh_neon only handles even heights
-                    sad += svt_fast_loop_nxm_sad_kernel(src, src_stride, ref, ref_stride, height, w);
-                } else {
-                    sad += svt_nxm_sad_kernel_helper_neon(src, src_stride, ref, ref_stride, height, w);
-                }
-                width -= w;
-                src += w;
-                ref += w;
-                break;
+DECLARE_ALIGNED(16, static const uint8_t, kPermTable4xh[16]) = {0, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 3, 4, 5, 6};
+
+static inline uint32x4_t sadwxhx4d_neon(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
+                                        uint32_t ref_stride, uint32_t width, uint32_t height) {
+    uint32x4_t sum_u32[4] = {vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0), vdupq_n_u32(0)};
+    uint32x4_t sum4       = vdupq_n_u32(0);
+    uint16x8_t sum        = vdupq_n_u16(0);
+
+    // We can accumulate 257 absolute differences in a 16-bit element before
+    // it overflows. Given that we're accumulating in 8 16-bit elements we
+    // therefore need width * height < (257 * 8). (This isn't quite true as some
+    // elements in the tail loops have a different accumulator, but it's a good
+    // enough approximation).
+    uint32_t h_overflow = (257 * 8) / width;
+    uint32_t h_limit    = h_overflow >= height ? height : h_overflow;
+
+    uint32_t i = 0;
+    do {
+        uint16x8_t sum_u16[4] = {vdupq_n_u16(0), vdupq_n_u16(0), vdupq_n_u16(0), vdupq_n_u16(0)};
+
+        do {
+            int w = width;
+
+            const uint8_t *src_ptr = src;
+            const uint8_t *ref_ptr = ref;
+
+            while (w >= 16) {
+                const uint8x16_t s = vld1q_u8(src_ptr);
+                sad16_neon(s, vld1q_u8(ref_ptr + 0), &sum_u16[0]);
+                sad16_neon(s, vld1q_u8(ref_ptr + 1), &sum_u16[1]);
+                sad16_neon(s, vld1q_u8(ref_ptr + 2), &sum_u16[2]);
+                sad16_neon(s, vld1q_u8(ref_ptr + 3), &sum_u16[3]);
+
+                src_ptr += 16;
+                ref_ptr += 16;
+                w -= 16;
             }
-        }
-    }
-    return sad;
+
+            if (w >= 8) {
+                const uint8x8_t s = vld1_u8(src_ptr);
+                sum_u16[0]        = vabal_u8(sum_u16[0], s, vld1_u8(ref_ptr + 0));
+                sum_u16[1]        = vabal_u8(sum_u16[1], s, vld1_u8(ref_ptr + 1));
+                sum_u16[2]        = vabal_u8(sum_u16[2], s, vld1_u8(ref_ptr + 2));
+                sum_u16[3]        = vabal_u8(sum_u16[3], s, vld1_u8(ref_ptr + 3));
+
+                src_ptr += 8;
+                ref_ptr += 8;
+                w -= 8;
+            }
+
+            if (w >= 4) {
+                uint8x16_t perm_tbl = vld1q_u8(kPermTable4xh);
+                uint8x16_t s        = vreinterpretq_u8_u32(vld1q_dup_u32((const uint32_t *)src_ptr));
+
+                uint8x16_t r   = vqtbl1q_u8(vld1q_u8(ref_ptr), perm_tbl);
+                uint8x16_t abs = vabdq_u8(s, r);
+
+                uint16x8_t abs_u16 = vpaddlq_u8(abs);
+                sum4               = vpadalq_u16(sum4, abs_u16);
+
+                src_ptr += 4;
+                ref_ptr += 4;
+                w -= 4;
+            }
+
+            while (w != 0) {
+                uint8x8_t s = vld1_dup_u8(src_ptr + w - 1);
+                uint8x8_t r = load_u8_4x1(ref_ptr + w - 1);
+                sum         = vabal_u8(sum, s, r);
+
+                w--;
+            }
+
+            src += src_stride;
+            ref += ref_stride;
+        } while (++i < h_limit);
+
+        sum_u32[0] = vpadalq_u16(sum_u32[0], sum_u16[0]);
+        sum_u32[1] = vpadalq_u16(sum_u32[1], sum_u16[1]);
+        sum_u32[2] = vpadalq_u16(sum_u32[2], sum_u16[2]);
+        sum_u32[3] = vpadalq_u16(sum_u32[3], sum_u16[3]);
+
+        uint32_t h_inc = h_limit + h_overflow < height ? h_overflow : height - h_limit;
+        h_limit += h_inc;
+    } while (i < height);
+
+    return vaddq_u32(vaddw_u16(sum4, vget_low_u16(sum)), horizontal_add_4d_u32x4(sum_u32));
 }
 
-void svt_sad_loop_kernel_anyxh_neon(uint8_t  *src, // input parameter, source samples Ptr
-                                    uint32_t  src_stride, // input parameter, source stride
-                                    uint8_t  *ref, // input parameter, reference samples Ptr
-                                    uint32_t  ref_stride, // input parameter, reference stride
-                                    uint32_t  block_height, // input parameter, block height (M)
-                                    uint32_t  block_width, // input parameter, block width (N)
-                                    uint64_t *best_sad, int16_t *x_search_center, int16_t *y_search_center,
-                                    uint32_t src_stride_raw, // input parameter, source stride (no line skipping)
-                                    uint8_t skip_search_line, int16_t search_area_width, int16_t search_area_height) {
-    int16_t   x_search_index;
-    int16_t   y_search_index;
-    const int skip_line_value = (block_width == 16 && block_height <= 16 && skip_search_line) ? 0 : -1;
+static inline uint32_t sadwxh_neon(const uint8_t *src, uint32_t src_stride, const uint8_t *ref, uint32_t ref_stride,
+                                   uint32_t width, uint32_t height) {
+    uint32x4_t sum_u32 = vdupq_n_u32(0);
+    uint32_t   sum     = 0;
 
-    for (y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
-        if ((y_search_index & 1) == skip_line_value) {
-            ref += src_stride_raw;
-            continue;
-        }
-        for (x_search_index = 0; x_search_index < search_area_width; x_search_index++) {
-            uint32_t sad = svt_sad_nxm_combined_neon(
-                src, src_stride, ref + x_search_index, ref_stride, block_height, block_width);
+    // We can accumulate 257 absolute differences in a 16-bit element before
+    // it overflows. Given that we're accumulating in 8 16-bit elements we
+    // therefore need width * height < (257 * 8). (This isn't quite true as some
+    // elements in the tail loops have a different accumulator, but it's a good
+    // enough approximation).
+    uint32_t h_overflow = (257 * 8) / width;
+    uint32_t h_limit    = h_overflow >= height ? height : h_overflow;
 
-            // Update results
-            if (sad < *best_sad) {
-                *best_sad        = sad;
-                *x_search_center = x_search_index;
-                *y_search_center = y_search_index;
+    uint32_t i = 0;
+    do {
+        uint16x8_t sum_u16 = vdupq_n_u16(0);
+
+        do {
+            int w = width;
+
+            const uint8_t *src_ptr = src;
+            const uint8_t *ref_ptr = ref;
+
+            while (w >= 16) {
+                const uint8x16_t s = vld1q_u8(src_ptr);
+                sad16_neon(s, vld1q_u8(ref_ptr), &sum_u16);
+
+                src_ptr += 16;
+                ref_ptr += 16;
+                w -= 16;
             }
+
+            if (w >= 8) {
+                const uint8x8_t s = vld1_u8(src_ptr);
+                sum_u16           = vabal_u8(sum_u16, s, vld1_u8(ref_ptr));
+
+                src_ptr += 8;
+                ref_ptr += 8;
+                w -= 8;
+            }
+
+            while (w != 0) {
+                sum += EB_ABS_DIFF(src_ptr[w - 1], ref_ptr[w - 1]);
+
+                w--;
+            }
+            src += src_stride;
+            ref += ref_stride;
+        } while (++i < h_limit);
+
+        sum_u32 = vpadalq_u16(sum_u32, sum_u16);
+
+        uint32_t h_inc = h_limit + h_overflow < height ? h_overflow : height - h_limit;
+        h_limit += h_inc;
+    } while (i < height);
+
+    return sum + vaddvq_u32(sum_u32);
+}
+
+static inline void svt_sad_loop_kernelwxh_neon(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
+                                               uint32_t block_width, uint32_t block_height, uint64_t *best_sad,
+                                               int16_t *x_search_center, int16_t *y_search_center,
+                                               uint32_t src_stride_raw, int16_t search_area_width,
+                                               int16_t search_area_height) {
+    for (int16_t y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
+        int16_t x_search_index;
+        for (x_search_index = 0; x_search_index <= search_area_width - 4; x_search_index += 4) {
+            /* Get the SAD of 4 search spaces aligned along the width and store it in 'sad4'. */
+            uint32x4_t sad4 = sadwxhx4d_neon(
+                src, src_stride, ref + x_search_index, ref_stride, block_width, block_height);
+            update_best_sad_u32(sad4, best_sad, x_search_center, y_search_center, x_search_index, y_search_index);
         }
 
+        for (; x_search_index < search_area_width; x_search_index++) {
+            /* Get the SAD of 1 search spaces aligned along the width and store it in 'temp_sad'. */
+            uint64_t temp_sad = sadwxh_neon(
+                src, src_stride, ref + x_search_index, ref_stride, block_width, block_height);
+            update_best_sad(temp_sad, best_sad, x_search_center, y_search_center, x_search_index, y_search_index);
+        }
         ref += src_stride_raw;
     }
 }
@@ -1129,19 +1240,18 @@ void svt_sad_loop_kernel_neon(uint8_t *src, uint32_t src_stride, uint8_t *ref, u
         break;
     }
     default: {
-        svt_sad_loop_kernel_anyxh_neon(src,
-                                       src_stride,
-                                       ref,
-                                       ref_stride,
-                                       block_height,
-                                       block_width,
-                                       best_sad,
-                                       x_search_center,
-                                       y_search_center,
-                                       src_stride_raw,
-                                       skip_search_line,
-                                       search_area_width,
-                                       search_area_height);
+        svt_sad_loop_kernelwxh_neon(src,
+                                    src_stride,
+                                    ref,
+                                    ref_stride,
+                                    block_width,
+                                    block_height,
+                                    best_sad,
+                                    x_search_center,
+                                    y_search_center,
+                                    src_stride_raw,
+                                    search_area_width,
+                                    search_area_height);
         break;
     }
     }
