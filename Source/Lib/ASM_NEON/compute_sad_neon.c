@@ -10,13 +10,15 @@
  */
 
 #include <arm_neon.h>
+
+#include "aom_dsp_rtcd.h"
+#include "common_dsp_rtcd.h"
+#include "compute_sad_c.h"
+#include "compute_sad_neon.h"
+#include "mcomp.h"
 #include "mem_neon.h"
 #include "sum_neon.h"
-#include "common_dsp_rtcd.h"
-#include "aom_dsp_rtcd.h"
-#include "compute_sad_c.h"
 #include "utility.h"
-#include "mcomp.h"
 
 static inline uint16x8_t sad16_neon_init(uint8x16_t src, uint8x16_t ref) {
     const uint8x16_t abs_diff = vabdq_u8(src, ref);
@@ -26,107 +28,6 @@ static inline uint16x8_t sad16_neon_init(uint8x16_t src, uint8x16_t ref) {
 static inline void sad16_neon(uint8x16_t src, uint8x16_t ref, uint16x8_t *const sad_sum) {
     const uint8x16_t abs_diff = vabdq_u8(src, ref);
     *sad_sum                  = vpadalq_u8(*sad_sum, abs_diff);
-}
-
-/* Find the position of the first occurrence of 'value' in the vector 'x'.
- * Returns the position (index) of the first occurrence of 'value' in the vector 'x'. */
-static inline uint16_t findposq_u16(uint16x8_t x, uint16_t value) {
-    uint16x8_t val_mask;
-    uint8x16_t is_one;
-    uint64_t   idx;
-
-    val_mask = vdupq_n_u16(value);
-
-    /* Divide each lane in half by using vreinterpret. */
-    is_one = vreinterpretq_u8_u16(vceqq_u16(x, val_mask));
-
-    /* Pack the information in the lower 64 bits of the register by considering only alternate
-     * 8-bit lanes. */
-    is_one = vuzp1q_u8(is_one, is_one);
-
-    /* Get the lower 64 bits from the 128-bit register. */
-    idx = vgetq_lane_u64(vreinterpretq_u64_u8(vrev64q_u8(is_one)), 0);
-
-    /* Calculate the position as an index, dividing by 8 to account for 8-bit lanes. */
-    return __builtin_clzl(idx) / 8;
-}
-
-/* Find the position of the first occurrence of 'value' in the vector 'x'.
- * Returns the position (index) of the first occurrence of 'value' in the vector 'x'. */
-static inline uint16_t findposq_u32(uint32x4_t x, uint32_t value) {
-    uint32x4_t val_mask;
-    uint16x8_t is_one;
-    uint64_t   idx;
-
-    val_mask = vdupq_n_u32(value);
-
-    /* Divide each lane in half by using vreinterpret. */
-    is_one = vreinterpretq_u16_u32(vceqq_u32(x, val_mask));
-
-    /* Pack the information in the lower 64 bits of the register by considering only alternate
-     * 16-bit lanes. */
-    is_one = vuzp1q_u16(is_one, is_one);
-
-    /* Get the lower 64 bits from the 128-bit register. */
-    idx = vgetq_lane_u64(vreinterpretq_u64_u16(vrev64q_u16(is_one)), 0);
-
-    /* Calculate the position as an index, dividing by 16 to account for 16-bit lanes. */
-    return __builtin_clzl(idx) / 16;
-}
-
-static inline void update_best_sad_u32(uint32x4_t sad4, uint64_t *best_sad, int16_t *x_search_center,
-                                       int16_t *y_search_center, int16_t x_search_index, int16_t y_search_index) {
-    uint64_t temp_sad;
-
-    /* Find the minimum SAD value out of the 4 search spaces. */
-    temp_sad = vminvq_u32(sad4);
-
-    if (temp_sad < *best_sad) {
-        *best_sad        = temp_sad;
-        *x_search_center = (int16_t)(x_search_index + findposq_u32(sad4, temp_sad));
-        *y_search_center = y_search_index;
-    }
-}
-
-static inline void update_best_sad_u16(uint16x8_t sad8, uint64_t *best_sad, int16_t *x_search_center,
-                                       int16_t *y_search_center, int16_t x_search_index, int16_t y_search_index) {
-    uint64_t temp_sad;
-
-    /* Find the minimum SAD value out of the 8 search spaces. */
-    temp_sad = vminvq_u16(sad8);
-
-    if (temp_sad < *best_sad) {
-        *best_sad        = temp_sad;
-        *x_search_center = (int16_t)(x_search_index + findposq_u16(sad8, temp_sad));
-        *y_search_center = y_search_index;
-    }
-}
-
-static inline void update_best_sad(uint64_t temp_sad, uint64_t *best_sad, int16_t *x_search_center,
-                                   int16_t *y_search_center, int16_t x_search_index, int16_t y_search_index) {
-    if (temp_sad < *best_sad) {
-        *best_sad        = temp_sad;
-        *x_search_center = x_search_index;
-        *y_search_center = y_search_index;
-    }
-}
-
-/* Return a uint16x8 vector with 'n' lanes filled with 0 and the others filled with 65535
- * The valid range for 'n' is 0 to 7 */
-static inline uint16x8_t prepare_maskq_u16(uint16_t n) {
-    uint64_t mask    = UINT64_MAX;
-    mask             = mask << (8 * n);
-    uint8x8_t _mask8 = vcreate_u8(mask);
-    return vreinterpretq_u16_u8(vcombine_u8(vzip1_u8(_mask8, _mask8), vzip2_u8(_mask8, _mask8)));
-}
-
-/* Return a uint32x4 vector with 'n' lanes filled with 0 and the others filled with 4294967295
- * The valid range for 'n' is 0 to 4 */
-static inline uint32x4_t prepare_maskq_u32(uint16_t n) {
-    uint64_t mask     = UINT64_MAX;
-    mask              = n < 4 ? (mask << (16 * n)) : 0;
-    uint16x4_t _mask8 = vcreate_u16(mask);
-    return vreinterpretq_u32_u16(vcombine_u16(vzip1_u16(_mask8, _mask8), vzip2_u16(_mask8, _mask8)));
 }
 
 static inline uint32_t sad128xh_neon(const uint8_t *src_ptr, uint32_t src_stride, const uint8_t *ref_ptr,
@@ -291,27 +192,6 @@ static inline uint32_t sad16xh_neon(const uint8_t *src_ptr, uint32_t src_stride,
 
         diff = vabdq_u8(s, r);
         sum  = vpadalq_u8(sum, diff);
-
-        src_ptr += src_stride;
-        ref_ptr += ref_stride;
-    } while (--i != 0);
-
-    return vaddlvq_u16(sum);
-}
-
-static inline uint32_t sad8xh_neon(const uint8_t *src_ptr, uint32_t src_stride, const uint8_t *ref_ptr,
-                                   uint32_t ref_stride, uint32_t h) {
-    uint16x8_t sum;
-    uint8x8_t  s, r;
-    uint32_t   i;
-
-    sum = vdupq_n_u16(0);
-    i   = h;
-    do {
-        s = vld1_u8(src_ptr);
-        r = vld1_u8(ref_ptr);
-
-        sum = vabal_u8(sum, s, r);
 
         src_ptr += src_stride;
         ref_ptr += ref_stride;
@@ -521,33 +401,6 @@ static inline uint32x4_t sad16xhx4d_neon(const uint8_t *src, uint32_t src_stride
     return horizontal_add_4d_u32x4(sum_u32);
 }
 
-static inline uint32x4_t sad8xhx4d_neon(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
-                                        uint32_t ref_stride, uint32_t h) {
-    uint16x8_t sum[4];
-    uint8x8_t  s;
-    uint32_t   i, ref_offset;
-
-    sum[0] = vdupq_n_u16(0);
-    sum[1] = vdupq_n_u16(0);
-    sum[2] = vdupq_n_u16(0);
-    sum[3] = vdupq_n_u16(0);
-
-    ref_offset = 0;
-    i          = h;
-    do {
-        s      = vld1_u8(src);
-        sum[0] = vabal_u8(sum[0], s, vld1_u8(ref + 0 + ref_offset));
-        sum[1] = vabal_u8(sum[1], s, vld1_u8(ref + 1 + ref_offset));
-        sum[2] = vabal_u8(sum[2], s, vld1_u8(ref + 2 + ref_offset));
-        sum[3] = vabal_u8(sum[3], s, vld1_u8(ref + 3 + ref_offset));
-
-        src += src_stride;
-        ref_offset += ref_stride;
-    } while (--i != 0);
-
-    return horizontal_add_4d_u16x8(sum);
-}
-
 static inline uint32x4_t sad24xhx4d_neon(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
                                          uint32_t ref_stride, uint32_t h) {
     uint32x4_t sad4_0, sad4_1;
@@ -695,30 +548,6 @@ static inline void svt_sad_loop_kernel6xh_neon(uint8_t *src, uint32_t src_stride
             update_best_sad_u16(sad8, best_sad, x_search_center, y_search_center, x_search_index, y_search_index);
         }
 
-        ref += src_stride_raw;
-    }
-}
-
-static inline void svt_sad_loop_kernel8xh_neon(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
-                                               uint32_t block_height, uint64_t *best_sad, int16_t *x_search_center,
-                                               int16_t *y_search_center, uint32_t src_stride_raw,
-                                               int16_t search_area_width, int16_t search_area_height) {
-    int16_t    x_search_index, y_search_index;
-    uint32x4_t sad4;
-    uint64_t   temp_sad;
-
-    for (y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
-        for (x_search_index = 0; x_search_index <= search_area_width - 4; x_search_index += 4) {
-            /* Get the SAD of 4 search spaces aligned along the width and store it in 'sad4'. */
-            sad4 = sad8xhx4d_neon(src, src_stride, ref + x_search_index, ref_stride, block_height);
-            update_best_sad_u32(sad4, best_sad, x_search_center, y_search_center, x_search_index, y_search_index);
-        }
-
-        for (; x_search_index < search_area_width; x_search_index++) {
-            /* Get the SAD of 1 search spaces aligned along the width and store it in 'temp_sad'. */
-            temp_sad = sad8xh_neon(src, src_stride, ref + x_search_index, ref_stride, block_height);
-            update_best_sad(temp_sad, best_sad, x_search_center, y_search_center, x_search_index, y_search_index);
-        }
         ref += src_stride_raw;
     }
 }
