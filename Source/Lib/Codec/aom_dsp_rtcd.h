@@ -1024,6 +1024,12 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
                               uint32_t src_stride_raw, uint8_t skip_search_line,
                               int16_t search_area_width, int16_t search_area_height);
 
+    void svt_sad_loop_kernel_sve(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
+                              uint32_t block_height, uint32_t block_width, uint64_t *best_sad,
+                              int16_t *x_search_center, int16_t *y_search_center,
+                              uint32_t src_stride_raw, uint8_t skip_search_line,
+                              int16_t search_area_width, int16_t search_area_height);
+
     void svt_pme_sad_loop_kernel_neon(const struct svt_mv_cost_param *mv_cost_params, uint8_t* src, uint32_t src_stride, uint8_t* ref, uint32_t ref_stride, uint32_t block_height, uint32_t block_width, uint32_t *best_cost, int16_t *best_mvx, int16_t *best_mvy, int16_t search_position_start_x, int16_t search_position_start_y, int16_t search_area_width, int16_t search_area_height, int16_t search_step, int16_t mvx, int16_t mvy);
 
     unsigned int svt_aom_mse16x16_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, unsigned int *sse);
