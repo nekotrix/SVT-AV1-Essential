@@ -789,7 +789,7 @@ static EbErrorType load_default_buffer_configuration_settings(
         scs->total_process_init_count += (scs->picture_analysis_process_init_count = clamp(pa_processes, 1, max_pa_proc));
         scs->total_process_init_count += (scs->motion_estimation_process_init_count = clamp(25, 1, max_me_proc));
         scs->total_process_init_count += (scs->tpl_disp_process_init_count = clamp(6, 1, max_tpl_proc));
-        scs->total_process_init_count += (scs->mode_decision_configuration_process_init_count = clamp(2, 1, max_mdc_proc));
+        scs->total_process_init_count += (scs->mode_decision_configuration_process_init_count = clamp(3, 1, max_mdc_proc));
         scs->total_process_init_count += (scs->enc_dec_process_init_count = clamp(6, scs->picture_control_set_pool_init_count_child, max_md_proc));
         scs->total_process_init_count += (scs->entropy_coding_process_init_count = clamp(3, 1, max_ec_proc));
         scs->total_process_init_count += (scs->dlf_process_init_count = clamp(2, 1, max_dlf_proc));
