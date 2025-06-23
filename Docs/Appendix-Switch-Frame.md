@@ -76,7 +76,7 @@ in the Entropy Coding process.
 ## 3. Usage
 In the example below three different resolutions of a video sequence are
 encoded with the switch frame feature on. Keyframe interval is set to 150,
-s-frame interval is set to 32, prediction structure is set to low delay
+s-frame interval is set to 32, prediction structure is set to the same mode
 (--pred-struct 1), and mini GOP size is set to 8 (--hierarchical-levels 3).
 
 ##### Generate a rendition in 1080p
@@ -95,11 +95,6 @@ There are a few parameters from the above commands that are important to make re
 
   - --sframe-mode<br>
     S-frame insertion mode. All renditions must have identical value.
-
-  - --pred-struct<br>
-    Set prediction structure type. S-frame feature only supports low delay. All
-    renditions must have identical value to align s-frames reference frame
-    lists between renditions.
 
   - --hierarchical-levels<br>
     Set hierarchical levels. All renditions must have identical value to align
