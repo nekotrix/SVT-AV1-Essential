@@ -41,7 +41,11 @@ extern "C" {
 #define MAX_TPL_GROUP_SIZE 512 //enough to cover 6L gop
 
 #define MAX_TPL_EXT_GROUP_SIZE MAX_TPL_GROUP_SIZE
+#if OPT_REF_Q
+#define OUT_Q_ADVANCE(h, size) (((h) == (size) - 1) ? 0 : (h) + 1)
+#else
 #define OUT_Q_ADVANCE(h) ((h == REFERENCE_QUEUE_MAX_DEPTH - 1) ? 0 : h + 1)
+#endif
 #define MIN_LAD_MG 1
 #define RC_DEFAULT_LAD_MG 2 // default look ahead value for rate control
 void svt_aom_assert_err(uint32_t condition, char *err_msg);
@@ -136,6 +140,16 @@ typedef struct MrpCtrls {
     //2:use with TPL constraint                 faster
     //3:use with no constraint                  fastest
     uint8_t use_best_references;
+#if OPT_PIC_BUFFS
+    // When LD rtc is used, reduce the number of ref buffers based on the number of references used
+    // and the known rps structure. Signal is set automatically based on refs used.
+    // 0: off, use at least DPB ref buffers.
+    // 1: on; when each ref list uses <=2 refs, reduce the number of ref frame buffers because only
+    // base and layer1 pics are added to the dpb.
+    // 2: on; when each ref list uses <=1 refs, further reduce the number of ref frame buffers because only
+    // one base and one layer1 pic are added to the dpb at a time.
+    uint8_t ld_reduce_ref_buffs;
+#endif
 
 } MrpCtrls;
 typedef struct TfControls {
@@ -2183,7 +2197,9 @@ typedef uint8_t EbModeType;
 
 #define INVALID_MODE 0xFFu
 #endif
+#if !CLN_REMOVE_SPEED_CONTROL
 #define SPEED_CONTROL_INIT_MOD ENC_M5;
+#endif
 typedef enum ATTRIBUTE_PACKED {
     REF_LIST_0 = 0,
     REF_LIST_1 = 1,
@@ -2243,6 +2259,7 @@ typedef EbErrorType(*EbCreator)(
 #if !CLN_MOVE_MV_FIELDS
 #define INVALID_MV            0x80008000 //0xFFFFFFFF    //ICOPY They changed this to 0x80008000
 #endif
+#if !CLN_REMOVE_DATA_LL
 /***************************************
 * Generic linked list data structure for passing data into/out from the library
 ***************************************/
@@ -2263,7 +2280,7 @@ typedef struct EbLinkedListNode
     void                     *data;                      // pointer to application's data
     struct EbLinkedListNode  *next;                      // pointer to next node (null when last)
 } EbLinkedListNode;
-
+#endif
 typedef enum DistCalcType
 {
     DIST_CALC_RESIDUAL = 0,    // SSE(Coefficients - ReconCoefficients)

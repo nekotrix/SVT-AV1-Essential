@@ -87,7 +87,10 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
     const EbSvtAv1EncConfiguration *config        = &scs->static_config;
     EbColorFormat                   color_format  = config->encoder_color_format;
     EbPictureBufferDescInitData    *init_data_ptr = (EbPictureBufferDescInitData *)object_init_data_ptr;
-    RestContext                    *context_ptr;
+#if TUNE_RTC_M8
+    const bool rtc_tune = scs->static_config.rtc;
+#endif
+    RestContext *context_ptr;
     EB_CALLOC_ARRAY(context_ptr, 1);
     thread_ctx->priv  = context_ptr;
     thread_ctx->dctor = rest_context_dctor;
@@ -107,7 +110,12 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
                                        scs->input_resolution,
                                        config->fast_decode,
                                        config->avif,
+#if TUNE_RTC_M8
+                                       scs->allintra,
+                                       rtc_tune)) {
+#else
                                        scs->allintra)) {
+#endif
 #else
     if (svt_aom_get_enable_restoration(init_data_ptr->enc_mode,
                                        config->enable_restoration_filtering,

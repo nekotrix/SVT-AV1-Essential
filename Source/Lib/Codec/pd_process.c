@@ -189,8 +189,13 @@ uint8_t  circ_inc(uint8_t max, uint8_t off, uint8_t input)
 #define FADE_TH                             3
 #define SCENE_TH                            3000
 #define NUM64x64INPIC(w,h)          ((w*h)>> (svt_log2f(BLOCK_SIZE_64)<<1))
+#if OPT_PD_REORDER_Q
+#define QUEUE_GET_PREVIOUS_SPOT(h, size)  (((h) == 0) ? (size) - 1 : (h) - 1)
+#define QUEUE_GET_NEXT_SPOT(h, off, size)  (( (int)(h+off) >= (int)(size)) ? h+off - (int)(size)  : h + off)
+#else
 #define QUEUE_GET_PREVIOUS_SPOT(h)  ((h == 0) ? PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH - 1 : h - 1)
 #define QUEUE_GET_NEXT_SPOT(h,off)  (( (h+off) >= PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH) ? h+off - PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH  : h + off)
+#endif
 
 static void picture_decision_context_dctor(EbPtr p)
 {
@@ -376,14 +381,22 @@ EbErrorType release_prev_picture_from_reorder_queue(
 
     // Get the previous entry from the Picture Decision Reordering Queue (Entry N-1)
     // P.S. The previous entry in display order is needed for Scene Change Detection
+#if OPT_PD_REORDER_Q
+    previous_entry_index = (enc_ctx->picture_decision_reorder_queue_head_index == 0) ? enc_ctx->picture_decision_reorder_queue_size - 1 : enc_ctx->picture_decision_reorder_queue_head_index - 1;
+#else
     previous_entry_index = (enc_ctx->picture_decision_reorder_queue_head_index == 0) ? PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH - 1 : enc_ctx->picture_decision_reorder_queue_head_index - 1;
+#endif
     queue_previous_entry_ptr = enc_ctx->picture_decision_reorder_queue[previous_entry_index];
 
     // SB activity classification based on (0,0) SAD & picture activity derivation
     if (queue_previous_entry_ptr->ppcs_wrapper) {
         // Reset the Picture Decision Reordering Queue Entry
         // P.S. The reset of the Picture Decision Reordering Queue Entry could not be done before running the Scene Change Detector
+#if OPT_PD_REORDER_Q
+        queue_previous_entry_ptr->picture_number += enc_ctx->picture_decision_reorder_queue_size;
+#else
         queue_previous_entry_ptr->picture_number += PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH;
+#endif
         queue_previous_entry_ptr->ppcs_wrapper = (EbObjectWrapper *)NULL;
     }
 
@@ -1458,7 +1471,11 @@ static void  av1_generate_rps_info(
     const unsigned int temporal_layer = pcs->temporal_layer_index;
 #endif
     const uint8_t more_5L_refs = pcs->scs->mrp_ctrls.more_5L_refs;
+#if FTR_ADD_FLAT_IPP
+    pcs->is_ref = scs->use_flat_ipp ? true :
+#else
     pcs->is_ref =
+#endif
         svt_aom_is_pic_used_as_ref(hierarchical_levels,
             temporal_layer,
             pic_idx,
@@ -1492,6 +1509,27 @@ static void  av1_generate_rps_info(
     uint8_t* ref_dpb_index = av1_rps->ref_dpb_index;
     uint64_t* ref_poc_array = av1_rps->ref_poc_array;
 
+#if FTR_ADD_FLAT_IPP
+    if (scs->use_flat_ipp) {
+        // Only use the previous frame as ref
+        ref_dpb_index[LAST] = 0;
+        ref_dpb_index[LAST2] = ref_dpb_index[LAST];
+        ref_dpb_index[LAST3] = ref_dpb_index[LAST];
+        ref_dpb_index[GOLD] = ref_dpb_index[LAST];
+
+        ref_dpb_index[BWD] = ref_dpb_index[LAST];
+        ref_dpb_index[ALT2] = ref_dpb_index[LAST];
+        ref_dpb_index[ALT] = ref_dpb_index[LAST];
+
+        av1_rps->refresh_frame_mask = 0xFF;
+
+        update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
+        set_ref_list_counts(pcs);
+        prune_refs(av1_rps, pcs->ref_list0_count, pcs->ref_list1_count);
+        set_frame_display_params(pcs, ctx, mg_idx);
+    }
+    else
+#endif
 #if OPT_NEW_LD_RPS
 #if OPT_RTC && !TUNE_LD_RTC
     if (scs->static_config.pred_structure == LOW_DELAY) {
@@ -1505,11 +1543,22 @@ static void  av1_generate_rps_info(
         // For LD, the prediction structure is generally the previous 3 non-base frames + the previous 3 base frames + 1 long-term ref
         const uint8_t  base0_idx = lay0_toggle == 0 ? 0 : lay0_toggle == 1 ? 1 : 2; //the oldest L0 picture in the DPB
         const uint8_t  base1_idx = lay0_toggle == 0 ? 1 : lay0_toggle == 1 ? 2 : 0; //the middle L0 picture in the DPB
+#if OPT_LD_CQP_MEM
+        const uint8_t  base2_idx = scs->mrp_ctrls.ld_reduce_ref_buffs ? 0 : lay0_toggle == 0 ? 2 : lay0_toggle == 1 ? 0 : 1; //the newest L0 picture in the DPB
+#else
         const uint8_t  base2_idx = lay0_toggle == 0 ? 2 : lay0_toggle == 1 ? 0 : 1; //the newest L0 picture in the DPB
+#endif
 
+#if OPT_LD_CQP_MEM
+        const uint8_t lay1_offset = scs->mrp_ctrls.ld_reduce_ref_buffs == 0 ? LAY1_OFF : 1;
+        const uint8_t  lay1_0_idx = lay1_toggle == 0 ? lay1_offset + 0 : lay1_toggle == 1 ? lay1_offset + 1 : lay1_offset + 2; //the oldest L1/2 picture in the DPB
+        const uint8_t  lay1_1_idx = lay1_toggle == 0 ? lay1_offset + 1 : lay1_toggle == 1 ? lay1_offset + 2 : lay1_offset + 0; //the middle L1/2 picture in the DPB
+        const uint8_t  lay1_2_idx = scs->mrp_ctrls.ld_reduce_ref_buffs == 2 ? 1 : lay1_toggle == 0 ? lay1_offset + 2 : lay1_toggle == 1 ? lay1_offset + 0 : lay1_offset + 1; //the newest L1/2 picture in the DPB
+#else
         const uint8_t  lay1_0_idx = lay1_toggle == 0 ? LAY1_OFF + 0 : lay1_toggle == 1 ? LAY1_OFF + 1 : LAY1_OFF + 2; //the oldest L1/2 picture in the DPB
         const uint8_t  lay1_1_idx = lay1_toggle == 0 ? LAY1_OFF + 1 : lay1_toggle == 1 ? LAY1_OFF + 2 : LAY1_OFF + 0; //the middle L1/2 picture in the DPB
         const uint8_t  lay1_2_idx = lay1_toggle == 0 ? LAY1_OFF + 2 : lay1_toggle == 1 ? LAY1_OFF + 0 : LAY1_OFF + 1; //the newest L1/2 picture in the DPB
+#endif
         const uint8_t  long_base_idx = 7;
         const uint16_t long_base_pic = 128;
 
@@ -1538,15 +1587,42 @@ static void  av1_generate_rps_info(
         ref_dpb_index[ALT] = base1_idx;
 
         if (temporal_layer == 0) {
+#if OPT_LD_CQP_MEM
+            if (scs->mrp_ctrls.ld_reduce_ref_buffs == 2) {
+                // Only 2 DPB entries should be used, so fill in remaining entries to remove old pics (free up ref buffers)
+                av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle | (0xfc);
+            }
+            else if (scs->mrp_ctrls.ld_reduce_ref_buffs == 1) {
+                // Only 4 DPB entries should be used, so fill in remaining entries to remove old pics (free up ref buffers)
+                av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle | (0xf0);
+            }
+            else {
+                av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle;
+                //Layer0 toggle 0->1->2
+                ctx->lay0_toggle = circ_inc(3, 1, ctx->lay0_toggle);
+            }
+#else
             av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle;
             //Layer0 toggle 0->1->2
             ctx->lay0_toggle = circ_inc(3, 1, ctx->lay0_toggle);
+#endif
         }
         else {
             if (pcs->is_ref) {
+#if OPT_LD_CQP_MEM
+                if (scs->mrp_ctrls.ld_reduce_ref_buffs == 2) {
+                    av1_rps->refresh_frame_mask = 1 << 1;
+                }
+                else {
+                    av1_rps->refresh_frame_mask = 1 << (lay1_offset + ctx->lay1_toggle);
+                    //Layer1 toggle 0->1->2
+                    ctx->lay1_toggle = circ_inc(3, 1, ctx->lay1_toggle);
+                }
+#else
                 av1_rps->refresh_frame_mask = 1 << (LAY1_OFF + ctx->lay1_toggle);
                 //Layer1 toggle 0->1->2
                 ctx->lay1_toggle = circ_inc(3, 1, ctx->lay1_toggle);
+#endif
             }
             else {
                 av1_rps->refresh_frame_mask = 0;
@@ -1567,6 +1643,119 @@ static void  av1_generate_rps_info(
         //frm_hdr->show_frame = true;
         //pcs->has_show_existing = false;
     }
+#if OPT_PIC_BUFFS
+    else if (scs->static_config.pred_structure == LOW_DELAY && scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR) {
+
+        assert(!pcs->is_overlay && "overlays not supported in LD");
+        uint8_t lay0_toggle = ctx->lay0_toggle;
+        uint8_t lay1_toggle = ctx->lay1_toggle;
+
+        const uint8_t  base0_idx = lay0_toggle == 0 ? 0 : lay0_toggle == 1 ? 1 : 2; //the oldest L0 picture in the DPB
+        const uint8_t  base1_idx = lay0_toggle == 0 ? 1 : lay0_toggle == 1 ? 2 : 0; //the middle L0 picture in the DPB
+        const uint8_t  base2_idx = scs->mrp_ctrls.ld_reduce_ref_buffs == 2 ? 0 : lay0_toggle == 0 ? 2 : lay0_toggle == 1 ? 0 : 1; //the newest L0 picture in the DPB
+
+        const uint8_t  lay1_0_idx = lay1_toggle == 0 ? LAY1_OFF + 0 : LAY1_OFF + 1; //the oldest L1 picture in the DPB
+        const uint8_t  lay1_1_idx = scs->mrp_ctrls.ld_reduce_ref_buffs == 2 ? 1 : lay1_toggle == 0 ? LAY1_OFF + 1 : LAY1_OFF + 0; //the newest L1 picture in the DPB
+        const uint8_t  lay2_idx = LAY2_OFF; //the newest L2 picture in the DPB
+        const uint8_t  long_base_idx = 7;
+        const uint16_t long_base_pic = 128;
+
+        switch (temporal_layer) {
+        case 0:
+            ref_dpb_index[LAST] = base2_idx;
+            ref_dpb_index[LAST2] = base0_idx;
+            ref_dpb_index[LAST3] = long_base_idx;
+            ref_dpb_index[GOLD] = ref_dpb_index[LAST];
+
+            ref_dpb_index[BWD] = base2_idx;
+            ref_dpb_index[ALT2] = base1_idx;
+            ref_dpb_index[ALT] = ref_dpb_index[BWD];
+
+            if (scs->mrp_ctrls.ld_reduce_ref_buffs == 2) {
+                // Only 2 DPB entries should be used, so fill in remaining entries to remove old pics (free up ref buffers)
+                av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle | (0xfc);
+            }
+            else if (scs->mrp_ctrls.ld_reduce_ref_buffs == 1) {
+                // Only 5 DPB entries should be used, so fill in remaining entries to remove old pics (free up ref buffers)
+                av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle | (0xe0);
+                //Layer0 toggle 0->1->2
+                ctx->lay0_toggle = circ_inc(3, 1, ctx->lay0_toggle);
+            }
+            else {
+                av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle;
+                //Layer0 toggle 0->1->2
+                ctx->lay0_toggle = circ_inc(3, 1, ctx->lay0_toggle);
+            }
+            break;
+
+        case 1: // Phoenix
+            ref_dpb_index[LAST] = base2_idx;
+            ref_dpb_index[LAST2] = lay1_1_idx;
+            ref_dpb_index[LAST3] = base1_idx;
+            ref_dpb_index[GOLD] = ref_dpb_index[LAST];
+
+            ref_dpb_index[BWD] = base0_idx;
+            ref_dpb_index[ALT2] = ref_dpb_index[BWD];
+            ref_dpb_index[ALT] = ref_dpb_index[BWD];
+
+            if (scs->mrp_ctrls.ld_reduce_ref_buffs == 2) {
+                av1_rps->refresh_frame_mask = 1 << 1;
+            }
+            else {
+                av1_rps->refresh_frame_mask = 1 << (LAY1_OFF + ctx->lay1_toggle);
+                // Layer1 toggle 3->4
+                ctx->lay1_toggle = 1 - ctx->lay1_toggle;
+            }
+            break;
+
+        case 2:
+            if (pic_idx == 0) {
+                ref_dpb_index[LAST] = base2_idx;
+                ref_dpb_index[LAST2] = lay1_1_idx;
+                ref_dpb_index[LAST3] = base1_idx;
+                ref_dpb_index[GOLD] = ref_dpb_index[LAST];
+
+                ref_dpb_index[BWD] = lay1_0_idx;
+                ref_dpb_index[ALT2] = base0_idx;
+                ref_dpb_index[ALT] = ref_dpb_index[BWD];
+            }
+            else if (pic_idx == 2) {
+                ref_dpb_index[LAST] = lay1_1_idx;
+                ref_dpb_index[LAST2] = base2_idx;
+                ref_dpb_index[LAST3] = lay1_0_idx;
+                ref_dpb_index[GOLD] = ref_dpb_index[LAST];
+
+                ref_dpb_index[BWD] = base0_idx;
+                ref_dpb_index[ALT2] = ref_dpb_index[BWD];
+                ref_dpb_index[ALT] = ref_dpb_index[BWD];
+            }
+            else
+                SVT_LOG("Error in GOp indexing\n");
+
+            assert(IMPLIES(scs->mrp_ctrls.ld_reduce_ref_buffs, !pcs->is_ref && scs->mrp_ctrls.referencing_scheme == 0));
+            av1_rps->refresh_frame_mask = (pcs->is_ref) ? 1 << (lay2_idx) : 0;
+            // This check should be redundant, but is added to avoid hangs if settings are not set correctly
+            if (scs->mrp_ctrls.ld_reduce_ref_buffs)
+                av1_rps->refresh_frame_mask = 0;
+            break;
+        default:
+            SVT_ERROR("unexpected picture mini Gop number\n");
+            break;
+        }
+
+        update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
+
+        set_ref_list_counts(pcs);
+        // to make sure the long base reference is in base layer
+        if (scs->static_config.pred_structure == LOW_DELAY && (pcs->picture_number - ctx->last_long_base_pic) >= long_base_pic &&
+            pcs->temporal_layer_index == 0) {
+            av1_rps->refresh_frame_mask |= (1 << long_base_idx);
+            ctx->last_long_base_pic = pcs->picture_number;
+        }
+        prune_refs(av1_rps, pcs->ref_list0_count, pcs->ref_list1_count);
+        set_frame_display_params(pcs, ctx, mg_idx);
+    }
+#endif
     else if (hierarchical_levels == 0) {
 #else
     if (hierarchical_levels == 0) {
@@ -3337,7 +3526,11 @@ static EbErrorType derive_tf_window_params(
         int pic_i;
         //search reord-queue to get the future pictures
         for (pic_i = 0; pic_i < num_future_pics; pic_i++) {
+#if OPT_PD_REORDER_Q
+            int32_t q_index = QUEUE_GET_NEXT_SPOT(pcs->pic_decision_reorder_queue_idx, pic_i + 1, enc_ctx->picture_decision_reorder_queue_size);
+#else
             int32_t q_index = QUEUE_GET_NEXT_SPOT(pcs->pic_decision_reorder_queue_idx, pic_i + 1);
+#endif
             if (enc_ctx->picture_decision_reorder_queue[q_index]->ppcs_wrapper != NULL) {
                 PictureParentControlSet* pcs_itr = (PictureParentControlSet *)enc_ctx->picture_decision_reorder_queue[q_index]->ppcs_wrapper->object_ptr;
                 // if resolution has changed, and the pcs with new resolution should not be used in temporal filtering
@@ -3436,7 +3629,11 @@ static EbErrorType derive_tf_window_params(
                 uint32_t pic_i;
                 //search reord-queue to get the future pictures
                 for (pic_i = 0; pic_i < num_future_pics; pic_i++) {
+#if OPT_PD_REORDER_Q
+                    int32_t q_index = QUEUE_GET_NEXT_SPOT(pcs->pic_decision_reorder_queue_idx, pic_i + 1, enc_ctx->picture_decision_reorder_queue_size);
+#else
                     int32_t q_index = QUEUE_GET_NEXT_SPOT(pcs->pic_decision_reorder_queue_idx, pic_i + 1);
+#endif
                     if (enc_ctx->picture_decision_reorder_queue[q_index]->ppcs_wrapper != NULL) {
                         PictureParentControlSet* pcs_itr = (PictureParentControlSet *)enc_ctx->picture_decision_reorder_queue[q_index]->ppcs_wrapper->object_ptr;
                         // if resolution has changed, and the pcs with new resolution should not be used in temporal filtering
@@ -3498,7 +3695,11 @@ static EbErrorType derive_tf_window_params(
                 int pic_i;
                 //search reord-queue to get the future pictures
                 for (pic_i = 0; pic_i < num_future_pics; pic_i++) {
+#if OPT_PD_REORDER_Q
+                    int32_t q_index = QUEUE_GET_NEXT_SPOT(pcs->pic_decision_reorder_queue_idx, pic_i + 1, enc_ctx->picture_decision_reorder_queue_size);
+#else
                     int32_t q_index = QUEUE_GET_NEXT_SPOT(pcs->pic_decision_reorder_queue_idx, pic_i + 1);
+#endif
                     if (enc_ctx->picture_decision_reorder_queue[q_index]->ppcs_wrapper != NULL) {
                         PictureParentControlSet* pcs_itr = (PictureParentControlSet *)enc_ctx->picture_decision_reorder_queue[q_index]->ppcs_wrapper->object_ptr;
                         // if resolution has changed, and the pcs with new resolution should not be used in temporal filtering
@@ -4081,7 +4282,11 @@ static void set_gf_group_param(PictureParentControlSet *ppcs) {
 }
 static void process_first_pass(SequenceControlSet* scs, EncodeContext* enc_ctx) {
     for (unsigned int window_index = 0; window_index < scs->scd_delay + 1; window_index++) {
+#if OPT_PD_REORDER_Q
+        unsigned int entry_index = QUEUE_GET_NEXT_SPOT(enc_ctx->picture_decision_reorder_queue_head_index, window_index, enc_ctx->picture_decision_reorder_queue_size);
+#else
         unsigned int entry_index = QUEUE_GET_NEXT_SPOT(enc_ctx->picture_decision_reorder_queue_head_index, window_index);
+#endif
         PictureDecisionReorderEntry   *first_pass_queue_entry = enc_ctx->picture_decision_reorder_queue[entry_index];
         if (first_pass_queue_entry->ppcs_wrapper == NULL)
             break;
@@ -4102,7 +4307,11 @@ static void check_window_availability(SequenceControlSet* scs, EncodeContext* en
     *eos_reached = ((PictureParentControlSet *)(queue_entry->ppcs_wrapper->object_ptr))->end_of_sequence_flag == true;
     *window_avail = true;
 
+#if OPT_PD_REORDER_Q
+    unsigned int previous_entry_index = QUEUE_GET_PREVIOUS_SPOT(enc_ctx->picture_decision_reorder_queue_head_index, enc_ctx->picture_decision_reorder_queue_size);
+#else
     unsigned int previous_entry_index = QUEUE_GET_PREVIOUS_SPOT(enc_ctx->picture_decision_reorder_queue_head_index);
+#endif
     memset(pcs->pd_window, 0, (2 + scs->scd_delay) * sizeof(PictureParentControlSet*));
     //for poc 0, ignore previous frame check
     if (queue_entry->picture_number > 0 && enc_ctx->picture_decision_reorder_queue[previous_entry_index]->ppcs_wrapper == NULL)
@@ -4116,7 +4325,11 @@ static void check_window_availability(SequenceControlSet* scs, EncodeContext* en
         pcs->pd_window[1] =
             (PictureParentControlSet *)enc_ctx->picture_decision_reorder_queue[enc_ctx->picture_decision_reorder_queue_head_index]->ppcs_wrapper->object_ptr;
         for (unsigned int window_index = 0; window_index < scs->scd_delay; window_index++) {
+#if OPT_PD_REORDER_Q
+            unsigned int entry_index = QUEUE_GET_NEXT_SPOT(enc_ctx->picture_decision_reorder_queue_head_index, window_index + 1, enc_ctx->picture_decision_reorder_queue_size);
+#else
             unsigned int entry_index = QUEUE_GET_NEXT_SPOT(enc_ctx->picture_decision_reorder_queue_head_index, window_index + 1);
+#endif
             if (enc_ctx->picture_decision_reorder_queue[entry_index]->ppcs_wrapper == NULL) {
                 *window_avail = false;
                 break;
@@ -4968,7 +5181,11 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
         if (!pcs->is_overlay) {
             int queue_entry_index = (int)(pcs->picture_number - enc_ctx->picture_decision_reorder_queue[enc_ctx->picture_decision_reorder_queue_head_index]->picture_number);
             queue_entry_index += enc_ctx->picture_decision_reorder_queue_head_index;
+#if OPT_PD_REORDER_Q
+            queue_entry_index = (queue_entry_index > (int)(enc_ctx->picture_decision_reorder_queue_size - 1)) ? queue_entry_index - (int)enc_ctx->picture_decision_reorder_queue_size : queue_entry_index;
+#else
             queue_entry_index = (queue_entry_index > PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH - 1) ? queue_entry_index - PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH : queue_entry_index;
+#endif
             queue_entry_ptr = enc_ctx->picture_decision_reorder_queue[queue_entry_index];
             if (queue_entry_ptr->ppcs_wrapper != NULL) {
                 CHECK_REPORT_ERROR_NC(
@@ -5277,9 +5494,11 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
                             // Increment the Decode Base Number
                             enc_ctx->decode_base_number += ctx->mini_gop_length[mini_gop_index] + has_overlay;
                         }
+#if !OPT_CR_FLOW_CHANGE
                         if (scs->static_config.enable_adaptive_quantization &&
                             scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR)
                             svt_aom_cyclic_refresh_init(pcs);
+#endif
                     }
 
                     ctx->mg_size = ctx->mini_gop_end_index[mini_gop_index] + has_overlay - ctx->mini_gop_start_index[mini_gop_index] + 1;
@@ -5332,7 +5551,11 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
                 enc_ctx->pre_assignment_buffer_eos_flag = false;
             }
             // Increment the Picture Decision Reordering Queue Head Ptr
+#if OPT_PD_REORDER_Q
+            enc_ctx->picture_decision_reorder_queue_head_index = (enc_ctx->picture_decision_reorder_queue_head_index == enc_ctx->picture_decision_reorder_queue_size - 1) ? 0 : enc_ctx->picture_decision_reorder_queue_head_index + 1;
+#else
             enc_ctx->picture_decision_reorder_queue_head_index = (enc_ctx->picture_decision_reorder_queue_head_index == PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH - 1) ? 0 : enc_ctx->picture_decision_reorder_queue_head_index + 1;
+#endif
 
             // Get the next entry from the Picture Decision Reordering Queue (Entry N+1)
             queue_entry_ptr = enc_ctx->picture_decision_reorder_queue[enc_ctx->picture_decision_reorder_queue_head_index];

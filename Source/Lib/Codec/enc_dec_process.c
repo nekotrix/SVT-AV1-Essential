@@ -65,9 +65,11 @@ static void enc_dec_context_dctor(EbPtr p) {
     EbThreadContext *thread_ctx = (EbThreadContext *)p;
     EncDecContext   *obj        = (EncDecContext *)thread_ctx->priv;
     EB_DELETE(obj->md_ctx);
+#if !OPT_ENCDEC_MEM
     EB_DELETE(obj->residual_buffer);
     EB_DELETE(obj->transform_buffer);
     EB_DELETE(obj->inverse_quant_buffer);
+#endif
     EB_DELETE(obj->input_sample16bit_buffer);
     EB_FREE_ARRAY(obj);
 }
@@ -79,9 +81,14 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
                                          int tasks_index)
 
 {
+#if OPT_ENCDEC_MEM
+    SequenceControlSet             *scs           = enc_handle_ptr->scs_instance_array[0]->scs;
+    const EbSvtAv1EncConfiguration *static_config = &scs->static_config;
+#else
     const EbSvtAv1EncConfiguration *static_config = &enc_handle_ptr->scs_instance_array[0]->scs->static_config;
-    EbColorFormat                   color_format  = static_config->encoder_color_format;
-    int8_t enable_hbd_mode_decision = enc_handle_ptr->scs_instance_array[0]->scs->enable_hbd_mode_decision;
+#endif
+    EbColorFormat color_format             = static_config->encoder_color_format;
+    int8_t        enable_hbd_mode_decision = enc_handle_ptr->scs_instance_array[0]->scs->enable_hbd_mode_decision;
 
     EncDecContext *ed_ctx;
     EB_CALLOC_ARRAY(ed_ctx, 1);
@@ -103,6 +110,23 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
 
     // Prediction Buffer
     ed_ctx->input_sample16bit_buffer = NULL;
+#if OPT_ENCDEC_MEM
+    if (ed_ctx->is_16bit)
+        EB_NEW(ed_ctx->input_sample16bit_buffer,
+               svt_picture_buffer_desc_ctor,
+               &(EbPictureBufferDescInitData){
+                   .buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK,
+                   .max_width          = scs->super_block_size,
+                   .max_height         = scs->super_block_size,
+                   .bit_depth          = EB_SIXTEEN_BIT,
+                   .left_padding       = 0,
+                   .right_padding      = 0,
+                   .top_padding        = 0,
+                   .bot_padding        = 0,
+                   .split_mode         = false,
+                   .color_format       = color_format,
+               });
+#else
     if (ed_ctx->is_16bit)
         EB_NEW(ed_ctx->input_sample16bit_buffer,
                svt_picture_buffer_desc_ctor,
@@ -149,6 +173,7 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
                .bot_padding        = 0,
                .split_mode         = false,
            });
+#endif
     // Mode Decision Context
 #if OPT_LD_MEM_3
     EB_NEW(ed_ctx->md_ctx,
@@ -991,7 +1016,7 @@ EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet
         double luma_ssim = 0.0;
         double cb_ssim   = 0.0;
         double cr_ssim   = 0.0;
-
+#if !CLN_REMOVE_10BIT_FORMAT
         if (scs->ten_bit_format == 1) {
             /* SSIM calculation for compressed 10-bit format has not been verified and debugged,
                since this format is not supported elsewhere in this version. See verify_settings(),
@@ -1102,6 +1127,7 @@ EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet
             pcs->ppcs->cb_ssim   = cb_ssim;
             pcs->ppcs->cr_ssim   = cr_ssim;
         } else {
+#endif
             recon_coeff_buffer = (uint16_t *)(&(
                 (recon_ptr->buffer_y)[(recon_ptr->org_x << is_16bit) +
                                       (recon_ptr->org_y << is_16bit) * recon_ptr->stride_y]));
@@ -1226,7 +1252,9 @@ EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet
                 EB_FREE_ARRAY(buffer_bit_inc_cb);
                 EB_FREE_ARRAY(buffer_bit_inc_cr);
             }
+#if !CLN_REMOVE_10BIT_FORMAT
         }
+#endif
     }
     EB_DELETE(upscaled_recon);
     return EB_ErrorNone;
@@ -1352,6 +1380,7 @@ EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, b
         EbByte    input_buffer_bit_inc;
         uint16_t *recon_coeff_buffer;
 
+#if !CLN_REMOVE_10BIT_FORMAT
         if (scs->ten_bit_format == 1) {
             const uint32_t luma_width        = input_pic->width - scs->max_input_pad_right;
             const uint32_t luma_height       = input_pic->height - scs->max_input_pad_bottom;
@@ -1525,6 +1554,7 @@ EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, b
             sse_total[1] = residual_distortion_u;
             sse_total[2] = residual_distortion_v;
         } else {
+#endif
             recon_coeff_buffer = (uint16_t *)(&(
                 (recon_ptr->buffer_y)[(recon_ptr->org_x << is_16bit) +
                                       (recon_ptr->org_y << is_16bit) * recon_ptr->stride_y]));
@@ -1660,7 +1690,9 @@ EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, b
                 EB_FREE_ARRAY(buffer_bit_inc_cb);
                 EB_FREE_ARRAY(buffer_bit_inc_cr);
             }
+#if !CLN_REMOVE_10BIT_FORMAT
         }
+#endif
         pcs->ppcs->luma_sse = sse_total[0];
         pcs->ppcs->cb_sse   = sse_total[1];
         pcs->ppcs->cr_sse   = sse_total[2];
@@ -2118,10 +2150,15 @@ static void set_child_to_be_considered(PictureControlSet *pcs, ModeDecisionConte
                                        uint32_t blk_index, uint32_t sb_index, int32_t sb_size, int8_t pred_depth,
                                        uint8_t pred_sq_idx, int8_t depth_step, const uint8_t disallow_nsq) {
     const BlockGeom *blk_geom = get_blk_geom_mds(blk_index);
+#if OPT_RTC_B8
+    if (blk_geom->sq_size <= 4 || // 4x4 blocks have no children
+        (blk_geom->sq_size == 8 && ctx->disallow_4x4) || (blk_geom->sq_size == 16 && ctx->disallow_8x8))
+        return;
+#else
     // 4x4 blocks have no children
     if (blk_geom->sq_size <= 4 || (blk_geom->sq_size == 8 && ctx->disallow_4x4))
         return;
-
+#endif
     const uint32_t child_block_idx_1 = blk_index + blk_geom->d1_depth_offset;
     const uint32_t child_block_idx_2 = child_block_idx_1 +
         ns_depth_offset[blk_geom->svt_aom_geom_idx][blk_geom->depth + 1];
@@ -2261,12 +2298,20 @@ static void build_cand_block_array(SequenceControlSet *scs, PictureControlSet *p
     uint32_t       blk_index      = 0;
     const uint16_t max_block_cnt  = scs->max_block_cnt;
     const bool     is_complete_sb = pcs->ppcs->sb_geom[ctx->sb_index].is_complete_sb;
+#if OPT_RTC_B8
+    int32_t min_sq_size = (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_64x64) ? 64
+        : (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_32x32)                 ? 32
+        : (ctx->disallow_8x8 || (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_16x16))
+        ? 16
+        : ctx->disallow_4x4 ? 8
+                            : 4;
+#else
     int32_t min_sq_size = (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_64x64) ? 64
         : (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_32x32)                 ? 32
         : (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_16x16)                 ? 16
         : ctx->disallow_4x4                                                                                   ? 8
                                                                                                               : 4;
-
+#endif
     while (blk_index < max_block_cnt) {
         const BlockGeom *blk_geom = get_blk_geom_mds(blk_index);
 
@@ -2922,7 +2967,16 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                             e_depth = 0;
                         // Check that the start and end depth are in allowed range, given other features
                         // which restrict allowable depths
-                        if (ctx->disallow_4x4) {
+#if OPT_RTC_B8
+                        if (ctx->disallow_8x8) {
+                            e_depth = (blk_geom->sq_size <= 16) ? 0
+                                : (blk_geom->sq_size == 32)     ? MIN(1, e_depth)
+                                : (blk_geom->sq_size == 64)     ? MIN(2, e_depth)
+                                : (blk_geom->sq_size == 128)    ? MIN(3, e_depth)
+                                                                : e_depth;
+                        } else
+#endif
+                            if (ctx->disallow_4x4) {
                             e_depth = (blk_geom->sq_size == 8) ? 0
                                 : (blk_geom->sq_size == 16)    ? MIN(1, e_depth)
                                 : (blk_geom->sq_size == 32)    ? MIN(2, e_depth)
@@ -3965,8 +4019,13 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                         ed_ctx->sb_index            = sb_index;
                         if (pcs->cdf_ctrl.enabled) {
                             if (scs->pic_based_rate_est &&
+#if CLN_SEG_COUNTS
+                                scs->enc_dec_segment_row_count_array == 1 &&
+                                scs->enc_dec_segment_col_count_array == 1) {
+#else
                                 scs->enc_dec_segment_row_count_array[pcs->temporal_layer_index] == 1 &&
                                 scs->enc_dec_segment_col_count_array[pcs->temporal_layer_index] == 1) {
+#endif
                                 if (sb_index == 0)
                                     pcs->ec_ctx_array[sb_index] = pcs->md_frame_context;
                                 else

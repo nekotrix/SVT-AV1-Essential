@@ -138,7 +138,16 @@ typedef struct {
     int rc_2_frame;
     int q_1_frame;
     int q_2_frame;
-
+#if OPT_CR_FLOW_CHANGE
+    /*!
+     * Active adjustment delta for cyclic refresh for rate control.
+     */
+    int percent_refresh_adjustment;
+    /*!
+    * Active adjustment of qdelta rate ratio for enhanced rate control
+    */
+    double rate_ratio_qdelta_adjustment;
+#endif
     // Auto frame-scaling variables.
     //   int rf_level_maxq[RATE_FACTOR_LEVELS];
     float_t arf_boost_factor;
@@ -185,11 +194,15 @@ typedef struct {
  * Input Port Types
  **************************************/
 typedef enum RateControlInputPortTypes {
-    RATE_CONTROL_INPUT_PORT_INLME          = 0,
-    RATE_CONTROL_INPUT_PORT_PACKETIZATION  = 1,
+    RATE_CONTROL_INPUT_PORT_INLME         = 0,
+    RATE_CONTROL_INPUT_PORT_PACKETIZATION = 1,
+#if OPT_FIFO_MEM
+    RATE_CONTROL_INPUT_PORT_TOTAL_COUNT = 2,
+#else
     RATE_CONTROL_INPUT_PORT_ENTROPY_CODING = 2,
     RATE_CONTROL_INPUT_PORT_TOTAL_COUNT    = 3,
-    RATE_CONTROL_INPUT_PORT_INVALID        = ~0,
+#endif
+    RATE_CONTROL_INPUT_PORT_INVALID = ~0,
 } RateControlInputPortTypes;
 
 /**************************************

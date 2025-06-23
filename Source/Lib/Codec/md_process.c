@@ -618,7 +618,11 @@ static void av1_lambda_assign_md(PictureControlSet *pcs, ModeDecisionContext *ct
     ctx->full_lambda_md[1] = (uint32_t)svt_aom_compute_rd_mult(pcs, ctx->qp_index, ctx->me_q_index, 10);
     ctx->fast_lambda_md[1] = (uint32_t)svt_aom_compute_fast_lambda(pcs, ctx->qp_index, ctx->me_q_index, 10);
 
+#if OPT_LAMBDA
+    if (!pcs->scs->static_config.rtc && pcs->scs->stats_based_sb_lambda_modulation) {
+#else
     if (pcs->scs->stats_based_sb_lambda_modulation) {
+#endif
         if (pcs->temporal_layer_index > 0) {
             if (pcs->ref_intra_percentage < LAMBDA_MOD_INTRA_TH) {
                 ctx->full_lambda_md[0] = (ctx->full_lambda_md[0] * LAMBDA_MOD_INTRA_SCALING_FACTOR) >> 7;
@@ -628,6 +632,7 @@ static void av1_lambda_assign_md(PictureControlSet *pcs, ModeDecisionContext *ct
             }
         }
     }
+
     if (pcs->lambda_weight) {
         ctx->full_lambda_md[0] = (ctx->full_lambda_md[0] * pcs->lambda_weight) >> 7;
         ctx->fast_lambda_md[0] = (ctx->fast_lambda_md[0] * pcs->lambda_weight) >> 7;

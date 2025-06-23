@@ -233,12 +233,85 @@ extern "C" {
 #define CLN_GMV_UNUSED_SIGS         1 // Remove useless GMV level signals (that are always set to 0).
 #define TUNE_M6_SC_2                1 // Tuning M6 (2) For SC.
 #define OPT_SC_ME_2                 1 // Re-optimize SC for ME (all presets); activate ME booster to MR-M8 for SC class 1.
+// rtc opts
+#define OPT_FIFO_MEM                1 // Reduce memory used by fifos
+#define CLN_SEG_COUNTS              1 // Remove unnecessary segment counts
+#define OPT_PIC_MGR_Q               1 // Reduce the size of the pic manager queue
+#define OPT_REF_Q                   1 // Reduce the size of ref queues
+#define OPT_PD_REORDER_Q            1 // Reduce the size of PD reorder queue
+#define FIX_REST_ONE_SEG_LP1        1 // Use one restoration segment for lp1
+#define CLN_REMOVE_IRC_Q            1 // Remove initial_rate_control_reorder_queue because it's not used.  TODO: Remove a file when removing macros
+#define CLN_REMOVE_SPEED_CONTROL    1 // Remove scs->speed_control_flag as it is unused, and crashes when enabled
+#define CLN_REMOVE_10BIT_FORMAT     1 // Remove unused scs->ten_bit_format
+#define CLN_REMOVE_DATA_LL          1 // Remove linked list in pcs supposedly for meta data, but that is always NULL
+#define OPT_PACK_Q                  1 // Reduce the size of packetization reorder queue
+#define OPT_OUTPUT_STREAM_Q         1 // Reduce the size of the output stream fifo
+#define FTR_RTC_M11_M12             1 // Allow Preset 11 and 12 if rtc
+#define OPT_RTC_B8                  1 // Add a high-level control for 8x8 block
+#if OPT_RTC_B8
+#define FTR_RTC_GEOM                1
+#define FTR_RTC_MI_GRID             1
+#endif
+#define OPT_RTC_M10                 1 // Speed-up M10
+#if OPT_RTC_M10
+#define OPT_RTC_RDOQ                1
+#define OPT_RTC_TXT                 1
+#define OPT_RTC_PME                 1
+#define OPT_RTC_MRP                 1
+#define OPT_RTC_SUBPEL              1
+#define OPT_RTC_INTRA               1
+#endif
+#define TUNE_RTC_M10                1 // Tuning M10 for more speed.
+#define CLN_EC                      1 // Update ec code to match libaom
+#define OPT_ENCDEC_MEM              1 // Remove enc dec buffers when encdec is bypassed; make buffers sb-size dependent
+#define TUNE_RTC_M11                1 // Tuning M11 for Extra speed.
+#define OPT_CR_FLOW_CHANGE          1 // Update control flow for cyclic refresh logic (lossless)
+#if OPT_CR_FLOW_CHANGE
+#define OPT_CR_ESTIMATE             1 // Take the cycle-refresh modulation into account when deriving the projected frame size to improve the accuracy of the correction factor
+#define OPT_CR_LIMIT                1 // Update the equation used in the derivation of the adjustment limit
+#define OPT_CR_ADJUST               1 // Adaptively derive the percent refresh and the rate-ratio-delta-qp based on the overshoot or undershoot of the target in the current frame
+#define OPT_RATE_BOOST_FAC          1 // Use the distortion per segment to modulate rate_boost_fac
+#define OPT_LAMBDA                  1 // Opt lambda modulation
+#define OPT_UPDATE_GET_BIT          1 // Update the bpmb enumerato derivation
+#define OPT_CR_CAP                  1 // Remove delta-qp capping
+#endif
+#define OPT_PIC_BUFFS               1 // Reduce number of pic buffs when few refs are used
+#define TUNE_RTC_M11_2              1 // add more speed-up changes to M11.
+#define OPT_SHUT_COEFF_LVL          1 // Shut coeff-level if rtc
+#define CLN_AVG_ME_DISTORTION       1 // Clean avg me-dist
+#define OPT_M12                     1 // OPT M12
+#if OPT_M12
+#define SHUT_TF                     1
+#define OPT_DR                      1
+#endif
+#define FTR_ADD_FLAT_IPP            1 // Add flat IPP rps structure that uses only the previous pic as ref
+#define OPT_CDEF_LVL8               1 // Opt CDEF lvl 8 for M11 rtc
+#define OPT_LD_CQP_MEM              1 // Reduce number of pics buffs for LD CQP when few refs are used
+#define OPT_MEM_FLAT_IPP            1 // Reduce pic buffs for flat-ipp structure
+#define TUNE_RTC_M11_3              1 // Adopt changes that improve the M11 slope.
+#define TUNE_RTC_M10_2              1 // Adopt changes that yiled better trade-offs for M10.
+#define OPT_I_CHECK                 1 // Give the intra frame an ON (more conservative) level instead of OFF in M11.
+#define OPT_BASE_TO_I_CHECK         1 // Change base checks into i-checks in M12, in preperation for the new flat IPP structure.
+#define TUNE_RTC_M11_4              1 // Adopt changes that yield good BD-rate gain with acceptable speed loss to M11.
+#define OPT_CDEF_UV_FROM_Y          1 // Allow CDEF UV filters to be taken from Y
+#define TUNE_RTC_M10_3              1 // Tuning M10 for BD-rate gain and speedup.
+#define TUNE_RTC_M11_5              1 // Obtain better trade-offs for M11.
+#define OPT_CBR_FLAT                1 // Opt CBR for flat
+#define TUNE_RTC_M11_6              1 // Adopt aggressive NIC level in M11.
+#define TUNE_RTC_M12                1 // Adopt a change that yields a good BD-rate gain with not much slow down.
+#define TUNE_RTC_M12_2              1 // Adopt more aggressive lpd0 (NSC) in M12 and M11, md_subpel, and me_sa (NSC) for M12 only.
+#define TUNE_RTC_M9                 1 // Adopt changes with better trade-offs to M9.
+#define TUNE_RTC_M8                 1 // Adopt changes with better trade-offs to M8.
+#define FTR_RTC_FLAT                1 // Create a new API that can enable the use of flat temporal layer structure in RTC mode.
 
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL
 #define DETAILED_FRAME_OUTPUT   0 // Prints detailed frame output from the library for debugging
+#if CLN_SEG_COUNTS
+#define DEBUG_BUFFERS           0 // Print process count and segments info
+#endif
 #define TUNE_CHROMA_SSIM        0 // Allows for Chroma and SSIM BDR-based Tuning
 #define TUNE_CQP_CHROMA_SSIM    0 // Tune CQP qp scaling towards improved chroma and SSIM BDR
 

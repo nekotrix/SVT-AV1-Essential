@@ -1352,9 +1352,12 @@ typedef struct ModeDecisionContext {
     NsqSearchCtrls      nsq_search_ctrls;
     DepthEarlyExitCtrls depth_early_exit_ctrls;
     RdoqCtrls           rdoq_ctrls;
-    uint8_t             disallow_4x4;
-    uint8_t             md_disallow_nsq_search;
-    uint8_t             params_status; // specifies the status of MD parameters; 0: default, 1: modified
+#if OPT_RTC_B8
+    uint8_t disallow_8x8;
+#endif
+    uint8_t disallow_4x4;
+    uint8_t md_disallow_nsq_search;
+    uint8_t params_status; // specifies the status of MD parameters; 0: default, 1: modified
 #if !CLN_REMOVE_PSQ_FEAT
     // was parent_sq_coeff_area_based_cycles_reduction_ctrls
     ParentSqCmplxCtrls psq_cplx_ctrls;

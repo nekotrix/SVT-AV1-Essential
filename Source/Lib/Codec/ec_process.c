@@ -34,7 +34,11 @@ static void rest_context_dctor(EbPtr p) {
  * Enc Dec Context Constructor
  ******************************************************/
 EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
+#if OPT_FIFO_MEM
+                                                int index) {
+#else
                                                 int index, int rate_control_index) {
+#endif
     EntropyCodingContext *context_ptr;
     EB_CALLOC_ARRAY(context_ptr, 1);
     thread_ctx->priv  = context_ptr;
@@ -42,15 +46,16 @@ EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, con
 
     context_ptr->is_16bit = (bool)(enc_handle_ptr->scs_instance_array[0]->scs->static_config.encoder_bit_depth >
                                    EB_EIGHT_BIT);
-    ;
 
     // Input/Output System Resource Manager FIFOs
     context_ptr->enc_dec_input_fifo_ptr = svt_system_resource_get_consumer_fifo(
         enc_handle_ptr->rest_results_resource_ptr, index);
     context_ptr->entropy_coding_output_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->entropy_coding_results_resource_ptr, index);
+#if !OPT_FIFO_MEM
     context_ptr->rate_control_output_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->rate_control_tasks_resource_ptr, rate_control_index);
+#endif
 
     return EB_ErrorNone;
 }

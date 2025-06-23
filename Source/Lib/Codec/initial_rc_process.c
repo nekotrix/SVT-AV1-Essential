@@ -33,9 +33,15 @@ typedef struct LadQueueEntry {
 } LadQueueEntry;
 
 typedef struct LadQueue {
+#if OPT_REF_Q
+    // circular buffer holding the entries in decode order; pics should be removed from the buffer in decode order
+    LadQueueEntry **cir_buf;
+    uint32_t        cir_buf_size;
+#else
     LadQueueEntry **cir_buf; //circular buffer holding the entries
-    uint32_t        head;
-    uint32_t        tail;
+#endif
+    uint32_t head;
+    uint32_t tail;
 } LadQueue;
 
 /* look ahead queue constructor*/
@@ -58,7 +64,12 @@ static void initial_rate_control_context_dctor(EbPtr p) {
     EbThreadContext           *thread_ctx = (EbThreadContext *)p;
     InitialRateControlContext *obj        = (InitialRateControlContext *)thread_ctx->priv;
 
+#if OPT_REF_Q
+    EB_DELETE_PTR_ARRAY(obj->lad_queue->cir_buf, obj->lad_queue->cir_buf_size);
+    obj->lad_queue->cir_buf_size = 0;
+#else
     EB_DELETE_PTR_ARRAY(obj->lad_queue->cir_buf, REFERENCE_QUEUE_MAX_DEPTH);
+#endif
     EB_FREE(obj->lad_queue);
     EB_FREE_ARRAY(obj);
 }
@@ -66,7 +77,12 @@ static void initial_rate_control_context_dctor(EbPtr p) {
 /************************************************
  * Initial Rate Control Context Constructor
  ************************************************/
+#if OPT_REF_Q
+EbErrorType svt_aom_initial_rate_control_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
+                                                      uint32_t ppcs_count) {
+#else
 EbErrorType svt_aom_initial_rate_control_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr) {
+#endif
     InitialRateControlContext *context_ptr;
     EB_CALLOC_ARRAY(context_ptr, 1);
     thread_ctx->priv  = context_ptr;
@@ -79,10 +95,18 @@ EbErrorType svt_aom_initial_rate_control_context_ctor(EbThreadContext *thread_ct
 
     EB_MALLOC(context_ptr->lad_queue, sizeof(LadQueue));
 
+#if OPT_REF_Q
+    context_ptr->lad_queue->cir_buf_size = ppcs_count;
+    EB_ALLOC_PTR_ARRAY(context_ptr->lad_queue->cir_buf, ppcs_count);
+    for (uint32_t picture_index = 0; picture_index < ppcs_count; ++picture_index) {
+        EB_NEW(context_ptr->lad_queue->cir_buf[picture_index], lad_queue_entry_ctor);
+    }
+#else
     EB_ALLOC_PTR_ARRAY(context_ptr->lad_queue->cir_buf, REFERENCE_QUEUE_MAX_DEPTH);
     for (uint32_t picture_index = 0; picture_index < REFERENCE_QUEUE_MAX_DEPTH; ++picture_index) {
         EB_NEW(context_ptr->lad_queue->cir_buf[picture_index], lad_queue_entry_ctor);
     }
+#endif
     context_ptr->lad_queue->head = 0;
     context_ptr->lad_queue->tail = 0;
 
@@ -118,7 +142,11 @@ void print_lad_queue(InitialRateControlContext *ctx, uint8_t log) {
 
         while (queue_entry->pcs != NULL) {
             SVT_LOG("%i-%lld ", queue_entry->pcs->ext_mg_id, queue_entry->pcs->picture_number);
-            idx         = OUT_Q_ADVANCE(idx);
+#if OPT_REF_Q
+            idx = OUT_Q_ADVANCE(idx, queue->cir_buf_size);
+#else
+            idx = OUT_Q_ADVANCE(idx);
+#endif
             queue_entry = queue->cir_buf[idx];
         }
         SVT_LOG("\n");
@@ -129,8 +157,12 @@ void print_lad_queue(InitialRateControlContext *ctx, uint8_t log) {
  store pictures in the lad queue
 */
 static void push_to_lad_queue(PictureParentControlSet *pcs, InitialRateControlContext *ctx) {
-    LadQueue      *queue       = ctx->lad_queue;
-    uint32_t       entry_idx   = pcs->decode_order % REFERENCE_QUEUE_MAX_DEPTH;
+    LadQueue *queue = ctx->lad_queue;
+#if OPT_REF_Q
+    uint32_t entry_idx = pcs->decode_order % queue->cir_buf_size;
+#else
+    uint32_t entry_idx = pcs->decode_order % REFERENCE_QUEUE_MAX_DEPTH;
+#endif
     LadQueueEntry *queue_entry = queue->cir_buf[entry_idx];
     svt_aom_assert_err(queue_entry->pcs == NULL, "lad queue overflow");
     if (queue_entry->pcs == NULL)
@@ -415,7 +447,11 @@ void store_extended_group(PictureParentControlSet *pcs, InitialRateControlContex
         }
 
         //Increment the queue_index Iterator
+#if OPT_REF_Q
+        q_idx = OUT_Q_ADVANCE(q_idx, queue->cir_buf_size);
+#else
         q_idx = OUT_Q_ADVANCE(q_idx);
+#endif
         //get the next entry
         entry = queue->cir_buf[q_idx];
     }
@@ -577,7 +613,11 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
                             }
                         }
 
-                        tmp_idx   = OUT_Q_ADVANCE(tmp_idx);
+#if OPT_REF_Q
+                        tmp_idx = OUT_Q_ADVANCE(tmp_idx, queue->cir_buf_size);
+#else
+                        tmp_idx = OUT_Q_ADVANCE(tmp_idx);
+#endif
                         tmp_entry = queue->cir_buf[tmp_idx];
                     }
                 }
@@ -618,8 +658,12 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
             irc_send_picture_out(ctx, head_pcs, false);
             //advance the head
             head_entry->pcs = NULL;
-            queue->head     = OUT_Q_ADVANCE(queue->head);
-            head_entry      = queue->cir_buf[queue->head];
+#if OPT_REF_Q
+            queue->head = OUT_Q_ADVANCE(queue->head, queue->cir_buf_size);
+#else
+            queue->head = OUT_Q_ADVANCE(queue->head);
+#endif
+            head_entry = queue->cir_buf[queue->head];
         } else {
             break;
         }

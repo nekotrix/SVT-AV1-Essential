@@ -170,6 +170,7 @@ uint32_t svt_aom_log2f_32(uint32_t x) {
     }
     return log;
 }
+#if !CLN_REMOVE_DATA_LL
 // concatenate two linked list, and return the pointer to the new concatenated list
 EbLinkedListNode* svt_aom_concat_eb_linked_list(EbLinkedListNode* a, EbLinkedListNode* b) {
     if (a) {
@@ -199,6 +200,7 @@ EbLinkedListNode* svt_aom_split_eb_linked_list(EbLinkedListNode* input, EbLinked
     *restLL = ll_rest_ptr;
     return ll_true_ptr;
 }
+#endif
 
 static const MiniGopStats mini_gop_stats_array[] = {
     // hierarchical_levels    start_index    end_index    Length
@@ -1232,6 +1234,75 @@ void svt_aom_build_blk_geom(GeomIndex geom) {
     uint32_t max_block_count;
     svt_aom_geom_idx = geom;
     uint32_t min_nsq_bsize;
+#if FTR_RTC_GEOM // geom
+    if (geom == GEOM_0) {
+        max_sb          = 64;
+        max_depth       = 3;
+        max_part        = 1;
+        max_block_count = 21;
+        min_nsq_bsize   = 16;
+    } else if (geom == GEOM_1) {
+        max_sb          = 64;
+        max_depth       = 3;
+        max_part        = 3;
+        max_block_count = 41;
+        min_nsq_bsize   = 16;
+    } else if (geom == GEOM_2) {
+        max_sb          = 64;
+        max_depth       = 4;
+        max_part        = 1;
+        max_block_count = 85;
+        min_nsq_bsize   = 16;
+    } else if (geom == GEOM_3) {
+        max_sb          = 64;
+        max_depth       = 4;
+        max_part        = 3;
+        max_block_count = 105;
+        min_nsq_bsize   = 16;
+    } else if (geom == GEOM_4) {
+        max_sb          = 64;
+        max_depth       = 4;
+        max_part        = 3;
+        max_block_count = 169;
+        min_nsq_bsize   = 8;
+    } else if (geom == GEOM_5) {
+        max_sb          = 64;
+        max_depth       = 4;
+        max_part        = 3;
+        max_block_count = 425;
+        min_nsq_bsize   = 0;
+    } else if (geom == GEOM_6) {
+        max_sb          = 64;
+        max_depth       = 5;
+        max_part        = 3;
+        max_block_count = 681;
+        min_nsq_bsize   = 0;
+    } else if (geom == GEOM_7) {
+        max_sb          = 64;
+        max_depth       = 5;
+        max_part        = 5;
+        max_block_count = 849;
+        min_nsq_bsize   = 0;
+    } else if (geom == GEOM_8) {
+        max_sb          = 64;
+        max_depth       = 5;
+        max_part        = 9;
+        max_block_count = 1101;
+        min_nsq_bsize   = 0;
+    } else if (geom == GEOM_9) {
+        max_sb          = 128;
+        max_depth       = 6;
+        max_part        = 9;
+        max_block_count = 4421;
+        min_nsq_bsize   = 0;
+    } else {
+        max_sb          = 128;
+        max_depth       = 5;
+        max_part        = 5;
+        max_block_count = 2377;
+        min_nsq_bsize   = 0;
+    }
+#else
     if (geom == GEOM_0) {
         max_sb          = 64;
         max_depth       = 4;
@@ -1287,6 +1358,7 @@ void svt_aom_build_blk_geom(GeomIndex geom) {
         max_block_count = 2377;
         min_nsq_bsize   = 0;
     }
+#endif
     //(0)compute total number of blocks using the information provided
     max_num_active_blocks = count_total_num_of_active_blks(min_nsq_bsize);
     if (max_num_active_blocks != max_block_count)

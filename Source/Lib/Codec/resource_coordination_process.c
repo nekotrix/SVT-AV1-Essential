@@ -46,6 +46,7 @@ typedef struct ResourceCoordinationContext {
     // Picture Number Array
     uint64_t *picture_number_array;
 
+#if !CLN_REMOVE_SPEED_CONTROL
     uint64_t average_enc_mod;
     uint8_t  prev_enc_mod;
     int8_t   prev_enc_mode_delta;
@@ -66,7 +67,7 @@ typedef struct ResourceCoordinationContext {
     uint64_t first_in_pic_arrived_time_seconds;
     uint64_t first_in_pic_arrived_timeu_seconds;
     bool     start_flag;
-
+#endif
     // Sequence Parameter Change Flags
     bool seq_param_change;
     bool video_res_change;
@@ -121,6 +122,7 @@ EbErrorType svt_aom_resource_coordination_context_ctor(EbThreadContext *thread_c
 
     EB_CALLOC_ARRAY(context_ptr->picture_number_array, context_ptr->encode_instances_total_count);
 
+#if !CLN_REMOVE_SPEED_CONTROL
     context_ptr->average_enc_mod                    = 0;
     context_ptr->prev_enc_mod                       = 0;
     context_ptr->prev_enc_mode_delta                = 0;
@@ -139,12 +141,14 @@ EbErrorType svt_aom_resource_coordination_context_ctor(EbThreadContext *thread_c
 
     context_ptr->previous_buffer_check1 = 0;
     context_ptr->prev_change_cond       = 0;
+#endif
 
     context_ptr->seq_param_change = 0;
     context_ptr->video_res_change = 0;
     return EB_ErrorNone;
 }
 
+#if !CLN_REMOVE_SPEED_CONTROL
 //******************************************************************************//
 // Modify the Enc mode based on the buffer Status
 // Inputs: TargetSpeed, Status of the SCbuffer
@@ -301,6 +305,7 @@ void speed_buffer_control(ResourceCoordinationContext *context_ptr, PictureParen
     svt_release_mutex(scs->enc_ctx->sc_buffer_mutex);
     context_ptr->prev_enc_mod = scs->enc_ctx->enc_mode;
 }
+#endif
 // Film grain (assigning the random-seed)
 static void assign_film_grain_random_seed(PictureParentControlSet *pcs) {
     uint16_t *fgn_random_seed_ptr              = &pcs->scs->film_grain_random_seed;
@@ -430,8 +435,13 @@ static EbErrorType reset_pcs_av1(PictureParentControlSet *pcs) {
 
     SequenceControlSet *scs           = pcs->scs;
     pcs->me_segments_completion_count = 0;
-    pcs->me_segments_column_count     = (uint8_t)(scs->me_segment_column_count_array[0]);
-    pcs->me_segments_row_count        = (uint8_t)(scs->me_segment_row_count_array[0]);
+#if CLN_SEG_COUNTS
+    pcs->me_segments_column_count = (uint8_t)(scs->me_segment_col_count_array);
+    pcs->me_segments_row_count    = (uint8_t)(scs->me_segment_row_count_array);
+#else
+    pcs->me_segments_column_count = (uint8_t)(scs->me_segment_column_count_array[0]);
+    pcs->me_segments_row_count    = (uint8_t)(scs->me_segment_row_count_array[0]);
+#endif
 
     pcs->me_segments_total_count = (uint16_t)(pcs->me_segments_column_count * pcs->me_segments_row_count);
     pcs->tpl_disp_coded_sb_count = 0;
@@ -1078,10 +1088,14 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             pcs->scene_change_flag = false;
             pcs->qp_on_the_fly     = false;
             pcs->b64_total_count   = scs->b64_total_count;
+#if CLN_REMOVE_SPEED_CONTROL
+            pcs->enc_mode = (EncMode)scs->static_config.enc_mode;
+#else
             if (scs->speed_control_flag) {
                 speed_buffer_control(context_ptr, pcs, scs);
             } else
                 pcs->enc_mode = (EncMode)scs->static_config.enc_mode;
+#endif
             //  If the mode of the second pass is not set from CLI, it is set to enc_mode
 
             // Pre-Analysis Signal(s) derivation

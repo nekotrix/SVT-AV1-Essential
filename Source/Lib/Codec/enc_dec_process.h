@@ -39,15 +39,19 @@ typedef struct EncDecContext {
     ModeDecisionContext *md_ctx;
     const BlockGeom     *blk_geom;
     // Coding Unit Workspace---------------------------
+#if !OPT_ENCDEC_MEM
     EbPictureBufferDesc *residual_buffer;
     EbPictureBufferDesc *transform_buffer;
+#endif
     EbPictureBufferDesc *input_samples;
     EbPictureBufferDesc *input_sample16bit_buffer;
     // temporary buffers for decision making of LF (LPF_PICK_FROM_FULL_IMAGE).
     // Since recon switches between reconPtr and referencePtr, the temporary buffers sizes used the referencePtr's which has padding,...
+#if !OPT_ENCDEC_MEM
     EbPictureBufferDesc *inverse_quant_buffer;
-    uint32_t             pic_fast_lambda[2];
-    uint32_t             pic_full_lambda[2];
+#endif
+    uint32_t pic_fast_lambda[2];
+    uint32_t pic_full_lambda[2];
 
     //  Context Variables---------------------------------
     BlkStruct *blk_ptr;

@@ -1015,8 +1015,12 @@ void finish_cdef_search(PictureControlSet *pcs) {
             best_tot_mse     = tot_mse;
             nb_strength_bits = i;
             for (int32_t j = 0; j < 1 << nb_strength_bits; j++) {
-                frm_hdr->cdef_params.cdef_y_strength[j]  = best_lev0[j];
+                frm_hdr->cdef_params.cdef_y_strength[j] = best_lev0[j];
+#if OPT_CDEF_UV_FROM_Y
+                frm_hdr->cdef_params.cdef_uv_strength[j] = cdef_search_ctrls->uv_from_y ? best_lev0[j] : best_lev1[j];
+#else
                 frm_hdr->cdef_params.cdef_uv_strength[j] = best_lev1[j];
+#endif
             }
         }
     }

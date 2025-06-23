@@ -391,6 +391,9 @@ typedef struct PictureControlSet {
     // true if 4x4 blocks are disallowed for all frames, and NSQ is disabled (since granularity is
     // needed for 8x8 NSQ blocks).  Used to compute the offset for mip.
     uint8_t disallow_4x4_all_frames;
+#if OPT_RTC_B8
+    uint8_t disallow_8x8_all_frames;
+#endif
     uint8_t wm_level; // warped motion level
     uint8_t cand_reduction_level;
     uint8_t nsq_geom_level;
@@ -414,7 +417,11 @@ typedef struct PictureControlSet {
     uint8_t md_pme_level;
     uint8_t mds0_level;
     uint8_t pic_disallow_4x4; // disallow 4x4 at pic level
+#if OPT_RTC_B8
+    uint8_t pic_disallow_8x8; // disallow 8x8 at pic level
+#else
     uint8_t pic_disallow_below_16x16; // disallow_below_16x16 signal at pic level
+#endif
     // depth_removal_level signal at the picture level
     uint8_t pic_depth_removal_level;
     uint8_t pic_depth_removal_level_rtc;
@@ -697,6 +704,10 @@ typedef struct CdefSearchControls {
     uint8_t search_best_ref_fs;
     // Shut CDEF at the picture level based on the skip area of the nearest reference frames.
     uint8_t use_skip_detector;
+#if OPT_CDEF_UV_FROM_Y
+    // If true, skip UV filter search and force UV filters to take the chosen luma values
+    bool uv_from_y;
+#endif
 } CdefSearchControls;
 
 typedef struct CdefReconControls {
@@ -779,6 +790,23 @@ typedef struct CyclicRefresh {
     double rate_ratio_qdelta;
 
     int apply_cyclic_refresh;
+#if OPT_CR_FLOW_CHANGE
+    /*!
+     * Boost factor for rate target ratio, for segment CR_SEGMENT_ID_BOOST2.
+     */
+    int rate_boost_fac;
+    int qindex_delta[3];
+    /*!
+    * Actual number of SB(s) that were applied delta-q,
+    * for segment 1.
+    */
+    int actual_num_seg1_sbs;
+    /*!
+    * Actual number of SB(s) that were applied delta-q,
+    * for segment 2.
+     */
+    int actual_num_seg2_sbs;
+#endif
 
 } CyclicRefresh;
 // struct stores the metrics used by the dynamic gop detector
@@ -829,11 +857,13 @@ typedef struct PictureParentControlSet {
     Av1Common                 *av1_cm;
 
     uint8_t hbd_md;
+#if !CLN_REMOVE_DATA_LL
     // Data attached to the picture. This includes data passed from the application, or other data
     // the encoder attaches to the picture.
     EbLinkedListNode *data_ll_head_ptr;
     // pointer to data to be passed back to the application when picture encoding is done
     EbLinkedListNode *app_out_data_ll_head_ptr;
+#endif
 
     EbBufferHeaderType *input_ptr; // input picture buffer
     uint8_t             log2_tile_rows;
@@ -1287,13 +1317,17 @@ typedef struct PictureControlSetInitData {
     // both128x128 and 64x64, ultimately the fixed code supporting 64x64 should be upgraded to use
     // 128x128 and sb_size could be removed.
     uint32_t sb_size;
+#if !CLN_REMOVE_10BIT_FORMAT
     // bool                             is_16bit;
-    uint32_t                 ten_bit_format;
+    uint32_t ten_bit_format;
+#endif
     uint16_t                 enc_dec_segment_col;
     uint16_t                 enc_dec_segment_row;
     EncMode                  enc_mode;
     EbSvtAv1EncConfiguration static_config;
-    uint8_t                  speed_control;
+#if !CLN_REMOVE_SPEED_CONTROL
+    uint8_t speed_control;
+#endif
     int8_t                   hbd_md;
     uint8_t                  cdf_mode;
     uint8_t                  over_boundary_block_mode;
@@ -1335,6 +1369,9 @@ typedef struct PictureControlSetInitData {
     uint8_t tf_strength;
 #if OPT_ALLINTRA_STILLIMAGE_2
     bool allintra;
+#endif
+#if FTR_RTC_FLAT
+    bool rtc_flat;
 #endif
 } PictureControlSetInitData;
 

@@ -13,6 +13,7 @@
 #define EbInitialRateControlReorderQueue_h
 
 #include "definitions.h"
+#if !CLN_REMOVE_IRC_Q // TODO: remove this file
 #include "sys_resource_manager.h"
 #include "pcs.h"
 #include "object.h"
@@ -27,5 +28,6 @@ typedef struct InitialRateControlReorderEntry {
 
 extern EbErrorType svt_aom_initial_rate_control_reorder_entry_ctor(InitialRateControlReorderEntry *entry_ptr,
                                                                    uint32_t                        picture_number);
+#endif
 
 #endif //EbInitialRateControlReorderQueue_h

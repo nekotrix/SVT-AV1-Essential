@@ -1791,10 +1791,15 @@ static void init_tpl_segments(SequenceControlSet *scs, PictureParentControlSet *
         uint32_t enc_dec_seg_col_cnt = scs->tpl_segment_col_count_array;
         uint32_t enc_dec_seg_row_cnt = scs->tpl_segment_row_count_array;
 
-        const int tile_cols       = pcs->av1_cm->tiles_info.tile_cols;
-        const int tile_rows       = pcs->av1_cm->tiles_info.tile_rows;
-        uint8_t   tile_group_cols = MIN(tile_cols, scs->tile_group_col_count_array[pcs->temporal_layer_index]);
-        uint8_t   tile_group_rows = MIN(tile_rows, scs->tile_group_row_count_array[pcs->temporal_layer_index]);
+        const int tile_cols = pcs->av1_cm->tiles_info.tile_cols;
+        const int tile_rows = pcs->av1_cm->tiles_info.tile_rows;
+#if CLN_SEG_COUNTS
+        uint8_t tile_group_cols = MIN(tile_cols, scs->tile_group_col_count_array);
+        uint8_t tile_group_rows = MIN(tile_rows, scs->tile_group_row_count_array);
+#else
+        uint8_t tile_group_cols = MIN(tile_cols, scs->tile_group_col_count_array[pcs->temporal_layer_index]);
+        uint8_t tile_group_rows = MIN(tile_rows, scs->tile_group_row_count_array[pcs->temporal_layer_index]);
+#endif
 
         // Valid when only one tile used
         // TPL segments + tiles (not working)

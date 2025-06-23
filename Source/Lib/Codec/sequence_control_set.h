@@ -172,6 +172,17 @@ typedef struct SequenceControlSet {
     uint32_t picture_analysis_number_of_regions_per_width;
     uint32_t picture_analysis_number_of_regions_per_height;
 
+#if CLN_SEG_COUNTS
+    /*!< Tile group counts */
+    uint8_t tile_group_col_count_array;
+    uint8_t tile_group_row_count_array;
+
+    /*!< Segements (sub picture) count for different processes */
+    uint32_t me_segment_col_count_array;
+    uint32_t me_segment_row_count_array;
+    uint32_t enc_dec_segment_col_count_array;
+    uint32_t enc_dec_segment_row_count_array;
+#else
     /*!< Tile groups per hierarchical layers */
     uint8_t tile_group_col_count_array[MAX_TEMPORAL_LAYERS];
     uint8_t tile_group_row_count_array[MAX_TEMPORAL_LAYERS];
@@ -181,6 +192,7 @@ typedef struct SequenceControlSet {
     uint32_t me_segment_row_count_array[MAX_TEMPORAL_LAYERS];
     uint32_t enc_dec_segment_col_count_array[MAX_TEMPORAL_LAYERS];
     uint32_t enc_dec_segment_row_count_array[MAX_TEMPORAL_LAYERS];
+#endif
     uint32_t tpl_segment_col_count_array;
     uint32_t tpl_segment_row_count_array;
     uint32_t cdef_segment_column_count;
@@ -292,10 +304,13 @@ typedef struct SequenceControlSet {
     * Default is null.*/
     int enable_qp_scaling_flag;
 
+#if !CLN_REMOVE_10BIT_FORMAT
     int ten_bit_format;
 
     int enable_adaptive_mini_gop;
+#endif
     int max_heirachical_level;
+#if !CLN_REMOVE_SPEED_CONTROL
     /* Flag to enable the Speed Control functionality to achieve the real-time
     * encoding speed defined by dynamically changing the encoding preset to meet
     * the average speed defined in injectorFrameRate. When this parameter is set
@@ -303,6 +318,7 @@ typedef struct SequenceControlSet {
     *
     * Default is 0. */
     int speed_control_flag;
+#endif
     /* TPL
     *
     * 0: OFF, 1: ON. */
@@ -339,6 +355,10 @@ typedef struct SequenceControlSet {
 #if OPT_ALLINTRA
     // If true, intra_period_length is 0 and every frame is coded with intra tools only
     bool allintra;
+#endif
+#if FTR_ADD_FLAT_IPP
+    // If true, use a flat IPP pred structure, where each pic uses only the previous frame as ref
+    bool use_flat_ipp;
 #endif
 } SequenceControlSet;
 typedef struct EbSequenceControlSetInstance {

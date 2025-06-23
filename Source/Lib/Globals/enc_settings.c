@@ -53,12 +53,6 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Source Height must be at least 4\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-#if TUNE_RTC_USE_LD
-    if (config->rtc && config->pred_structure != LOW_DELAY) {
-        config->pred_structure = LOW_DELAY;
-        SVT_WARN("Instance %u: Force low delay pred strucutre to be used for rtc.\n");
-    }
-#endif
 #if CLN_REMOVE_LDP
     if (config->pred_structure > RANDOM_ACCESS || config->pred_structure < LOW_DELAY) {
         SVT_ERROR("Instance %u: Pred Structure must be [%d (low delay) or %d (random access)]\n",
@@ -838,6 +832,14 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             return_error = EB_ErrorBadParameter;
         }
     }
+
+#if FTR_RTC_FLAT
+    if (config->rtc_flat && (!config->rtc || config->enc_mode <= ENC_M10)) {
+        SVT_ERROR("Instance %u: rtc-flat is supported only when using rtc mode with preset M11 or M12.\n",
+                  channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
+#endif
     if (scs->static_config.scene_change_detection) {
         scs->static_config.scene_change_detection = 0;
         SVT_WARN(
@@ -982,6 +984,9 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
 #if FTR_RTC_MODE
     config_ptr->rtc = 0;
 #endif
+#if FTR_RTC_FLAT
+    config_ptr->rtc_flat = 0;
+#endif
     // Rate control options
     // Set the default value toward more flexible rate allocation
     config_ptr->vbr_min_section_pct      = 0;
@@ -1088,7 +1093,9 @@ static const char *level_to_str(unsigned in) {
     return ret;
 }
 
+#if !CLN_SEG_COUNTS
 //#define DEBUG_BUFFERS
+#endif
 void svt_av1_print_lib_params(SequenceControlSet *scs) {
     EbSvtAv1EncConfiguration *config = &scs->static_config;
 
@@ -1211,6 +1218,37 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
         default: break;
         }
     }
+#if CLN_SEG_COUNTS
+#if DEBUG_BUFFERS
+    SVT_INFO("SVT [config]: INPUT / OUTPUT \t\t\t\t\t\t\t: %d / %d\n",
+             scs->input_buffer_fifo_init_count,
+             scs->output_stream_buffer_fifo_init_count);
+    SVT_INFO("SVT [config]: CPCS / PAREF / REF / ME\t\t\t\t\t\t: %d / %d / %d / %d\n",
+             scs->picture_control_set_pool_init_count_child,
+             scs->pa_reference_picture_buffer_init_count,
+             scs->reference_picture_buffer_init_count,
+             scs->me_pool_init_count);
+    SVT_INFO("SVT [config]: ME_SEG_W / ME_SEG_H \t\t\t: %d / %d / %d / %d\n",
+             scs->me_segment_col_count_array,
+             scs->me_segment_row_count_array);
+    SVT_INFO("SVT [config]: ENC_DEC_SEG_W / ENC_DEC_SEG_H \t\t\t: %d / %d / %d / %d\n",
+             scs->enc_dec_segment_col_count_array,
+             scs->enc_dec_segment_row_count_array);
+    SVT_INFO(
+        "SVT [config]: PA_P / ME_P / SBO_P / MDC_P / ED_P / EC_P \t\t\t: %d / %d / %d / %d / %d / "
+        "%d\n",
+        scs->picture_analysis_process_init_count,
+        scs->motion_estimation_process_init_count,
+        scs->source_based_operations_process_init_count,
+        scs->mode_decision_configuration_process_init_count,
+        scs->enc_dec_process_init_count,
+        scs->entropy_coding_process_init_count);
+    SVT_INFO("SVT [config]: DLF_P / CDEF_P / REST_P \t\t\t\t\t\t: %d / %d / %d\n",
+             scs->dlf_process_init_count,
+             scs->cdef_process_init_count,
+             scs->rest_process_init_count);
+#endif
+#else
 #ifdef DEBUG_BUFFERS
     SVT_INFO("SVT [config]: INPUT / OUTPUT \t\t\t\t\t\t\t: %d / %d\n",
              scs->input_buffer_fifo_init_count,
@@ -1253,6 +1291,7 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
              scs->dlf_process_init_count,
              scs->cdef_process_init_count,
              scs->rest_process_init_count);
+#endif
 #endif
     SVT_INFO("-------------------------------------------\n");
 
@@ -2169,6 +2208,9 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"avif", &config_struct->avif},
 #if FTR_RTC_MODE
         {"rtc", &config_struct->rtc},
+#endif
+#if FTR_RTC_FLAT
+        {"rtc-flat", &config_struct->rtc_flat},
 #endif
     };
     const size_t bool_opts_size = sizeof(bool_opts) / sizeof(bool_opts[0]);

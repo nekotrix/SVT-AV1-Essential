@@ -19,7 +19,12 @@
 /***************************************
  * Extern Function Declaration
  ***************************************/
+#if OPT_REF_Q
+EbErrorType svt_aom_initial_rate_control_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
+                                                      uint32_t ppcs_count);
+#else
 EbErrorType svt_aom_initial_rate_control_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr);
+#endif
 
 extern void *svt_aom_initial_rate_control_kernel(void *input_ptr);
 #endif // EbInitialRateControl_h

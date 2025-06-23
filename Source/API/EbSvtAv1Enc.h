@@ -978,11 +978,22 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     bool rtc;
 #endif
+#if FTR_RTC_FLAT
+    /* @brief Signal to the library to enable flat temporal layer structure in real-time coding
+     *
+     * Default is false.
+     */
+    bool rtc_flat;
+#endif
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128
 #if FTR_RTC_MODE
+#if FTR_RTC_FLAT
+        - 2 * sizeof(bool)
+#else
         - sizeof(bool)
+#endif
 #endif
     ];
     // clang-format on

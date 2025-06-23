@@ -26,10 +26,12 @@
  * Enc Dec Context
  **************************************/
 typedef struct EntropyCodingContext {
-    EbDctor  dctor;
-    EbFifo  *enc_dec_input_fifo_ptr;
-    EbFifo  *entropy_coding_output_fifo_ptr; // to packetization
-    EbFifo  *rate_control_output_fifo_ptr; // feedback to rate control
+    EbDctor dctor;
+    EbFifo *enc_dec_input_fifo_ptr;
+    EbFifo *entropy_coding_output_fifo_ptr; // to packetization
+#if !OPT_FIFO_MEM
+    EbFifo *rate_control_output_fifo_ptr; // feedback to rate control
+#endif
     uint32_t sb_total_count;
     // Coding Unit Workspace---------------------------
     EbPictureBufferDesc *coeff_buffer_sb; //Used to hold quantized coeff for one TB in EncPass.
@@ -100,8 +102,13 @@ typedef struct EntropyCodingContext {
 /**************************************
  * Extern Function Declarations
  **************************************/
+#if OPT_FIFO_MEM
+EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
+                                                int index);
+#else
 extern EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
                                                        int index, int rate_control_index);
+#endif
 
 extern void *svt_aom_entropy_coding_kernel(void *input_ptr);
 

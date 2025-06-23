@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include "initial_rc_reorder_queue.h"
 
+#if !CLN_REMOVE_IRC_Q // TODO: Remove this file
 EbErrorType svt_aom_initial_rate_control_reorder_entry_ctor(InitialRateControlReorderEntry *entry_ptr,
                                                             uint32_t                        picture_number) {
     entry_ptr->picture_number = picture_number;
@@ -19,3 +20,4 @@ EbErrorType svt_aom_initial_rate_control_reorder_entry_ctor(InitialRateControlRe
 
     return EB_ErrorNone;
 }
+#endif

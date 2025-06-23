@@ -410,11 +410,17 @@ static void av1_encode_loop(PictureControlSet *pcs, EncDecContext *ed_ctx, Super
     uint32_t pred_luma_offset, pred_cb_offset, pred_cr_offset;
     uint32_t scratch_luma_offset, scratch_cb_offset, scratch_cr_offset;
     if (is_16bit) {
+#if OPT_ENCDEC_MEM
+        input_luma_offset = tx_org_x + tx_org_y * input_samples->stride_y;
+        input_cb_offset   = ROUND_UV(tx_org_x) / 2 + ROUND_UV(tx_org_y) / 2 * input_samples->stride_cb;
+        input_cr_offset   = ROUND_UV(tx_org_x) / 2 + ROUND_UV(tx_org_y) / 2 * input_samples->stride_cr;
+#else
         input_luma_offset = tx_org_x + tx_org_y * SB_STRIDE_Y;
         input_cb_offset   = ROUND_UV(tx_org_x) / 2 + ROUND_UV(tx_org_y) / 2 * SB_STRIDE_UV;
         input_cr_offset   = ROUND_UV(tx_org_x) / 2 + ROUND_UV(tx_org_y) / 2 * SB_STRIDE_UV;
-        pred_luma_offset  = ((pred_samples->org_y + org_y) * pred_samples->stride_y) + (pred_samples->org_x + org_x);
-        pred_cb_offset    = ((pred_samples->org_x + round_origin_x) >> 1) +
+#endif
+        pred_luma_offset = ((pred_samples->org_y + org_y) * pred_samples->stride_y) + (pred_samples->org_x + org_x);
+        pred_cb_offset   = ((pred_samples->org_x + round_origin_x) >> 1) +
             (((pred_samples->org_y + round_origin_y) >> 1) * pred_samples->stride_cb);
         pred_cr_offset = ((pred_samples->org_x + round_origin_x) >> 1) +
             (((pred_samples->org_y + round_origin_y) >> 1) * pred_samples->stride_cr);
@@ -431,6 +437,18 @@ static void av1_encode_loop(PictureControlSet *pcs, EncDecContext *ed_ctx, Super
             (((pred_samples->org_y + round_origin_y) >> 1) * pred_samples->stride_cr);
     }
 
+#if OPT_ENCDEC_MEM
+    if (bit_depth != EB_EIGHT_BIT) {
+        scratch_luma_offset = blk_geom->org_x + blk_geom->org_y * residual16bit->stride_y;
+        scratch_cb_offset   = ROUND_UV(blk_geom->org_x) / 2 + ROUND_UV(blk_geom->org_y) / 2 * residual16bit->stride_cb;
+        scratch_cr_offset   = ROUND_UV(ed_ctx->blk_geom->org_x) / 2 +
+            ROUND_UV(blk_geom->org_y) / 2 * residual16bit->stride_cr;
+    } else {
+        scratch_luma_offset = tx_org_x + tx_org_y * residual16bit->stride_y;
+        scratch_cb_offset   = ROUND_UV(tx_org_x) / 2 + ROUND_UV(tx_org_y) / 2 * residual16bit->stride_cb;
+        scratch_cr_offset   = ROUND_UV(tx_org_x) / 2 + ROUND_UV(tx_org_y) / 2 * residual16bit->stride_cr;
+    }
+#else
     if (bit_depth != EB_EIGHT_BIT) {
         scratch_luma_offset = blk_geom->org_x + blk_geom->org_y * SB_STRIDE_Y;
         scratch_cb_offset   = ROUND_UV(blk_geom->org_x) / 2 + ROUND_UV(blk_geom->org_y) / 2 * SB_STRIDE_UV;
@@ -440,6 +458,7 @@ static void av1_encode_loop(PictureControlSet *pcs, EncDecContext *ed_ctx, Super
         scratch_cb_offset   = ROUND_UV(tx_org_x) / 2 + ROUND_UV(tx_org_y) / 2 * SB_STRIDE_UV;
         scratch_cr_offset   = ROUND_UV(tx_org_x) / 2 + ROUND_UV(tx_org_y) / 2 * SB_STRIDE_UV;
     }
+#endif
     ed_ctx->three_quad_energy = 0;
 
     if (pcs->ppcs->blk_lambda_tuning) {
@@ -890,9 +909,16 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
     NeighborArrayUnit *ep_cb_recon_na = is_16bit ? pcs->ep_cb_recon_na_16bit[tile_idx] : pcs->ep_cb_recon_na[tile_idx];
     NeighborArrayUnit *ep_cr_recon_na = is_16bit ? pcs->ep_cr_recon_na_16bit[tile_idx] : pcs->ep_cr_recon_na[tile_idx];
 
+#if OPT_ENCDEC_MEM
+    // temp buffers for performing the transform/generating the recon
+    EbPictureBufferDesc *residual_buffer      = ed_ctx->md_ctx->temp_residual;
+    EbPictureBufferDesc *transform_buffer     = ed_ctx->md_ctx->tx_coeffs;
+    EbPictureBufferDesc *inverse_quant_buffer = ed_ctx->md_ctx->cand_bf_ptr_array[0]->rec_coeff;
+#else
     EbPictureBufferDesc *residual_buffer      = ed_ctx->residual_buffer;
     EbPictureBufferDesc *transform_buffer     = ed_ctx->transform_buffer;
     EbPictureBufferDesc *inverse_quant_buffer = ed_ctx->inverse_quant_buffer;
+#endif
 
     blk_ptr->y_has_coeff = 0;
     blk_ptr->u_has_coeff = 0;
@@ -1957,9 +1983,16 @@ static void perform_inter_coding_loop(SequenceControlSet *scs, PictureControlSet
     const BlockGeom *blk_geom = ctx->blk_geom;
     BlkStruct       *blk_ptr  = ctx->blk_ptr;
 
+#if OPT_ENCDEC_MEM
+    // temp buffers for performing the transform/generating the recon
+    EbPictureBufferDesc *residual_buffer      = ctx->md_ctx->temp_residual;
+    EbPictureBufferDesc *transform_buffer     = ctx->md_ctx->tx_coeffs;
+    EbPictureBufferDesc *inverse_quant_buffer = ctx->md_ctx->cand_bf_ptr_array[0]->rec_coeff;
+#else
     EbPictureBufferDesc *residual_buffer      = ctx->residual_buffer;
     EbPictureBufferDesc *transform_buffer     = ctx->transform_buffer;
     EbPictureBufferDesc *inverse_quant_buffer = ctx->inverse_quant_buffer;
+#endif
 
     bool                 is_16bit = ctx->is_16bit;
     EbPictureBufferDesc *recon_buffer;

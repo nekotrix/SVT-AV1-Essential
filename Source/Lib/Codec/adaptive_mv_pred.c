@@ -1940,9 +1940,15 @@ void svt_aom_init_xd(PictureControlSet *pcs, ModeDecisionContext *ctx) {
     xd->mi_stride        = pcs->mi_stride;
     const int32_t offset = mi_row * xd->mi_stride + mi_col;
     // mip offset may be different from grid offset when 4x4 blocks are disallowed
+#if FTR_RTC_MI_GRID
+    const int32_t mip_offset = (mi_row >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames)) *
+            (xd->mi_stride >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames)) +
+        (mi_col >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames));
+#else
     const int32_t mip_offset = (mi_row >> pcs->disallow_4x4_all_frames) *
             (xd->mi_stride >> pcs->disallow_4x4_all_frames) +
         (mi_col >> pcs->disallow_4x4_all_frames);
+#endif
     pcs->mi_grid_base[offset] = pcs->mip + mip_offset;
     xd->mi                    = pcs->mi_grid_base + offset;
 
@@ -2269,8 +2275,14 @@ MbModeInfo *get_mbmi(PictureControlSet *pcs, uint32_t blk_org_x, uint32_t blk_or
 
     // Reset the mi_grid (needs to be done here in case it was changed for NSQ blocks during MD - svt_aom_init_xd())
     // mip offset may be different from grid offset when 4x4 blocks are disallowed
+#if FTR_RTC_MI_GRID
+    const int32_t mip_offset = (mi_row >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames)) *
+            (mi_stride >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames)) +
+        (mi_col >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames));
+#else
     const int32_t mip_offset = (mi_row >> pcs->disallow_4x4_all_frames) * (mi_stride >> pcs->disallow_4x4_all_frames) +
         (mi_col >> pcs->disallow_4x4_all_frames);
+#endif
     pcs->mi_grid_base[offset] = pcs->mip + mip_offset;
 
 #if CLN_REMOVE_MODE_INFO
@@ -2293,8 +2305,14 @@ void svt_aom_update_mi_map(BlkStruct *blk_ptr, uint32_t blk_org_x, uint32_t blk_
 
     // Reset the mi_grid (needs to be done here in case it was changed for NSQ blocks during MD - svt_aom_init_xd())
     // mip offset may be different from grid offset when 4x4 blocks are disallowed
+#if FTR_RTC_MI_GRID
+    const int32_t mip_offset = (mi_row >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames)) *
+            (mi_stride >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames)) +
+        (mi_col >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames));
+#else
     const int32_t mip_offset = (mi_row >> pcs->disallow_4x4_all_frames) * (mi_stride >> pcs->disallow_4x4_all_frames) +
         (mi_col >> pcs->disallow_4x4_all_frames);
+#endif
     pcs->mi_grid_base[offset] = pcs->mip + mip_offset;
 
 #if !CLN_CAND_REF_FRAME

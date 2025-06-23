@@ -4344,6 +4344,7 @@ EbErrorType svt_av1_init_temporal_filtering(
     uint8_t              index_center;
     EbPictureBufferDesc *central_picture_ptr;
     me_context_ptr->me_ctx->tf_ctrls = centre_pcs->tf_ctrls;
+
     bool high_chroma_noise_lvl = (centre_pcs->noise_levels_log1p_fp16[0] < centre_pcs->noise_levels_log1p_fp16[1] ||
             centre_pcs->noise_levels_log1p_fp16[0] < centre_pcs->noise_levels_log1p_fp16[2]) ? true : false;
     me_context_ptr->me_ctx->tf_chroma = centre_pcs->tf_ctrls.chroma_lvl == 1 ? 1 :

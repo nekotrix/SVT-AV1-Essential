@@ -63,7 +63,11 @@ void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level);
 #if OPT_ALLINTRA_STILLIMAGE_2
 uint8_t svt_aom_get_enable_sg(EncMode enc_mode, uint8_t input_resolution, uint8_t fast_decode, bool avif);
 uint8_t svt_aom_get_enable_restoration(EncMode enc_mode, int8_t config_enable_restoration, uint8_t input_resolution,
+#if TUNE_RTC_M8
+                                       uint8_t fast_decode, bool avif, bool allintra, bool rtc_tune);
+#else
                                        uint8_t fast_decode, bool avif, bool allintra);
+#endif
 #else
 uint8_t svt_aom_get_enable_sg(EncMode enc_mode, uint8_t input_resolution, uint8_t fast_decode);
 uint8_t svt_aom_get_enable_restoration(EncMode enc_mode, int8_t config_enable_restoration, uint8_t input_resolution,
@@ -72,8 +76,12 @@ uint8_t svt_aom_get_enable_restoration(EncMode enc_mode, int8_t config_enable_re
 void svt_aom_set_dist_based_ref_pruning_controls(ModeDecisionContext *ctx, uint8_t dist_based_ref_pruning_level);
 
 bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base);
-
+#if OPT_RTC_B8
+bool    svt_aom_get_disallow_8x8(EncMode enc_mode, bool rtc_tune, uint32_t screen_content_mode);
+uint8_t svt_aom_get_nsq_geom_level(EncMode enc_mode, uint8_t is_base, InputCoeffLvl coeff_lvl, bool rtc_tune);
+#else
 uint8_t svt_aom_get_nsq_geom_level(EncMode enc_mode, uint8_t is_base, InputCoeffLvl coeff_lvl);
+#endif
 uint8_t svt_aom_get_nsq_search_level(PictureControlSet *pcs, EncMode enc_mode, InputCoeffLvl coeff_lvl, uint32_t qp);
 uint8_t get_inter_compound_level(EncMode enc_mode);
 uint8_t get_filter_intra_level(EncMode enc_mode);

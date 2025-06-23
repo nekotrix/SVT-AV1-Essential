@@ -621,14 +621,18 @@ static void set_frame_coeff_lvl(PictureControlSet *pcs) {
                                                        input_pic->height,
                                                        input_pic->stride_y);
 
-    noise_level_fp16         = svt_aom_noise_log1p_fp16(noise_level_fp16);
+    noise_level_fp16 = svt_aom_noise_log1p_fp16(noise_level_fp16);
+#if CLN_AVG_ME_DISTORTION
+    uint64_t cmplx = pcs->ppcs->norm_me_dist / MAX(1, pcs->scs->static_config.qp);
+#else
     uint64_t tot_me_8x8_dist = 0;
     for (uint32_t b64_idx = 0; b64_idx < pcs->b64_total_count; b64_idx++) {
         tot_me_8x8_dist += pcs->ppcs->me_8x8_distortion[b64_idx];
     }
     uint64_t me_8x8_dist_per_sb = tot_me_8x8_dist / pcs->b64_total_count;
-    uint64_t cmplx              = me_8x8_dist_per_sb / MAX(1, pcs->scs->static_config.qp);
 
+    uint64_t cmplx = me_8x8_dist_per_sb / MAX(1, pcs->scs->static_config.qp);
+#endif
     uint64_t coeff_vlow_level_th = COEFF_LVL_TH_0;
     uint64_t coeff_low_level_th  = COEFF_LVL_TH_1;
     uint64_t coeff_high_level_th = COEFF_LVL_TH_2;
@@ -730,8 +734,11 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             pcs->avg_me_clpx = avg_me_clpx / pcs->ppcs->b64_total_count;
         }
         pcs->coeff_lvl = INVALID_LVL;
-
+#if OPT_SHUT_COEFF_LVL
+        if (!scs->static_config.rtc && pcs->slice_type != I_SLICE && !pcs->ppcs->sc_class1) {
+#else
         if (pcs->slice_type != I_SLICE && !pcs->ppcs->sc_class1) {
+#endif
             set_frame_coeff_lvl(pcs);
         }
 #if !CLN_ME_DIST_MOD
