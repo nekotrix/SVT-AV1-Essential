@@ -241,7 +241,6 @@ extern "C" {
 #define OPT_PD_REORDER_Q            1 // Reduce the size of PD reorder queue
 #define FIX_REST_ONE_SEG_LP1        1 // Use one restoration segment for lp1
 #define CLN_REMOVE_IRC_Q            1 // Remove initial_rate_control_reorder_queue because it's not used.  TODO: Remove a file when removing macros
-#define CLN_REMOVE_SPEED_CONTROL    1 // Remove scs->speed_control_flag as it is unused, and crashes when enabled
 #define CLN_REMOVE_10BIT_FORMAT     1 // Remove unused scs->ten_bit_format
 #define CLN_REMOVE_DATA_LL          1 // Remove linked list in pcs supposedly for meta data, but that is always NULL
 #define OPT_PACK_Q                  1 // Reduce the size of packetization reorder queue

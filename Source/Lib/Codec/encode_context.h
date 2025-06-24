@@ -186,14 +186,12 @@ typedef struct EncodeContext {
     // Prediction Structure
     PredictionStructureGroup *prediction_structure_group_ptr;
 
-#if !CLN_REMOVE_SPEED_CONTROL
     // Speed Control
     int64_t  sc_buffer;
     int64_t  sc_frame_in;
     int64_t  sc_frame_out;
     EbHandle sc_buffer_mutex;
     EncMode  enc_mode;
-#endif
 
     // Dynamic GOP
     uint32_t         previous_mini_gop_hierarchical_levels;

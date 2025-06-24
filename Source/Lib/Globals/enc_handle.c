@@ -1669,9 +1669,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         input_data.ten_bit_format = enc_handle_ptr->scs_instance_array[instance_index]->scs->ten_bit_format;
 #endif
         input_data.enc_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enc_mode;
-#if !CLN_REMOVE_SPEED_CONTROL
         input_data.speed_control = (uint8_t)enc_handle_ptr->scs_instance_array[instance_index]->scs->speed_control_flag;
-#endif
         input_data.hbd_md = enc_handle_ptr->scs_instance_array[instance_index]->scs->enable_hbd_mode_decision;
         input_data.bit_depth = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.encoder_bit_depth;
         input_data.log2_tile_rows = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.tile_rows;
@@ -5276,10 +5274,7 @@ static void copy_api_from_app(
 #if !CLN_REMOVE_10BIT_FORMAT
     scs->ten_bit_format = 0;
 #endif
-#if !CLN_REMOVE_SPEED_CONTROL
     scs->speed_control_flag = 0;
-#endif
-
     // Padding Offsets
     scs->b64_size = 64;
     scs->static_config.intra_period_length = ((EbSvtAv1EncConfiguration*)config_struct)->intra_period_length;

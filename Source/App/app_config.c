@@ -2789,11 +2789,9 @@ EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *chan
                             index + 1);
                     c->return_error = EB_ErrorBadParameter;
                 }
-#if !CLN_REMOVE_SPEED_CONTROL
                 // Force the injector latency mode, and injector frame rate when speed control is on
                 if (c->return_error == EB_ErrorNone && app_cfg->speed_control_flag == 1)
                     app_cfg->injector = 1;
-#endif
             }
             return_error = (EbErrorType)(return_error & c->return_error);
         }

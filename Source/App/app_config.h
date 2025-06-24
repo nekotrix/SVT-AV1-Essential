@@ -153,9 +153,7 @@ typedef struct EbConfig {
 
     uint32_t injector_frame_rate;
     uint32_t injector;
-#if !CLN_REMOVE_SPEED_CONTROL
     uint32_t speed_control_flag;
-#endif
 
     bool stop_encoder; // to signal CTRL+C Event, need to stop encoding.
 

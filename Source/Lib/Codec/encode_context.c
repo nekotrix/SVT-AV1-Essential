@@ -57,9 +57,7 @@ static void encode_context_dctor(EbPtr p) {
 #if OPT_LD_LATENCY2
     EB_DESTROY_MUTEX(obj->total_number_of_shown_frames_mutex);
 #endif
-#if !CLN_REMOVE_SPEED_CONTROL
     EB_DESTROY_MUTEX(obj->sc_buffer_mutex);
-#endif
     EB_DESTROY_MUTEX(obj->stat_file_mutex);
     EB_DESTROY_MUTEX(obj->frame_updated_mutex);
     EB_DELETE(obj->prediction_structure_group_ptr);
@@ -172,11 +170,8 @@ EbErrorType svt_aom_encode_context_ctor(EncodeContext *enc_ctx, EbPtr object_ini
 
     // Sequence Termination Flags
     enc_ctx->terminating_picture_number = ~0u;
-
-#if !CLN_REMOVE_SPEED_CONTROL
     EB_CREATE_MUTEX(enc_ctx->sc_buffer_mutex);
-    enc_ctx->enc_mode = SPEED_CONTROL_INIT_MOD;
-#endif
+    enc_ctx->enc_mode         = SPEED_CONTROL_INIT_MOD;
     enc_ctx->recode_tolerance = 25;
     enc_ctx->rc_cfg.min_cr    = 0;
     EB_CREATE_MUTEX(enc_ctx->stat_file_mutex);

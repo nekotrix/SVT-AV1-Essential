@@ -2197,9 +2197,7 @@ typedef uint8_t EbModeType;
 
 #define INVALID_MODE 0xFFu
 #endif
-#if !CLN_REMOVE_SPEED_CONTROL
 #define SPEED_CONTROL_INIT_MOD ENC_M5;
-#endif
 typedef enum ATTRIBUTE_PACKED {
     REF_LIST_0 = 0,
     REF_LIST_1 = 1,

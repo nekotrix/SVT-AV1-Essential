@@ -1325,9 +1325,7 @@ typedef struct PictureControlSetInitData {
     uint16_t                 enc_dec_segment_row;
     EncMode                  enc_mode;
     EbSvtAv1EncConfiguration static_config;
-#if !CLN_REMOVE_SPEED_CONTROL
-    uint8_t speed_control;
-#endif
+    uint8_t                  speed_control;
     int8_t                   hbd_md;
     uint8_t                  cdf_mode;
     uint8_t                  over_boundary_block_mode;
