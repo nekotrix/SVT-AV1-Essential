@@ -1728,9 +1728,6 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
 #else
         input_data.rtc_tune = (enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
-#if FTR_RTC_FLAT
-        input_data.rtc_flat = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc_flat;
-#endif
         input_data.enable_variance_boost = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enable_variance_boost;
         input_data.variance_boost_strength = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.variance_boost_strength;
         input_data.variance_octile = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.variance_octile;
@@ -1819,9 +1816,6 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
 #if FTR_RTC_MODE
             input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc;
 #endif
-#if FTR_RTC_FLAT
-            input_data.rtc_flat = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc_flat;
-#endif
 #if OPT_ALLINTRA_STILLIMAGE_2
             input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
 #endif
@@ -1895,9 +1889,6 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
 
 #if FTR_RTC_MODE
             input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc;
-#endif
-#if FTR_RTC_FLAT
-            input_data.rtc_flat = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc_flat;
 #endif
 #if OPT_ALLINTRA_STILLIMAGE_2
             input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
@@ -4976,11 +4967,8 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     // Throws a warning when scene change is on, as the feature is not optimal and may produce false detections
     if (scs->static_config.scene_change_detection == 1)
         SVT_WARN("Scene Change is not optimal and may produce suboptimal keyframe placements\n");
-
+#if !FTR_RTC_FLAT
 #if FTR_ADD_FLAT_IPP
-#if FTR_RTC_FLAT
-    scs->use_flat_ipp = scs->static_config.rtc_flat;
-#else
     scs->use_flat_ipp = scs->static_config.pred_structure == LOW_DELAY && scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF && scs->static_config.enc_mode >= ENC_M11;
 #endif
 #endif
@@ -5254,9 +5242,6 @@ static void copy_api_from_app(
 #if FTR_RTC_MODE
     scs->static_config.rtc = ((EbSvtAv1EncConfiguration*)config_struct)->rtc;
 #endif
-#if FTR_RTC_FLAT
-    scs->static_config.rtc_flat = ((EbSvtAv1EncConfiguration*)config_struct)->rtc_flat;
-#endif
 #if TUNE_RTC_USE_LD
     if (scs->static_config.rtc && scs->static_config.pred_structure != LOW_DELAY) {
         scs->static_config.pred_structure = LOW_DELAY;
@@ -5463,8 +5448,26 @@ static void copy_api_from_app(
     }
     scs->static_config.tune = config_struct->tune;
     scs->static_config.hierarchical_levels = ((EbSvtAv1EncConfiguration*)config_struct)->hierarchical_levels;
+
+#if FTR_RTC_FLAT
+    if (scs->static_config.rtc && scs->static_config.hierarchical_levels == 0) {
+        scs->static_config.hierarchical_levels = HIERARCHICAL_LEVELS_AUTO;
+        if (scs->static_config.enc_mode > ENC_M10) {
+            // Mimic flat prediction structure
+            scs->use_flat_ipp = 1;
+            SVT_WARN("Flat prediction structure for rtc is under development and is intended for debugging purposes only at this stage\n");
+        }
+        else {
+            SVT_WARN("Flat structure for rtc is supported only with presets M11 or M12, use default hierarchical_levels\n");
+        }
+    }
+#endif
     // Set the default hierarchical levels
+#if FTR_RTC_FLAT
+    if (scs->static_config.hierarchical_levels == HIERARCHICAL_LEVELS_AUTO) {
+#else
     if (scs->static_config.hierarchical_levels == 0) {
+#endif
 #if OPT_NEW_LD_RPS
         scs->static_config.hierarchical_levels = scs->static_config.pred_structure == LOW_DELAY &&
             (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR || !(scs->static_config.enc_mode <= ENC_M9)) ?

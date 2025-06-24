@@ -833,13 +833,6 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         }
     }
 
-#if FTR_RTC_FLAT
-    if (config->rtc_flat && (!config->rtc || config->enc_mode <= ENC_M10)) {
-        SVT_ERROR("Instance %u: rtc-flat is supported only when using rtc mode with preset M11 or M12.\n",
-                  channel_number + 1);
-        return_error = EB_ErrorBadParameter;
-    }
-#endif
     if (scs->static_config.scene_change_detection) {
         scs->static_config.scene_change_detection = 0;
         SVT_WARN(
@@ -968,7 +961,11 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->intra_period_length          = -2;
     config_ptr->multiply_keyint              = false;
     config_ptr->intra_refresh_type           = 2;
-    config_ptr->hierarchical_levels          = 0;
+#if FTR_RTC_FLAT
+    config_ptr->hierarchical_levels = HIERARCHICAL_LEVELS_AUTO;
+#else
+    config_ptr->hierarchical_levels = 0;
+#endif
 #if CLN_REMOVE_LDP
     config_ptr->pred_structure = RANDOM_ACCESS;
 #else
@@ -983,9 +980,6 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->encoder_color_format         = EB_YUV420;
 #if FTR_RTC_MODE
     config_ptr->rtc = 0;
-#endif
-#if FTR_RTC_FLAT
-    config_ptr->rtc_flat = 0;
 #endif
     // Rate control options
     // Set the default value toward more flexible rate allocation
@@ -2208,9 +2202,6 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"avif", &config_struct->avif},
 #if FTR_RTC_MODE
         {"rtc", &config_struct->rtc},
-#endif
-#if FTR_RTC_FLAT
-        {"rtc-flat", &config_struct->rtc_flat},
 #endif
     };
     const size_t bool_opts_size = sizeof(bool_opts) / sizeof(bool_opts[0]);

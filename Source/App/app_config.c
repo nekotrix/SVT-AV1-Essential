@@ -200,9 +200,6 @@
 #if FTR_RTC_MODE
 #define RTC_TOKEN "--rtc"
 #endif
-#if FTR_RTC_FLAT
-#define RTC_FLAT_TOKEN "--rtc-flat"
-#endif
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -1005,13 +1002,6 @@ ConfigEntry config_entry_intra_refresh[] = {
      "default is 0, [0-1]]",
      set_cfg_generic_token},
 #endif
-#if FTR_RTC_FLAT
-    {SINGLE_INPUT,
-     RTC_FLAT_TOKEN,
-     "Enables flat temporal layer structure in real-time coding (rtc) mode, "
-     "default is 0, [0-1]]",
-     set_cfg_generic_token},
-#endif
     {SINGLE_INPUT,
      FORCE_KEY_FRAMES_TOKEN,
      "Force key frames at the comma separated specifiers. `#f` for frames, `#.#s` for seconds",
@@ -1405,10 +1395,6 @@ ConfigEntry config_entry[] = {
 #if FTR_RTC_MODE
     // Real-time Coding
     {SINGLE_INPUT, RTC_TOKEN, "RealTime", set_cfg_generic_token},
-#endif
-#if FTR_RTC_FLAT
-    // RTC Flat structure
-    {SINGLE_INPUT, RTC_FLAT_TOKEN, "RtcFlat", set_cfg_generic_token},
 #endif
     // Termination
     {SINGLE_INPUT, NULL, NULL, NULL}};

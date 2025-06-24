@@ -1370,9 +1370,6 @@ typedef struct PictureControlSetInitData {
 #if OPT_ALLINTRA_STILLIMAGE_2
     bool allintra;
 #endif
-#if FTR_RTC_FLAT
-    bool rtc_flat;
-#endif
 } PictureControlSetInitData;
 
 #if !CLN_FUNCS_HEADER

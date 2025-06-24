@@ -29,9 +29,11 @@ extern "C" {
  * been changed. Used to keep track if a field has been added or not.
  */
 #define SVT_AV1_ENC_ABI_VERSION 0
-
+#if FTR_RTC_FLAT
+#define HIERARCHICAL_LEVELS_AUTO ((uint32_t)(~0))
+#else
 //***HME***
-
+#endif
 #define MAX_HIERARCHICAL_LEVEL 6
 #define REF_LIST_MAX_DEPTH 4
 /*!\brief Decorator indicating that given struct/union/enum is packed */
@@ -264,13 +266,19 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is 1. */
     SvtAv1IntraRefreshType intra_refresh_type;
-
+#if FTR_RTC_FLAT
+    /* Number of hierarchical layers used to construct GOP.
+     * Minigop size = 2^HierarchicalLevels.
+     *
+     * Default is auto */
+    uint32_t hierarchical_levels;
+#else
     /* Number of hierarchical layers used to construct GOP.
      * Minigop size = 2^HierarchicalLevels.
      *
      * Default is 5 upt to M12 4, for M13. */
     uint32_t hierarchical_levels;
-
+#endif
 #if CLN_REMOVE_LDP
     /* Prediction structure used to construct GOP. There are two main structures
      * supported, which are: Low Delay and Random Access.
@@ -978,22 +986,11 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     bool rtc;
 #endif
-#if FTR_RTC_FLAT
-    /* @brief Signal to the library to enable flat temporal layer structure in real-time coding
-     *
-     * Default is false.
-     */
-    bool rtc_flat;
-#endif
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128
 #if FTR_RTC_MODE
-#if FTR_RTC_FLAT
-        - 2 * sizeof(bool)
-#else
         - sizeof(bool)
-#endif
 #endif
     ];
     // clang-format on

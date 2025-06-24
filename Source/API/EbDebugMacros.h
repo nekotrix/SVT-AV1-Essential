@@ -302,7 +302,7 @@ extern "C" {
 #define TUNE_RTC_M12_2              1 // Adopt more aggressive lpd0 (NSC) in M12 and M11, md_subpel, and me_sa (NSC) for M12 only.
 #define TUNE_RTC_M9                 1 // Adopt changes with better trade-offs to M9.
 #define TUNE_RTC_M8                 1 // Adopt changes with better trade-offs to M8.
-#define FTR_RTC_FLAT                1 // Create a new API that can enable the use of flat temporal layer structure in RTC mode.
+#define FTR_RTC_FLAT                1 // Use --hierarchical-levels 0 to enable a flat prediction structure
 
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
