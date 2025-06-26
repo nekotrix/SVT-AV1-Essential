@@ -358,7 +358,10 @@ static INLINE int32_t aom_stop_encode(AomWriter* w) {
         w->buffer      = w->buffer_parent->buffer_av1;
         w->buffer_size = bytes + 1;
     }
-    svt_memcpy(w->buffer, data, bytes);
+    if (svt_memcpy != NULL)
+        svt_memcpy(w->buffer, data, bytes);
+    else
+        svt_memcpy_c(w->buffer, data, bytes);
 
     w->pos = bytes;
     svt_od_ec_enc_clear(&w->ec);
