@@ -235,7 +235,6 @@ extern "C" {
 #define OPT_SC_ME_2                 1 // Re-optimize SC for ME (all presets); activate ME booster to MR-M8 for SC class 1.
 
 //FOR DEBUGGING - Do not remove
-#define FIX_AVX512_ICL_RTCD         1 // Correct avx512icl support detection
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

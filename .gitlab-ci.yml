@@ -67,7 +67,7 @@ Static analysis (cppcheck):
   script:
     - cmake -B Build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
     - mkdir -p .cppcheck
-    - jq '. | map(select(.file | test(".asm|cpuinfo") | not))' Build/compile_commands.json > compile_commands.json
+    - jq '. | map(select(.file | test(".asm") | not))' Build/compile_commands.json > compile_commands.json
     - |
       cppcheck \
         --project=compile_commands.json \

@@ -408,8 +408,6 @@ if(SVT_AV1_LTO)
     endif()
 endif()
 
-include(cmake/cpuinfo.cmake)
-
 check_both_flags_add(PREPEND -Wextra -Wformat -Wformat-security)
 
 if(MSVC)

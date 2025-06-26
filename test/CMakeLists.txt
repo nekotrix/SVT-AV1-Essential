@@ -150,8 +150,7 @@ set(arch_neutral_lib_list
     $<TARGET_OBJECTS:C_DEFAULT>
     $<TARGET_OBJECTS:GLOBALS>
     $<TARGET_OBJECTS:CODEC>
-    gtest_all
-    cpuinfo::cpuinfo)
+    gtest_all)
 
 if(HAVE_X86_PLATFORM)
   set(x86_arch_lib_list

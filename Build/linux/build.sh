@@ -108,8 +108,6 @@ For each enable-*, there is a disable-* option, and vice versa.
 -v, --verbose, verbose  Print out commands
     --minimal-build,    Enable minimal build
     minimal-build
-    --external-cpuinfo,
-    external-cpuinfo    Use external cpuinfo library
 
 Example usage:
     build.sh -xi debug test
@@ -345,7 +343,6 @@ parse_options() {
             ;;
         verbose) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DCMAKE_VERBOSE_MAKEFILE=1" && shift ;;
         minimal-build) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DMINIMAL_BUILD=ON" && shift ;;
-        external-cpuinfo) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DUSE_EXTERNAL_CPUINFO=ON" && shift ;;
         *) print_message "Unknown option: $1" && shift ;;
         esac
     done
@@ -388,7 +385,6 @@ else
             test) parse_options tests && shift ;;
             verbose) parse_options verbose && shift ;;
             minimal-build) parse_options minimal-build && shift ;;
-            external-cpuinfo) parse_options external-cpuinfo && shift ;;
             asm | bindir | cc | cxx | gen | jobs | pgo-dir | pgo-videos | prefix | sanitizer | target_system | android-ndk)
                 parse_equal_option "$1" "$2"
                 case $1 in
@@ -511,7 +507,6 @@ else
             toolchain=*) parse_options toolchain="${1#*=}" && shift ;;
             verbose) parse_options verbose && shift ;;
             minimal-build) parse_options minimal-build && shift ;;
-            external-cpuinfo) parse_options external-cpuinfo && shift ;;
             end) ${IN_SCRIPT:-false} && exit ;;
             *) die "Error, unknown option: $1" ;;
             esac

@@ -802,7 +802,6 @@ using std::make_tuple;
 
 #ifdef ARCH_X86_64
 
-#if HAS_AVX2
 const QuantizeParam kQParamArrayAvx2[] = {
     make_tuple(&svt_av1_quantize_fp_c, &svt_av1_quantize_fp_sse4_1,
                static_cast<TxSize>(TX_16X16), TYPE_FP, EB_EIGHT_BIT),
@@ -974,7 +973,6 @@ INSTANTIATE_TEST_SUITE_P(AVX2, QuantizeQmTest,
                          ::testing::ValuesIn(kQmParamArrayAvx2));
 INSTANTIATE_TEST_SUITE_P(AVX2, QuantizeQmHbdTest,
                          ::testing::ValuesIn(kQmParamHbdArrayAvx2));
-#endif  // HAS_AVX2
 #endif  // ARCH_X86_64
 
 #ifdef ARCH_AARCH64

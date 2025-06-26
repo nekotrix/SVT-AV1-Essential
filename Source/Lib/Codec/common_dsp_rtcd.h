@@ -17,28 +17,6 @@
 
 #include "definitions.h"
 
-
-/*
- * DSP deprecated flags
- */
-#define HAS_MMX EB_CPU_FLAGS_MMX
-#define HAS_SSE EB_CPU_FLAGS_SSE
-#define HAS_SSE2 EB_CPU_FLAGS_SSE2
-#define HAS_SSE3 EB_CPU_FLAGS_SSE3
-#define HAS_SSSE3 EB_CPU_FLAGS_SSSE3
-#define HAS_SSE4_1 EB_CPU_FLAGS_SSE4_1
-#define HAS_SSE4_2 EB_CPU_FLAGS_SSE4_2
-#define HAS_AVX EB_CPU_FLAGS_AVX
-#define HAS_AVX2 EB_CPU_FLAGS_AVX2
-#define HAS_AVX512F EB_CPU_FLAGS_AVX512F
-#define HAS_AVX512CD EB_CPU_FLAGS_AVX512CD
-#define HAS_AVX512DQ EB_CPU_FLAGS_AVX512DQ
-#define HAS_AVX512BW EB_CPU_FLAGS_AVX512BW
-#define HAS_AVX512VL EB_CPU_FLAGS_AVX512VL
-#define HAS_NEON EB_CPU_FLAGS_NEON
-#define HAS_NEON_DOTPROD EB_CPU_FLAGS_NEON_DOTPROD
-#define HAS_SVE EB_CPU_FLAGS_SVE
-
 #ifdef RTCD_C
 #define RTCD_EXTERN                //CHKN RTCD call in effect. declare the function pointers in  encHandle.
 #else

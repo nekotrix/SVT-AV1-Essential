@@ -30,40 +30,40 @@
 #ifdef ARCH_X86_64
 #if EN_AVX512_SUPPORT
 #define SET_FUNCTIONS_AVX512(ptr, avx512)                                                         \
-    if (((uintptr_t)NULL != (uintptr_t)avx512) && (flags & HAS_AVX512F)) ptr = avx512;
+    if (((uintptr_t)NULL != (uintptr_t)avx512) && (flags & EB_CPU_FLAGS_AVX512F)) ptr = avx512;
 #else /* EN_AVX512_SUPPORT */
 #define SET_FUNCTIONS_AVX512(ptr, avx512)
 #endif /* EN_AVX512_SUPPORT */
 
 #define SET_FUNCTIONS_X86(ptr, c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512) \
-    if (((uintptr_t)NULL != (uintptr_t)mmx)    && (flags & HAS_MMX))    ptr = mmx;                \
-    if (((uintptr_t)NULL != (uintptr_t)sse)    && (flags & HAS_SSE))    ptr = sse;                \
-    if (((uintptr_t)NULL != (uintptr_t)sse2)   && (flags & HAS_SSE2))   ptr = sse2;               \
-    if (((uintptr_t)NULL != (uintptr_t)sse3)   && (flags & HAS_SSE3))   ptr = sse3;               \
-    if (((uintptr_t)NULL != (uintptr_t)ssse3)  && (flags & HAS_SSSE3))  ptr = ssse3;              \
-    if (((uintptr_t)NULL != (uintptr_t)sse4_1) && (flags & HAS_SSE4_1)) ptr = sse4_1;             \
-    if (((uintptr_t)NULL != (uintptr_t)sse4_2) && (flags & HAS_SSE4_2)) ptr = sse4_2;             \
-    if (((uintptr_t)NULL != (uintptr_t)avx)    && (flags & HAS_AVX))    ptr = avx;                \
-    if (((uintptr_t)NULL != (uintptr_t)avx2)   && (flags & HAS_AVX2))   ptr = avx2;               \
+    if (((uintptr_t)NULL != (uintptr_t)mmx)    && (flags & EB_CPU_FLAGS_MMX))    ptr = mmx;                \
+    if (((uintptr_t)NULL != (uintptr_t)sse)    && (flags & EB_CPU_FLAGS_SSE))    ptr = sse;                \
+    if (((uintptr_t)NULL != (uintptr_t)sse2)   && (flags & EB_CPU_FLAGS_SSE2))   ptr = sse2;               \
+    if (((uintptr_t)NULL != (uintptr_t)sse3)   && (flags & EB_CPU_FLAGS_SSE3))   ptr = sse3;               \
+    if (((uintptr_t)NULL != (uintptr_t)ssse3)  && (flags & EB_CPU_FLAGS_SSSE3))  ptr = ssse3;              \
+    if (((uintptr_t)NULL != (uintptr_t)sse4_1) && (flags & EB_CPU_FLAGS_SSE4_1)) ptr = sse4_1;             \
+    if (((uintptr_t)NULL != (uintptr_t)sse4_2) && (flags & EB_CPU_FLAGS_SSE4_2)) ptr = sse4_2;             \
+    if (((uintptr_t)NULL != (uintptr_t)avx)    && (flags & EB_CPU_FLAGS_AVX))    ptr = avx;                \
+    if (((uintptr_t)NULL != (uintptr_t)avx2)   && (flags & EB_CPU_FLAGS_AVX2))   ptr = avx2;               \
     SET_FUNCTIONS_AVX512(ptr, avx512)
 #elif defined ARCH_AARCH64
 
 #if HAVE_NEON_DOTPROD
 #define SET_FUNCTIONS_NEON_DOTPROD(ptr, neon_dotprod)                                             \
-    if (((uintptr_t)NULL != (uintptr_t)neon_dotprod) && (flags & HAS_NEON_DOTPROD)) ptr = neon_dotprod;
+    if (((uintptr_t)NULL != (uintptr_t)neon_dotprod) && (flags & EB_CPU_FLAGS_NEON_DOTPROD)) ptr = neon_dotprod;
 #else
 #define SET_FUNCTIONS_NEON_DOTPROD(ptr, neon_dotprod)
 #endif // HAVE_NEON_DOTPROD
 
 #if HAVE_SVE
 #define SET_FUNCTIONS_SVE(ptr, sve)                                                               \
-    if (((uintptr_t)NULL != (uintptr_t)sve)   && (flags & HAS_SVE))   ptr = sve;
+    if (((uintptr_t)NULL != (uintptr_t)sve)   && (flags & EB_CPU_FLAGS_SVE))   ptr = sve;
 #else
 #define SET_FUNCTIONS_SVE(ptr, sve)
 #endif // HAVE_SVE
 
 #define SET_FUNCTIONS_AARCH64(ptr, c, neon, neon_dotprod, sve)                                    \
-    if (((uintptr_t)NULL != (uintptr_t)neon)   && (flags & HAS_NEON))   ptr = neon;               \
+    if (((uintptr_t)NULL != (uintptr_t)neon)   && (flags & EB_CPU_FLAGS_NEON))   ptr = neon;               \
     SET_FUNCTIONS_NEON_DOTPROD(ptr, neon_dotprod)                                                 \
     SET_FUNCTIONS_SVE(ptr, sve)
 #endif
