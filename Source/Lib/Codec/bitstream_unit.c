@@ -61,14 +61,6 @@ EbErrorType svt_aom_output_bitstream_reset(OutputBitstreamUnit *bitstream_ptr) {
 /********************************************************************************************************************************/
 /********************************************************************************************************************************/
 #if CLN_EC
-void aom_start_encode(AomWriter* br, OutputBitstreamUnit* source) {
-    br->buffer        = source->buffer_av1;
-    br->buffer_size   = source->size;
-    br->buffer_parent = source;
-    br->pos           = 0;
-    svt_od_ec_enc_init(&br->ec, 62025);
-}
-
 /* Realloc when bitstream pointer size is not enough to write data of size sz */
 EbErrorType svt_realloc_output_bitstream_unit(OutputBitstreamUnit* output_bitstream_ptr, uint32_t sz) {
     if (output_bitstream_ptr && sz > 0) {
@@ -80,27 +72,6 @@ EbErrorType svt_realloc_output_bitstream_unit(OutputBitstreamUnit* output_bitstr
         output_bitstream_ptr->buffer_av1 = output_bitstream_ptr->buffer_begin_av1 + offset;
     }
     return EB_ErrorNone;
-}
-int32_t aom_stop_encode(AomWriter* w) {
-    uint32_t bytes = 0;
-    uint8_t* data  = svt_od_ec_enc_done(&w->ec, &bytes);
-    if (!data) {
-        svt_od_ec_enc_clear(&w->ec);
-        return -1;
-    }
-    int32_t nb_bits = svt_od_ec_enc_tell(&w->ec);
-    // If buffer is smaller than data, increase buffer size
-    if (w->buffer_size < bytes) {
-        svt_realloc_output_bitstream_unit(w->buffer_parent,
-                                          bytes + 1); // plus one for good measure
-        w->buffer      = w->buffer_parent->buffer_av1;
-        w->buffer_size = bytes + 1;
-    }
-    svt_memcpy(w->buffer, data, bytes);
-
-    w->pos = bytes;
-    svt_od_ec_enc_clear(&w->ec);
-    return nb_bits;
 }
 
 /*A range encoder.

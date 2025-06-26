@@ -335,11 +335,35 @@ typedef struct AomWriter {
     OdEcEnc              ec;
     uint8_t              allow_update_cdf;
 } AomWriter;
+static INLINE void aom_start_encode(AomWriter* br, OutputBitstreamUnit* source) {
+    br->buffer        = source->buffer_av1;
+    br->buffer_size   = source->size;
+    br->buffer_parent = source;
+    br->pos           = 0;
+    svt_od_ec_enc_init(&br->ec, 62025);
+}
+EbErrorType           svt_realloc_output_bitstream_unit(OutputBitstreamUnit* output_bitstream_ptr, uint32_t sz);
+static INLINE int32_t aom_stop_encode(AomWriter* w) {
+    uint32_t bytes = 0;
+    uint8_t* data  = svt_od_ec_enc_done(&w->ec, &bytes);
+    if (!data) {
+        svt_od_ec_enc_clear(&w->ec);
+        return -1;
+    }
+    int32_t nb_bits = svt_od_ec_enc_tell(&w->ec);
+    // If buffer is smaller than data, increase buffer size
+    if (w->buffer_size < bytes) {
+        svt_realloc_output_bitstream_unit(w->buffer_parent,
+                                          bytes + 1); // plus one for good measure
+        w->buffer      = w->buffer_parent->buffer_av1;
+        w->buffer_size = bytes + 1;
+    }
+    svt_memcpy(w->buffer, data, bytes);
 
-void        aom_start_encode(AomWriter* br, OutputBitstreamUnit* source);
-EbErrorType svt_realloc_output_bitstream_unit(OutputBitstreamUnit* output_bitstream_ptr, uint32_t sz);
-int32_t     aom_stop_encode(AomWriter* w);
-
+    w->pos = bytes;
+    svt_od_ec_enc_clear(&w->ec);
+    return nb_bits;
+}
 static INLINE void aom_write(AomWriter* w, int bit, int prob) {
     int p = (0x7FFFFF - (prob << 15) + prob) >> 8;
 #if CONFIG_BITSTREAM_DEBUG
