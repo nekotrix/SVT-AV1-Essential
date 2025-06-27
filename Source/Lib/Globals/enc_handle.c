@@ -798,7 +798,7 @@ static EbErrorType load_default_buffer_configuration_settings(
 #endif
     const uint32_t tot_tpl_segs = scs->tpl_segment_col_count_array * scs->tpl_segment_row_count_array;
 #if CLN_SEG_COUNTS
-    const uint32_t tot_enc_dec_segs = scs->enc_dec_segment_col_count_array * scs->enc_dec_segment_row_count_array;
+    //const uint32_t tot_enc_dec_segs = scs->enc_dec_segment_col_count_array * scs->enc_dec_segment_row_count_array;
 #else
     const uint32_t tot_enc_dec_segs = scs->enc_dec_segment_col_count_array[0] * scs->enc_dec_segment_row_count_array[0];
 #endif
@@ -828,7 +828,7 @@ static EbErrorType load_default_buffer_configuration_settings(
     // Closed loop
     scs->rate_control_tasks_fifo_init_count          = MIN(max_fifo, 2 * scs->picture_control_set_pool_init_count_child); // inputs to rc form pic manager and EC/packetization
     scs->rate_control_fifo_init_count                = MIN(max_fifo, scs->picture_control_set_pool_init_count_child); // inputs to MDC from rc
-    scs->mode_decision_configuration_fifo_init_count = MIN(max_fifo, scs->picture_control_set_pool_init_count_child * tot_tiles * tot_enc_dec_segs); // input to MD from MDC
+    scs->mode_decision_configuration_fifo_init_count = 300;// MIN(max_fifo, scs->picture_control_set_pool_init_count_child * tot_tiles * tot_enc_dec_segs); // input to MD from MDC
     scs->enc_dec_fifo_init_count                     = MIN(max_fifo, scs->picture_control_set_pool_init_count_child); // TODO: Add DLF segments
     scs->dlf_fifo_init_count                         = MIN(max_fifo, scs->picture_control_set_pool_init_count_child * tot_cdef_segs); // input to CDEF from DLF
     scs->cdef_fifo_init_count                        = MIN(max_fifo, scs->picture_control_set_pool_init_count_child * tot_rest_segs); // input to rest from CDEF
