@@ -1111,6 +1111,9 @@ int svt_aom_compute_rd_mult_based_on_qindex(EbBitDepth bit_depth, SvtAv1FrameUpd
 #if FIX_LAMBDA
 static const int rd_frame_type_factor[2][SVT_AV1_FRAME_UPDATE_TYPES] = {{150, 180, 150, 150, 180, 180, 150},
                                                                         {128, 144, 128, 128, 144, 144, 128}};
+#if OPT_LAMBDA_RTC
+#define RTC_KF_LAMBDA_BOOST 100
+#endif
 #else
 // The table we use is modified from libaom; here is the original, from libaom:
 // static const int rd_frame_type_factor[FRAME_UPDATE_TYPES] = { 128, 144, 128,
@@ -1138,10 +1141,21 @@ int svt_aom_compute_rd_mult(PictureControlSet *pcs, uint8_t q_index, uint8_t me_
 #else
     rdmult = (rdmult * rd_frame_type_factor[gf_update_type]) >> 7;
 #endif
+#if OPT_LAMBDA_RTC
+    if (pcs->scs->static_config.rtc && frame_type == KEY_FRAME)
+        rdmult = (rdmult * RTC_KF_LAMBDA_BOOST) >> 7;
+#endif
     if (pcs->scs->stats_based_sb_lambda_modulation) {
         int factor = 128;
+#if OPT_LAMBDA_RTC
+        if (pcs->scs->static_config.rtc) {
+            int qdiff = me_q_index - pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
+            if (qdiff < 0)
+                factor = (qdiff <= -4) ? 100 : 115;
+        } else
+#endif
 #if OPT_DELTA_QP
-        if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present || pcs->ppcs->r0_delta_qp_md) {
+            if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present || pcs->ppcs->r0_delta_qp_md) {
 #else
         if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present) {
 #endif
@@ -1184,10 +1198,22 @@ int svt_aom_compute_fast_lambda(PictureControlSet *pcs, uint8_t q_index, uint8_t
 #else
     rdmult = (rdmult * rd_frame_type_factor[gf_update_type]) >> 7;
 #endif
+#if OPT_LAMBDA_RTC
+    if (pcs->scs->static_config.rtc && frame_type == KEY_FRAME)
+        rdmult = (rdmult * RTC_KF_LAMBDA_BOOST) >> 7;
+#endif
     if (pcs->scs->stats_based_sb_lambda_modulation) {
         int factor = 128;
+
+#if OPT_LAMBDA_RTC
+        if (pcs->scs->static_config.rtc) {
+            int qdiff = me_q_index - pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
+            if (qdiff < 0)
+                factor = (qdiff <= -4) ? 100 : 115;
+        } else
+#endif
 #if OPT_DELTA_QP
-        if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present || pcs->ppcs->r0_delta_qp_md) {
+            if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present || pcs->ppcs->r0_delta_qp_md) {
 #else
         if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present) {
 #endif
@@ -1591,11 +1617,16 @@ void svt_aom_cyclic_refresh_init(PictureParentControlSet *ppcs) {
 static void generate_b64_me_qindex_map(PictureControlSet *pcs) {
     PictureParentControlSet *ppcs = pcs->ppcs;
     uint32_t                 b64_idx;
-
-    int min_offset[MAX_TEMPORAL_LAYERS] = {0, -8, -8, -8, -8, -8};
-    int max_offset[MAX_TEMPORAL_LAYERS] = {0, 8, 8, 8, 8, 8};
-
-    if (min_offset[pcs->ppcs->temporal_layer_index] != 0 || max_offset[pcs->ppcs->temporal_layer_index] != 0) {
+#if OPT_LAMBDA_RTC
+    int min_offset[MAX_TEMPORAL_LAYERS] = {-8, -8, -8, -8, -8, -8};
+    int max_offset[MAX_TEMPORAL_LAYERS] = {8, 8, 8, 8, 8, 8};
+    if (pcs->slice_type != I_SLICE &&
+        (min_offset[pcs->ppcs->temporal_layer_index] != 0 || max_offset[pcs->ppcs->temporal_layer_index] != 0)) {
+#else
+        int min_offset[MAX_TEMPORAL_LAYERS] = {0, -8, -8, -8, -8, -8};
+        int max_offset[MAX_TEMPORAL_LAYERS] = {0, 8, 8, 8, 8, 8};
+        if (min_offset[pcs->ppcs->temporal_layer_index] != 0 || max_offset[pcs->ppcs->temporal_layer_index] != 0) {
+#endif
         uint64_t avg_me_dist = 0;
         uint64_t min_dist    = (uint64_t)~0;
         uint64_t max_dist    = 0;

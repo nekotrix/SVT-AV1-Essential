@@ -3575,7 +3575,15 @@ static void derive_tf_params(SequenceControlSet *scs) {
         }
 #if SHUT_TF
 #if TUNE_RTC_M11_4
+#if TUNE_RTC_M10_4
+#if TUNE_RTC_PSNR_M10
         else if (enc_mode <= ENC_M10) {
+#else
+        else if (enc_mode <= ENC_M9) {
+#endif
+#else
+        else if (enc_mode <= ENC_M10) {
+#endif
 #else
         else if (enc_mode <= ENC_M11) {
 #endif

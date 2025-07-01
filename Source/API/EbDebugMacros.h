@@ -302,7 +302,16 @@ extern "C" {
 #define TUNE_RTC_M9                 1 // Adopt changes with better trade-offs to M9.
 #define TUNE_RTC_M8                 1 // Adopt changes with better trade-offs to M8.
 #define FTR_RTC_FLAT                1 // Use --hierarchical-levels 0 to enable a flat prediction structure
-
+#define TUNE_RTC_M10_4              1 // New M10 RTC NSC adoption.
+#define TUNE_RTC_PSNR_M7            1 // PSNR focused M7 tuning.
+#define TUNE_RTC_PSNR_M8            1 // PSNR focused M8 tuning.
+#define TUNE_RTC_PSNR_M9            1 // PSNR focused M9 tuning.
+#define TUNE_RTC_PSNR_M10           1 // PSNR focused M10 tuning.
+#define TUNE_RTC_PSNR_M11           1 // PSNR focused M11 tuning.
+#define TUNE_RTC_PSNR_M12           1 // PSNR focused M12 tuning.
+#define CLN_REMOVE_LPD0_SHIFT       1 // Remove ld_enhanced_base_frame pic_lpd0 modulator for M7-M11.
+#define OPT_LAMBDA_RTC              1 // SB-based lambda modulation using exclusively ME delta-QP, and lambda boost for kf
+#define OPT_RTC_PSNR_M12            1 // Speeding up M12
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one
