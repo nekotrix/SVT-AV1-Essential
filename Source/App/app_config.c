@@ -1894,8 +1894,24 @@ static bool find_token_multiple_inputs(unsigned nch, int argc, char *const argv[
     return return_error;
 }
 
-static int check_long(ConfigEntry cfg_entry, ConfigEntry cfg_entry_next) {
-    return cfg_entry_next.name ? !strcmp(cfg_entry.name, cfg_entry_next.name) : 0;
+static bool check_long(ConfigEntry cfg_entry, ConfigEntry cfg_entry_next) {
+    return cfg_entry_next.name && !strcmp(cfg_entry.name, cfg_entry_next.name);
+}
+
+static void print_options(const char *title, const ConfigEntry *options) {
+    printf("\n%s:\n", title);
+
+    for (const ConfigEntry *index = options; index->token; ++index) {
+        // this only works if short and long token are one after another
+        if (check_long(*index, index[1])) {
+            printf("  %s, %-25s    %-25s\n", index->token, index[1].token, index->name);
+            ++index;
+        } else {
+            printf(index->token[1] == '-' ? "      %-25s    %-25s\n" : "      -%-25s   %-25s\n",
+                   index->token,
+                   index->name);
+        }
+    }
 }
 
 int get_version(int argc, char *argv[]) {
@@ -1926,124 +1942,15 @@ uint32_t get_help(int32_t argc, char *const argv[]) {
         "    SvtAv1EncApp <--stats svtav1_2pass.log> --passes 2 --rc 0 --crf 43 -b dst_filename -i "
         "src_filename\n"
         "Single-pass encode (VBR):\n"
-        "    SvtAv1EncApp --passes 1 --rc 1 --tbr 1000 -b dst_filename -i src_filename\n"
-        "\n"
-        "Options:\n");
-    for (ConfigEntry *options_token_index = config_entry_options; options_token_index->token; ++options_token_index) {
-        // this only works if short and long token are one after another
-        switch (check_long(*options_token_index, options_token_index[1])) {
-        case 1:
-            printf("  %s, %-25s    %-25s\n",
-                   options_token_index->token,
-                   options_token_index[1].token,
-                   options_token_index->name);
-            ++options_token_index;
-            break;
-        default:
-            printf(options_token_index->token[1] == '-' ? "      %-25s    %-25s\n" : "      -%-25s   %-25s\n",
-                   options_token_index->token,
-                   options_token_index->name);
-        }
-    }
-    printf("\nEncoder Global Options:\n");
-    for (ConfigEntry *global_options_token_index = config_entry_global_options; global_options_token_index->token;
-         ++global_options_token_index) {
-        switch (check_long(*global_options_token_index, global_options_token_index[1])) {
-        case 1:
-            printf("  %s, %-25s    %-25s\n",
-                   global_options_token_index->token,
-                   global_options_token_index[1].token,
-                   global_options_token_index->name);
-            ++global_options_token_index;
-            break;
-        default:
-            printf(global_options_token_index->token[1] == '-' ? "      %-25s    %-25s\n" : "      -%-25s   %-25s\n",
-                   global_options_token_index->token,
-                   global_options_token_index->name);
-        }
-    }
-    printf("\nRate Control Options:\n");
-    for (ConfigEntry *rc_token_index = config_entry_rc; rc_token_index->token; ++rc_token_index) {
-        switch (check_long(*rc_token_index, rc_token_index[1])) {
-        case 1:
-            printf("  %s, %-25s    %-25s\n", rc_token_index->token, rc_token_index[1].token, rc_token_index->name);
-            ++rc_token_index;
-            break;
-        default:
-            printf(rc_token_index->token[1] == '-' ? "      %-25s    %-25s\n" : "      -%-25s   %-25s\n",
-                   rc_token_index->token,
-                   rc_token_index->name);
-        }
-    }
-    printf("\nMulti-pass Options:\n");
-    for (ConfigEntry *two_p_token_index = config_entry_2p; two_p_token_index->token; ++two_p_token_index) {
-        switch (check_long(*two_p_token_index, two_p_token_index[1])) {
-        case 1:
-            printf("  %s, %-25s    %-25s\n",
-                   two_p_token_index->token,
-                   two_p_token_index[1].token,
-                   two_p_token_index->name);
-            ++two_p_token_index;
-            break;
-        default:
-            printf(two_p_token_index->token[1] == '-' ? "      %-25s    %-25s\n" : "      -%-25s   %-25s\n",
-                   two_p_token_index->token,
-                   two_p_token_index->name);
-        }
-    }
-    printf("\nGOP size and type Options:\n");
-    for (ConfigEntry *kf_token_index = config_entry_intra_refresh; kf_token_index->token; ++kf_token_index) {
-        switch (check_long(*kf_token_index, kf_token_index[1])) {
-        case 1:
-            printf("  %s, %-25s    %-25s\n", kf_token_index->token, kf_token_index[1].token, kf_token_index->name);
-            ++kf_token_index;
-            break;
-        default:
-            printf(kf_token_index->token[1] == '-' ? "      %-25s    %-25s\n" : "      -%-25s   %-25s\n",
-                   kf_token_index->token,
-                   kf_token_index->name);
-        }
-    }
-    printf("\nAV1 Specific Options:\n");
-    for (ConfigEntry *sp_token_index = config_entry_specific; sp_token_index->token; ++sp_token_index) {
-        switch (check_long(*sp_token_index, sp_token_index[1])) {
-        case 1:
-            printf("  %s, %-25s    %-25s\n", sp_token_index->token, sp_token_index[1].token, sp_token_index->name);
-            ++sp_token_index;
-            break;
-        default:
-            printf(sp_token_index->token[1] == '-' ? "      %-25s    %-25s\n" : "      -%-25s   %-25s\n",
-                   sp_token_index->token,
-                   sp_token_index->name);
-        }
-    }
-    printf("\nColor Description Options:\n");
-    for (ConfigEntry *cd_token_index = config_entry_color_description; cd_token_index->token; ++cd_token_index) {
-        switch (check_long(*cd_token_index, cd_token_index[1])) {
-        case 1:
-            printf("  %s, %-25s    %-25s\n", cd_token_index->token, cd_token_index[1].token, cd_token_index->name);
-            ++cd_token_index;
-            break;
-        default:
-            printf(cd_token_index->token[1] == '-' ? "      %-25s    %-25s\n" : "      -%-25s   %-25s\n",
-                   cd_token_index->token,
-                   cd_token_index->name);
-        }
-    }
-
-    printf("\nVariance Boost Options:\n");
-    for (ConfigEntry *cd_token_index = config_entry_variance_boost; cd_token_index->token; ++cd_token_index) {
-        switch (check_long(*cd_token_index, cd_token_index[1])) {
-        case 1:
-            printf("  %s, %-25s    %-25s\n", cd_token_index->token, cd_token_index[1].token, cd_token_index->name);
-            ++cd_token_index;
-            break;
-        default:
-            printf(cd_token_index->token[1] == '-' ? "      %-25s    %-25s\n" : "      -%-25s   %-25s\n",
-                   cd_token_index->token,
-                   cd_token_index->name);
-        }
-    }
+        "    SvtAv1EncApp --passes 1 --rc 1 --tbr 1000 -b dst_filename -i src_filename\n");
+    print_options("Options", config_entry_options);
+    print_options("Encoder Global Options", config_entry_global_options);
+    print_options("Rate Control Options", config_entry_rc);
+    print_options("Multi-pass Options", config_entry_2p);
+    print_options("GOP size and type Options", config_entry_intra_refresh);
+    print_options("AV1 Specific Options", config_entry_specific);
+    print_options("Color Description Options", config_entry_color_description);
+    print_options("Variance Boost Options", config_entry_variance_boost);
 
     return 1;
 }
