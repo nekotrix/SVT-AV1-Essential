@@ -312,6 +312,14 @@ extern "C" {
 #define CLN_REMOVE_LPD0_SHIFT       1 // Remove ld_enhanced_base_frame pic_lpd0 modulator for M7-M11.
 #define OPT_LAMBDA_RTC              1 // SB-based lambda modulation using exclusively ME delta-QP, and lambda boost for kf
 #define OPT_RTC_PSNR_M12            1 // Speeding up M12
+#define FTR_SFRAME_RA               1 // Enable S-Frame feature in Random Access Mode
+#if FTR_SFRAME_RA
+#define FIX_NEAREST_ARF_RA          1 // Fix issue of S-Frame nearest ARF mode finding wrong ARF position in RA mode, since frames in decode order
+#define FIX_SFRAME_PRUNE_REF0       1 // Prune RefList0 when forward and backward both refer to S-Frame in RA mode, [LAST/LAST2/LAST3/GOLD] ref frame MVs to S-Frame are in reversed direction
+#define EN_SFRAME_E2E_TEST          0 // Enable S-Frame test cases in E2E test, default is disabled
+#endif
+#define FIX_SFRAME_ORDER_HINT       1 // Fix issue of dpd_order_hint is not relative with key position
+
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one
@@ -345,13 +353,6 @@ extern "C" {
 
 // Switch frame debugging code
 #define DEBUG_SFRAME            0
-#define FTR_SFRAME_RA           1 // Enable S-Frame feature in Random Access Mode
-#if FTR_SFRAME_RA
-#define FIX_NEAREST_ARF_RA      1 // Fix issue of S-Frame nearest ARF mode finding wrong ARF position in RA mode, since frames in decode order
-#define FIX_SFRAME_PRUNE_REF0   1 // Prune RefList0 when forward and backward both refer to S-Frame in RA mode, [LAST/LAST2/LAST3/GOLD] ref frame MVs to S-Frame are in reversed direction
-#define EN_SFRAME_E2E_TEST      0 // Enable S-Frame test cases in E2E test
-#endif
-#define FIX_SFRAME_ORDER_HINT   1 // Fix issue of dpd_order_hint is not relative with key position
 
 // Variance boost debugging code
 #define DEBUG_VAR_BOOST         0

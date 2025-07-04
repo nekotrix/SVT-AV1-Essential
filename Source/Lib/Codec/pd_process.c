@@ -4292,7 +4292,6 @@ void update_count_try(SequenceControlSet* scs, PictureParentControlSet* pcs) {
 }
 /*
 * Switch frame's pcs->dpb_order_hint[8] will be packed to uncompressed_header as ref_order_hint[8], ref to spec 5.9.2.
-* Pictures are inputted in this process in display order and no need to consider reordering since the switch frame feature only supports low delay pred structure by design (not by spec).
 */
 static void update_sframe_ref_order_hint(PictureParentControlSet *ppcs, PictureDecisionContext *pd_ctx)
 {
