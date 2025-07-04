@@ -1607,7 +1607,11 @@ static void  av1_generate_rps_info(
         av1_rps->refresh_frame_mask = 0xFF;
 
         update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
+#if FIX_SFRAME_PRUNE_REF0
+        set_ref_list_counts(pcs, ctx);
+#else
         set_ref_list_counts(pcs);
+#endif // FIX_SFRAME_PRUNE_REF0
         prune_refs(av1_rps, pcs->ref_list0_count, pcs->ref_list1_count);
         set_frame_display_params(pcs, ctx, mg_idx);
     }
@@ -1832,7 +1836,11 @@ static void  av1_generate_rps_info(
 
         update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
 
+#if FIX_SFRAME_PRUNE_REF0
+        set_ref_list_counts(pcs, ctx);
+#else
         set_ref_list_counts(pcs);
+#endif // FIX_SFRAME_PRUNE_REF0
         // to make sure the long base reference is in base layer
         if (scs->static_config.pred_structure == LOW_DELAY && (pcs->picture_number - ctx->last_long_base_pic) >= long_base_pic &&
             pcs->temporal_layer_index == 0) {
