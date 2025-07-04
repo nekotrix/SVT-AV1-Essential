@@ -1163,10 +1163,10 @@ static void set_all_ref_frame_type(PictureParentControlSet  *ppcs, MvReferenceFr
     }
 
 #if FIX_SFRAME_PRUNE_REF0
-    // S-Frame feature in RA mode will refresh all ref frames at S-Frame position (ARF),
-    // but in decode order, the rest frames in this miniGOP has [LAST/LAST2/LAST3/GOLD]
-    // ref to S-Frame; when MFMV enabled, the ref MVs to S-Frame are duplicated and in
-    // reversed direction, here to prune the ref frame types in ref_list0 to S-Frame
+    // The S-Frame feature in RA mode refreshes all reference frames at the S-Frame position (ARF).
+    // However, in decode order, the remaining frames in this mini-GOP reference the S-Frame through
+    // [LAST, LAST2, LAST3, GOLD]. When MFMV is enabled, the reference MVs to the S-Frame are duplicated
+    // and have reversed direction. Prune the S-Frame reference types from ref_list0 to avoid conflicts.
     prune_sframe_refs(ctx, ppcs, ref_frame_arr, tot_ref_frames);
 #endif // FIX_SFRAME_PRUNE_REF0
 }
