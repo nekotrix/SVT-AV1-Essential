@@ -100,7 +100,9 @@ typedef struct EncContext {
 
 //initilize memory mapped file handler
 static void init_memory_file_map(EbConfig* app_cfg) {
-    app_cfg->mmap.enable = app_cfg->buffered_input == -1 && !app_cfg->input_file_is_fifo;
+    if (app_cfg->mmap.allow) {
+        app_cfg->mmap.enable = app_cfg->buffered_input == -1 && !app_cfg->input_file_is_fifo;
+    }
 
     if (!app_cfg->mmap.enable)
         return;

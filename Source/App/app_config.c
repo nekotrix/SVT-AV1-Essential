@@ -155,6 +155,7 @@
 #define FAST_DECODE_TOKEN "--fast-decode"
 #define ADAPTIVE_QP_ENABLE_NEW_TOKEN "--aq-mode"
 #define INPUT_FILE_LONG_TOKEN "--input"
+#define ALLOW_MMAP_FILE_TOKEN "--allow-mmap-file"
 #define OUTPUT_BITSTREAM_LONG_TOKEN "--output"
 #define OUTPUT_RECON_LONG_TOKEN "--recon"
 #define WIDTH_LONG_TOKEN "--width"
@@ -358,6 +359,14 @@ static EbErrorType set_cfg_input_file(EbConfig *cfg, const char *token, const ch
     }
 
     cfg->y4m_input = check_if_y4m(cfg);
+    return EB_ErrorNone;
+}
+static EbErrorType set_allow_mmap_file(EbConfig *cfg, const char *token, const char *value) {
+    (void)token;
+    switch (value ? *value : '1') {
+    case '0': cfg->mmap.allow = false; break;
+    default: cfg->mmap.allow = true; break;
+    }
     return EB_ErrorNone;
 }
 static EbErrorType set_cfg_stream_file(EbConfig *cfg, const char *token, const char *value) {
@@ -619,6 +628,7 @@ ConfigDescription config_entry_options[] = {
     {VERSION_TOKEN, "Shows the version of the library that's linked to the library"},
     {INPUT_FILE_TOKEN, "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
     {INPUT_FILE_LONG_TOKEN, "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
+    {ALLOW_MMAP_FILE_TOKEN, "Allow memory mapping for regular input file. Performance is platform dependent"},
 
     {OUTPUT_BITSTREAM_TOKEN, "Output compressed (ivf) file path, use `stdout` or `-` to write to pipe"},
     {OUTPUT_BITSTREAM_LONG_TOKEN, "Output compressed (ivf) file path, use `stdout` or `-` to write to pipe"},
@@ -936,6 +946,7 @@ ConfigEntry config_entry[] = {
     // Options
     {INPUT_FILE_TOKEN, "InputFile", set_cfg_input_file},
     {INPUT_FILE_LONG_TOKEN, "InputFile", set_cfg_input_file},
+    {ALLOW_MMAP_FILE_TOKEN, "AllowMmapFile", set_allow_mmap_file},
     {OUTPUT_BITSTREAM_TOKEN, "StreamFile", set_cfg_stream_file},
     {OUTPUT_BITSTREAM_LONG_TOKEN, "StreamFile", set_cfg_stream_file},
     {ERROR_FILE_TOKEN, "ErrorFile", set_cfg_error_file},
@@ -1137,6 +1148,7 @@ EbConfig *svt_config_ctor() {
     app_cfg->injector_frame_rate = 60;
     app_cfg->roi_map_file        = NULL;
     app_cfg->fgs_table_path      = NULL;
+    app_cfg->mmap.allow          = true;
 
     return app_cfg;
 }
