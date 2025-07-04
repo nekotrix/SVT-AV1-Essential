@@ -781,9 +781,11 @@ ConfigDescription config_entry_rc[] = {
     {VBR_MIN_SECTION_PCT_TOKEN, "GOP min bitrate (expressed as a percentage of the target rate), default is 0 [0-100]"},
     {VBR_MAX_SECTION_PCT_TOKEN,
      "GOP max bitrate (expressed as a percentage of the target rate), default is 2000 [0-10000]"},
+#if CONFIG_ENABLE_QUANT_MATRIX
     {ENABLE_QM_TOKEN, "Enable quantisation matrices, default is 0 [0-1]"},
     {MIN_QM_LEVEL_TOKEN, "Min quant matrix flatness, default is 8 [0-15]"},
     {MAX_QM_LEVEL_TOKEN, "Max quant matrix flatness, default is 15 [0-15]"},
+#endif
     {ROI_MAP_FILE_TOKEN, "Enable Region Of Interest and specify a picture based QP Offset map file, default is off"},
     // TF Strength
     {TF_STRENGTH_FILTER_TOKEN, "[PSY] Adjust temporal filtering strength, default is 1 [0-4]"},
@@ -1102,11 +1104,12 @@ ConfigEntry config_entry[] = {
     {MASTERING_DISPLAY_TOKEN, "MasteringDisplay", set_cfg_generic_token},
     {CONTENT_LIGHT_LEVEL_TOKEN, "ContentLightLevel", set_cfg_generic_token},
 
+#if CONFIG_ENABLE_QUANT_MATRIX
     // QM
     {ENABLE_QM_TOKEN, "EnableQM", set_cfg_generic_token},
     {MIN_QM_LEVEL_TOKEN, "MinQmLevel", set_cfg_generic_token},
     {MAX_QM_LEVEL_TOKEN, "MaxQmLevel", set_cfg_generic_token},
-
+#endif
     // ROI
     {ROI_MAP_FILE_TOKEN, "RoiMapFile", set_cfg_roi_map_file},
 

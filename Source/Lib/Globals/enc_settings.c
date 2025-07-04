@@ -2194,7 +2194,9 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"enable-dlf", &config_struct->enable_dlf_flag},
         {"enable-overlays", &config_struct->enable_overlays},
         {"enable-force-key-frames", &config_struct->force_key_frames},
+#if CONFIG_ENABLE_QUANT_MATRIX
         {"enable-qm", &config_struct->enable_qm},
+#endif
         {"enable-dg", &config_struct->enable_dg},
         {"gop-constraint-rc", &config_struct->gop_constraint_rc},
         {"enable-variance-boost", &config_struct->enable_variance_boost},

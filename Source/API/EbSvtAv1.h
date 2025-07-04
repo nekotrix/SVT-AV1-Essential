@@ -19,6 +19,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include "EbSvtAv1Formats.h"
+#include "EbConfigMacros.h"
 #include "EbDebugMacros.h"
 
 struct SvtMetadataArray;

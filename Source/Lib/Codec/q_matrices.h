@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 #define QM_TOTAL_SIZE                          3344
-
+#if CONFIG_ENABLE_QUANT_MATRIX
 static const QmVal wt_matrix_ref[NUM_QM_LEVELS][2][QM_TOTAL_SIZE] = {
   {
     { /* Luma */
@@ -13421,7 +13421,7 @@ static const QmVal iwt_matrix_ref[NUM_QM_LEVELS][2][QM_TOTAL_SIZE] = {
       32, 32, 32, 32 },
   },
 };
-
+#endif // CONFIG_ENABLE_QUANT_MATRIX
 #ifdef __cplusplus
 }
 #endif

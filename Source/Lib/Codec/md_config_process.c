@@ -210,7 +210,8 @@ void svt_av1_qm_init(PictureParentControlSet *pcs) {
 #endif
     const uint8_t num_planes = 3; // MAX_MB_PLANE;// NM- No monochroma
     uint8_t       q, c, t;
-    int32_t       current;
+#if CONFIG_ENABLE_QUANT_MATRIX
+    int32_t current;
     for (q = 0; q < NUM_QM_LEVELS; ++q) {
         for (c = 0; c < num_planes; ++c) {
             current = 0;
@@ -232,6 +233,16 @@ void svt_av1_qm_init(PictureParentControlSet *pcs) {
             }
         }
     }
+#else
+    for (q = 0; q < NUM_QM_LEVELS; ++q) {
+        for (c = 0; c < num_planes; ++c) {
+            for (t = 0; t < TX_SIZES_ALL; ++t) {
+                pcs->gqmatrix[q][c][t]  = NULL;
+                pcs->giqmatrix[q][c][t] = NULL;
+            }
+        }
+    }
+#endif // CONFIG_ENABLE_QUANT_MATRIX
 
     if (pcs->frm_hdr.quantization_params.using_qmatrix) {
         const int32_t min_qmlevel = pcs->scs->static_config.min_qm_level;
