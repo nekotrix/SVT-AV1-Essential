@@ -64,6 +64,7 @@ Usage: $0 [OPTION] ... -- [OPTIONS FOR CMAKE]
 --enable-*/--disable-* options shown are not the default
 For each enable-*, there is a disable-* option, and vice versa.
 
+    --no-configure      Just build
 -a, --all, all          Builds release and debug
     --asm, asm=*        Set assembly compiler [$ASM]
 -b, --bindir, bindir=*  Directory to install binaries
@@ -225,6 +226,7 @@ fi
 build_release=false
 build_debug=false
 build_install=false
+configure=true
 
 PGO_COMPILE_STAGE=none
 
@@ -233,6 +235,7 @@ parse_options() {
         [ -z "$1" ] && break
         case $(printf %s "$1" | tr '[:upper:]' '[:lower:]') in
         help) echo_help && ${IN_SCRIPT:-false} && exit ;;
+        no-configure) configure=false && shift ;;
         all) build_debug=true build_release=true && shift ;;
         asm=*)
             check_executable "${1#*=}" &&
@@ -368,6 +371,7 @@ else
             # Stop on "--", pass the rest to cmake
             "") shift && break ;;
             help) parse_options help && shift ;;
+            no-configure) parse_options no-configure && shift ;;
             all) parse_options debug release && shift ;;
             c-only) parse_options c-only && shift ;;
             clean) parse_options clean && shift ;;
@@ -478,6 +482,7 @@ else
             match=$(printf %s "$1" | tr '[:upper:]' '[:lower:]')
             case $match in
             all) parse_options release debug && shift ;;
+            no-configure) parse_options no-configure && shift ;;
             asm=*) parse_options asm="${1#*=}" && shift ;;
             bindir=*) parse_options bindir="${1#*=}" && shift ;;
             cc=*) parse_options cc="${1#*=}" && shift ;;
@@ -530,12 +535,12 @@ use) compile_args=no_clean build_args='--target PGOCompileUse' ;;
 esac
 
 $build_debug && {
-    configure debug $compile_args "$@"
+    $configure && configure debug $compile_args "$@"
     build debug $build_args
 }
 if $build_release || ! $build_debug; then
     build_release=true
-    configure release $compile_args "$@"
+    $configure && configure release $compile_args "$@"
     build release $build_args
 fi
 
