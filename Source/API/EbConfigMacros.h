@@ -22,6 +22,12 @@
 
 // clang-format off
 
+#if RTC_BUILD
+#define CONFIG_ENABLE_QUANT_MATRIX          0
+#define CONFIG_ENABLE_OBMC                  0
+#define CONFIG_ENABLE_FILM_GRAIN            0
+#endif
+
 #ifndef CONFIG_ENABLE_QUANT_MATRIX
 #define CONFIG_ENABLE_QUANT_MATRIX          1
 #endif
