@@ -1051,7 +1051,11 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             // Loop through each segment to determine if it is coded losslessly
             for (int segment_id = 0; segment_id < MAX_SEGMENTS; segment_id++) {
                 pcs->lossless[segment_id] = 0;
-
+#if FIX_ZERO_QDELTAS_LOSSLESS
+                pcs->lossless[segment_id] =
+                    ((int16_t)((int16_t)pcs->ppcs->frm_hdr.quantization_params.base_q_idx +
+                               pcs->ppcs->frm_hdr.segmentation_params.feature_data[segment_id][SEG_LVL_ALT_Q])) <= 0;
+#else
                 pcs->lossless[segment_id] =
                     ((int16_t)((int16_t)pcs->ppcs->frm_hdr.quantization_params.base_q_idx +
                                pcs->ppcs->frm_hdr.segmentation_params.feature_data[segment_id][SEG_LVL_ALT_Q])) <= 0 &&
@@ -1060,7 +1064,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                     !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_U] &&
                     !frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_V] &&
                     !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_V];
-
+#endif
                 has_lossless_segment = has_lossless_segment || pcs->lossless[segment_id];
             }
             // Derive coded_lossless; true if the frame is fully lossless at the coded resolution.
@@ -1076,12 +1080,16 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                 frm_hdr->segmentation_params.segmentation_enabled = 0;
         }
         if (!frm_hdr->segmentation_params.segmentation_enabled) {
+#if FIX_ZERO_QDELTAS_LOSSLESS
+            frm_hdr->coded_lossless = pcs->lossless[0] = !pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
+#else
             frm_hdr->coded_lossless = pcs->lossless[0] = !pcs->ppcs->frm_hdr.quantization_params.base_q_idx &&
                 !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_Y] &&
                 !frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_U] &&
                 !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_U] &&
                 !frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_V] &&
                 !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_V];
+#endif
         }
 
         // Derive all_lossless; if super-resolution is used, such a frame will still NOT be lossless at the upscaled resolution.
@@ -1089,8 +1097,15 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
 
         if (frm_hdr->coded_lossless) {
             pcs->ppcs->frm_hdr.delta_q_params.delta_q_present = 0;
-            pcs->ppcs->dlf_ctrls.enabled                      = 0;
-            pcs->ppcs->cdef_level                             = 0;
+#if FIX_ZERO_QDELTAS_LOSSLESS
+            frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_Y] = 0;
+            frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_U] = 0;
+            frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_U] = 0;
+            frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_V] = 0;
+            frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_V] = 0;
+#endif
+            pcs->ppcs->dlf_ctrls.enabled = 0;
+            pcs->ppcs->cdef_level        = 0;
         }
 
         if (frm_hdr->all_lossless)
