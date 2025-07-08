@@ -273,7 +273,6 @@ extern const CodedBlockStats* svt_aom_get_coded_blk_stats(const uint32_t cu_idx)
 //**************************************************
 // MACROS
 //**************************************************
-#define MIGHT_BE_UNUSED(x) ((void)(x))
 #define DIVIDE_AND_ROUND(x, y) (((x) + ((y) >> 1)) / (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))

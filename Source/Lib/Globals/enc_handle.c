@@ -134,7 +134,6 @@ static uint16_t get_num_refs_in_one_mg(uint32_t hierarchical_levels, uint32_t re
     return tot_refs;
 }
 
-#if !CONFIG_LOG_QUIET
 static const char *get_asm_level_name_str(EbCpuFlags cpu_flags) {
 
     const struct {
@@ -173,7 +172,6 @@ static const char *get_asm_level_name_str(EbCpuFlags cpu_flags) {
     }
     return "c";
 }
-#endif
 
 //Get Number of logical processors
 static uint32_t get_num_processors() {
@@ -962,7 +960,6 @@ static EbErrorType load_default_buffer_configuration_settings(
         ******************************************************************/
 #if defined ARCH_X86_64 || defined ARCH_AARCH64
         const EbCpuFlags cpu_flags = svt_aom_get_cpu_flags();
-        MIGHT_BE_UNUSED(cpu_flags);
         const EbCpuFlags cpu_flags_to_use = svt_aom_get_cpu_flags_to_use();
         scs->static_config.use_cpu_flags &= cpu_flags_to_use;
         SVT_INFO("[asm level on system : up to %s]\n", get_asm_level_name_str(cpu_flags));
@@ -6830,7 +6827,6 @@ EB_API void svt_av1_print_version(void) {
     "unknown compiler"
 #endif
     ;
-    MIGHT_BE_UNUSED(compiler);
     SVT_INFO("SVT [build]  :\t%s %zu bit\n", compiler,  sizeof(void*) * 8);
 #if !REPRODUCIBLE_BUILDS
     SVT_INFO("LIB Build date: %s %s\n", __DATE__, __TIME__);
