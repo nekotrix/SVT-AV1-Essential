@@ -1316,6 +1316,54 @@ static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
 #endif
                 (pcs->ahd_error == (uint32_t)~0 || // Use ahd_error only when it is derived
                  pcs->ahd_error < ((((20 * pcs->enhanced_pic->width * pcs->enhanced_pic->height) / 128)) * (uint32_t) (INPUT_SIZE_COUNT - pcs->input_resolution)))) { // Only if there are low temporal variations between frames
+#if FIX_SC_SETTINGS
+                uint64_t hme_sad = me_ctx->search_results[list_index][ref_pic_index].hme_sad;
+
+                switch (me_ctx->sc_class_me_boost) {
+                case 1:
+                    if (hme_sad > 4 * 64 * 64) {
+                        search_area_width *= 5;
+                        search_area_height *= 5;
+                    }
+                    else if (hme_sad > 3 * 64 * 64) {
+                        search_area_width *= 4;
+                        search_area_height *= 4;
+                    }
+                    else if (hme_sad > 2 * 64 * 64) {
+                        search_area_width *= 3;
+                        search_area_height *= 3;
+                    }
+                    break;
+                case 2:
+                    if (hme_sad > 4 * 64 * 64) {
+                        search_area_width = (int16_t)(search_area_width * 4.5);
+                        search_area_height = (int16_t)(search_area_height * 4.5);
+                    }
+                    else if (hme_sad > 3 * 64 * 64) {
+                        search_area_width = (int16_t)(search_area_width * 3.5);
+                        search_area_height = (int16_t)(search_area_height * 3.5);
+                    }
+                    else if (hme_sad > 2 * 64 * 64) {
+                        search_area_width = (int16_t)(search_area_width * 2.5);
+                        search_area_height = (int16_t)(search_area_height * 2.5);
+                    }
+                    break;
+                case 3:
+                    if (hme_sad > 4 * 64 * 64) {
+                        search_area_width = (int16_t)(search_area_width * 3.5);
+                        search_area_height = (int16_t)(search_area_height * 3.5);
+                    }
+                    else if (hme_sad > 3 * 64 * 64) {
+                        search_area_width = (int16_t)(search_area_width * 2.5);
+                        search_area_height = (int16_t)(search_area_height * 2.5);
+                    }
+                    else if (hme_sad > 2 * 64 * 64) {
+                        search_area_width *= 2;
+                        search_area_height *= 2;
+                    }
+                    break;
+                }
+#else
                 if (me_ctx->search_results[list_index][ref_pic_index].hme_sad > (4 * 64 * 64)) {
                     search_area_width *= 4;
                     search_area_height *= 4;
@@ -1328,6 +1376,7 @@ static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
                     search_area_width *= 2;
                     search_area_height *= 2;
                 }
+#endif
             }
 #endif
             // Constrain x_ME to be a multiple of 8 (round up)

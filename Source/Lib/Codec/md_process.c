@@ -176,17 +176,24 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
     // determine MAX_NICS for a given preset
     // get the min scaling level (the smallest scaling level is the most conservative)
     uint8_t min_nic_scaling_level = NICS_SCALING_LEVELS - 1;
-    for (uint8_t rtc_itr = 0; rtc_itr < 2; rtc_itr++) {
-        bool rtc_tune = (bool)rtc_itr;
-        for (uint8_t is_base = 0; is_base < 2; is_base++) {
+#if FIX_SC_SETTINGS
+    for (uint8_t sc_class1 = 0; sc_class1 < 2; sc_class1++) {
+#endif
+        for (uint8_t rtc_itr = 0; rtc_itr < 2; rtc_itr++) {
+            bool rtc_tune = (bool)rtc_itr;
+            for (uint8_t is_base = 0; is_base < 2; is_base++) {
 #if OPT_REMOVE_NIC_QP_BANDS
 #if OPT_ALLINTRA_STILLIMAGE
-            uint8_t nic_level = svt_aom_get_nic_level(scs, enc_mode, is_base, rtc_tune);
+#if FIX_SC_SETTINGS
+                uint8_t nic_level = svt_aom_get_nic_level(scs, enc_mode, is_base, rtc_tune, sc_class1);
 #else
-            uint8_t nic_level = svt_aom_get_nic_level(enc_mode, is_base, rtc_tune);
+                uint8_t nic_level = svt_aom_get_nic_level(scs, enc_mode, is_base, rtc_tune);
 #endif
-            uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
-            min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
+#else
+                uint8_t nic_level = svt_aom_get_nic_level(enc_mode, is_base, rtc_tune);
+#endif
+                uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
+                min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
 #else
             for (uint8_t qp = MIN_QP_VALUE; qp <= MAX_QP_VALUE; qp++) {
                 uint8_t nic_level         = svt_aom_get_nic_level(enc_mode, is_base, qp, seq_qp_mod, rtc_tune);
@@ -194,8 +201,11 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
                 min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
             }
 #endif
+            }
         }
+#if FIX_SC_SETTINGS
     }
+#endif
     uint8_t stage1_scaling_num = MD_STAGE_NICS_SCAL_NUM[min_nic_scaling_level][MD_STAGE_1];
 
     // scale max_nics
@@ -256,13 +266,23 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, EbColor
         EB_MALLOC_ALIGNED(ctx->cfl_temp_luma_recon, sizeof(uint8_t) * sb_size * sb_size);
     EB_MALLOC_ALIGNED(ctx->pred_buf_q3, CFL_BUF_SQUARE);
     uint8_t use_update_cdf = 0;
-    for (uint8_t is_islice = 0; is_islice < 2; is_islice++) {
-        for (uint8_t is_base = 0; is_base < 2; is_base++) {
-            if (use_update_cdf)
-                break;
+#if FIX_SC_SETTINGS
+    for (uint8_t sc_class1 = 0; sc_class1 < 2; sc_class1++) {
+#endif
+        for (uint8_t is_islice = 0; is_islice < 2; is_islice++) {
+            for (uint8_t is_base = 0; is_base < 2; is_base++) {
+                if (use_update_cdf)
+                    break;
+#if FIX_SC_SETTINGS
+                use_update_cdf |= svt_aom_get_update_cdf_level(enc_mode, is_islice, is_base, sc_class1);
+#else
             use_update_cdf |= svt_aom_get_update_cdf_level(enc_mode, is_islice, is_base);
+#endif
+            }
         }
+#if FIX_SC_SETTINGS
     }
+#endif
     if (use_update_cdf)
         EB_CALLOC_ARRAY(ctx->rate_est_table, 1);
     else

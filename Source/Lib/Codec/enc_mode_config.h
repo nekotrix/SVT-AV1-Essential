@@ -16,7 +16,11 @@ void    svt_aom_set_obmc_controls(ModeDecisionContext *ctx, uint8_t obmc_mode);
 void    svt_aom_set_wm_controls(ModeDecisionContext *ctx, uint8_t wm_level);
 uint8_t svt_aom_set_nic_controls(ModeDecisionContext *ctx, uint8_t nic_level);
 uint8_t svt_aom_set_chroma_controls(ModeDecisionContext *ctx, uint8_t uv_level);
+#if FIX_SC_SETTINGS
+uint8_t svt_aom_get_update_cdf_level(EncMode enc_mode, SliceType is_islice, uint8_t is_base, uint8_t sc_class1);
+#else
 uint8_t svt_aom_get_update_cdf_level(EncMode enc_mode, SliceType is_islice, uint8_t is_base);
+#endif
 #if TUNE_M0_3
 uint8_t svt_aom_get_chroma_level(EncMode enc_mode, const uint8_t is_islice);
 #else
@@ -25,7 +29,12 @@ uint8_t svt_aom_get_chroma_level(EncMode enc_mode);
 uint8_t svt_aom_get_bypass_encdec(EncMode enc_mode, uint8_t encoder_bit_depth);
 #if OPT_REMOVE_NIC_QP_BANDS
 #if OPT_ALLINTRA_STILLIMAGE
+#if FIX_SC_SETTINGS
+uint8_t svt_aom_get_nic_level(SequenceControlSet *scs, EncMode enc_mode, uint8_t is_base, bool rtc_tune,
+                              uint8_t sc_class1);
+#else
 uint8_t svt_aom_get_nic_level(SequenceControlSet *scs, EncMode enc_mode, uint8_t is_base, bool rtc_tune);
+#endif
 #else
 uint8_t svt_aom_get_nic_level(EncMode enc_mode, uint8_t is_base, bool rtc_tune);
 #endif

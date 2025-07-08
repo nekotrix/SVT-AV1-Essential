@@ -493,10 +493,18 @@ static void set_me_search_params(SequenceControlSet *scs, PictureParentControlSe
         } else if (enc_mode <= ENC_M1) {
             me_ctx->me_sa.sa_min = (SearchArea){16, 16};
             me_ctx->me_sa.sa_max = (SearchArea){128, 128};
+#if FIX_SC_SETTINGS
+        } else if (enc_mode <= ENC_M4) {
+#else
         } else if (enc_mode <= ENC_M3) {
+#endif
             me_ctx->me_sa.sa_min = (SearchArea){8, 8};
             me_ctx->me_sa.sa_max = (SearchArea){96, 96};
+#if FIX_SC_SETTINGS
+        } else if (enc_mode <= ENC_M7) {
+#else
         } else if (enc_mode <= ENC_M5) {
+#endif
             me_ctx->me_sa.sa_min = (SearchArea){8, 8};
             me_ctx->me_sa.sa_max = (SearchArea){64, 64};
         } else {
@@ -1131,7 +1139,11 @@ void svt_aom_sig_deriv_me(SequenceControlSet *scs, PictureParentControlSet *pcs,
         if (enc_mode <= ENC_M2)
             me_ref_prune_level = 1;
 #if TUNE_M8_SC
+#if FIX_SC_SETTINGS
+        else if (enc_mode <= ENC_M7)
+#else
         else if (enc_mode <= ENC_M8)
+#endif
 #else
         else if (enc_mode <= ENC_M7)
 #endif
@@ -1230,10 +1242,21 @@ void svt_aom_sig_deriv_me(SequenceControlSet *scs, PictureParentControlSet *pcs,
 #if OPT_SC_ME_2
     // Applies to sc-class1 & sc-class4 scenes
     if (sc_class1) {
+#if FIX_SC_SETTINGS
+        if (enc_mode <= ENC_M2)
+            me_ctx->sc_class_me_boost = 1;
+        else if (enc_mode <= ENC_M6)
+            me_ctx->sc_class_me_boost = 2;
+        else if (enc_mode <= ENC_M7)
+            me_ctx->sc_class_me_boost = 3;
+        else
+            me_ctx->sc_class_me_boost = 0;
+#else
         if (enc_mode <= ENC_M8)
             me_ctx->sc_class_me_boost = 1;
         else
             me_ctx->sc_class_me_boost = 0;
+#endif
     } else if (sc_class4) {
         if (enc_mode <= ENC_M6)
             me_ctx->sc_class_me_boost = 1;
@@ -1934,6 +1957,9 @@ static void dlf_level_modulation(PictureControlSet *pcs, uint8_t *default_dlf_le
 }
 static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t is_not_last_layer, uint8_t fast_decode,
                              EbInputResolution resolution, bool rtc_tune, int is_base) {
+#if FIX_SC_SETTINGS
+    const uint8_t sc_class1 = pcs->ppcs->sc_class1;
+#endif
     uint8_t dlf_level       = 0;
     uint8_t modulation_mode = 0; // 0: off, 1: only towards bd-rate, 2: both sides; , 3: only towards speed
     if (rtc_tune) {
@@ -1977,7 +2003,11 @@ static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t i
 #endif
             dlf_level = 1;
 #if TUNE_M4_LD
+#if FIX_SC_SETTINGS
+        else if ((!sc_class1 && enc_mode <= ENC_M3) || (sc_class1 && enc_mode <= ENC_M4)) {
+#else
         else if (enc_mode <= ENC_M3) {
+#endif
 #else
         else if (enc_mode <= ENC_M4) {
 #endif
@@ -5399,7 +5429,12 @@ void svt_aom_set_wm_controls(ModeDecisionContext *ctx, uint8_t wm_level) {
 // Get the nic_level used for each preset (to be passed to setting function: svt_aom_set_nic_controls())
 #if OPT_REMOVE_NIC_QP_BANDS
 #if OPT_ALLINTRA_STILLIMAGE
+#if FIX_SC_SETTINGS
+uint8_t svt_aom_get_nic_level(SequenceControlSet *scs, EncMode enc_mode, uint8_t is_base, bool rtc_tune,
+                              uint8_t sc_class1) {
+#else
 uint8_t svt_aom_get_nic_level(SequenceControlSet *scs, EncMode enc_mode, uint8_t is_base, bool rtc_tune) {
+#endif
 #else
 uint8_t svt_aom_get_nic_level(EncMode enc_mode, uint8_t is_base, bool rtc_tune) {
 #endif
@@ -5481,7 +5516,11 @@ uint8_t svt_aom_get_nic_level(EncMode enc_mode, uint8_t is_base, bool rtc_tune) 
         nic_level = is_base ? 3 : 4;
     else if (enc_mode <= ENC_M3)
         nic_level = is_base ? 4 : 5;
+#if FIX_SC_SETTINGS
+    else if (!sc_class1 && enc_mode <= ENC_M4)
+#else
     else if (enc_mode <= ENC_M4)
+#endif
         nic_level = 5;
 #if TUNE_NEW_M6
 #if TUNE_M6_2
@@ -11188,12 +11227,19 @@ static EbErrorType rtime_alloc_ec_ctx_array(PictureControlSet *pcs, uint16_t all
     EB_MALLOC_ARRAY(pcs->ec_ctx_array, all_sb);
     return EB_ErrorNone;
 }
-
+#if FIX_SC_SETTINGS
+uint8_t svt_aom_get_update_cdf_level(EncMode enc_mode, SliceType is_islice, uint8_t is_base, uint8_t sc_class1) {
+#else
 uint8_t svt_aom_get_update_cdf_level(EncMode enc_mode, SliceType is_islice, uint8_t is_base) {
+#endif
     uint8_t update_cdf_level = 0;
     if (enc_mode <= ENC_M0)
         update_cdf_level = 1;
+#if FIX_SC_SETTINGS
+    else if ((!sc_class1 && enc_mode <= ENC_M3) || (sc_class1 && enc_mode <= ENC_M4))
+#else
     else if (enc_mode <= ENC_M3)
+#endif
         update_cdf_level = is_base ? 1 : 2;
 #if !TUNE_M4_LD
     else if (enc_mode <= ENC_M4)
@@ -11750,8 +11796,11 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         }
     }
     mfmv_controls(pcs, mfmv_level);
-
+#if FIX_SC_SETTINGS
+    uint8_t update_cdf_level = svt_aom_get_update_cdf_level(enc_mode, is_islice, is_base, sc_class1);
+#else
     uint8_t update_cdf_level = svt_aom_get_update_cdf_level(enc_mode, is_islice, is_base);
+#endif
     //set the conrols uisng the required level
     set_cdf_controls(pcs, update_cdf_level);
 
@@ -12109,7 +12158,11 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 
     if (sc_class1) {
 #if TUNE_M7_SC
+#if FIX_SC_SETTINGS
+        if (enc_mode <= ENC_M6)
+#else
         if (enc_mode <= ENC_M7)
+#endif
 #else
         if (enc_mode <= ENC_M6)
 #endif
@@ -12358,7 +12411,11 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     // Set the level for nic
 #if OPT_REMOVE_NIC_QP_BANDS
 #if OPT_ALLINTRA_STILLIMAGE
+#if FIX_SC_SETTINGS
+    pcs->nic_level = svt_aom_get_nic_level(pcs->scs, enc_mode, is_base, rtc_tune, sc_class1);
+#else
     pcs->nic_level = svt_aom_get_nic_level(pcs->scs, enc_mode, is_base, rtc_tune);
+#endif
 #else
     pcs->nic_level = svt_aom_get_nic_level(enc_mode, is_base, rtc_tune);
 #endif
@@ -12429,7 +12486,11 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 #endif
             pcs->mds0_level = 0;
 #if TUNE_M5_2
+#if FIX_SC_SETTINGS
+        else if (!sc_class1 && enc_mode <= ENC_M4)
+#else
         else if (enc_mode <= ENC_M4)
+#endif
 #else
         else if (enc_mode <= ENC_M5)
 #endif
@@ -12509,7 +12570,11 @@ set lpd0_level
     } else {
         // Set depth_removal_level_controls
         if (sc_class1) {
+#if FIX_SC_SETTINGS
+            if (enc_mode <= ENC_M6) {
+#else
             if (enc_mode <= ENC_M6 || (!rtc_tune && enc_mode <= ENC_M7)) {
+#endif
                 pcs->pic_depth_removal_level = 0;
 #if TUNE_M9_SC
             } else if (enc_mode <= ENC_M9) {
@@ -12700,12 +12765,20 @@ set lpd0_level
 #if OPT_DEPTHS_CTRL //
     if (sc_class1) {
 #if TUNE_M6_SC
+#if FIX_SC_SETTINGS
+        if (enc_mode <= ENC_M5) {
+#else
         if (enc_mode <= ENC_M6) {
+#endif
 #else
         if (enc_mode <= ENC_M5) {
 #endif
             pcs->pic_block_based_depth_refinement_level = 0;
+#if FIX_SC_SETTINGS
+        } else if (enc_mode <= ENC_M6) {
+#else
         } else if (enc_mode <= ENC_M7) {
+#endif
             pcs->pic_block_based_depth_refinement_level = 2;
         }
 #if TUNE_M9_SC
@@ -12919,7 +12992,11 @@ set lpd0_level
 #endif
     if (sc_class1) {
 #if TUNE_M6_SC_2
+#if FIX_SC_SETTINGS
+        if (enc_mode <= ENC_M4)
+#else
         if (enc_mode <= ENC_M5)
+#endif
 #else
         if (enc_mode <= ENC_M6)
 #endif
