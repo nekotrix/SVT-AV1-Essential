@@ -365,6 +365,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
     void svt_aom_upsampled_pred_c(MacroBlockD *xd, const struct AV1Common *const cm, int mi_row, int mi_col, const MV *const mv, uint8_t *comp_pred, int width, int height, int subpel_x_q3, int subpel_y_q3, const uint8_t *ref, int ref_stride, int subpel_search);
     RTCD_EXTERN void(*svt_aom_upsampled_pred) (MacroBlockD *xd, const struct AV1Common *const cm, int mi_row, int mi_col, const MV *const mv, uint8_t *comp_pred, int width, int height, int subpel_x_q3, int subpel_y_q3, const uint8_t *ref, int ref_stride, int subpel_search);
 #endif
+#if CONFIG_ENABLE_OBMC
     unsigned int svt_aom_obmc_sad128x128_c(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask);
     RTCD_EXTERN unsigned int(*svt_aom_obmc_sad128x128)(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask);
     unsigned int svt_aom_obmc_sad128x64_c(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask);
@@ -497,6 +498,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
     RTCD_EXTERN unsigned int(*svt_aom_obmc_variance8x4)(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask, unsigned int *sse);
     unsigned int svt_aom_obmc_variance8x8_c(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask, unsigned int *sse);
     RTCD_EXTERN unsigned int(*svt_aom_obmc_variance8x8)(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask, unsigned int *sse);
+#endif // CONFIG_ENABLE_OBMC
     unsigned int svt_aom_variance4x4_c(const uint8_t *src_ptr, int source_stride, const uint8_t *ref_ptr, int ref_stride, unsigned int *sse);
     RTCD_EXTERN unsigned int(*svt_aom_variance4x4)(const uint8_t *src_ptr, int source_stride, const uint8_t *ref_ptr, int ref_stride, unsigned int *sse);
     unsigned int svt_aom_variance4x8_c(const uint8_t *src_ptr, int source_stride, const uint8_t *ref_ptr, int ref_stride, unsigned int *sse);
@@ -586,6 +588,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
     unsigned int svt_aom_highbd_10_variance128x128_c(const uint8_t *src_ptr, int source_stride, const uint8_t *ref_ptr, int ref_stride, unsigned int *sse);
     RTCD_EXTERN unsigned int(*svt_aom_highbd_10_variance128x128)(const uint8_t *src_ptr, int source_stride, const uint8_t *ref_ptr, int ref_stride, unsigned int *sse);
     uint32_t svt_aom_sub_pixel_variance128x128_c(const uint8_t *src_ptr, int source_stride, int xoffset, int  yoffset, const uint8_t *ref_ptr, int ref_stride, uint32_t *sse);
+#if CONFIG_ENABLE_OBMC
 #if CLN_OBMC_BUILD_PRED
     RTCD_EXTERN void (*svt_av1_calc_target_weighted_pred_above)(uint8_t is16bit, MacroBlockD* xd, int rel_mi_col, uint8_t nb_mi_width, MbModeInfo* nb_mi, void* fun_ctxt);
     void svt_av1_calc_target_weighted_pred_above_c(uint8_t is16bit, MacroBlockD* xd, int rel_mi_col, uint8_t nb_mi_width, MbModeInfo* nb_mi, void* fun_ctxt);
@@ -597,6 +600,8 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
     RTCD_EXTERN void (*svt_av1_calc_target_weighted_pred_left)(uint8_t is16bit, MacroBlockD *xd, int rel_mi_row, uint8_t nb_mi_height, MbModeInfo *nb_mi, void *fun_ctxt, const int num_planes);
     void svt_av1_calc_target_weighted_pred_left_c(uint8_t is16bit, MacroBlockD *xd, int rel_mi_row, uint8_t nb_mi_height, MbModeInfo *nb_mi, void *fun_ctxt, const int num_planes);
 #endif
+#endif // CONFIG_ENABLE_OBMC
+
     uint32_t hadamard_path_c(Buf2D residualBuf, Buf2D coeffBuf, Buf2D inputBuf, Buf2D predBuf, BlockSize bsize);
     RTCD_EXTERN uint32_t (*hadamard_path)(Buf2D residual, Buf2D coeff, Buf2D input, Buf2D pred, BlockSize bsize);
 
@@ -1143,6 +1148,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
     unsigned int svt_aom_sub_pixel_variance128x64_neon(const uint8_t *src,int src_stride,int xoffset, int yoffset,const uint8_t *ref, int ref_stride, unsigned int  *sse);
     unsigned int svt_aom_sub_pixel_variance128x128_neon(const uint8_t *src,int src_stride,int xoffset, int yoffset,const uint8_t *ref, int ref_stride, unsigned int  *sse);
 
+#if CONFIG_ENABLE_OBMC
     unsigned int svt_aom_obmc_sad4x4_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc, const int32_t *mask);
     unsigned int svt_aom_obmc_sad4x8_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc, const int32_t *mask);
     unsigned int svt_aom_obmc_sad4x16_neon(const uint8_t *ref, int ref_stride, const int32_t *wsrc, const int32_t *mask);
@@ -1226,6 +1232,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
 
     unsigned int svt_aom_obmc_sub_pixel_variance128x64_neon(const uint8_t *pre, int pre_stride, int xoffset, int yoffset, const int32_t *wsrc, const int32_t *mask, unsigned int *sse);
     unsigned int svt_aom_obmc_sub_pixel_variance128x128_neon(const uint8_t *pre, int pre_stride, int xoffset, int yoffset, const int32_t *wsrc, const int32_t *mask, unsigned int *sse);
+#endif // CONFIG_ENABLE_OBMC
 
     uint32_t svt_nxm_sad_kernel_helper_neon(const uint8_t *src, uint32_t src_stride, const uint8_t *ref, uint32_t ref_stride, uint32_t height, uint32_t width);
     void svt_get_proj_subspace_neon(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride, const uint8_t *dat8, int32_t dat_stride, int32_t use_highbitdepth, int32_t *flt0, int32_t flt0_stride, int32_t *flt1, int32_t flt1_stride, int32_t *xq, const SgrParamsType *params);
@@ -1404,11 +1411,13 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
     double svt_av1_compute_cross_correlation_neon_dotprod(unsigned char *im1, int stride1, int x1, int y1, unsigned char *im2, int stride2, int x2, int y2, uint8_t match_sz);
     double svt_av1_compute_cross_correlation_sve(unsigned char *im1, int stride1, int x1, int y1, unsigned char *im2, int stride2, int x2, int y2, uint8_t match_sz);
 
+#if CONFIG_ENABLE_OBMC
 #if CLN_OBMC_BUILD_PRED
     void svt_av1_calc_target_weighted_pred_left_neon(uint8_t is16bit, MacroBlockD* xd, int rel_mi_row, uint8_t nb_mi_height, MbModeInfo* nb_mi, void* fun_ctxt);
 #else
     void svt_av1_calc_target_weighted_pred_left_neon(uint8_t is16bit, MacroBlockD *xd, int rel_mi_row, uint8_t nb_mi_height, MbModeInfo *nb_mi, void *fun_ctxt, const int num_planes);
 #endif
+#endif // CONFIG_ENABLE_OBMC
 #endif
 
 #ifdef ARCH_X86_64
@@ -1748,6 +1757,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
     void svt_aom_upsampled_pred_sse2(MacroBlockD *xd, const struct AV1Common *const cm, int mi_row, int mi_col, const MV *const mv, uint8_t *comp_pred, int width, int height, int subpel_x_q3, int subpel_y_q3, const uint8_t *ref, int ref_stride, int subpel_search);
 #endif
 
+#if CONFIG_ENABLE_OBMC
     unsigned int svt_aom_obmc_sad128x128_avx2(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask);
 
     unsigned int svt_aom_obmc_sad128x64_avx2(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask);
@@ -1923,7 +1933,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
     unsigned int svt_aom_obmc_variance8x4_sse4_1(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask, unsigned int *sse);
 
     unsigned int svt_aom_obmc_variance8x8_sse4_1(const uint8_t *pre, int pre_stride, const int32_t *wsrc, const int32_t *mask, unsigned int *sse);
-
+#endif // CONFIG_ENABLE_OBMC
 
     unsigned int svt_aom_variance4x4_sse2(const uint8_t *src_ptr, int source_stride, const uint8_t *ref_ptr, int ref_stride, unsigned int *sse);
 
@@ -2236,6 +2246,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
     uint32_t svt_aom_variance_highbd_avx2(const uint16_t *a, int a_stride, const uint16_t *b, int b_stride,
                               int w, int h, uint32_t *sse);
     int svt_av1_haar_ac_sad_8x8_uint8_input_avx2(uint8_t *input, int stride, int hbd);
+#if CONFIG_ENABLE_OBMC
 #if CLN_OBMC_BUILD_PRED
     void svt_av1_calc_target_weighted_pred_above_avx2(uint8_t is16bit, MacroBlockD* xd, int rel_mi_col, uint8_t nb_mi_width, MbModeInfo* nb_mi, void* fun_ctxt);
     void svt_av1_calc_target_weighted_pred_left_avx2(uint8_t is16bit, MacroBlockD* xd, int rel_mi_row, uint8_t nb_mi_height, MbModeInfo* nb_mi, void* fun_ctxt);
@@ -2243,6 +2254,7 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t* dst, int32_t dstride,
     void svt_av1_calc_target_weighted_pred_above_avx2(uint8_t is16bit, MacroBlockD *xd, int rel_mi_col, uint8_t nb_mi_width, MbModeInfo *nb_mi, void *fun_ctxt, const int num_planes);
     void svt_av1_calc_target_weighted_pred_left_avx2(uint8_t is16bit, MacroBlockD *xd, int rel_mi_row, uint8_t nb_mi_height, MbModeInfo *nb_mi, void *fun_ctxt, const int num_planes);
 #endif
+#endif // CONFIG_ENABLE_OBMC
     int32_t svt_estimate_noise_fp16_avx2(const uint8_t *src, uint16_t width, uint16_t height, uint16_t stride_y);
     int32_t svt_estimate_noise_highbd_fp16_avx2(const uint16_t *src, int width, int height, int stride, int bd);
 #if !CLN_REMOVE_MODE_INFO

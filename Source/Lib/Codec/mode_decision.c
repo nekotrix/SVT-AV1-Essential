@@ -31,6 +31,7 @@
 #include "resize.h"
 #include "mcomp.h"
 #include "src_ops_process.h"
+#include "utility.h"
 #if OPT_OBMC
 #include "aom_dsp_rtcd.h"
 void calc_target_weighted_pred(PictureControlSet *pcs, ModeDecisionContext *ctx, const AV1_COMMON *cm,
@@ -186,11 +187,13 @@ uint8_t svt_aom_is_me_data_present(uint32_t me_block_offset, uint32_t me_cand_of
 // 3 - Regular uni-pred + Wedge compound Inter Intra + Smooth compound Inter Intra
 
 #define II_COUNT 3
+#if CONFIG_ENABLE_OBMC
 static bool warped_motion_mode_allowed(PictureControlSet *pcs, ModeDecisionContext *ctx) {
     FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
     return frm_hdr->allow_warped_motion && has_overlappable_candidates(ctx->blk_ptr) && ctx->blk_geom->bwidth >= 8 &&
         ctx->blk_geom->bheight >= 8 && ctx->wm_ctrls.enabled;
 }
+#endif
 MotionMode svt_aom_obmc_motion_mode_allowed(
     const PictureControlSet *pcs, struct ModeDecisionContext *ctx, const BlockSize bsize,
     uint8_t          situation, // 0: candidate(s) preparation, 1: data preparation, 2: simple translation face-off
@@ -1178,6 +1181,7 @@ static void inj_non_simple_modes(PictureControlSet *pcs, struct ModeDecisionCont
         }
     }
 
+#if CONFIG_ENABLE_OBMC
     // INJECT WARP
     const uint8_t is_warp_allowed = warped_motion_mode_allowed(pcs, ctx) &&
         svt_aom_is_valid_unipred_ref(ctx, WARP_GROUP, list_idx, ref_idx);
@@ -1236,6 +1240,10 @@ static void inj_non_simple_modes(PictureControlSet *pcs, struct ModeDecisionCont
         if (motion_mode_valid)
             INC_MD_CAND_CNT(cand_count, pcs->ppcs->max_can_count);
     }
+#else
+    MIGHT_BE_UNUSED(enable_wm);
+    MIGHT_BE_UNUSED(enable_obmc);
+#endif // CONFIG_ENABLE_OBMC
 
     *total_cand_count = cand_count;
 }
@@ -5108,6 +5116,7 @@ void svt_av1_init_me_luts(void) {
     init_me_luts_bd(sad_per_bit_lut_10, QINDEX_RANGE, EB_TEN_BIT);
 }
 
+#if CONFIG_ENABLE_OBMC
 #if CLN_UNIFY_MV_TYPE
 int svt_av1_find_best_obmc_sub_pixel_tree_up(ModeDecisionContext *ctx, IntraBcContext *x, const AV1_COMMON *const cm,
                                              int mi_row, int mi_col, Mv *bestmv, const Mv *ref_mv, int allow_hp,
@@ -5679,6 +5688,8 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
     return 0;
 }
 #endif
+#endif // CONFIG_ENABLE_OBMC
+
 #if CLN_MBMI_IN_CAND // inject_new_candidates_light_pd0 and lpd1
 /*
    inject ME candidates for Light PD0
@@ -8317,6 +8328,7 @@ static void svt_aom_inject_inter_candidates(PictureControlSet *pcs, ModeDecision
 #if CLN_WM_SAMPLES
     svt_aom_init_wm_samples(pcs, ctx);
 #endif
+#if CONFIG_ENABLE_OBMC
 #if OPT_OBMC
     if (ctx->obmc_ctrls.enabled && ctx->obmc_ctrls.refine_level == 0) {
         const uint8_t is_obmc_allowed = svt_aom_obmc_motion_mode_allowed(
@@ -8330,6 +8342,7 @@ static void svt_aom_inject_inter_candidates(PictureControlSet *pcs, ModeDecision
 
     if (is_obmc_allowed)
         svt_aom_precompute_obmc_data(pcs, ctx);
+#endif
 #endif
     /**************
          MVP

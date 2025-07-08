@@ -277,6 +277,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_AVX2(svt_av1_block_error, svt_av1_block_error_c, svt_av1_block_error_avx2);
     SET_SSE2(svt_aom_upsampled_pred, svt_aom_upsampled_pred_c, svt_aom_upsampled_pred_sse2);
 
+#if CONFIG_ENABLE_OBMC
     SET_AVX2(svt_aom_obmc_sad4x4, svt_aom_obmc_sad4x4_c, svt_aom_obmc_sad4x4_avx2);
     SET_AVX2(svt_aom_obmc_sad4x8, svt_aom_obmc_sad4x8_c, svt_aom_obmc_sad4x8_avx2);
     SET_AVX2(svt_aom_obmc_sad4x16, svt_aom_obmc_sad4x16_c, svt_aom_obmc_sad4x16_avx2);
@@ -345,6 +346,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_SSE41_AVX2(svt_aom_obmc_variance64x128, svt_aom_obmc_variance64x128_c, svt_aom_obmc_variance64x128_sse4_1, svt_aom_obmc_variance64x128_avx2);
     SET_SSE41_AVX2(svt_aom_obmc_variance128x64, svt_aom_obmc_variance128x64_c, svt_aom_obmc_variance128x64_sse4_1, svt_aom_obmc_variance128x64_avx2);
     SET_SSE41_AVX2(svt_aom_obmc_variance128x128, svt_aom_obmc_variance128x128_c, svt_aom_obmc_variance128x128_sse4_1, svt_aom_obmc_variance128x128_avx2);
+#endif
 
     //VARIANCE
     SET_SSE2(svt_aom_variance4x4, svt_aom_variance4x4_c, svt_aom_variance4x4_sse2);
@@ -537,8 +539,10 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_AVX2(svt_aom_noise_tx_filter, svt_aom_noise_tx_filter_c, svt_aom_noise_tx_filter_avx2);
     SET_AVX2(svt_aom_flat_block_finder_extract_block, svt_aom_flat_block_finder_extract_block_c, svt_aom_flat_block_finder_extract_block_avx2);
 #endif
+#if CONFIG_ENABLE_OBMC
     SET_AVX2(svt_av1_calc_target_weighted_pred_above, svt_av1_calc_target_weighted_pred_above_c,svt_av1_calc_target_weighted_pred_above_avx2);
     SET_AVX2(svt_av1_calc_target_weighted_pred_left, svt_av1_calc_target_weighted_pred_left_c,svt_av1_calc_target_weighted_pred_left_avx2);
+#endif
     SET_AVX2(svt_av1_interpolate_core, svt_av1_interpolate_core_c, svt_av1_interpolate_core_avx2);
     SET_AVX2(svt_av1_down2_symeven, svt_av1_down2_symeven_c, svt_av1_down2_symeven_avx2);
     SET_AVX2(svt_av1_highbd_interpolate_core, svt_av1_highbd_interpolate_core_c, svt_av1_highbd_interpolate_core_avx2);
@@ -627,6 +631,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_NEON_SVE(svt_av1_block_error, svt_av1_block_error_c, svt_av1_block_error_neon, svt_av1_block_error_sve);
     SET_NEON(svt_aom_upsampled_pred, svt_aom_upsampled_pred_c, svt_aom_upsampled_pred_neon);
 
+#if CONFIG_ENABLE_OBMC
     SET_NEON(svt_aom_obmc_sad4x4, svt_aom_obmc_sad4x4_c, svt_aom_obmc_sad4x4_neon);
     SET_NEON(svt_aom_obmc_sad4x8, svt_aom_obmc_sad4x8_c, svt_aom_obmc_sad4x8_neon);
     SET_NEON(svt_aom_obmc_sad4x16, svt_aom_obmc_sad4x16_c, svt_aom_obmc_sad4x16_neon);
@@ -695,6 +700,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_NEON(svt_aom_obmc_variance64x128, svt_aom_obmc_variance64x128_c, svt_aom_obmc_variance64x128_neon);
     SET_NEON(svt_aom_obmc_variance128x64, svt_aom_obmc_variance128x64_c, svt_aom_obmc_variance128x64_neon);
     SET_NEON(svt_aom_obmc_variance128x128, svt_aom_obmc_variance128x128_c,svt_aom_obmc_variance128x128_neon);
+#endif
 
     //VARIANCE
     SET_NEON_NEON_DOTPROD(svt_aom_variance4x4, svt_aom_variance4x4_c, svt_aom_variance4x4_neon, svt_aom_variance4x4_neon_dotprod);
@@ -890,8 +896,10 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_aom_noise_tx_filter, svt_aom_noise_tx_filter_c);
     SET_ONLY_C(svt_aom_flat_block_finder_extract_block, svt_aom_flat_block_finder_extract_block_c);
 #endif
+#if CONFIG_ENABLE_OBMC
     SET_ONLY_C(svt_av1_calc_target_weighted_pred_above, svt_av1_calc_target_weighted_pred_above_c);
     SET_NEON(svt_av1_calc_target_weighted_pred_left, svt_av1_calc_target_weighted_pred_left_c, svt_av1_calc_target_weighted_pred_left_neon);
+#endif
     SET_ONLY_C(svt_av1_interpolate_core, svt_av1_interpolate_core_c);
     SET_ONLY_C(svt_av1_down2_symeven, svt_av1_down2_symeven_c);
     SET_ONLY_C(svt_av1_highbd_interpolate_core, svt_av1_highbd_interpolate_core_c);
@@ -980,6 +988,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_av1_block_error, svt_av1_block_error_c);
     SET_ONLY_C(svt_aom_upsampled_pred, svt_aom_upsampled_pred_c);
 
+#if CONFIG_ENABLE_OBMC
     SET_ONLY_C(svt_aom_obmc_sad4x4, svt_aom_obmc_sad4x4_c);
     SET_ONLY_C(svt_aom_obmc_sad4x8, svt_aom_obmc_sad4x8_c);
     SET_ONLY_C(svt_aom_obmc_sad4x16, svt_aom_obmc_sad4x16_c);
@@ -1048,6 +1057,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_aom_obmc_variance64x128, svt_aom_obmc_variance64x128_c);
     SET_ONLY_C(svt_aom_obmc_variance128x64, svt_aom_obmc_variance128x64_c);
     SET_ONLY_C(svt_aom_obmc_variance128x128, svt_aom_obmc_variance128x128_c);
+#endif
 
     //VARIANCE
     SET_ONLY_C(svt_aom_variance4x4, svt_aom_variance4x4_c);
@@ -1241,8 +1251,10 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_aom_noise_tx_filter, svt_aom_noise_tx_filter_c);
     SET_ONLY_C(svt_aom_flat_block_finder_extract_block, svt_aom_flat_block_finder_extract_block_c);
 #endif
+#if CONFIG_ENABLE_OBMC
     SET_ONLY_C(svt_av1_calc_target_weighted_pred_above, svt_av1_calc_target_weighted_pred_above_c);
     SET_ONLY_C(svt_av1_calc_target_weighted_pred_left, svt_av1_calc_target_weighted_pred_left_c);
+#endif
     SET_ONLY_C(svt_av1_interpolate_core, svt_av1_interpolate_core_c);
     SET_ONLY_C(svt_av1_down2_symeven, svt_av1_down2_symeven_c);
     SET_ONLY_C(svt_av1_highbd_interpolate_core, svt_av1_highbd_interpolate_core_c);

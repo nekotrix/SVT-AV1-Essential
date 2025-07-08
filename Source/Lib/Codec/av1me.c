@@ -169,6 +169,7 @@ void init_fn_ptr(void) {
          svt_aom_highbd_10_variance4x4,
          svt_aom_sub_pixel_variance4x4,
          svt_aom_sad4x4x4d)
+#if CONFIG_ENABLE_OBMC
 #define OBFP(BT, OSDF, OVF, OSVF)     \
     svt_aom_mefn_ptr[BT].osdf = OSDF; \
     svt_aom_mefn_ptr[BT].ovf  = OVF;  \
@@ -195,6 +196,7 @@ void init_fn_ptr(void) {
     OBFP(BLOCK_32X8, svt_aom_obmc_sad32x8, svt_aom_obmc_variance32x8, svt_aom_obmc_sub_pixel_variance32x8)
     OBFP(BLOCK_16X64, svt_aom_obmc_sad16x64, svt_aom_obmc_variance16x64, svt_aom_obmc_sub_pixel_variance16x64)
     OBFP(BLOCK_64X16, svt_aom_obmc_sad64x16, svt_aom_obmc_variance64x16, svt_aom_obmc_sub_pixel_variance64x16)
+#endif
 }
 
 #if CLN_UNIFY_MV_TYPE
