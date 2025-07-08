@@ -559,11 +559,15 @@ static void inter_intra_search(PictureControlSet *pcs, ModeDecisionContext *ctx,
 
             rd = RDCOST(full_lambda, rate_sum + rmode, dist_sum);
         } else {
-            if (ctx->hbd_md)
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+            if (ctx->hbd_md) {
                 rd = svt_aom_highbd_sse(
                     (uint8_t *)src_buf_hbd, src_pic->stride_y, ii_pred_buf, bwidth, bwidth, bheight);
-            else
+            } else
+#endif
+            {
                 rd = svt_aom_sse(src_buf, src_pic->stride_y, ii_pred_buf, bwidth, bwidth, bheight);
+            }
         }
         if (rd < best_interintra_rd) {
             best_interintra_rd = rd;

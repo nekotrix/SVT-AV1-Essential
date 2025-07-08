@@ -1166,6 +1166,7 @@ static INLINE void smooth_h_predictor(uint8_t *dst, ptrdiff_t stride, int32_t bw
 #undef DC_MULTIPLIER_1X2
 #undef DC_MULTIPLIER_1X4
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static INLINE void highbd_v_predictor(uint16_t *dst, ptrdiff_t stride, int32_t bw, int32_t bh, const uint16_t *above,
                                       const uint16_t *left, int32_t bd) {
     (void)left;
@@ -1185,6 +1186,7 @@ static INLINE void highbd_h_predictor(uint16_t *dst, ptrdiff_t stride, int32_t b
         dst += stride;
     }
 }
+#endif
 static INLINE int      abs_diff(int a, int b) { return (a > b) ? a - b : b - a; }
 static INLINE uint16_t paeth_predictor_single(uint16_t left, uint16_t top, uint16_t top_left) {
     const int base       = top + left - top_left;
@@ -1204,6 +1206,7 @@ static INLINE void paeth_predictor(uint8_t *dst, ptrdiff_t stride, int bw, int b
         for (int c = 0; c < bw; ++c) dst[c] = (uint8_t)paeth_predictor_single(left[r], above[c], ytop_left);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static INLINE void highbd_paeth_predictor(uint16_t *dst, ptrdiff_t stride, int bw, int bh, const uint16_t *above,
                                           const uint16_t *left, int bd) {
     const uint16_t ytop_left = above[-1];
@@ -1352,6 +1355,7 @@ static INLINE void highbd_dc_predictor(uint16_t *dst, ptrdiff_t stride, int32_t 
         dst += stride;
     }
 }
+#endif
 
 #define intra_pred_sized(type, width, height)                                        \
     void svt_aom_##type##_predictor_##width##x##height##_c(                          \
@@ -1552,6 +1556,7 @@ intra_pred_sized(paeth, 32, 16);
 intra_pred_sized(paeth, 32, 64);
 intra_pred_sized(paeth, 64, 16);
 intra_pred_sized(paeth, 64, 32);
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 #define intra_pred_highbd_sized(type, width, height)                                                \
     void svt_aom_highbd_##type##_predictor_##width##x##height##_c(                                  \
         uint16_t *dst, ptrdiff_t stride, const uint16_t *above, const uint16_t *left, int32_t bd) { \
@@ -1765,6 +1770,7 @@ intra_pred_highbd_sized(paeth, 32, 16);
 intra_pred_highbd_sized(paeth, 32, 64);
 intra_pred_highbd_sized(paeth, 64, 16);
 intra_pred_highbd_sized(paeth, 64, 32);
+#endif
 
 static IntraPredFnC       dc_pred_c[2][2];
 static IntraHighBdPredFnC highbd_dc_pred_c[2][2];
@@ -1774,10 +1780,12 @@ void                      svt_aom_init_intra_dc_predictors_c_internal(void) {
     dc_pred_c[1][0] = dc_left_predictor;
     dc_pred_c[1][1] = dc_predictor;
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     highbd_dc_pred_c[0][0] = highbd_dc_128_predictor;
     highbd_dc_pred_c[0][1] = highbd_dc_top_predictor;
     highbd_dc_pred_c[1][0] = highbd_dc_left_predictor;
     highbd_dc_pred_c[1][1] = highbd_dc_predictor;
+#endif
 }
 
 /*static*/ void svt_aom_init_intra_predictors_internal(void) {
@@ -2027,6 +2035,7 @@ void                      svt_aom_init_intra_dc_predictors_c_internal(void) {
     svt_aom_dc_pred[1][1][TX_64X16] = svt_aom_dc_predictor_64x16;
     svt_aom_dc_pred[1][1][TX_64X32] = svt_aom_dc_predictor_64x32;
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     svt_aom_pred_high[V_PRED][TX_4X4]   = svt_aom_highbd_v_predictor_4x4;
     svt_aom_pred_high[V_PRED][TX_8X8]   = svt_aom_highbd_v_predictor_8x8;
     svt_aom_pred_high[V_PRED][TX_16X16] = svt_aom_highbd_v_predictor_16x16;
@@ -2275,6 +2284,7 @@ void                      svt_aom_init_intra_dc_predictors_c_internal(void) {
 
     svt_aom_dc_pred_high[1][1][TX_64X16] = svt_aom_highbd_dc_predictor_64x16;
     svt_aom_dc_pred_high[1][1][TX_64X32] = svt_aom_highbd_dc_predictor_64x32;
+#endif
 }
 void svt_aom_dr_predictor(uint8_t *dst, ptrdiff_t stride, TxSize tx_size, const uint8_t *above, const uint8_t *left,
                           int32_t upsample_above, int32_t upsample_left, int32_t angle) {
@@ -2306,6 +2316,7 @@ void filter_intra_edge_corner(uint8_t *p_above, uint8_t *p_left) {
 }
 
 // Directional prediction, zone 1: 0 < angle < 90
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_highbd_dr_prediction_z1_c(uint16_t *dst, ptrdiff_t stride, int32_t bw, int32_t bh, const uint16_t *above,
                                        const uint16_t *left, int32_t upsample_above, int32_t dx, int32_t dy,
                                        int32_t bd) {
@@ -2426,6 +2437,7 @@ void filter_intra_edge_corner_high(uint16_t *p_above, uint16_t *p_left) {
     p_above[-1] = (uint16_t)s;
     p_left[-1]  = (uint16_t)s;
 }
+#endif
 
 /*static INLINE*/ BlockSize svt_aom_scale_chroma_bsize(BlockSize bsize, int32_t subsampling_x, int32_t subsampling_y) {
     BlockSize bs = bsize;
@@ -2477,6 +2489,7 @@ void filter_intra_edge_corner_high(uint16_t *p_above, uint16_t *p_left) {
 
 ////////////########...........Recurssive intra prediction starting...........#########
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_aom_highbd_filter_intra_predictor(uint16_t *dst, ptrdiff_t stride, TxSize tx_size, const uint16_t *above,
                                            const uint16_t *left, int mode, int bd) {
     uint16_t  buffer[33][33];
@@ -2519,6 +2532,7 @@ void svt_aom_highbd_filter_intra_predictor(uint16_t *dst, ptrdiff_t stride, TxSi
         dst += stride;
     }
 }
+#endif
 
 //static int is_smooth_luma(uint8_t mode) {
 //    return (mode == SMOOTH_PRED || mode == SMOOTH_V_PRED || mode == SMOOTH_H_PRED);

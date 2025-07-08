@@ -3509,6 +3509,7 @@ static EbErrorType derive_tf_window_params(
     if (centre_pcs->slice_type == I_SLICE)
         do_noise_est = 1;
     // allocate 16 bit buffer
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (is_highbd) {
         EB_MALLOC_ARRAY(centre_pcs->altref_buffer_highbd[C_Y],
             central_picture_ptr->luma_size);
@@ -3572,7 +3573,9 @@ static EbErrorType derive_tf_window_params(
                 noise_levels_log1p_fp16[C_V] = svt_aom_noise_log1p_fp16(noise_level_fp16);
         }
     }
-    else {
+    else
+#endif
+    {
         EbByte buffer_y = central_picture_ptr->buffer_y +
             central_picture_ptr->org_y * central_picture_ptr->stride_y +
             central_picture_ptr->org_x;

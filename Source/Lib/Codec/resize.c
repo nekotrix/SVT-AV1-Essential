@@ -463,6 +463,7 @@ EbErrorType svt_av1_resize_plane_horizontal(const uint8_t *const input, int heig
     return EB_ErrorNone;
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_highbd_interpolate_core_c(const uint16_t *const input, int in_length, uint16_t *output, int out_length,
                                        int bd, const int16_t *interp_filters) {
     const int32_t delta  = (((uint32_t)in_length << RS_SCALE_SUBPEL_BITS) + out_length / 2) / out_length;
@@ -752,10 +753,6 @@ void save_YUV_to_file_highbd(char *filename, uint16_t *buffer_y, uint16_t *buffe
                              uint16_t height, uint16_t stride_y, uint16_t stride_u, uint16_t stride_v, uint16_t org_y,
                              uint16_t org_x, uint32_t ss_x, uint32_t ss_y);
 #endif
-typedef EbErrorType (*Av1HighbdResizePlane)(const uint16_t *const input, int height, int width, int in_stride,
-                                            uint16_t *output, int height2, int width2, int out_stride, int bd);
-typedef EbErrorType (*Av1ResizePlane)(const uint8_t *const input, int height, int width, int in_stride, uint8_t *output,
-                                      int height2, int width2, int out_stride);
 
 static void pack_highbd_pic_2d(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
                                uint32_t ss_y) {
@@ -825,6 +822,12 @@ static void svt_aom_unpack_highbd_pic_2d(uint16_t *buffer_highbd[3], EbPictureBu
                           (width + ss_x) >> ss_x,
                           (height + ss_y) >> ss_y);
 }
+#endif // CONFIG_ENABLE_HIGH_BIT_DEPTH
+
+typedef EbErrorType (*Av1HighbdResizePlane)(const uint16_t *const input, int height, int width, int in_stride,
+                                            uint16_t *output, int height2, int width2, int out_stride, int bd);
+typedef EbErrorType (*Av1ResizePlane)(const uint8_t *const input, int height, int width, int in_stride, uint8_t *output,
+                                      int height2, int width2, int out_stride);
 
 /*
  * Resize frame according to dst resolution.
@@ -836,6 +839,7 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
     uint16_t *src_buffer_highbd[MAX_MB_PLANE];
     uint16_t *dst_buffer_highbd[MAX_MB_PLANE];
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (bd > 8 && !is_packed) {
         EB_MALLOC_ARRAY(src_buffer_highbd[0], src->luma_size);
         EB_MALLOC_ARRAY(src_buffer_highbd[1], src->chroma_size);
@@ -847,7 +851,9 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
             svt_aom_pack_highbd_pic(src, src_buffer_highbd, ss_x, ss_y, true);
         else
             pack_highbd_pic_2d(src, src_buffer_highbd, ss_x, ss_y);
-    } else {
+    } else
+#endif
+    {
         src_buffer_highbd[0] = (uint16_t *)src->buffer_y;
         src_buffer_highbd[1] = (uint16_t *)src->buffer_cb;
         src_buffer_highbd[2] = (uint16_t *)src->buffer_cr;
@@ -887,6 +893,7 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
 #endif
 
     for (int plane = 0; plane <= AOMMIN(num_planes, MAX_MB_PLANE - 1); ++plane) {
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (bd > 8) {
             Av1HighbdResizePlane resize_plane_func = (src->height == dst->height)
                 ? svt_av1_highbd_resize_plane_horizontal
@@ -932,7 +939,9 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
                 break;
             default: break;
             }
-        } else {
+        } else
+#endif
+        {
             Av1ResizePlane resize_plane_func = (src->height == dst->height) ? svt_av1_resize_plane_horizontal
                                                                             : svt_av1_resize_plane;
             switch (plane) {
@@ -975,6 +984,7 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
     }
 
     // padding before unpack to support 10-bit with 2b compressed format
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (bd > 8) {
         if ((buffer_enable_mask & PICTURE_BUFFER_DESC_Y_FLAG) && dst_buffer_highbd[0])
             svt_aom_generate_padding16_bit(
@@ -993,7 +1003,9 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
                                            (dst->height + ss_y) >> ss_y,
                                            (dst->org_x + ss_x) >> ss_x,
                                            (dst->org_y + ss_y) >> ss_y);
-    } else {
+    } else
+#endif
+    {
         if ((buffer_enable_mask & PICTURE_BUFFER_DESC_Y_FLAG) && dst->buffer_y)
             svt_aom_generate_padding(dst->buffer_y, dst->stride_y, dst->width, dst->height, dst->org_x, dst->org_y);
         if ((buffer_enable_mask & PICTURE_BUFFER_DESC_Cb_FLAG) && dst->buffer_cb)
@@ -1042,6 +1054,7 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
                          1,
                          1);
 #endif
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (bd > 8 && !is_packed) {
         if (is_2bcompress)
             svt_aom_unpack_highbd_pic(dst_buffer_highbd, dst, ss_x, ss_y, true);
@@ -1054,7 +1067,7 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
         EB_FREE(dst_buffer_highbd[1]);
         EB_FREE(dst_buffer_highbd[2]);
     }
-
+#endif
     return EB_ErrorNone;
 }
 

@@ -5483,7 +5483,9 @@ static EbErrorType av1_intra_luma_prediction(ModeDecisionContext *ctx, PictureCo
             ctx->blk_geom
                 ->tx_org_y[is_inter][ctx->tx_depth][ctx->txb_itr], // uint32_t cuOrgY used only for prediction Ptr
             &pcs->scs->seq_header);
-    } else {
+    }
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+    else {
         uint16_t top_neigh_array[64 * 2 + 1];
         uint16_t left_neigh_array[64 * 2 + 1];
 
@@ -5566,6 +5568,7 @@ static EbErrorType av1_intra_luma_prediction(ModeDecisionContext *ctx, PictureCo
                 ->tx_org_y[is_inter][ctx->tx_depth][ctx->txb_itr], // uint32_t cuOrgY used only for prediction Ptr
             &pcs->scs->seq_header);
     }
+#endif
 
     return return_error;
 }

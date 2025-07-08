@@ -19,6 +19,7 @@
 #include "mem_neon.h"
 #include "transpose_neon.h"
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_filter_intra_edge_high_neon(uint16_t *p, int sz, int strength) {
     if (!strength)
         return;
@@ -2617,3 +2618,5 @@ void svt_av1_highbd_dr_prediction_z3_neon(uint16_t *dst, ptrdiff_t stride, int b
 
 #undef HIGHBD_DR_PREDICTOR_Z3_STEP_X4
 #undef HIGHBD_DR_PREDICTOR_Z3_STEP_X8
+
+#endif // CONFIG_ENABLE_HIGH_BIT_DEPTH

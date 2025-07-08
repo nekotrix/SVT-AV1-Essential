@@ -948,6 +948,7 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
                             &ed_ctx->md_ctx->luma_txb_skip_context,
                             &ed_ctx->md_ctx->luma_dc_sign_context);
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (is_16bit) {
             uint16_t       top_neigh_array[64 * 2 + 1];
             uint16_t       left_neigh_array[64 * 2 + 1];
@@ -1001,7 +1002,9 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
                 0,
                 0,
                 &pcs->scs->seq_header);
-        } else {
+        } else
+#endif
+        {
             uint8_t        top_neigh_array[64 * 2 + 1];
             uint8_t        left_neigh_array[64 * 2 + 1];
             PredictionMode mode;
@@ -1140,6 +1143,7 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
                             &ed_ctx->md_ctx->cr_txb_skip_context,
                             &ed_ctx->md_ctx->cr_dc_sign_context);
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (is_16bit) {
             uint16_t       top_neigh_array[64 * 2 + 1];
             uint16_t       left_neigh_array[64 * 2 + 1];
@@ -1228,7 +1232,9 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
                     0,
                     &pcs->scs->seq_header);
             }
-        } else {
+        } else
+#endif
+        {
             uint8_t        top_neigh_array[64 * 2 + 1];
             uint8_t        left_neigh_array[64 * 2 + 1];
             PredictionMode mode;

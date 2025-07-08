@@ -390,6 +390,7 @@ void svt_aom_apply_filtering_central_c(MeContext *          me_ctx,
 }
 
 // Apply filtering to the central picture
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_aom_apply_filtering_central_highbd_c(MeContext *          me_ctx,
                                       EbPictureBufferDesc *input_picture_ptr_central,
                                       uint16_t **src_16bit, uint32_t **accum, uint16_t **count,
@@ -426,6 +427,7 @@ void svt_aom_apply_filtering_central_highbd_c(MeContext *          me_ctx,
             }
         }
 }
+#endif
 
 //log1p(x) for x in [-1..6], step 1/32 values in Fixed Points shift 16
 static const int32_t log1p_tab_fp16[] = {
@@ -3289,7 +3291,7 @@ static EbErrorType produce_temporally_filtered_pic(
                 }
             }
 
-            if (!is_highbd)
+            if (!is_highbd) {
                 apply_filtering_central(ctx,
                                         input_picture_ptr_central,
                                         src_center_ptr,
@@ -3299,7 +3301,9 @@ static EbErrorType produce_temporally_filtered_pic(
                                         BH,
                                         ss_x,
                                         ss_y);
-            else
+            }
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+            else {
                 apply_filtering_central_highbd(ctx,
                                                input_picture_ptr_central,
                                                altref_buffer_highbd_ptr,
@@ -3309,6 +3313,8 @@ static EbErrorType produce_temporally_filtered_pic(
                                                BH,
                                                ss_x,
                                                ss_y);
+            }
+#endif
 
             // 1st segment: past pics - from closest to farthest
             // 2nd segment: current pic
@@ -3854,7 +3860,7 @@ static EbErrorType produce_temporally_filtered_pic_ld(
                 }
             }
 
-            if (!is_highbd)
+            if (!is_highbd) {
                 apply_filtering_central(ctx,
                                         input_picture_ptr_central,
                                         src_center_ptr,
@@ -3864,7 +3870,9 @@ static EbErrorType produce_temporally_filtered_pic_ld(
                                         BH,
                                         ss_x,
                                         ss_y);
-            else
+            }
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+            else {
                 apply_filtering_central_highbd(ctx,
                                                input_picture_ptr_central,
                                                altref_buffer_highbd_ptr,
@@ -3874,6 +3882,8 @@ static EbErrorType produce_temporally_filtered_pic_ld(
                                                BH,
                                                ss_x,
                                                ss_y);
+            }
+#endif
 
             // for every frame to filter
             for (int frame_index = 0;

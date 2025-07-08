@@ -196,6 +196,7 @@ void svt_aom_highbd_quantize_b_c(const TranLow *coeff_ptr, intptr_t n_coeffs, co
     *eob_ptr = (uint16_t)(eob + 1);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_highbd_quantize_b_facade(const TranLow *coeff_ptr, intptr_t n_coeffs, const MacroblockPlane *p,
                                       TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, uint16_t *eob_ptr, const ScanOrder *sc,
                                       const QuantParam *qparam) {
@@ -236,6 +237,7 @@ void svt_av1_highbd_quantize_b_facade(const TranLow *coeff_ptr, intptr_t n_coeff
     }
     assert(qparam->log_scale <= 2);
 }
+#endif
 
 static void av1_quantize_b_facade_ii(const TranLow *coeff_ptr, intptr_t n_coeffs, const MacroblockPlane *p,
                                      TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, uint16_t *eob_ptr, const ScanOrder *sc,
@@ -585,6 +587,7 @@ void svt_av1_quantize_fp_facade(const TranLow *coeff_ptr, intptr_t n_coeffs, con
     }
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_highbd_quantize_fp_facade(const TranLow *coeff_ptr, intptr_t n_coeffs, const MacroblockPlane *p,
                                        TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, uint16_t *eob_ptr,
                                        const ScanOrder *sc, const QuantParam *qparam) {
@@ -622,6 +625,7 @@ void svt_av1_highbd_quantize_fp_facade(const TranLow *coeff_ptr, intptr_t n_coef
                                    qparam->log_scale);
     }
 }
+#endif
 
 void svt_av1_highbd_quantize_fp_qm_c(const TranLow *coeff_ptr, intptr_t count, const int16_t *zbin_ptr,
                                      const int16_t *round_ptr, const int16_t *quant_ptr, const int16_t *quant_shift_ptr,
@@ -1373,6 +1377,7 @@ void svt_aom_quantize_inv_quantize_light(PictureControlSet *pcs, int32_t *coeff,
     const QmVal *iq_matrix = pcs->ppcs->giqmatrix[qmatrix_level][AOM_PLANE_Y][adjusted_tx_size];
 
     if (q_matrix == NULL && iq_matrix == NULL) {
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (bit_depth > EB_EIGHT_BIT) {
             svt_aom_highbd_quantize_b((TranLow *)coeff,
                                       n_coeffs,
@@ -1389,7 +1394,9 @@ void svt_aom_quantize_inv_quantize_light(PictureControlSet *pcs, int32_t *coeff,
                                       q_matrix,
                                       iq_matrix,
                                       av1_get_tx_scale_tab[txsize]);
-        } else {
+        } else
+#endif
+        {
             svt_aom_quantize_b((TranLow *)coeff,
                                n_coeffs,
                                enc_ctx->quants_8bit.v_zbin[q_index],
@@ -1407,6 +1414,7 @@ void svt_aom_quantize_inv_quantize_light(PictureControlSet *pcs, int32_t *coeff,
                                av1_get_tx_scale_tab[txsize]);
         }
     } else {
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (bit_depth > EB_EIGHT_BIT) {
             svt_av1_highbd_quantize_b_qm((TranLow *)coeff,
                                          n_coeffs,
@@ -1423,7 +1431,9 @@ void svt_aom_quantize_inv_quantize_light(PictureControlSet *pcs, int32_t *coeff,
                                          q_matrix,
                                          iq_matrix,
                                          av1_get_tx_scale_tab[txsize]);
-        } else {
+        } else
+#endif
+        {
             svt_av1_quantize_b_qm((TranLow *)coeff,
                                   n_coeffs,
                                   enc_ctx->quants_8bit.v_zbin[q_index],
@@ -1600,6 +1610,7 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
     }
 
     if (perform_rdoq && ((!component_type && ctx->rdoq_ctrls.fp_q_y) || (component_type && ctx->rdoq_ctrls.fp_q_uv))) {
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if ((bit_depth > EB_EIGHT_BIT) || (is_encode_pass && scs->is_16bit_pipeline)) {
             svt_av1_highbd_quantize_fp_facade((TranLow *)coeff,
                                               n_coeffs,
@@ -1609,7 +1620,9 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
                                               eob,
                                               scan_order,
                                               &qparam);
-        } else {
+        } else
+#endif
+        {
             svt_av1_quantize_fp_facade((TranLow *)coeff,
                                        n_coeffs,
                                        &candidate_plane,
@@ -1620,6 +1633,7 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
                                        &qparam);
         }
     } else {
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if ((bit_depth > EB_EIGHT_BIT) || (is_encode_pass && scs->is_16bit_pipeline)) {
             svt_av1_highbd_quantize_b_facade((TranLow *)coeff,
                                              n_coeffs,
@@ -1629,7 +1643,9 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
                                              eob,
                                              scan_order,
                                              &qparam);
-        } else {
+        } else
+#endif
+        {
             av1_quantize_b_facade_ii((TranLow *)coeff,
                                      n_coeffs,
                                      &candidate_plane,
@@ -1652,6 +1668,7 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
                 (TranLow *)coeff, &candidate_plane, quant_coeff, (TranLow *)recon_coeff, eob, txsize, tx_type);
         }
         if (perform_rdoq == 0) {
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
             if ((bit_depth > EB_EIGHT_BIT) || (is_encode_pass && scs->is_16bit_pipeline)) {
                 svt_av1_highbd_quantize_b_facade((TranLow *)coeff,
                                                  n_coeffs,
@@ -1661,7 +1678,9 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
                                                  eob,
                                                  scan_order,
                                                  &qparam);
-            } else {
+            } else
+#endif
+            {
                 av1_quantize_b_facade_ii((TranLow *)coeff,
                                          n_coeffs,
                                          &candidate_plane,

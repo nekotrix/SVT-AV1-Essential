@@ -132,6 +132,7 @@ static void av1_make_masked_scaled_inter_predictor(uint8_t *src_ptr, uint8_t *sr
     conv_params->dst_stride       = tmp_buf_stride;
     assert(conv_params->do_average == 0);
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (bitdepth > EB_EIGHT_BIT || is_16bit) {
         // for super-res, the reference frame block might be 2x than predictor in maximum
         // for reference scaling, it might be 4x since both width and height is scaled 2x
@@ -179,7 +180,9 @@ static void av1_make_masked_scaled_inter_predictor(uint8_t *src_ptr, uint8_t *sr
                                    interp_filters,
                                    use_intrabc,
                                    bitdepth);
-    } else {
+    } else
+#endif
+    {
         svt_inter_predictor(src_ptr,
                             src_stride,
                             dst_ptr,
@@ -660,10 +663,14 @@ void model_rd_for_sb_with_curvfit(PictureControlSet *pcs, ModeDecisionContext *c
         const BlockSize plane_bsize = get_plane_block_size(bsize, subsampling, subsampling);
         int64_t         dist, sse;
         int             rate;
-        if (ctx->hbd_md) // CCODE
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+        if (ctx->hbd_md) {
             sse = svt_aom_highbd_sse(src_buf, src_stride, pred_buf, pred_stride, bw, bh);
-        else
+        } else
+#endif
+        {
             sse = svt_aom_sse(src_buf, src_stride, pred_buf, pred_stride, bw, bh);
+        }
 
         sse = ROUND_POWER_OF_TWO(sse, bd_round);
         model_rd_with_curvfit(pcs, plane_bsize, sse, bw * bh, &rate, &dist, ctx, full_lambda);
@@ -3513,6 +3520,7 @@ static void inter_intra_prediction(PictureControlSet *pcs, EbPictureBufferDesc *
         TxSize tx_size        = blk_geom->txsize[0]; // Nader - Intra 128x128 not supported
         TxSize tx_size_Chroma = blk_geom->txsize_uv[0]; //Nader - Intra 128x128 not supported
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (is16bit) {
 #if OPT_II_PRECOMPUTE
             if (!use_precomputed_intra || plane) {
@@ -3561,11 +3569,13 @@ static void inter_intra_prediction(PictureControlSet *pcs, EbPictureBufferDesc *
                 use_precomputed_intra && !plane ? ctx->intrapred_buf[interintra_mode] : intra_pred, // Intra pred buff
                 use_precomputed_intra && !plane ? blk_geom->bwidth : intra_stride, // Intra pred stride
 #else
-                intra_pred, // Intra pred buff
-                intra_stride, // Intra pred stride
+                    intra_pred, // Intra pred buff
+                    intra_stride, // Intra pred stride
 #endif
                 bit_depth);
-        } else {
+        } else
+#endif
+        {
 #if OPT_II_PRECOMPUTE
             if (!use_precomputed_intra || plane) {
 #endif

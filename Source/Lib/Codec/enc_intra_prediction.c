@@ -238,6 +238,7 @@ static void build_intra_predictors(
     else
         svt_aom_eb_pred[mode][tx_size](dst, dst_stride, above_row, left_col);
 }
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static void build_intra_predictors_high(
         const MacroBlockD *xd,
         uint16_t* top_neigh_array, // int8_t
@@ -433,7 +434,7 @@ static void build_intra_predictors_high(
     else
         svt_aom_pred_high[mode][tx_size](dst, dst_stride, above_row, left_col, bd);
 }
-
+#endif
 
 void svt_av1_predict_intra_block(
         STAGE       stage,
@@ -583,6 +584,7 @@ void svt_av1_predict_intra_block(
             have_bottom_left ? AOMMIN(txhpx, yd) : 0, plane);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_predict_intra_block_16bit(
         EbBitDepth bit_depth,
         STAGE       stage,
@@ -718,6 +720,7 @@ void svt_av1_predict_intra_block_16bit(
             have_left ? AOMMIN(txhpx, yd + txhpx) : 0,
         have_bottom_left ? AOMMIN(txhpx, yd) : 0, plane, bit_depth);
 }
+#endif
 
 /** IntraPrediction()
 is the main function to compute intra prediction for a PU
@@ -894,7 +897,9 @@ EbErrorType svt_av1_intra_prediction_cl(
                     &pcs->scs->seq_header
             );
         }
-    } else {
+    }
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+    else {
         uint16_t    top_neigh_array[64 * 2 + 1];
         uint16_t    left_neigh_array[64 * 2 + 1];
         PredictionMode mode;
@@ -1053,6 +1058,7 @@ EbErrorType svt_av1_intra_prediction_cl(
             );
         }
     }
+#endif
 
     return return_error;
 }
@@ -1110,7 +1116,9 @@ static EbErrorType intra_luma_prediction_for_interintra(
                 0,                                                       //cuOrgY used only for prediction Ptr
                 &pcs->scs->seq_header
         );
-    } else {
+    }
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+    else {
         uint16_t top_neigh_array[64 * 2 + 1];
         uint16_t left_neigh_array[64 * 2 + 1];
 
@@ -1154,6 +1162,7 @@ static EbErrorType intra_luma_prediction_for_interintra(
                 &pcs->scs->seq_header
         );
     }
+#endif
 
     return return_error;
 }
