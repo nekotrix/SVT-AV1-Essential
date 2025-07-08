@@ -24,6 +24,7 @@
 
 /* assert a certain condition and report err if condition not met */
 void svt_aom_assert_err(uint32_t condition, char* err_msg) {
+    MIGHT_BE_UNUSED(err_msg);
     assert(condition);
     if (!condition)
         SVT_ERROR("\n %s \n", err_msg);

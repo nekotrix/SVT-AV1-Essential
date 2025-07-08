@@ -26,6 +26,8 @@
 #define CONFIG_ENABLE_QUANT_MATRIX          0
 #define CONFIG_ENABLE_OBMC                  0
 #define CONFIG_ENABLE_FILM_GRAIN            0
+
+#define SVT_LOG_QUIET                       1
 #endif
 
 #ifndef CONFIG_ENABLE_QUANT_MATRIX

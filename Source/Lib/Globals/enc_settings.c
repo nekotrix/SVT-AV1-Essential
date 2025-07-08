@@ -25,6 +25,7 @@
 #include "enc_settings.h"
 
 #include "svt_log.h"
+#include "utility.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -41,6 +42,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     EbErrorType               return_error   = EB_ErrorNone;
     EbSvtAv1EncConfiguration *config         = &scs->static_config;
     unsigned int              channel_number = config->channel_id;
+    MIGHT_BE_UNUSED(channel_number);
     if (config->enc_mode > MAX_ENC_PRESET || config->enc_mode < -1) {
         SVT_ERROR("Instance %u: EncoderMode must be in the range of [-1-%d]\n", channel_number + 1, MAX_ENC_PRESET);
         return_error = EB_ErrorBadParameter;
@@ -1074,6 +1076,8 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->avif                              = false;
     return return_error;
 }
+
+#ifndef SVT_LOG_QUIET
 static const char *tier_to_str(unsigned in) {
     if (!in)
         return "(auto)";
@@ -1088,6 +1092,7 @@ static const char *level_to_str(unsigned in) {
     snprintf(ret, 313, "%.1f", in / 10.0);
     return ret;
 }
+#endif
 
 #if !CLN_SEG_COUNTS
 //#define DEBUG_BUFFERS

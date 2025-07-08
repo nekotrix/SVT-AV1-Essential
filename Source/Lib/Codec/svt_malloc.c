@@ -15,8 +15,11 @@
 #include "svt_threads.h"
 #define LOG_TAG "SvtMalloc"
 #include "svt_log.h"
+#include "utility.h"
 
 void svt_print_alloc_fail_impl(const char* file, int line) {
+    MIGHT_BE_UNUSED(file);
+    MIGHT_BE_UNUSED(line);
     SVT_FATAL("allocate memory failed, at %s:%d\n", file, line);
 }
 
