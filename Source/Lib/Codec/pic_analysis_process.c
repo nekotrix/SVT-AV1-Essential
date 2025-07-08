@@ -1379,6 +1379,7 @@ static EbErrorType compute_block_mean_compute_variance(
     return return_error;
 }
 
+#if CONFIG_ENABLE_FILM_GRAIN
 static int32_t apply_denoise_2d(SequenceControlSet *scs, PictureParentControlSet *pcs,
                                 EbPictureBufferDesc *inputPicturePointer) {
     AomDenoiseAndModel     *denoise_and_model;
@@ -1439,6 +1440,7 @@ static EbErrorType apply_film_grain_table(SequenceControlSet *scs_ptr, PicturePa
 
     return EB_ErrorNone;
 }
+#endif
 
 /************************************************
  * Picture Pre Processing Operations *
@@ -1449,12 +1451,16 @@ static EbErrorType apply_film_grain_table(SequenceControlSet *scs_ptr, PicturePa
  ***** Denoising
  ************************************************/
 void svt_aom_picture_pre_processing_operations(PictureParentControlSet *pcs, SequenceControlSet *scs) {
+#if CONFIG_ENABLE_FILM_GRAIN
     if (scs->static_config.fgs_table) {
         apply_film_grain_table(scs, pcs);
     } else if (scs->static_config.film_grain_denoise_strength) {
         denoise_estimate_film_grain(scs, pcs);
     }
-
+#else
+    (void)pcs;
+    (void)scs;
+#endif
     return;
 }
 

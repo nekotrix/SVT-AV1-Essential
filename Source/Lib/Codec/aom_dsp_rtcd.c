@@ -530,11 +530,13 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_AVX2(svt_estimate_noise_fp16, svt_estimate_noise_fp16_c, svt_estimate_noise_fp16_avx2);
     SET_AVX2(svt_estimate_noise_highbd_fp16, svt_estimate_noise_highbd_fp16_c, svt_estimate_noise_highbd_fp16_avx2);
     SET_AVX2(svt_copy_mi_map_grid, svt_copy_mi_map_grid_c, svt_copy_mi_map_grid_avx2);
+#if CONFIG_ENABLE_FILM_GRAIN
     SET_AVX2(svt_av1_add_block_observations_internal, svt_av1_add_block_observations_internal_c, svt_av1_add_block_observations_internal_avx2);
     SET_AVX2(svt_av1_pointwise_multiply, svt_av1_pointwise_multiply_c, svt_av1_pointwise_multiply_avx2);
     SET_AVX2(svt_av1_apply_window_function_to_plane, svt_av1_apply_window_function_to_plane_c, svt_av1_apply_window_function_to_plane_avx2);
     SET_AVX2(svt_aom_noise_tx_filter, svt_aom_noise_tx_filter_c, svt_aom_noise_tx_filter_avx2);
     SET_AVX2(svt_aom_flat_block_finder_extract_block, svt_aom_flat_block_finder_extract_block_c, svt_aom_flat_block_finder_extract_block_avx2);
+#endif
     SET_AVX2(svt_av1_calc_target_weighted_pred_above, svt_av1_calc_target_weighted_pred_above_c,svt_av1_calc_target_weighted_pred_above_avx2);
     SET_AVX2(svt_av1_calc_target_weighted_pred_left, svt_av1_calc_target_weighted_pred_left_c,svt_av1_calc_target_weighted_pred_left_avx2);
     SET_AVX2(svt_av1_interpolate_core, svt_av1_interpolate_core_c, svt_av1_interpolate_core_avx2);
@@ -881,11 +883,13 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_NEON(svt_estimate_noise_fp16, svt_estimate_noise_fp16_c, svt_estimate_noise_fp16_neon);
     SET_NEON(svt_estimate_noise_highbd_fp16, svt_estimate_noise_highbd_fp16_c, svt_estimate_noise_highbd_fp16_neon);
     SET_NEON(svt_copy_mi_map_grid, svt_copy_mi_map_grid_c, svt_copy_mi_map_grid_neon);
+#if CONFIG_ENABLE_FILM_GRAIN
     SET_ONLY_C(svt_av1_add_block_observations_internal, svt_av1_add_block_observations_internal_c);
     SET_ONLY_C(svt_av1_pointwise_multiply, svt_av1_pointwise_multiply_c);
     SET_ONLY_C(svt_av1_apply_window_function_to_plane, svt_av1_apply_window_function_to_plane_c);
     SET_ONLY_C(svt_aom_noise_tx_filter, svt_aom_noise_tx_filter_c);
     SET_ONLY_C(svt_aom_flat_block_finder_extract_block, svt_aom_flat_block_finder_extract_block_c);
+#endif
     SET_ONLY_C(svt_av1_calc_target_weighted_pred_above, svt_av1_calc_target_weighted_pred_above_c);
     SET_NEON(svt_av1_calc_target_weighted_pred_left, svt_av1_calc_target_weighted_pred_left_c, svt_av1_calc_target_weighted_pred_left_neon);
     SET_ONLY_C(svt_av1_interpolate_core, svt_av1_interpolate_core_c);
@@ -1230,11 +1234,13 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_estimate_noise_fp16, svt_estimate_noise_fp16_c);
     SET_ONLY_C(svt_estimate_noise_highbd_fp16, svt_estimate_noise_highbd_fp16_c);
     SET_ONLY_C(svt_copy_mi_map_grid, svt_copy_mi_map_grid_c);
+#if CONFIG_ENABLE_FILM_GRAIN
     SET_ONLY_C(svt_av1_add_block_observations_internal, svt_av1_add_block_observations_internal_c);
     SET_ONLY_C(svt_av1_pointwise_multiply, svt_av1_pointwise_multiply_c);
     SET_ONLY_C(svt_av1_apply_window_function_to_plane, svt_av1_apply_window_function_to_plane_c);
     SET_ONLY_C(svt_aom_noise_tx_filter, svt_aom_noise_tx_filter_c);
     SET_ONLY_C(svt_aom_flat_block_finder_extract_block, svt_aom_flat_block_finder_extract_block_c);
+#endif
     SET_ONLY_C(svt_av1_calc_target_weighted_pred_above, svt_av1_calc_target_weighted_pred_above_c);
     SET_ONLY_C(svt_av1_calc_target_weighted_pred_left, svt_av1_calc_target_weighted_pred_left_c);
     SET_ONLY_C(svt_av1_interpolate_core, svt_av1_interpolate_core_c);

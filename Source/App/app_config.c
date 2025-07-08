@@ -401,6 +401,7 @@ static EbErrorType set_cfg_stat_file(EbConfig *cfg, const char *token, const cha
 static EbErrorType set_cfg_roi_map_file(EbConfig *cfg, const char *token, const char *value) {
     return open_file(&cfg->roi_map_file, token, value, "r");
 }
+#if CONFIG_ENABLE_FILM_GRAIN
 static EbErrorType set_cfg_fgs_table_path(EbConfig *cfg, const char *token, const char *value) {
     EbErrorType ret  = EB_ErrorBadParameter;
     FILE       *file = NULL;
@@ -412,7 +413,7 @@ static EbErrorType set_cfg_fgs_table_path(EbConfig *cfg, const char *token, cons
 
     return EB_ErrorNone;
 }
-
+#endif
 static EbErrorType set_two_pass_stats(EbConfig *cfg, const char *token, const char *value) {
     return str_to_str(value, (char **)&cfg->stats, token);
 }
@@ -865,6 +866,7 @@ ConfigDescription config_entry_specific[] = {
      "default is 1 [0-2]"},
     // MD Parameters
     {SCREEN_CONTENT_TOKEN, "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive]"},
+#if CONFIG_ENABLE_FILM_GRAIN
     // Annex A parameters
     {FILM_GRAIN_TOKEN, "Enable film grain, default is 0 [0: off, 1-50: level of denoising for film grain]"},
 
@@ -873,7 +875,7 @@ ConfigDescription config_entry_specific[] = {
      "still in frame header, 1: level of denoising is set by the film-grain parameter]"},
 
     {FGS_TABLE_TOKEN, "Set the film grain model table path"},
-
+#endif
     // --- start: SUPER-RESOLUTION SUPPORT
     {SUPERRES_MODE_INPUT,
      "Enable super-resolution mode, refer to the super-resolution section in the user guide, "
@@ -1073,9 +1075,12 @@ ConfigEntry config_entry[] = {
     {ENABLE_TF_TOKEN, "EnableTf", set_cfg_generic_token},
     {ENABLE_OVERLAYS, "EnableOverlays", set_cfg_generic_token},
     {SCREEN_CONTENT_TOKEN, "ScreenContentMode", set_cfg_generic_token},
+
+#if CONFIG_ENABLE_FILM_GRAIN
     {FILM_GRAIN_TOKEN, "FilmGrain", set_cfg_generic_token},
     {FILM_GRAIN_DENOISE_APPLY_TOKEN, "FilmGrainDenoise", set_cfg_generic_token},
     {FGS_TABLE_TOKEN, "FilmGrainTable", set_cfg_fgs_table_path},
+#endif
 
     //   Super-resolution support
     {SUPERRES_MODE_INPUT, "SuperresMode", set_cfg_generic_token},
@@ -2102,6 +2107,7 @@ static void free_config_strings(unsigned nch, char *config_strings[MAX_CHANNEL_N
     for (unsigned i = 0; i < nch; ++i) free(config_strings[i]);
 }
 
+#if CONFIG_ENABLE_FILM_GRAIN
 static EbErrorType read_fgs_table(EbConfig *cfg) {
     EbErrorType   ret = EB_ErrorBadParameter;
     AomFilmGrain *film_grain;
@@ -2243,6 +2249,7 @@ fail:
     fclose(file);
     return ret;
 }
+#endif
 
 /******************************************
 * Read Command Line
@@ -2374,6 +2381,7 @@ EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *chan
         }
     }
 
+#if CONFIG_ENABLE_FILM_GRAIN
     for (index = 0; index < num_channels; ++index) {
         EncChannel *c   = channels + index;
         EbConfig   *cfg = c->app_cfg;
@@ -2388,7 +2396,7 @@ EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *chan
             return_error    = (EbErrorType)(return_error & c->return_error);
         }
     }
-
+#endif
     /***************************************************************************************************/
     /**************************************   Verify configuration parameters   ************************/
     /***************************************************************************************************/

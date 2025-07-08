@@ -23,6 +23,7 @@
 #include "pic_operators.h"
 #endif
 
+#if CONFIG_ENABLE_FILM_GRAIN
 static const int32_t k_max_lag = 4;
 
 #if !CLN_FUNCS_HEADER
@@ -2377,3 +2378,4 @@ int32_t svt_aom_denoise_and_model_run(struct AomDenoiseAndModel *ctx, EbPictureB
 
     return 1;
 }
+#endif
