@@ -322,6 +322,8 @@ extern "C" {
 
 #define FIX_OPT_DELTA_QP            1 // Remove the Q/Q-1 r0_delta_qp_quant
 #define FIX_ZERO_QDELTAS_LOSSLESS   1 // Disable all delta quantization (delta_q) values when base_qindex == 0 (lossless mode)
+#define FIX_VBR_CRASH               1 // Use mutex for reading firstpass stats to avoid crash
+
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one

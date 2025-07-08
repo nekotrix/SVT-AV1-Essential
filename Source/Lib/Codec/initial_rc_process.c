@@ -640,7 +640,9 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
                           head_pcs->stats_in_offset + (uint64_t)head_pcs->ext_group_size)
                     : (uint64_t)(head_pcs->scs->twopass.stats_buf_ctx->stats_in_end_write -
                                  head_pcs->scs->twopass.stats_buf_ctx->stats_in_start);
+#if !FIX_VBR_CRASH
                 svt_release_mutex(head_pcs->scs->twopass.stats_buf_ctx->stats_in_write_mutex);
+#endif
                 head_pcs->frames_in_sw = (int)(head_pcs->stats_in_end_offset - head_pcs->stats_in_offset);
                 if (head_pcs->scs->enable_dec_order == 0 && head_pcs->scs->lap_rc &&
                     head_pcs->temporal_layer_index == 0) {
@@ -653,6 +655,9 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
                         }
                     }
                 }
+#if FIX_VBR_CRASH
+                svt_release_mutex(head_pcs->scs->twopass.stats_buf_ctx->stats_in_write_mutex);
+#endif
             }
             //take the picture out from iRc process
             irc_send_picture_out(ctx, head_pcs, false);
@@ -678,6 +683,9 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
 static void set_1pvbr_param(PictureParentControlSet *pcs) {
     SequenceControlSet *scs = pcs->scs;
 
+#if FIX_VBR_CRASH
+    svt_block_on_mutex(scs->twopass.stats_buf_ctx->stats_in_write_mutex);
+#endif
     pcs->stat_struct = (scs->twopass.stats_buf_ctx->stats_in_start + pcs->picture_number)->stat_struct;
     if (pcs->slice_type != I_SLICE) {
         uint64_t avg_me_dist          = 0;
@@ -702,6 +710,9 @@ static void set_1pvbr_param(PictureParentControlSet *pcs) {
             pcs->b64_total_count * weight / VBR_CODED_ERROR_FACTOR;
         (scs->twopass.stats_buf_ctx->stats_in_start + pcs->picture_number)->stat_struct.poc = pcs->picture_number;
     }
+#if FIX_VBR_CRASH
+    svt_release_mutex(scs->twopass.stats_buf_ctx->stats_in_write_mutex);
+#endif
 }
 
 /* Initial Rate Control Kernel */
