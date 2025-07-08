@@ -68,7 +68,12 @@ if(MINIMAL_BUILD)
     add_definitions(-DMINIMAL_BUILD=1)
 endif()
 
-option(RTC_BUILD "Enable RTC build" OFF)
+option(LOG_QUIET "Disable all logging from encoder" OFF)
+if(LOG_QUIET)
+    add_definitions(-DCONFIG_LOG_QUIET=1)
+endif()
+
+option(RTC_BUILD "Optimize build for RTC by disabling unused features" OFF)
 if(RTC_BUILD)
     add_definitions(-DRTC_BUILD=1)
 endif()

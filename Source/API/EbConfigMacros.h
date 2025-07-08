@@ -23,12 +23,16 @@
 // clang-format off
 
 #if RTC_BUILD
+#define CONFIG_LOG_QUIET                    1
+
 #define CONFIG_ENABLE_QUANT_MATRIX          0
 #define CONFIG_ENABLE_OBMC                  0
 #define CONFIG_ENABLE_FILM_GRAIN            0
 #define CONFIG_ENABLE_HIGH_BIT_DEPTH        0
+#endif
 
-#define SVT_LOG_QUIET                       1
+#ifndef CONFIG_LOG_QUIET
+#define CONFIG_LOG_QUIET                    0
 #endif
 
 #ifndef CONFIG_ENABLE_QUANT_MATRIX

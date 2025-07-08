@@ -11,6 +11,8 @@
 #ifndef EbLog_h
 #define EbLog_h
 
+#include "EbConfigMacros.h"
+
 #ifndef LOG_TAG
 #define LOG_TAG "Svt"
 #endif
@@ -24,9 +26,7 @@ typedef enum {
     SVT_LOG_DEBUG = 4,
 } SvtLogLevel;
 
-//define this to turn off all library log
-//#define SVT_LOG_QUIET
-#ifndef SVT_LOG_QUIET
+#if !CONFIG_LOG_QUIET
 
 //SVT_LOG will not output the prefix. you can contorl the output style.
 #define SVT_LOG(format, ...) svt_log(SVT_LOG_ALL, NULL, format, ##__VA_ARGS__)
@@ -36,6 +36,9 @@ typedef enum {
 #define SVT_WARN(format, ...) svt_log(SVT_LOG_WARN, LOG_TAG, format, ##__VA_ARGS__)
 #define SVT_ERROR(format, ...) svt_log(SVT_LOG_ERROR, LOG_TAG, format, ##__VA_ARGS__)
 #define SVT_FATAL(format, ...) svt_log(SVT_LOG_FATAL, LOG_TAG, format, ##__VA_ARGS__)
+
+void svt_log_init();
+void svt_log(SvtLogLevel level, const char* tag, const char* format, ...);
 
 #else
 
@@ -58,9 +61,6 @@ typedef enum {
     do {                       \
     } while (0)
 
-#endif //SVT_LOG_QUIET
-
-void svt_log_init();
-void svt_log(SvtLogLevel level, const char* tag, const char* format, ...);
+#endif //CONFIG_LOG_QUIET
 
 #endif //EbLog_h

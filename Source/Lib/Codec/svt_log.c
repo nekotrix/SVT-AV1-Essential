@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#ifndef SVT_LOG_QUIET
+#if !CONFIG_LOG_QUIET
 
 static SvtLogLevel g_log_level;
 static FILE*       g_log_file;
@@ -69,4 +69,4 @@ void svt_log(SvtLogLevel level, const char* tag, const char* format, ...) {
     va_end(args);
 }
 
-#endif //SVT_LOG_QUIET
+#endif //CONFIG_LOG_QUIET

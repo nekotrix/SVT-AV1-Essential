@@ -1077,7 +1077,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     return return_error;
 }
 
-#ifndef SVT_LOG_QUIET
+#if !CONFIG_LOG_QUIET
 static const char *tier_to_str(unsigned in) {
     if (!in)
         return "(auto)";

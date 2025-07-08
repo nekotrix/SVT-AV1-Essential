@@ -134,7 +134,7 @@ static uint16_t get_num_refs_in_one_mg(uint32_t hierarchical_levels, uint32_t re
     return tot_refs;
 }
 
-#ifndef SVT_LOG_QUIET
+#if !CONFIG_LOG_QUIET
 static const char *get_asm_level_name_str(EbCpuFlags cpu_flags) {
 
     const struct {
@@ -2664,7 +2664,10 @@ EB_API EbErrorType svt_av1_enc_init_handle(
 {
     if(p_handle == NULL)
          return EB_ErrorBadParameter;
+
+#if !CONFIG_LOG_QUIET
     svt_log_init();
+#endif
 
     #if defined(__linux__)
         if(lp_group == NULL) {
