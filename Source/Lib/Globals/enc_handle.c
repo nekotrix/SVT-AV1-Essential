@@ -5541,7 +5541,17 @@ static void copy_api_from_app(
         SVT_WARN("Maximum bit rate only supported with tpl on. max bit rate 0 is used instead.\n");
     }
 
+#if FIX_LINK_MIN_MAX_QP
+    scs->static_config.max_qp_allowed = scs->static_config.lossless
+        ? MIN_QP_VALUE
+        : ((EbSvtAv1EncConfiguration*)config_struct)->max_qp_allowed;
 
+    scs->static_config.min_qp_allowed = scs->static_config.lossless
+        ? MIN_QP_VALUE
+        : ((EbSvtAv1EncConfiguration*)config_struct)->min_qp_allowed == MIN_QP_AUTO
+        ? scs->static_config.rate_control_mode ? 4 : MIN_QP_VALUE
+        : ((EbSvtAv1EncConfiguration*)config_struct)->min_qp_allowed;
+#else
     scs->static_config.max_qp_allowed = scs->static_config.lossless
         ? MIN_QP_VALUE
         : scs->static_config.rate_control_mode
@@ -5553,7 +5563,7 @@ static void copy_api_from_app(
         : scs->static_config.rate_control_mode
             ? ((EbSvtAv1EncConfiguration*)config_struct)->min_qp_allowed
             : MIN_QP_VALUE;
-
+#endif
     scs->static_config.vbr_min_section_pct = ((EbSvtAv1EncConfiguration*)config_struct)->vbr_min_section_pct;
     scs->static_config.vbr_max_section_pct = ((EbSvtAv1EncConfiguration*)config_struct)->vbr_max_section_pct;
     scs->static_config.under_shoot_pct     = ((EbSvtAv1EncConfiguration*)config_struct)->under_shoot_pct;

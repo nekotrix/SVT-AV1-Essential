@@ -298,8 +298,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         if (!config->rc_stats_buffer.buf) {
             SVT_ERROR("Instance %u: RC stats buffer not available \n", channel_number + 1);
             return_error = EB_ErrorBadParameter;
-        }
-        else if (config->rc_stats_buffer.sz == 0) {
+        } else if (config->rc_stats_buffer.sz == 0) {
             SVT_ERROR("Instance %u: RC stats buffer size is 0 \n", channel_number + 1);
             return_error = EB_ErrorBadParameter;
         }
@@ -972,7 +971,11 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->target_bit_rate              = 2000513;
     config_ptr->max_bit_rate                 = 0;
     config_ptr->max_qp_allowed               = 63;
-    config_ptr->min_qp_allowed               = 4;
+#if FIX_LINK_MIN_MAX_QP
+    config_ptr->min_qp_allowed = MIN_QP_AUTO;
+#else
+    config_ptr->min_qp_allowed = 4;
+#endif
     config_ptr->enable_adaptive_quantization = 2;
     config_ptr->enc_mode                     = ENC_M8;
     config_ptr->intra_period_length          = -2;

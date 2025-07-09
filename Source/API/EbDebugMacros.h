@@ -325,6 +325,7 @@ extern "C" {
 #define FIX_VBR_CRASH               1 // Use mutex for reading firstpass stats to avoid crash
 #define FIX_SC_SETTINGS             1 // Fix SC settings
 #define FIX_CHECK_STATS_FILE        1 // Check that stats file exists in library for second pass encoding
+#define FIX_LINK_MIN_MAX_QP         1 // Fix linking of min and max QP values
 
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0

@@ -462,6 +462,14 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is 0. */
     uint32_t max_bit_rate;
+#if FIX_LINK_MIN_MAX_QP
+    /* Maxium QP value
+     * Default is 63. */
+    uint32_t max_qp_allowed;
+    /* Minimum QP value
+     * Default is auto. */
+    uint32_t min_qp_allowed;
+#else
     /* Maxium QP value allowed for rate control use, only applicable when rate
      * control mode is set to 1. It has to be greater or equal to minQpAllowed.
      *
@@ -472,6 +480,7 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is 4. */
     uint32_t min_qp_allowed;
+#endif
     /**
      * @brief Variable Bit Rate Minimum Section Percentage
      *

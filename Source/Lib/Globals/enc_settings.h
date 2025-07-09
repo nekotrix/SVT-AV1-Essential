@@ -20,6 +20,9 @@
  * Defines
  **************************************/
 #define DEFAULT_QP 35
+#if FIX_LINK_MIN_MAX_QP
+#define MIN_QP_AUTO ((uint32_t)(~0))
+#endif
 // Have an unusual magic number to reduce probablity of user using them
 #define DEFAULT_TBR 2000513
 
