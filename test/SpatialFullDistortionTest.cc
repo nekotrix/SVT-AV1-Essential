@@ -518,10 +518,10 @@ class FullDistortionKernel32Bits
     void RunCheckOutput();
 
     void init_data() {
-        svt_buf_random_u32_with_max(
-            (uint32_t *)coeff, MAX_SB_SIZE * coeff_stride_, (1 << 15));
-        svt_buf_random_u32_with_max(
-            (uint32_t *)recon, MAX_SB_SIZE * recon_stride_, (1 << 15));
+        svt_buf_random_s32_with_max(
+            coeff, MAX_SB_SIZE * coeff_stride_, (1 << 17));
+        svt_buf_random_s32_with_max(
+            recon, MAX_SB_SIZE * recon_stride_, (1 << 17));
     }
 
     uint64_t result_ref[DIST_CALC_TOTAL];

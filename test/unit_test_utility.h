@@ -44,6 +44,9 @@ extern void svt_buf_random_u16_with_bd(uint16_t *const buf,
                                        const uint32_t sizeBuf,
                                        const uint32_t bd);
 extern void svt_buf_random_s32(int32_t *const buf, const uint32_t sizeBuf);
+extern void svt_buf_random_s32_with_max(int32_t *const buf,
+                                        const uint32_t sizeBuf,
+                                        const int32_t max_abs);
 extern void svt_buf_random_u32(uint32_t *const buf, const uint32_t sizeBuf);
 extern void svt_buf_random_u32_with_max(uint32_t *const buf,
                                         const uint32_t sizeBuf,
