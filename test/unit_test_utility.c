@@ -95,6 +95,15 @@ void svt_buf_random_s32(int32_t *const buf, const uint32_t sizeBuf) {
     svt_buf_random_void(buf, sizeof(*buf) * sizeBuf);
 }
 
+void svt_buf_random_s32_with_max(int32_t *const buf, const uint32_t sizeBuf,
+                                 const int32_t max_abs) {
+    svt_buf_random_void(buf, sizeof(*buf) * sizeBuf);
+
+    for (uint32_t i = 0; i < sizeBuf; i++) {
+        buf[i] %= (max_abs + 1);
+    }
+}
+
 void svt_buf_random_u32(uint32_t *const buf, const uint32_t sizeBuf) {
     svt_buf_random_void(buf, sizeof(*buf) * sizeBuf);
 }
