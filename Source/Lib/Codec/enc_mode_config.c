@@ -10104,8 +10104,10 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
 #else
     const bool rtc_tune = (pcs->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
 #endif
+#if !CLN_UNUSED_SETTINGS
     const uint8_t sc_class1 = ppcs->sc_class1;
-    const EncMode enc_mode  = pcs->enc_mode;
+#endif
+    const EncMode enc_mode = pcs->enc_mode;
 #if !OPT_RTC_RDOQ
     const bool disable_rdoq_rtc = enc_mode <= ENC_M9 ? 0 : rtc_tune && sc_class1 ? 1 : 0;
 #endif
@@ -10361,7 +10363,7 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
 
     uint8_t intra_level = 0;
     if (lpd1_level <= LPD1_LVL_2)
-#if OPT_RTC_INTRA
+#if OPT_RTC_INTRA && !CLN_UNUSED_SETTINGS
         if (rtc_tune) {
 #if TUNE_RTC_M11_4
 #if TUNE_RTC_M12

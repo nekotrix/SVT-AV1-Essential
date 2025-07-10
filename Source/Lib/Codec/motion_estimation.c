@@ -1241,7 +1241,32 @@ uint16_t svt_aom_get_scaled_picture_distance(uint16_t dist) {
     uint8_t round_up = ((dist % 8) == 0) ? 0 : 1;
     return ((dist * 5) / 8) + round_up;
 }
+#if FIX_SC_SETTINGS
+static const double search_area_multipliers[3][5] = {
+     { 1.0, 1.0, 3.0, 4.0, 5.0 }, /* boost=1 */
+     { 1.0, 1.0, 2.5, 3.5, 4.5 }, /* boost=2 */
+     { 1.0, 1.0, 2.0, 2.5, 3.5 }  /* boost=3 */
+};
 
+static void apply_me_sa_boost(int16_t *width, int16_t *height, int hme_sad, int sc_class_me_boost) {
+
+    int index;
+    if (hme_sad > 4 * 64 * 64) {
+        index = 4;
+    } else if (hme_sad > 3 * 64 * 64) {
+        index = 3;
+    } else if (hme_sad > 2 * 64 * 64) {
+        index = 2;
+    } else {
+        index = 0;
+    }
+
+    const double mult = search_area_multipliers[sc_class_me_boost - 1][index];
+
+    *width  = (int16_t)(*width  * mult);
+    *height = (int16_t)(*height * mult);
+}
+#endif
 /*******************************************
  *   performs integer search motion estimation for
  all avaiable references frames
@@ -1317,52 +1342,8 @@ static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
                 (pcs->ahd_error == (uint32_t)~0 || // Use ahd_error only when it is derived
                  pcs->ahd_error < ((((20 * pcs->enhanced_pic->width * pcs->enhanced_pic->height) / 128)) * (uint32_t) (INPUT_SIZE_COUNT - pcs->input_resolution)))) { // Only if there are low temporal variations between frames
 #if FIX_SC_SETTINGS
-                uint64_t hme_sad = me_ctx->search_results[list_index][ref_pic_index].hme_sad;
-
-                switch (me_ctx->sc_class_me_boost) {
-                case 1:
-                    if (hme_sad > 4 * 64 * 64) {
-                        search_area_width *= 5;
-                        search_area_height *= 5;
-                    }
-                    else if (hme_sad > 3 * 64 * 64) {
-                        search_area_width *= 4;
-                        search_area_height *= 4;
-                    }
-                    else if (hme_sad > 2 * 64 * 64) {
-                        search_area_width *= 3;
-                        search_area_height *= 3;
-                    }
-                    break;
-                case 2:
-                    if (hme_sad > 4 * 64 * 64) {
-                        search_area_width = (int16_t)(search_area_width * 4.5);
-                        search_area_height = (int16_t)(search_area_height * 4.5);
-                    }
-                    else if (hme_sad > 3 * 64 * 64) {
-                        search_area_width = (int16_t)(search_area_width * 3.5);
-                        search_area_height = (int16_t)(search_area_height * 3.5);
-                    }
-                    else if (hme_sad > 2 * 64 * 64) {
-                        search_area_width = (int16_t)(search_area_width * 2.5);
-                        search_area_height = (int16_t)(search_area_height * 2.5);
-                    }
-                    break;
-                case 3:
-                    if (hme_sad > 4 * 64 * 64) {
-                        search_area_width = (int16_t)(search_area_width * 3.5);
-                        search_area_height = (int16_t)(search_area_height * 3.5);
-                    }
-                    else if (hme_sad > 3 * 64 * 64) {
-                        search_area_width = (int16_t)(search_area_width * 2.5);
-                        search_area_height = (int16_t)(search_area_height * 2.5);
-                    }
-                    else if (hme_sad > 2 * 64 * 64) {
-                        search_area_width *= 2;
-                        search_area_height *= 2;
-                    }
-                    break;
-                }
+                const uint64_t hme_sad = me_ctx->search_results[list_index][ref_pic_index].hme_sad;
+                apply_me_sa_boost(&search_area_width, &search_area_height, hme_sad, me_ctx->sc_class_me_boost);
 #else
                 if (me_ctx->search_results[list_index][ref_pic_index].hme_sad > (4 * 64 * 64)) {
                     search_area_width *= 4;
