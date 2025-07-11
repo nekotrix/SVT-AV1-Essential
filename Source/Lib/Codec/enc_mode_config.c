@@ -12183,6 +12183,9 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 #endif
         pcs->cfl_level = 1;
     else if (rtc_tune) {
+#if CLN_UNUSED_SETTINGS
+        pcs->cfl_level = is_islice ? 2 : 0;
+#else
 #if TUNE_RTC_PSNR_M7
         if (enc_mode <= ENC_M6) {
 #else
@@ -12208,6 +12211,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 #else
         } else
             pcs->cfl_level = is_islice ? 2 : 0;
+#endif
 #endif
     } else {
 #if TUNE_M9_10BIT
