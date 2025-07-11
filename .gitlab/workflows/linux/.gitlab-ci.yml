@@ -200,6 +200,15 @@ Linux Sanitizer Compile:
       - thread/
       - signed-integer-overflow,unsigned-integer-overflow/
 
+Linux (RTC, Minimal):
+  extends: .linux-compiler-base
+  stage: standalone
+  variables:
+    EXTRA_CMAKE_FLAGS: -DRTC_BUILD=ON -DMINIMAL_BUILD=ON
+  # Set so this job can run even if the other OS' jobs are blocked
+  needs:
+    - Linux (GCC 11, Static)
+
 #
 # Test jobs
 #
