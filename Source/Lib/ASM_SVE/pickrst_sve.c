@@ -240,6 +240,7 @@ int64_t svt_av1_lowbd_pixel_proj_error_sve(const uint8_t *src8, int32_t width, i
     return vaddvq_s64(sse_s64);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 int64_t svt_av1_highbd_pixel_proj_error_sve(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride,
                                             const uint8_t *dat8, int32_t dat_stride, int32_t *flt0, int32_t flt0_stride,
                                             int32_t *flt1, int32_t flt1_stride, int32_t xq[2],
@@ -348,3 +349,4 @@ int64_t svt_av1_highbd_pixel_proj_error_sve(const uint8_t *src8, int32_t width, 
 
     return vaddvq_s64(sse_s64);
 }
+#endif //CONFIG_ENABLE_HIGH_BIT_DEPTH

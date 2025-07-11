@@ -24,6 +24,7 @@
 #include "transpose_neon.h"
 #include "utility.h"
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static inline uint16_t highbd_find_average_sve(const uint16_t *src, int src_stride, int width, int height) {
     uint64x2_t avg_u64 = vdupq_n_u64(0);
     uint16x8_t ones    = vdupq_n_u16(1);
@@ -153,3 +154,4 @@ void svt_av1_compute_stats_highbd_sve(int32_t wiener_win, const uint8_t *dgd8, c
 
     svt_aom_free(d);
 }
+#endif //CONFIG_ENABLE_HIGH_BIT_DEPTH
