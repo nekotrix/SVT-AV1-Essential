@@ -296,7 +296,7 @@ GeomIndex svt_aom_geom_idx;
 
 /* to access geom info of a particular block; use this table if you have the block index in md scan */
 #ifdef MINIMAL_BUILD
-BlockGeom* svt_aom_blk_geom_mds;
+BlockGeom* svt_aom_blk_geom_mds = NULL;
 #else
 BlockGeom svt_aom_blk_geom_mds[MAX_NUM_BLOCKS_ALLOC];
 #endif
