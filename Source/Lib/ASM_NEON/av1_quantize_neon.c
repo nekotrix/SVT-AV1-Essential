@@ -19,12 +19,14 @@
 #include "sum_neon.h"
 #include "utility.h"
 
-static inline uint16_t get_max_eob(int16x8_t v_eobmax) { return (uint16_t)vmaxvq_s16(v_eobmax); }
+static inline uint16_t get_max_eob(int16x8_t v_eobmax) {
+    int16_t max_val = vmaxvq_s16(v_eobmax);
+    return (uint16_t)max_val + 1;
+}
 
 static inline int16x8_t get_max_lane_eob(const int16_t *iscan, int16x8_t v_eobmax, uint16x8_t v_mask) {
-    const int16x8_t v_iscan       = vld1q_s16(&iscan[0]);
-    const int16x8_t v_iscan_plus1 = vaddq_s16(v_iscan, vdupq_n_s16(1));
-    const int16x8_t v_nz_iscan    = vbslq_s16(v_mask, v_iscan_plus1, vdupq_n_s16(0));
+    const int16x8_t v_iscan    = vld1q_s16(iscan);
+    const int16x8_t v_nz_iscan = vbslq_s16(v_mask, v_iscan, vdupq_n_s16(-1));
     return vmaxq_s16(v_eobmax, v_nz_iscan);
 }
 
@@ -348,7 +350,7 @@ static inline void aom_quantize_b_helper_16x16_neon(const TranLow *coeff_ptr, in
             v_eobmax_76543210          = vbslq_s16(vcond, v_iscan, v_eobmax_76543210);
         }
     }
-    *eob_ptr = get_max_eob(v_eobmax_76543210) + 1;
+    *eob_ptr = vmaxvq_s16(v_eobmax_76543210) + 1;
 }
 
 static inline void aom_quantize_b_helper_32x32_neon(const TranLow *coeff_ptr, intptr_t n_coeffs,
@@ -475,7 +477,7 @@ static inline void aom_quantize_b_helper_32x32_neon(const TranLow *coeff_ptr, in
             v_eobmax_76543210          = vbslq_s16(vcond, v_iscan, v_eobmax_76543210);
         }
     }
-    *eob_ptr = get_max_eob(v_eobmax_76543210) + 1;
+    *eob_ptr = vmaxvq_s16(v_eobmax_76543210) + 1;
 }
 
 static inline void aom_quantize_b_helper_64x64_neon(const TranLow *coeff_ptr, intptr_t n_coeffs,
@@ -606,7 +608,7 @@ static inline void aom_quantize_b_helper_64x64_neon(const TranLow *coeff_ptr, in
             v_eobmax_76543210          = vbslq_s16(vcond, v_iscan, v_eobmax_76543210);
         }
     }
-    *eob_ptr = get_max_eob(v_eobmax_76543210) + 1;
+    *eob_ptr = vmaxvq_s16(v_eobmax_76543210) + 1;
 }
 
 void svt_aom_quantize_b_neon(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr,

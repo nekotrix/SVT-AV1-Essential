@@ -52,10 +52,14 @@ static inline uint16x4_t quantize_4_b(const TranLow *coeff_ptr, TranLow *qcoeff_
     return vmovn_u32(nz_qcoeff_mask);
 }
 
+static inline uint16_t get_max_eob(int16x8_t v_eobmax) {
+    int16_t max_val = vmaxvq_s16(v_eobmax);
+    return (uint16_t)max_val + 1;
+}
+
 static inline int16x8_t get_max_lane_eob(const int16_t *iscan, int16x8_t v_eobmax, uint16x8_t v_mask) {
-    const int16x8_t v_iscan       = vld1q_s16(&iscan[0]);
-    const int16x8_t v_iscan_plus1 = vaddq_s16(v_iscan, vdupq_n_s16(1));
-    const int16x8_t v_nz_iscan    = vbslq_s16(v_mask, v_iscan_plus1, vdupq_n_s16(0));
+    const int16x8_t v_iscan    = vld1q_s16(iscan);
+    const int16x8_t v_nz_iscan = vbslq_s16(v_mask, v_iscan, vdupq_n_s16(-1));
     return vmaxq_s16(v_eobmax, v_nz_iscan);
 }
 
@@ -171,7 +175,7 @@ void svt_aom_highbd_quantize_b_neon(const TranLow *coeff_ptr, intptr_t n_coeffs,
         v_eobmax = get_max_lane_eob(iscan, v_eobmax, vcombine_u16(v_mask_lo, v_mask_hi));
     }
 
-    *eob_ptr = (uint16_t)vmaxvq_s16(v_eobmax);
+    *eob_ptr = get_max_eob(v_eobmax);
 }
 
 static inline uint16x4_t quantize_4_fp(const tran_low_t *coeff_ptr, tran_low_t *qcoeff_ptr, tran_low_t *dqcoeff_ptr,
@@ -254,5 +258,5 @@ void svt_av1_highbd_quantize_fp_neon(const TranLow *coeff_ptr, intptr_t count, c
         count -= 8;
     } while (count);
 
-    *eob_ptr = (uint16_t)vmaxvq_s16(v_eobmax);
+    *eob_ptr = get_max_eob(v_eobmax);
 }
