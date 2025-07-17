@@ -227,8 +227,8 @@ static inline void svt_sad_loop_kernel16xh_neon_dotprod(uint8_t *src, uint32_t s
                                                         int16_t *x_search_center, int16_t *y_search_center,
                                                         uint32_t src_stride_raw, uint8_t skip_search_line,
                                                         int16_t search_area_width, int16_t search_area_height) {
-    int y_search_start = 0;
-    int y_search_step  = 1;
+    int16_t y_search_start = 0;
+    int16_t y_search_step  = 1;
 
     if (block_height <= 16 && skip_search_line) {
         ref += src_stride_raw;
@@ -237,8 +237,9 @@ static inline void svt_sad_loop_kernel16xh_neon_dotprod(uint8_t *src, uint32_t s
         y_search_step  = 2;
     }
 
-    for (int y_search_index = y_search_start; y_search_index < search_area_height; y_search_index += y_search_step) {
-        for (int x_search_index = 0; x_search_index < search_area_width; x_search_index += 8) {
+    for (int16_t y_search_index = y_search_start; y_search_index < search_area_height;
+         y_search_index += y_search_step) {
+        for (int16_t x_search_index = 0; x_search_index < search_area_width; x_search_index += 8) {
             /* Get the SAD of 8 search spaces aligned along the width and store it in 'sad4'. */
             uint32x4_t sad4_0 = sad16xhx4d_neon_dotprod(
                 src, src_stride, ref + x_search_index, ref_stride, block_height);
@@ -258,8 +259,8 @@ static inline void svt_sad_loop_kernel16xh_small_neon_dotprod(uint8_t *src, uint
                                                               int16_t *y_search_center, uint32_t src_stride_raw,
                                                               uint8_t skip_search_line, int16_t search_area_width,
                                                               int16_t search_area_height) {
-    int y_search_start = 0;
-    int y_search_step  = 1;
+    int16_t y_search_start = 0;
+    int16_t y_search_step  = 1;
 
     if (block_height <= 16 && skip_search_line) {
         ref += src_stride_raw;
@@ -268,8 +269,9 @@ static inline void svt_sad_loop_kernel16xh_small_neon_dotprod(uint8_t *src, uint
         y_search_step  = 2;
     }
 
-    for (int y_search_index = y_search_start; y_search_index < search_area_height; y_search_index += y_search_step) {
-        int x_search_index;
+    for (int16_t y_search_index = y_search_start; y_search_index < search_area_height;
+         y_search_index += y_search_step) {
+        int16_t x_search_index;
         for (x_search_index = 0; x_search_index <= search_area_width - 4; x_search_index += 4) {
             /* Get the SAD of 4 search spaces aligned along the width and store it in 'sad4'. */
             uint32x4_t sad4_0 = sad16xhx4d_neon_dotprod(
@@ -291,8 +293,8 @@ static inline void svt_sad_loop_kernel32xh_neon_dotprod(uint8_t *src, uint32_t s
                                                         int16_t *x_search_center, int16_t *y_search_center,
                                                         uint32_t src_stride_raw, int16_t search_area_width,
                                                         int16_t search_area_height) {
-    for (int y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
-        for (int x_search_index = 0; x_search_index < search_area_width; x_search_index += 8) {
+    for (int16_t y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
+        for (int16_t x_search_index = 0; x_search_index < search_area_width; x_search_index += 8) {
             /* Get the SAD of 4 search spaces aligned along the width and store it in 'sad4'. */
             uint32x4_t sad4_0 = sad32xhx4d_neon_dotprod(
                 src, src_stride, ref + x_search_index, ref_stride, block_height);
@@ -311,8 +313,8 @@ static inline void svt_sad_loop_kernel32xh_small_neon_dotprod(uint8_t *src, uint
                                                               uint64_t *best_sad, int16_t *x_search_center,
                                                               int16_t *y_search_center, uint32_t src_stride_raw,
                                                               int16_t search_area_width, int16_t search_area_height) {
-    for (int y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
-        int x_search_index;
+    for (int16_t y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
+        int16_t x_search_index;
         for (x_search_index = 0; x_search_index <= search_area_width - 4; x_search_index += 4) {
             /* Get the SAD of 4 search spaces aligned along the width and store it in 'sad4'. */
             uint32x4_t sad4_0 = sad32xhx4d_neon_dotprod(
@@ -334,8 +336,8 @@ static inline void svt_sad_loop_kernel64xh_neon_dotprod(uint8_t *src, uint32_t s
                                                         int16_t *x_search_center, int16_t *y_search_center,
                                                         uint32_t src_stride_raw, int16_t search_area_width,
                                                         int16_t search_area_height) {
-    for (int y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
-        for (int x_search_index = 0; x_search_index < search_area_width; x_search_index += 8) {
+    for (int16_t y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
+        for (int16_t x_search_index = 0; x_search_index < search_area_width; x_search_index += 8) {
             /* Get the SAD of 4 search spaces aligned along the width and store it in 'sad4'. */
             uint32x4_t sad4_0 = sad64xhx4d_neon_dotprod(
                 src, src_stride, ref + x_search_index, ref_stride, block_height);
@@ -354,8 +356,8 @@ static inline void svt_sad_loop_kernel64xh_small_neon_dotprod(uint8_t *src, uint
                                                               uint64_t *best_sad, int16_t *x_search_center,
                                                               int16_t *y_search_center, uint32_t src_stride_raw,
                                                               int16_t search_area_width, int16_t search_area_height) {
-    for (int y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
-        int x_search_index;
+    for (int16_t y_search_index = 0; y_search_index < search_area_height; y_search_index++) {
+        int16_t x_search_index;
         for (x_search_index = 0; x_search_index <= search_area_width - 4; x_search_index += 4) {
             /* Get the SAD of 4 search spaces aligned along the width and store it in 'sad4'. */
             uint32x4_t sad4_0 = sad64xhx4d_neon_dotprod(
