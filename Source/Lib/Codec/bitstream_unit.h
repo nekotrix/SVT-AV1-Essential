@@ -60,7 +60,7 @@ extern EbErrorType svt_aom_output_bitstream_reset(OutputBitstreamUnit *bitstream
 #if defined(__GNUC__) && ((__GNUC__ == 3 && __GNUC_MINOR__ >= 4) || __GNUC__ >= 4)
 static INLINE int32_t get_msb(uint32_t n) {
     assert(n != 0);
-    return 31 ^ __builtin_clz(n);
+    return 31 - __builtin_clz(n);
 }
 #elif defined(USE_MSC_INTRINSICS)
 #pragma intrinsic(_BitScanReverse)
