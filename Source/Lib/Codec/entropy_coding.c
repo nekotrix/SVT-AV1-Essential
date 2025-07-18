@@ -1487,7 +1487,7 @@ uint32_t svt_aom_wb_bytes_written(const struct AomWriteBitBuffer *wb) {
     return wb->bit_offset / CHAR_BIT + (wb->bit_offset % CHAR_BIT > 0);
 }
 
-void svt_aom_wb_write_bit(struct AomWriteBitBuffer *wb, int32_t bit) {
+INLINE static void svt_aom_wb_write_bit_inlined(struct AomWriteBitBuffer *wb, int32_t bit) {
     const int32_t off = (int32_t)wb->bit_offset;
     const int32_t p   = off / CHAR_BIT;
     const int32_t q   = CHAR_BIT - 1 - off % CHAR_BIT;
@@ -1501,13 +1501,19 @@ void svt_aom_wb_write_bit(struct AomWriteBitBuffer *wb, int32_t bit) {
     wb->bit_offset = off + 1;
 }
 
-void svt_aom_wb_write_literal(struct AomWriteBitBuffer *wb, int32_t data, int32_t bits) {
+INLINE static void svt_aom_wb_write_literal_inlined(struct AomWriteBitBuffer *wb, int32_t data, int32_t bits) {
     int32_t bit;
     for (bit = bits - 1; bit >= 0; bit--) svt_aom_wb_write_bit(wb, (data >> bit) & 1);
 }
 
-void svt_aom_wb_write_inv_signed_literal(struct AomWriteBitBuffer *wb, int32_t data, int32_t bits) {
-    svt_aom_wb_write_literal(wb, data, bits + 1);
+void NOINLINE svt_aom_wb_write_bit(struct AomWriteBitBuffer *wb, int32_t bit) { svt_aom_wb_write_bit_inlined(wb, bit); }
+
+void NOINLINE svt_aom_wb_write_literal(struct AomWriteBitBuffer *wb, int32_t data, int32_t bits) {
+    svt_aom_wb_write_literal_inlined(wb, data, bits);
+}
+
+void NOINLINE svt_aom_wb_write_inv_signed_literal(struct AomWriteBitBuffer *wb, int32_t data, int32_t bits) {
+    svt_aom_wb_write_literal_inlined(wb, data, bits + 1);
 }
 
 //*******************************************************************************************//
