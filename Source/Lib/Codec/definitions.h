@@ -12,6 +12,7 @@
 //
 #ifndef EbDefinitions_h
 #define EbDefinitions_h
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,12 +21,21 @@
 #include "EbSvtAv1.h"
 #include "EbSvtAv1Enc.h"
 #include <stdbool.h>
+
 #ifdef _WIN32
 #define inline __inline
 #elif __GNUC__
 #define inline __inline__
 #else
 #define inline
+#endif
+
+#define INLINE inline
+
+#ifdef _WIN32
+#define NOINLINE __declspec(noinline)
+#else
+#define NOINLINE __attribute__((noinline))
 #endif
 
 #ifdef __cplusplus
@@ -497,7 +507,6 @@ typedef int16_t InterpKernel[SUBPEL_TAPS];
 #define EB_EXTERN
 #endif // __cplusplus
 
-#define INLINE __inline
 #define RESTRICT
 #ifdef _WIN32
 #define FOPEN(f, s, m) fopen_s(&f, s, m)
@@ -2059,14 +2068,6 @@ static const WarpedMotionParams default_warp_params = {
 
 //**********************************************************************************************************************//
 //**********************************************************************************************************************//
-
-#ifdef _WIN32
-#define NOINLINE                __declspec ( noinline )
-#define FORCE_INLINE            __forceinline
-#else
-#define NOINLINE                __attribute__(( noinline ))
-#define FORCE_INLINE            __attribute__((always_inline))
-#endif
 
 // ***************************** Definitions *****************************
 

@@ -95,6 +95,10 @@ static INLINE int32_t get_msb(uint32_t n) {
 /********************************************************************************************************************************/
 //odintrin.h
 
+#define OD_CLZ0 (1)
+#define OD_CLZ(x) (-get_msb(x))
+#define OD_ILOG_NZ(x) (OD_CLZ0 - OD_CLZ(x))
+
 #define OD_DIVU_DMAX (1024)
 
 extern uint32_t svt_aom_od_divu_small_consts[OD_DIVU_DMAX][2];
@@ -107,14 +111,6 @@ extern uint32_t svt_aom_od_divu_small_consts[OD_DIVU_DMAX][2];
      (OD_ILOG_NZ(_d) - 1))
 
 #define OD_DIVU(_x, _d) (((_d) < OD_DIVU_DMAX) ? (OD_DIVU_SMALL((_x), (_d))) : ((_x) / (_d)))
-
-#define OD_MINI MIN
-#define OD_MAXI MAX
-#define OD_CLAMPI(min, val, max) (OD_MAXI(min, OD_MINI(val, max)))
-
-#define OD_CLZ0 (1)
-#define OD_CLZ(x) (-get_msb(x))
-#define OD_ILOG_NZ(x) (OD_CLZ0 - OD_CLZ(x))
 
 /*Enable special features for gcc and compatible compilers.*/
 #if defined(__GNUC__) && defined(__GNUC_MINOR__) && defined(__GNUC_PATCHLEVEL__)

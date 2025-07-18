@@ -316,7 +316,7 @@ unsigned char* svt_od_ec_enc_done(OdEcEnc* enc, uint32_t* nbytes) {
     out              = enc->buf;
     storage          = enc->storage;
     const int s_bits = (s + 7) >> 3;
-    int       b      = OD_MAXI(s_bits, 0);
+    int       b      = MAX(s_bits, 0);
     if (offs + b > storage) {
         storage            = offs + b;
         unsigned char* tmp = (unsigned char*)realloc(out, sizeof(*out) * storage);
@@ -717,7 +717,7 @@ uint8_t *svt_od_ec_enc_done(OdEcEnc *enc, uint32_t *nbytes) {
     /*Make sure there's enough room for the entropy-coded bits.*/
     out     = enc->buf;
     storage = enc->storage;
-    c       = OD_MAXI((s + 7) >> 3, 0);
+    c       = MAX((s + 7) >> 3, 0);
     if (offs + c > storage) {
         storage = offs + c;
         out     = realloc(enc->buf, sizeof(*buf) * storage);

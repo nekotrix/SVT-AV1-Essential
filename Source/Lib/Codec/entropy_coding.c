@@ -3450,9 +3450,6 @@ static void write_frame_size_with_refs(PictureParentControlSet *pcs, struct AomW
     write_frame_size(pcs, frame_size_override, wb);
 }
 
-#define OD_CLZ0 (1)
-#define OD_CLZ(x) (-get_msb(x))
-#define OD_ILOG_NZ(x) (OD_CLZ0 - OD_CLZ(x))
 // New function based on HLS R18
 static void write_uncompressed_header_obu(SequenceControlSet *scs /*Av1Comp *cpi*/, PictureParentControlSet *pcs,
                                           //struct AomWriteBitBuffer *saved_wb,
