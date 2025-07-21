@@ -327,7 +327,7 @@ extern "C" {
 #define FIX_CHECK_STATS_FILE        1 // Check that stats file exists in library for second pass encoding
 #define FIX_LINK_MIN_MAX_QP         1 // Fix linking of min and max QP values
 #define CLN_UNUSED_SETTINGS         1 // cleanup lpd1 level for unused preset
-
+#define FIX_RESIZE_MODE             1 // Use the current number of SBs under pcs (instead of scs) to derive norm_me_dist
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one

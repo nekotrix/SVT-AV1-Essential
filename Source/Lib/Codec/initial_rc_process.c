@@ -767,10 +767,18 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
             if (pcs->slice_type != I_SLICE) {
                 uint32_t b64_idx;
                 uint64_t dist = 0;
+#if FIX_RESIZE_MODE
+                for (b64_idx = 0; b64_idx < pcs->b64_total_count; ++b64_idx) {
+#else
                 for (b64_idx = 0; b64_idx < scs->b64_total_count; ++b64_idx) {
+#endif
                     dist += pcs->me_8x8_distortion[b64_idx];
                 }
+#if FIX_RESIZE_MODE
+                pcs->norm_me_dist = dist / pcs->b64_total_count;
+#else
                 pcs->norm_me_dist = dist / scs->b64_total_count;
+#endif
             }
 
             pcs->tpl_params_ready = 0;
