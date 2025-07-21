@@ -576,9 +576,9 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
             // buffers. PA may have more ref buffers than PM, so can send pictures faster,
             // but PM can't start those pictures until it has sufficient buffers to reach
             // it.
-            // When forcing decode order processing, we have the appropriate number
-            // or reference buffers; check on scs->enable_dec_order is added to reduce
-            // the ref buffers below REF_FRAMES for RTC case where aggressive MRP is used.
+            // When we force decode order processing, we have the appropriate number
+            // of reference buffers. This check on scs->enable_dec_order is added to reduce
+            // the ref buffers below REF_FRAMES for LD when aggressive MRP is used.
             if (!scs->enable_dec_order &&
                 entry_ppcs->decode_order >
                     (context_ptr->consecutive_dec_order + scs->reference_picture_buffer_init_count - REF_FRAMES))

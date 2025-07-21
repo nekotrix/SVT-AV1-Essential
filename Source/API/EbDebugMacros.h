@@ -328,6 +328,8 @@ extern "C" {
 #define FIX_LINK_MIN_MAX_QP         1 // Fix linking of min and max QP values
 #define CLN_UNUSED_SETTINGS         1 // cleanup lpd1 level for unused preset
 #define FIX_RESIZE_MODE             1 // Use the current number of SBs under pcs (instead of scs) to derive norm_me_dist
+#define FIX_CDEF_RACE_COND          1 // Move initialization of pcs->cdef_dist_dev to avoid a race condition (no impact to streams)
+
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one
