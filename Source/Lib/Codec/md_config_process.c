@@ -687,6 +687,174 @@ static void set_frame_coeff_lvl(PictureControlSet *pcs) {
     }
 }
 
+#if FIX_CDEF_RACE_COND
+// When the relevant speed features are used, update the filters to use/test for CDEF
+// based on the ref pics' filters.
+static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
+    CdefSearchControls *cdef_ctrls = &pcs->ppcs->cdef_search_ctrls;
+    if (cdef_ctrls->use_reference_cdef_fs) {
+        if (pcs->slice_type != I_SLICE) {
+            const bool rtc_tune   = pcs->scs->static_config.rtc;
+            uint8_t    lowest_sg  = TOTAL_STRENGTHS - 1;
+            uint8_t    highest_sg = 0;
+            // Determine luma pred filter
+            // Add filter from list0
+            EbReferenceObject *ref_obj_l0 = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+            for (uint8_t fs = 0; fs < ref_obj_l0->ref_cdef_strengths_num; fs++) {
+                if (ref_obj_l0->ref_cdef_strengths[0][fs] < lowest_sg)
+                    lowest_sg = ref_obj_l0->ref_cdef_strengths[0][fs];
+                if (ref_obj_l0->ref_cdef_strengths[0][fs] > highest_sg)
+                    highest_sg = ref_obj_l0->ref_cdef_strengths[0][fs];
+            }
+#if CLN_REMOVE_P_SLICE
+            if (pcs->slice_type == B_SLICE && pcs->ppcs->ref_list1_count_try) {
+#else
+            if (pcs->slice_type == B_SLICE) {
+#endif
+                // Add filter from list1
+                EbReferenceObject *ref_obj_l1 = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+                for (uint8_t fs = 0; fs < ref_obj_l1->ref_cdef_strengths_num; fs++) {
+                    if (ref_obj_l1->ref_cdef_strengths[0][fs] < lowest_sg)
+                        lowest_sg = ref_obj_l1->ref_cdef_strengths[0][fs];
+                    if (ref_obj_l1->ref_cdef_strengths[0][fs] > highest_sg)
+                        highest_sg = ref_obj_l1->ref_cdef_strengths[0][fs];
+                }
+            }
+#if FTR_RTC_MODE
+            if (rtc_tune) {
+#else
+            if (pcs->rtc_tune) {
+#endif
+                int8_t mid_filter     = MIN(63, MAX(0, MAX(lowest_sg, highest_sg)));
+                cdef_ctrls->pred_y_f  = mid_filter;
+                cdef_ctrls->pred_uv_f = 0;
+            } else {
+                int8_t mid_filter     = MIN(63, MAX(0, (lowest_sg + highest_sg) / 2));
+                cdef_ctrls->pred_y_f  = mid_filter;
+                cdef_ctrls->pred_uv_f = 0;
+            }
+            cdef_ctrls->first_pass_fs_num          = 0;
+            cdef_ctrls->default_second_pass_fs_num = 0;
+            // Set cdef to off if pred is.
+            if ((cdef_ctrls->pred_y_f == 0) && (cdef_ctrls->pred_uv_f == 0))
+                pcs->ppcs->cdef_level = 0;
+        }
+    } else if (cdef_ctrls->search_best_ref_fs) {
+        if (pcs->slice_type != I_SLICE) {
+            cdef_ctrls->first_pass_fs_num          = 1;
+            cdef_ctrls->default_second_pass_fs_num = 0;
+
+            // Add filter from list0, if not the same as the default
+            EbReferenceObject *ref_obj_l0 = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+            if (ref_obj_l0->ref_cdef_strengths[0][0] != cdef_ctrls->default_first_pass_fs[0]) {
+                cdef_ctrls->default_first_pass_fs[1] = ref_obj_l0->ref_cdef_strengths[0][0];
+                (cdef_ctrls->first_pass_fs_num)++;
+            }
+
+#if CLN_REMOVE_P_SLICE
+            if (pcs->slice_type == B_SLICE && pcs->ppcs->ref_list1_count_try) {
+#else
+            if (pcs->slice_type == B_SLICE) {
+#endif
+                EbReferenceObject *ref_obj_l1 = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+                // Add filter from list1, if different from default filter and list0 filter
+                if (ref_obj_l1->ref_cdef_strengths[0][0] != cdef_ctrls->default_first_pass_fs[0] &&
+                    ref_obj_l1->ref_cdef_strengths[0][0] !=
+                        cdef_ctrls->default_first_pass_fs[cdef_ctrls->first_pass_fs_num - 1]) {
+                    cdef_ctrls->default_first_pass_fs[cdef_ctrls->first_pass_fs_num] =
+                        ref_obj_l1->ref_cdef_strengths[0][0];
+                    (cdef_ctrls->first_pass_fs_num)++;
+
+                    // Chroma
+                    if (ref_obj_l0->ref_cdef_strengths[1][0] == cdef_ctrls->default_first_pass_fs_uv[0] &&
+                        ref_obj_l1->ref_cdef_strengths[1][0] == cdef_ctrls->default_first_pass_fs_uv[0]) {
+                        cdef_ctrls->default_first_pass_fs_uv[0] = -1;
+                        cdef_ctrls->default_first_pass_fs_uv[1] = -1;
+                    }
+                }
+                // if list0/list1 filters are the same, skip CDEF search, and use the filter selected by the ref frames
+                else if (cdef_ctrls->first_pass_fs_num == 2 &&
+                         ref_obj_l0->ref_cdef_strengths[0][0] == ref_obj_l1->ref_cdef_strengths[0][0]) {
+                    cdef_ctrls->use_reference_cdef_fs = 1;
+
+                    cdef_ctrls->pred_y_f  = ref_obj_l0->ref_cdef_strengths[0][0];
+                    cdef_ctrls->pred_uv_f = MIN(
+                        63, MAX(0, (ref_obj_l0->ref_cdef_strengths[1][0] + ref_obj_l1->ref_cdef_strengths[1][0]) / 2));
+                    cdef_ctrls->first_pass_fs_num          = 0;
+                    cdef_ctrls->default_second_pass_fs_num = 0;
+                }
+            }
+            // Chroma
+            else if (ref_obj_l0->ref_cdef_strengths[1][0] == cdef_ctrls->default_first_pass_fs_uv[0]) {
+                cdef_ctrls->default_first_pass_fs_uv[0] = -1;
+                cdef_ctrls->default_first_pass_fs_uv[1] = -1;
+            }
+
+            // Set cdef to off if pred luma is.
+            if (cdef_ctrls->first_pass_fs_num == 1)
+                pcs->ppcs->cdef_level = 0;
+        }
+    }
+}
+
+static const uint32_t disable_cdef_th[4][INPUT_SIZE_COUNT] = {{0, 0, 0, 0, 0, 0, 0},
+                                                              {100, 200, 500, 800, 1000, 1000, 1000},
+                                                              {900, 1000, 2000, 3000, 4000, 4000, 4000},
+                                                              {6000, 7000, 8000, 9000, 10000, 10000, 10000}};
+
+// Return true if CDEF can be skipped, false if it should be performed
+static bool me_based_cdef_skip(PictureControlSet *pcs) {
+    if (pcs->slice_type == I_SLICE)
+        return false;
+
+    const uint8_t  in_res = pcs->ppcs->input_resolution;
+    const uint32_t use_zero_strength_th =
+        disable_cdef_th[pcs->ppcs->cdef_recon_ctrls.zero_filter_strength_lvl][in_res] * (pcs->temporal_layer_index + 1);
+    if (!use_zero_strength_th)
+        return false;
+
+    uint32_t total_me_sad = 0;
+    for (uint16_t b64_index = 0; b64_index < pcs->b64_total_count; ++b64_index) {
+        total_me_sad += pcs->ppcs->rc_me_distortion[b64_index];
+    }
+    const uint32_t average_me_sad = total_me_sad / pcs->b64_total_count;
+
+    const uint16_t prev_cdef_dist_th = pcs->ppcs->cdef_recon_ctrls.prev_cdef_dist_th;
+    int32_t        prev_cdef_dist    = 0;
+    if (prev_cdef_dist_th) {
+        int32_t tot_refs = 0;
+        for (uint32_t ref_it = 0; ref_it < pcs->ppcs->tot_ref_frame_types; ++ref_it) {
+            MvReferenceFrame ref_pair = pcs->ppcs->ref_frame_type_arr[ref_it];
+            MvReferenceFrame rf[2];
+            av1_set_ref_frame(rf, ref_pair);
+
+            if (rf[1] == NONE_FRAME) {
+                uint8_t            list_idx = get_list_idx(rf[0]);
+                uint8_t            ref_idx  = get_ref_frame_idx(rf[0]);
+                EbReferenceObject *ref_obj  = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
+
+#if OPT_REF_INFO
+                if (ref_obj->cdef_dist_dev >= 0 && ref_obj->tmp_layer_idx <= pcs->temporal_layer_index) {
+#else
+                if (ref_obj->cdef_dist_dev >= 0) {
+#endif
+                    prev_cdef_dist += ref_obj->cdef_dist_dev;
+                    tot_refs++;
+                }
+            }
+        }
+        if (tot_refs)
+            prev_cdef_dist /= tot_refs;
+    }
+
+    if (!prev_cdef_dist_th || (prev_cdef_dist < prev_cdef_dist_th * (pcs->temporal_layer_index + 1))) {
+        if (average_me_sad < use_zero_strength_th)
+            return true;
+    }
+    return false;
+}
+#endif
+
 /* Mode Decision Configuration Kernel */
 
 /*********************************************************************************
@@ -796,10 +964,12 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         }
 
         FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
+#if !FIX_CDEF_RACE_COND
 #if FTR_RTC_MODE
         const bool rtc_tune = scs->static_config.rtc;
 #else
         pcs->rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
+#endif
 #endif
         // Mode Decision Configuration Kernel Signal(s) derivation
         svt_aom_sig_deriv_mode_decision_config(scs, pcs);
@@ -931,6 +1101,16 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
 
             svt_av1_init3smotion_compensation(&pcs->ss_cfg, pcs->ppcs->enhanced_pic->stride_y);
         }
+#if FIX_CDEF_RACE_COND
+        CdefSearchControls *cdef_ctrls = &pcs->ppcs->cdef_search_ctrls;
+        const uint8_t       skip_perc  = pcs->ref_skip_percentage;
+        if (me_based_cdef_skip(pcs) || (skip_perc > 75 && cdef_ctrls->use_skip_detector) ||
+            (scs->vq_ctrls.sharpness_ctrls.cdef && pcs->ppcs->is_noise_level))
+            pcs->ppcs->cdef_level = 0;
+        else if (cdef_ctrls->use_reference_cdef_fs || cdef_ctrls->search_best_ref_fs) {
+            update_cdef_filters_on_ref_info(pcs);
+        }
+#else
         CdefSearchControls *cdef_ctrls = &pcs->ppcs->cdef_search_ctrls;
         uint8_t             skip_perc  = pcs->ref_skip_percentage;
         if ((skip_perc > 75 && cdef_ctrls->use_skip_detector) ||
@@ -1046,6 +1226,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                 }
             }
         }
+#endif
 
         if (scs->vq_ctrls.sharpness_ctrls.restoration && pcs->ppcs->is_noise_level) {
             pcs->ppcs->enable_restoration = 0;
