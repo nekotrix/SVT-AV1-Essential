@@ -2131,12 +2131,18 @@ void svt_aom_full_cost(PictureControlSet *pcs, ModeDecisionContext *ctx, struct 
             (*y_coeff_bits + *cb_coeff_bits + *cr_coeff_bits + non_skip_tx_size_bits +
              (uint64_t)ctx->md_rate_est_ctx->skip_fac_bits[skip_coeff_ctx][0]),
             (y_distortion[DIST_SSD][0] + cb_distortion[DIST_SSD][0] + cr_distortion[DIST_SSD][0]));
-
+#if FIX_LOSSLESS_MODE
+        const uint64_t skip_cost = svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id)
+            ? MAX_CU_COST
+            : RDCOST(lambda,
+                     ((uint64_t)ctx->md_rate_est_ctx->skip_fac_bits[skip_coeff_ctx][1]) + skip_tx_size_bits,
+                     (y_distortion[DIST_SSD][1] + cb_distortion[DIST_SSD][1] + cr_distortion[DIST_SSD][1]));
+#else
         const uint64_t skip_cost = RDCOST(
             lambda,
             ((uint64_t)ctx->md_rate_est_ctx->skip_fac_bits[skip_coeff_ctx][1]) + skip_tx_size_bits,
             (y_distortion[DIST_SSD][1] + cb_distortion[DIST_SSD][1] + cr_distortion[DIST_SSD][1]));
-
+#endif
         // Update signals to correspond to skip_mode values (no coeffs, etc.)
         if (skip_cost < non_skip_cost) {
             y_distortion[DIST_SSD][0]  = y_distortion[DIST_SSD][1];

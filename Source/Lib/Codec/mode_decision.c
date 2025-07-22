@@ -2675,11 +2675,15 @@ static void inject_mvp_candidates_ii_light_pd1(PictureControlSet *pcs, ModeDecis
             // Don't check if MV is already injected b/c NEAREST_NEAREST is the first bipred INTER candidate injected
             Mv to_inj_mv0 = {.as_int = ctx->ref_mv_stack[ref_pair][0].this_mv.as_int};
             Mv to_inj_mv1 = {.as_int = ctx->ref_mv_stack[ref_pair][0].comp_mv.as_int};
-
+#if FIX_LOSSLESS_MODE
+            const bool is_skip_mode = !svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) &&
+                frm_hdr->skip_mode_params.skip_mode_flag && (rf[0] == frm_hdr->skip_mode_params.ref_frame_idx_0) &&
+                (rf[1] == frm_hdr->skip_mode_params.ref_frame_idx_1);
+#else
             const bool is_skip_mode = frm_hdr->skip_mode_params.skip_mode_flag &&
                 (rf[0] == frm_hdr->skip_mode_params.ref_frame_idx_0) &&
                 (rf[1] == frm_hdr->skip_mode_params.ref_frame_idx_1);
-
+#endif
             ModeDecisionCandidate *cand = &cand_array[cand_idx];
             cand->block_mi.mode         = NEAREST_NEARESTMV;
             cand->block_mi.motion_mode  = SIMPLE_TRANSLATION;
@@ -3154,9 +3158,15 @@ static void inject_mvp_candidates_ii(PictureControlSet *pcs, ModeDecisionContext
             if ((ctx->injected_mv_count == 0 ||
                  mv_is_already_injected(ctx, to_inj_mv0, to_inj_mv1, ref_pair) == false)) {
 #if CLN_COMPOUND_CHECKS
+#if FIX_LOSSLESS_MODE
+                const bool is_skip_mode = !svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) &&
+                    frm_hdr->skip_mode_params.skip_mode_flag && (rf[0] == frm_hdr->skip_mode_params.ref_frame_idx_0) &&
+                    (rf[1] == frm_hdr->skip_mode_params.ref_frame_idx_1);
+#else
                 const bool is_skip_mode = frm_hdr->skip_mode_params.skip_mode_flag &&
                     (rf[0] == frm_hdr->skip_mode_params.ref_frame_idx_0) &&
                     (rf[1] == frm_hdr->skip_mode_params.ref_frame_idx_1);
+#endif
                 ModeDecisionCandidate *cand       = &cand_array[cand_idx];
                 cand->block_mi.mode               = NEAREST_NEARESTMV;
                 cand->block_mi.motion_mode        = SIMPLE_TRANSLATION;
