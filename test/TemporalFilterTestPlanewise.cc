@@ -35,6 +35,13 @@ typedef void (*TemporalFilterFunc)(
     uint16_t *y_count, uint32_t *u_accum, uint16_t *u_count, uint32_t *v_accum,
     uint16_t *v_count);
 
+typedef void (*TemporalFilterZZFunc)(
+    struct MeContext *me_ctx, const uint8_t *y_pre, int y_pre_stride,
+    const uint8_t *u_pre, const uint8_t *v_pre, int uv_pre_stride,
+    unsigned int block_width, unsigned int block_height, int ss_x, int ss_y,
+    uint32_t *y_accum, uint16_t *y_count, uint32_t *u_accum, uint16_t *u_count,
+    uint32_t *v_accum, uint16_t *v_count);
+
 static void TemporalFilterFillMeContexts(MeContext *cnt1, MeContext *cnt2) {
     // Prepare two MeContext to cover all paths in code.
     cnt1->tf_32x32_block_error[0] = 0;
@@ -120,21 +127,24 @@ static void TemporalFilterFillMeContexts(MeContext *cnt1, MeContext *cnt2) {
     cnt2->tf_decay_factor[2] = 15000;
 }
 
-class TemporalFilterTestPlanewiseMedium
-    : public ::testing::TestWithParam<TemporalFilterFunc> {
+template <typename FuncType, bool zz>
+class TemporalFilterTestPlanewiseMediumBase
+    : public ::testing::TestWithParam<FuncType> {
   public:
-    TemporalFilterTestPlanewiseMedium() : rnd_(0, 255){};
-    ~TemporalFilterTestPlanewiseMedium() {
+    TemporalFilterTestPlanewiseMediumBase() : rnd_(0, 255) {
+    }
+    ~TemporalFilterTestPlanewiseMediumBase() {
     }
 
     void SetUp() {
         setup_test_env();
-        tst_func_ = GetParam();
 
         for (int color_channel = 0; color_channel < COLOR_CHANNELS;
              color_channel++) {
-            src_ptr[color_channel] = reinterpret_cast<uint8_t *>(
-                svt_aom_memalign(8, MAX_STRIDE * MAX_STRIDE));
+            if (!zz) {
+                src_ptr[color_channel] = reinterpret_cast<uint8_t *>(
+                    svt_aom_memalign(8, MAX_STRIDE * MAX_STRIDE));
+            }
             pred_ptr[color_channel] = reinterpret_cast<uint8_t *>(
                 svt_aom_memalign(8, MAX_STRIDE * MAX_STRIDE));
 
@@ -174,7 +184,9 @@ class TemporalFilterTestPlanewiseMedium
     void TearDown() {
         for (int color_channel = 0; color_channel < COLOR_CHANNELS;
              color_channel++) {
-            svt_aom_free(src_ptr[color_channel]);
+            if (!zz) {
+                svt_aom_free(src_ptr[color_channel]);
+            }
             svt_aom_free(pred_ptr[color_channel]);
 
             svt_aom_free(accum_ref_ptr[color_channel]);
@@ -183,8 +195,6 @@ class TemporalFilterTestPlanewiseMedium
             svt_aom_free(count_tst_ptr[color_channel]);
         }
     }
-    void RunTest(int width, int height, int run_times);
-
     void GenRandomData(int width, int height, int strd, int stride2) {
         int mode = rnd_.Rand8() < 128;
 
@@ -201,11 +211,13 @@ class TemporalFilterTestPlanewiseMedium
 
         for (int ii = 0; ii < height; ii++) {
             for (int jj = 0; jj < width; jj++) {
-                src_ptr[C_Y][ii * strd + jj] = rnd_.Rand8();
-                src_ptr[C_U][ii * strd + jj] = rnd_.Rand8();
-                src_ptr[C_V][ii * strd + jj] = rnd_.Rand8();
+                if (!zz) {
+                    src_ptr[C_Y][ii * strd + jj] = rnd_.Rand8();
+                    src_ptr[C_U][ii * strd + jj] = rnd_.Rand8();
+                    src_ptr[C_V][ii * strd + jj] = rnd_.Rand8();
+                }
 
-                if (mode) {
+                if (mode && !zz) {
                     int val1 =
                         -16 + src_ptr[C_Y][ii * strd + jj] + rnd_.Rand8() % 32;
                     int val2 =
@@ -224,9 +236,11 @@ class TemporalFilterTestPlanewiseMedium
         }
     }
 
-  private:
-    TemporalFilterFunc tst_func_;
+    virtual void RunTest(int run_times) = 0;
+
+  protected:
     SVTRandom rnd_;
+    FuncType tst_func_;
     uint8_t *src_ptr[COLOR_CHANNELS];
     uint8_t *pred_ptr[COLOR_CHANNELS];
     uint32_t *accum_ref_ptr[COLOR_CHANNELS];
@@ -240,205 +254,213 @@ class TemporalFilterTestPlanewiseMedium
     float tf_decay_factor[COLOR_CHANNELS];
 };
 
-void TemporalFilterTestPlanewiseMedium::RunTest(int width, int height,
-                                                int run_times) {
-    struct MeContext context1, context2, *me_ctx;
-    TemporalFilterFillMeContexts(&context1, &context2);
-
-    if (run_times <= 100) {
-        for (int j = 0; j < run_times; j++) {
-            GenRandomData(width, height, MAX_STRIDE, MAX_STRIDE);
-            if (j % 2 == 0) {
-                me_ctx = &context1;
-            } else {
-                me_ctx = &context2;
-            }
-            me_ctx->tf_decay_factor_fp16[C_Y] =
-                FLOAT2FP(tf_decay_factor[C_Y], 16, uint32_t);
-            me_ctx->tf_decay_factor_fp16[C_U] =
-                FLOAT2FP(tf_decay_factor[C_U], 16, uint32_t);
-            me_ctx->tf_decay_factor_fp16[C_V] =
-                FLOAT2FP(tf_decay_factor[C_V], 16, uint32_t);
-            me_ctx->tf_decay_factor[C_Y] = tf_decay_factor[C_Y];
-            me_ctx->tf_decay_factor[C_U] = tf_decay_factor[C_U];
-            me_ctx->tf_decay_factor[C_V] = tf_decay_factor[C_V];
-            svt_av1_apply_temporal_filter_planewise_medium_c(
-                me_ctx,
-                src_ptr[C_Y],
-                stride[C_Y],
-                pred_ptr[C_Y],
-                stride_pred[C_Y],
-                src_ptr[C_U],
-                src_ptr[C_V],
-                stride[C_U],
-                pred_ptr[C_U],
-                pred_ptr[C_V],
-                stride_pred[C_U],
-                width,
-                height,
-                1,  // subsampling
-                1,  // subsampling
-                accum_ref_ptr[C_Y],
-                count_ref_ptr[C_Y],
-                accum_ref_ptr[C_U],
-                count_ref_ptr[C_U],
-                accum_ref_ptr[C_V],
-                count_ref_ptr[C_V]);
-
-            tst_func_(me_ctx,
-                      src_ptr[C_Y],
-                      stride[C_Y],
-                      pred_ptr[C_Y],
-                      stride_pred[C_Y],
-                      src_ptr[C_U],
-                      src_ptr[C_V],
-                      stride[C_U],
-                      pred_ptr[C_U],
-                      pred_ptr[C_V],
-                      stride_pred[C_U],
-                      width,
-                      height,
-                      1,  // subsampling
-                      1,  // subsampling
-                      accum_tst_ptr[C_Y],
-                      count_tst_ptr[C_Y],
-                      accum_tst_ptr[C_U],
-                      count_tst_ptr[C_U],
-                      accum_tst_ptr[C_V],
-                      count_tst_ptr[C_V]);
-
-            for (int color_channel = 0; color_channel < COLOR_CHANNELS;
-                 color_channel++) {
-                EXPECT_EQ(memcmp(accum_ref_ptr[color_channel],
-                                 accum_tst_ptr[color_channel],
-                                 MAX_STRIDE * MAX_STRIDE * sizeof(uint32_t)),
-                          0);
-
-                EXPECT_EQ(memcmp(count_ref_ptr[color_channel],
-                                 count_tst_ptr[color_channel],
-                                 MAX_STRIDE * MAX_STRIDE * sizeof(uint16_t)),
-                          0);
-            }
-        }
-    } else {
-        uint64_t ref_timer_seconds, ref_timer_useconds;
-        uint64_t middle_timer_seconds, middle_timer_useconds;
-        uint64_t test_timer_seconds, test_timer_useconds;
-        double ref_time, tst_time;
-
-        svt_av1_get_time(&ref_timer_seconds, &ref_timer_useconds);
-        for (int j = 0; j < run_times; j++) {
-            if (j % 2 == 0) {
-                me_ctx = &context1;
-            } else {
-                me_ctx = &context2;
-            }
-            me_ctx->tf_decay_factor_fp16[C_Y] =
-                FLOAT2FP(tf_decay_factor[C_Y], 16, uint32_t);
-            me_ctx->tf_decay_factor_fp16[C_U] =
-                FLOAT2FP(tf_decay_factor[C_U], 16, uint32_t);
-            me_ctx->tf_decay_factor_fp16[C_V] =
-                FLOAT2FP(tf_decay_factor[C_V], 16, uint32_t);
-            me_ctx->tf_decay_factor[C_Y] = tf_decay_factor[C_Y];
-            me_ctx->tf_decay_factor[C_U] = tf_decay_factor[C_U];
-            me_ctx->tf_decay_factor[C_V] = tf_decay_factor[C_V];
-            svt_av1_apply_temporal_filter_planewise_medium_c(
-                me_ctx,
-                src_ptr[C_Y],
-                stride[C_Y],
-                pred_ptr[C_Y],
-                stride_pred[C_Y],
-                src_ptr[C_U],
-                src_ptr[C_V],
-                stride[C_U],
-                pred_ptr[C_U],
-                pred_ptr[C_V],
-                stride_pred[C_U],
-                width,
-                height,
-                1,  // subsampling
-                1,  // subsampling
-                accum_ref_ptr[C_Y],
-                count_ref_ptr[C_Y],
-                accum_ref_ptr[C_U],
-                count_ref_ptr[C_U],
-                accum_ref_ptr[C_V],
-                count_ref_ptr[C_V]);
-        }
-        svt_av1_get_time(&middle_timer_seconds, &middle_timer_useconds);
-
-        for (int j = 0; j < run_times; j++) {
-            if (j % 2 == 0) {
-                me_ctx = &context1;
-            } else {
-                me_ctx = &context2;
-            }
-            me_ctx->tf_decay_factor_fp16[C_Y] =
-                FLOAT2FP(tf_decay_factor[C_Y], 16, uint32_t);
-            me_ctx->tf_decay_factor_fp16[C_U] =
-                FLOAT2FP(tf_decay_factor[C_U], 16, uint32_t);
-            me_ctx->tf_decay_factor_fp16[C_V] =
-                FLOAT2FP(tf_decay_factor[C_V], 16, uint32_t);
-            me_ctx->tf_decay_factor[C_Y] = tf_decay_factor[C_Y];
-            me_ctx->tf_decay_factor[C_U] = tf_decay_factor[C_U];
-            me_ctx->tf_decay_factor[C_V] = tf_decay_factor[C_V];
-            tst_func_(me_ctx,
-                      src_ptr[C_Y],
-                      stride[C_Y],
-                      pred_ptr[C_Y],
-                      stride_pred[C_Y],
-                      src_ptr[C_U],
-                      src_ptr[C_V],
-                      stride[C_U],
-                      pred_ptr[C_U],
-                      pred_ptr[C_V],
-                      stride_pred[C_U],
-                      width,
-                      height,
-                      1,  // subsampling
-                      1,  // subsampling
-                      accum_tst_ptr[C_Y],
-                      count_tst_ptr[C_Y],
-                      accum_tst_ptr[C_U],
-                      count_tst_ptr[C_U],
-                      accum_tst_ptr[C_V],
-                      count_tst_ptr[C_V]);
-        }
-        svt_av1_get_time(&test_timer_seconds, &test_timer_useconds);
-
-        ref_time =
-            svt_av1_compute_overall_elapsed_time_ms(ref_timer_seconds,
-                                                    ref_timer_useconds,
-                                                    middle_timer_seconds,
-                                                    middle_timer_useconds);
-
-        tst_time =
-            svt_av1_compute_overall_elapsed_time_ms(middle_timer_seconds,
-                                                    middle_timer_useconds,
-                                                    test_timer_seconds,
-                                                    test_timer_useconds);
-
-        printf(
-            "c_time=%lf \t simd_time=%lf \t "
-            "gain=%lf\t width=%d\t height=%d \n",
-            ref_time / 1000,
-            tst_time / 1000,
-            ref_time / tst_time,
-            width,
-            height);
+class TemporalFilterTestPlanewiseMedium
+    : public TemporalFilterTestPlanewiseMediumBase<TemporalFilterFunc, false> {
+  public:
+    TemporalFilterTestPlanewiseMedium() {
+        tst_func_ = GetParam();
     }
-}
+
+    void RunTest(int run_times) {
+        const int width = 32;
+        const int height = 32;
+        struct MeContext context1, context2, *me_ctx;
+        TemporalFilterFillMeContexts(&context1, &context2);
+
+        if (run_times <= 100) {
+            for (int j = 0; j < run_times; j++) {
+                GenRandomData(width, height, MAX_STRIDE, MAX_STRIDE);
+                if (j % 2 == 0) {
+                    me_ctx = &context1;
+                } else {
+                    me_ctx = &context2;
+                }
+                me_ctx->tf_decay_factor_fp16[C_Y] =
+                    FLOAT2FP(tf_decay_factor[C_Y], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_U] =
+                    FLOAT2FP(tf_decay_factor[C_U], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_V] =
+                    FLOAT2FP(tf_decay_factor[C_V], 16, uint32_t);
+                me_ctx->tf_decay_factor[C_Y] = tf_decay_factor[C_Y];
+                me_ctx->tf_decay_factor[C_U] = tf_decay_factor[C_U];
+                me_ctx->tf_decay_factor[C_V] = tf_decay_factor[C_V];
+
+                svt_av1_apply_temporal_filter_planewise_medium_c(
+                    me_ctx,
+                    src_ptr[C_Y],
+                    stride[C_Y],
+                    pred_ptr[C_Y],
+                    stride_pred[C_Y],
+                    src_ptr[C_U],
+                    src_ptr[C_V],
+                    stride[C_U],
+                    pred_ptr[C_U],
+                    pred_ptr[C_V],
+                    stride_pred[C_U],
+                    width,
+                    height,
+                    1,  // subsampling
+                    1,  // subsampling
+                    accum_ref_ptr[C_Y],
+                    count_ref_ptr[C_Y],
+                    accum_ref_ptr[C_U],
+                    count_ref_ptr[C_U],
+                    accum_ref_ptr[C_V],
+                    count_ref_ptr[C_V]);
+
+                tst_func_(me_ctx,
+                          src_ptr[C_Y],
+                          stride[C_Y],
+                          pred_ptr[C_Y],
+                          stride_pred[C_Y],
+                          src_ptr[C_U],
+                          src_ptr[C_V],
+                          stride[C_U],
+                          pred_ptr[C_U],
+                          pred_ptr[C_V],
+                          stride_pred[C_U],
+                          width,
+                          height,
+                          1,  // subsampling
+                          1,  // subsampling
+                          accum_tst_ptr[C_Y],
+                          count_tst_ptr[C_Y],
+                          accum_tst_ptr[C_U],
+                          count_tst_ptr[C_U],
+                          accum_tst_ptr[C_V],
+                          count_tst_ptr[C_V]);
+
+                for (int color_channel = 0; color_channel < COLOR_CHANNELS;
+                     color_channel++) {
+                    EXPECT_EQ(
+                        memcmp(accum_ref_ptr[color_channel],
+                               accum_tst_ptr[color_channel],
+                               MAX_STRIDE * MAX_STRIDE * sizeof(uint32_t)),
+                        0);
+
+                    EXPECT_EQ(
+                        memcmp(count_ref_ptr[color_channel],
+                               count_tst_ptr[color_channel],
+                               MAX_STRIDE * MAX_STRIDE * sizeof(uint16_t)),
+                        0);
+                }
+            }
+        } else {
+            uint64_t ref_timer_seconds, ref_timer_useconds;
+            uint64_t middle_timer_seconds, middle_timer_useconds;
+            uint64_t test_timer_seconds, test_timer_useconds;
+            double ref_time, tst_time;
+
+            svt_av1_get_time(&ref_timer_seconds, &ref_timer_useconds);
+            for (int j = 0; j < run_times; j++) {
+                if (j % 2 == 0) {
+                    me_ctx = &context1;
+                } else {
+                    me_ctx = &context2;
+                }
+                me_ctx->tf_decay_factor_fp16[C_Y] =
+                    FLOAT2FP(tf_decay_factor[C_Y], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_U] =
+                    FLOAT2FP(tf_decay_factor[C_U], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_V] =
+                    FLOAT2FP(tf_decay_factor[C_V], 16, uint32_t);
+                me_ctx->tf_decay_factor[C_Y] = tf_decay_factor[C_Y];
+                me_ctx->tf_decay_factor[C_U] = tf_decay_factor[C_U];
+                me_ctx->tf_decay_factor[C_V] = tf_decay_factor[C_V];
+                svt_av1_apply_temporal_filter_planewise_medium_c(
+                    me_ctx,
+                    src_ptr[C_Y],
+                    stride[C_Y],
+                    pred_ptr[C_Y],
+                    stride_pred[C_Y],
+                    src_ptr[C_U],
+                    src_ptr[C_V],
+                    stride[C_U],
+                    pred_ptr[C_U],
+                    pred_ptr[C_V],
+                    stride_pred[C_U],
+                    width,
+                    height,
+                    1,  // subsampling
+                    1,  // subsampling
+                    accum_ref_ptr[C_Y],
+                    count_ref_ptr[C_Y],
+                    accum_ref_ptr[C_U],
+                    count_ref_ptr[C_U],
+                    accum_ref_ptr[C_V],
+                    count_ref_ptr[C_V]);
+            }
+            svt_av1_get_time(&middle_timer_seconds, &middle_timer_useconds);
+
+            for (int j = 0; j < run_times; j++) {
+                if (j % 2 == 0) {
+                    me_ctx = &context1;
+                } else {
+                    me_ctx = &context2;
+                }
+                me_ctx->tf_decay_factor_fp16[C_Y] =
+                    FLOAT2FP(tf_decay_factor[C_Y], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_U] =
+                    FLOAT2FP(tf_decay_factor[C_U], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_V] =
+                    FLOAT2FP(tf_decay_factor[C_V], 16, uint32_t);
+                me_ctx->tf_decay_factor[C_Y] = tf_decay_factor[C_Y];
+                me_ctx->tf_decay_factor[C_U] = tf_decay_factor[C_U];
+                me_ctx->tf_decay_factor[C_V] = tf_decay_factor[C_V];
+                tst_func_(me_ctx,
+                          src_ptr[C_Y],
+                          stride[C_Y],
+                          pred_ptr[C_Y],
+                          stride_pred[C_Y],
+                          src_ptr[C_U],
+                          src_ptr[C_V],
+                          stride[C_U],
+                          pred_ptr[C_U],
+                          pred_ptr[C_V],
+                          stride_pred[C_U],
+                          width,
+                          height,
+                          1,  // subsampling
+                          1,  // subsampling
+                          accum_tst_ptr[C_Y],
+                          count_tst_ptr[C_Y],
+                          accum_tst_ptr[C_U],
+                          count_tst_ptr[C_U],
+                          accum_tst_ptr[C_V],
+                          count_tst_ptr[C_V]);
+            }
+            svt_av1_get_time(&test_timer_seconds, &test_timer_useconds);
+
+            ref_time =
+                svt_av1_compute_overall_elapsed_time_ms(ref_timer_seconds,
+                                                        ref_timer_useconds,
+                                                        middle_timer_seconds,
+                                                        middle_timer_useconds);
+
+            tst_time =
+                svt_av1_compute_overall_elapsed_time_ms(middle_timer_seconds,
+                                                        middle_timer_useconds,
+                                                        test_timer_seconds,
+                                                        test_timer_useconds);
+
+            printf(
+                "c_time=%lf \t simd_time=%lf \t "
+                "gain=%lf\t width=%d\t height=%d \n",
+                ref_time / 1000,
+                tst_time / 1000,
+                ref_time / tst_time,
+                width,
+                height);
+        }
+    }
+};
 
 TEST_P(TemporalFilterTestPlanewiseMedium, OperationCheck) {
-    for (int height = 32; height <= 32; height = height * 2) {
-        RunTest(height, height, 100);
-    }
+    RunTest(100);
 }
 
 TEST_P(TemporalFilterTestPlanewiseMedium, DISABLED_Speed) {
-    for (int height = 32; height <= 32; height = height * 2) {
-        RunTest(height, height, 100000);
-    }
+    RunTest(100000);
 }
 
 #ifdef ARCH_X86_64
@@ -460,6 +482,212 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(svt_av1_apply_temporal_filter_planewise_medium_neon));
 
 #endif  // ARCH_AARCH64
+
+class TemporalFilterZZTestPlanewiseMedium
+    : public TemporalFilterTestPlanewiseMediumBase<TemporalFilterZZFunc, true> {
+  public:
+    TemporalFilterZZTestPlanewiseMedium() {
+        tst_func_ = GetParam();
+    }
+
+    void RunTest(int run_times) {
+        const int width = 32;
+        const int height = 32;
+        struct MeContext context1, context2, *me_ctx;
+        TemporalFilterFillMeContexts(&context1, &context2);
+
+        if (run_times <= 100) {
+            for (int j = 0; j < run_times; j++) {
+                GenRandomData(width, height, MAX_STRIDE, MAX_STRIDE);
+                if (j % 2 == 0) {
+                    me_ctx = &context1;
+                } else {
+                    me_ctx = &context2;
+                }
+                me_ctx->tf_decay_factor_fp16[C_Y] =
+                    FLOAT2FP(tf_decay_factor[C_Y], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_U] =
+                    FLOAT2FP(tf_decay_factor[C_U], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_V] =
+                    FLOAT2FP(tf_decay_factor[C_V], 16, uint32_t);
+                me_ctx->tf_decay_factor[C_Y] = tf_decay_factor[C_Y];
+                me_ctx->tf_decay_factor[C_U] = tf_decay_factor[C_U];
+                me_ctx->tf_decay_factor[C_V] = tf_decay_factor[C_V];
+
+                svt_av1_apply_zz_based_temporal_filter_planewise_medium_c(
+                    me_ctx,
+                    pred_ptr[C_Y],
+                    stride_pred[C_Y],
+                    pred_ptr[C_U],
+                    pred_ptr[C_V],
+                    stride_pred[C_U],
+                    width,
+                    height,
+                    1,  // subsampling
+                    1,  // subsampling
+                    accum_ref_ptr[C_Y],
+                    count_ref_ptr[C_Y],
+                    accum_ref_ptr[C_U],
+                    count_ref_ptr[C_U],
+                    accum_ref_ptr[C_V],
+                    count_ref_ptr[C_V]);
+
+                tst_func_(me_ctx,
+                          pred_ptr[C_Y],
+                          stride_pred[C_Y],
+                          pred_ptr[C_U],
+                          pred_ptr[C_V],
+                          stride_pred[C_U],
+                          width,
+                          height,
+                          1,  // subsampling
+                          1,  // subsampling
+                          accum_tst_ptr[C_Y],
+                          count_tst_ptr[C_Y],
+                          accum_tst_ptr[C_U],
+                          count_tst_ptr[C_U],
+                          accum_tst_ptr[C_V],
+                          count_tst_ptr[C_V]);
+
+                for (int color_channel = 0; color_channel < COLOR_CHANNELS;
+                     color_channel++) {
+                    EXPECT_EQ(
+                        memcmp(accum_ref_ptr[color_channel],
+                               accum_tst_ptr[color_channel],
+                               MAX_STRIDE * MAX_STRIDE * sizeof(uint32_t)),
+                        0);
+
+                    EXPECT_EQ(
+                        memcmp(count_ref_ptr[color_channel],
+                               count_tst_ptr[color_channel],
+                               MAX_STRIDE * MAX_STRIDE * sizeof(uint16_t)),
+                        0);
+                }
+            }
+        } else {
+            uint64_t ref_timer_seconds, ref_timer_useconds;
+            uint64_t middle_timer_seconds, middle_timer_useconds;
+            uint64_t test_timer_seconds, test_timer_useconds;
+            double ref_time, tst_time;
+
+            svt_av1_get_time(&ref_timer_seconds, &ref_timer_useconds);
+            for (int j = 0; j < run_times; j++) {
+                if (j % 2 == 0) {
+                    me_ctx = &context1;
+                } else {
+                    me_ctx = &context2;
+                }
+                me_ctx->tf_decay_factor_fp16[C_Y] =
+                    FLOAT2FP(tf_decay_factor[C_Y], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_U] =
+                    FLOAT2FP(tf_decay_factor[C_U], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_V] =
+                    FLOAT2FP(tf_decay_factor[C_V], 16, uint32_t);
+                me_ctx->tf_decay_factor[C_Y] = tf_decay_factor[C_Y];
+                me_ctx->tf_decay_factor[C_U] = tf_decay_factor[C_U];
+                me_ctx->tf_decay_factor[C_V] = tf_decay_factor[C_V];
+                svt_av1_apply_zz_based_temporal_filter_planewise_medium_c(
+                    me_ctx,
+                    pred_ptr[C_Y],
+                    stride_pred[C_Y],
+                    pred_ptr[C_U],
+                    pred_ptr[C_V],
+                    stride_pred[C_U],
+                    width,
+                    height,
+                    1,  // subsampling
+                    1,  // subsampling
+                    accum_ref_ptr[C_Y],
+                    count_ref_ptr[C_Y],
+                    accum_ref_ptr[C_U],
+                    count_ref_ptr[C_U],
+                    accum_ref_ptr[C_V],
+                    count_ref_ptr[C_V]);
+            }
+            svt_av1_get_time(&middle_timer_seconds, &middle_timer_useconds);
+
+            for (int j = 0; j < run_times; j++) {
+                if (j % 2 == 0) {
+                    me_ctx = &context1;
+                } else {
+                    me_ctx = &context2;
+                }
+                me_ctx->tf_decay_factor_fp16[C_Y] =
+                    FLOAT2FP(tf_decay_factor[C_Y], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_U] =
+                    FLOAT2FP(tf_decay_factor[C_U], 16, uint32_t);
+                me_ctx->tf_decay_factor_fp16[C_V] =
+                    FLOAT2FP(tf_decay_factor[C_V], 16, uint32_t);
+                me_ctx->tf_decay_factor[C_Y] = tf_decay_factor[C_Y];
+                me_ctx->tf_decay_factor[C_U] = tf_decay_factor[C_U];
+                me_ctx->tf_decay_factor[C_V] = tf_decay_factor[C_V];
+                tst_func_(me_ctx,
+                          pred_ptr[C_Y],
+                          stride_pred[C_Y],
+                          pred_ptr[C_U],
+                          pred_ptr[C_V],
+                          stride_pred[C_U],
+                          width,
+                          height,
+                          1,  // subsampling
+                          1,  // subsampling
+                          accum_tst_ptr[C_Y],
+                          count_tst_ptr[C_Y],
+                          accum_tst_ptr[C_U],
+                          count_tst_ptr[C_U],
+                          accum_tst_ptr[C_V],
+                          count_tst_ptr[C_V]);
+            }
+            svt_av1_get_time(&test_timer_seconds, &test_timer_useconds);
+
+            ref_time =
+                svt_av1_compute_overall_elapsed_time_ms(ref_timer_seconds,
+                                                        ref_timer_useconds,
+                                                        middle_timer_seconds,
+                                                        middle_timer_useconds);
+
+            tst_time =
+                svt_av1_compute_overall_elapsed_time_ms(middle_timer_seconds,
+                                                        middle_timer_useconds,
+                                                        test_timer_seconds,
+                                                        test_timer_useconds);
+
+            printf(
+                "c_time=%lf \t simd_time=%lf \t "
+                "gain=%lf\t width=%d\t height=%d \n",
+                ref_time / 1000,
+                tst_time / 1000,
+                ref_time / tst_time,
+                width,
+                height);
+        }
+    }
+};
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
+    TemporalFilterZZTestPlanewiseMedium);
+
+TEST_P(TemporalFilterZZTestPlanewiseMedium, OperationCheck) {
+    RunTest(100);
+}
+
+TEST_P(TemporalFilterZZTestPlanewiseMedium, DISABLED_Speed) {
+    RunTest(100000);
+}
+
+#ifdef ARCH_X86_64
+
+INSTANTIATE_TEST_SUITE_P(
+    SSE4_1, TemporalFilterZZTestPlanewiseMedium,
+    ::testing::Values(
+        svt_av1_apply_zz_based_temporal_filter_planewise_medium_sse4_1));
+
+INSTANTIATE_TEST_SUITE_P(
+    AVX2, TemporalFilterZZTestPlanewiseMedium,
+    ::testing::Values(
+        svt_av1_apply_zz_based_temporal_filter_planewise_medium_avx2));
+
+#endif  // ARCH_X86_64
 
 typedef void (*TemporalFilterFuncHbd)(
     struct MeContext *me_ctx, const uint16_t *y_src, int y_src_stride,
