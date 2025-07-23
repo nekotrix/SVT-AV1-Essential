@@ -37,11 +37,7 @@ extern "C" {
 
 // motion search site
 typedef struct SearchSite {
-#if CLN_UNIFY_MV_TYPE
-    Mv mv;
-#else
-    MV mv;
-#endif
+    Mv  mv;
     int offset;
 } SearchSite;
 
@@ -81,29 +77,13 @@ extern AomVarianceFnPtr svt_aom_mefn_ptr[BlockSizeS_ALL];
 
 void av1_init_dsmotion_compensation(SearchSiteConfig *cfg, int stride);
 void svt_av1_init3smotion_compensation(SearchSiteConfig *cfg, int stride);
-#if CLN_UNIFY_MV_TYPE
 void svt_av1_set_mv_search_range(MvLimits *mv_limits, const Mv *mv);
-#if !CLN_FUNCS_HEADER
-struct Av1Comp;
-struct SpeedFeatures;
-#endif
 
 int svt_av1_full_pixel_search(struct PictureControlSet *pcs, IntraBcContext /*MACROBLOCK*/ *x, BlockSize bsize,
                               Mv *mvp_full, int step_param, int method, int run_mesh_search, int error_per_bit,
                               int *cost_list, const Mv *ref_mv, int var_max, int rd, int x_pos, int y_pos, int intra);
 int svt_aom_mv_err_cost(const Mv *mv, const Mv *ref, const int *mvjcost, int *mvcost[2], int error_per_bit);
 int svt_aom_mv_err_cost_light(const Mv *mv, const Mv *ref);
-#else
-void svt_av1_set_mv_search_range(MvLimits *mv_limits, const MV *mv);
-struct Av1Comp;
-struct SpeedFeatures;
-
-int svt_av1_full_pixel_search(struct PictureControlSet *pcs, IntraBcContext /*MACROBLOCK*/ *x, BlockSize bsize,
-                              MV *mvp_full, int step_param, int method, int run_mesh_search, int error_per_bit,
-                              int *cost_list, const MV *ref_mv, int var_max, int rd, int x_pos, int y_pos, int intra);
-int svt_aom_mv_err_cost(const MV *mv, const MV *ref, const int *mvjcost, int *mvcost[2], int error_per_bit);
-int svt_aom_mv_err_cost_light(const MV *mv, const MV *ref);
-#endif
 #ifdef __cplusplus
 } // extern "C"
 #endif

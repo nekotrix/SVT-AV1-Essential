@@ -39,11 +39,7 @@ typedef struct {
 
 void scale_source_references(SequenceControlSet *scs, PictureParentControlSet *pcs, EbPictureBufferDesc *input_pic);
 
-#if CLN_GET_REF_PIC
 void svt_aom_scale_rec_references(PictureControlSet *pcs, EbPictureBufferDesc *input_pic);
-#else
-void svt_aom_scale_rec_references(PictureControlSet *pcs, EbPictureBufferDesc *input_pic, uint8_t hbd_md);
-#endif
 
 void svt_aom_use_scaled_rec_refs_if_needed(PictureControlSet *pcs, EbPictureBufferDesc *input_pic,
                                            EbReferenceObject *ref_obj, EbPictureBufferDesc **ref_pic, uint8_t hbd_md);

@@ -26,12 +26,9 @@
  * Enc Dec Context
  **************************************/
 typedef struct EntropyCodingContext {
-    EbDctor dctor;
-    EbFifo *enc_dec_input_fifo_ptr;
-    EbFifo *entropy_coding_output_fifo_ptr; // to packetization
-#if !OPT_FIFO_MEM
-    EbFifo *rate_control_output_fifo_ptr; // feedback to rate control
-#endif
+    EbDctor  dctor;
+    EbFifo  *enc_dec_input_fifo_ptr;
+    EbFifo  *entropy_coding_output_fifo_ptr; // to packetization
     uint32_t sb_total_count;
     // Coding Unit Workspace---------------------------
     EbPictureBufferDesc *coeff_buffer_sb; //Used to hold quantized coeff for one TB in EncPass.
@@ -47,16 +44,10 @@ typedef struct EntropyCodingContext {
     uint32_t blk_org_y;
     uint32_t sb_origin_x;
     uint32_t sb_origin_y;
-#if !OPT_LD_MEM_3
-    uint32_t pu_itr;
-#endif
     uint32_t pu_origin_x;
     uint32_t pu_origin_y;
     uint32_t pu_width;
     uint32_t pu_height;
-#if !CLN_UNUSED_SIGS
-    MvUnit mv_unit;
-#endif
 
     uint32_t txb_itr;
     uint32_t txb_origin_x;
@@ -69,7 +60,6 @@ typedef struct EntropyCodingContext {
     int32_t     coded_area_sb_uv;
     TOKENEXTRA *tok;
     MbModeInfo *mbmi;
-#if OPT_LD_MEM_2
     /*!
      * cdef_transmitted[i] is true if CDEF strength for ith CDEF unit in the
      * current superblock has already been read from (decoder) / written to
@@ -96,19 +86,13 @@ typedef struct EntropyCodingContext {
    */
     WienerInfo  wiener_info[MAX_MB_PLANE];
     SgrprojInfo sgrproj_info[MAX_MB_PLANE];
-#endif
 } EntropyCodingContext;
 
 /**************************************
  * Extern Function Declarations
  **************************************/
-#if OPT_FIFO_MEM
 EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
                                                 int index);
-#else
-extern EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
-                                                       int index, int rate_control_index);
-#endif
 
 extern void *svt_aom_entropy_coding_kernel(void *input_ptr);
 

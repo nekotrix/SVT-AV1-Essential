@@ -29,16 +29,6 @@
 
 #define RDCOST_DBL_WITH_NATIVE_BD_DIST(RM, R, D, BD) RDCOST_DBL((RM), (R), (double)((D) >> (2 * (BD - 8))))
 
-#if !OPT_FIFO_MEM
-/**************************************
- * Type Declarations
- **************************************/
-typedef struct EbPPSConfig {
-    uint8_t pps_id;
-    uint8_t constrained_flag;
-} EbPPSConfig;
-#endif
-
 /**************************************
  * Context
  **************************************/
@@ -47,19 +37,13 @@ typedef struct PacketizationContext {
     EbFifo      *entropy_coding_input_fifo_ptr;
     EbFifo      *rate_control_tasks_output_fifo_ptr;
     EbFifo      *picture_decision_results_output_fifo_ptr; // to motion estimation process
-#if !OPT_FIFO_MEM
-    EbPPSConfig *pps_config;
-#endif
-    EbFifo *picture_demux_fifo_ptr; // to picture manager process
+    EbFifo      *picture_demux_fifo_ptr; // to picture manager process
 #if DETAILED_FRAME_OUTPUT
     uint64_t dpb_disp_order[8], dpb_dec_order[8];
 #endif
     uint64_t tot_shown_frames;
     uint64_t disp_order_continuity_count;
 } PacketizationContext;
-#if !CLN_REMOVE_DATA_LL
-static bool is_passthrough_data(EbLinkedListNode *data_node) { return data_node->passthrough; }
-#endif
 void        free_temporal_filtering_buffer(PictureControlSet *pcs, SequenceControlSet *scs);
 void        svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs);
 void        svt_aom_init_resize_picture(SequenceControlSet *scs, PictureParentControlSet *pcs);
@@ -67,23 +51,9 @@ void        pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *sc
 void        svt_aom_update_rc_counts(PictureParentControlSet *ppcs);
 EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet *scs, bool free_memory);
 
-#if !CLN_REMOVE_DATA_LL
-// Extracts passthrough data from a linked list. The extracted data nodes are removed from the original linked list and
-// returned as a linked list. Does not gaurantee the original order of the nodes.
-static EbLinkedListNode *extract_passthrough_data(EbLinkedListNode **ll_ptr_ptr) {
-    EbLinkedListNode *ll_rest_ptr = NULL;
-    EbLinkedListNode *ll_pass_ptr = svt_aom_split_eb_linked_list(*ll_ptr_ptr, &ll_rest_ptr, is_passthrough_data);
-    *ll_ptr_ptr                   = ll_rest_ptr;
-    return ll_pass_ptr;
-}
-#endif
-
 static void packetization_context_dctor(EbPtr p) {
     EbThreadContext      *thread_ctx = (EbThreadContext *)p;
     PacketizationContext *obj        = (PacketizationContext *)thread_ctx->priv;
-#if !OPT_FIFO_MEM
-    EB_FREE_ARRAY(obj->pps_config);
-#endif
     EB_FREE_ARRAY(obj);
 }
 
@@ -103,18 +73,11 @@ EbErrorType svt_aom_packetization_context_ctor(EbThreadContext *thread_ctx, cons
         enc_handle_ptr->picture_demux_results_resource_ptr, demux_index);
     context_ptr->picture_decision_results_output_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->picture_decision_results_resource_ptr, me_port_index);
-#if !OPT_FIFO_MEM
-    EB_MALLOC_ARRAY(context_ptr->pps_config, 1);
-#endif
 
     return EB_ErrorNone;
 }
 static inline int get_reorder_queue_pos(const EncodeContext *enc_ctx, int delta) {
-#if OPT_PACK_Q
     return (enc_ctx->packetization_reorder_queue_head_index + delta) % enc_ctx->packetization_reorder_queue_size;
-#else
-    return (enc_ctx->packetization_reorder_queue_head_index + delta) % PACKETIZATION_REORDER_QUEUE_MAX_DEPTH;
-#endif
 }
 
 static inline PacketizationReorderEntry *get_reorder_queue_entry(const EncodeContext *enc_ctx, int delta) {
@@ -123,11 +86,7 @@ static inline PacketizationReorderEntry *get_reorder_queue_entry(const EncodeCon
 }
 
 static uint32_t count_frames_in_next_tu(const EncodeContext *enc_ctx, uint32_t *data_size) {
-#if OPT_PACK_Q
     uint32_t i = 0;
-#else
-    int i = 0;
-#endif
     *data_size = 0;
     do {
         const PacketizationReorderEntry *queue_entry_ptr = get_reorder_queue_entry(enc_ctx, i);
@@ -148,11 +107,7 @@ static uint32_t count_frames_in_next_tu(const EncodeContext *enc_ctx, uint32_t *
             break;
 
 #endif
-#if OPT_PACK_Q
     } while (i < enc_ctx->packetization_reorder_queue_size);
-#else
-    } while (i < PACKETIZATION_REORDER_QUEUE_MAX_DEPTH);
-#endif
     return i;
 }
 
@@ -323,11 +278,7 @@ static void collect_frames_info(PacketizationContext *context_ptr, const EncodeC
             queue_entry_ptr->start_time_u_seconds,
             finish_time_seconds,
             finish_time_u_seconds);
-#if CLN_REMOVE_DATA_LL
         output_stream_ptr->p_app_private = (EbBufferHeaderType *)NULL;
-#else
-        output_stream_ptr->p_app_private = queue_entry_ptr->out_meta_data;
-#endif
         if (queue_entry_ptr->is_alt_ref)
             output_stream_ptr->flags |= (uint32_t)EB_BUFFERFLAG_IS_ALT_REF;
     }
@@ -412,15 +363,8 @@ static void encode_show_existing(EncodeContext *enc_ctx, PacketizationReorderEnt
 static void release_frames(EncodeContext *enc_ctx, int frames) {
     for (int i = 0; i < frames; i++) {
         PacketizationReorderEntry *queue_entry_ptr = get_reorder_queue_entry(enc_ctx, i);
-#if !CLN_REMOVE_DATA_LL
-        queue_entry_ptr->out_meta_data = (EbLinkedListNode *)NULL;
-#endif
         // Reset the Reorder Queue Entry
-#if OPT_PACK_Q
         queue_entry_ptr->picture_number += enc_ctx->packetization_reorder_queue_size;
-#else
-        queue_entry_ptr->picture_number += PACKETIZATION_REORDER_QUEUE_MAX_DEPTH;
-#endif
         queue_entry_ptr->output_stream_wrapper_ptr = (EbObjectWrapper *)NULL;
     }
     enc_ctx->packetization_reorder_queue_head_index = get_reorder_queue_pos(enc_ctx, frames);
@@ -643,11 +587,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
             if (ppcs->tpl_ctrls.enable) {
                 if (ppcs->temporal_layer_index == 0) {
                     for (uint32_t i = 0; i < ppcs->tpl_group_size; i++) {
-#if CLN_REMOVE_P_SLICE
                         if (svt_aom_is_incomp_mg_frame(ppcs->tpl_group[i])) {
-#else
-                        if (ppcs->tpl_group[i]->slice_type == P_SLICE) {
-#endif
                             if (ppcs->tpl_group[i]->ext_mg_id == ppcs->ext_mg_id + 1) {
                                 svt_aom_release_pa_reference_objects(scs, ppcs->tpl_group[i]);
                             }
@@ -707,7 +647,6 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
 
             // Delayed call from Entropy Coding process
             {
-#if CLN_REMOVE_P_SLICE
                 // Release the reference Pictures from both lists
                 for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
                     const uint8_t list_idx = get_list_idx(ref + 1);
@@ -716,21 +655,6 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
                         svt_release_object(pcs->ref_pic_ptr_array[list_idx][ref_idx]);
                     }
                 }
-#else
-                // Release the List 0 Reference Pictures
-                for (uint32_t ref_idx = 0; ref_idx < pcs->ppcs->ref_list0_count; ++ref_idx) {
-                    if (pcs->ref_pic_ptr_array[0][ref_idx] != NULL) {
-                        svt_release_object(pcs->ref_pic_ptr_array[0][ref_idx]);
-                    }
-                }
-
-                // Release the List 1 Reference Pictures
-                for (uint32_t ref_idx = 0; ref_idx < pcs->ppcs->ref_list1_count; ++ref_idx) {
-                    if (pcs->ref_pic_ptr_array[1][ref_idx] != NULL) {
-                        svt_release_object(pcs->ref_pic_ptr_array[1][ref_idx]);
-                    }
-                }
-#endif
 
                 //free palette data
                 if (pcs->tile_tok[0][0])
@@ -742,11 +666,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
         // Input Entropy Results into Reordering Queue
         //****************************************************
         // get a new entry spot
-#if OPT_PACK_Q
         int32_t queue_entry_index = pcs->ppcs->decode_order % enc_ctx->packetization_reorder_queue_size;
-#else
-        int32_t queue_entry_index = pcs->ppcs->decode_order % PACKETIZATION_REORDER_QUEUE_MAX_DEPTH;
-#endif
         PacketizationReorderEntry *queue_entry_ptr   = enc_ctx->packetization_reorder_queue[queue_entry_index];
         queue_entry_ptr->start_time_seconds          = pcs->ppcs->start_time_seconds;
         queue_entry_ptr->start_time_u_seconds        = pcs->ppcs->start_time_u_seconds;
@@ -778,7 +698,6 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
         output_stream_ptr->pts          = pcs->ppcs->input_ptr->pts;
         // we output one temporal unit a time, so dts alwasy equals to pts.
         output_stream_ptr->dts = output_stream_ptr->pts;
-#if CLN_REMOVE_P_SLICE
         if (pcs->ppcs->idr_flag)
             output_stream_ptr->pic_type = EB_AV1_KEY_PICTURE;
         else if (pcs->slice_type == I_SLICE)
@@ -787,11 +706,6 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
             output_stream_ptr->pic_type = EB_AV1_INTER_PICTURE;
         else
             output_stream_ptr->pic_type = EB_AV1_NON_REF_PICTURE;
-#else
-        output_stream_ptr->pic_type = pcs->ppcs->is_ref
-            ? pcs->ppcs->idr_flag ? EB_AV1_KEY_PICTURE : (EbAv1PictureType)pcs->slice_type
-            : EB_AV1_NON_REF_PICTURE;
-#endif
         output_stream_ptr->p_app_private        = pcs->ppcs->input_ptr->p_app_private;
         output_stream_ptr->temporal_layer_index = pcs->ppcs->temporal_layer_index;
         output_stream_ptr->qp                   = pcs->ppcs->picture_qp;
@@ -863,15 +777,10 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
         } else {
             // Copy metadata pointer to the queue entry related to current frame number
             uint64_t current_picture_number = pcs->picture_number;
-#if OPT_PACK_Q
             // TODO: Shouldn't entry be indexed based on decode order, not picture number
             PacketizationReorderEntry *temp_entry =
                 enc_ctx
                     ->packetization_reorder_queue[current_picture_number % enc_ctx->packetization_reorder_queue_size];
-#else
-            PacketizationReorderEntry *temp_entry =
-                enc_ctx->packetization_reorder_queue[current_picture_number % PACKETIZATION_REORDER_QUEUE_MAX_DEPTH];
-#endif
             temp_entry->metadata           = pcs->ppcs->input_ptr->metadata;
             pcs->ppcs->input_ptr->metadata = NULL;
             metadata_sz                    = svt_metadata_size(temp_entry->metadata, EB_AV1_METADATA_TYPE_ITUT_T35);
@@ -889,14 +798,9 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
 
         if (pcs->ppcs->has_show_existing) {
             uint64_t next_picture_number = pcs->picture_number + 1;
-#if OPT_PACK_Q
             // TODO: Shouldn't entry be indexed based on decode order, not picture number
             PacketizationReorderEntry *temp_entry =
                 enc_ctx->packetization_reorder_queue[next_picture_number % enc_ctx->packetization_reorder_queue_size];
-#else
-            PacketizationReorderEntry *temp_entry =
-                enc_ctx->packetization_reorder_queue[next_picture_number % PACKETIZATION_REORDER_QUEUE_MAX_DEPTH];
-#endif
             // Check if the temporal entry has metadata
             if (temp_entry->metadata) {
                 // Get bitstream from queue entry
@@ -953,20 +857,6 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
 
         // Note: last chance here to add more output meta data for an encoded picture -->
 
-#if !CLN_REMOVE_DATA_LL
-        // collect output meta data
-        queue_entry_ptr->out_meta_data = svt_aom_concat_eb_linked_list(
-            extract_passthrough_data(&(pcs->ppcs->data_ll_head_ptr)), pcs->ppcs->app_out_data_ll_head_ptr);
-        pcs->ppcs->app_out_data_ll_head_ptr = (EbLinkedListNode *)NULL;
-
-        // Calling callback functions to release the memory allocated for data linked list in the application
-        while (pcs->ppcs->data_ll_head_ptr != NULL) {
-            EbLinkedListNode *app_data_ll_head_temp_ptr = pcs->ppcs->data_ll_head_ptr->next;
-            if (pcs->ppcs->data_ll_head_ptr->release_cb_fnc_ptr != NULL)
-                pcs->ppcs->data_ll_head_ptr->release_cb_fnc_ptr(pcs->ppcs->data_ll_head_ptr);
-            pcs->ppcs->data_ll_head_ptr = app_data_ll_head_temp_ptr;
-        }
-#endif
         if (scs->speed_control_flag) {
             // update speed control variables
             svt_block_on_mutex(enc_ctx->sc_buffer_mutex);

@@ -56,13 +56,11 @@ typedef struct EbReferenceObject {
     uint8_t           *sb_64x64_mvp;
     uint32_t          *sb_me_64x64_dist;
     uint32_t          *sb_me_8x8_cost_var;
-#if OPT_DEPTHS_CTRL
-    uint8_t *sb_min_sq_size;
-    uint8_t *sb_max_sq_size;
-#endif
-    int32_t          mi_cols;
-    int32_t          mi_rows;
-    WienerUnitInfo **unit_info; // per plane, per rest. unit; used for fwding wiener info to future frames
+    uint8_t           *sb_min_sq_size;
+    uint8_t           *sb_max_sq_size;
+    int32_t            mi_cols;
+    int32_t            mi_rows;
+    WienerUnitInfo   **unit_info; // per plane, per rest. unit; used for fwding wiener info to future frames
 } EbReferenceObject;
 
 typedef struct EbReferenceObjectDescInitData {

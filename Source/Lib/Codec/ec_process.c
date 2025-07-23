@@ -20,9 +20,6 @@
 #include "cabac_context_model.h"
 #include "svt_log.h"
 #include "common_dsp_rtcd.h"
-#if !OPT_LD_MEM_2
-void svt_av1_reset_loop_restoration(PictureControlSet *piCSetPtr, uint16_t tile_idx);
-#endif
 
 static void rest_context_dctor(EbPtr p) {
     EbThreadContext      *thread_ctx = (EbThreadContext *)p;
@@ -34,11 +31,7 @@ static void rest_context_dctor(EbPtr p) {
  * Enc Dec Context Constructor
  ******************************************************/
 EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
-#if OPT_FIFO_MEM
                                                 int index) {
-#else
-                                                int index, int rate_control_index) {
-#endif
     EntropyCodingContext *context_ptr;
     EB_CALLOC_ARRAY(context_ptr, 1);
     thread_ctx->priv  = context_ptr;
@@ -52,10 +45,6 @@ EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, con
         enc_handle_ptr->rest_results_resource_ptr, index);
     context_ptr->entropy_coding_output_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->entropy_coding_results_resource_ptr, index);
-#if !OPT_FIFO_MEM
-    context_ptr->rate_control_output_fifo_ptr = svt_system_resource_get_producer_fifo(
-        enc_handle_ptr->rate_control_tasks_resource_ptr, rate_control_index);
-#endif
 
     return EB_ErrorNone;
 }
@@ -74,86 +63,6 @@ static void entropy_coding_reset_neighbor_arrays(PictureControlSet *pcs, uint16_
     return;
 }
 
-#if !OPT_LD_MEM_2
-void svt_aom_get_syntax_rate_from_cdf(int32_t *costs, const AomCdfProb *cdf, const int32_t *inv_map);
-
-void svt_av1_cost_tokens_from_cdf(int32_t *costs, const AomCdfProb *cdf, const int32_t *inv_map) {
-    // int32_t i;
-    // AomCdfProb prev_cdf = 0;
-    // for (i = 0;; ++i) {
-    //     AomCdfProb p15 = AOM_ICDF(cdf[i]) - prev_cdf;
-    //     p15 = (p15 < EC_MIN_PROB) ? EC_MIN_PROB : p15;
-    //     prev_cdf = AOM_ICDF(cdf[i]);
-    //
-    //     if (inv_map)
-    //         costs[inv_map[i]] = av1_cost_symbol(p15);
-    //     else
-    //         costs[i] = av1_cost_symbol(p15);
-    //
-    //     // Stop once we reach the end of the CDF
-    //     if (cdf[i] == AOM_ICDF(CDF_PROB_TOP)) break;
-    // }
-
-    svt_aom_get_syntax_rate_from_cdf(costs, cdf, inv_map);
-}
-
-static void build_nmv_component_cost_table(int32_t *mvcost, const NmvComponent *const mvcomp,
-                                           MvSubpelPrecision precision) {
-    int32_t i, v;
-    int32_t sign_cost[2], class_cost[MV_CLASSES], class0_cost[CLASS0_SIZE];
-    int32_t bits_cost[MV_OFFSET_BITS][2];
-    int32_t class0_fp_cost[CLASS0_SIZE][MV_FP_SIZE], fp_cost[MV_FP_SIZE];
-    int32_t class0_hp_cost[2], hp_cost[2];
-
-    svt_av1_cost_tokens_from_cdf(sign_cost, mvcomp->sign_cdf, NULL);
-    svt_av1_cost_tokens_from_cdf(class_cost, mvcomp->classes_cdf, NULL);
-    svt_av1_cost_tokens_from_cdf(class0_cost, mvcomp->class0_cdf, NULL);
-    for (i = 0; i < MV_OFFSET_BITS; ++i) svt_av1_cost_tokens_from_cdf(bits_cost[i], mvcomp->bits_cdf[i], NULL);
-    for (i = 0; i < CLASS0_SIZE; ++i) svt_av1_cost_tokens_from_cdf(class0_fp_cost[i], mvcomp->class0_fp_cdf[i], NULL);
-    svt_av1_cost_tokens_from_cdf(fp_cost, mvcomp->fp_cdf, NULL);
-
-    if (precision > MV_SUBPEL_LOW_PRECISION) {
-        svt_av1_cost_tokens_from_cdf(class0_hp_cost, mvcomp->class0_hp_cdf, NULL);
-        svt_av1_cost_tokens_from_cdf(hp_cost, mvcomp->hp_cdf, NULL);
-    }
-    mvcost[0] = 0;
-    for (v = 1; v <= MV_MAX; ++v) {
-        int32_t z, c, o, d, e, f, cost = 0;
-        z = v - 1;
-        c = svt_av1_get_mv_class(z, &o);
-        cost += class_cost[c];
-        d = (o >> 3); /* int32_t mv data */
-        f = (o >> 1) & 3; /* fractional pel mv data */
-        e = (o & 1); /* high precision mv data */
-        if (c == MV_CLASS_0)
-            cost += class0_cost[d];
-        else {
-            const int32_t b = c + CLASS0_BITS - 1; /* number of bits */
-            for (i = 0; i < b; ++i) cost += bits_cost[i][((d >> i) & 1)];
-        }
-        if (precision > MV_SUBPEL_NONE) {
-            if (c == MV_CLASS_0)
-                cost += class0_fp_cost[d][f];
-            else
-                cost += fp_cost[f];
-            if (precision > MV_SUBPEL_LOW_PRECISION) {
-                if (c == MV_CLASS_0)
-                    cost += class0_hp_cost[e];
-                else
-                    cost += hp_cost[e];
-            }
-        }
-        mvcost[v]  = cost + sign_cost[0];
-        mvcost[-v] = cost + sign_cost[1];
-    }
-}
-void svt_av1_build_nmv_cost_table(int32_t *mvjoint, int32_t *mvcost[2], const NmvContext *ctx,
-                                  MvSubpelPrecision precision) {
-    svt_av1_cost_tokens_from_cdf(mvjoint, ctx->joints_cdf, NULL);
-    build_nmv_component_cost_table(mvcost[0], &ctx->comps[0], precision);
-    build_nmv_component_cost_table(mvcost[1], &ctx->comps[1], precision);
-}
-#endif
 /**************************************************
  * Reset Entropy Coding Picture
  **************************************************/
@@ -184,7 +93,6 @@ static void reset_entropy_coding_picture(EntropyCodingContext *ctx, PictureContr
         aom_start_encode(&ec->ec_writer, output_bitstream_ptr);
         // ADD Reset here
         const uint8_t primary_ref_frame = frm_hdr->primary_ref_frame;
-#if OPT_LD_MEM_2
         if (primary_ref_frame != PRIMARY_REF_NONE) {
             // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
             // Therefore, add 1 to the primary ref frame (e.g. LAST --> LAST_FRAME)
@@ -192,12 +100,7 @@ static void reset_entropy_coding_picture(EntropyCodingContext *ctx, PictureContr
             const uint8_t      ref_idx  = get_ref_frame_idx(primary_ref_frame + 1);
             EbReferenceObject *ref      = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
             svt_memcpy(ec->fc, &ref->frame_context, sizeof(FRAME_CONTEXT));
-        }
-#else
-        if (primary_ref_frame != PRIMARY_REF_NONE)
-            svt_memcpy(ec->fc, &pcs->ref_frame_context[primary_ref_frame], sizeof(FRAME_CONTEXT));
-#endif
-        else
+        } else
             svt_aom_reset_entropy_coder(scs->enc_ctx, ec, entropy_coding_qp, pcs->slice_type);
 
         entropy_coding_reset_neighbor_arrays(pcs, tile_idx);
@@ -284,11 +187,7 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
                     context_ptr->sb_origin_x = (x_sb_index + tile_sb_start_x) << sb_size_log2;
                     context_ptr->sb_origin_y = (y_sb_index + tile_sb_start_y) << sb_size_log2;
                     if (x_sb_index == 0 && y_sb_index == 0) {
-#if OPT_LD_MEM_2
                         svt_av1_reset_loop_restoration(context_ptr);
-#else
-                        svt_av1_reset_loop_restoration(pcs, tile_idx);
-#endif
                         context_ptr->tok = pcs->tile_tok[tile_row][tile_col];
                     }
 
@@ -313,7 +212,6 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
         svt_release_mutex(pcs->entropy_coding_pic_mutex);
         if (pic_ready) {
             if (pcs->ppcs->superres_total_recode_loop == 0) {
-#if CLN_REMOVE_P_SLICE
                 // Release the reference Pictures from both lists
                 for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
                     const uint8_t list_idx = get_list_idx(ref + 1);
@@ -322,20 +220,6 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
                         svt_release_object(pcs->ref_pic_ptr_array[list_idx][ref_idx]);
                     }
                 }
-#else
-                // Release the List 0 Reference Pictures
-                for (uint32_t ref_idx = 0; ref_idx < pcs->ppcs->ref_list0_count; ++ref_idx) {
-                    if (pcs->ref_pic_ptr_array[0][ref_idx] != NULL) {
-                        svt_release_object(pcs->ref_pic_ptr_array[0][ref_idx]);
-                    }
-                }
-                // Release the List 1 Reference Pictures
-                for (uint32_t ref_idx = 0; ref_idx < pcs->ppcs->ref_list1_count; ++ref_idx) {
-                    if (pcs->ref_pic_ptr_array[1][ref_idx] != NULL) {
-                        svt_release_object(pcs->ref_pic_ptr_array[1][ref_idx]);
-                    }
-                }
-#endif
 
                 //free palette data
                 if (pcs->tile_tok[0][0])

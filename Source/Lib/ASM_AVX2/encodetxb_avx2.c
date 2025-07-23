@@ -796,13 +796,8 @@ void svt_av1_get_nz_map_contexts_avx2(const uint8_t *const levels, const int16_t
         coeff_contexts[pos] = 3;
 }
 
-#if CLN_REMOVE_MODE_INFO
 void svt_copy_mi_map_grid_avx2(MbModeInfo **mi_grid_ptr, uint32_t mi_stride, uint8_t num_rows, uint8_t num_cols) {
     MbModeInfo *target = mi_grid_ptr[0];
-#else
-void svt_copy_mi_map_grid_avx2(ModeInfo **mi_grid_ptr, uint32_t mi_stride, uint8_t num_rows, uint8_t num_cols) {
-    ModeInfo *target = mi_grid_ptr[0];
-#endif
     if (num_cols == 1) {
         for (uint8_t mi_y = 0; mi_y < num_rows; mi_y++) {
             const int32_t mi_idx = 0 + mi_y * mi_stride;

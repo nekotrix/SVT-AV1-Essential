@@ -33,15 +33,11 @@ typedef struct LadQueueEntry {
 } LadQueueEntry;
 
 typedef struct LadQueue {
-#if OPT_REF_Q
     // circular buffer holding the entries in decode order; pics should be removed from the buffer in decode order
     LadQueueEntry **cir_buf;
     uint32_t        cir_buf_size;
-#else
-    LadQueueEntry **cir_buf; //circular buffer holding the entries
-#endif
-    uint32_t head;
-    uint32_t tail;
+    uint32_t        head;
+    uint32_t        tail;
 } LadQueue;
 
 /* look ahead queue constructor*/
@@ -64,12 +60,8 @@ static void initial_rate_control_context_dctor(EbPtr p) {
     EbThreadContext           *thread_ctx = (EbThreadContext *)p;
     InitialRateControlContext *obj        = (InitialRateControlContext *)thread_ctx->priv;
 
-#if OPT_REF_Q
     EB_DELETE_PTR_ARRAY(obj->lad_queue->cir_buf, obj->lad_queue->cir_buf_size);
     obj->lad_queue->cir_buf_size = 0;
-#else
-    EB_DELETE_PTR_ARRAY(obj->lad_queue->cir_buf, REFERENCE_QUEUE_MAX_DEPTH);
-#endif
     EB_FREE(obj->lad_queue);
     EB_FREE_ARRAY(obj);
 }
@@ -77,12 +69,8 @@ static void initial_rate_control_context_dctor(EbPtr p) {
 /************************************************
  * Initial Rate Control Context Constructor
  ************************************************/
-#if OPT_REF_Q
 EbErrorType svt_aom_initial_rate_control_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
                                                       uint32_t ppcs_count) {
-#else
-EbErrorType svt_aom_initial_rate_control_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr) {
-#endif
     InitialRateControlContext *context_ptr;
     EB_CALLOC_ARRAY(context_ptr, 1);
     thread_ctx->priv  = context_ptr;
@@ -95,18 +83,11 @@ EbErrorType svt_aom_initial_rate_control_context_ctor(EbThreadContext *thread_ct
 
     EB_MALLOC(context_ptr->lad_queue, sizeof(LadQueue));
 
-#if OPT_REF_Q
     context_ptr->lad_queue->cir_buf_size = ppcs_count;
     EB_ALLOC_PTR_ARRAY(context_ptr->lad_queue->cir_buf, ppcs_count);
     for (uint32_t picture_index = 0; picture_index < ppcs_count; ++picture_index) {
         EB_NEW(context_ptr->lad_queue->cir_buf[picture_index], lad_queue_entry_ctor);
     }
-#else
-    EB_ALLOC_PTR_ARRAY(context_ptr->lad_queue->cir_buf, REFERENCE_QUEUE_MAX_DEPTH);
-    for (uint32_t picture_index = 0; picture_index < REFERENCE_QUEUE_MAX_DEPTH; ++picture_index) {
-        EB_NEW(context_ptr->lad_queue->cir_buf[picture_index], lad_queue_entry_ctor);
-    }
-#endif
     context_ptr->lad_queue->head = 0;
     context_ptr->lad_queue->tail = 0;
 
@@ -142,11 +123,7 @@ void print_lad_queue(InitialRateControlContext *ctx, uint8_t log) {
 
         while (queue_entry->pcs != NULL) {
             SVT_LOG("%i-%lld ", queue_entry->pcs->ext_mg_id, queue_entry->pcs->picture_number);
-#if OPT_REF_Q
-            idx = OUT_Q_ADVANCE(idx, queue->cir_buf_size);
-#else
-            idx = OUT_Q_ADVANCE(idx);
-#endif
+            idx         = OUT_Q_ADVANCE(idx, queue->cir_buf_size);
             queue_entry = queue->cir_buf[idx];
         }
         SVT_LOG("\n");
@@ -157,12 +134,8 @@ void print_lad_queue(InitialRateControlContext *ctx, uint8_t log) {
  store pictures in the lad queue
 */
 static void push_to_lad_queue(PictureParentControlSet *pcs, InitialRateControlContext *ctx) {
-    LadQueue *queue = ctx->lad_queue;
-#if OPT_REF_Q
-    uint32_t entry_idx = pcs->decode_order % queue->cir_buf_size;
-#else
-    uint32_t entry_idx = pcs->decode_order % REFERENCE_QUEUE_MAX_DEPTH;
-#endif
+    LadQueue      *queue       = ctx->lad_queue;
+    uint32_t       entry_idx   = pcs->decode_order % queue->cir_buf_size;
     LadQueueEntry *queue_entry = queue->cir_buf[entry_idx];
     svt_aom_assert_err(queue_entry->pcs == NULL, "lad queue overflow");
     if (queue_entry->pcs == NULL)
@@ -208,21 +181,13 @@ void validate_pic_for_tpl(PictureParentControlSet *pcs, uint32_t pic_index) {
         }
     }
 }
-#if TUNE_VBR
 uint8_t svt_aom_get_tpl_group_level(uint8_t tpl, int8_t enc_mode) {
-#else
-uint8_t svt_aom_get_tpl_group_level(uint8_t tpl, int8_t enc_mode, SvtAv1RcMode rc_mode) {
-#endif
     uint8_t tpl_group_level;
     if (!tpl)
         tpl_group_level = 0;
     else if (enc_mode <= ENC_M5)
         tpl_group_level = 1;
-#if TUNE_VBR
     else if (enc_mode <= ENC_M8)
-#else
-    else if (enc_mode <= ENC_M8 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M9))
-#endif
         tpl_group_level = 3;
     else
         tpl_group_level = 4;
@@ -316,31 +281,11 @@ uint8_t svt_aom_set_tpl_group(PictureParentControlSet *pcs, uint8_t tpl_group_le
     memcpy(&pcs->tpl_ctrls, tpl_ctrls, sizeof(TplControls));
     return tpl_ctrls->synth_blk_size;
 }
-#if TUNE_VBR
 static uint8_t get_tpl_params_level(int8_t enc_mode) {
-#else
-static uint8_t get_tpl_params_level(int8_t enc_mode, SvtAv1RcMode rc_mode) {
-#endif
     uint8_t tpl_params_level;
-#if TUNE_M3
-#if TUNE_M3_3
     if (enc_mode <= ENC_M2) {
-#else
-    if (enc_mode <= ENC_M3) {
-#endif
-#else
-    if (enc_mode <= ENC_M2) {
-#endif
         tpl_params_level = 1;
-#if TUNE_VBR
-#if TUNE_M8_3
     } else if (enc_mode <= ENC_M7) {
-#else
-    } else if (enc_mode <= ENC_M8) {
-#endif
-#else
-    } else if (enc_mode <= ENC_M8 || (rc_mode == SVT_AV1_RC_MODE_VBR && enc_mode <= ENC_M9)) {
-#endif
         tpl_params_level = 4;
     } else {
         tpl_params_level = 5;
@@ -447,11 +392,7 @@ void store_extended_group(PictureParentControlSet *pcs, InitialRateControlContex
         }
 
         //Increment the queue_index Iterator
-#if OPT_REF_Q
         q_idx = OUT_Q_ADVANCE(q_idx, queue->cir_buf_size);
-#else
-        q_idx = OUT_Q_ADVANCE(q_idx);
-#endif
         //get the next entry
         entry = queue->cir_buf[q_idx];
     }
@@ -528,13 +469,7 @@ void store_extended_group(PictureParentControlSet *pcs, InitialRateControlContex
 
     for (uint32_t pic_index = 0; pic_index < pcs->tpl_group_size; pic_index++) {
         if (!pcs->tpl_group[pic_index]->tpl_params_ready) {
-#if TUNE_VBR
             set_tpl_params(pcs->tpl_group[pic_index], get_tpl_params_level(pcs->scs->static_config.enc_mode));
-#else
-            set_tpl_params(
-                pcs->tpl_group[pic_index],
-                get_tpl_params_level(pcs->scs->static_config.enc_mode, pcs->scs->static_config.rate_control_mode));
-#endif
             pcs->tpl_group[pic_index]->tpl_params_ready = 1;
         }
     }
@@ -613,11 +548,7 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
                             }
                         }
 
-#if OPT_REF_Q
-                        tmp_idx = OUT_Q_ADVANCE(tmp_idx, queue->cir_buf_size);
-#else
-                        tmp_idx = OUT_Q_ADVANCE(tmp_idx);
-#endif
+                        tmp_idx   = OUT_Q_ADVANCE(tmp_idx, queue->cir_buf_size);
                         tmp_entry = queue->cir_buf[tmp_idx];
                     }
                 }
@@ -640,10 +571,7 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
                           head_pcs->stats_in_offset + (uint64_t)head_pcs->ext_group_size)
                     : (uint64_t)(head_pcs->scs->twopass.stats_buf_ctx->stats_in_end_write -
                                  head_pcs->scs->twopass.stats_buf_ctx->stats_in_start);
-#if !FIX_VBR_CRASH
-                svt_release_mutex(head_pcs->scs->twopass.stats_buf_ctx->stats_in_write_mutex);
-#endif
-                head_pcs->frames_in_sw = (int)(head_pcs->stats_in_end_offset - head_pcs->stats_in_offset);
+                head_pcs->frames_in_sw        = (int)(head_pcs->stats_in_end_offset - head_pcs->stats_in_offset);
                 if (head_pcs->scs->enable_dec_order == 0 && head_pcs->scs->lap_rc &&
                     head_pcs->temporal_layer_index == 0) {
                     for (uint64_t num_frames = head_pcs->stats_in_offset; num_frames < head_pcs->stats_in_end_offset;
@@ -655,20 +583,14 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
                         }
                     }
                 }
-#if FIX_VBR_CRASH
                 svt_release_mutex(head_pcs->scs->twopass.stats_buf_ctx->stats_in_write_mutex);
-#endif
             }
             //take the picture out from iRc process
             irc_send_picture_out(ctx, head_pcs, false);
             //advance the head
             head_entry->pcs = NULL;
-#if OPT_REF_Q
-            queue->head = OUT_Q_ADVANCE(queue->head, queue->cir_buf_size);
-#else
-            queue->head = OUT_Q_ADVANCE(queue->head);
-#endif
-            head_entry = queue->cir_buf[queue->head];
+            queue->head     = OUT_Q_ADVANCE(queue->head, queue->cir_buf_size);
+            head_entry      = queue->cir_buf[queue->head];
         } else {
             break;
         }
@@ -683,9 +605,7 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
 static void set_1pvbr_param(PictureParentControlSet *pcs) {
     SequenceControlSet *scs = pcs->scs;
 
-#if FIX_VBR_CRASH
     svt_block_on_mutex(scs->twopass.stats_buf_ctx->stats_in_write_mutex);
-#endif
     pcs->stat_struct = (scs->twopass.stats_buf_ctx->stats_in_start + pcs->picture_number)->stat_struct;
     if (pcs->slice_type != I_SLICE) {
         uint64_t avg_me_dist          = 0;
@@ -710,9 +630,7 @@ static void set_1pvbr_param(PictureParentControlSet *pcs) {
             pcs->b64_total_count * weight / VBR_CODED_ERROR_FACTOR;
         (scs->twopass.stats_buf_ctx->stats_in_start + pcs->picture_number)->stat_struct.poc = pcs->picture_number;
     }
-#if FIX_VBR_CRASH
     svt_release_mutex(scs->twopass.stats_buf_ctx->stats_in_write_mutex);
-#endif
 }
 
 /* Initial Rate Control Kernel */
@@ -767,31 +685,17 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
             if (pcs->slice_type != I_SLICE) {
                 uint32_t b64_idx;
                 uint64_t dist = 0;
-#if FIX_RESIZE_MODE
                 for (b64_idx = 0; b64_idx < pcs->b64_total_count; ++b64_idx) {
-#else
-                for (b64_idx = 0; b64_idx < scs->b64_total_count; ++b64_idx) {
-#endif
                     dist += pcs->me_8x8_distortion[b64_idx];
                 }
-#if FIX_RESIZE_MODE
                 pcs->norm_me_dist = dist / pcs->b64_total_count;
-#else
-                pcs->norm_me_dist = dist / scs->b64_total_count;
-#endif
             }
 
             pcs->tpl_params_ready = 0;
             svt_aom_set_tpl_group(pcs,
-#if TUNE_VBR
                                   svt_aom_get_tpl_group_level(scs->tpl, scs->static_config.enc_mode),
-#else
-                                  svt_aom_get_tpl_group_level(
-                                      scs->tpl, scs->static_config.enc_mode, scs->static_config.rate_control_mode),
-#endif
                                   scs->max_input_luma_width,
                                   scs->max_input_luma_height);
-#if OPT_DELTA_QP
             // If TPL results are needed for the current hierarchical layer, but are not available, shut r0-based QPS/QPM
             if (!pcs->tpl_ctrls.enable ||
                 (pcs->tpl_ctrls.reduced_tpl_group >= 0 &&
@@ -802,10 +706,8 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
                 pcs->r0_delta_qp_quant = 0;
 
             } else {
-#if FIX_OPT_DELTA_QP
                 // When another delta-QP modulator (e.g., variance boost) is active alongside TPL,
                 // r0_delta_qp_quant has no effect and is assumed equal to r0_delta_qp_md
-#endif
                 pcs->r0_gen = 1;
                 if (pcs->hierarchical_levels == 5) { // 6L
                     pcs->r0_qps            = pcs->r0_gen;
@@ -825,20 +727,6 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
                     pcs->r0_delta_qp_quant = (pcs->r0_delta_qp_md && pcs->slice_type == I_SLICE);
                 }
             }
-#else
-            pcs->r0_based_qps_qpm = pcs->tpl_ctrls.enable &&
-                (pcs->temporal_layer_index == 0 ||
-                 (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF &&
-                  ((pcs->hierarchical_levels == 5 && pcs->temporal_layer_index <= 2) ||
-                   (pcs->hierarchical_levels >= 4 && pcs->temporal_layer_index <= 1))));
-
-            // If TPL results are needed for the current hierarchical layer, but are not available, shut r0-based QPS/QPM
-            if (pcs->r0_based_qps_qpm && pcs->tpl_ctrls.reduced_tpl_group >= 0 &&
-                pcs->temporal_layer_index > pcs->tpl_ctrls.reduced_tpl_group) {
-                assert(pcs->temporal_layer_index != 0);
-                pcs->r0_based_qps_qpm = 0;
-            }
-#endif
             if (in_results_ptr->task_type == TASK_SUPERRES_RE_ME) {
                 // do necessary steps as normal routine
                 {
@@ -847,11 +735,7 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
                     if (pcs->superres_total_recode_loop == 0) { // QThreshold or auto-solo mode
                         if (pcs->tpl_ctrls.enable) {
                             for (uint32_t i = 0; i < pcs->tpl_group_size; i++) {
-#if CLN_REMOVE_P_SLICE
                                 if (svt_aom_is_incomp_mg_frame(pcs->tpl_group[i])) {
-#else
-                                if (pcs->tpl_group[i]->slice_type == P_SLICE) {
-#endif
                                     if (pcs->tpl_group[i]->ext_mg_id == pcs->ext_mg_id + 1)
                                         svt_aom_release_pa_reference_objects(scs, pcs->tpl_group[i]);
                                 } else {

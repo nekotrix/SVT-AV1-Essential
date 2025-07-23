@@ -40,12 +40,7 @@ typedef struct BitstreamLevel {
 typedef struct List0OnlyBase {
     // Specifies whether to use List1 for BASE frame(s) or not (0: OFF, 1: ON)
     uint8_t enabled;
-#if !CLN_CALCULATE_VARIANCE
-    // Specifies the pic-average of the difference of SB-var and pic-varaince under which List1 is not used
-    uint16_t list0_only_base_th;
-#endif
 } List0OnlyBase;
-#if OPT_ALLINTRA_STILLIMAGE
 typedef struct QpBasedThScaling {
     bool tf_me_qp_based_th_scaling;
     bool tf_ref_qp_based_th_scaling;
@@ -58,7 +53,6 @@ typedef struct QpBasedThScaling {
     bool pme_qp_based_th_scaling;
     bool txt_qp_based_th_scaling;
 } QpBasedThScaling;
-#endif
 /************************************
      * Sequence Control Set
      ************************************/
@@ -172,7 +166,6 @@ typedef struct SequenceControlSet {
     uint32_t picture_analysis_number_of_regions_per_width;
     uint32_t picture_analysis_number_of_regions_per_height;
 
-#if CLN_SEG_COUNTS
     /*!< Tile group counts */
     uint8_t tile_group_col_count_array;
     uint8_t tile_group_row_count_array;
@@ -182,17 +175,6 @@ typedef struct SequenceControlSet {
     uint32_t me_segment_row_count_array;
     uint32_t enc_dec_segment_col_count_array;
     uint32_t enc_dec_segment_row_count_array;
-#else
-    /*!< Tile groups per hierarchical layers */
-    uint8_t tile_group_col_count_array[MAX_TEMPORAL_LAYERS];
-    uint8_t tile_group_row_count_array[MAX_TEMPORAL_LAYERS];
-
-    /*!< Segements (sub picture) count for different processes */
-    uint32_t me_segment_column_count_array[MAX_TEMPORAL_LAYERS];
-    uint32_t me_segment_row_count_array[MAX_TEMPORAL_LAYERS];
-    uint32_t enc_dec_segment_col_count_array[MAX_TEMPORAL_LAYERS];
-    uint32_t enc_dec_segment_row_count_array[MAX_TEMPORAL_LAYERS];
-#endif
     uint32_t tpl_segment_col_count_array;
     uint32_t tpl_segment_row_count_array;
     uint32_t cdef_segment_column_count;
@@ -254,15 +236,10 @@ typedef struct SequenceControlSet {
     TWO_PASS     twopass;
     double       double_frame_rate;
     ScaleFactors sf_identity;
-#if !OPT_LD_MEM_2
-    int32_t nmv_vec_cost[MV_JOINTS];
-    int32_t nmv_costs[2][MV_VALS];
-    uint8_t mvrate_set;
-#endif
-    VqCtrls    vq_ctrls;
-    uint8_t    calc_hist;
-    TfControls tf_params_per_type[3]; // [I_SLICE][BASE][L1]
-    MrpCtrls   mrp_ctrls;
+    VqCtrls      vq_ctrls;
+    uint8_t      calc_hist;
+    TfControls   tf_params_per_type[3]; // [I_SLICE][BASE][L1]
+    MrpCtrls     mrp_ctrls;
     /*!< The RC stat generation pass mode (0: The default, 1: optimized)*/
     uint8_t rc_stat_gen_pass_mode;
     int     cqp_base_q_tf;
@@ -304,11 +281,6 @@ typedef struct SequenceControlSet {
     * Default is null.*/
     int enable_qp_scaling_flag;
 
-#if !CLN_REMOVE_10BIT_FORMAT
-    int ten_bit_format;
-
-    int enable_adaptive_mini_gop;
-#endif
     int max_heirachical_level;
     /* Flag to enable the Speed Control functionality to achieve the real-time
     * encoding speed defined by dynamically changing the encoding preset to meet
@@ -336,28 +308,14 @@ typedef struct SequenceControlSet {
     // 2: (Default) Enable all QP modulation (apply conservative offsets to high QP, aggressive offsets to low QP)
     // 3: Enable only low-QP modulaiton (apply aggressive offsets to low QP)
     uint8_t seq_qp_mod;
-#if TUNE_MR_2
-#if OPT_ALLINTRA_STILLIMAGE
     // Control per tool whether we use the qp in calculating the scaling factors for the exponential QP-based function
     // 0: Automatically assign 1 to ret_q_weight and to ret_q_weight_denom.
     // 1: Use the qp to calculate ret_q_weight and to ret_q_weight_denom.
     QpBasedThScaling qp_based_th_scaling_ctrls;
-#else
-    // Control whether we use the qp in calculating the scaling factors for the exponential QP-based function
-    // for HME/ME search area scaling.
-    // 0: Automatically assign 1 to ret_q_weight and to ret_q_weight_denom.
-    // 1: Use the qp to calculate ret_q_weight and to ret_q_weight_denom.
-    bool enable_qp_based_th_scaling;
-#endif
-#endif
-#if OPT_ALLINTRA
     // If true, intra_period_length is 0 and every frame is coded with intra tools only
     bool allintra;
-#endif
-#if FTR_ADD_FLAT_IPP
     // If true, use a flat IPP pred structure, where each pic uses only the previous frame as ref
     bool use_flat_ipp;
-#endif
 } SequenceControlSet;
 typedef struct EbSequenceControlSetInstance {
     EbDctor             dctor;

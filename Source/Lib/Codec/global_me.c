@@ -45,18 +45,11 @@ void svt_aom_gm_pre_processor(PictureParentControlSet *pcs, PictureParentControl
 
     //fill gm controls to be used locally for the preprocessor gm pass.
     //final gm controls will be set later for the final gm detection pass.
-    pcs->gm_ctrls.enabled            = 1;
-    pcs->gm_ctrls.identiy_exit       = 1;
-    pcs->gm_ctrls.search_start_model = TRANSLATION;
-    pcs->gm_ctrls.search_end_model   = ROTZOOM;
-#if !CLN_GMV_UNUSED_SIGS
-    pcs->gm_ctrls.bipred_only = 0;
-#endif
-    pcs->gm_ctrls.bypass_based_on_me = 1;
-#if !CLN_GMV_UNUSED_SIGS
-    pcs->gm_ctrls.use_stationary_block         = 0;
-    pcs->gm_ctrls.use_distance_based_active_th = 0;
-#endif
+    pcs->gm_ctrls.enabled                 = 1;
+    pcs->gm_ctrls.identiy_exit            = 1;
+    pcs->gm_ctrls.search_start_model      = TRANSLATION;
+    pcs->gm_ctrls.search_end_model        = ROTZOOM;
+    pcs->gm_ctrls.bypass_based_on_me      = 1;
     pcs->gm_ctrls.params_refinement_steps = 2;
     pcs->gm_ctrls.downsample_level        = GM_FULL;
     pcs->gm_ctrls.corners                 = 2;
@@ -147,39 +140,19 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                                                    pa_reference_object->quarter_downsampled_picture_ptr;
     EbPictureBufferDesc *sixteenth_picture_ptr = (EbPictureBufferDesc *)
                                                      pa_reference_object->sixteenth_downsampled_picture_ptr;
-#if !CLN_REMOVE_P_SLICE
-    uint32_t num_of_list_to_search = (pcs->slice_type == P_SLICE) ? 1 /*List 0 only*/ : 2 /*List 0 + 1*/;
-#endif
     // Initilize global motion to be OFF for all references frames.
     memset(pcs->is_global_motion, false, MAX_NUM_OF_REF_PIC_LIST * REF_LIST_MAX_DEPTH);
     // Initilize wmtype to be IDENTITY for all references frames
-#if CLN_REMOVE_P_SLICE
     for (uint32_t list_index = REF_LIST_0; list_index < MAX_NUM_OF_REF_PIC_LIST; ++list_index) {
         for (uint32_t ref_pic_index = 0; ref_pic_index < REF_LIST_MAX_DEPTH; ++ref_pic_index) {
             pcs->global_motion_estimation[list_index][ref_pic_index].wmtype = IDENTITY;
         }
     }
-#else
-    // Ref List Loop
-    for (uint32_t list_index = REF_LIST_0; list_index < num_of_list_to_search; ++list_index) {
-        uint32_t num_of_ref_pic_to_search = REF_LIST_MAX_DEPTH;
-        // Ref Picture Loop
-        for (uint32_t ref_pic_index = 0; ref_pic_index < num_of_ref_pic_to_search; ++ref_pic_index) {
-            pcs->global_motion_estimation[list_index][ref_pic_index].wmtype = IDENTITY;
-        }
-    }
-#endif
     // Derive total_me_sad
     uint32_t total_me_sad = 0;
-#if !CLN_GMV_UNUSED_SIGS
-    uint32_t total_stationary_sb = 0;
-#endif
     uint32_t total_gm_sbs = 0;
     for (uint16_t b64_index = 0; b64_index < pcs->b64_total_count; ++b64_index) {
         total_me_sad += pcs->rc_me_distortion[b64_index];
-#if !CLN_GMV_UNUSED_SIGS
-        total_stationary_sb += pcs->stationary_block_present_sb[b64_index];
-#endif
         total_gm_sbs += pcs->rc_me_allow_gm[b64_index];
     }
     uint32_t average_me_sad = total_me_sad / (input_pic->width * input_pic->height);
@@ -202,29 +175,13 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
     if (pcs->gm_ctrls.downsample_level == GM_ADAPT_0) {
         pcs->gm_downsample_level = (average_me_sad < GMV_ME_SAD_TH_1) ? GM_DOWN : GM_FULL;
     } else if (pcs->gm_ctrls.downsample_level == GM_ADAPT_1) {
-#if CLN_CALCULATE_VARIANCE
-        pcs->gm_downsample_level = (average_me_sad < GMV_ME_SAD_TH_2)
-#else
-        SequenceControlSet *scs = pcs->scs;
-
-        pcs->gm_downsample_level = (average_me_sad < GMV_ME_SAD_TH_2 &&
-                                    (!scs->calculate_variance || (pcs->pic_avg_variance < GMV_PIC_VAR_TH)))
-#endif
-            ? GM_DOWN16
-            : GM_DOWN;
+        pcs->gm_downsample_level = (average_me_sad < GMV_ME_SAD_TH_2) ? GM_DOWN16 : GM_DOWN;
     } else {
         pcs->gm_downsample_level = pcs->gm_ctrls.downsample_level;
     }
 
     if (pcs->gm_ctrls.bypass_based_on_me) {
-#if CLN_GMV_UNUSED_SIGS
         if ((total_gm_sbs < (uint32_t)(pcs->b64_total_count >> 1)))
-#else
-        if ((total_gm_sbs < (uint32_t)(pcs->b64_total_count >> 1)) ||
-            (pcs->gm_ctrls.use_stationary_block &&
-             (total_stationary_sb > (uint32_t)((pcs->b64_total_count * 5) /
-                                               100)))) // if more than 5% of SB(s) have stationary block(s) then shut gm
-#endif
             global_motion_estimation_level = 0;
     }
     if (global_motion_estimation_level) {
@@ -251,17 +208,9 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
                 input_detection->stride_y,
                 frm_corners,
                 MAX_CORNERS);
-#if CLN_REMOVE_P_SLICE
         for (uint32_t list_index = REF_LIST_0; list_index < MAX_NUM_OF_REF_PIC_LIST; ++list_index) {
             uint32_t num_of_ref_pic_to_search = list_index == REF_LIST_0 ? pcs->ref_list0_count_try
                                                                          : pcs->ref_list1_count_try;
-#else
-        for (uint32_t list_index = REF_LIST_0; list_index < num_of_list_to_search; ++list_index) {
-            uint32_t num_of_ref_pic_to_search;
-            num_of_ref_pic_to_search = pcs->slice_type == P_SLICE ? pcs->ref_list0_count_try
-                : list_index == REF_LIST_0                        ? pcs->ref_list0_count_try
-                                                                  : pcs->ref_list1_count_try;
-#endif
             if (global_motion_estimation_level == 1)
                 num_of_ref_pic_to_search = MIN(num_of_ref_pic_to_search, 1);
             else if (global_motion_estimation_level == 2)
@@ -336,16 +285,9 @@ void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBuf
     }
 
     pcs->is_gm_on = 0;
-#if CLN_REMOVE_P_SLICE
     for (uint32_t list_index = REF_LIST_0; list_index < MAX_NUM_OF_REF_PIC_LIST; ++list_index) {
         const uint32_t num_of_ref_pic_to_search = list_index == REF_LIST_0 ? pcs->ref_list0_count
                                                                            : pcs->ref_list1_count;
-#else
-    for (uint32_t list_index = REF_LIST_0; list_index < num_of_list_to_search; ++list_index) {
-        uint32_t num_of_ref_pic_to_search = pcs->slice_type == P_SLICE ? pcs->ref_list0_count
-            : list_index == REF_LIST_0                                 ? pcs->ref_list0_count
-                                                                       : pcs->ref_list1_count;
-#endif
         // Ref Picture Loop
         for (uint32_t ref_pic_index = 0; ref_pic_index < num_of_ref_pic_to_search; ++ref_pic_index) {
             pcs->is_global_motion[list_index][ref_pic_index] = false;

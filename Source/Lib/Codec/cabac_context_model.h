@@ -380,7 +380,6 @@ typedef struct {
 
 #endif
 
-#if CLN_EC
 static INLINE uint8_t get_prob(unsigned int num, unsigned int den) {
     assert(den != 0);
     const int p = (int)(((uint64_t)num * 256 + (den >> 1)) / den);
@@ -418,35 +417,6 @@ static INLINE void update_cdf(AomCdfProb *cdf, int8_t val, int nsymbs) {
     } while (++i < nsymbs - 1);
     cdf[nsymbs] += (count < 32);
 }
-#else
-static inline uint8_t get_prob(uint32_t num, uint32_t den) {
-    assert(den);
-    const uint32_t p = (uint32_t)(((uint64_t)num * 256 + (den >> 1)) / den) + 1;
-    // (p > 255) ? 255 : (p < 1) ? 1 : p;
-    return p > 255 ? 255 : (uint8_t)p - 1;
-}
-
-static INLINE void update_cdf(AomCdfProb *cdf, int32_t val, int32_t nsymbs) {
-    int32_t    rate;
-    int32_t    i /*,tmp*/;
-    AomCdfProb tmp;
-
-    static const int32_t nsymbs2speed[17] = {0, 0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
-    assert(nsymbs < 17);
-    rate = 3 + (cdf[nsymbs] > 15) + (cdf[nsymbs] > 31) + nsymbs2speed[nsymbs]; // + get_msb(nsymbs);
-    tmp  = AOM_ICDF(0);
-
-    // Single loop (faster)
-    for (i = 0; i < nsymbs - 1; ++i) {
-        tmp = (i == val) ? 0 : tmp;
-        if (tmp < cdf[i])
-            cdf[i] -= ((cdf[i] - tmp) >> rate);
-        else
-            cdf[i] += ((tmp - cdf[i]) >> rate);
-    }
-    cdf[nsymbs] += (cdf[nsymbs] < 32);
-}
-#endif
 /**********************************************************************************************************************/
 // entropy.h
 #define TOKEN_CDF_Q_CTXS 4
@@ -721,9 +691,6 @@ typedef struct FrameContexts {
     int32_t    initialized;
 } FRAME_CONTEXT;
 
-#if !OPT_LD_MEM_2
-extern const AomCdfProb svt_aom_default_kf_y_mode_cdf[KF_MODE_CONTEXTS][KF_MODE_CONTEXTS][CDF_SIZE(INTRA_MODES)];
-#endif
 static const int32_t av1_ext_tx_ind[EXT_TX_SET_TYPES][TX_TYPES] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},

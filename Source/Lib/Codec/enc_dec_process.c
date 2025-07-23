@@ -26,11 +26,8 @@
 #include "pic_analysis_process.h"
 #include "resize.h"
 #include "enc_mode_config.h"
-#if CLN_MISC
 #include "rc_process.h"
-#endif
 
-#if CLN_FUNCS_HEADER
 #include "pack_unpack_c.h"
 
 static void copy_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *dst_rate) {
@@ -54,22 +51,11 @@ static void copy_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *dst_ra
         memcpy(dst_rate->dv_joint_cost, pcs->md_rate_est_ctx->dv_joint_cost, MV_JOINTS * sizeof(int32_t));
     }
 }
-#else
-void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
-void copy_mv_rate(PictureControlSet *pcs, MdRateEstimationContext *dst_rate);
-void svt_c_unpack_compressed_10bit(const uint8_t *inn_bit_buffer, uint32_t inn_stride, uint8_t *in_compn_bit_buffer,
-                                   uint32_t out_stride, uint32_t height);
-#endif
 
 static void enc_dec_context_dctor(EbPtr p) {
     EbThreadContext *thread_ctx = (EbThreadContext *)p;
     EncDecContext   *obj        = (EncDecContext *)thread_ctx->priv;
     EB_DELETE(obj->md_ctx);
-#if !OPT_ENCDEC_MEM
-    EB_DELETE(obj->residual_buffer);
-    EB_DELETE(obj->transform_buffer);
-    EB_DELETE(obj->inverse_quant_buffer);
-#endif
     EB_DELETE(obj->input_sample16bit_buffer);
     EB_FREE_ARRAY(obj);
 }
@@ -81,14 +67,10 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
                                          int tasks_index)
 
 {
-#if OPT_ENCDEC_MEM
     SequenceControlSet             *scs           = enc_handle_ptr->scs_instance_array[0]->scs;
     const EbSvtAv1EncConfiguration *static_config = &scs->static_config;
-#else
-    const EbSvtAv1EncConfiguration *static_config = &enc_handle_ptr->scs_instance_array[0]->scs->static_config;
-#endif
-    EbColorFormat color_format             = static_config->encoder_color_format;
-    int8_t        enable_hbd_mode_decision = enc_handle_ptr->scs_instance_array[0]->scs->enable_hbd_mode_decision;
+    EbColorFormat                   color_format  = static_config->encoder_color_format;
+    int8_t enable_hbd_mode_decision = enc_handle_ptr->scs_instance_array[0]->scs->enable_hbd_mode_decision;
 
     EncDecContext *ed_ctx;
     EB_CALLOC_ARRAY(ed_ctx, 1);
@@ -96,9 +78,6 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
     thread_ctx->dctor = enc_dec_context_dctor;
 
     ed_ctx->is_16bit = enc_handle_ptr->scs_instance_array[0]->scs->is_16bit_pipeline;
-#if !OPT_LD_MEM_3
-    ed_ctx->color_format = color_format;
-#endif
 
     // Input/Output System Resource Manager FIFOs
     ed_ctx->mode_decision_input_fifo_ptr = svt_system_resource_get_consumer_fifo(
@@ -110,7 +89,6 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
 
     // Prediction Buffer
     ed_ctx->input_sample16bit_buffer = NULL;
-#if OPT_ENCDEC_MEM
     if (ed_ctx->is_16bit)
         EB_NEW(ed_ctx->input_sample16bit_buffer,
                svt_picture_buffer_desc_ctor,
@@ -126,56 +104,7 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
                    .split_mode         = false,
                    .color_format       = color_format,
                });
-#else
-    if (ed_ctx->is_16bit)
-        EB_NEW(ed_ctx->input_sample16bit_buffer,
-               svt_picture_buffer_desc_ctor,
-               &(EbPictureBufferDescInitData){
-                   .buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK,
-                   .max_width          = SB_STRIDE_Y,
-                   .max_height         = SB_STRIDE_Y,
-                   .bit_depth          = EB_SIXTEEN_BIT,
-                   .left_padding       = 0,
-                   .right_padding      = 0,
-                   .top_padding        = 0,
-                   .bot_padding        = 0,
-                   .split_mode         = false,
-                   .color_format       = color_format,
-               });
-
-    // Scratch Coeff Buffer
-    EbPictureBufferDescInitData init_32bit_data = {
-        .buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK,
-        .max_width          = SB_STRIDE_Y,
-        .max_height         = SB_STRIDE_Y,
-        .bit_depth          = EB_THIRTYTWO_BIT,
-        .color_format       = color_format,
-        .left_padding       = 0,
-        .right_padding      = 0,
-        .top_padding        = 0,
-        .bot_padding        = 0,
-        .split_mode         = false,
-    };
-
-    EB_NEW(ed_ctx->inverse_quant_buffer, svt_picture_buffer_desc_ctor, &init_32bit_data);
-    EB_NEW(ed_ctx->transform_buffer, svt_picture_buffer_desc_ctor, &init_32bit_data);
-    EB_NEW(ed_ctx->residual_buffer,
-           svt_picture_buffer_desc_ctor,
-           &(EbPictureBufferDescInitData){
-               .buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK,
-               .max_width          = SB_STRIDE_Y,
-               .max_height         = SB_STRIDE_Y,
-               .bit_depth          = EB_SIXTEEN_BIT,
-               .color_format       = color_format,
-               .left_padding       = 0,
-               .right_padding      = 0,
-               .top_padding        = 0,
-               .bot_padding        = 0,
-               .split_mode         = false,
-           });
-#endif
     // Mode Decision Context
-#if OPT_LD_MEM_3
     EB_NEW(ed_ctx->md_ctx,
            svt_aom_mode_decision_context_ctor,
            enc_handle_ptr->scs_instance_array[0]->scs,
@@ -188,36 +117,6 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
            0,
            enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
            enc_handle_ptr->scs_instance_array[0]->scs->seq_qp_mod);
-#else
-#if TUNE_MR_2
-    EB_NEW(ed_ctx->md_ctx,
-           svt_aom_mode_decision_context_ctor,
-           enc_handle_ptr->scs_instance_array[0]->scs,
-           color_format,
-           enc_handle_ptr->scs_instance_array[0]->scs->super_block_size,
-           static_config->enc_mode,
-           enc_handle_ptr->scs_instance_array[0]->scs->max_block_cnt,
-           static_config->encoder_bit_depth,
-           0,
-           0,
-           enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
-           static_config->screen_content_mode,
-           enc_handle_ptr->scs_instance_array[0]->scs->seq_qp_mod);
-#else
-    EB_NEW(ed_ctx->md_ctx,
-           svt_aom_mode_decision_context_ctor,
-           color_format,
-           enc_handle_ptr->scs_instance_array[0]->scs->super_block_size,
-           static_config->enc_mode,
-           enc_handle_ptr->scs_instance_array[0]->scs->max_block_cnt,
-           static_config->encoder_bit_depth,
-           0,
-           0,
-           enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
-           static_config->screen_content_mode,
-           enc_handle_ptr->scs_instance_array[0]->scs->seq_qp_mod);
-#endif
-#endif
 
     if (enable_hbd_mode_decision)
         ed_ctx->md_ctx->input_sample16bit_buffer = ed_ctx->input_sample16bit_buffer;
@@ -267,29 +166,19 @@ static void reset_enc_dec(EncDecContext *ed_ctx, PictureControlSet *pcs, Sequenc
     ed_ctx->is_16bit        = scs->is_16bit_pipeline;
     ed_ctx->bit_depth       = scs->static_config.encoder_bit_depth;
     uint16_t tile_group_idx = ed_ctx->tile_group_index;
-#if CLN_MISC
-    svt_aom_lambda_assign(
-#else
-    (*svt_aom_av1_lambda_assignment_function_table[pcs->ppcs->pred_structure])(
-#endif
-        pcs,
-        &ed_ctx->pic_fast_lambda[EB_8_BIT_MD],
-        &ed_ctx->pic_full_lambda[EB_8_BIT_MD],
-        8,
-        pcs->ppcs->frm_hdr.quantization_params.base_q_idx,
-        true);
+    svt_aom_lambda_assign(pcs,
+                          &ed_ctx->pic_fast_lambda[EB_8_BIT_MD],
+                          &ed_ctx->pic_full_lambda[EB_8_BIT_MD],
+                          8,
+                          pcs->ppcs->frm_hdr.quantization_params.base_q_idx,
+                          true);
 
-#if CLN_MISC
-    svt_aom_lambda_assign(
-#else
-    (*svt_aom_av1_lambda_assignment_function_table[pcs->ppcs->pred_structure])(
-#endif
-        pcs,
-        &ed_ctx->pic_fast_lambda[EB_10_BIT_MD],
-        &ed_ctx->pic_full_lambda[EB_10_BIT_MD],
-        10,
-        pcs->ppcs->frm_hdr.quantization_params.base_q_idx,
-        true);
+    svt_aom_lambda_assign(pcs,
+                          &ed_ctx->pic_fast_lambda[EB_10_BIT_MD],
+                          &ed_ctx->pic_full_lambda[EB_10_BIT_MD],
+                          10,
+                          pcs->ppcs->frm_hdr.quantization_params.base_q_idx,
+                          true);
     if (segment_index == 0) {
         if (ed_ctx->tile_group_index == 0) {
             reset_segmentation_map(pcs->segmentation_neighbor_map);
@@ -1013,248 +902,132 @@ EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet
         EbByte    input_buffer;
         uint16_t *recon_coeff_buffer;
 
-        double luma_ssim = 0.0;
-        double cb_ssim   = 0.0;
-        double cr_ssim   = 0.0;
-#if !CLN_REMOVE_10BIT_FORMAT
-        if (scs->ten_bit_format == 1) {
-            /* SSIM calculation for compressed 10-bit format has not been verified and debugged,
-               since this format is not supported elsewhere in this version. See verify_settings(),
-               which exits with an error if compressed 10-bit format is enabled. To avoid
-               extra complexity of unpacking into a temporary buffer, or having to write
-               new core SSIM functions, we ignore the two least signifcant bits in this
-               case, and set these to zero. One test shows a difference in SSIM
-               of 0.00085 setting the two least significant bits to zero. */
+        double luma_ssim   = 0.0;
+        double cb_ssim     = 0.0;
+        double cr_ssim     = 0.0;
+        recon_coeff_buffer = (uint16_t *)(&(
+            (recon_ptr
+                 ->buffer_y)[(recon_ptr->org_x << is_16bit) + (recon_ptr->org_y << is_16bit) * recon_ptr->stride_y]));
 
-            const uint32_t luma_width       = input_pic->width - scs->max_input_pad_right;
-            const uint32_t luma_height      = input_pic->height - scs->max_input_pad_bottom;
-            const uint32_t chroma_width     = luma_width >> ss_x;
-            const uint32_t pic_width_in_sb  = (luma_width + 64 - 1) / 64;
-            const uint32_t pic_height_in_sb = (luma_height + 64 - 1) / 64;
-            const uint32_t chroma_height    = luma_height >> ss_y;
-            uint32_t       sb_num_in_height, sb_num_in_width, bd, shift;
-            uint8_t        zero_buffer[64 * 64];
+        // if current source picture was temporally filtered, use an alternative buffer which stores
+        // the original source picture
+        EbByte buffer_y, buffer_bit_inc_y;
+        EbByte buffer_cb, buffer_bit_inc_cb;
+        EbByte buffer_cr, buffer_bit_inc_cr;
+        int    bd, shift;
 
-            bd    = 10;
-            shift = 0; // both input and output are 10 bit (bitdepth - input_bd)
-            memset(&zero_buffer[0], 0, sizeof(uint8_t) * 64 * 64);
-
-            EbByte input_buffer_org = &(
-                (input_pic->buffer_y)[input_pic->org_x + input_pic->org_y * input_pic->stride_y]);
-            uint16_t *recon_buffer_org = (uint16_t *)(&(
-                (recon_ptr->buffer_y)[(recon_ptr->org_x << is_16bit) +
-                                      (recon_ptr->org_y << is_16bit) * recon_ptr->stride_y]));
-            ;
-
-            EbByte input_buffer_org_u = &(
-                (input_pic->buffer_cb)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cb]);
-            ;
-            uint16_t *recon_buffer_org_u = recon_coeff_buffer = (uint16_t *)(&(
-                (recon_ptr->buffer_cb)[(recon_ptr->org_x << is_16bit) / 2 +
-                                       (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cb]));
-            ;
-
-            EbByte input_buffer_org_v = &(
-                (input_pic->buffer_cr)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cr]);
-            ;
-            uint16_t *recon_buffer_org_v = recon_coeff_buffer = (uint16_t *)(&(
-                (recon_ptr->buffer_cr)[(recon_ptr->org_x << is_16bit) / 2 +
-                                       (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cr]));
-            ;
-
-            for (sb_num_in_height = 0; sb_num_in_height < pic_height_in_sb; ++sb_num_in_height) {
-                for (sb_num_in_width = 0; sb_num_in_width < pic_width_in_sb; ++sb_num_in_width) {
-                    uint32_t tb_origin_x = sb_num_in_width * 64;
-                    uint32_t tb_origin_y = sb_num_in_height * 64;
-                    uint32_t sb_width    = MIN(luma_width - tb_origin_x, 64);
-                    uint32_t sb_height   = MIN(luma_height - tb_origin_y, 64);
-
-                    input_buffer       = input_buffer_org + tb_origin_y * input_pic->stride_y + tb_origin_x;
-                    recon_coeff_buffer = recon_buffer_org + tb_origin_y * recon_ptr->stride_y + tb_origin_x;
-
-                    luma_ssim += aom_highbd_ssim2(input_buffer,
-                                                  input_pic->stride_y,
-                                                  &zero_buffer[0],
-                                                  64,
-                                                  recon_coeff_buffer,
-                                                  recon_ptr->stride_y,
-                                                  sb_width,
-                                                  sb_height,
-                                                  bd,
-                                                  shift);
-
-                    //U+V
-                    tb_origin_x = sb_num_in_width * 32;
-                    tb_origin_y = sb_num_in_height * 32;
-                    sb_width    = (chroma_width - tb_origin_x) < 32 ? (chroma_width - tb_origin_x) : 32;
-                    sb_height   = (chroma_height - tb_origin_y) < 32 ? (chroma_height - tb_origin_y) : 32;
-
-                    input_buffer       = input_buffer_org_u + tb_origin_y * input_pic->stride_cb + tb_origin_x;
-                    recon_coeff_buffer = recon_buffer_org_u + tb_origin_y * recon_ptr->stride_cb + tb_origin_x;
-
-                    cb_ssim += aom_highbd_ssim2(input_buffer,
-                                                input_pic->stride_cb,
-                                                &zero_buffer[0],
-                                                64,
-                                                recon_coeff_buffer,
-                                                recon_ptr->stride_cb,
-                                                sb_width,
-                                                sb_height,
-                                                bd,
-                                                shift);
-
-                    input_buffer       = input_buffer_org_v + tb_origin_y * input_pic->stride_cr + tb_origin_x;
-                    recon_coeff_buffer = recon_buffer_org_v + tb_origin_y * recon_ptr->stride_cr + tb_origin_x;
-
-                    cr_ssim += aom_highbd_ssim2(input_buffer,
-                                                input_pic->stride_cr,
-                                                &zero_buffer[0],
-                                                64,
-                                                recon_coeff_buffer,
-                                                recon_ptr->stride_cr,
-                                                sb_width,
-                                                sb_height,
-                                                bd,
-                                                shift);
-                }
-            }
-
-            luma_ssim /= pic_height_in_sb * pic_width_in_sb;
-            cb_ssim /= pic_height_in_sb * pic_width_in_sb;
-            cr_ssim /= pic_height_in_sb * pic_width_in_sb;
-
-            pcs->ppcs->luma_ssim = luma_ssim;
-            pcs->ppcs->cb_ssim   = cb_ssim;
-            pcs->ppcs->cr_ssim   = cr_ssim;
+        if (pcs->ppcs->do_tf == true) {
+            assert(pcs->ppcs->save_source_picture_width == input_pic->width &&
+                   pcs->ppcs->save_source_picture_height == input_pic->height);
+            buffer_y          = pcs->ppcs->save_source_picture_ptr[0];
+            buffer_bit_inc_y  = pcs->ppcs->save_source_picture_bit_inc_ptr[0];
+            buffer_cb         = pcs->ppcs->save_source_picture_ptr[1];
+            buffer_bit_inc_cb = pcs->ppcs->save_source_picture_bit_inc_ptr[1];
+            buffer_cr         = pcs->ppcs->save_source_picture_ptr[2];
+            buffer_bit_inc_cr = pcs->ppcs->save_source_picture_bit_inc_ptr[2];
         } else {
-#endif
-            recon_coeff_buffer = (uint16_t *)(&(
-                (recon_ptr->buffer_y)[(recon_ptr->org_x << is_16bit) +
-                                      (recon_ptr->org_y << is_16bit) * recon_ptr->stride_y]));
+            uint32_t height_y  = (uint32_t)(input_pic->height + input_pic->org_y + input_pic->origin_bot_y);
+            uint32_t height_uv = (uint32_t)((input_pic->height + input_pic->org_y + input_pic->origin_bot_y) >> ss_y);
 
-            // if current source picture was temporally filtered, use an alternative buffer which stores
-            // the original source picture
-            EbByte buffer_y, buffer_bit_inc_y;
-            EbByte buffer_cb, buffer_bit_inc_cb;
-            EbByte buffer_cr, buffer_bit_inc_cr;
-            int    bd, shift;
+            uint8_t *uncompressed_pics[3];
+            EB_MALLOC_ARRAY(uncompressed_pics[0], pcs->ppcs->enhanced_unscaled_pic->luma_size);
+            EB_MALLOC_ARRAY(uncompressed_pics[1], pcs->ppcs->enhanced_unscaled_pic->chroma_size);
+            EB_MALLOC_ARRAY(uncompressed_pics[2], pcs->ppcs->enhanced_unscaled_pic->chroma_size);
 
-            if (pcs->ppcs->do_tf == true) {
-                assert(pcs->ppcs->save_source_picture_width == input_pic->width &&
-                       pcs->ppcs->save_source_picture_height == input_pic->height);
-                buffer_y          = pcs->ppcs->save_source_picture_ptr[0];
-                buffer_bit_inc_y  = pcs->ppcs->save_source_picture_bit_inc_ptr[0];
-                buffer_cb         = pcs->ppcs->save_source_picture_ptr[1];
-                buffer_bit_inc_cb = pcs->ppcs->save_source_picture_bit_inc_ptr[1];
-                buffer_cr         = pcs->ppcs->save_source_picture_ptr[2];
-                buffer_bit_inc_cr = pcs->ppcs->save_source_picture_bit_inc_ptr[2];
-            } else {
-                uint32_t height_y  = (uint32_t)(input_pic->height + input_pic->org_y + input_pic->origin_bot_y);
-                uint32_t height_uv = (uint32_t)((input_pic->height + input_pic->org_y + input_pic->origin_bot_y) >>
-                                                ss_y);
+            svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_y,
+                                          input_pic->stride_bit_inc_y / 4,
+                                          uncompressed_pics[0],
+                                          input_pic->stride_bit_inc_y,
+                                          height_y);
+            // U
+            svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_cb,
+                                          input_pic->stride_bit_inc_cb / 4,
+                                          uncompressed_pics[1],
+                                          input_pic->stride_bit_inc_cb,
+                                          height_uv);
+            // V
+            svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_cr,
+                                          input_pic->stride_bit_inc_cr / 4,
+                                          uncompressed_pics[2],
+                                          input_pic->stride_bit_inc_cr,
+                                          height_uv);
 
-                uint8_t *uncompressed_pics[3];
-                EB_MALLOC_ARRAY(uncompressed_pics[0], pcs->ppcs->enhanced_unscaled_pic->luma_size);
-                EB_MALLOC_ARRAY(uncompressed_pics[1], pcs->ppcs->enhanced_unscaled_pic->chroma_size);
-                EB_MALLOC_ARRAY(uncompressed_pics[2], pcs->ppcs->enhanced_unscaled_pic->chroma_size);
-
-                svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_y,
-                                              input_pic->stride_bit_inc_y / 4,
-                                              uncompressed_pics[0],
-                                              input_pic->stride_bit_inc_y,
-                                              height_y);
-                // U
-                svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_cb,
-                                              input_pic->stride_bit_inc_cb / 4,
-                                              uncompressed_pics[1],
-                                              input_pic->stride_bit_inc_cb,
-                                              height_uv);
-                // V
-                svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_cr,
-                                              input_pic->stride_bit_inc_cr / 4,
-                                              uncompressed_pics[2],
-                                              input_pic->stride_bit_inc_cr,
-                                              height_uv);
-
-                buffer_y          = input_pic->buffer_y;
-                buffer_bit_inc_y  = uncompressed_pics[0];
-                buffer_cb         = input_pic->buffer_cb;
-                buffer_bit_inc_cb = uncompressed_pics[1];
-                buffer_cr         = input_pic->buffer_cr;
-                buffer_bit_inc_cr = uncompressed_pics[2];
-            }
-
-            bd    = 10;
-            shift = 0; // both input and output are 10 bit (bitdepth - input_bd)
-
-            input_buffer                = &((buffer_y)[input_pic->org_x + input_pic->org_y * input_pic->stride_y]);
-            EbByte input_buffer_bit_inc = &(
-                (buffer_bit_inc_y)[input_pic->org_x + input_pic->org_y * input_pic->stride_bit_inc_y]);
-            luma_ssim = aom_highbd_ssim2(input_buffer,
-                                         input_pic->stride_y,
-                                         input_buffer_bit_inc,
-                                         input_pic->stride_bit_inc_y,
-                                         recon_coeff_buffer,
-                                         recon_ptr->stride_y,
-                                         scs->max_input_luma_width,
-                                         scs->max_input_luma_height,
-                                         bd,
-                                         shift);
-
-            recon_coeff_buffer   = (uint16_t *)(&(
-                (recon_ptr->buffer_cb)[(recon_ptr->org_x << is_16bit) / 2 +
-                                       (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cb]));
-            input_buffer         = &((buffer_cb)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cb]);
-            input_buffer_bit_inc = &(
-                (buffer_bit_inc_cb)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_bit_inc_cb]);
-            cb_ssim = aom_highbd_ssim2(input_buffer,
-                                       input_pic->stride_cb,
-                                       input_buffer_bit_inc,
-                                       input_pic->stride_bit_inc_cb,
-                                       recon_coeff_buffer,
-                                       recon_ptr->stride_cb,
-                                       scs->chroma_width,
-                                       scs->chroma_height,
-                                       bd,
-                                       shift);
-
-            recon_coeff_buffer   = (uint16_t *)(&(
-                (recon_ptr->buffer_cr)[(recon_ptr->org_x << is_16bit) / 2 +
-                                       (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cr]));
-            input_buffer         = &((buffer_cr)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cr]);
-            input_buffer_bit_inc = &(
-                (buffer_bit_inc_cr)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_bit_inc_cr]);
-            cr_ssim = aom_highbd_ssim2(input_buffer,
-                                       input_pic->stride_cr,
-                                       input_buffer_bit_inc,
-                                       input_pic->stride_bit_inc_cr,
-                                       recon_coeff_buffer,
-                                       recon_ptr->stride_cr,
-                                       scs->chroma_width,
-                                       scs->chroma_height,
-                                       bd,
-                                       shift);
-
-            pcs->ppcs->luma_ssim = luma_ssim;
-            pcs->ppcs->cb_ssim   = cb_ssim;
-            pcs->ppcs->cr_ssim   = cr_ssim;
-
-            if (free_memory && pcs->ppcs->do_tf == true) {
-                EB_FREE_ARRAY(buffer_y);
-                EB_FREE_ARRAY(buffer_cb);
-                EB_FREE_ARRAY(buffer_cr);
-                EB_FREE_ARRAY(buffer_bit_inc_y);
-                EB_FREE_ARRAY(buffer_bit_inc_cb);
-                EB_FREE_ARRAY(buffer_bit_inc_cr);
-            }
-            if (pcs->ppcs->do_tf == false) {
-                EB_FREE_ARRAY(buffer_bit_inc_y);
-                EB_FREE_ARRAY(buffer_bit_inc_cb);
-                EB_FREE_ARRAY(buffer_bit_inc_cr);
-            }
-#if !CLN_REMOVE_10BIT_FORMAT
+            buffer_y          = input_pic->buffer_y;
+            buffer_bit_inc_y  = uncompressed_pics[0];
+            buffer_cb         = input_pic->buffer_cb;
+            buffer_bit_inc_cb = uncompressed_pics[1];
+            buffer_cr         = input_pic->buffer_cr;
+            buffer_bit_inc_cr = uncompressed_pics[2];
         }
-#endif
+
+        bd    = 10;
+        shift = 0; // both input and output are 10 bit (bitdepth - input_bd)
+
+        input_buffer                = &((buffer_y)[input_pic->org_x + input_pic->org_y * input_pic->stride_y]);
+        EbByte input_buffer_bit_inc = &(
+            (buffer_bit_inc_y)[input_pic->org_x + input_pic->org_y * input_pic->stride_bit_inc_y]);
+        luma_ssim = aom_highbd_ssim2(input_buffer,
+                                     input_pic->stride_y,
+                                     input_buffer_bit_inc,
+                                     input_pic->stride_bit_inc_y,
+                                     recon_coeff_buffer,
+                                     recon_ptr->stride_y,
+                                     scs->max_input_luma_width,
+                                     scs->max_input_luma_height,
+                                     bd,
+                                     shift);
+
+        recon_coeff_buffer   = (uint16_t *)(&(
+            (recon_ptr->buffer_cb)[(recon_ptr->org_x << is_16bit) / 2 +
+                                   (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cb]));
+        input_buffer         = &((buffer_cb)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cb]);
+        input_buffer_bit_inc = &(
+            (buffer_bit_inc_cb)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_bit_inc_cb]);
+        cb_ssim = aom_highbd_ssim2(input_buffer,
+                                   input_pic->stride_cb,
+                                   input_buffer_bit_inc,
+                                   input_pic->stride_bit_inc_cb,
+                                   recon_coeff_buffer,
+                                   recon_ptr->stride_cb,
+                                   scs->chroma_width,
+                                   scs->chroma_height,
+                                   bd,
+                                   shift);
+
+        recon_coeff_buffer   = (uint16_t *)(&(
+            (recon_ptr->buffer_cr)[(recon_ptr->org_x << is_16bit) / 2 +
+                                   (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cr]));
+        input_buffer         = &((buffer_cr)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cr]);
+        input_buffer_bit_inc = &(
+            (buffer_bit_inc_cr)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_bit_inc_cr]);
+        cr_ssim = aom_highbd_ssim2(input_buffer,
+                                   input_pic->stride_cr,
+                                   input_buffer_bit_inc,
+                                   input_pic->stride_bit_inc_cr,
+                                   recon_coeff_buffer,
+                                   recon_ptr->stride_cr,
+                                   scs->chroma_width,
+                                   scs->chroma_height,
+                                   bd,
+                                   shift);
+
+        pcs->ppcs->luma_ssim = luma_ssim;
+        pcs->ppcs->cb_ssim   = cb_ssim;
+        pcs->ppcs->cr_ssim   = cr_ssim;
+
+        if (free_memory && pcs->ppcs->do_tf == true) {
+            EB_FREE_ARRAY(buffer_y);
+            EB_FREE_ARRAY(buffer_cb);
+            EB_FREE_ARRAY(buffer_cr);
+            EB_FREE_ARRAY(buffer_bit_inc_y);
+            EB_FREE_ARRAY(buffer_bit_inc_cb);
+            EB_FREE_ARRAY(buffer_bit_inc_cr);
+        }
+        if (pcs->ppcs->do_tf == false) {
+            EB_FREE_ARRAY(buffer_bit_inc_y);
+            EB_FREE_ARRAY(buffer_bit_inc_cb);
+            EB_FREE_ARRAY(buffer_bit_inc_cr);
+        }
     }
     EB_DELETE(upscaled_recon);
     return EB_ErrorNone;
@@ -1380,319 +1153,139 @@ EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, b
         EbByte    input_buffer_bit_inc;
         uint16_t *recon_coeff_buffer;
 
-#if !CLN_REMOVE_10BIT_FORMAT
-        if (scs->ten_bit_format == 1) {
-            const uint32_t luma_width        = input_pic->width - scs->max_input_pad_right;
-            const uint32_t luma_height       = input_pic->height - scs->max_input_pad_bottom;
-            const uint32_t chroma_width      = luma_width >> ss_x;
-            const uint32_t pic_width_in_sb   = (luma_width + 64 - 1) / 64;
-            const uint32_t pic_height_in_sb  = (luma_height + 64 - 1) / 64;
-            const uint32_t luma_2bit_width   = luma_width / 4;
-            const uint32_t chroma_height     = luma_height >> ss_y;
-            const uint32_t chroma_2bit_width = chroma_width / 4;
-            uint32_t       sb_num_in_height, sb_num_in_width;
+        recon_coeff_buffer = (uint16_t *)(&(
+            (recon_ptr
+                 ->buffer_y)[(recon_ptr->org_x << is_16bit) + (recon_ptr->org_y << is_16bit) * recon_ptr->stride_y]));
 
-            EbByte input_buffer_org = &(
-                (input_pic->buffer_y)[input_pic->org_x + input_pic->org_y * input_pic->stride_y]);
-            uint16_t *recon_buffer_org = (uint16_t *)(&(
-                (recon_ptr->buffer_y)[(recon_ptr->org_x << is_16bit) +
-                                      (recon_ptr->org_y << is_16bit) * recon_ptr->stride_y]));
-            ;
+        // if current source picture was temporally filtered, use an alternative buffer which stores
+        // the original source picture
+        EbByte buffer_y, buffer_bit_inc_y;
+        EbByte buffer_cb, buffer_bit_inc_cb;
+        EbByte buffer_cr, buffer_bit_inc_cr;
 
-            EbByte input_buffer_org_u = &(
-                (input_pic->buffer_cb)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cb]);
-            ;
-            uint16_t *recon_buffer_org_u = recon_coeff_buffer = (uint16_t *)(&(
-                (recon_ptr->buffer_cb)[(recon_ptr->org_x << is_16bit) / 2 +
-                                       (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cb]));
-            ;
-
-            EbByte input_buffer_org_v = &(
-                (input_pic->buffer_cr)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cr]);
-            ;
-            uint16_t *recon_buffer_org_v = recon_coeff_buffer = (uint16_t *)(&(
-                (recon_ptr->buffer_cr)[(recon_ptr->org_x << is_16bit) / 2 +
-                                       (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cr]));
-            ;
-
-            residual_distortion            = 0;
-            uint64_t residual_distortion_u = 0;
-            uint64_t residual_distortion_v = 0;
-
-            for (sb_num_in_height = 0; sb_num_in_height < pic_height_in_sb; ++sb_num_in_height) {
-                for (sb_num_in_width = 0; sb_num_in_width < pic_width_in_sb; ++sb_num_in_width) {
-                    uint32_t tb_origin_x = sb_num_in_width * 64;
-                    uint32_t tb_origin_y = sb_num_in_height * 64;
-                    uint32_t sb_width    = MIN(luma_width - tb_origin_x, 64);
-                    uint32_t sb_height   = MIN(luma_height - tb_origin_y, 64);
-
-                    input_buffer         = input_buffer_org + tb_origin_y * input_pic->stride_y + tb_origin_x;
-                    input_buffer_bit_inc = input_pic->buffer_bit_inc_y + tb_origin_y * luma_2bit_width +
-                        (tb_origin_x / 4) * sb_height;
-                    recon_coeff_buffer = recon_buffer_org + tb_origin_y * recon_ptr->stride_y + tb_origin_x;
-
-                    uint64_t j, k;
-                    uint16_t out_pixel;
-                    uint8_t  n_bit_pixel;
-                    uint8_t  four_2bit_pels;
-                    uint32_t inn_stride = sb_width / 4;
-
-                    for (j = 0; j < sb_height; j++) {
-                        for (k = 0; k < sb_width / 4; k++) {
-                            four_2bit_pels = input_buffer_bit_inc[k + j * inn_stride];
-
-                            n_bit_pixel = (four_2bit_pels >> 6) & 3;
-                            out_pixel   = input_buffer[k * 4 + 0 + j * input_pic->stride_y] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 0 + j * recon_ptr->stride_y]);
-
-                            n_bit_pixel = (four_2bit_pels >> 4) & 3;
-                            out_pixel   = input_buffer[k * 4 + 1 + j * input_pic->stride_y] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 1 + j * recon_ptr->stride_y]);
-
-                            n_bit_pixel = (four_2bit_pels >> 2) & 3;
-                            out_pixel   = input_buffer[k * 4 + 2 + j * input_pic->stride_y] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 2 + j * recon_ptr->stride_y]);
-
-                            n_bit_pixel = (four_2bit_pels >> 0) & 3;
-                            out_pixel   = input_buffer[k * 4 + 3 + j * input_pic->stride_y] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 3 + j * recon_ptr->stride_y]);
-                        }
-                    }
-
-                    //U+V
-
-                    tb_origin_x = sb_num_in_width * 32;
-                    tb_origin_y = sb_num_in_height * 32;
-                    sb_width    = (chroma_width - tb_origin_x) < 32 ? (chroma_width - tb_origin_x) : 32;
-                    sb_height   = (chroma_height - tb_origin_y) < 32 ? (chroma_height - tb_origin_y) : 32;
-
-                    inn_stride = sb_width / 4;
-
-                    input_buffer = input_buffer_org_u + tb_origin_y * input_pic->stride_cb + tb_origin_x;
-
-                    input_buffer_bit_inc = input_pic->buffer_bit_inc_cb + tb_origin_y * chroma_2bit_width +
-                        (tb_origin_x / 4) * sb_height;
-
-                    recon_coeff_buffer = recon_buffer_org_u + tb_origin_y * recon_ptr->stride_cb + tb_origin_x;
-
-                    for (j = 0; j < sb_height; j++) {
-                        for (k = 0; k < sb_width / 4; k++) {
-                            four_2bit_pels = input_buffer_bit_inc[k + j * inn_stride];
-
-                            n_bit_pixel = (four_2bit_pels >> 6) & 3;
-                            out_pixel   = input_buffer[k * 4 + 0 + j * input_pic->stride_cb] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion_u += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 0 + j * recon_ptr->stride_cb]);
-
-                            n_bit_pixel = (four_2bit_pels >> 4) & 3;
-                            out_pixel   = input_buffer[k * 4 + 1 + j * input_pic->stride_cb] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion_u += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 1 + j * recon_ptr->stride_cb]);
-
-                            n_bit_pixel = (four_2bit_pels >> 2) & 3;
-                            out_pixel   = input_buffer[k * 4 + 2 + j * input_pic->stride_cb] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion_u += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 2 + j * recon_ptr->stride_cb]);
-
-                            n_bit_pixel = (four_2bit_pels >> 0) & 3;
-                            out_pixel   = input_buffer[k * 4 + 3 + j * input_pic->stride_cb] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion_u += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 3 + j * recon_ptr->stride_cb]);
-                        }
-                    }
-
-                    input_buffer         = input_buffer_org_v + tb_origin_y * input_pic->stride_cr + tb_origin_x;
-                    input_buffer_bit_inc = input_pic->buffer_bit_inc_cr + tb_origin_y * chroma_2bit_width +
-                        (tb_origin_x / 4) * sb_height;
-                    recon_coeff_buffer = recon_buffer_org_v + tb_origin_y * recon_ptr->stride_cr + tb_origin_x;
-
-                    for (j = 0; j < sb_height; j++) {
-                        for (k = 0; k < sb_width / 4; k++) {
-                            four_2bit_pels = input_buffer_bit_inc[k + j * inn_stride];
-
-                            n_bit_pixel = (four_2bit_pels >> 6) & 3;
-                            out_pixel   = input_buffer[k * 4 + 0 + j * input_pic->stride_cr] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion_v += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 0 + j * recon_ptr->stride_cr]);
-
-                            n_bit_pixel = (four_2bit_pels >> 4) & 3;
-                            out_pixel   = input_buffer[k * 4 + 1 + j * input_pic->stride_cr] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion_v += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 1 + j * recon_ptr->stride_cr]);
-
-                            n_bit_pixel = (four_2bit_pels >> 2) & 3;
-                            out_pixel   = input_buffer[k * 4 + 2 + j * input_pic->stride_cr] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion_v += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 2 + j * recon_ptr->stride_cr]);
-
-                            n_bit_pixel = (four_2bit_pels >> 0) & 3;
-                            out_pixel   = input_buffer[k * 4 + 3 + j * input_pic->stride_cr] << 2;
-                            out_pixel   = out_pixel | n_bit_pixel;
-                            residual_distortion_v += (int64_t)SQR(
-                                (int64_t)out_pixel - (int64_t)recon_coeff_buffer[k * 4 + 3 + j * recon_ptr->stride_cr]);
-                        }
-                    }
-                }
-            }
-
-            sse_total[0] = residual_distortion;
-            sse_total[1] = residual_distortion_u;
-            sse_total[2] = residual_distortion_v;
+        if (pcs->ppcs->do_tf == true) {
+            assert(pcs->ppcs->save_source_picture_width == input_pic->width &&
+                   pcs->ppcs->save_source_picture_height == input_pic->height);
+            buffer_y          = pcs->ppcs->save_source_picture_ptr[0];
+            buffer_bit_inc_y  = pcs->ppcs->save_source_picture_bit_inc_ptr[0];
+            buffer_cb         = pcs->ppcs->save_source_picture_ptr[1];
+            buffer_bit_inc_cb = pcs->ppcs->save_source_picture_bit_inc_ptr[1];
+            buffer_cr         = pcs->ppcs->save_source_picture_ptr[2];
+            buffer_bit_inc_cr = pcs->ppcs->save_source_picture_bit_inc_ptr[2];
         } else {
-#endif
-            recon_coeff_buffer = (uint16_t *)(&(
-                (recon_ptr->buffer_y)[(recon_ptr->org_x << is_16bit) +
-                                      (recon_ptr->org_y << is_16bit) * recon_ptr->stride_y]));
+            uint32_t height_y  = (uint32_t)(input_pic->height + input_pic->org_y + input_pic->origin_bot_y);
+            uint32_t height_uv = (uint32_t)((input_pic->height + input_pic->org_y + input_pic->origin_bot_y) >> ss_y);
 
-            // if current source picture was temporally filtered, use an alternative buffer which stores
-            // the original source picture
-            EbByte buffer_y, buffer_bit_inc_y;
-            EbByte buffer_cb, buffer_bit_inc_cb;
-            EbByte buffer_cr, buffer_bit_inc_cr;
+            uint8_t *uncompressed_pics[3];
+            EB_MALLOC_ARRAY(uncompressed_pics[0], pcs->ppcs->enhanced_unscaled_pic->luma_size);
+            EB_MALLOC_ARRAY(uncompressed_pics[1], pcs->ppcs->enhanced_unscaled_pic->chroma_size);
+            EB_MALLOC_ARRAY(uncompressed_pics[2], pcs->ppcs->enhanced_unscaled_pic->chroma_size);
 
-            if (pcs->ppcs->do_tf == true) {
-                assert(pcs->ppcs->save_source_picture_width == input_pic->width &&
-                       pcs->ppcs->save_source_picture_height == input_pic->height);
-                buffer_y          = pcs->ppcs->save_source_picture_ptr[0];
-                buffer_bit_inc_y  = pcs->ppcs->save_source_picture_bit_inc_ptr[0];
-                buffer_cb         = pcs->ppcs->save_source_picture_ptr[1];
-                buffer_bit_inc_cb = pcs->ppcs->save_source_picture_bit_inc_ptr[1];
-                buffer_cr         = pcs->ppcs->save_source_picture_ptr[2];
-                buffer_bit_inc_cr = pcs->ppcs->save_source_picture_bit_inc_ptr[2];
-            } else {
-                uint32_t height_y  = (uint32_t)(input_pic->height + input_pic->org_y + input_pic->origin_bot_y);
-                uint32_t height_uv = (uint32_t)((input_pic->height + input_pic->org_y + input_pic->origin_bot_y) >>
-                                                ss_y);
+            svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_y,
+                                          input_pic->stride_bit_inc_y / 4,
+                                          uncompressed_pics[0],
+                                          input_pic->stride_bit_inc_y,
+                                          height_y);
+            // U
+            svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_cb,
+                                          input_pic->stride_bit_inc_cb / 4,
+                                          uncompressed_pics[1],
+                                          input_pic->stride_bit_inc_cb,
+                                          height_uv);
+            // V
+            svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_cr,
+                                          input_pic->stride_bit_inc_cr / 4,
+                                          uncompressed_pics[2],
+                                          input_pic->stride_bit_inc_cr,
+                                          height_uv);
 
-                uint8_t *uncompressed_pics[3];
-                EB_MALLOC_ARRAY(uncompressed_pics[0], pcs->ppcs->enhanced_unscaled_pic->luma_size);
-                EB_MALLOC_ARRAY(uncompressed_pics[1], pcs->ppcs->enhanced_unscaled_pic->chroma_size);
-                EB_MALLOC_ARRAY(uncompressed_pics[2], pcs->ppcs->enhanced_unscaled_pic->chroma_size);
-
-                svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_y,
-                                              input_pic->stride_bit_inc_y / 4,
-                                              uncompressed_pics[0],
-                                              input_pic->stride_bit_inc_y,
-                                              height_y);
-                // U
-                svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_cb,
-                                              input_pic->stride_bit_inc_cb / 4,
-                                              uncompressed_pics[1],
-                                              input_pic->stride_bit_inc_cb,
-                                              height_uv);
-                // V
-                svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_cr,
-                                              input_pic->stride_bit_inc_cr / 4,
-                                              uncompressed_pics[2],
-                                              input_pic->stride_bit_inc_cr,
-                                              height_uv);
-
-                buffer_y          = input_pic->buffer_y;
-                buffer_bit_inc_y  = uncompressed_pics[0];
-                buffer_cb         = input_pic->buffer_cb;
-                buffer_bit_inc_cb = uncompressed_pics[1];
-                buffer_cr         = input_pic->buffer_cr;
-                buffer_bit_inc_cr = uncompressed_pics[2];
-            }
-
-            input_buffer         = &((buffer_y)[input_pic->org_x + input_pic->org_y * input_pic->stride_y]);
-            input_buffer_bit_inc = &(
-                (buffer_bit_inc_y)[input_pic->org_x + input_pic->org_y * input_pic->stride_bit_inc_y]);
-
-            residual_distortion = 0;
-
-            for (int row_index = 0; row_index < input_pic->height - scs->max_input_pad_bottom; ++row_index) {
-                for (int column_index = 0; column_index < input_pic->width - scs->max_input_pad_right; ++column_index) {
-                    residual_distortion += (int64_t)SQR((int64_t)((((input_buffer[column_index]) << 2) |
-                                                                   ((input_buffer_bit_inc[column_index] >> 6) & 3))) -
-                                                        (recon_coeff_buffer[column_index]));
-                }
-
-                input_buffer += input_pic->stride_y;
-                input_buffer_bit_inc += input_pic->stride_bit_inc_y;
-                recon_coeff_buffer += recon_ptr->stride_y;
-            }
-
-            sse_total[0] = residual_distortion;
-
-            recon_coeff_buffer   = (uint16_t *)(&(
-                (recon_ptr->buffer_cb)[(recon_ptr->org_x << is_16bit) / 2 +
-                                       (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cb]));
-            input_buffer         = &((buffer_cb)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cb]);
-            input_buffer_bit_inc = &(
-                (buffer_bit_inc_cb)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_bit_inc_cb]);
-
-            residual_distortion = 0;
-            for (int row_index = 0; row_index < (input_pic->height - scs->max_input_pad_bottom) >> ss_y; ++row_index) {
-                for (int column_index = 0; column_index < (input_pic->width - scs->max_input_pad_right) >> ss_x;
-                     ++column_index) {
-                    residual_distortion += (int64_t)SQR((int64_t)((((input_buffer[column_index]) << 2) |
-                                                                   ((input_buffer_bit_inc[column_index] >> 6) & 3))) -
-                                                        (recon_coeff_buffer[column_index]));
-                }
-
-                input_buffer += input_pic->stride_cb;
-                input_buffer_bit_inc += input_pic->stride_bit_inc_cb;
-                recon_coeff_buffer += recon_ptr->stride_cb;
-            }
-
-            sse_total[1] = residual_distortion;
-
-            recon_coeff_buffer   = (uint16_t *)(&(
-                (recon_ptr->buffer_cr)[(recon_ptr->org_x << is_16bit) / 2 +
-                                       (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cr]));
-            input_buffer         = &((buffer_cr)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cr]);
-            input_buffer_bit_inc = &(
-                (buffer_bit_inc_cr)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_bit_inc_cr]);
-
-            residual_distortion = 0;
-
-            for (int row_index = 0; row_index < (input_pic->height - scs->max_input_pad_bottom) >> ss_y; ++row_index) {
-                for (int column_index = 0; column_index < (input_pic->width - scs->max_input_pad_right) >> ss_x;
-                     ++column_index) {
-                    residual_distortion += (int64_t)SQR((int64_t)((((input_buffer[column_index]) << 2) |
-                                                                   ((input_buffer_bit_inc[column_index] >> 6) & 3))) -
-                                                        (recon_coeff_buffer[column_index]));
-                }
-
-                input_buffer += input_pic->stride_cr;
-                input_buffer_bit_inc += input_pic->stride_bit_inc_cr;
-                recon_coeff_buffer += recon_ptr->stride_cr;
-            }
-
-            sse_total[2] = residual_distortion;
-
-            if (free_memory && pcs->ppcs->do_tf == true) {
-                EB_FREE_ARRAY(buffer_y);
-                EB_FREE_ARRAY(buffer_cb);
-                EB_FREE_ARRAY(buffer_cr);
-                EB_FREE_ARRAY(buffer_bit_inc_y);
-                EB_FREE_ARRAY(buffer_bit_inc_cb);
-                EB_FREE_ARRAY(buffer_bit_inc_cr);
-            }
-            if (pcs->ppcs->do_tf == false) {
-                EB_FREE_ARRAY(buffer_bit_inc_y);
-                EB_FREE_ARRAY(buffer_bit_inc_cb);
-                EB_FREE_ARRAY(buffer_bit_inc_cr);
-            }
-#if !CLN_REMOVE_10BIT_FORMAT
+            buffer_y          = input_pic->buffer_y;
+            buffer_bit_inc_y  = uncompressed_pics[0];
+            buffer_cb         = input_pic->buffer_cb;
+            buffer_bit_inc_cb = uncompressed_pics[1];
+            buffer_cr         = input_pic->buffer_cr;
+            buffer_bit_inc_cr = uncompressed_pics[2];
         }
-#endif
+
+        input_buffer         = &((buffer_y)[input_pic->org_x + input_pic->org_y * input_pic->stride_y]);
+        input_buffer_bit_inc = &((buffer_bit_inc_y)[input_pic->org_x + input_pic->org_y * input_pic->stride_bit_inc_y]);
+
+        residual_distortion = 0;
+
+        for (int row_index = 0; row_index < input_pic->height - scs->max_input_pad_bottom; ++row_index) {
+            for (int column_index = 0; column_index < input_pic->width - scs->max_input_pad_right; ++column_index) {
+                residual_distortion += (int64_t)SQR(
+                    (int64_t)((((input_buffer[column_index]) << 2) | ((input_buffer_bit_inc[column_index] >> 6) & 3))) -
+                    (recon_coeff_buffer[column_index]));
+            }
+
+            input_buffer += input_pic->stride_y;
+            input_buffer_bit_inc += input_pic->stride_bit_inc_y;
+            recon_coeff_buffer += recon_ptr->stride_y;
+        }
+
+        sse_total[0] = residual_distortion;
+
+        recon_coeff_buffer   = (uint16_t *)(&(
+            (recon_ptr->buffer_cb)[(recon_ptr->org_x << is_16bit) / 2 +
+                                   (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cb]));
+        input_buffer         = &((buffer_cb)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cb]);
+        input_buffer_bit_inc = &(
+            (buffer_bit_inc_cb)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_bit_inc_cb]);
+
+        residual_distortion = 0;
+        for (int row_index = 0; row_index < (input_pic->height - scs->max_input_pad_bottom) >> ss_y; ++row_index) {
+            for (int column_index = 0; column_index < (input_pic->width - scs->max_input_pad_right) >> ss_x;
+                 ++column_index) {
+                residual_distortion += (int64_t)SQR(
+                    (int64_t)((((input_buffer[column_index]) << 2) | ((input_buffer_bit_inc[column_index] >> 6) & 3))) -
+                    (recon_coeff_buffer[column_index]));
+            }
+
+            input_buffer += input_pic->stride_cb;
+            input_buffer_bit_inc += input_pic->stride_bit_inc_cb;
+            recon_coeff_buffer += recon_ptr->stride_cb;
+        }
+
+        sse_total[1] = residual_distortion;
+
+        recon_coeff_buffer   = (uint16_t *)(&(
+            (recon_ptr->buffer_cr)[(recon_ptr->org_x << is_16bit) / 2 +
+                                   (recon_ptr->org_y << is_16bit) / 2 * recon_ptr->stride_cr]));
+        input_buffer         = &((buffer_cr)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_cr]);
+        input_buffer_bit_inc = &(
+            (buffer_bit_inc_cr)[input_pic->org_x / 2 + input_pic->org_y / 2 * input_pic->stride_bit_inc_cr]);
+
+        residual_distortion = 0;
+
+        for (int row_index = 0; row_index < (input_pic->height - scs->max_input_pad_bottom) >> ss_y; ++row_index) {
+            for (int column_index = 0; column_index < (input_pic->width - scs->max_input_pad_right) >> ss_x;
+                 ++column_index) {
+                residual_distortion += (int64_t)SQR(
+                    (int64_t)((((input_buffer[column_index]) << 2) | ((input_buffer_bit_inc[column_index] >> 6) & 3))) -
+                    (recon_coeff_buffer[column_index]));
+            }
+
+            input_buffer += input_pic->stride_cr;
+            input_buffer_bit_inc += input_pic->stride_bit_inc_cr;
+            recon_coeff_buffer += recon_ptr->stride_cr;
+        }
+
+        sse_total[2] = residual_distortion;
+
+        if (free_memory && pcs->ppcs->do_tf == true) {
+            EB_FREE_ARRAY(buffer_y);
+            EB_FREE_ARRAY(buffer_cb);
+            EB_FREE_ARRAY(buffer_cr);
+            EB_FREE_ARRAY(buffer_bit_inc_y);
+            EB_FREE_ARRAY(buffer_bit_inc_cb);
+            EB_FREE_ARRAY(buffer_bit_inc_cr);
+        }
+        if (pcs->ppcs->do_tf == false) {
+            EB_FREE_ARRAY(buffer_bit_inc_y);
+            EB_FREE_ARRAY(buffer_bit_inc_cb);
+            EB_FREE_ARRAY(buffer_bit_inc_cr);
+        }
         pcs->ppcs->luma_sse = sse_total[0];
         pcs->ppcs->cb_sse   = sse_total[1];
         pcs->ppcs->cr_sse   = sse_total[2];
@@ -1873,252 +1466,6 @@ void pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *scs) {
 
 #define LOW_8x8_DIST_VAR_TH 25000
 #define HIGH_8x8_DIST_VAR_TH 50000
-#if !OPT_DEPTHS_CTRL
-void set_block_based_depth_refinement_controls(ModeDecisionContext *ctx, uint8_t block_based_depth_refinement_level) {
-    DepthRefinementCtrls *depth_refinement_ctrls = &ctx->depth_refinement_ctrls;
-
-    switch (block_based_depth_refinement_level) {
-    case 0: depth_refinement_ctrls->enabled = 0; break;
-    case 1:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = 100;
-        depth_refinement_ctrls->sub_to_current_th               = 100;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 10;
-        depth_refinement_ctrls->cost_band_based_modulation      = 0;
-        depth_refinement_ctrls->up_to_2_depth                   = 0;
-        depth_refinement_ctrls->limit_4x4_depth                 = 0;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 0;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 0;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 0;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-    case 2:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = 100;
-        depth_refinement_ctrls->sub_to_current_th               = 100;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 10;
-        depth_refinement_ctrls->cost_band_based_modulation      = 0;
-        depth_refinement_ctrls->up_to_2_depth                   = 0;
-        depth_refinement_ctrls->limit_4x4_depth                 = 0;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 0;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 0;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-    case 3:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = 50;
-        depth_refinement_ctrls->sub_to_current_th               = 50;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 10;
-        depth_refinement_ctrls->cost_band_based_modulation      = 1;
-        depth_refinement_ctrls->max_cost_multiplier             = 400;
-        depth_refinement_ctrls->max_band_cnt                    = 4;
-        depth_refinement_ctrls->decrement_per_band[0]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[1]           = 15;
-        depth_refinement_ctrls->decrement_per_band[2]           = 10;
-        depth_refinement_ctrls->decrement_per_band[3]           = 5;
-        depth_refinement_ctrls->up_to_2_depth                   = 0;
-        depth_refinement_ctrls->limit_4x4_depth                 = 0;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 0;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 0;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-    case 4:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = 25;
-        depth_refinement_ctrls->sub_to_current_th               = 25;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 10;
-        depth_refinement_ctrls->cost_band_based_modulation      = 1;
-        depth_refinement_ctrls->max_cost_multiplier             = 400;
-        depth_refinement_ctrls->max_band_cnt                    = 4;
-        depth_refinement_ctrls->decrement_per_band[0]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[1]           = 15;
-        depth_refinement_ctrls->decrement_per_band[2]           = 10;
-        depth_refinement_ctrls->decrement_per_band[3]           = 5;
-        depth_refinement_ctrls->up_to_2_depth                   = 0;
-        depth_refinement_ctrls->limit_4x4_depth                 = 15;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 20;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 20;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-    case 5:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = 20;
-        depth_refinement_ctrls->sub_to_current_th               = 20;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 10;
-        depth_refinement_ctrls->cost_band_based_modulation      = 1;
-        depth_refinement_ctrls->max_cost_multiplier             = 400;
-        depth_refinement_ctrls->max_band_cnt                    = 4;
-        depth_refinement_ctrls->decrement_per_band[0]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[1]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[2]           = 10;
-        depth_refinement_ctrls->decrement_per_band[3]           = 5;
-        depth_refinement_ctrls->up_to_2_depth                   = 0;
-        depth_refinement_ctrls->limit_4x4_depth                 = 15;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 20;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 20;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-    case 6:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = 15;
-        depth_refinement_ctrls->sub_to_current_th               = 15;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 0;
-        depth_refinement_ctrls->cost_band_based_modulation      = 1;
-        depth_refinement_ctrls->max_cost_multiplier             = 400;
-        depth_refinement_ctrls->max_band_cnt                    = 4;
-        depth_refinement_ctrls->decrement_per_band[0]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[1]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[2]           = 10;
-        depth_refinement_ctrls->decrement_per_band[3]           = 5;
-        depth_refinement_ctrls->up_to_2_depth                   = 0;
-        depth_refinement_ctrls->limit_4x4_depth                 = 15;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 20;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 20;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-    case 7:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = 10;
-        depth_refinement_ctrls->sub_to_current_th               = 10;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 0;
-        depth_refinement_ctrls->cost_band_based_modulation      = 1;
-        depth_refinement_ctrls->max_cost_multiplier             = 400;
-        depth_refinement_ctrls->max_band_cnt                    = 4;
-        depth_refinement_ctrls->decrement_per_band[0]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[1]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[2]           = 10;
-        depth_refinement_ctrls->decrement_per_band[3]           = 5;
-        depth_refinement_ctrls->up_to_2_depth                   = 0;
-        depth_refinement_ctrls->limit_4x4_depth                 = 15;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 20;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 20;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-    case 8:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = 5;
-        depth_refinement_ctrls->sub_to_current_th               = 5;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 0;
-        depth_refinement_ctrls->cost_band_based_modulation      = 1;
-        depth_refinement_ctrls->max_cost_multiplier             = 400;
-        depth_refinement_ctrls->max_band_cnt                    = 4;
-        depth_refinement_ctrls->decrement_per_band[0]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[1]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[2]           = 10;
-        depth_refinement_ctrls->decrement_per_band[3]           = 5;
-        depth_refinement_ctrls->up_to_2_depth                   = 0;
-        depth_refinement_ctrls->limit_4x4_depth                 = 15;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 20;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 20;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-    case 9:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = 5;
-        depth_refinement_ctrls->sub_to_current_th               = 5;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 0;
-        depth_refinement_ctrls->cost_band_based_modulation      = 1;
-        depth_refinement_ctrls->max_cost_multiplier             = 800;
-        depth_refinement_ctrls->max_band_cnt                    = 4;
-        depth_refinement_ctrls->decrement_per_band[0]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[1]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[2]           = 10;
-        depth_refinement_ctrls->decrement_per_band[3]           = 5;
-        depth_refinement_ctrls->up_to_2_depth                   = 0;
-        depth_refinement_ctrls->limit_4x4_depth                 = 15;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 20;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 20;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-    case 10:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = 5;
-        depth_refinement_ctrls->sub_to_current_th               = -50;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 0;
-        depth_refinement_ctrls->cost_band_based_modulation      = 1;
-        depth_refinement_ctrls->max_cost_multiplier             = 800;
-        depth_refinement_ctrls->max_band_cnt                    = 4;
-        depth_refinement_ctrls->decrement_per_band[0]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[1]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[2]           = 10;
-        depth_refinement_ctrls->decrement_per_band[3]           = 5;
-        depth_refinement_ctrls->up_to_2_depth                   = 1;
-        depth_refinement_ctrls->limit_4x4_depth                 = 15;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 20;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 20;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-    case 11:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = -25;
-        depth_refinement_ctrls->sub_to_current_th               = -50;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 0;
-        depth_refinement_ctrls->cost_band_based_modulation      = 1;
-        depth_refinement_ctrls->max_cost_multiplier             = 800;
-        depth_refinement_ctrls->max_band_cnt                    = 4;
-        depth_refinement_ctrls->decrement_per_band[0]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[1]           = MAX_SIGNED_VALUE;
-        depth_refinement_ctrls->decrement_per_band[2]           = 10;
-        depth_refinement_ctrls->decrement_per_band[3]           = 5;
-        depth_refinement_ctrls->up_to_2_depth                   = 1;
-        depth_refinement_ctrls->limit_4x4_depth                 = 15;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 20;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 20;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-        depth_refinement_ctrls->split_rate_th                   = 10;
-        depth_refinement_ctrls->q_weight                        = 10;
-        break;
-        // Pred_Only
-    case 12:
-        depth_refinement_ctrls->enabled                         = 1;
-        depth_refinement_ctrls->prune_child_if_not_avail        = 1;
-        depth_refinement_ctrls->parent_to_current_th            = MIN_SIGNED_VALUE;
-        depth_refinement_ctrls->sub_to_current_th               = MIN_SIGNED_VALUE;
-        depth_refinement_ctrls->parent_max_cost_th_mult         = 0;
-        depth_refinement_ctrls->cost_band_based_modulation      = 0;
-        depth_refinement_ctrls->up_to_2_depth                   = 0;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_th     = 20;
-        depth_refinement_ctrls->sub_to_current_pd0_coeff_offset = 20;
-        depth_refinement_ctrls->lower_depth_split_cost_th       = 20;
-
-        depth_refinement_ctrls->split_rate_th = 10;
-
-        depth_refinement_ctrls->q_weight = 10;
-
-        break;
-    }
-}
-#endif
 static void copy_neighbour_arrays_light_pd0(PictureControlSet *pcs, ModeDecisionContext *ctx, uint32_t src_idx,
                                             uint32_t dst_idx, uint32_t sb_org_x, uint32_t sb_org_y) {
     const uint16_t tile_idx = ctx->tile_index;
@@ -2150,15 +1497,9 @@ static void set_child_to_be_considered(PictureControlSet *pcs, ModeDecisionConte
                                        uint32_t blk_index, uint32_t sb_index, int32_t sb_size, int8_t pred_depth,
                                        uint8_t pred_sq_idx, int8_t depth_step, const uint8_t disallow_nsq) {
     const BlockGeom *blk_geom = get_blk_geom_mds(blk_index);
-#if OPT_RTC_B8
     if (blk_geom->sq_size <= 4 || // 4x4 blocks have no children
         (blk_geom->sq_size == 8 && ctx->disallow_4x4) || (blk_geom->sq_size == 16 && ctx->disallow_8x8))
         return;
-#else
-    // 4x4 blocks have no children
-    if (blk_geom->sq_size <= 4 || (blk_geom->sq_size == 8 && ctx->disallow_4x4))
-        return;
-#endif
     const uint32_t child_block_idx_1 = blk_index + blk_geom->d1_depth_offset;
     const uint32_t child_block_idx_2 = child_block_idx_1 +
         ns_depth_offset[blk_geom->svt_aom_geom_idx][blk_geom->depth + 1];
@@ -2166,16 +1507,6 @@ static void set_child_to_be_considered(PictureControlSet *pcs, ModeDecisionConte
         ns_depth_offset[blk_geom->svt_aom_geom_idx][blk_geom->depth + 1];
     const uint32_t child_block_idx_4 = child_block_idx_3 +
         ns_depth_offset[blk_geom->svt_aom_geom_idx][blk_geom->depth + 1];
-#if !OPT_DEPTHS_CTRL
-    if (ctx->depth_refinement_ctrls.enabled && ctx->depth_refinement_ctrls.prune_child_if_not_avail) {
-        // Only add child depth if all allowable child blocks available (i.e. tested in PD0)
-        const uint8_t count = ctx->cost_avail[child_block_idx_1] + ctx->cost_avail[child_block_idx_2] +
-            ctx->cost_avail[child_block_idx_3] + ctx->cost_avail[child_block_idx_4];
-        // LPD0 takes many shortcuts, so only rely on the info if at least one of the child blocks was processed
-        if ((count || ctx->lpd0_ctrls.pd0_level == REGULAR_PD0) && count < 4)
-            return;
-    }
-#endif
     results_ptr->refined_split_flag[blk_index] = true;
     //Set first child to be considered
     results_ptr->consider_block[child_block_idx_1]     = 2;
@@ -2298,20 +1629,12 @@ static void build_cand_block_array(SequenceControlSet *scs, PictureControlSet *p
     uint32_t       blk_index      = 0;
     const uint16_t max_block_cnt  = scs->max_block_cnt;
     const bool     is_complete_sb = pcs->ppcs->sb_geom[ctx->sb_index].is_complete_sb;
-#if OPT_RTC_B8
     int32_t min_sq_size = (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_64x64) ? 64
         : (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_32x32)                 ? 32
         : (ctx->disallow_8x8 || (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_16x16))
         ? 16
         : ctx->disallow_4x4 ? 8
                             : 4;
-#else
-    int32_t min_sq_size = (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_64x64) ? 64
-        : (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_32x32)                 ? 32
-        : (ctx->depth_removal_ctrls.enabled && ctx->depth_removal_ctrls.disallow_below_16x16)                 ? 16
-        : ctx->disallow_4x4                                                                                   ? 8
-                                                                                                              : 4;
-#endif
     while (blk_index < max_block_cnt) {
         const BlockGeom *blk_geom = get_blk_geom_mds(blk_index);
 
@@ -2349,7 +1672,6 @@ static void build_cand_block_array(SequenceControlSet *scs, PictureControlSet *p
         blk_index += (blk_geom->sq_size > min_sq_size) ? blk_geom->d1_depth_offset : blk_geom->ns_depth_offset;
     }
 }
-#if OPT_DEPTHS_CTRL
 void update_pred_th_offset(PictureControlSet *pcs, ModeDecisionContext *ctx, const BlockGeom *blk_geom, int8_t *s_depth,
                            int8_t *e_depth, int64_t *s_th_offset, int64_t *e_th_offset) {
     if (ctx->depth_refinement_ctrls.cost_band_based_modulation) {
@@ -2430,11 +1752,7 @@ void update_pred_th_offset(PictureControlSet *pcs, ModeDecisionContext *ctx, con
             uint8_t sb_min_sq_size = ref_obj_l0->sb_min_sq_size[ctx->sb_index];
             uint8_t sb_max_sq_size = ref_obj_l0->sb_max_sq_size[ctx->sb_index];
 
-#if CLN_REMOVE_P_SLICE
             if (pcs->slice_type == B_SLICE && is_ref_l1_avail && pcs->ppcs->ref_list1_count_try) {
-#else
-            if (pcs->slice_type == B_SLICE && is_ref_l1_avail) {
-#endif
                 EbReferenceObject *ref_obj_l1 = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
                 sb_min_sq_size                = MIN(sb_min_sq_size, ref_obj_l1->sb_min_sq_size[ctx->sb_index]);
                 sb_max_sq_size                = MAX(sb_max_sq_size, ref_obj_l1->sb_max_sq_size[ctx->sb_index]);
@@ -2460,42 +1778,17 @@ static void is_parent_to_current_deviation_small(PictureControlSet *pcs, ModeDec
         int64_t s2_parent_to_current_th = (int64_t)ctx->depth_refinement_ctrls.s2_parent_to_current_th;
 
         if (ctx->depth_refinement_ctrls.q_weight) {
-#if OPT_USE_EXP_DEPTHS
             uint32_t q_weight, q_weight_denom;
-#if TUNE_MR_2
-#if OPT_ALLINTRA_STILLIMAGE
             svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.depths_qp_based_th_scaling,
                                                     &q_weight,
                                                     &q_weight_denom,
                                                     pcs->scs->static_config.qp);
-#else
-            svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom, pcs->scs->static_config.qp);
-#endif
-#else
-            svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
-#endif
             s1_parent_to_current_th = s1_parent_to_current_th == (uint8_t)~0
                 ? MIN_SIGNED_VALUE
                 : DIVIDE_AND_ROUND(s1_parent_to_current_th * q_weight, q_weight_denom);
             s2_parent_to_current_th = s2_parent_to_current_th == (uint8_t)~0
                 ? MIN_SIGNED_VALUE
                 : DIVIDE_AND_ROUND(s2_parent_to_current_th * q_weight, q_weight_denom);
-#else
-            const uint32_t mult      = ctx->depth_refinement_ctrls.q_weight;
-            const uint32_t cost_part = (uint32_t)MAX(
-                (ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost /
-                 (uint64_t)(((uint64_t)blk_geom->bwidth * (uint64_t)blk_geom->bheight) << 10)),
-                1);
-            const int q_weight_unscaled =
-                (int)((mult * cost_part * ((5 * (int)pcs->ppcs->scs->static_config.qp) - 100)) / 100);
-            const uint32_t q_weight = CLIP3(100, 2000, q_weight_unscaled);
-            s1_parent_to_current_th = s1_parent_to_current_th == (uint8_t)~0
-                ? MIN_SIGNED_VALUE
-                : (s1_parent_to_current_th * q_weight) / 2000;
-            s2_parent_to_current_th = s2_parent_to_current_th == (uint8_t)~0
-                ? MIN_SIGNED_VALUE
-                : (s2_parent_to_current_th * q_weight) / 2000;
-#endif
         }
 
         s1_parent_to_current_th = s1_parent_to_current_th == MIN_SIGNED_VALUE
@@ -2571,40 +1864,17 @@ static void is_child_to_current_deviation_small(PictureControlSet *pcs, ModeDeci
         int64_t e2_sub_to_current_th = (int64_t)ctx->depth_refinement_ctrls.e2_sub_to_current_th;
 
         if (ctx->depth_refinement_ctrls.q_weight) {
-#if OPT_USE_EXP_DEPTHS
             uint32_t q_weight, q_weight_denom;
-#if TUNE_MR_2
-#if OPT_ALLINTRA_STILLIMAGE
             svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.depths_qp_based_th_scaling,
                                                     &q_weight,
                                                     &q_weight_denom,
                                                     pcs->scs->static_config.qp);
-#else
-            svt_aom_get_qp_based_th_scaling_factors(pcs->scs, &q_weight, &q_weight_denom, pcs->scs->static_config.qp);
-#endif
-#else
-            svt_aom_get_qp_based_th_scaling_factors(pcs->scs->static_config.qp, &q_weight, &q_weight_denom);
-#endif
             e1_sub_to_current_th = e1_sub_to_current_th == (uint8_t)~0
                 ? MIN_SIGNED_VALUE
                 : DIVIDE_AND_ROUND(e1_sub_to_current_th * q_weight, q_weight_denom);
             e2_sub_to_current_th = e2_sub_to_current_th == (uint8_t)~0
                 ? MIN_SIGNED_VALUE
                 : DIVIDE_AND_ROUND(e2_sub_to_current_th * q_weight, q_weight_denom);
-#else
-            const uint32_t mult      = ctx->depth_refinement_ctrls.q_weight;
-            const uint32_t cost_part = (uint32_t)MAX(
-                (ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost /
-                 (uint64_t)(((uint64_t)blk_geom->bwidth * (uint64_t)blk_geom->bheight) << 10)),
-                1);
-            const int q_weight_unscaled =
-                (int)((mult * cost_part * ((5 * (int)pcs->ppcs->scs->static_config.qp) - 100)) / 100);
-            const uint32_t q_weight = CLIP3(100, 2000, q_weight_unscaled);
-            e1_sub_to_current_th    = e1_sub_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE
-                                                                          : (e1_sub_to_current_th * q_weight) / 2000;
-            e2_sub_to_current_th    = e2_sub_to_current_th == (uint8_t)~0 ? MIN_SIGNED_VALUE
-                                                                          : (e2_sub_to_current_th * q_weight) / 2000;
-#endif
         }
 
         e1_sub_to_current_th = e1_sub_to_current_th == MIN_SIGNED_VALUE ? MIN_SIGNED_VALUE
@@ -2637,200 +1907,6 @@ static void is_child_to_current_deviation_small(PictureControlSet *pcs, ModeDeci
             *e_depth = MIN(*e_depth, 1);
     }
 }
-#else
-void update_pred_th_offset(ModeDecisionContext *ctx, const BlockGeom *blk_geom, int8_t *s_depth, int8_t *e_depth,
-                           int64_t *th_offset) {
-    uint32_t full_lambda = ctx->hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
-
-    // cost-band-based modulation
-    uint64_t max_cost = RDCOST(
-        full_lambda, 16, ctx->depth_refinement_ctrls.max_cost_multiplier * blk_geom->bwidth * blk_geom->bheight);
-
-    // For incomplete blocks, H/V partitions may be allowed, while square is not. In those cases, the selected depth
-    // may not have a valid SQ default_cost, so we need to check that the SQ block is available before using the default_cost
-    if (ctx->avail_blk_flag[blk_geom->sqi_mds] && ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost <= max_cost) {
-        uint64_t band_size = max_cost / ctx->depth_refinement_ctrls.max_band_cnt;
-        uint64_t band_idx  = ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost / band_size;
-        if (ctx->depth_refinement_ctrls.decrement_per_band[band_idx] == MAX_SIGNED_VALUE) {
-            *s_depth = 0;
-            *e_depth = 0;
-        } else {
-            *th_offset = -ctx->depth_refinement_ctrls.decrement_per_band[band_idx];
-        }
-    } else {
-        *th_offset = 0;
-    }
-}
-static uint8_t is_parent_to_current_deviation_small(PictureControlSet *pcs, ModeDecisionContext *ctx,
-                                                    const BlockGeom *blk_geom, int64_t th_offset) {
-    if (ctx->depth_refinement_ctrls.parent_to_current_th == MAX_SIGNED_VALUE)
-        return true;
-    if (ctx->depth_refinement_ctrls.parent_to_current_th == MIN_SIGNED_VALUE)
-        return false;
-    // block-based depth refinement using cost is applicable for only [s_depth=-1, e_depth=1]
-    // Get the parent of the current block
-    uint32_t parent_depth_idx_mds = blk_geom->parent_depth_idx_mds;
-    if (ctx->avail_blk_flag[parent_depth_idx_mds]) {
-        ctx->parent_to_current_deviation =
-            (int64_t)(((int64_t)MAX(ctx->md_blk_arr_nsq[parent_depth_idx_mds].default_cost, 1) -
-                       (int64_t)MAX((ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost * 4), 1)) *
-                      100) /
-            (int64_t)MAX((ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost * 4), 1);
-    }
-
-    const uint32_t lower_depth_split_cost_th = ctx->depth_refinement_ctrls.lower_depth_split_cost_th;
-    // Skip testing NSQ shapes at parent depth if the rate cost of splitting is very low
-    if (lower_depth_split_cost_th && ctx->avail_blk_flag[parent_depth_idx_mds]) {
-        const uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
-                                                 : ctx->full_sb_lambda_md[EB_8_BIT_MD];
-        const uint64_t split_cost  = svt_aom_partition_rate_cost(pcs->ppcs,
-                                                                ctx,
-                                                                parent_depth_idx_mds,
-                                                                PARTITION_SPLIT,
-                                                                full_lambda,
-                                                                true, // Use accurate split cost for early exit
-                                                                ctx->md_rate_est_ctx);
-
-        if (split_cost * 10000 < ctx->md_blk_arr_nsq[parent_depth_idx_mds].default_cost * lower_depth_split_cost_th)
-            return false;
-    }
-
-    int64_t parent_to_current_th = ctx->depth_refinement_ctrls.parent_to_current_th;
-    if (ctx->depth_refinement_ctrls.q_weight) {
-        const uint32_t mult      = ctx->depth_refinement_ctrls.q_weight;
-        const uint32_t cost_part = (uint32_t)MAX(
-            (ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost /
-             (uint64_t)(((uint64_t)blk_geom->bwidth * (uint64_t)blk_geom->bheight) << 10)),
-            1);
-        const int q_weight_unscaled = (int)((mult * cost_part * ((5 * (int)pcs->ppcs->scs->static_config.qp) - 100)) /
-                                            10);
-        const uint32_t q_weight     = CLIP3(100, 2000, q_weight_unscaled);
-
-        parent_to_current_th = (parent_to_current_th * q_weight) / 2000;
-    }
-
-    if (ctx->parent_to_current_deviation <= (parent_to_current_th + th_offset))
-        return true;
-    if (ctx->depth_refinement_ctrls.parent_max_cost_th_mult && ctx->avail_blk_flag[parent_depth_idx_mds]) {
-        const uint32_t full_lambda = ctx->hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
-        // cost-band-based modulation
-        const uint64_t max_cost = RDCOST(
-            full_lambda,
-            18000 * ctx->depth_refinement_ctrls.parent_max_cost_th_mult,
-            60 * ctx->depth_refinement_ctrls.parent_max_cost_th_mult * blk_geom->bwidth * blk_geom->bheight * 4);
-
-        // Only prune the parent depth when the cost is above the absolute threshold
-        if (ctx->md_blk_arr_nsq[parent_depth_idx_mds].default_cost < max_cost)
-            return true;
-    }
-
-    return false;
-}
-
-static uint8_t is_child_to_current_deviation_small(PictureControlSet *pcs, ModeDecisionContext *ctx,
-                                                   const BlockGeom *blk_geom, uint32_t blk_index, int64_t th_offset) {
-    if (ctx->depth_refinement_ctrls.sub_to_current_th == MAX_SIGNED_VALUE)
-        return true;
-    if (ctx->depth_refinement_ctrls.sub_to_current_th == MIN_SIGNED_VALUE)
-        return false;
-    const uint32_t ns_d1_offset = blk_geom->d1_depth_offset;
-
-    assert(blk_geom->depth < 6);
-    const uint32_t ns_depth_plus1_offset = ns_depth_offset[blk_geom->svt_aom_geom_idx][blk_geom->depth + 1];
-    const uint32_t child_block_idx_1     = blk_index + ns_d1_offset;
-    const uint32_t child_block_idx_2     = child_block_idx_1 + ns_depth_plus1_offset;
-    const uint32_t child_block_idx_3     = child_block_idx_2 + ns_depth_plus1_offset;
-    const uint32_t child_block_idx_4     = child_block_idx_3 + ns_depth_plus1_offset;
-
-    uint64_t child_cost = 0;
-    uint8_t  child_cnt  = 0;
-    if (ctx->avail_blk_flag[child_block_idx_1]) {
-        child_cost += ctx->md_blk_arr_nsq[child_block_idx_1].default_cost;
-        child_cnt++;
-    }
-    if (ctx->avail_blk_flag[child_block_idx_2]) {
-        child_cost += ctx->md_blk_arr_nsq[child_block_idx_2].default_cost;
-        child_cnt++;
-    }
-    if (ctx->avail_blk_flag[child_block_idx_3]) {
-        child_cost += ctx->md_blk_arr_nsq[child_block_idx_3].default_cost;
-        child_cnt++;
-    }
-    if (ctx->avail_blk_flag[child_block_idx_4]) {
-        child_cost += ctx->md_blk_arr_nsq[child_block_idx_4].default_cost;
-        child_cnt++;
-    }
-
-    if (child_cnt) {
-        child_cost                 = (child_cost / child_cnt) * 4;
-        const uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
-                                                 : ctx->full_sb_lambda_md[EB_8_BIT_MD];
-        child_cost += svt_aom_partition_rate_cost(
-            pcs->ppcs, ctx, blk_index, PARTITION_SPLIT, full_lambda, 1, ctx->md_rate_est_ctx);
-        ctx->child_to_current_deviation = (int64_t)(((int64_t)MAX(child_cost, 1) -
-                                                     (int64_t)MAX(ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost,
-                                                                  1)) *
-                                                    100) /
-            (int64_t)(MAX(ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost, 1));
-    }
-    if (blk_geom->bsize == BLOCK_8X8)
-        th_offset = th_offset - ctx->depth_refinement_ctrls.limit_4x4_depth;
-    if (ctx->avail_blk_flag[blk_index] && ctx->lpd0_ctrls.pd0_level < VERY_LIGHT_PD0) {
-        if (ctx->md_blk_arr_nsq[blk_index].cnt_nz_coeff < ctx->depth_refinement_ctrls.sub_to_current_pd0_coeff_th)
-            th_offset -= ctx->depth_refinement_ctrls.sub_to_current_pd0_coeff_offset;
-    }
-
-    if (ctx->avail_blk_flag[blk_geom->sqi_mds] && ctx->intra_ctrls.enable_intra &&
-        (ctx->blk_ptr->prediction_mode_flag == INTER_MODE)) {
-        th_offset -= 20;
-        if (ctx->lpd0_ctrls.pd0_level < VERY_LIGHT_PD0 && !ctx->md_blk_arr_nsq[blk_geom->sqi_mds].y_has_coeff)
-            th_offset -= 20;
-    }
-    uint32_t split_cost_th = ctx->depth_refinement_ctrls.split_rate_th;
-    // Skip testing child depth if the rate cost of splitting is high
-    if (split_cost_th && ctx->avail_blk_flag[blk_geom->sqi_mds]) {
-        if (ctx->lpd0_ctrls.pd0_level > REGULAR_PD0) {
-            // If LPD0 was used, use a safer threshold
-            split_cost_th += 20;
-
-            // Parent neighbour arrays should be set in case parent depth was not allowed
-            ctx->md_blk_arr_nsq[blk_geom->sqi_mds].left_neighbor_partition  = INVALID_NEIGHBOR_DATA;
-            ctx->md_blk_arr_nsq[blk_geom->sqi_mds].above_neighbor_partition = INVALID_NEIGHBOR_DATA;
-        }
-        const uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
-                                                 : ctx->full_sb_lambda_md[EB_8_BIT_MD];
-        const uint64_t split_cost  = svt_aom_partition_rate_cost(pcs->ppcs,
-                                                                ctx,
-                                                                blk_geom->sqi_mds,
-                                                                PARTITION_SPLIT,
-                                                                full_lambda,
-                                                                true, // Use accurate split cost for early exit
-                                                                ctx->md_rate_est_ctx);
-
-        if (split_cost * 1000 > ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost * split_cost_th)
-            return false;
-    }
-
-    int64_t sub_to_current_th = ctx->depth_refinement_ctrls.sub_to_current_th;
-    if (ctx->depth_refinement_ctrls.q_weight) {
-        const uint32_t mult      = ctx->depth_refinement_ctrls.q_weight;
-        const uint32_t cost_part = (uint32_t)MAX(
-            (ctx->md_blk_arr_nsq[blk_geom->sqi_mds].default_cost /
-             (uint64_t)(((uint64_t)blk_geom->bwidth * (uint64_t)blk_geom->bheight) << 10)),
-            1);
-        const int q_weight_unscaled = (int)((mult * cost_part * ((5 * (int)pcs->ppcs->scs->static_config.qp) - 100)) /
-                                            10);
-        const uint32_t q_weight     = CLIP3(100, 2000, q_weight_unscaled);
-
-        sub_to_current_th = (sub_to_current_th * q_weight) / 2000;
-    }
-
-    if (ctx->child_to_current_deviation <= (sub_to_current_th + th_offset))
-        return true;
-
-    return false;
-}
-#endif
 static void get_max_min_pd0_depths(SequenceControlSet *scs, PictureControlSet *pcs, ModeDecisionContext *ctx,
                                    uint16_t *max_pd0_size_out, uint16_t *min_pd0_size_out) {
     uint16_t max_pd0_size = 0;
@@ -2867,11 +1943,6 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                                           uint32_t sb_index) {
     MdcSbData *results_ptr = &ctx->mdc_sb_array;
     uint32_t   blk_index   = 0;
-#if !OPT_DEPTHS_CTRL
-    uint8_t use_cost_band_based_modulation =
-        (!scs->vq_ctrls.stability_ctrls.depth_refinement ||
-         (pcs->slice_type != I_SLICE && pcs->ppcs->me_8x8_cost_variance[ctx->sb_index] < VQ_STABILITY_ME_VAR_TH));
-#endif
     if (!ctx->nsq_geom_ctrls.enabled) {
         if (ctx->disallow_4x4) {
             memset(results_ptr->consider_block, 0, sizeof(uint8_t) * scs->max_block_cnt);
@@ -2899,11 +1970,7 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
     // Get max/min PD0 selected block sizes
     uint16_t max_pd0_size = 0;
     uint16_t min_pd0_size = 255;
-#if OPT_DEPTHS_CTRL
     if (ctx->depth_refinement_ctrls.limit_max_min_to_pd0)
-#else
-    if (ctx->depth_ctrls.limit_max_min_to_pd0)
-#endif
         get_max_min_pd0_depths(scs, pcs, ctx, &max_pd0_size, &min_pd0_size);
     results_ptr->leaf_count = 0;
     blk_index               = 0;
@@ -2925,13 +1992,8 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                     // Add current pred depth block(s)
                     results_ptr->consider_block[blk_index]     = 1;
                     results_ptr->refined_split_flag[blk_index] = false;
-#if OPT_DEPTHS_CTRL
                     int8_t s_depth = ctx->depth_refinement_ctrls.mode == PD0_DEPTH_PRED_PART_ONLY ? 0 : -2;
                     int8_t e_depth = ctx->depth_refinement_ctrls.mode == PD0_DEPTH_PRED_PART_ONLY ? 0 : 2;
-#else
-                    int8_t s_depth = ctx->depth_ctrls.s_depth;
-                    int8_t e_depth = ctx->depth_ctrls.e_depth;
-#endif
                     // Selected depths should be available, unless they are not valid blocks (e.g. out of bounds).
                     // Therefore, when blocks are invalid, don't add parent/child.
                     if (!ctx->cost_avail[blk_geom->sqi_mds]) {
@@ -2941,18 +2003,9 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                             // Getting here means avail_blk_flag is true, so the block was tested. Decisions that rely on
                             // info from a tested block should go here. For incomplete blocks, the cost may be available from
                             // H/V, while the info for the SQ block is not available
-#if OPT_DEPTHS_CTRL
                             if (ctx->depth_refinement_ctrls.mode == PD0_DEPTH_PRED_PART_ONLY) {
-#else
-                            if (ctx->depth_ctrls.use_pred_mode) {
-#endif
                                 // Cap to (-1,+1) if the pred mode is INTER (if both INTER and INTRA are tested)
-                                if (ctx->intra_ctrls.enable_intra &&
-#if CLN_UNUSED_SIGS
-                                    is_inter_mode(ctx->blk_ptr->block_mi.mode)) {
-#else
-                                    (ctx->blk_ptr->prediction_mode_flag == INTER_MODE)) {
-#endif
+                                if (ctx->intra_ctrls.enable_intra && is_inter_mode(ctx->blk_ptr->block_mi.mode)) {
                                     s_depth = MAX(s_depth, -1);
                                     e_depth = MIN(e_depth, 1);
                                 }
@@ -2967,16 +2020,13 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                             e_depth = 0;
                         // Check that the start and end depth are in allowed range, given other features
                         // which restrict allowable depths
-#if OPT_RTC_B8
                         if (ctx->disallow_8x8) {
                             e_depth = (blk_geom->sq_size <= 16) ? 0
                                 : (blk_geom->sq_size == 32)     ? MIN(1, e_depth)
                                 : (blk_geom->sq_size == 64)     ? MIN(2, e_depth)
                                 : (blk_geom->sq_size == 128)    ? MIN(3, e_depth)
                                                                 : e_depth;
-                        } else
-#endif
-                            if (ctx->disallow_4x4) {
+                        } else if (ctx->disallow_4x4) {
                             e_depth = (blk_geom->sq_size == 8) ? 0
                                 : (blk_geom->sq_size == 16)    ? MIN(1, e_depth)
                                 : (blk_geom->sq_size == 32)    ? MIN(2, e_depth)
@@ -3000,17 +2050,7 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                                                                     : e_depth;
                             }
                         }
-#if !OPT_DEPTHS_CTRL
-                        if (ctx->depth_ctrls.limit_max_min_to_pd0 && max_pd0_size != min_pd0_size) {
-                            // If PD0 selected multiple depths, don't test depths above the largest or below the smallest block sizes
-                            if (blk_geom->sq_size == max_pd0_size)
-                                s_depth = 0;
-                            if (blk_geom->sq_size == min_pd0_size)
-                                e_depth = 0;
-                        }
-#endif
-                        uint8_t sq_size_idx = 7 - (uint8_t)svt_log2f((uint8_t)blk_geom->sq_size);
-#if OPT_DEPTHS_CTRL
+                        uint8_t sq_size_idx      = 7 - (uint8_t)svt_log2f((uint8_t)blk_geom->sq_size);
                         uint8_t add_parent_depth = 1;
                         uint8_t add_sub_depth    = 1;
                         if (ctx->depth_refinement_ctrls.mode == PD0_DEPTH_ADAPTIVE && (s_depth != 0 || e_depth != 0)) {
@@ -3064,53 +2104,6 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                                     add_sub_depth = 1;
                             }
                         }
-#else
-                        int64_t th_offset = 0;
-
-                        if (ctx->depth_refinement_ctrls.enabled &&
-                            ctx->depth_refinement_ctrls.cost_band_based_modulation && use_cost_band_based_modulation &&
-                            (s_depth != 0 || e_depth != 0)) {
-                            update_pred_th_offset(ctx, blk_geom, &s_depth, &e_depth, &th_offset);
-                        }
-
-                        // Add block indices of upper depth(s)
-                        // Block-based depth refinement using cost is applicable for only [s_depth=-1, e_depth=1]
-                        uint8_t add_parent_depth         = 1;
-                        ctx->parent_to_current_deviation = MIN_SIGNED_VALUE;
-                        if (ctx->depth_refinement_ctrls.enabled && s_depth == -1 &&
-                            // Check avail_blk_flag b/c use default_cost inside, and default_cost may not be
-                            // updated even if cost_avail is true.
-                            ctx->avail_blk_flag[blk_index] &&
-                            blk_geom->sq_size < ((scs->seq_header.sb_size == BLOCK_128X128) ? 128 : 64)) {
-                            add_parent_depth = is_parent_to_current_deviation_small(pcs, ctx, blk_geom, th_offset);
-                        }
-
-                        // Add block indices of lower depth(s)
-                        // Block-based depth refinement using cost is applicable for only [s_depth=-1, e_depth=1]
-                        uint8_t add_sub_depth           = 1;
-                        ctx->child_to_current_deviation = MIN_SIGNED_VALUE;
-                        if (ctx->depth_refinement_ctrls.enabled && e_depth == 1 &&
-                            // Check avail_blk_flag b/c use default_cost inside, and default_cost may not be
-                            // updated even if cost_avail is true.
-                            ctx->avail_blk_flag[blk_index] && blk_geom->sq_size > 4) {
-                            add_sub_depth = is_child_to_current_deviation_small(
-                                pcs, ctx, blk_geom, blk_index, th_offset);
-                        }
-
-                        // Use a maximum of 2 depth per block (PRED+Parent or PRED+Sub)
-                        if (ctx->depth_refinement_ctrls.enabled && ctx->depth_refinement_ctrls.up_to_2_depth) {
-                            if ((s_depth == -1) && add_parent_depth && (e_depth == 1) && add_sub_depth) {
-                                if (ctx->parent_to_current_deviation != MIN_SIGNED_VALUE &&
-                                    ctx->child_to_current_deviation != MIN_SIGNED_VALUE) {
-                                    if (ctx->parent_to_current_deviation <= ctx->child_to_current_deviation) {
-                                        add_sub_depth = 0;
-                                    } else {
-                                        add_parent_depth = 0;
-                                    }
-                                }
-                            }
-                        }
-#endif
                         if (e_depth || s_depth)
                             pred_depth_only = 0;
 
@@ -3228,17 +2221,8 @@ static void exaustive_light_pd1_features(ModeDecisionContext *md_ctx, PicturePar
         if (md_ctx->obmc_ctrls.enabled == 0 && md_ctx->md_allow_intrabc == 0 && md_ctx->hbd_md == 0 &&
             md_ctx->ifs_ctrls.level == IFS_OFF && ppcs->frm_hdr.allow_warped_motion == 0 &&
             md_ctx->inter_intra_comp_ctrls.enabled == 0 && md_ctx->rate_est_ctrls.update_skip_ctx_dc_sign_ctx == 0 &&
-#if TUNE_MR_2
             md_ctx->spatial_sse_ctrls.level == SSSE_OFF && md_ctx->md_sq_me_ctrls.enabled == 0 &&
-#else
-            md_ctx->spatial_sse_ctrls.spatial_sse_full_loop_level == 0 && md_ctx->md_sq_me_ctrls.enabled == 0 &&
-#endif
-            md_ctx->md_pme_ctrls.enabled == 0 && md_ctx->txt_ctrls.enabled == 0 &&
-#if CLN_MDS0
-            md_ctx->unipred3x3_injection == 0 &&
-#else
-            md_ctx->mds0_ctrls.mds0_dist_type != SSD && md_ctx->unipred3x3_injection == 0 &&
-#endif
+            md_ctx->md_pme_ctrls.enabled == 0 && md_ctx->txt_ctrls.enabled == 0 && md_ctx->unipred3x3_injection == 0 &&
             md_ctx->bipred3x3_ctrls.enabled == 0 && md_ctx->inter_comp_ctrls.tot_comp_types == 1 &&
             md_ctx->md_pic_obmc_level == 0 && md_ctx->filter_intra_ctrls.enabled == 0 &&
             md_ctx->new_nearest_near_comb_injection == 0 && md_ctx->md_palette_level == 0 &&
@@ -3259,18 +2243,9 @@ static void exaustive_light_pd1_features(ModeDecisionContext *md_ctx, PicturePar
 /* Light-PD1 classifier used when cost/coeff info is available.  If PD0 is skipped, or the trasnsform is
 not performed, a separate detector (lpd1_detector_skip_pd0) is used. */
 static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *md_ctx, bool rtc_tune) {
-#if !OPT_REF_INFO
-    // the frame size of reference pics are different if enable reference scaling.
-    // sb info can not be reused because super blocks are mismatched, so we set
-    // the reference pic unavailable to avoid using wrong info
-    const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
-    const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
-#endif
-
     for (int pd1_lvl = LPD1_LEVELS - 1; pd1_lvl > REGULAR_PD1; pd1_lvl--) {
         if (md_ctx->lpd1_ctrls.pd1_level == pd1_lvl) {
             if (md_ctx->lpd1_ctrls.use_lpd1_detector[pd1_lvl]) {
-#if OPT_REF_INFO
                 // Use info from ref frames (if available)
                 if (md_ctx->lpd1_ctrls.use_ref_info[pd1_lvl] && pcs->slice_type != I_SLICE) {
                     // Get list 0 refs' info
@@ -3312,29 +2287,6 @@ static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *
                         md_ctx->lpd1_ctrls.nz_coeff_th[pd1_lvl] >>= 1;
                     }
                 }
-#else
-                // Use info from ref frames (if available)
-                if (md_ctx->lpd1_ctrls.use_ref_info[pd1_lvl] && pcs->slice_type != I_SLICE && is_ref_l0_avail) {
-                    EbReferenceObject *ref_obj_l0 =
-                        (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-                    uint8_t l0_was_intra = ref_obj_l0->sb_intra[md_ctx->sb_index], l1_was_intra = 0;
-
-                    if (pcs->slice_type == B_SLICE && is_ref_l1_avail) {
-                        EbReferenceObject *ref_obj_l1 =
-                            (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-                        l1_was_intra = ref_obj_l1->sb_intra[md_ctx->sb_index];
-                    }
-                    if (l0_was_intra && l1_was_intra) {
-                        md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                        continue;
-                    } else if (l0_was_intra || l1_was_intra) {
-                        md_ctx->lpd1_ctrls.cost_th_dist[pd1_lvl] >>= 2;
-                        md_ctx->lpd1_ctrls.cost_th_rate[pd1_lvl] >>= 2;
-                        md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >>= 1;
-                        md_ctx->lpd1_ctrls.nz_coeff_th[pd1_lvl] >>= 1;
-                    }
-                }
-#endif
 
                 /* Use the cost and coeffs of the 64x64 block to avoid looping over all tested blocks to find
                 the selected partitioning. */
@@ -3357,53 +2309,18 @@ static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *
                 }
 
                 // If the best PD0 mode was INTER, check the MV length
-#if CLN_UNUSED_SIGS
                 if (md_ctx->avail_blk_flag[0] == true && is_inter_mode(md_ctx->md_blk_arr_nsq[0].block_mi.mode) &&
-#else
-                if (md_ctx->avail_blk_flag[0] == true && md_ctx->md_blk_arr_nsq[0].prediction_mode_flag == INTER_MODE &&
-#endif
                     md_ctx->lpd1_ctrls.max_mv_length[pd1_lvl] != (uint16_t)~0) {
                     BlkStruct     *blk_ptr       = &md_ctx->md_blk_arr_nsq[0];
                     const uint16_t max_mv_length = md_ctx->lpd1_ctrls.max_mv_length[pd1_lvl];
 
-#if CLN_MBMI_IN_BLKSTRUCT
                     // unipred MVs always stored in idx0
                     if (blk_ptr->block_mi.mv[0].x > max_mv_length || blk_ptr->block_mi.mv[0].y > max_mv_length)
                         md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-#if CLN_UNUSED_SIGS
                     if (has_second_ref(&blk_ptr->block_mi)) {
-#else
-                    if (blk_ptr->inter_pred_direction_index == BI_PRED) {
-#endif
                         if (blk_ptr->block_mi.mv[1].x > max_mv_length || blk_ptr->block_mi.mv[1].y > max_mv_length)
                             md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
                     }
-#else
-#if CLN_MV_IDX
-                    // unipred MVs always stored in idx0
-                    if (blk_ptr->mv[0].x > max_mv_length || blk_ptr->mv[0].y > max_mv_length)
-                        md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                    if (blk_ptr->inter_pred_direction_index == BI_PRED) {
-                        if (blk_ptr->mv[1].x > max_mv_length || blk_ptr->mv[1].y > max_mv_length)
-                            md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                    }
-#else
-                    if (blk_ptr->inter_pred_direction_index == UNI_PRED_LIST_0) {
-                        if (blk_ptr->mv[REF_LIST_0].x > max_mv_length || blk_ptr->mv[REF_LIST_0].y > max_mv_length)
-                            md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                    } else if (blk_ptr->inter_pred_direction_index == UNI_PRED_LIST_1) {
-                        if (blk_ptr->mv[REF_LIST_1].x > max_mv_length || blk_ptr->mv[REF_LIST_1].y > max_mv_length)
-                            md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                    } else //if (pu_ptr->inter_pred_direction_index == BI_PRED)
-                    {
-                        assert(blk_ptr->inter_pred_direction_index == BI_PRED);
-                        if (blk_ptr->mv[REF_LIST_0].x > max_mv_length || blk_ptr->mv[REF_LIST_0].y > max_mv_length)
-                            md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                        if (blk_ptr->mv[REF_LIST_1].x > max_mv_length || blk_ptr->mv[REF_LIST_1].y > max_mv_length)
-                            md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                    }
-#endif
-#endif
                 }
 
                 if (pcs->slice_type != I_SLICE) {
@@ -3448,18 +2365,9 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
     const uint16_t left_sb_index = md_ctx->sb_index - 1;
     const uint16_t top_sb_index  = md_ctx->sb_index - (uint16_t)pic_width_in_sb;
 
-#if !OPT_REF_INFO
-    // the frame size of reference pics are different if enable reference scaling.
-    // sb info can not be reused because super blocks are mismatched, so we set
-    // the reference pic unavailable to avoid using wrong info
-    const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
-    const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
-#endif
-
     for (int pd1_lvl = LPD1_LEVELS - 1; pd1_lvl > REGULAR_PD1; pd1_lvl--) {
         if (md_ctx->lpd1_ctrls.pd1_level == pd1_lvl) {
             if (md_ctx->lpd1_ctrls.use_lpd1_detector[pd1_lvl]) {
-#if OPT_REF_INFO
                 // Use info from ref. frames (if available)
                 if (md_ctx->lpd1_ctrls.use_ref_info[pd1_lvl] && pcs->slice_type != I_SLICE) {
                     // Keep a complexity score for the SB, based on available information.
@@ -3525,66 +2433,6 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
                         continue;
                     }
                 }
-#else
-                // Use info from ref. frames (if available)
-                if (md_ctx->lpd1_ctrls.use_ref_info[pd1_lvl] && pcs->slice_type != I_SLICE && is_ref_l0_avail) {
-                    EbReferenceObject *ref_obj_l0 =
-                        (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-                    uint8_t  l0_was_intra = ref_obj_l0->sb_intra[md_ctx->sb_index], l1_was_intra = 0;
-                    uint8_t  l0_was_skip = ref_obj_l0->sb_skip[md_ctx->sb_index], l1_was_skip = 1;
-                    uint32_t l0_me_64x64_dist   = ref_obj_l0->slice_type != I_SLICE
-                          ? ref_obj_l0->sb_me_64x64_dist[md_ctx->sb_index]
-                          : 0,
-                             l1_me_64x64_dist   = 0;
-                    uint32_t l0_me_8x8_cost_var = ref_obj_l0->slice_type != I_SLICE
-                        ? ref_obj_l0->sb_me_8x8_cost_var[md_ctx->sb_index]
-                        : 0,
-                             l1_me_8x8_cost_var = 0;
-                    if (pcs->slice_type == B_SLICE && is_ref_l1_avail) {
-                        EbReferenceObject *ref_obj_l1 =
-                            (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-                        l1_was_intra       = ref_obj_l1->sb_intra[md_ctx->sb_index];
-                        l1_was_skip        = ref_obj_l1->sb_skip[md_ctx->sb_index];
-                        l1_me_64x64_dist   = ref_obj_l1->slice_type != I_SLICE
-                              ? ref_obj_l1->sb_me_64x64_dist[md_ctx->sb_index]
-                              : 0;
-                        l1_me_8x8_cost_var = ref_obj_l1->slice_type != I_SLICE
-                            ? ref_obj_l1->sb_me_8x8_cost_var[md_ctx->sb_index]
-                            : 0;
-                    }
-
-                    // Keep a complexity score for the SB, based on available information.
-                    // If the score is high, then reduce the lpd1_level to be used
-                    int16_t score = 0;
-
-                    if (l0_was_intra)
-                        score += 5;
-                    if (l1_was_intra)
-                        score += 5;
-
-                    if (!l0_was_skip)
-                        score += 5;
-                    if (!l1_was_skip)
-                        score += 5;
-
-                    if (pcs->slice_type == B_SLICE) {
-                        if (pcs->ppcs->me_64x64_distortion[md_ctx->sb_index] > (l0_me_64x64_dist * 3) ||
-                            pcs->ppcs->me_64x64_distortion[md_ctx->sb_index] > (l1_me_64x64_dist * 3))
-                            score += 10;
-
-                        if (pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] > (l0_me_8x8_cost_var * 3) ||
-                            pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] > (l1_me_8x8_cost_var * 3))
-                            score += 10;
-                    } else {
-                        score += 20;
-                    }
-
-                    if (score >= 20) {
-                        md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                        continue;
-                    }
-                }
-#endif
 
                 // I_SLICE doesn't have ME info
                 if (pcs->slice_type != I_SLICE) {
@@ -3641,13 +2489,6 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
 /* Light-PD0 classifier. */
 static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, uint32_t pic_width_in_sb) {
     Lpd0Ctrls *lpd0_ctrls = &md_ctx->lpd0_ctrls;
-#if !OPT_RTC
-    // the frame size of reference pics are different if enable reference scaling.
-    // sb info can not be reused because super blocks are mismatched, so we set
-    // the reference pic unavailable to avoid using wrong info
-    const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
-    const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
-#endif
 
     for (int pd0_lvl = LPD0_LEVELS - 1; pd0_lvl > REGULAR_PD0; pd0_lvl--) {
         if (lpd0_ctrls->pd0_level == pd0_lvl) {
@@ -3659,7 +2500,6 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
             }
 
             if (lpd0_ctrls->use_lpd0_detector[pd0_lvl]) {
-#if OPT_RTC
                 if (lpd0_ctrls->use_ref_info[pd0_lvl] && pcs->slice_type != I_SLICE) {
                     // Get list 0 refs' info
                     uint8_t l0_was_intra = 0;
@@ -3713,42 +2553,6 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
                         }
                     }
                 }
-#else
-                // Use info from ref. frames (if available)
-                if (lpd0_ctrls->use_ref_info[pd0_lvl] && pcs->slice_type != I_SLICE && is_ref_l0_avail) {
-                    EbReferenceObject *ref_obj_l0 =
-                        (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-                    uint8_t l0_was_intra = ref_obj_l0->sb_intra[md_ctx->sb_index], l1_was_intra = 0;
-                    if (pcs->slice_type == B_SLICE && is_ref_l1_avail) {
-                        EbReferenceObject *ref_obj_l1 =
-                            (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-                        l1_was_intra = ref_obj_l1->sb_intra[md_ctx->sb_index];
-                    }
-
-                    // use_ref_info level 1 (safest)
-                    if (lpd0_ctrls->use_ref_info[pd0_lvl] == 1) {
-                        if ((l0_was_intra || l1_was_intra)) {
-                            lpd0_ctrls->pd0_level = pd0_lvl - 1;
-                            continue;
-                        }
-                    }
-                    // use_ref_info level 2
-                    else if (lpd0_ctrls->use_ref_info[pd0_lvl] == 2) {
-                        if (l0_was_intra && l1_was_intra) {
-                            lpd0_ctrls->pd0_level = pd0_lvl - 1;
-                            continue;
-                        }
-                    }
-                    // use_ref_info level 3 (most aggressive)
-                    else {
-                        if (l0_was_intra && l1_was_intra &&
-                            pcs->ref_intra_percentage > MAX(1, 50 - (pcs->picture_qp >> 1))) {
-                            lpd0_ctrls->pd0_level = pd0_lvl - 1;
-                            continue;
-                        }
-                    }
-                }
-#endif
 
                 // I_SLICE doesn't have ME info
                 if (pcs->slice_type != I_SLICE) {
@@ -3797,7 +2601,6 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
     assert(IMPLIES(pcs->slice_type == I_SLICE, lpd0_ctrls->pd0_level != VERY_LIGHT_PD0));
 }
 
-#if OPT_LD_MEM_3
 static EbErrorType rtime_alloc_palette_search_buffers(ModeDecisionContext *ctx) {
     if (!ctx->palette_buffer)
         EB_MALLOC(ctx->palette_buffer, sizeof(PALETTE_BUFFER));
@@ -3813,7 +2616,6 @@ static EbErrorType rtime_alloc_palette_search_buffers(ModeDecisionContext *ctx) 
 
     return EB_ErrorNone;
 }
-#endif
 /* EncDec (Encode Decode) Kernel */
 /*********************************************************************************
  *
@@ -4018,14 +2820,8 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                         mdc_ptr                     = &(ed_ctx->md_ctx->mdc_sb_array);
                         ed_ctx->sb_index            = sb_index;
                         if (pcs->cdf_ctrl.enabled) {
-                            if (scs->pic_based_rate_est &&
-#if CLN_SEG_COUNTS
-                                scs->enc_dec_segment_row_count_array == 1 &&
+                            if (scs->pic_based_rate_est && scs->enc_dec_segment_row_count_array == 1 &&
                                 scs->enc_dec_segment_col_count_array == 1) {
-#else
-                                scs->enc_dec_segment_row_count_array[pcs->temporal_layer_index] == 1 &&
-                                scs->enc_dec_segment_col_count_array[pcs->temporal_layer_index] == 1) {
-#endif
                                 if (sb_index == 0)
                                     pcs->ec_ctx_array[sb_index] = pcs->md_frame_context;
                                 else
@@ -4084,19 +2880,12 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                         // signals set once per SB (i.e. not per PD)
                         svt_aom_sig_deriv_enc_dec_common(scs, pcs, ed_ctx->md_ctx);
 
-#if OPT_LD_MEM_3
                         if (pcs->ppcs->palette_level) {
                             rtime_alloc_palette_search_buffers(md_ctx);
                             // Status of palette info alloc
                             for (int i = 0; i < scs->max_block_cnt; ++i)
                                 ed_ctx->md_ctx->md_blk_arr_nsq[i].palette_mem = 0;
                         }
-#else
-                        if (pcs->ppcs->palette_level)
-                            // Status of palette info alloc
-                            for (int i = 0; i < scs->max_block_cnt; ++i)
-                                ed_ctx->md_ctx->md_blk_arr_nsq[i].palette_mem = 0;
-#endif
 
                         // Initialize is_subres_safe
                         ed_ctx->md_ctx->is_subres_safe = (uint8_t)~0;
@@ -4108,12 +2897,7 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                                 : 0;
 
                         // If LPD0 is used, a more conservative level can be set for complex SBs
-#if FTR_RTC_MODE
                         const bool rtc_tune = scs->static_config.rtc;
-#else
-                        const bool rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true
-                                                                                                              : false;
-#endif
                         if (!(rtc_tune && !pcs->ppcs->sc_class1) && md_ctx->lpd0_ctrls.pd0_level > REGULAR_PD0) {
                             lpd0_detector(pcs, md_ctx, pic_width_in_sb);
                         }
@@ -4186,12 +2970,8 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                                 lpd1_detector_post_pd0(pcs, md_ctx, rtc_tune);
                             // Force pred depth only for modes where that is not the default
                             if (md_ctx->lpd1_ctrls.pd1_level > REGULAR_PD1) {
-#if OPT_DEPTHS_CTRL
                                 ed_ctx->md_ctx->depth_refinement_ctrls.mode = PD0_DEPTH_PRED_PART_ONLY;
-#else
-                                svt_aom_set_depth_ctrls(pcs, md_ctx, 0);
-#endif
-                                md_ctx->pred_depth_only = 1;
+                                md_ctx->pred_depth_only                     = 1;
                             }
                             // Perform Pred_0 depth refinement - add depth(s) to be considered in the next stage(s)
                             perform_pred_depth_refinement(scs, pcs, ed_ctx->md_ctx, sb_index);

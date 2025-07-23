@@ -27,9 +27,6 @@ const uint32_t disable_dlf_th[DLF_MAX_LVL][INPUT_SIZE_COUNT] = {{0, 0, 0, 0, 0, 
                                                                 {100, 200, 500, 800, 1000, 1000, 1000},
                                                                 {900, 1000, 2000, 3000, 4000, 4000, 4000},
                                                                 {6000, 7000, 8000, 9000, 10000, 10000, 10000}};
-#if !CLN_FUNCS_HEADER
-void svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
-#endif
 /*************************************************************************************************
  * svt_av1_loop_filter_init
  * Initialize the loop filter limits and thresholds
@@ -146,17 +143,10 @@ static INLINE TxSize get_transform_size(const MbModeInfo *const mbmi, const Edge
                                         const struct MacroblockdPlane *plane_ptr, const bool is_skip) {
     assert(mbmi != NULL);
 
-#if CLN_MOVE_FIELDS_MBMI
     TxSize tx_size = (plane == COMPONENT_LUMA)
         ? (is_skip ? tx_depth_to_tx_size[0][mbmi->bsize]
                    : tx_depth_to_tx_size[mbmi->block_mi.tx_depth][mbmi->bsize]) // use max_tx_size
         : av1_get_max_uv_txsize(mbmi->bsize, plane_ptr->subsampling_x, plane_ptr->subsampling_y);
-#else
-    TxSize tx_size = (plane == COMPONENT_LUMA)
-        ? (is_skip ? tx_depth_to_tx_size[0][mbmi->block_mi.bsize]
-                   : tx_depth_to_tx_size[mbmi->block_mi.tx_depth][mbmi->block_mi.bsize]) // use max_tx_size
-        : av1_get_max_uv_txsize(mbmi->block_mi.bsize, plane_ptr->subsampling_x, plane_ptr->subsampling_y);
-#endif
     assert(tx_size < TX_SIZES_ALL);
 
     // since in case of chrominance or non-square transorm need to convert
@@ -193,29 +183,19 @@ static TxSize set_lpf_parameters(Av1DeblockingParameters *const params, const ui
     // and mi_col should map to the bottom/right mi structure, i.e, both mi_row
     // and mi_col should be odd number for chroma plane.
 
-    const int32_t mi_row    = scale_vert | ((y << scale_vert) >> MI_SIZE_LOG2);
-    const int32_t mi_col    = scale_horz | ((x << scale_horz) >> MI_SIZE_LOG2);
-    uint32_t      mi_stride = pcs->mi_stride;
-    const int32_t offset    = mi_row * mi_stride + mi_col;
-#if CLN_REMOVE_MODE_INFO
-    MbModeInfo      **mi   = pcs->mi_grid_base + offset;
-    const MbModeInfo *mbmi = mi[0];
-#else
-    ModeInfo **mi = (pcs->mi_grid_base + offset);
-    //MbModeInfo **mi = cm->mi_grid_visible + mi_row * cm->mi_stride + mi_col;
-    const MbModeInfo *mbmi = &mi[0]->mbmi;
-#endif
+    const int32_t     mi_row    = scale_vert | ((y << scale_vert) >> MI_SIZE_LOG2);
+    const int32_t     mi_col    = scale_horz | ((x << scale_horz) >> MI_SIZE_LOG2);
+    uint32_t          mi_stride = pcs->mi_stride;
+    const int32_t     offset    = mi_row * mi_stride + mi_col;
+    MbModeInfo      **mi        = pcs->mi_grid_base + offset;
+    const MbModeInfo *mbmi      = mi[0];
 
     // If current mbmi is not correctly setup, return an invalid value to stop
     // filtering. One example is that if this tile is not coded, then its mbmi
     // it not set up.
     if (mbmi == NULL)
         return TX_INVALID;
-#if CLN_MOVE_FIELDS_MBMI
-    const uint8_t segment_id = mbmi->segment_id;
-#else
-    const uint8_t segment_id = mbmi->block_mi.segment_id;
-#endif
+    const uint8_t segment_id   = mbmi->segment_id;
     const int32_t curr_skipped = mbmi->block_mi.skip && is_inter_block_no_intrabc(mbmi->block_mi.ref_frame[0]);
     const TxSize  ts           = get_transform_size(mbmi, edge_dir, plane, plane_ptr, curr_skipped);
     assert(ts < TX_SIZES_ALL);
@@ -242,14 +222,7 @@ static TxSize set_lpf_parameters(Av1DeblockingParameters *const params, const ui
 
             uint32_t level = curr_level;
             if (coord) {
-#if CLN_REMOVE_MODE_INFO
                 const MbModeInfo *const mi_prev = *(mi - mode_step);
-#else
-                //const ModeInfo *const mi_prev = *(mi - mode_step);
-                const ModeInfo *const   mi_prev_temp = *(mi - mode_step);
-                const MbModeInfo *const mi_prev      = &mi_prev_temp[0].mbmi;
-                //
-#endif
                 if (mi_prev == NULL)
                     return TX_INVALID;
                 const int32_t pv_skip = mi_prev->block_mi.skip &&
@@ -262,32 +235,17 @@ static TxSize set_lpf_parameters(Av1DeblockingParameters *const params, const ui
                                                                edge_dir,
                                                                plane,
                                                                pcs->ppcs->curr_delta_lf,
-#if CLN_MOVE_FIELDS_MBMI
                                                                mi_prev->segment_id,
-#else
-                                                               mi_prev->block_mi.segment_id,
-#endif
                                                                mi_prev->block_mi.mode,
                                                                mi_prev->block_mi.ref_frame[0]);
                 } else {
-#if CLN_MOVE_FIELDS_MBMI
                     assert(mode < MB_MODE_COUNT);
                     pv_lvl = lfi_n->lvl[plane][mi_prev->segment_id][edge_dir][mi_prev->block_mi.ref_frame[0]]
                                        [mode_lf_lut[mode]];
-#else
-                    assert(mode < 25);
-                    pv_lvl = lfi_n->lvl[plane][mi_prev->block_mi.segment_id][edge_dir][mi_prev->block_mi.ref_frame[0]]
-                                       [mode_lf_lut[mode]];
-#endif
                 }
 
-#if CLN_MOVE_FIELDS_MBMI
                 const BlockSize bsize = get_plane_block_size(
                     mbmi->bsize, plane_ptr->subsampling_x, plane_ptr->subsampling_y);
-#else
-                const BlockSize bsize = get_plane_block_size(
-                    mbmi->block_mi.bsize, plane_ptr->subsampling_x, plane_ptr->subsampling_y);
-#endif
                 assert(bsize < BlockSizeS_ALL);
                 const int32_t prediction_masks = (edge_dir == VERT_EDGE) ? block_size_wide[bsize] - 1
                                                                          : block_size_high[bsize] - 1;
@@ -873,13 +831,9 @@ uint64_t picture_sse_calculations(PictureControlSet *pcs, EbPictureBufferDesc *r
 * Sett the filter levels, compute the filtering sse, and resett the recon buffer.
 * Returns the filtering SSE
 *************************************************************************************************/
-static int64_t try_filter_frame(
-#if !CLN_FUNCS_HEADER
-//const Yv12BufferConfig *sd,
-//Av1Comp *const cpi,
-#endif
-    const EbPictureBufferDesc *sd, EbPictureBufferDesc *temp_lf_recon_buffer, PictureControlSet *pcs,
-    int32_t filt_level, int32_t partial_frame, int32_t plane, int32_t dir) {
+static int64_t try_filter_frame(const EbPictureBufferDesc *sd, EbPictureBufferDesc *temp_lf_recon_buffer,
+                                PictureControlSet *pcs, int32_t filt_level, int32_t partial_frame, int32_t plane,
+                                int32_t dir) {
     (void)sd;
     (void)partial_frame;
     (void)sd;
@@ -921,13 +875,10 @@ static int64_t try_filter_frame(
 * search_filter_level
 * Perform a search for the best filter level for the picture data plane
 *************************************************************************************************/
-static int32_t search_filter_level(
-#if !CLN_FUNCS_HEADER
-//const Yv12BufferConfig *sd, Av1Comp *cpi,
-#endif
-    EbPictureBufferDesc *sd, // source
-    EbPictureBufferDesc *temp_lf_recon_buffer, PictureControlSet *pcs, int32_t partial_frame,
-    const int32_t *last_frame_filter_level, double *best_cost_ret, int32_t plane, int32_t dir) {
+static int32_t search_filter_level(EbPictureBufferDesc *sd, // source
+                                   EbPictureBufferDesc *temp_lf_recon_buffer, PictureControlSet *pcs,
+                                   int32_t partial_frame, const int32_t *last_frame_filter_level, double *best_cost_ret,
+                                   int32_t plane, int32_t dir) {
     const int32_t min_filter_level = 0;
     const int32_t max_filter_level = MAX_LOOP_FILTER; // av1_get_max_filter_level(cpi);
     int32_t       filt_direction   = 0;
@@ -1070,11 +1021,7 @@ static void me_based_dlf_skip(PictureControlSet *pcs, uint16_t prev_dlf_dist_th,
                 uint8_t            ref_idx  = get_ref_frame_idx(rf[0]);
                 EbReferenceObject *ref_obj  = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
 
-#if OPT_REF_INFO
                 if (ref_obj->dlf_dist_dev >= 0 && ref_obj->tmp_layer_idx <= pcs->temporal_layer_index) {
-#else
-                if (ref_obj->dlf_dist_dev >= 0) {
-#endif
                     prev_dlf_dist += ref_obj->dlf_dist_dev;
                     tot_refs++;
                 }

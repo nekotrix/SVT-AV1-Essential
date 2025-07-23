@@ -304,7 +304,6 @@ static const std::vector<EncTestSetting> sframe_settings = {
     {"SframeTest26", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
     {"SframeTest27", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "1"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
 
-#if FTR_SFRAME_RA
     // S-Frame feature in Random Access Mode
     {"SframeRATest1", {{"EncoderMode", "8"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
     {"SframeRATest2", {{"EncoderMode", "8"}, {"SframeInterval", "16"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
@@ -335,7 +334,6 @@ static const std::vector<EncTestSetting> sframe_settings = {
     {"SframeRATest25", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "3"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
     {"SframeRATest26", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "4"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
     {"SframeRATest27", {{"EncoderMode", "10"}, {"SframeInterval", "64"}, {"SframeMode", "2"},  {"PredStructure", "2"}, {"HierarchicalLevels", "5"}, {"ForcedMaximumFrameWidth", "1920"}, {"ForcedMaximumFrameHeight", "1080"}}, default_test_vectors},
-#endif // FTR_SFRAME_RA
 };
 
 /* clang-format on */
@@ -399,11 +397,7 @@ INSTANTIATE_TEST_SUITE_P(SvtAv1, SuperResPresetConformanceTest,
 
 class SwitchFrameConformanceTest : public ConformanceDeathTest {};
 
-#if EN_SFRAME_E2E_TEST
-TEST_P(SwitchFrameConformanceTest, SwitchFrameTest) {
-#else
 TEST_P(SwitchFrameConformanceTest, DISABLED_SwitchFrameTest) {
-#endif  // EN_SFRAME_E2E_TEST
     run_death_test();
 }
 

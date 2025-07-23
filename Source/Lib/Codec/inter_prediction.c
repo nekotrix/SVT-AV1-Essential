@@ -1215,17 +1215,11 @@ void svt_inter_predictor_light_pd0(const uint8_t *src, int32_t src_stride, uint8
             src, src_stride, dst, dst_stride, w, h, 0, 0, 0, 0, conv_params);
     }
 }
-#if CLN_IF_PARAMS
 void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_stride, uint8_t *dst, int32_t dst_stride,
                                    int32_t w, int32_t h, InterpFilters interp_filters, SubpelParams *subpel_params,
                                    ConvolveParams *conv_params, int32_t bd) {
     InterpFilterParams filter_params_x, filter_params_y;
     av1_get_convolve_filter_params(interp_filters, &filter_params_x, &filter_params_y, w, h);
-#else
-void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_stride, uint8_t *dst, int32_t dst_stride,
-                                   int32_t w, int32_t h, InterpFilterParams *filter_x, InterpFilterParams *filter_y,
-                                   SubpelParams *subpel_params, ConvolveParams *conv_params, int32_t bd) {
-#endif
     const int32_t is_scaled = has_scale(subpel_params->xs, subpel_params->ys);
 
     if (bd > EB_EIGHT_BIT) {
@@ -1266,13 +1260,8 @@ void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_st
                                              dst_stride,
                                              w,
                                              h,
-#if CLN_IF_PARAMS
                                              &filter_params_x,
                                              &filter_params_y,
-#else
-                                             filter_x,
-                                             filter_y,
-#endif
                                              subpel_params->subpel_x,
                                              subpel_params->xs,
                                              subpel_params->subpel_y,
@@ -1288,13 +1277,8 @@ void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_st
                                                                                               dst_stride,
                                                                                               w,
                                                                                               h,
-#if CLN_IF_PARAMS
                                                                                               &filter_params_x,
                                                                                               &filter_params_y,
-#else
-                                                                                              filter_x,
-                                                                                              filter_y,
-#endif
                                                                                               sp.subpel_x,
                                                                                               sp.subpel_y,
                                                                                               conv_params,
@@ -1308,13 +1292,8 @@ void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_st
                                       dst_stride,
                                       w,
                                       h,
-#if CLN_IF_PARAMS
                                       &filter_params_x,
                                       &filter_params_y,
-#else
-                                      filter_x,
-                                      filter_y,
-#endif
                                       subpel_params->subpel_x,
                                       subpel_params->xs,
                                       subpel_params->subpel_y,
@@ -1323,7 +1302,6 @@ void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_st
         } else {
             SubpelParams sp = *subpel_params;
             revert_scale_extra_bits(&sp);
-#if CLN_IF_PARAMS
             svt_aom_convolve[sp.subpel_x != 0][sp.subpel_y != 0][conv_params->is_compound](src,
                                                                                            src_stride,
                                                                                            dst,
@@ -1335,10 +1313,6 @@ void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_st
                                                                                            sp.subpel_x,
                                                                                            sp.subpel_y,
                                                                                            conv_params);
-#else
-            svt_aom_convolve[sp.subpel_x != 0][sp.subpel_y != 0][conv_params->is_compound](
-                src, src_stride, dst, dst_stride, w, h, filter_x, filter_y, sp.subpel_x, sp.subpel_y, conv_params);
-#endif
         }
     }
 }
@@ -2178,11 +2152,7 @@ static uint8_t ii_size_scales[BlockSizeS_ALL] = {
 };
 /* clang-format on */
 
-#if OPT_II_MASK_GEN
 static void build_smooth_interintra_mask(uint8_t *mask, int stride, BlockSize plane_bsize, InterIntraMode mode) {
-#else
-void build_smooth_interintra_mask(uint8_t *mask, int stride, BlockSize plane_bsize, InterIntraMode mode) {
-#endif
     const int bw         = block_size_wide[plane_bsize];
     const int bh         = block_size_high[plane_bsize];
     const int size_scale = ii_size_scales[plane_bsize];
@@ -2219,7 +2189,6 @@ void build_smooth_interintra_mask(uint8_t *mask, int stride, BlockSize plane_bsi
     }
 }
 
-#if OPT_II_MASK_GEN
 // ii_masks stores the actual masks. We use smooth_ii_masks to access ii_masks so that we can index the array
 // directly with the bsize (BlockSize that would be passed when doing the prediction) without using the extra memory
 // to store empty, unused masks for the blocksizes that don't allow inter-intra
@@ -2241,7 +2210,6 @@ void init_ii_masks(void) {
 
 // mask stride is block width
 static uint8_t *get_ii_mask(BlockSize bsize, InterIntraMode ii_mode) { return smooth_ii_masks[bsize][ii_mode]; }
-#endif
 
 void svt_aom_combine_interintra_highbd(InterIntraMode mode, uint8_t use_wedge_interintra, uint8_t wedge_index,
                                        uint8_t wedge_sign, BlockSize bsize, BlockSize plane_bsize, uint8_t *comppred8,
@@ -2272,12 +2240,7 @@ void svt_aom_combine_interintra_highbd(InterIntraMode mode, uint8_t use_wedge_in
         return;
     }
 
-#if OPT_II_MASK_GEN
     uint8_t *mask = get_ii_mask(plane_bsize, mode);
-#else
-    uint8_t mask[MAX_SB_SQUARE];
-    build_smooth_interintra_mask(mask, bw, plane_bsize, mode);
-#endif
     svt_aom_highbd_blend_a64_mask(
         comppred8, compstride, intrapred8, intrastride, interpred8, interstride, mask, bw, bw, bh, 0, 0, bd);
 }
@@ -2336,7 +2299,6 @@ void svt_aom_build_masked_compound_no_round(uint8_t *dst, int dst_stride, const 
     }
 }
 
-#if CLN_UNIFY_MV_TYPE
 void svt_aom_find_ref_dv(Mv *ref_dv, const TileInfo *const tile, int mib_size, int mi_row, int mi_col) {
     (void)mi_col;
     if (mi_row - mib_size < tile->mi_row_start) {
@@ -2349,20 +2311,6 @@ void svt_aom_find_ref_dv(Mv *ref_dv, const TileInfo *const tile, int mib_size, i
     ref_dv->y *= 8;
     ref_dv->x *= 8;
 }
-#else
-void svt_aom_find_ref_dv(IntMv *ref_dv, const TileInfo *const tile, int mib_size, int mi_row, int mi_col) {
-    (void)mi_col;
-    if (mi_row - mib_size < tile->mi_row_start) {
-        ref_dv->as_mv.row = 0;
-        ref_dv->as_mv.col = -MI_SIZE * mib_size - INTRABC_DELAY_PIXELS;
-    } else {
-        ref_dv->as_mv.row = -MI_SIZE * mib_size;
-        ref_dv->as_mv.col = 0;
-    }
-    ref_dv->as_mv.row *= 8;
-    ref_dv->as_mv.col *= 8;
-}
-#endif
 int svt_av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, int subsampling_y) {
     assert(is_motion_variation_allowed_bsize(bsize));
 
@@ -2448,12 +2396,7 @@ void svt_aom_combine_interintra(InterIntraMode mode, int8_t use_wedge_interintra
         }
         return;
     } else {
-#if OPT_II_MASK_GEN
         uint8_t *mask = get_ii_mask(plane_bsize, mode);
-#else
-        uint8_t mask[MAX_SB_SQUARE];
-        build_smooth_interintra_mask(mask, bw, plane_bsize, mode);
-#endif
         svt_aom_blend_a64_mask(
             comppred, compstride, intrapred, intrastride, interpred, interstride, mask, bw, bw, bh, 0, 0);
     }

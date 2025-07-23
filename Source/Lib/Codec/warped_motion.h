@@ -78,13 +78,8 @@ void svt_av1_warp_plane(WarpedMotionParams *wm, int use_hbd, int bd, const uint8
                         int width, int height, int stride, uint8_t *pred, int p_col, int p_row, int p_width,
                         int p_height, int p_stride, int subsampling_x, int subsampling_y, ConvolveParams *conv_params);
 
-#if CLN_MV_UNIT
 bool svt_find_projection(int np, int *pts1, int *pts2, BlockSize bsize, const Mv mv, WarpedMotionParams *wm_params,
                          int mi_row, int mi_col);
-#else
-bool svt_find_projection(int np, int *pts1, int *pts2, BlockSize bsize, int mvy, int mvx, WarpedMotionParams *wm_params,
-                         int mi_row, int mi_col);
-#endif
 
 int svt_get_shear_params(WarpedMotionParams *wm);
 
@@ -97,19 +92,7 @@ void svt_warp_plane(WarpedMotionParams *wm, const uint8_t *const ref, int width,
                     int p_col, int p_row, int p_width, int p_height, int p_stride, int subsampling_x, int subsampling_y,
                     ConvolveParams *conv_params);
 
-#if CLN_MV_UNIT
 uint8_t svt_aom_select_samples(const Mv mv, int *pts, int *pts_inref, int len, BlockSize bsize);
-#else
-#if CLN_UNIFY_MV_TYPE
-uint8_t svt_aom_select_samples(Mv *mv, int *pts, int *pts_inref, int len, BlockSize bsize);
-#else
-#if CLN_WM_CTRLS
-uint8_t svt_aom_select_samples(MV *mv, int *pts, int *pts_inref, int len, BlockSize bsize);
-#else
-int svt_aom_select_samples(MV *mv, int *pts, int *pts_inref, int len, BlockSize bsize);
-#endif
-#endif
-#endif
 
 #ifdef __cplusplus
 }

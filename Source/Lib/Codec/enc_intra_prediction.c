@@ -733,13 +733,8 @@ EbErrorType svt_av1_intra_prediction_cl(
 {
     (void) hbd_md;
     EbErrorType return_error = EB_ErrorNone;
-#if CLN_MBMI_IN_CAND
     TxSize  tx_size = ctx->blk_geom->txsize[cand_bf->cand->block_mi.tx_depth]; // Nader - Intra 128x128 not supported
     TxSize  tx_size_chroma = ctx->blk_geom->txsize_uv[cand_bf->cand->block_mi.tx_depth]; //Nader - Intra 128x128 not supported
-#else
-    TxSize  tx_size = ctx->blk_geom->txsize[cand_bf->cand->tx_depth]; // Nader - Intra 128x128 not supported
-    TxSize  tx_size_chroma = ctx->blk_geom->txsize_uv[cand_bf->cand->tx_depth]; //Nader - Intra 128x128 not supported
-#endif
     uint32_t sb_size_luma   = pcs->ppcs->scs->sb_size;
     uint32_t sb_size_chroma   = pcs->ppcs->scs->sb_size/2;
 
@@ -749,27 +744,14 @@ EbErrorType svt_av1_intra_prediction_cl(
         PredictionMode mode;
         // Hsan: plane should be derived @ an earlier stage (e.g. @ the call of perform_fast_loop())
         int32_t start_plane = (ctx->uv_intra_comp_only) ? 1 : 0;
-#if CLN_PRED_SIGS
         int32_t end_plane = ctx->mds_do_chroma ? MAX_MB_PLANE : 1;
-#else
-        int32_t end_plane = ctx->end_plane;
-#endif
         for (int32_t plane = start_plane; plane < end_plane; ++plane) {
-#if CLN_MBMI_IN_CAND
             if (plane)
                 mode = (cand_bf->cand->block_mi.uv_mode == UV_CFL_PRED) ? (PredictionMode)UV_DC_PRED : (PredictionMode)cand_bf->cand->block_mi.uv_mode;
             else
                 mode = cand_bf->cand->block_mi.mode;
             assert(mode < INTRA_MODES);
             int ang = plane ? cand_bf->cand->block_mi.angle_delta[PLANE_TYPE_UV] : cand_bf->cand->block_mi.angle_delta[PLANE_TYPE_Y];
-#else
-            if (plane)
-                mode = (cand_bf->cand->intra_chroma_mode == UV_CFL_PRED) ? (PredictionMode)UV_DC_PRED : (PredictionMode)cand_bf->cand->intra_chroma_mode;
-            else
-                mode = cand_bf->cand->pred_mode;
-            assert(mode < INTRA_MODES);
-             int ang = plane ? cand_bf->cand->angle_delta[PLANE_TYPE_UV] : cand_bf->cand->angle_delta[PLANE_TYPE_Y];
-#endif
              if (ang==0 ){
                     IntraSize intra_size = svt_aom_intra_unit[mode];
                     if (plane == 0) {
@@ -868,19 +850,11 @@ EbErrorType svt_av1_intra_prediction_cl(
                     plane ? ctx->blk_geom->bheight_uv : ctx->blk_geom->bheight,
                     plane ? tx_size_chroma : tx_size,
                     mode,
-#if CLN_MBMI_IN_CAND
                     plane ? cand_bf->cand->block_mi.angle_delta[PLANE_TYPE_UV] : cand_bf->cand->block_mi.angle_delta[PLANE_TYPE_Y],
                     plane==0 ? (cand_bf->cand->palette_info ?
                                     cand_bf->cand->palette_size[0]>0 : 0) : 0,
                     plane==0 ? cand_bf->cand->palette_info : NULL,
                     plane ? FILTER_INTRA_MODES : cand_bf->cand->block_mi.filter_intra_mode,
-#else
-                    plane ? cand_bf->cand->angle_delta[PLANE_TYPE_UV] : cand_bf->cand->angle_delta[PLANE_TYPE_Y],
-                    plane==0 ? (cand_bf->cand->palette_info ?
-                                    cand_bf->cand->palette_size[0]>0 : 0) : 0,
-                    plane==0 ? cand_bf->cand->palette_info : NULL,
-                    plane ? FILTER_INTRA_MODES : cand_bf->cand->filter_intra_mode,
-#endif
                     top_neigh_array + 1,
                     left_neigh_array + 1,
                     cand_bf->pred,
@@ -905,13 +879,8 @@ EbErrorType svt_av1_intra_prediction_cl(
         PredictionMode mode;
         // Hsan: plane should be derived @ an earlier stage (e.g. @ the call of perform_fast_loop())
         int32_t start_plane = (ctx->uv_intra_comp_only) ? 1 : 0;
-#if CLN_PRED_SIGS
         int32_t end_plane = ctx->mds_do_chroma ? MAX_MB_PLANE : 1;
-#else
-        int32_t end_plane =  ctx->end_plane;
-#endif
         for (int32_t plane = start_plane; plane < end_plane; ++plane) {
-#if CLN_MBMI_IN_CAND
             if (plane)
                 mode = (cand_bf->cand->block_mi.uv_mode == UV_CFL_PRED) ? (PredictionMode)UV_DC_PRED : (PredictionMode)cand_bf->cand->block_mi.uv_mode;
             else
@@ -919,15 +888,6 @@ EbErrorType svt_av1_intra_prediction_cl(
 
             assert(mode < INTRA_MODES);
             int ang = plane ? cand_bf->cand->block_mi.angle_delta[PLANE_TYPE_UV] : cand_bf->cand->block_mi.angle_delta[PLANE_TYPE_Y];
-#else
-            if (plane)
-                mode = (cand_bf->cand->intra_chroma_mode == UV_CFL_PRED) ? (PredictionMode)UV_DC_PRED : (PredictionMode)cand_bf->cand->intra_chroma_mode;
-            else
-                mode = cand_bf->cand->pred_mode;
-
-            assert(mode < INTRA_MODES);
-            int ang = plane ? cand_bf->cand->angle_delta[PLANE_TYPE_UV] : cand_bf->cand->angle_delta[PLANE_TYPE_Y];
-#endif
             if (ang == 0) {
 
                 IntraSize intra_size = svt_aom_intra_unit[mode];
@@ -1028,19 +988,11 @@ EbErrorType svt_av1_intra_prediction_cl(
                     plane ? ctx->blk_geom->bheight_uv : ctx->blk_geom->bheight,
                     plane ? tx_size_chroma : tx_size,
                     mode,
-#if CLN_MBMI_IN_CAND
                     plane ? cand_bf->cand->block_mi.angle_delta[PLANE_TYPE_UV] : cand_bf->cand->block_mi.angle_delta[PLANE_TYPE_Y],
                     plane==0 ? (cand_bf->cand->palette_info ?
                                     cand_bf->cand->palette_size[0]>0 : 0) : 0,
                     plane==0 ? cand_bf->cand->palette_info : NULL,
                     plane ? FILTER_INTRA_MODES : cand_bf->cand->block_mi.filter_intra_mode,
-#else
-                    plane ? cand_bf->cand->angle_delta[PLANE_TYPE_UV] : cand_bf->cand->angle_delta[PLANE_TYPE_Y],
-                    plane==0 ? (cand_bf->cand->palette_info ?
-                                    cand_bf->cand->palette_size[0]>0 : 0) : 0,
-                    plane==0 ? cand_bf->cand->palette_info : NULL,
-                    plane ? FILTER_INTRA_MODES : cand_bf->cand->filter_intra_mode,
-#endif
                     top_neigh_array + 1,
                     left_neigh_array + 1,
                     cand_bf->pred,

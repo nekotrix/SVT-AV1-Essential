@@ -23,12 +23,6 @@
 
 void svt_aom_set_tile_info(PictureParentControlSet *pcs);
 
-#if !CLN_FUNCS_HEADER
-void *svt_aom_memalign(size_t align, size_t size);
-void  svt_aom_free(void *memblk);
-void *svt_aom_malloc(size_t size);
-#endif
-
 EbErrorType svt_av1_alloc_restoration_buffers(PictureControlSet *pcs, Av1Common *cm);
 EbErrorType svt_av1_hash_table_create(HashTable *p_hash_table);
 
@@ -184,14 +178,9 @@ static void picture_control_set_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->sb_intra);
     EB_FREE_ARRAY(obj->sb_skip);
     EB_FREE_ARRAY(obj->sb_64x64_mvp);
-#if !OPT_LD_MEM
-    EB_FREE_ARRAY(obj->sb_count_nz_coeffs);
-#endif
     EB_FREE_ARRAY(obj->b64_me_qindex);
-#if OPT_DEPTHS_CTRL
     EB_FREE_ARRAY(obj->sb_min_sq_size);
     EB_FREE_ARRAY(obj->sb_max_sq_size);
-#endif
     EB_DELETE(obj->bitstream_ptr);
     EB_DELETE_PTR_ARRAY(obj->ec_info, tile_cnt);
 
@@ -381,10 +370,8 @@ uint32_t svt_aom_get_out_buffer_size(uint32_t picture_width, uint32_t picture_he
 pcs_update_param: update the parameters in PictureParentControlSet for changing the resolution on the fly
 */
 EbErrorType pcs_update_param(PictureControlSet *pcs) {
-    SequenceControlSet *scs = pcs->scs;
-#if TUNE_RTC_M8
-    const bool rtc_tune = scs->static_config.rtc;
-#endif
+    SequenceControlSet *scs      = pcs->scs;
+    const bool          rtc_tune = scs->static_config.rtc;
     // Max/Min CU Sizes
     const uint32_t max_blk_size = scs->super_block_size;
     // SBs
@@ -412,24 +399,13 @@ EbErrorType pcs_update_param(PictureControlSet *pcs) {
     if ((is_16bit) || (scs->is_16bit_pipeline)) {
         svt_picture_buffer_desc_update(pcs->input_frame16bit, (EbPtr)&coeff_buffer_desc_init_data);
     }
-#if OPT_ALLINTRA_STILLIMAGE_2
     if (svt_aom_get_enable_restoration(scs->static_config.enc_mode,
                                        scs->static_config.enable_restoration_filtering,
                                        scs->input_resolution,
                                        scs->static_config.fast_decode,
                                        scs->static_config.avif,
-#if TUNE_RTC_M8
                                        scs->allintra,
                                        rtc_tune)) {
-#else
-                                       scs->allintra)) {
-#endif
-#else
-    if (svt_aom_get_enable_restoration(scs->static_config.enc_mode,
-                                       scs->static_config.enable_restoration_filtering,
-                                       scs->input_resolution,
-                                       scs->static_config.fast_decode)) {
-#endif
         set_restoration_unit_size(scs->max_input_luma_width, scs->max_input_luma_height, 1, 1, pcs->rst_info);
     }
     pcs->frame_width  = scs->max_input_luma_width;
@@ -458,14 +434,9 @@ EbErrorType pcs_update_param(PictureControlSet *pcs) {
     for (uint16_t mi_h = 0; mi_h < picture_sb_h * (scs->sb_size >> MI_SIZE_LOG2); mi_h++) {
         for (uint16_t mi_w = 0; mi_w < picture_sb_w * (scs->sb_size >> MI_SIZE_LOG2); mi_w++) {
             uint16_t mi_grid_idx = mi_h * mi_stride + mi_w;
-#if FTR_RTC_MI_GRID
-            uint16_t mip_idx = (mi_h >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames)) *
+            uint16_t mip_idx     = (mi_h >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames)) *
                     (mi_stride >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames)) +
                 (mi_w >> (pcs->disallow_4x4_all_frames + pcs->disallow_8x8_all_frames));
-#else
-            uint16_t mip_idx = (mi_h >> pcs->disallow_4x4_all_frames) * (mi_stride >> pcs->disallow_4x4_all_frames) +
-                (mi_w >> pcs->disallow_4x4_all_frames);
-#endif
             pcs->mi_grid_base[mi_grid_idx] = pcs->mip + mip_idx;
         }
     }
@@ -527,24 +498,13 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     object_ptr->temp_lf_recon_pic_16bit           = (EbPictureBufferDesc *)NULL;
     object_ptr->temp_lf_recon_pic                 = (EbPictureBufferDesc *)NULL;
     object_ptr->scaled_input_pic                  = (EbPictureBufferDesc *)NULL;
-#if OPT_ALLINTRA_STILLIMAGE_2
     if (svt_aom_get_enable_restoration(init_data_ptr->enc_mode,
                                        init_data_ptr->static_config.enable_restoration_filtering,
                                        init_data_ptr->input_resolution,
                                        init_data_ptr->static_config.fast_decode,
                                        init_data_ptr->static_config.avif,
-#if TUNE_RTC_M8
                                        init_data_ptr->allintra,
                                        init_data_ptr->rtc_tune)) {
-#else
-                                       init_data_ptr->allintra)) {
-#endif
-#else
-    if (svt_aom_get_enable_restoration(init_data_ptr->enc_mode,
-                                       init_data_ptr->static_config.enable_restoration_filtering,
-                                       init_data_ptr->input_resolution,
-                                       init_data_ptr->static_config.fast_decode)) {
-#endif
         set_restoration_unit_size(
             init_data_ptr->picture_width, init_data_ptr->picture_height, 1, 1, object_ptr->rst_info);
 
@@ -582,10 +542,8 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     EB_MALLOC_ARRAY(object_ptr->sb_skip, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->sb_64x64_mvp, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->b64_me_qindex, object_ptr->init_b64_total_count);
-#if OPT_DEPTHS_CTRL
     EB_MALLOC_ARRAY(object_ptr->sb_min_sq_size, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->sb_max_sq_size, object_ptr->init_b64_total_count);
-#endif
     sb_origin_x = 0;
     sb_origin_y = 0;
 
@@ -599,12 +557,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     object_ptr->sb_total_count_unscaled = all_sb;
     EB_ALLOC_PTR_ARRAY(object_ptr->sb_ptr_array, object_ptr->sb_total_count_unscaled);
 
-#if !OPT_LD_MEM
-    EB_MALLOC_ARRAY(object_ptr->sb_count_nz_coeffs, object_ptr->sb_total_count);
-#endif
-
     for (sb_index = 0; sb_index < all_sb; ++sb_index) {
-#if OPT_RTC_B8
         EB_NEW(object_ptr->sb_ptr_array[sb_index],
                svt_aom_largest_coding_unit_ctor,
                (uint8_t)init_data_ptr->sb_size,
@@ -616,17 +569,6 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                init_data_ptr->static_config.screen_content_mode,
                init_data_ptr->init_max_block_cnt,
                object_ptr);
-#else
-        EB_NEW(object_ptr->sb_ptr_array[sb_index],
-               svt_aom_largest_coding_unit_ctor,
-               (uint8_t)init_data_ptr->sb_size,
-               (uint16_t)(sb_origin_x * max_blk_size),
-               (uint16_t)(sb_origin_y * max_blk_size),
-               (uint16_t)sb_index,
-               init_data_ptr->enc_mode,
-               init_data_ptr->init_max_block_cnt,
-               object_ptr);
-#endif
         // Increment the Order in coding order (Raster Scan Order)
         sb_origin_y = (sb_origin_x == picture_sb_w - 1) ? sb_origin_y + 1 : sb_origin_y;
         sb_origin_x = (sb_origin_x == picture_sb_w - 1) ? 0 : sb_origin_x + 1;
@@ -1118,23 +1060,13 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
             for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
                 if (!disallow_4x4)
                     break;
-#if OPT_LD_MEM
-#if OPT_RTC_B8
                 const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(
                     init_data_ptr->enc_mode, is_base, coeff_lvl, init_data_ptr->static_config.rtc);
-#else
-                const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(init_data_ptr->enc_mode, is_base, coeff_lvl);
-#endif
                 //disallow_4x4 = MIN(disallow_4x4, (nsq_geom_lvl == 0 ? 1 : 0));
                 uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
                 svt_aom_set_nsq_geom_ctrls(NULL, nsq_geom_lvl, &allow_HVA_HVB, &allow_HV4, &min_nsq_bsize);
                 if (min_nsq_bsize < 8 || (min_nsq_bsize < 16 && allow_HV4))
                     disallow_4x4 = false;
-#else
-                disallow_4x4 = MIN(
-                    disallow_4x4,
-                    (svt_aom_get_nsq_geom_level(init_data_ptr->enc_mode, is_base, coeff_lvl) == 0 ? 1 : 0));
-#endif
             }
         }
     }
@@ -1147,15 +1079,12 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     }
 
     object_ptr->disallow_4x4_all_frames = disallow_4x4;
-#if OPT_RTC_B8 // to do
-    bool disallow_8x8 = svt_aom_get_disallow_8x8(
+    bool disallow_8x8                   = svt_aom_get_disallow_8x8(
         init_data_ptr->enc_mode, init_data_ptr->static_config.rtc, init_data_ptr->static_config.screen_content_mode);
     object_ptr->disallow_8x8_all_frames = disallow_8x8;
-#endif
     /* If 4x4 blocks are disallowed for all frames, the the MI blocks only need to be allocated for
     8x8 blocks.  The mi_grid will still be 4x4 so that the data can be accessed the same way throughout
     the code. */
-#if FTR_RTC_MI_GRID
     EB_MALLOC_ARRAY(object_ptr->mip,
                     all_sb * (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4 + disallow_8x8)) *
                         (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4 + disallow_8x8)));
@@ -1174,32 +1103,6 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
             object_ptr->mi_grid_base[mi_grid_idx] = object_ptr->mip + mip_idx;
         }
     }
-#else
-    EB_MALLOC_ARRAY(object_ptr->mip,
-                    all_sb * (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)) *
-                        (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)));
-
-#if CLN_REMOVE_MODE_INFO
-    memset(object_ptr->mip,
-           0,
-           sizeof(MbModeInfo) * all_sb * (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)) *
-               (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)));
-#else
-    memset(object_ptr->mip,
-           0,
-           sizeof(ModeInfo) * all_sb * (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)) *
-               (init_data_ptr->sb_size >> (MI_SIZE_LOG2 + disallow_4x4)));
-#endif
-
-    uint32_t mi_stride = picture_sb_w * (init_data_ptr->sb_size >> MI_SIZE_LOG2);
-    for (uint32_t mi_h = 0; mi_h < picture_sb_h * (init_data_ptr->sb_size >> MI_SIZE_LOG2); mi_h++) {
-        for (uint32_t mi_w = 0; mi_w < picture_sb_w * (init_data_ptr->sb_size >> MI_SIZE_LOG2); mi_w++) {
-            uint32_t mi_grid_idx = mi_h * mi_stride + mi_w;
-            uint32_t mip_idx     = (mi_h >> disallow_4x4) * (mi_stride >> disallow_4x4) + (mi_w >> disallow_4x4);
-            object_ptr->mi_grid_base[mi_grid_idx] = object_ptr->mip + mip_idx;
-        }
-    }
-#endif
     object_ptr->mi_stride = picture_sb_w * (init_data_ptr->sb_size >> MI_SIZE_LOG2);
     if (init_data_ptr->mfmv) {
         //MFMV: map is 8x8 based.
@@ -1256,9 +1159,6 @@ static void picture_parent_control_set_dctor(EbPtr ptr) {
         EB_FREE_PTR_ARRAY(obj->picture_histogram, MAX_NUMBER_OF_REGIONS_IN_WIDTH);
     }
     EB_FREE_ARRAY(obj->rc_me_distortion);
-#if !CLN_GMV_UNUSED_SIGS
-    EB_FREE_ARRAY(obj->stationary_block_present_sb);
-#endif
     EB_FREE_ARRAY(obj->rc_me_allow_gm);
     EB_FREE_ARRAY(obj->me_64x64_distortion);
     EB_FREE_ARRAY(obj->me_32x32_distortion);
@@ -1382,11 +1282,6 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
     object_ptr->b64_total_count      = picture_sb_width * picture_sb_height;
     object_ptr->is_pcs_sb_params     = false;
 
-#if !CLN_REMOVE_DATA_LL
-    object_ptr->data_ll_head_ptr         = (EbLinkedListNode *)NULL;
-    object_ptr->app_out_data_ll_head_ptr = (EbLinkedListNode *)NULL;
-#endif
-
     if (init_data_ptr->calculate_variance) {
         uint8_t block_count;
         if (init_data_ptr->enable_adaptive_quantization == 1 || init_data_ptr->variance_octile)
@@ -1415,9 +1310,6 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
     object_ptr->r0 = 0;
 
     EB_MALLOC_ARRAY(object_ptr->rc_me_distortion, object_ptr->b64_total_count);
-#if !CLN_GMV_UNUSED_SIGS
-    EB_MALLOC_ARRAY(object_ptr->stationary_block_present_sb, object_ptr->b64_total_count);
-#endif
     EB_MALLOC_ARRAY(object_ptr->rc_me_allow_gm, object_ptr->b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->me_64x64_distortion, object_ptr->b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->me_32x32_distortion, object_ptr->b64_total_count);

@@ -13,30 +13,13 @@
 #define AOM_AV1_COMMON_MV_H_
 
 #include "definitions.h"
-#if !CLN_MOVE_MV_FIELDS
-#include "block_structures.h"
-#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#if CLN_MOVE_MV_FIELDS
 #define INVALID_MV 0x80008000
-#endif
-#if CLN_UNIFY_MV_TYPE
 #define CHECK_MV_EQUAL(mv1, mv2) (((mv1).y == (mv2).y) && ((mv1).x == (mv2).x))
-#else
-#define MARK_MV_INVALID(mv) \
-    do { ((int_mv*)(mv))->as_int = INVALID_MV; } while (0);
-#define CHECK_MV_EQUAL(x, y) (((x).row == (y).row) && ((x).col == (y).col))
-
-typedef union int_mv {
-    uint32_t   as_int;
-    MV         as_mv;
-    FULLPEL_MV as_fullmv;
-} int_mv; /* facilitates faster equality tests and copies */
-#endif
 
 // The mv limit for fullpel mvs
 typedef struct {
@@ -54,7 +37,6 @@ typedef struct {
     int row_max;
 } SubpelMvLimits;
 
-#if CLN_MOVE_MV_FIELDS
 #pragma pack(push, 1)
 typedef union Mv {
     struct {
@@ -64,13 +46,6 @@ typedef union Mv {
     uint32_t as_int; /* facilitates faster equality tests and copies */
 } Mv;
 #pragma pack(pop)
-
-#if !CLN_MV_UNIT
-typedef struct MvUnit {
-    Mv      mv[MAX_NUM_OF_REF_PIC_LIST];
-    uint8_t pred_direction;
-} MvUnit;
-#endif
 
 typedef struct CandidateMv {
     Mv      this_mv;
@@ -94,7 +69,6 @@ static INLINE void clamp_mv(Mv* mv, int32_t min_col, int32_t max_col, int32_t mi
     mv->x = (int16_t)clamp(mv->x, min_col, max_col);
     mv->y = (int16_t)clamp(mv->y, min_row, max_row);
 }
-#endif
 #ifdef __cplusplus
 } // extern "C"
 #endif

@@ -380,13 +380,8 @@ static uint32_t blk_end_array[MAX_TPL_MODE]      = {20, 4, 0};
 static TxSize   tx_size_array[MAX_TPL_MODE]      = {TX_16X16, TX_32X32, TX_64X64};
 static TxSize   sub2_tx_size_array[MAX_TPL_MODE] = {TX_16X8, TX_32X16, TX_64X32};
 static TxSize   sub4_tx_size_array[MAX_TPL_MODE] = {TX_16X4, TX_32X8, TX_64X16};
-#if CLN_UNIFY_MV_TYPE
-static void svt_tpl_init_mv_cost_params(MV_COST_PARAMS *mv_cost_params, const Mv *ref_mv, uint8_t base_q_idx,
-                                        uint32_t rdmult, uint8_t hbd_md) {
-#else
-static void svt_tpl_init_mv_cost_params(MV_COST_PARAMS *mv_cost_params, const MV *ref_mv, uint8_t base_q_idx,
-                                        uint32_t rdmult, uint8_t hbd_md) {
-#endif
+static void     svt_tpl_init_mv_cost_params(MV_COST_PARAMS *mv_cost_params, const Mv *ref_mv, uint8_t base_q_idx,
+                                            uint32_t rdmult, uint8_t hbd_md) {
     mv_cost_params->ref_mv        = ref_mv;
     mv_cost_params->full_ref_mv   = get_fullmv_from_mv(ref_mv);
     mv_cost_params->early_exit_th = 0;
@@ -422,11 +417,7 @@ static void init_xd_tpl(MacroBlockD *xd, const Av1Common *const cm, const BlockS
 // best_mv inputs the starting full-pel MV, around which subpel search is to be performed and outputs the new best subpel MV
 static void tpl_subpel_search(SequenceControlSet *scs, PictureParentControlSet *pcs, EbPictureBufferDesc *ref_pic,
                               EbPictureBufferDesc *input_pic, MacroBlockD *xd, const uint32_t mb_origin_x,
-#if CLN_UNIFY_MV_TYPE
                               const uint32_t mb_origin_y, const uint8_t bsize, Mv *best_mv) {
-#else
-                              const uint32_t mb_origin_y, const uint8_t bsize, MV *best_mv) {
-#endif
     const Av1Common *const cm         = pcs->av1_cm;
     const BlockSize        block_size = bsize == 8 ? BLOCK_8X8
                : bsize == 16                       ? BLOCK_16X16
@@ -434,14 +425,8 @@ static void tpl_subpel_search(SequenceControlSet *scs, PictureParentControlSet *
                                                    : BLOCK_64X64;
 
     // ref_mv is used to calculate the cost of the motion vector
-#if CLN_UNIFY_MV_TYPE
     Mv ref_mv;
     ref_mv.as_int = 0;
-#else
-    MV ref_mv;
-    ref_mv.col = 0;
-    ref_mv.row = 0;
-#endif
     // High level params
     SUBPEL_MOTION_SEARCH_PARAMS  ms_params_struct;
     SUBPEL_MOTION_SEARCH_PARAMS *ms_params = &ms_params_struct;
@@ -497,22 +482,13 @@ static void tpl_subpel_search(SequenceControlSet *scs, PictureParentControlSet *
     src_struct.stride = input_pic->stride_y;
     ms_buffers->src   = &src_struct;
 
-#if CLN_UNIFY_MV_TYPE
     Mv best_sp_mv;
     // TODO: should use get_fullmv_from_mv instead of shifting
     best_sp_mv.x       = best_mv->x >> 3;
     best_sp_mv.y       = best_mv->y >> 3;
     Mv subpel_start_mv = get_mv_from_fullmv(&best_sp_mv);
 
-    int not_used = 0;
-#else
-    int_mv best_sp_mv;
-    best_sp_mv.as_mv.col = best_mv->col >> 3;
-    best_sp_mv.as_mv.row = best_mv->row >> 3;
-
-    int not_used        = 0;
-    MV  subpel_start_mv = get_mv_from_fullmv(&best_sp_mv.as_fullmv);
-#endif
+    int          not_used = 0;
     unsigned int pred_sse = 0; // not used
 
     // Assign which subpel search method to use - always use pruned because tested regular and did not give any gain
@@ -528,11 +504,7 @@ static void tpl_subpel_search(SequenceControlSet *scs, PictureParentControlSet *
                          (const struct AV1Common *const)cm,
                          ms_params,
                          subpel_start_mv,
-#if CLN_UNIFY_MV_TYPE
                          &best_sp_mv,
-#else
-                         &best_sp_mv.as_mv,
-#endif
                          &not_used,
                          &pred_sse,
                          qIndex,
@@ -540,12 +512,7 @@ static void tpl_subpel_search(SequenceControlSet *scs, PictureParentControlSet *
                          early_exit);
 
     // Update the MV to the new best
-#if CLN_UNIFY_MV_TYPE
     best_mv->as_int = best_sp_mv.as_int;
-#else
-    best_mv->col = best_sp_mv.as_mv.col;
-    best_mv->row = best_sp_mv.as_mv.row;
-#endif
 }
 
 static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceControlSet *scs,
@@ -626,11 +593,7 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
         uint64_t best_ref_poc = 0;
         int32_t  best_rf_idx  = -1;
 
-#if CLN_UNIFY_MV_TYPE
         Mv final_best_mv = {{0, 0}};
-#else
-        MV final_best_mv = {0, 0};
-#endif
 
         uint8_t best_mode = DC_PRED;
         memset(&tpl_stats, 0, sizeof(tpl_stats));
@@ -819,13 +782,8 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                 const uint32_t rf_idx    = svt_get_ref_frame_type(list_index, ref_pic_index) - 1;
                 const uint32_t me_offset = me_mb_offset * pcs->pa_me_data->max_refs +
                     (list_index ? pcs->pa_me_data->max_l0 : 0) + ref_pic_index;
-#if CLN_REMOVE_MVCAND
                 x_curr_mv = (me_results->me_mv_array[me_offset].x) << 3;
                 y_curr_mv = (me_results->me_mv_array[me_offset].y) << 3;
-#else
-                x_curr_mv = (me_results->me_mv_array[me_offset].x_mv) << 3;
-                y_curr_mv = (me_results->me_mv_array[me_offset].y_mv) << 3;
-#endif
 
                 ref_pic_ptr =
                     (EbPictureBufferDesc *)pcs->tpl_data.tpl_ref_ds_ptr_array[list_index][ref_pic_index].picture_ptr;
@@ -842,30 +800,17 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                 if (((int)mb_origin_y + (int)bsize + (y_curr_mv >> 3)) > (TPL_PADY + (int)ref_pic_ptr->max_height - 1))
                     y_curr_mv = ((TPL_PADY + ref_pic_ptr->max_height - 1) - (mb_origin_y + bsize)) << 3;
 
-#if CLN_UNIFY_MV_TYPE
                 Mv best_mv = {{x_curr_mv, y_curr_mv}};
-#else
-                MV best_mv = {y_curr_mv, x_curr_mv};
-#endif
 
                 if (pcs->tpl_ctrls.subpel_depth != FULL_PEL) {
                     tpl_subpel_search(scs, pcs, ref_pic_ptr, input_pic, &xd, mb_origin_x, mb_origin_y, bsize, &best_mv);
                 }
-#if CLN_UNIFY_MV_TYPE
                 int32_t ref_origin_index = (int32_t)ref_pic_ptr->org_x + ((int32_t)mb_origin_x + (best_mv.x / 8)) +
                     ((int32_t)mb_origin_y + (best_mv.y / 8) + (int32_t)ref_pic_ptr->org_y) *
                         (int32_t)ref_pic_ptr->stride_y;
 
                 // Need to do compensation for subpel, otherwise, can get pixels directly from REF picture
                 uint8_t subpel_mv = (best_mv.x & 0x7 || best_mv.y & 0x7);
-#else
-                int32_t ref_origin_index = (int32_t)ref_pic_ptr->org_x + ((int32_t)mb_origin_x + (best_mv.col / 8)) +
-                    ((int32_t)mb_origin_y + (best_mv.row / 8) + (int32_t)ref_pic_ptr->org_y) *
-                        (int32_t)ref_pic_ptr->stride_y;
-
-                // Need to do compensation for subpel, otherwise, can get pixels directly from REF picture
-                uint8_t subpel_mv = (best_mv.col & 0x7 || best_mv.row & 0x7);
-#endif
                 if (subpel_mv) {
                     DECLARE_ALIGNED(32, uint16_t, tmp_dst_y[MAX_TPL_SAMPLES_PER_BLOCK]);
                     DECLARE_ALIGNED(16, uint8_t, seg_mask[2 * MAX_TPL_SAMPLES_PER_BLOCK]);
@@ -899,13 +844,9 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                         8, // Always use 8bit for now
                         0, // use_intrabc,
                         0,
-#if CLN_MERGE_WM_INTER_PRED
                         false, // is16bit
                         false, // is_wm
                         NULL); // wm_params
-#else
-                        0); // is16bit
-#endif
                 }
 
                 if (pcs->tpl_ctrls.use_sad_in_src_search) {
@@ -953,21 +894,12 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                     uint32_t list_index    = best_rf_idx < 4 ? 0 : 1;
                     uint32_t ref_pic_index = best_rf_idx >= 4 ? (best_rf_idx - 4) : best_rf_idx;
                     ref_pic_ptr            = pcs->tpl_data.tpl_ref_ds_ptr_array[list_index][ref_pic_index].picture_ptr;
-#if CLN_UNIFY_MV_TYPE
                     int32_t ref_origin_index = (int32_t)ref_pic_ptr->org_x +
                         ((int32_t)mb_origin_x + (final_best_mv.x >> 3)) +
                         ((int32_t)mb_origin_y + (final_best_mv.y >> 3) + (int32_t)ref_pic_ptr->org_y) *
                             (int32_t)ref_pic_ptr->stride_y;
                     // Need to do compensation for subpel, otherwise, can get pixels directly from REF picture
                     uint8_t subpel_mv = (final_best_mv.x & 0x7 || final_best_mv.y & 0x7);
-#else
-                    int32_t ref_origin_index = (int32_t)ref_pic_ptr->org_x +
-                        ((int32_t)mb_origin_x + (final_best_mv.col >> 3)) +
-                        ((int32_t)mb_origin_y + (final_best_mv.row >> 3) + (int32_t)ref_pic_ptr->org_y) *
-                            (int32_t)ref_pic_ptr->stride_y;
-                    // Need to do compensation for subpel, otherwise, can get pixels directly from REF picture
-                    uint8_t subpel_mv = (final_best_mv.col & 0x7 || final_best_mv.row & 0x7);
-#endif
                     if (subpel_mv) {
                         DECLARE_ALIGNED(32, uint16_t, tmp_dst_y[MAX_TPL_SAMPLES_PER_BLOCK]);
                         DECLARE_ALIGNED(16, uint8_t, seg_mask[2 * MAX_TPL_SAMPLES_PER_BLOCK]);
@@ -1001,13 +933,9 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                             8, // Always use 8bit for now
                             0, // use_intrabc,
                             0,
-#if CLN_MERGE_WM_INTER_PRED
                             false, // is16bit
                             false, // is_wm
                             NULL); // wm_params
-#else
-                            0); // is16bit
-#endif
                     }
 
                     svt_aom_subtract_block(size >> tpl_ctrls->subsample_tx,
@@ -1067,21 +995,12 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                 ref_pic_ptr =
                     (EbPictureBufferDesc *)pcs->tpl_data.tpl_ref_ds_ptr_array[list_index][ref_pic_index].picture_ptr;
 
-#if CLN_UNIFY_MV_TYPE
             int32_t ref_origin_index = (int32_t)ref_pic_ptr->org_x + ((int32_t)mb_origin_x + (final_best_mv.x >> 3)) +
                 ((int32_t)mb_origin_y + (final_best_mv.y >> 3) + (int32_t)ref_pic_ptr->org_y) *
                     (int32_t)ref_pic_ptr->stride_y;
             // REDO COMPENSATION WITH REF PIC (INSTEAD OF REF BEING THE SRC PIC)
             // Need to do compensation for subpel, otherwise, can get pixels directly from RECON picture
             uint8_t subpel_mv = (final_best_mv.x & 0x7 || final_best_mv.y & 0x7);
-#else
-            int32_t ref_origin_index = (int32_t)ref_pic_ptr->org_x + ((int32_t)mb_origin_x + (final_best_mv.col >> 3)) +
-                ((int32_t)mb_origin_y + (final_best_mv.row >> 3) + (int32_t)ref_pic_ptr->org_y) *
-                    (int32_t)ref_pic_ptr->stride_y;
-            // REDO COMPENSATION WITH REF PIC (INSTEAD OF REF BEING THE SRC PIC)
-            // Need to do compensation for subpel, otherwise, can get pixels directly from RECON picture
-            uint8_t subpel_mv = (final_best_mv.col & 0x7 || final_best_mv.row & 0x7);
-#endif
             if (subpel_mv) {
                 DECLARE_ALIGNED(32, uint16_t, tmp_dst_y[MAX_TPL_SAMPLES_PER_BLOCK]);
                 DECLARE_ALIGNED(16, uint8_t, seg_mask[2 * MAX_TPL_SAMPLES_PER_BLOCK]);
@@ -1115,13 +1034,9 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                     8, // Always 8bit,
                     0, // use_intrabc,
                     0,
-#if CLN_MERGE_WM_INTER_PRED
                     false, // is16bit
                     false, // is_wm
                     NULL); // wm_params
-#else
-                    0); // is16bit
-#endif
             } else {
                 for (int i = 0; i < (int)size; ++i)
                     EB_MEMCPY(dst_buffer + i * dst_buffer_stride,
@@ -1573,15 +1488,9 @@ static AOM_INLINE void tpl_model_update_b(PictureParentControlSet *ref_pcs_ptr, 
     Av1Common *ref_cm = ref_pcs_ptr->av1_cm;
     TplStats  *ref_tpl_stats_ptr;
 
-#if CLN_UNIFY_MV_TYPE
     const Mv  full_mv     = get_fullmv_from_mv(&tpl_stats_ptr->mv);
     const int ref_pos_row = mi_row * MI_SIZE + full_mv.y;
     const int ref_pos_col = mi_col * MI_SIZE + full_mv.x;
-#else
-    const FULLPEL_MV full_mv     = get_fullmv_from_mv(&tpl_stats_ptr->mv);
-    const int        ref_pos_row = mi_row * MI_SIZE + full_mv.row;
-    const int        ref_pos_col = mi_col * MI_SIZE + full_mv.col;
-#endif
 
     const int bw         = 4 << mi_size_wide_log2[bsize];
     const int bh         = 4 << mi_size_high_log2[bsize];
@@ -1791,15 +1700,10 @@ static void init_tpl_segments(SequenceControlSet *scs, PictureParentControlSet *
         uint32_t enc_dec_seg_col_cnt = scs->tpl_segment_col_count_array;
         uint32_t enc_dec_seg_row_cnt = scs->tpl_segment_row_count_array;
 
-        const int tile_cols = pcs->av1_cm->tiles_info.tile_cols;
-        const int tile_rows = pcs->av1_cm->tiles_info.tile_rows;
-#if CLN_SEG_COUNTS
-        uint8_t tile_group_cols = MIN(tile_cols, scs->tile_group_col_count_array);
-        uint8_t tile_group_rows = MIN(tile_rows, scs->tile_group_row_count_array);
-#else
-        uint8_t tile_group_cols = MIN(tile_cols, scs->tile_group_col_count_array[pcs->temporal_layer_index]);
-        uint8_t tile_group_rows = MIN(tile_rows, scs->tile_group_row_count_array[pcs->temporal_layer_index]);
-#endif
+        const int tile_cols       = pcs->av1_cm->tiles_info.tile_cols;
+        const int tile_rows       = pcs->av1_cm->tiles_info.tile_rows;
+        uint8_t   tile_group_cols = MIN(tile_cols, scs->tile_group_col_count_array);
+        uint8_t   tile_group_rows = MIN(tile_rows, scs->tile_group_row_count_array);
 
         // Valid when only one tile used
         // TPL segments + tiles (not working)
@@ -2041,11 +1945,7 @@ static EbErrorType tpl_mc_flow(EncodeContext *enc_ctx, SequenceControlSet *scs, 
     bool release_pa_ref = (scs->static_config.superres_mode <= SUPERRES_RANDOM) ? true : false;
     for (uint32_t i = 0; i < pcs->tpl_group_size; i++) {
         if (release_pa_ref) {
-#if CLN_REMOVE_P_SLICE
             if (svt_aom_is_incomp_mg_frame(pcs->tpl_group[i])) {
-#else
-            if (pcs->tpl_group[i]->slice_type == P_SLICE) {
-#endif
                 if (pcs->tpl_group[i]->ext_mg_id == pcs->ext_mg_id + 1)
                     svt_aom_release_pa_reference_objects(scs, pcs->tpl_group[i]);
             } else {

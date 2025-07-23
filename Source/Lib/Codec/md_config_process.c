@@ -31,11 +31,7 @@
 #include "global_me.h"
 #include "aom_dsp_rtcd.h"
 #define MAX_MESH_SPEED 5 // Max speed setting for mesh motion method
-#if CLN_FUNCS_HEADER
 static const MeshPattern good_quality_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
-#else
-static MeshPattern good_quality_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
-#endif
     {{64, 8}, {28, 4}, {15, 1}, {7, 1}},
     {{64, 8}, {28, 4}, {15, 1}, {7, 1}},
     {{64, 8}, {14, 2}, {7, 1}, {7, 1}},
@@ -45,11 +41,7 @@ static MeshPattern good_quality_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP]
 };
 // TODO: These settings are pretty relaxed, tune them for
 // each speed setting
-#if CLN_FUNCS_HEADER
 static const MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
-#else
-static MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
-#endif
     {{256, 1}, {256, 1}, {0, 0}, {0, 0}},
     {{256, 1}, {256, 1}, {0, 0}, {0, 0}},
     {{64, 1}, {64, 1}, {0, 0}, {0, 0}},
@@ -57,11 +49,7 @@ static MeshPattern intrabc_mesh_patterns[MAX_MESH_SPEED + 1][MAX_MESH_STEP] = {
     {{64, 4}, {16, 1}, {0, 0}, {0, 0}},
     {{64, 4}, {16, 1}, {0, 0}, {0, 0}},
 };
-#if CLN_FUNCS_HEADER
 static void set_global_motion_field(PictureControlSet *pcs) {
-#else
-void set_global_motion_field(PictureControlSet *pcs) {
-#endif
     // Init Global Motion Vector
     uint8_t frame_index;
     for (frame_index = INTRA_FRAME; frame_index <= ALTREF_FRAME; ++frame_index) {
@@ -203,11 +191,7 @@ static INLINE int aom_get_qmlevel(int qindex, int first, int last) {
     return first + (qindex * (last + 1 - first)) / QINDEX_RANGE;
 }
 
-#if CLN_FUNCS_HEADER
 static void svt_av1_qm_init(PictureParentControlSet *pcs) {
-#else
-void svt_av1_qm_init(PictureParentControlSet *pcs) {
-#endif
     const uint8_t num_planes = 3; // MAX_MB_PLANE;// NM- No monochroma
     uint8_t       q, c, t;
 #if CONFIG_ENABLE_QUANT_MATRIX
@@ -274,11 +258,7 @@ void svt_av1_qm_init(PictureParentControlSet *pcs) {
 /******************************************************
 * Set the reference sg ep for a given picture
 ******************************************************/
-#if CLN_FUNCS_HEADER
 static void set_reference_sg_ep(PictureControlSet *pcs) {
-#else
-void set_reference_sg_ep(PictureControlSet *pcs) {
-#endif
     Av1Common         *cm = pcs->ppcs->av1_cm;
     EbReferenceObject *ref_obj_l0, *ref_obj_l1;
     memset(cm->sg_frame_ep_cnt, 0, SGRPROJ_PARAMS * sizeof(int32_t));
@@ -291,7 +271,6 @@ void set_reference_sg_ep(PictureControlSet *pcs) {
         cm->sg_ref_frame_ep[1] = -1;
         break;
     case B_SLICE:
-#if CLN_REMOVE_P_SLICE
         ref_obj_l0             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
         cm->sg_ref_frame_ep[0] = ref_obj_l0->sg_frame_ep;
         if (pcs->ppcs->ref_list1_count_try) {
@@ -301,18 +280,6 @@ void set_reference_sg_ep(PictureControlSet *pcs) {
             cm->sg_ref_frame_ep[1] = 0;
         }
         break;
-#else
-        ref_obj_l0             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-        ref_obj_l1             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-        cm->sg_ref_frame_ep[0] = ref_obj_l0->sg_frame_ep;
-        cm->sg_ref_frame_ep[1] = ref_obj_l1->sg_frame_ep;
-        break;
-    case P_SLICE:
-        ref_obj_l0             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-        cm->sg_ref_frame_ep[0] = ref_obj_l0->sg_frame_ep;
-        cm->sg_ref_frame_ep[1] = 0;
-        break;
-#endif
     default: SVT_LOG("SG: Not supported picture type"); break;
     }
 }
@@ -332,7 +299,6 @@ void mode_decision_configuration_init_qp_update(PictureControlSet *pcs) {
 
     md_rate_est_ctx = pcs->md_rate_est_ctx;
 
-#if OPT_LD_MEM_2
     if (frm_hdr->primary_ref_frame != PRIMARY_REF_NONE) {
         const uint8_t primary_ref_frame = frm_hdr->primary_ref_frame;
         // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
@@ -341,14 +307,7 @@ void mode_decision_configuration_init_qp_update(PictureControlSet *pcs) {
         const uint8_t      ref_idx  = get_ref_frame_idx(primary_ref_frame + 1);
         EbReferenceObject *ref      = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
         memcpy(&pcs->md_frame_context, &ref->frame_context, sizeof(FRAME_CONTEXT));
-    }
-#else
-    if (pcs->ppcs->frm_hdr.primary_ref_frame != PRIMARY_REF_NONE)
-        memcpy(&pcs->md_frame_context,
-               &pcs->ref_frame_context[pcs->ppcs->frm_hdr.primary_ref_frame],
-               sizeof(FRAME_CONTEXT));
-#endif
-    else {
+    } else {
         svt_av1_default_coef_probs(&pcs->md_frame_context, frm_hdr->quantization_params.base_q_idx);
         svt_aom_init_mode_probs(&pcs->md_frame_context);
     }
@@ -416,7 +375,6 @@ static INLINE int get_relative_dist(const OrderHintInfo *oh, int a, int b) {
     return diff;
 }
 
-#if CLN_UNIFY_MV_TYPE
 static int get_block_position(Av1Common *cm, int *mi_r, int *mi_c, int blk_row, int blk_col, Mv mv, int sign_bias) {
     const int base_blk_row = (blk_row >> 3) << 3;
     const int base_blk_col = (blk_col >> 3) << 3;
@@ -424,15 +382,6 @@ static int get_block_position(Av1Common *cm, int *mi_r, int *mi_c, int blk_row, 
     const int row_offset = (mv.y >= 0) ? (mv.y >> (4 + MI_SIZE_LOG2)) : -((-mv.y) >> (4 + MI_SIZE_LOG2));
 
     const int col_offset = (mv.x >= 0) ? (mv.x >> (4 + MI_SIZE_LOG2)) : -((-mv.x) >> (4 + MI_SIZE_LOG2));
-#else
-static int get_block_position(Av1Common *cm, int *mi_r, int *mi_c, int blk_row, int blk_col, MV mv, int sign_bias) {
-    const int base_blk_row = (blk_row >> 3) << 3;
-    const int base_blk_col = (blk_col >> 3) << 3;
-
-    const int row_offset = (mv.row >= 0) ? (mv.row >> (4 + MI_SIZE_LOG2)) : -((-mv.row) >> (4 + MI_SIZE_LOG2));
-
-    const int col_offset = (mv.col >= 0) ? (mv.col >> (4 + MI_SIZE_LOG2)) : -((-mv.col) >> (4 + MI_SIZE_LOG2));
-#endif
 
     const int row = (sign_bias == 1) ? blk_row - row_offset : blk_row + row_offset;
     const int col = (sign_bias == 1) ? blk_col - col_offset : blk_col + col_offset;
@@ -498,8 +447,7 @@ static int motion_field_projection(Av1Common *cm, PictureControlSet *pcs, MvRefe
     for (int blk_row = 0; blk_row < mvs_rows; ++blk_row) {
         for (int blk_col = 0; blk_col < mvs_cols; ++blk_col) {
             const MV_REF *const mv_ref = &mv_ref_base[blk_row * mvs_cols + blk_col];
-#if CLN_UNIFY_MV_TYPE
-            Mv fwd_mv = mv_ref->mv;
+            Mv                  fwd_mv = mv_ref->mv;
 
             if (mv_ref->ref_frame > INTRA_FRAME) {
                 Mv        this_mv;
@@ -521,31 +469,6 @@ static int motion_field_projection(Av1Common *cm, PictureControlSet *pcs, MvRefe
                     tpl_mvs_base[mi_offset].ref_frame_offset = ref_frame_offset;
                 }
             }
-#else
-            MV fwd_mv = mv_ref->mv.as_mv;
-
-            if (mv_ref->ref_frame > INTRA_FRAME) {
-                MV        this_mv;
-                int       mi_r, mi_c;
-                const int ref_frame_offset = ref_offset[mv_ref->ref_frame];
-
-                int pos_valid = abs(ref_frame_offset) <= MAX_FRAME_DISTANCE && ref_frame_offset > 0 &&
-                    abs(start_to_current_frame_offset) <= MAX_FRAME_DISTANCE;
-
-                if (pos_valid) {
-                    get_mv_projection(&this_mv, fwd_mv, start_to_current_frame_offset, ref_frame_offset);
-                    pos_valid = get_block_position(cm, &mi_r, &mi_c, blk_row, blk_col, this_mv, dir >> 1);
-                }
-
-                if (pos_valid) {
-                    const int mi_offset = mi_r * (cm->mi_stride >> 1) + mi_c;
-
-                    tpl_mvs_base[mi_offset].mfmv0.as_mv.row  = fwd_mv.row;
-                    tpl_mvs_base[mi_offset].mfmv0.as_mv.col  = fwd_mv.col;
-                    tpl_mvs_base[mi_offset].ref_frame_offset = ref_frame_offset;
-                }
-            }
-#endif
         }
     }
 
@@ -638,18 +561,8 @@ static void set_frame_coeff_lvl(PictureControlSet *pcs) {
                                                        input_pic->height,
                                                        input_pic->stride_y);
 
-    noise_level_fp16 = svt_aom_noise_log1p_fp16(noise_level_fp16);
-#if CLN_AVG_ME_DISTORTION
-    uint64_t cmplx = pcs->ppcs->norm_me_dist / MAX(1, pcs->scs->static_config.qp);
-#else
-    uint64_t tot_me_8x8_dist = 0;
-    for (uint32_t b64_idx = 0; b64_idx < pcs->b64_total_count; b64_idx++) {
-        tot_me_8x8_dist += pcs->ppcs->me_8x8_distortion[b64_idx];
-    }
-    uint64_t me_8x8_dist_per_sb = tot_me_8x8_dist / pcs->b64_total_count;
-
-    uint64_t cmplx = me_8x8_dist_per_sb / MAX(1, pcs->scs->static_config.qp);
-#endif
+    noise_level_fp16             = svt_aom_noise_log1p_fp16(noise_level_fp16);
+    uint64_t cmplx               = pcs->ppcs->norm_me_dist / MAX(1, pcs->scs->static_config.qp);
     uint64_t coeff_vlow_level_th = COEFF_LVL_TH_0;
     uint64_t coeff_low_level_th  = COEFF_LVL_TH_1;
     uint64_t coeff_high_level_th = COEFF_LVL_TH_2;
@@ -687,7 +600,6 @@ static void set_frame_coeff_lvl(PictureControlSet *pcs) {
     }
 }
 
-#if FIX_CDEF_RACE_COND
 // When the relevant speed features are used, update the filters to use/test for CDEF
 // based on the ref pics' filters.
 static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
@@ -706,11 +618,7 @@ static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
                 if (ref_obj_l0->ref_cdef_strengths[0][fs] > highest_sg)
                     highest_sg = ref_obj_l0->ref_cdef_strengths[0][fs];
             }
-#if CLN_REMOVE_P_SLICE
             if (pcs->slice_type == B_SLICE && pcs->ppcs->ref_list1_count_try) {
-#else
-            if (pcs->slice_type == B_SLICE) {
-#endif
                 // Add filter from list1
                 EbReferenceObject *ref_obj_l1 = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
                 for (uint8_t fs = 0; fs < ref_obj_l1->ref_cdef_strengths_num; fs++) {
@@ -720,11 +628,7 @@ static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
                         highest_sg = ref_obj_l1->ref_cdef_strengths[0][fs];
                 }
             }
-#if FTR_RTC_MODE
             if (rtc_tune) {
-#else
-            if (pcs->rtc_tune) {
-#endif
                 int8_t mid_filter     = MIN(63, MAX(0, MAX(lowest_sg, highest_sg)));
                 cdef_ctrls->pred_y_f  = mid_filter;
                 cdef_ctrls->pred_uv_f = 0;
@@ -751,11 +655,7 @@ static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
                 (cdef_ctrls->first_pass_fs_num)++;
             }
 
-#if CLN_REMOVE_P_SLICE
             if (pcs->slice_type == B_SLICE && pcs->ppcs->ref_list1_count_try) {
-#else
-            if (pcs->slice_type == B_SLICE) {
-#endif
                 EbReferenceObject *ref_obj_l1 = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
                 // Add filter from list1, if different from default filter and list0 filter
                 if (ref_obj_l1->ref_cdef_strengths[0][0] != cdef_ctrls->default_first_pass_fs[0] &&
@@ -833,11 +733,7 @@ static bool me_based_cdef_skip(PictureControlSet *pcs) {
                 uint8_t            ref_idx  = get_ref_frame_idx(rf[0]);
                 EbReferenceObject *ref_obj  = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
 
-#if OPT_REF_INFO
                 if (ref_obj->cdef_dist_dev >= 0 && ref_obj->tmp_layer_idx <= pcs->temporal_layer_index) {
-#else
-                if (ref_obj->cdef_dist_dev >= 0) {
-#endif
                     prev_cdef_dist += ref_obj->cdef_dist_dev;
                     tot_refs++;
                 }
@@ -853,7 +749,6 @@ static bool me_based_cdef_skip(PictureControlSet *pcs) {
     }
     return false;
 }
-#endif
 
 /* Mode Decision Configuration Kernel */
 
@@ -919,28 +814,9 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             pcs->avg_me_clpx = avg_me_clpx / pcs->ppcs->b64_total_count;
         }
         pcs->coeff_lvl = INVALID_LVL;
-#if OPT_SHUT_COEFF_LVL
         if (!scs->static_config.rtc && pcs->slice_type != I_SLICE && !pcs->ppcs->sc_class1) {
-#else
-        if (pcs->slice_type != I_SLICE && !pcs->ppcs->sc_class1) {
-#endif
             set_frame_coeff_lvl(pcs);
         }
-#if !CLN_ME_DIST_MOD
-        // Whether or not to modulate the level of prediction tools using me-distortion
-        if (pcs->slice_type == I_SLICE) {
-            pcs->me_dist_mod = 0;
-        } else {
-#if TUNE_M3
-            if (pcs->enc_mode <= ENC_M2)
-#else
-            if (pcs->enc_mode <= ENC_M3)
-#endif
-                pcs->me_dist_mod = 0;
-            else
-                pcs->me_dist_mod = 1;
-        }
-#endif
         // -------
         // Scale references if resolution of the reference is different than the input
         // super-res reference frame size is same as original input size, only check current frame scaled flag;
@@ -956,21 +832,10 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                 ref_object->mi_cols           = pcs->ppcs->aligned_width >> MI_SIZE_LOG2;
             }
 
-#if CLN_GET_REF_PIC
             svt_aom_scale_rec_references(pcs, pcs->ppcs->enhanced_pic);
-#else
-            svt_aom_scale_rec_references(pcs, pcs->ppcs->enhanced_pic, pcs->hbd_md);
-#endif
         }
 
         FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
-#if !FIX_CDEF_RACE_COND
-#if FTR_RTC_MODE
-        const bool rtc_tune = scs->static_config.rtc;
-#else
-        pcs->rtc_tune = (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) ? true : false;
-#endif
-#endif
         // Mode Decision Configuration Kernel Signal(s) derivation
         svt_aom_sig_deriv_mode_decision_config(scs, pcs);
 
@@ -995,7 +860,6 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         context_ptr->qp_index = (uint8_t)frm_hdr->quantization_params.base_q_idx;
 
         md_rate_est_ctx = pcs->md_rate_est_ctx;
-#if OPT_LD_MEM_2
         if (frm_hdr->primary_ref_frame != PRIMARY_REF_NONE) {
             const uint8_t primary_ref_frame = frm_hdr->primary_ref_frame;
             // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
@@ -1004,14 +868,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             const uint8_t      ref_idx  = get_ref_frame_idx(primary_ref_frame + 1);
             EbReferenceObject *ref      = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
             memcpy(&pcs->md_frame_context, &ref->frame_context, sizeof(FRAME_CONTEXT));
-        }
-#else
-        if (pcs->ppcs->frm_hdr.primary_ref_frame != PRIMARY_REF_NONE)
-            memcpy(&pcs->md_frame_context,
-                   &pcs->ref_frame_context[pcs->ppcs->frm_hdr.primary_ref_frame],
-                   sizeof(FRAME_CONTEXT));
-#endif
-        else {
+        } else {
             svt_av1_default_coef_probs(&pcs->md_frame_context, frm_hdr->quantization_params.base_q_idx);
             svt_aom_init_mode_probs(&pcs->md_frame_context);
         }
@@ -1101,7 +958,6 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
 
             svt_av1_init3smotion_compensation(&pcs->ss_cfg, pcs->ppcs->enhanced_pic->stride_y);
         }
-#if FIX_CDEF_RACE_COND
         CdefSearchControls *cdef_ctrls = &pcs->ppcs->cdef_search_ctrls;
         const uint8_t       skip_perc  = pcs->ref_skip_percentage;
         if (me_based_cdef_skip(pcs) || (skip_perc > 75 && cdef_ctrls->use_skip_detector) ||
@@ -1110,123 +966,6 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         else if (cdef_ctrls->use_reference_cdef_fs || cdef_ctrls->search_best_ref_fs) {
             update_cdef_filters_on_ref_info(pcs);
         }
-#else
-        CdefSearchControls *cdef_ctrls = &pcs->ppcs->cdef_search_ctrls;
-        uint8_t             skip_perc  = pcs->ref_skip_percentage;
-        if ((skip_perc > 75 && cdef_ctrls->use_skip_detector) ||
-            (scs->vq_ctrls.sharpness_ctrls.cdef && pcs->ppcs->is_noise_level))
-            pcs->ppcs->cdef_level = 0;
-        else {
-            if (cdef_ctrls->use_reference_cdef_fs) {
-                if (pcs->slice_type != I_SLICE) {
-                    uint8_t lowest_sg  = TOTAL_STRENGTHS - 1;
-                    uint8_t highest_sg = 0;
-                    // Determine luma pred filter
-                    // Add filter from list0
-                    EbReferenceObject *ref_obj_l0 =
-                        (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-                    for (uint8_t fs = 0; fs < ref_obj_l0->ref_cdef_strengths_num; fs++) {
-                        if (ref_obj_l0->ref_cdef_strengths[0][fs] < lowest_sg)
-                            lowest_sg = ref_obj_l0->ref_cdef_strengths[0][fs];
-                        if (ref_obj_l0->ref_cdef_strengths[0][fs] > highest_sg)
-                            highest_sg = ref_obj_l0->ref_cdef_strengths[0][fs];
-                    }
-#if CLN_REMOVE_P_SLICE
-                    if (pcs->slice_type == B_SLICE && pcs->ppcs->ref_list1_count_try) {
-#else
-                    if (pcs->slice_type == B_SLICE) {
-#endif
-                        // Add filter from list1
-                        EbReferenceObject *ref_obj_l1 =
-                            (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-                        for (uint8_t fs = 0; fs < ref_obj_l1->ref_cdef_strengths_num; fs++) {
-                            if (ref_obj_l1->ref_cdef_strengths[0][fs] < lowest_sg)
-                                lowest_sg = ref_obj_l1->ref_cdef_strengths[0][fs];
-                            if (ref_obj_l1->ref_cdef_strengths[0][fs] > highest_sg)
-                                highest_sg = ref_obj_l1->ref_cdef_strengths[0][fs];
-                        }
-                    }
-#if FTR_RTC_MODE
-                    if (rtc_tune) {
-#else
-                    if (pcs->rtc_tune) {
-#endif
-                        int8_t mid_filter     = MIN(63, MAX(0, MAX(lowest_sg, highest_sg)));
-                        cdef_ctrls->pred_y_f  = mid_filter;
-                        cdef_ctrls->pred_uv_f = 0;
-                    } else {
-                        int8_t mid_filter     = MIN(63, MAX(0, (lowest_sg + highest_sg) / 2));
-                        cdef_ctrls->pred_y_f  = mid_filter;
-                        cdef_ctrls->pred_uv_f = 0;
-                    }
-                    cdef_ctrls->first_pass_fs_num          = 0;
-                    cdef_ctrls->default_second_pass_fs_num = 0;
-                    // Set cdef to off if pred is.
-                    if ((cdef_ctrls->pred_y_f == 0) && (cdef_ctrls->pred_uv_f == 0))
-                        pcs->ppcs->cdef_level = 0;
-                }
-            } else if (cdef_ctrls->search_best_ref_fs) {
-                if (pcs->slice_type != I_SLICE) {
-                    cdef_ctrls->first_pass_fs_num          = 1;
-                    cdef_ctrls->default_second_pass_fs_num = 0;
-
-                    // Add filter from list0, if not the same as the default
-                    EbReferenceObject *ref_obj_l0 =
-                        (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-                    if (ref_obj_l0->ref_cdef_strengths[0][0] != cdef_ctrls->default_first_pass_fs[0]) {
-                        cdef_ctrls->default_first_pass_fs[1] = ref_obj_l0->ref_cdef_strengths[0][0];
-                        (cdef_ctrls->first_pass_fs_num)++;
-                    }
-
-#if CLN_REMOVE_P_SLICE
-                    if (pcs->slice_type == B_SLICE && pcs->ppcs->ref_list1_count_try) {
-#else
-                    if (pcs->slice_type == B_SLICE) {
-#endif
-                        EbReferenceObject *ref_obj_l1 =
-                            (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-                        // Add filter from list1, if different from default filter and list0 filter
-                        if (ref_obj_l1->ref_cdef_strengths[0][0] != cdef_ctrls->default_first_pass_fs[0] &&
-                            ref_obj_l1->ref_cdef_strengths[0][0] !=
-                                cdef_ctrls->default_first_pass_fs[cdef_ctrls->first_pass_fs_num - 1]) {
-                            cdef_ctrls->default_first_pass_fs[cdef_ctrls->first_pass_fs_num] =
-                                ref_obj_l1->ref_cdef_strengths[0][0];
-                            (cdef_ctrls->first_pass_fs_num)++;
-
-                            // Chroma
-                            if (ref_obj_l0->ref_cdef_strengths[1][0] == cdef_ctrls->default_first_pass_fs_uv[0] &&
-                                ref_obj_l1->ref_cdef_strengths[1][0] == cdef_ctrls->default_first_pass_fs_uv[0]) {
-                                cdef_ctrls->default_first_pass_fs_uv[0] = -1;
-                                cdef_ctrls->default_first_pass_fs_uv[1] = -1;
-                            }
-                        }
-                        // if list0/list1 filters are the same, skip CDEF search, and use the filter selected by the ref frames
-                        else if (cdef_ctrls->first_pass_fs_num == 2 &&
-                                 ref_obj_l0->ref_cdef_strengths[0][0] == ref_obj_l1->ref_cdef_strengths[0][0]) {
-                            cdef_ctrls->use_reference_cdef_fs = 1;
-
-                            cdef_ctrls->pred_y_f  = ref_obj_l0->ref_cdef_strengths[0][0];
-                            cdef_ctrls->pred_uv_f = MIN(
-                                63,
-                                MAX(0,
-                                    (ref_obj_l0->ref_cdef_strengths[1][0] + ref_obj_l1->ref_cdef_strengths[1][0]) / 2));
-                            cdef_ctrls->first_pass_fs_num          = 0;
-                            cdef_ctrls->default_second_pass_fs_num = 0;
-                        }
-                    }
-                    // Chroma
-                    else if (ref_obj_l0->ref_cdef_strengths[1][0] == cdef_ctrls->default_first_pass_fs_uv[0]) {
-                        cdef_ctrls->default_first_pass_fs_uv[0] = -1;
-                        cdef_ctrls->default_first_pass_fs_uv[1] = -1;
-                    }
-
-                    // Set cdef to off if pred luma is.
-                    if (cdef_ctrls->first_pass_fs_num == 1)
-                        pcs->ppcs->cdef_level = 0;
-                }
-            }
-        }
-#endif
 
         if (scs->vq_ctrls.sharpness_ctrls.restoration && pcs->ppcs->is_noise_level) {
             pcs->ppcs->enable_restoration = 0;
@@ -1238,20 +977,9 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             // Loop through each segment to determine if it is coded losslessly
             for (int segment_id = 0; segment_id < MAX_SEGMENTS; segment_id++) {
                 pcs->lossless[segment_id] = 0;
-#if FIX_ZERO_QDELTAS_LOSSLESS
                 pcs->lossless[segment_id] =
                     ((int16_t)((int16_t)pcs->ppcs->frm_hdr.quantization_params.base_q_idx +
                                pcs->ppcs->frm_hdr.segmentation_params.feature_data[segment_id][SEG_LVL_ALT_Q])) <= 0;
-#else
-                pcs->lossless[segment_id] =
-                    ((int16_t)((int16_t)pcs->ppcs->frm_hdr.quantization_params.base_q_idx +
-                               pcs->ppcs->frm_hdr.segmentation_params.feature_data[segment_id][SEG_LVL_ALT_Q])) <= 0 &&
-                    !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_Y] &&
-                    !frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_U] &&
-                    !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_U] &&
-                    !frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_V] &&
-                    !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_V];
-#endif
                 has_lossless_segment = has_lossless_segment || pcs->lossless[segment_id];
             }
             // Derive coded_lossless; true if the frame is fully lossless at the coded resolution.
@@ -1267,32 +995,21 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                 frm_hdr->segmentation_params.segmentation_enabled = 0;
         }
         if (!frm_hdr->segmentation_params.segmentation_enabled) {
-#if FIX_ZERO_QDELTAS_LOSSLESS
             frm_hdr->coded_lossless = pcs->lossless[0] = !pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
-#else
-            frm_hdr->coded_lossless = pcs->lossless[0] = !pcs->ppcs->frm_hdr.quantization_params.base_q_idx &&
-                !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_Y] &&
-                !frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_U] &&
-                !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_U] &&
-                !frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_V] &&
-                !frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_V];
-#endif
         }
 
         // Derive all_lossless; if super-resolution is used, such a frame will still NOT be lossless at the upscaled resolution.
         frm_hdr->all_lossless = frm_hdr->coded_lossless && av1_superres_unscaled(&(pcs->ppcs->av1_cm->frm_size));
 
         if (frm_hdr->coded_lossless) {
-            pcs->ppcs->frm_hdr.delta_q_params.delta_q_present = 0;
-#if FIX_ZERO_QDELTAS_LOSSLESS
+            pcs->ppcs->frm_hdr.delta_q_params.delta_q_present    = 0;
             frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_Y] = 0;
             frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_U] = 0;
             frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_U] = 0;
             frm_hdr->quantization_params.delta_q_ac[AOM_PLANE_V] = 0;
             frm_hdr->quantization_params.delta_q_dc[AOM_PLANE_V] = 0;
-#endif
-            pcs->ppcs->dlf_ctrls.enabled = 0;
-            pcs->ppcs->cdef_level        = 0;
+            pcs->ppcs->dlf_ctrls.enabled                         = 0;
+            pcs->ppcs->cdef_level                                = 0;
         }
 
         if (frm_hdr->all_lossless)

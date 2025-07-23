@@ -20,7 +20,6 @@
 #define DEBUG_MEMORY_USAGE
 #endif
 
-#if CLN_FUNCS_HEADER
 //-------aom memory stuff
 
 #define ADDRESS_STORAGE_SIZE sizeof(size_t)
@@ -88,7 +87,6 @@ static inline void* svt_aom_memset16(void* dest, int32_t val, size_t length) {
     return dest;
 }
 //-------------------------------
-#endif
 #if EXCLUDE_HASH
 #define svt_print_alloc_fail(a, b) svt_print_alloc_fail_impl(a, 0)
 #else

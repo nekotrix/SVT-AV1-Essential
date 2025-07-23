@@ -285,42 +285,20 @@ static void correspondence_from_mvs(PictureParentControlSet* pcs, Correspondence
 
                     if (me_cand->direction == 0) {
                         if (list_idx == me_cand->ref0_list && ref_idx == me_cand->ref_idx_l0) {
-#if CLN_REMOVE_MVCAND
                             mv.as_int = pcs->pa_me_data->me_results[b64_idx]
                                             ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
                                                           (list_idx ? pcs->pa_me_data->max_l0 : 0) + ref_idx]
                                             .as_int;
-#else
-                            mv.x = pcs->pa_me_data->me_results[b64_idx]
-                                       ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
-                                                     (list_idx ? pcs->pa_me_data->max_l0 : 0) + ref_idx]
-                                       .x_mv;
-                            mv.y = pcs->pa_me_data->me_results[b64_idx]
-                                       ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
-                                                     (list_idx ? pcs->pa_me_data->max_l0 : 0) + ref_idx]
-                                       .y_mv;
-#endif
                             found_mv = true;
                             break;
                         }
                     }
                     if (me_cand->direction == 1) {
                         if (list_idx == me_cand->ref1_list && ref_idx == me_cand->ref_idx_l1) {
-#if CLN_REMOVE_MVCAND
                             mv.as_int = pcs->pa_me_data->me_results[b64_idx]
                                             ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
                                                           (list_idx ? pcs->pa_me_data->max_l0 : 0) + ref_idx]
                                             .as_int;
-#else
-                            mv.x = pcs->pa_me_data->me_results[b64_idx]
-                                       ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
-                                                     (list_idx ? pcs->pa_me_data->max_l0 : 0) + ref_idx]
-                                       .x_mv;
-                            mv.y = pcs->pa_me_data->me_results[b64_idx]
-                                       ->me_mv_array[n_idx * pcs->pa_me_data->max_refs +
-                                                     (list_idx ? pcs->pa_me_data->max_l0 : 0) + ref_idx]
-                                       .y_mv;
-#endif
                             found_mv = true;
                             break;
                         }

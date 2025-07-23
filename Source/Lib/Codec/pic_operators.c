@@ -19,9 +19,7 @@
 #include "common_dsp_rtcd.h"
 #include "utility.h"
 #include "intra_prediction.h"
-#if CLN_FUNCS_HEADER
 #include "aom_dsp_rtcd.h"
-#endif
 
 /*********************************
  * Picture Copy
@@ -579,7 +577,6 @@ void svt_aom_pad_input_picture_16bit(
     return;
 }
 
-#if CLN_FUNCS_HEADER
 void svt_aom_pack_2d_pic(EbPictureBufferDesc *input_picture, uint16_t *packed[3]) {
     const uint32_t input_luma_offset = ((input_picture->org_y) * input_picture->stride_y) + (input_picture->org_x);
     const uint32_t input_bit_inc_luma_offset = ((input_picture->org_y) * input_picture->stride_bit_inc_y >> 2) +
@@ -755,4 +752,3 @@ void svt_aom_unpack_highbd_pic(uint16_t *buffer_highbd[3], EbPictureBufferDesc *
                                   (width + ss_x) >> ss_x,
                                   (height + ss_y) >> ss_y);
 }
-#endif

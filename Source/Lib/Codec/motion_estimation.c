@@ -1241,7 +1241,6 @@ uint16_t svt_aom_get_scaled_picture_distance(uint16_t dist) {
     uint8_t round_up = ((dist % 8) == 0) ? 0 : 1;
     return ((dist * 5) / 8) + round_up;
 }
-#if FIX_SC_SETTINGS
 static const double search_area_multipliers[3][5] = {
      { 1.0, 1.0, 3.0, 4.0, 5.0 }, /* boost=1 */
      { 1.0, 1.0, 2.5, 3.5, 4.5 }, /* boost=2 */
@@ -1266,7 +1265,6 @@ static void apply_me_sa_boost(int16_t *width, int16_t *height, int hme_sad, int 
     *width  = (int16_t)(*width  * mult);
     *height = (int16_t)(*height * mult);
 }
-#endif
 /*******************************************
  *   performs integer search motion estimation for
  all avaiable references frames
@@ -1333,33 +1331,12 @@ static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
                 if (ABS(y_search_center) > me_ctx->mv_based_sa_adj.mv_size_th)
                     search_area_height *= me_ctx->mv_based_sa_adj.sa_multiplier;
             }
-#if OPT_SC_ME
-#if OPT_SC_ME_2
             if (me_ctx->sc_class_me_boost &&
-#else
-            if (me_ctx->sc_class4_me_boost &&
-#endif
                 (pcs->ahd_error == (uint32_t)~0 || // Use ahd_error only when it is derived
                  pcs->ahd_error < ((((20 * pcs->enhanced_pic->width * pcs->enhanced_pic->height) / 128)) * (uint32_t) (INPUT_SIZE_COUNT - pcs->input_resolution)))) { // Only if there are low temporal variations between frames
-#if FIX_SC_SETTINGS
                 const uint64_t hme_sad = me_ctx->search_results[list_index][ref_pic_index].hme_sad;
                 apply_me_sa_boost(&search_area_width, &search_area_height, hme_sad, me_ctx->sc_class_me_boost);
-#else
-                if (me_ctx->search_results[list_index][ref_pic_index].hme_sad > (4 * 64 * 64)) {
-                    search_area_width *= 4;
-                    search_area_height *= 4;
-                }
-                else if (me_ctx->search_results[list_index][ref_pic_index].hme_sad > (3 * 64 * 64)) {
-                    search_area_width *= 3;
-                    search_area_height *= 3;
-                }
-                else if (me_ctx->search_results[list_index][ref_pic_index].hme_sad > (2 * 64 * 64)) {
-                    search_area_width *= 2;
-                    search_area_height *= 2;
-                }
-#endif
             }
-#endif
             // Constrain x_ME to be a multiple of 8 (round up)
             // Update ME search reagion size based on hme-data
             search_area_width = (MAX(1, (search_area_width / me_ctx->reduce_me_sr_divisor[list_index][ref_pic_index])) + 7) & ~0x07;
@@ -1698,13 +1675,8 @@ static void prehme_core(MeContext *me_ctx, int16_t org_x, int16_t org_y, uint32_
         sb_width,
         /* results */
         &prehme_data->sad,
-#if CLN_UNIFY_MV_TYPE
         &prehme_data->best_mv.x,
         &prehme_data->best_mv.y,
-#else
-        &prehme_data->best_mv.as_mv.col,
-        &prehme_data->best_mv.as_mv.row,
-#endif
         sixteenth_ref_pic_ptr->stride_y,
         me_ctx->prehme_ctrl.skip_search_line,
         search_area_width,
@@ -1713,17 +1685,10 @@ static void prehme_core(MeContext *me_ctx, int16_t org_x, int16_t org_y, uint32_
     prehme_data->sad = (me_ctx->hme_search_method == FULL_SAD_SEARCH)
         ? prehme_data->sad
         : prehme_data->sad * 2; // Multiply by 2 because considered only ever other line
-#if CLN_UNIFY_MV_TYPE
     prehme_data->best_mv.x += x_search_area_origin;
     prehme_data->best_mv.x *= 4; // Multiply by 4 because operating on 1/4 resolution
     prehme_data->best_mv.y += y_search_area_origin;
     prehme_data->best_mv.y *= 4; // Multiply by 4 because operating on 1/4 resolution
-#else
-    prehme_data->best_mv.as_mv.col += x_search_area_origin;
-    prehme_data->best_mv.as_mv.col *= 4; // Multiply by 4 because operating on 1/4 resolution
-    prehme_data->best_mv.as_mv.row += y_search_area_origin;
-    prehme_data->best_mv.as_mv.row *= 4; // Multiply by 4 because operating on 1/4 resolution
-#endif
     prehme_data->valid = 1;
     return;
 }
@@ -1758,19 +1723,13 @@ static bool check_prehme_early_exit(MeContext *me_ctx, uint8_t list_i, uint8_t r
 
     if (me_ctx->me_early_exit_th) {
         if (me_ctx->zz_sad[list_i][ref_i] < me_ctx->me_early_exit_th) {
-#if CLN_UNIFY_MV_TYPE
             prehme_data->best_mv.as_int = 0;
-#else
-            prehme_data->best_mv.as_mv.col = 0;
-            prehme_data->best_mv.as_mv.row = 0;
-#endif
             prehme_data->sad               = 0;
             prehme_data->valid             = 1;
             return 1;
         }
     }
 
-#if CLN_UNIFY_MV_TYPE
     if (me_ctx->prehme_ctrl.l1_early_exit) {
         if (list_i == 1 && me_ctx->prehme_data[0][ref_i][sr_i].valid  &&
             ((me_ctx->prehme_data[0][ref_i][sr_i].sad < (32 * 32)) ||
@@ -1783,20 +1742,6 @@ static bool check_prehme_early_exit(MeContext *me_ctx, uint8_t list_i, uint8_t r
             return 1;
         }
     }
-#else
-    if (me_ctx->prehme_ctrl.l1_early_exit) {
-        if (list_i == 1 && me_ctx->prehme_data[0][ref_i][sr_i].valid  &&
-            ((me_ctx->prehme_data[0][ref_i][sr_i].sad < (32 * 32)) ||
-             ((ABS(me_ctx->prehme_data[0][ref_i][sr_i].best_mv.as_mv.col) < 16) &&
-              (ABS(me_ctx->prehme_data[0][ref_i][sr_i].best_mv.as_mv.row) < 16)))) {
-            prehme_data->best_mv.as_mv.col = -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.as_mv.col;
-            prehme_data->best_mv.as_mv.row = -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.as_mv.row;
-            prehme_data->sad               = me_ctx->prehme_data[0][ref_i][sr_i].sad;
-            prehme_data->valid             = 1;
-            return 1;
-        }
-    }
-#endif
     return 0;
 }
 
@@ -1825,12 +1770,7 @@ static void prehme_b64(PictureParentControlSet *pcs, uint32_t org_x, uint32_t or
 
                     SearchInfo *prehme_data = &me_ctx->prehme_data[list_i][ref_i][sr_i];
                     if (!me_ctx->search_results[list_i][ref_i].do_ref) {
-#if CLN_UNIFY_MV_TYPE
                         prehme_data->best_mv.as_int = 0;
-#else
-                        prehme_data->best_mv.as_mv.col = 0;
-                        prehme_data->best_mv.as_mv.row = 0;
-#endif
                         prehme_data->sad = MAX_U32;
                         continue;
                     }
@@ -1855,17 +1795,10 @@ static void prehme_b64(PictureParentControlSet *pcs, uint32_t org_x, uint32_t or
             } else {
                 // PW: Does this account for base pictures
                 for (uint8_t sr_i = 0; sr_i < SEARCH_REGION_COUNT; sr_i++) {
-#if CLN_UNIFY_MV_TYPE
                     me_ctx->prehme_data[1][ref_i][sr_i].best_mv.x =
                         -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.x;
                     me_ctx->prehme_data[1][ref_i][sr_i].best_mv.y =
                         -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.y;
-#else
-                    me_ctx->prehme_data[1][ref_i][sr_i].best_mv.as_mv.col =
-                        -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.as_mv.col;
-                    me_ctx->prehme_data[1][ref_i][sr_i].best_mv.as_mv.row =
-                        -me_ctx->prehme_data[0][ref_i][sr_i].best_mv.as_mv.row;
-#endif
                     me_ctx->prehme_data[1][ref_i][sr_i].sad = me_ctx->prehme_data[0][ref_i][sr_i].sad;
                 }
             }
@@ -2036,17 +1969,10 @@ static void hme_level0_b64(PictureParentControlSet *pcs, uint32_t org_x, uint32_
                     if (me_ctx->prehme_data[list_index][ref_pic_index][sr_i].sad < (me_ctx->prev_me_stage_based_exit_th >> 4)) {
                         for (uint32_t sr_idx_y = 0; sr_idx_y < me_ctx->num_hme_sa_h; sr_idx_y++) {
                             for (uint32_t sr_idx_x = 0; sr_idx_x < me_ctx->num_hme_sa_w; sr_idx_x++) {
-#if CLN_UNIFY_MV_TYPE
                                 me_ctx->x_hme_level0_search_center[list_index][ref_pic_index][sr_idx_x]
                                     [sr_idx_y] = me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.x;
                                 me_ctx->y_hme_level0_search_center[list_index][ref_pic_index][sr_idx_x]
                                     [sr_idx_y] = me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.y;
-#else
-                                me_ctx->x_hme_level0_search_center[list_index][ref_pic_index][sr_idx_x]
-                                    [sr_idx_y] = me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.as_mv.col;
-                                me_ctx->y_hme_level0_search_center[list_index][ref_pic_index][sr_idx_x]
-                                    [sr_idx_y] = me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.as_mv.row;
-#endif
                                 me_ctx->hme_level0_sad[list_index][ref_pic_index][sr_idx_x][sr_idx_y] = me_ctx->prehme_data[list_index][ref_pic_index][sr_i].sad;
                             }
                         }
@@ -2121,7 +2047,6 @@ static void hme_level0_b64(PictureParentControlSet *pcs, uint32_t org_x, uint32_
                         me_ctx->hme_level0_sad[list_index][ref_pic_index][sr_w_max][sr_h_max] =
                             me_ctx->prehme_data[list_index][ref_pic_index][sr_i].sad;
 
-#if CLN_UNIFY_MV_TYPE
                         me_ctx->x_hme_level0_search_center[list_index][ref_pic_index][sr_w_max]
                                                        [sr_h_max] =
                             me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.x;
@@ -2129,15 +2054,6 @@ static void hme_level0_b64(PictureParentControlSet *pcs, uint32_t org_x, uint32_
                         me_ctx->y_hme_level0_search_center[list_index][ref_pic_index][sr_w_max]
                                                        [sr_h_max] =
                             me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.y;
-#else
-                        me_ctx->x_hme_level0_search_center[list_index][ref_pic_index][sr_w_max]
-                                                       [sr_h_max] =
-                            me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.as_mv.col;
-
-                        me_ctx->y_hme_level0_search_center[list_index][ref_pic_index][sr_w_max]
-                                                       [sr_h_max] =
-                            me_ctx->prehme_data[list_index][ref_pic_index][sr_i].best_mv.as_mv.row;
-#endif
                     }
                 }
             }
@@ -2952,9 +2868,6 @@ static void perform_gm_detection(
         *me_ctx // input parameter, ME Context Ptr, used to store decimated/interpolated SB/SR
 ) {
     SequenceControlSet *scs        = pcs->scs;
-#if !CLN_GMV_UNUSED_SIGS
-    uint64_t            stationary_cnt = 0;
-#endif
     uint64_t            per_sig_cnt[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH][NUM_MV_COMPONENTS]
                         [NUM_MV_HIST];
     uint64_t tot_cnt = 0;
@@ -2983,17 +2896,7 @@ static void perform_gm_detection(
                 : me_candidate->ref_idx_l1;
 
             // Active block detection
-#if CLN_GMV_UNUSED_SIGS
             const int active_th = 4;
-#else
-            uint64_t pcs_pic_num = pcs->picture_number;
-            uint64_t ref_pic_num =
-                me_ctx->me_ds_ref_array[list_index][ref_pic_index].picture_number;
-            uint16_t dist = ABS(
-                (int16_t)(MAX(pcs_pic_num, ref_pic_num) - MIN(pcs_pic_num, ref_pic_num)));
-            int active_th = (pcs->gm_ctrls.use_distance_based_active_th) ? MAX(dist >> 1, 4)
-                                                                             : 4;
-#endif
             int mx = _MVXT(me_ctx->p_sb_best_mv[list_index][ref_pic_index][n_idx]) << 2;
             if (mx < -active_th)
                 per_sig_cnt[list_index][ref_pic_index][0][0]++;
@@ -3005,12 +2908,6 @@ static void perform_gm_detection(
             else if (my > active_th)
                 per_sig_cnt[list_index][ref_pic_index][1][1]++;
 
-#if !CLN_GMV_UNUSED_SIGS
-            // Stationary block detection
-            int stationary_th = 0;
-            if (abs(mx) <= stationary_th && abs(my) <= stationary_th)
-                stationary_cnt++;
-#endif
             tot_cnt++;
         }
     } else {
@@ -3032,15 +2929,7 @@ static void perform_gm_detection(
                 : me_candidate->ref_idx_l1;
 
             // Active block detection
-#if CLN_GMV_UNUSED_SIGS
             const int active_th = 32;
-#else
-            uint16_t dist = ABS(
-                (int16_t)(pcs->picture_number -
-                          me_ctx->me_ds_ref_array[list_index][ref_pic_index].picture_number));
-            int active_th = (pcs->gm_ctrls.use_distance_based_active_th) ? MAX(dist * 16, 32)
-                                                                             : 32;
-#endif
             int mx = _MVXT(me_ctx->p_sb_best_mv[list_index][ref_pic_index][n_idx]) << 2;
             if (mx < -active_th)
                 per_sig_cnt[list_index][ref_pic_index][0][0]++;
@@ -3052,21 +2941,10 @@ static void perform_gm_detection(
             else if (my > active_th)
                 per_sig_cnt[list_index][ref_pic_index][1][1]++;
 
-#if !CLN_GMV_UNUSED_SIGS
-            // Stationary block detection
-            int stationary_th = 4;
-            if (abs(mx) <= stationary_th && abs(my) <= stationary_th)
-                stationary_cnt++;
-#endif
             tot_cnt++;
         }
     }
 
-#if !CLN_GMV_UNUSED_SIGS
-    // Set stationary_block_present_sb to 1 if stationary_cnt is higher than 5%
-    if (stationary_cnt > ((tot_cnt * 5) / 100))
-        pcs->stationary_block_present_sb[sb_index] = 1;
-#endif
     for (int l = 0; l < MAX_NUM_OF_REF_PIC_LIST; l++) {
         for (int r = 0; r < REF_LIST_MAX_DEPTH; r++) {
             for (int c = 0; c < NUM_MV_COMPONENTS; c++) {
@@ -3264,9 +3142,6 @@ EbErrorType svt_aom_motion_estimation_b64(
             compute_distortion(pcs, b64_index, me_ctx);
 
         // Perform GM detection if GM is enabled
-#if !CLN_GMV_UNUSED_SIGS
-        pcs->stationary_block_present_sb[b64_index] = 0;
-#endif
         pcs->rc_me_allow_gm[b64_index]              = 0;
 
         if (pcs->gm_ctrls.enabled)

@@ -20,19 +20,6 @@
 #include "rest_process.h"
 #include "svt_log.h"
 
-#if !CLN_FUNCS_HEADER
-void svt_aom_foreach_rest_unit_in_frame_seg(Av1Common *cm, int32_t plane, RestTileStartVisitor on_tile,
-                                            RestUnitVisitor on_rest_unit, void *priv,
-                                            uint8_t rest_segments_column_count, uint8_t rest_segments_row_count,
-                                            uint32_t segment_index);
-
-void svt_av1_selfguided_restoration_c(const uint8_t *dgd8, int32_t width, int32_t height, int32_t dgd_stride,
-                                      int32_t *flt0, int32_t *flt1, int32_t flt_stride, int32_t sgr_params_idx,
-                                      int32_t bit_depth, int32_t highbd);
-void svt_aom_foreach_rest_unit_in_frame(Av1Common *cm, int32_t plane, RestTileStartVisitor on_tile,
-                                        RestUnitVisitor on_rest_unit, void *priv);
-#endif
-
 // When set to RESTORE_WIENER or RESTORE_SGRPROJ only those are allowed.
 // When set to RESTORE_TYPES we allow switchable.
 //static const RestorationType force_restore_type = RESTORE_TYPES;
@@ -1208,11 +1195,6 @@ static int32_t rest_tiles_in_plane(const Av1Common *cm, int32_t plane) {
     const RestorationInfo *rsi = &cm->child_pcs->rst_info[plane];
     return rsi->units_per_tile;
 }
-
-#if !CLN_FUNCS_HEADER
-void *svt_aom_memalign(size_t align, size_t size);
-void  svt_aom_free(void *memblk);
-#endif
 
 /* Perform search for the best self-guided filter parameters and compute the SSE. */
 static void search_sgrproj_seg(const RestorationTileLimits *limits, const Av1PixelRect *tile, int32_t rest_unit_idx,

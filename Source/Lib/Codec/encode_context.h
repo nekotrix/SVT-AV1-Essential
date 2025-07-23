@@ -31,29 +31,7 @@
 
 // *Note - the queues are small for testing purposes.  They should be increased when they are done.
 #define PRE_ASSIGNMENT_MAX_DEPTH 128 // should be large enough to hold an entire prediction period
-#if !OPT_PIC_MGR_Q
-#define INPUT_QUEUE_MAX_DEPTH 5000
-#endif
-#if !OPT_REF_Q
-#define REFERENCE_QUEUE_MAX_DEPTH 5000
-#endif
-#if !OPT_OUTPUT_STREAM_Q
-#define PICTURE_DECISION_PA_REFERENCE_QUEUE_MAX_DEPTH 5000
-#endif
 
-#if !OPT_PD_REORDER_Q
-#define PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH 2048
-#endif
-#if !CLN_REMOVE_IRC_Q
-#define INITIAL_RATE_CONTROL_REORDER_QUEUE_MAX_DEPTH 2048
-#endif
-#if !OPT_REF_Q
-#define PICTURE_MANAGER_REORDER_QUEUE_MAX_DEPTH 2048
-#define HIGH_LEVEL_RATE_CONTROL_HISTOGRAM_QUEUE_MAX_DEPTH 2048
-#endif
-#if !OPT_PACK_Q
-#define PACKETIZATION_REORDER_QUEUE_MAX_DEPTH 2048
-#endif
 #define TPL_PADX 32
 #define TPL_PADY 32
 // RC Groups: They should be a power of 2, so we can replace % by &.
@@ -114,10 +92,8 @@ typedef struct EncodeContext {
 
     // Picture Decision Reorder Queue
     PictureDecisionReorderEntry **picture_decision_reorder_queue;
-#if OPT_PD_REORDER_Q
     // max size of reorder queue
     uint32_t picture_decision_reorder_queue_size;
-#endif
     uint32_t picture_decision_reorder_queue_head_index;
     //hold undisplayed frame for show existing frame. It's ordered with pts Descend.
     EbObjectWrapper *picture_decision_undisplayed_queue[UNDISP_QUEUE_SIZE];
@@ -138,17 +114,10 @@ typedef struct EncodeContext {
     EbHandle pd_dpb_mutex;
 #endif
 
-#if OPT_PIC_MGR_Q
     // Picture Manager List of input pics and total list size
     InputQueueEntry **pic_mgr_input_pic_list;
     // max size of iput pic list
     uint32_t pic_mgr_input_pic_list_size;
-#else
-    // Picture Manager Circular Queues
-    InputQueueEntry **input_picture_queue;
-    uint32_t          input_picture_queue_head_index;
-    uint32_t          input_picture_queue_tail_index;
-#endif
     // Picture Manager List
     ReferenceQueueEntry **ref_pic_list;
     uint32_t              ref_pic_list_length;
@@ -158,18 +127,10 @@ typedef struct EncodeContext {
     EbHandle ref_pic_list_mutex;
 #endif
 
-#if !CLN_REMOVE_IRC_Q
-    // Initial Rate Control Reorder Queue
-    InitialRateControlReorderEntry **initial_rate_control_reorder_queue;
-    uint32_t                         initial_rate_control_reorder_queue_head_index;
-#endif
-
     // Packetization Reorder Queue
     PacketizationReorderEntry **packetization_reorder_queue;
-#if OPT_PACK_Q
-    uint32_t packetization_reorder_queue_size;
-#endif
-    uint32_t packetization_reorder_queue_head_index;
+    uint32_t                    packetization_reorder_queue_size;
+    uint32_t                    packetization_reorder_queue_head_index;
 
     // GOP Counters
     uint32_t intra_period_position; // Current position in intra period

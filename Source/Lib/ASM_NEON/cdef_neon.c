@@ -16,62 +16,6 @@
 #include "definitions.h"
 #include "mem_neon.h"
 
-#if !FIX_CDEF_MSE
-static inline uint64_t dist_8xn_8bit_neon(const uint8_t *src, const uint8_t *dst, const int32_t dstride,
-                                          const int32_t coeff_shift, uint8_t height, uint8_t subsampling_factor) {
-    uint16x8_t ss = vdupq_n_u16(0);
-    uint16x8_t dd = vdupq_n_u16(0);
-    uint32x4_t s2 = vdupq_n_u32(0);
-    uint32x4_t sd = vdupq_n_u32(0);
-    uint32x4_t d2 = vdupq_n_u32(0);
-
-    do {
-        const uint16x8_t s0 = vmovl_u8(vld1_u8(src));
-        const uint16x8_t s1 = vmovl_u8(vld1_u8(src + subsampling_factor * 8));
-        const uint16x8_t d0 = vmovl_u8(vld1_u8(dst));
-        const uint16x8_t d1 = vmovl_u8(vld1_u8(dst + subsampling_factor * dstride));
-
-        ss = vaddq_u16(ss, s0);
-        ss = vaddq_u16(ss, s1);
-        dd = vaddq_u16(dd, d0);
-        dd = vaddq_u16(dd, d1);
-
-        s2 = vmlal_u16(s2, vget_low_u16(s0), vget_low_u16(s0));
-        s2 = vmlal_u16(s2, vget_high_u16(s0), vget_high_u16(s0));
-        s2 = vmlal_u16(s2, vget_low_u16(s1), vget_low_u16(s1));
-        s2 = vmlal_u16(s2, vget_high_u16(s1), vget_high_u16(s1));
-
-        sd = vmlal_u16(sd, vget_low_u16(s0), vget_low_u16(d0));
-        sd = vmlal_u16(sd, vget_high_u16(s0), vget_high_u16(d0));
-        sd = vmlal_u16(sd, vget_low_u16(s1), vget_low_u16(d1));
-        sd = vmlal_u16(sd, vget_high_u16(s1), vget_high_u16(d1));
-
-        d2 = vmlal_u16(d2, vget_low_u16(d0), vget_low_u16(d0));
-        d2 = vmlal_u16(d2, vget_high_u16(d0), vget_high_u16(d0));
-        d2 = vmlal_u16(d2, vget_low_u16(d1), vget_low_u16(d1));
-        d2 = vmlal_u16(d2, vget_high_u16(d1), vget_high_u16(d1));
-
-        src += 8 * 2 * subsampling_factor; // width * 2 lines per iter. * subsampling
-        dst += dstride * 2 * subsampling_factor;
-        height -= 2 * subsampling_factor;
-    } while (height != 0);
-
-    uint32_t sum_s = vaddlvq_u16(ss);
-    uint32_t sum_d = vaddlvq_u16(dd);
-
-    uint64_t sum_s2 = vaddlvq_u32(s2);
-    uint64_t sum_d2 = vaddlvq_u32(d2);
-    uint64_t sum_sd = vaddlvq_u32(sd);
-
-    /* Compute the variance -- the calculation cannot go negative. */
-    uint64_t svar = sum_s2 - ((sum_s * sum_s + 32) >> 6);
-    uint64_t dvar = sum_d2 - ((sum_d * sum_d + 32) >> 6);
-    return (uint64_t)floor(.5 +
-                           (sum_d2 + sum_s2 - 2 * sum_sd) * .5 * (svar + dvar + (400 << 2 * coeff_shift)) /
-                               (sqrt((20000 << 4 * coeff_shift) + svar * (double)dvar)));
-}
-#endif
-
 static inline void mse_4xn_8bit_neon(const uint8_t *src, const uint8_t *dst, const int32_t dstride, uint32x4_t *sse,
                                      uint8_t height, uint8_t subsampling_factor) {
     do {
@@ -118,124 +62,46 @@ static inline void mse_8xn_8bit_neon(const uint8_t *src, const uint8_t *dst, con
 
 uint64_t svt_aom_compute_cdef_dist_8bit_neon(const uint8_t *dst8, int32_t dstride, const uint8_t *src8,
                                              const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
-#if FIX_CDEF_MSE
                                              int32_t coeff_shift, uint8_t subsampling_factor) {
-#else
-                                             int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor) {
-#endif
     uint64_t sum;
     int32_t  bi, bx, by;
 
-#if !FIX_CDEF_MSE
-    if (bsize == BLOCK_8X8 && pli == 0) {
-        sum = 0;
+    uint32x4_t mse = vdupq_n_u32(0);
+
+    if (bsize == BLOCK_8X8) {
         for (bi = 0; bi < cdef_count; bi++) {
             by = dlist[bi].by;
             bx = dlist[bi].bx;
-            sum += dist_8xn_8bit_neon(
-                src8, dst8 + 8 * by * dstride + 8 * bx, dstride, coeff_shift, 8, subsampling_factor);
+            mse_8xn_8bit_neon(src8, dst8 + 8 * by * dstride + 8 * bx, dstride, &mse, 8, subsampling_factor);
             src8 += 8 * 8;
         }
-    } else {
-#endif
-        uint32x4_t mse = vdupq_n_u32(0);
-
-        if (bsize == BLOCK_8X8) {
-            for (bi = 0; bi < cdef_count; bi++) {
-                by = dlist[bi].by;
-                bx = dlist[bi].bx;
-                mse_8xn_8bit_neon(src8, dst8 + 8 * by * dstride + 8 * bx, dstride, &mse, 8, subsampling_factor);
-                src8 += 8 * 8;
-            }
-        } else if (bsize == BLOCK_4X8) {
-            for (bi = 0; bi < cdef_count; bi++) {
-                by = dlist[bi].by;
-                bx = dlist[bi].bx;
-                mse_4xn_8bit_neon(src8, dst8 + 8 * by * dstride + 4 * bx, dstride, &mse, 8, subsampling_factor);
-                src8 += 4 * 8;
-            }
-        } else if (bsize == BLOCK_8X4) {
-            for (bi = 0; bi < cdef_count; bi++) {
-                by = dlist[bi].by;
-                bx = dlist[bi].bx;
-                mse_8xn_8bit_neon(src8, dst8 + 4 * by * dstride + 8 * bx, dstride, &mse, 4, subsampling_factor);
-                src8 += 8 * 4;
-            }
-        } else {
-            assert(bsize == BLOCK_4X4);
-            for (bi = 0; bi < cdef_count; bi++) {
-                by = dlist[bi].by;
-                bx = dlist[bi].bx;
-                mse_4xn_8bit_neon(src8, dst8 + 4 * by * dstride + 4 * bx, dstride, &mse, 4, subsampling_factor);
-                src8 += 4 * 4;
-            }
+    } else if (bsize == BLOCK_4X8) {
+        for (bi = 0; bi < cdef_count; bi++) {
+            by = dlist[bi].by;
+            bx = dlist[bi].bx;
+            mse_4xn_8bit_neon(src8, dst8 + 8 * by * dstride + 4 * bx, dstride, &mse, 8, subsampling_factor);
+            src8 += 4 * 8;
         }
-
-        sum = vaddlvq_u32(mse);
-#if !FIX_CDEF_MSE
+    } else if (bsize == BLOCK_8X4) {
+        for (bi = 0; bi < cdef_count; bi++) {
+            by = dlist[bi].by;
+            bx = dlist[bi].bx;
+            mse_8xn_8bit_neon(src8, dst8 + 4 * by * dstride + 8 * bx, dstride, &mse, 4, subsampling_factor);
+            src8 += 8 * 4;
+        }
+    } else {
+        assert(bsize == BLOCK_4X4);
+        for (bi = 0; bi < cdef_count; bi++) {
+            by = dlist[bi].by;
+            bx = dlist[bi].bx;
+            mse_4xn_8bit_neon(src8, dst8 + 4 * by * dstride + 4 * bx, dstride, &mse, 4, subsampling_factor);
+            src8 += 4 * 4;
+        }
     }
-#endif
+
+    sum = vaddlvq_u32(mse);
     return sum >> 2 * coeff_shift;
 }
-
-#if !FIX_CDEF_MSE
-static inline uint64_t dist_8xn_16bit_neon(const uint16_t *src, const uint16_t *dst, const int32_t dstride,
-                                           const int32_t coeff_shift, uint8_t height, uint8_t subsampling_factor) {
-    uint16x8_t ss = vdupq_n_u16(0);
-    uint16x8_t dd = vdupq_n_u16(0);
-    uint32x4_t s2 = vdupq_n_u32(0);
-    uint32x4_t sd = vdupq_n_u32(0);
-    uint32x4_t d2 = vdupq_n_u32(0);
-
-    do {
-        const uint16x8_t s0 = vld1q_u16(src);
-        const uint16x8_t s1 = vld1q_u16(src + subsampling_factor * 8);
-
-        const uint16x8_t d0 = vld1q_u16(dst);
-        const uint16x8_t d1 = vld1q_u16(dst + subsampling_factor * dstride);
-
-        ss = vaddq_u16(ss, s0);
-        ss = vaddq_u16(ss, s1);
-        dd = vaddq_u16(dd, d0);
-        dd = vaddq_u16(dd, d1);
-
-        s2 = vmlal_u16(s2, vget_low_u16(s0), vget_low_u16(s0));
-        s2 = vmlal_u16(s2, vget_high_u16(s0), vget_high_u16(s0));
-        s2 = vmlal_u16(s2, vget_low_u16(s1), vget_low_u16(s1));
-        s2 = vmlal_u16(s2, vget_high_u16(s1), vget_high_u16(s1));
-
-        sd = vmlal_u16(sd, vget_low_u16(s0), vget_low_u16(d0));
-        sd = vmlal_u16(sd, vget_high_u16(s0), vget_high_u16(d0));
-        sd = vmlal_u16(sd, vget_low_u16(s1), vget_low_u16(d1));
-        sd = vmlal_u16(sd, vget_high_u16(s1), vget_high_u16(d1));
-
-        d2 = vmlal_u16(d2, vget_low_u16(d0), vget_low_u16(d0));
-        d2 = vmlal_u16(d2, vget_high_u16(d0), vget_high_u16(d0));
-        d2 = vmlal_u16(d2, vget_low_u16(d1), vget_low_u16(d1));
-        d2 = vmlal_u16(d2, vget_high_u16(d1), vget_high_u16(d1));
-
-        src += 8 * 2 * subsampling_factor;
-        dst += 2 * subsampling_factor * dstride;
-        height -= 2 * subsampling_factor;
-    } while (height != 0);
-
-    uint32x4_t ss_s32 = vpaddlq_u16(ss);
-    uint32x4_t dd_s32 = vpaddlq_u16(dd);
-    uint64_t   sum_s  = vaddlvq_u32(ss_s32);
-    uint64_t   sum_d  = vaddlvq_u32(dd_s32);
-
-    uint64_t sum_s2 = vaddlvq_u32(s2);
-    uint64_t sum_d2 = vaddlvq_u32(d2);
-    uint64_t sum_sd = vaddlvq_u32(sd);
-
-    /* Compute the variance -- the calculation cannot go negative. */
-    uint64_t svar = sum_s2 - ((sum_s * sum_s + 32) >> 6);
-    uint64_t dvar = sum_d2 - ((sum_d * sum_d + 32) >> 6);
-    return (uint64_t)floor(.5 +
-                           (sum_d2 + sum_s2 - 2 * sum_sd) * .5 * (svar + dvar + (400 << 2 * coeff_shift)) /
-                               (sqrt((20000 << 4 * coeff_shift) + svar * (double)dvar)));
-}
-#endif
 
 static inline uint32x4_t mse_8xn_16bit_neon(const uint16_t *src, const uint16_t *dst, const int32_t dstride,
                                             uint8_t height, uint8_t subsampling_factor) {
@@ -287,71 +153,48 @@ static inline uint32x4_t mse_4xn_16bit_neon(const uint16_t *src, const uint16_t 
 
 uint64_t svt_aom_compute_cdef_dist_16bit_neon(const uint16_t *dst, int32_t dstride, const uint16_t *src,
                                               const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
-#if FIX_CDEF_MSE
                                               int32_t coeff_shift, uint8_t subsampling_factor) {
-#else
-                                              int32_t coeff_shift, int32_t pli, uint8_t subsampling_factor) {
-#endif
     uint64_t sum;
     int32_t  bi, bx, by;
 
-#if !FIX_CDEF_MSE
-    if (bsize == BLOCK_8X8 && pli == 0) {
-        sum = 0;
+    uint64x2_t mse64 = vdupq_n_u64(0);
+
+    if (bsize == BLOCK_8X8) {
         for (bi = 0; bi < cdef_count; bi++) {
-            by = dlist[bi].by;
-            bx = dlist[bi].bx;
-            sum += dist_8xn_16bit_neon(
-                src, dst + 8 * by * dstride + 8 * bx, dstride, coeff_shift, 8, subsampling_factor);
+            by               = dlist[bi].by;
+            bx               = dlist[bi].bx;
+            uint32x4_t mse32 = mse_8xn_16bit_neon(src, dst + 8 * by * dstride + 8 * bx, dstride, 8, subsampling_factor);
+            mse64            = vpadalq_u32(mse64, mse32);
             src += 8 * 8;
         }
-    } else {
-#endif
-        uint64x2_t mse64 = vdupq_n_u64(0);
-
-        if (bsize == BLOCK_8X8) {
-            for (bi = 0; bi < cdef_count; bi++) {
-                by               = dlist[bi].by;
-                bx               = dlist[bi].bx;
-                uint32x4_t mse32 = mse_8xn_16bit_neon(
-                    src, dst + 8 * by * dstride + 8 * bx, dstride, 8, subsampling_factor);
-                mse64 = vpadalq_u32(mse64, mse32);
-                src += 8 * 8;
-            }
-        } else if (bsize == BLOCK_4X8) {
-            for (bi = 0; bi < cdef_count; bi++) {
-                by               = dlist[bi].by;
-                bx               = dlist[bi].bx;
-                uint32x4_t mse32 = mse_4xn_16bit_neon(
-                    src, dst + 8 * by * dstride + 4 * bx, dstride, 8, subsampling_factor);
-                mse64 = vpadalq_u32(mse64, mse32);
-                src += 4 * 8;
-            }
-        } else if (bsize == BLOCK_8X4) {
-            for (bi = 0; bi < cdef_count; bi++) {
-                by               = dlist[bi].by;
-                bx               = dlist[bi].bx;
-                uint32x4_t mse32 = mse_8xn_16bit_neon(
-                    src, dst + 4 * by * dstride + 8 * bx, dstride, 4, subsampling_factor);
-                mse64 = vpadalq_u32(mse64, mse32);
-                src += 8 * 4;
-            }
-        } else {
-            assert(bsize == BLOCK_4X4);
-            for (bi = 0; bi < cdef_count; bi++) {
-                by               = dlist[bi].by;
-                bx               = dlist[bi].bx;
-                uint32x4_t mse32 = mse_4xn_16bit_neon(
-                    src, dst + 4 * by * dstride + 4 * bx, dstride, 4, subsampling_factor);
-                mse64 = vpadalq_u32(mse64, mse32);
-                src += 4 * 4;
-            }
+    } else if (bsize == BLOCK_4X8) {
+        for (bi = 0; bi < cdef_count; bi++) {
+            by               = dlist[bi].by;
+            bx               = dlist[bi].bx;
+            uint32x4_t mse32 = mse_4xn_16bit_neon(src, dst + 8 * by * dstride + 4 * bx, dstride, 8, subsampling_factor);
+            mse64            = vpadalq_u32(mse64, mse32);
+            src += 4 * 8;
         }
-
-        sum = vaddvq_u64(mse64);
-#if !FIX_CDEF_MSE
+    } else if (bsize == BLOCK_8X4) {
+        for (bi = 0; bi < cdef_count; bi++) {
+            by               = dlist[bi].by;
+            bx               = dlist[bi].bx;
+            uint32x4_t mse32 = mse_8xn_16bit_neon(src, dst + 4 * by * dstride + 8 * bx, dstride, 4, subsampling_factor);
+            mse64            = vpadalq_u32(mse64, mse32);
+            src += 8 * 4;
+        }
+    } else {
+        assert(bsize == BLOCK_4X4);
+        for (bi = 0; bi < cdef_count; bi++) {
+            by               = dlist[bi].by;
+            bx               = dlist[bi].bx;
+            uint32x4_t mse32 = mse_4xn_16bit_neon(src, dst + 4 * by * dstride + 4 * bx, dstride, 4, subsampling_factor);
+            mse64            = vpadalq_u32(mse64, mse32);
+            src += 4 * 4;
+        }
     }
-#endif
+
+    sum = vaddvq_u64(mse64);
 
     return sum >> 2 * coeff_shift;
 }

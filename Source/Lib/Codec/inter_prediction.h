@@ -27,14 +27,6 @@ extern "C" {
 #define REF_NO_SCALE (1 << REF_SCALE_SHIFT)
 #define REF_INVALID_SCALE -1
 
-#if !CLN_FUNCS_HEADER
-#define RS_SUBPEL_BITS 6
-#define RS_SUBPEL_MASK ((1 << RS_SUBPEL_BITS) - 1)
-#define RS_SCALE_SUBPEL_BITS 14
-#define RS_SCALE_SUBPEL_MASK ((1 << RS_SCALE_SUBPEL_BITS) - 1)
-#define RS_SCALE_EXTRA_BITS (RS_SCALE_SUBPEL_BITS - RS_SUBPEL_BITS)
-#define RS_SCALE_EXTRA_OFF (1 << (RS_SCALE_EXTRA_BITS - 1))
-#endif
 #define MV_BORDER (16 << 3) // Allow 16 pels in 1/8th pel units
 
 #define NELEMENTS(x) (int)(sizeof(x) / sizeof(x[0]))
@@ -69,9 +61,7 @@ typedef struct PadBlock {
 } PadBlock;
 
 #define INTERINTRA_WEDGE_SIGN 0
-#if OPT_II_MASK_GEN
 #define MAX_INTERINTRA_SB_SQUARE 32 * 32
-#endif
 
 typedef uint8_t *WedgeMasksType[MAX_WEDGE_TYPES];
 
@@ -91,19 +81,6 @@ static const InterpFilterParams av1_interp_filter_params_list[SWITCHABLE_FILTERS
     {(const int16_t *)sub_pel_filters_8smooth, SUBPEL_TAPS, SUBPEL_SHIFTS, EIGHTTAP_SMOOTH},
     {(const int16_t *)sub_pel_filters_8sharp, SUBPEL_TAPS, SUBPEL_SHIFTS, MULTITAP_SHARP},
     {(const int16_t *)bilinear_filters, SUBPEL_TAPS, SUBPEL_SHIFTS, BILINEAR}};
-#if !CLN_MOVE_MV_FIELDS
-#if CLN_UNIFY_MV_TYPE
-static INLINE void clamp_mv(Mv *mv, int32_t min_col, int32_t max_col, int32_t min_row, int32_t max_row) {
-    mv->x = (int16_t)clamp(mv->x, min_col, max_col);
-    mv->y = (int16_t)clamp(mv->y, min_row, max_row);
-}
-#else
-static INLINE void clamp_mv(MV *mv, int32_t min_col, int32_t max_col, int32_t min_row, int32_t max_row) {
-    mv->col = (int16_t)clamp(mv->col, min_col, max_col);
-    mv->row = (int16_t)clamp(mv->row, min_row, max_row);
-}
-#endif
-#endif
 
 // 3-tuple: {direction, x_offset, y_offset}
 typedef struct WedgeCodeType {
@@ -121,15 +98,9 @@ typedef struct WedgeParamsType {
 
 void svt_inter_predictor_light_pd0(const uint8_t *src, int32_t src_stride, uint8_t *dst, int32_t dst_stride, int32_t w,
                                    int32_t h, SubpelParams *subpel_params, ConvolveParams *conv_params);
-#if CLN_IF_PARAMS
 void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_stride, uint8_t *dst, int32_t dst_stride,
                                    int32_t w, int32_t h, InterpFilters interp_filters, SubpelParams *subpel_params,
                                    ConvolveParams *conv_params, int32_t bd);
-#else
-void svt_inter_predictor_light_pd1(uint8_t *src, uint8_t *src_2b, int32_t src_stride, uint8_t *dst, int32_t dst_stride,
-                                   int32_t w, int32_t h, InterpFilterParams *filter_x, InterpFilterParams *filter_y,
-                                   SubpelParams *subpel_params, ConvolveParams *conv_params, int32_t bd);
-#endif
 void svt_inter_predictor(const uint8_t *src, int32_t src_stride, uint8_t *dst, int32_t dst_stride,
                          const SubpelParams *subpel_params, const ScaleFactors *sf, int32_t w, int32_t h,
                          ConvolveParams *conv_params, InterpFilters interp_filters, int32_t is_intrabc);
@@ -196,9 +167,6 @@ static INLINE int valid_ref_frame_size(int ref_width, int ref_height, int this_w
 }
 void svt_aom_pack_block(uint8_t *in8_bit_buffer, uint32_t in8_stride, uint8_t *inn_bit_buffer, uint32_t inn_stride,
                         uint16_t *out16_bit_buffer, uint32_t out_stride, uint32_t width, uint32_t height);
-#if !OPT_II_MASK_GEN
-void build_smooth_interintra_mask(uint8_t *mask, int stride, BlockSize plane_bsize, InterIntraMode mode);
-#endif
 
 void highbd_convolve_2d_for_intrabc(const uint16_t *src, int src_stride, uint16_t *dst, int dst_stride, int w, int h,
                                     int subpel_x_q4, int subpel_y_q4, ConvolveParams *conv_params, int bd);
@@ -226,7 +194,6 @@ static int div_mult[32] = {0,    16384, 8192, 5461, 4096, 3276, 2730, 2340, 2048
                            1489, 1365,  1260, 1170, 1092, 1024, 963,  910,  862,  819,  780,
                            744,  712,   682,  655,  630,  606,  585,  564,  546,  528};
 
-#if CLN_UNIFY_MV_TYPE
 static INLINE void integer_mv_precision(Mv *mv) {
     int mod = (mv->y % 8);
     if (mod != 0) {
@@ -274,55 +241,6 @@ static INLINE void get_mv_projection(Mv *output, Mv ref, int num, int den) {
     output->y           = (int16_t)clamp(mv_row, clamp_min, clamp_max);
     output->x           = (int16_t)clamp(mv_col, clamp_min, clamp_max);
 }
-#else
-static INLINE void integer_mv_precision(MV *mv) {
-    int mod = (mv->row % 8);
-    if (mod != 0) {
-        mv->row -= mod;
-        if (abs(mod) > 4) {
-            if (mod > 0)
-                mv->row += 8;
-            else
-                mv->row -= 8;
-        }
-    }
-
-    mod = (mv->col % 8);
-    if (mod != 0) {
-        mv->col -= mod;
-        if (abs(mod) > 4) {
-            if (mod > 0)
-                mv->col += 8;
-            else
-                mv->col -= 8;
-        }
-    }
-}
-
-static INLINE void lower_mv_precision(MV *mv, int allow_hp, int is_integer) {
-    if (is_integer)
-        integer_mv_precision(mv);
-    else {
-        if (!allow_hp) {
-            if (mv->row & 1)
-                mv->row += (mv->row > 0 ? -1 : 1);
-            if (mv->col & 1)
-                mv->col += (mv->col > 0 ? -1 : 1);
-        }
-    }
-}
-
-static INLINE void get_mv_projection(MV *output, MV ref, int num, int den) {
-    den                 = AOMMIN(den, MAX_FRAME_DISTANCE);
-    num                 = num > 0 ? AOMMIN(num, MAX_FRAME_DISTANCE) : AOMMAX(num, -MAX_FRAME_DISTANCE);
-    const int mv_row    = ROUND_POWER_OF_TWO_SIGNED(ref.row * num * div_mult[den], 14);
-    const int mv_col    = ROUND_POWER_OF_TWO_SIGNED(ref.col * num * div_mult[den], 14);
-    const int clamp_max = MV_UPP - 1;
-    const int clamp_min = MV_LOW + 1;
-    output->row         = (int16_t)clamp(mv_row, clamp_min, clamp_max);
-    output->col         = (int16_t)clamp(mv_col, clamp_min, clamp_max);
-}
-#endif
 
 static INLINE int check_sb_border(const int mi_row, const int mi_col, const int row_offset, const int col_offset) {
     const int sb_mi_size = mi_size_wide[BLOCK_64X64];
@@ -341,24 +259,14 @@ static INLINE int check_sb_border(const int mi_row, const int mi_col, const int 
 // because no warp/obmc in intra frames.
 static INLINE int is_neighbor_overlappable(const MbModeInfo *mbmi) { return mbmi->block_mi.ref_frame[0] > INTRA_FRAME; }
 
-#if CLN_UNIFY_MV_TYPE
 static INLINE int32_t is_mv_valid(const Mv *mv) {
     return mv->y > MV_LOW && mv->y < MV_UPP && mv->x > MV_LOW && mv->x < MV_UPP;
 }
-#else
-static INLINE int32_t is_mv_valid(const MV *mv) {
-    return mv->row > MV_LOW && mv->row < MV_UPP && mv->col > MV_LOW && mv->col < MV_UPP;
-}
-#endif
 
 #define CHECK_BACKWARD_REFS(ref_frame) (((ref_frame) >= BWDREF_FRAME) && ((ref_frame) <= ALTREF_FRAME))
 #define IS_BACKWARD_REF_FRAME(ref_frame) CHECK_BACKWARD_REFS(ref_frame)
 
-#if CLN_UNIFY_MV_TYPE
 void svt_aom_find_ref_dv(Mv *ref_dv, const TileInfo *const tile, int mib_size, int mi_row, int mi_col);
-#else
-void svt_aom_find_ref_dv(IntMv *ref_dv, const TileInfo *const tile, int mib_size, int mi_row, int mi_col);
-#endif
 
 static INLINE int32_t is_comp_ref_allowed(BlockSize bsize) {
     return AOMMIN(block_size_wide[bsize], block_size_high[bsize]) >= 8;
@@ -490,24 +398,6 @@ static INLINE uint32_t have_nearmv_in_inter_mode(PredictionMode mode) {
     return (mode == NEARMV || mode == NEAR_NEARMV || mode == NEAR_NEWMV || mode == NEW_NEARMV);
 }
 
-#if !CLN_MOVE_FUNCS
-#if CLN_REMOVE_DEC_STRUCT
-static INLINE int is_intrabc_block(const BlockModeInfo *block_mi) { return block_mi->use_intrabc; }
-static INLINE int is_inter_block(const BlockModeInfo *bloc_mi) {
-    return is_intrabc_block(bloc_mi) || bloc_mi->ref_frame[0] > INTRA_FRAME;
-}
-#else
-static INLINE int is_intrabc_block(const BlockModeInfoEnc *block_mi) { return block_mi->use_intrabc; }
-static INLINE int is_intrabc_block_dec(const BlockModeInfo *block_mi) { return block_mi->use_intrabc; }
-static INLINE int is_inter_block(const BlockModeInfoEnc *bloc_mi) {
-    return is_intrabc_block(bloc_mi) || bloc_mi->ref_frame[0] > INTRA_FRAME;
-}
-static INLINE int is_inter_block_dec(const BlockModeInfo *bloc_mi) {
-    return is_intrabc_block_dec(bloc_mi) || bloc_mi->ref_frame[0] > INTRA_FRAME;
-}
-#endif
-#endif
-
 #define n_elements(x) (int32_t)(sizeof(x) / sizeof(x[0]))
 
 static INLINE MvReferenceFrame comp_ref0(int32_t ref_idx) {
@@ -619,22 +509,9 @@ static uint8_t        ref_type_to_list_idx[REFS_PER_FRAME + 1] = {0, 0, 0, 0, 0,
 static INLINE uint8_t get_list_idx(uint8_t ref_type) { return ref_type_to_list_idx[ref_type]; }
 static uint8_t        ref_type_to_ref_idx[REFS_PER_FRAME + 1] = {0, 0, 1, 2, 3, 0, 1, 2};
 static INLINE uint8_t get_ref_frame_idx(uint8_t ref_type) { return ref_type_to_ref_idx[ref_type]; };
-#if !CLN_UNUSED_SIGS
-#if CLN_CAND_REF_FRAME
-static INLINE PredDirection av1_get_pred_dir(MvReferenceFrame rf[2]) {
-    return (rf[1] <= INTRA_FRAME) ? (PredDirection)ref_type_to_list_idx[rf[0]] : BI_PRED;
-}
-#else
-static INLINE PredDirection av1_get_pred_dir(int8_t ref_frame_type) {
-    MvReferenceFrame rf[2];
-    av1_set_ref_frame(rf, ref_frame_type);
-    return (rf[1] == NONE_FRAME) ? (PredDirection)ref_type_to_list_idx[rf[0]] : BI_PRED;
-}
-#endif
-#endif
-int     svt_av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, int subsampling_y);
-int     svt_aom_get_relative_dist_enc(SeqHeader *seq_header, int ref_hint, int order_hint);
-int16_t svt_aom_mode_context_analyzer(int16_t mode_context, const MvReferenceFrame *const rf);
+int                   svt_av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, int subsampling_y);
+int                   svt_aom_get_relative_dist_enc(SeqHeader *seq_header, int ref_hint, int order_hint);
+int16_t               svt_aom_mode_context_analyzer(int16_t mode_context, const MvReferenceFrame *const rf);
 
 #ifdef __cplusplus
 }

@@ -2290,7 +2290,6 @@ void svt_ext_all_sad_calculation_8x8_16x16_sse4_1(uint8_t *src, uint32_t src_str
     }
 }
 
-#if CLN_UNIFY_MV_TYPE
 #define UPDATE_BEST_PME_32(s, k, offset)                                \
     tem_sum_1 = _mm_extract_epi32(s, k);                                \
     best_mv.x = mvx + (search_position_start_x + j + offset + k) * 8;   \
@@ -2312,29 +2311,6 @@ void svt_ext_all_sad_calculation_8x8_16x16_sse4_1(uint8_t *src, uint32_t src_str
         x_best  = mvx + (search_position_start_x + j + k) * 8;     \
         y_best  = mvy + (search_position_start_y + i) * 8;         \
     }
-#else
-#define UPDATE_BEST_PME_32(s, k, offset)                                \
-    tem_sum_1   = _mm_extract_epi32(s, k);                              \
-    best_mv.col = mvx + (search_position_start_x + j + offset + k) * 8; \
-    best_mv.row = mvy + (search_position_start_y + i) * 8;              \
-    tem_sum_1 += svt_aom_fp_mv_err_cost(&best_mv, mv_cost_params);      \
-    if (tem_sum_1 < low_sum) {                                          \
-        low_sum = tem_sum_1;                                            \
-        x_best  = mvx + (search_position_start_x + j + offset + k) * 8; \
-        y_best  = mvy + (search_position_start_y + i) * 8;              \
-    }
-
-#define UPDATE_BEST_PME_16(s, k)                                   \
-    tem_sum_1   = _mm_extract_epi16(s, k);                         \
-    best_mv.col = mvx + (search_position_start_x + j + k) * 8;     \
-    best_mv.row = mvy + (search_position_start_y + i) * 8;         \
-    tem_sum_1 += svt_aom_fp_mv_err_cost(&best_mv, mv_cost_params); \
-    if (tem_sum_1 < low_sum) {                                     \
-        low_sum = tem_sum_1;                                       \
-        x_best  = mvx + (search_position_start_x + j + k) * 8;     \
-        y_best  = mvy + (search_position_start_y + i) * 8;         \
-    }
-#endif
 
 void svt_pme_sad_loop_kernel_sse4_1(const struct svt_mv_cost_param *mv_cost_params,
                                     uint8_t                        *src, // input parameter, source samples Ptr
@@ -2354,11 +2330,7 @@ void svt_pme_sad_loop_kernel_sse4_1(const struct svt_mv_cost_param *mv_cost_para
     uint32_t       k;
     const uint8_t *p_ref, *p_src;
     __m128i        s0, s1, s2, s3, s4, s5, s6, s7 = _mm_set1_epi32(-1);
-#if CLN_UNIFY_MV_TYPE
-    Mv best_mv;
-#else
-    MV best_mv;
-#endif
+    Mv             best_mv;
     switch (block_width) {
     case 4:
         for (i = 0; i < search_area_height; i += search_step) {

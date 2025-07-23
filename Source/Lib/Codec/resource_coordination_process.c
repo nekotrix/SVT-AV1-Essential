@@ -429,13 +429,8 @@ static EbErrorType reset_pcs_av1(PictureParentControlSet *pcs) {
 
     SequenceControlSet *scs           = pcs->scs;
     pcs->me_segments_completion_count = 0;
-#if CLN_SEG_COUNTS
-    pcs->me_segments_column_count = (uint8_t)(scs->me_segment_col_count_array);
-    pcs->me_segments_row_count    = (uint8_t)(scs->me_segment_row_count_array);
-#else
-    pcs->me_segments_column_count = (uint8_t)(scs->me_segment_column_count_array[0]);
-    pcs->me_segments_row_count    = (uint8_t)(scs->me_segment_row_count_array[0]);
-#endif
+    pcs->me_segments_column_count     = (uint8_t)(scs->me_segment_col_count_array);
+    pcs->me_segments_row_count        = (uint8_t)(scs->me_segment_row_count_array);
 
     pcs->me_segments_total_count = (uint16_t)(pcs->me_segments_column_count * pcs->me_segments_row_count);
     pcs->tpl_disp_coded_sb_count = 0;
@@ -1119,9 +1114,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             pcs->valid_qindex_area        = 0;
             pcs->ts_duration              = (double)10000000 * (1 << 16) / scs->frame_rate;
             scs->enc_ctx->initial_picture = false;
-#if FIX_SFRAME_PRUNE_REF0
-            pcs->sframe_ref_pruned = false;
-#endif // FIX_SFRAME_PRUNE_REF0
+            pcs->sframe_ref_pruned        = false;
 
             // Get Empty Reference Picture Object
             svt_get_empty_object(scs->enc_ctx->pa_reference_picture_pool_fifo_ptr, &ref_pic_wrapper);
@@ -1143,11 +1136,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
 #if OPT_LD_LATENCY2
             // Get Empty Output Results Object
             // For the low delay mode, buffering for receiving EOS does not happen
-#if CLN_REMOVE_LDP
             if (scs->static_config.pred_structure == LOW_DELAY) {
-#else
-            if (scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B) {
-#endif
                 PictureParentControlSet *ppcs_out = pcs;
 
                 ppcs_out->end_of_sequence_flag = end_of_sequence_flag;

@@ -43,9 +43,7 @@ uint8_t     svt_aom_tf_max_ref_per_struct(uint32_t hierarchical_levels, uint8_t 
 EbErrorType svt_aom_prediction_structure_group_ctor(PredictionStructureGroup *pred_struct_group_ptr);
 bool        svt_aom_is_pic_used_as_ref(unsigned hierarchical_levels, unsigned temporal_layer, unsigned picture_index,
                                        unsigned referencing_scheme, bool is_overlay);
-#if CLN_REMOVE_P_SLICE
-bool svt_aom_is_incomp_mg_frame(PictureParentControlSet *pcs);
-#endif
+bool        svt_aom_is_incomp_mg_frame(PictureParentControlSet *pcs);
 typedef struct DpbEntry {
     uint64_t picture_number;
     uint64_t decode_order;
@@ -89,20 +87,18 @@ typedef struct PictureDecisionContext {
     uint32_t mini_gop_region_activity_cost_array[MINI_GOP_MAX_COUNT][MAX_NUMBER_OF_REGIONS_IN_WIDTH]
                                                 [MAX_NUMBER_OF_REGIONS_IN_HEIGHT];
 
-    uint32_t mini_gop_group_faded_in_pictures_count[MINI_GOP_MAX_COUNT];
-    uint32_t mini_gop_group_faded_out_pictures_count[MINI_GOP_MAX_COUNT];
-    uint8_t  lay0_toggle; //3 way toggle 0->1->2
-    uint8_t  lay1_toggle; //2 way toggle 0->1
-    uint8_t  cut_short_ra_mg;
-    DpbEntry dpb[REF_FRAMES];
-    bool     mini_gop_toggle; //mini GOP toggling since last Key Frame  K-0-1-0-1-0-K-0-1-0-1-K-0-1.....
-    uint8_t  last_i_picture_sc_class0;
-    uint8_t  last_i_picture_sc_class1;
-    uint8_t  last_i_picture_sc_class2;
-    uint8_t  last_i_picture_sc_class3;
-#if OPT_SC_ME
-    uint8_t last_i_picture_sc_class4;
-#endif
+    uint32_t                 mini_gop_group_faded_in_pictures_count[MINI_GOP_MAX_COUNT];
+    uint32_t                 mini_gop_group_faded_out_pictures_count[MINI_GOP_MAX_COUNT];
+    uint8_t                  lay0_toggle; //3 way toggle 0->1->2
+    uint8_t                  lay1_toggle; //2 way toggle 0->1
+    uint8_t                  cut_short_ra_mg;
+    DpbEntry                 dpb[REF_FRAMES];
+    bool                     mini_gop_toggle; //mini GOP toggling since last Key Frame  K-0-1-0-1-0-K-0-1-0-1-K-0-1.....
+    uint8_t                  last_i_picture_sc_class0;
+    uint8_t                  last_i_picture_sc_class1;
+    uint8_t                  last_i_picture_sc_class2;
+    uint8_t                  last_i_picture_sc_class3;
+    uint8_t                  last_i_picture_sc_class4;
     uint64_t                 last_long_base_pic;
     uint64_t                 key_poc;
     uint8_t                  tf_level;

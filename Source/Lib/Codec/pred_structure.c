@@ -18,12 +18,7 @@
 /**********************************************************
  * Macros
  **********************************************************/
-#if CLN_REMOVE_LDP
 #define PRED_STRUCT_INDEX(hierarchicalLevelCount, predType) ((hierarchicalLevelCount) * PRED_TOTAL_COUNT + (predType))
-#else
-#define PRED_STRUCT_INDEX(hierarchicalLevelCount, predType) \
-    ((hierarchicalLevelCount) * SVT_AV1_PRED_TOTAL_COUNT + (predType))
-#endif
 
 /**********************************************************
  * Instructions for how to create a Predicion Structure
@@ -489,11 +484,7 @@ static EbErrorType prediction_structure_config_array_ctor(PredictionStructureCon
  * Get Prediction Structure
  ************************************************/
 PredictionStructure *svt_aom_get_prediction_structure(PredictionStructureGroup *pred_struct_group_ptr,
-#if CLN_REMOVE_LDP
                                                       PredStructure pred_struct, uint32_t levels_of_hierarchy) {
-#else
-                                                      SvtAv1PredStructure pred_struct, uint32_t levels_of_hierarchy) {
-#endif
     PredictionStructure *pred_struct_ptr;
     uint32_t             pred_struct_index;
     // Determine the Index value
@@ -690,11 +681,7 @@ static void prediction_structure_dctor(EbPtr p) {
  ******************************************************************************************/
 static EbErrorType prediction_structure_ctor(PredictionStructure             *pred_struct,
                                              const PredictionStructureConfig *pred_struct_cfg,
-#if CLN_REMOVE_LDP
-                                             const PredStructure pred_type) {
-#else
-                                             const SvtAv1PredStructure pred_type) {
-#endif
+                                             const PredStructure              pred_type) {
     pred_struct->dctor = prediction_structure_dctor;
 
     pred_struct->pred_type = pred_type;
@@ -721,11 +708,7 @@ static EbErrorType prediction_structure_ctor(PredictionStructure             *pr
         pred_entry->temporal_layer_index = cfg_entry->temporal_layer_index;
 
         // Set the Decode Order
-#if CLN_REMOVE_LDP
         pred_entry->decode_order = (pred_type == RANDOM_ACCESS) ? cfg_entry->decode_order : entry_idx;
-#else
-        pred_entry->decode_order = (pred_type == SVT_AV1_PRED_RANDOM_ACCESS) ? cfg_entry->decode_order : entry_idx;
-#endif
     }
 
     return EB_ErrorNone;
@@ -763,19 +746,11 @@ EbErrorType svt_aom_prediction_structure_group_ctor(PredictionStructureGroup *pr
     pred_struct_group_ptr->priv = config_array;
 
     PredictionStructureConfig *prediction_structure_config_array = config_array->prediction_structure_config_array;
-#if CLN_REMOVE_LDP
-    pred_struct_group_ptr->prediction_structure_count = MAX_TEMPORAL_LAYERS * PRED_TOTAL_COUNT;
-#else
-    pred_struct_group_ptr->prediction_structure_count = MAX_TEMPORAL_LAYERS * SVT_AV1_PRED_TOTAL_COUNT;
-#endif
+    pred_struct_group_ptr->prediction_structure_count            = MAX_TEMPORAL_LAYERS * PRED_TOTAL_COUNT;
     EB_ALLOC_PTR_ARRAY(pred_struct_group_ptr->prediction_structure_ptr_array,
                        pred_struct_group_ptr->prediction_structure_count);
     for (unsigned int hierarchical_levels = 0; hierarchical_levels < MAX_TEMPORAL_LAYERS; hierarchical_levels++) {
-#if CLN_REMOVE_LDP
         for (PredStructure pred_type = 0; pred_type < PRED_TOTAL_COUNT; ++pred_type) {
-#else
-        for (SvtAv1PredStructure pred_type = 0; pred_type < SVT_AV1_PRED_TOTAL_COUNT; ++pred_type) {
-#endif
             const unsigned int pred_struct_index = PRED_STRUCT_INDEX(hierarchical_levels, pred_type);
 
             EB_NEW(pred_struct_group_ptr->prediction_structure_ptr_array[pred_struct_index],

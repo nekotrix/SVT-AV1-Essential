@@ -24,11 +24,6 @@ extern "C" {
      **************************************/
 #define MV_COST_WEIGHT_SUB 120
 
-#if !OPT_LD_MEM_2
-#define TOTAL_NUMBER_OF_MD_RATE_ESTIMATION_CASE_BUFFERS (TOTAL_NUMBER_OF_QP_VALUES * TOTAL_NUMBER_OF_SLICE_TYPES)
-#define NUMBER_OF_SPLIT_FLAG_CASES                            6       // number of cases for bit estimation for split flag
-#define NUMBER_OF_MVD_CASES                                  12       // number of cases for bit estimation for motion vector difference
-#endif
      // Set to (1 << 5) if the 32-ary codebooks are used for any bock size
 #define MAX_WEDGE_TYPES                                      (1 << 4)
      // The factor to scale from cost in bits to cost in av1_prob_cost units.
@@ -50,7 +45,6 @@ extern "C" {
         int32_t lps_cost[LEVEL_CONTEXTS][COEFF_BASE_RANGE + 1 + COEFF_BASE_RANGE + 1];
     } LvMapCoeffCost;
 
-#if OPT_LD_MEM_2
     /**************************************
      * MD Rate Estimation Structure
      **************************************/
@@ -131,94 +125,6 @@ extern "C" {
         int32_t inter_tx_type_fac_bits[EXT_TX_SETS_INTER][EXT_TX_SIZES][TX_TYPES];
         bool initialized;
     } MdRateEstimationContext;
-#else
-    /**************************************
-     * The EbBitFraction is used to define the bit fraction numbers
-     **************************************/
-    typedef uint32_t EbBitFraction;
-
-    /**************************************
-     * MD Rate Estimation Structure
-     **************************************/
-    typedef struct MdRateEstimationContext
-    {
-        EbBitFraction  split_flag_bits[NUMBER_OF_SPLIT_FLAG_CASES];
-        EbBitFraction  mvd_bits[NUMBER_OF_MVD_CASES];
-        // Partition
-        int32_t partition_fac_bits[PARTITION_CONTEXTS][CDF_SIZE(EXT_PARTITION_TYPES)];
-        int32_t partition_vert_alike_fac_bits[PARTITION_CONTEXTS][CDF_SIZE(2)];
-        int32_t partition_horz_alike_fac_bits[PARTITION_CONTEXTS][CDF_SIZE(2)];
-        int32_t partition_vert_alike_128x128_fac_bits[PARTITION_CONTEXTS][CDF_SIZE(2)];
-        int32_t partition_horz_alike_128x128_fac_bits[PARTITION_CONTEXTS][CDF_SIZE(2)];
-
-        // MV Mode
-        int32_t skip_mode_fac_bits[SKIP_CONTEXTS][CDF_SIZE(2)];
-        int32_t new_mv_mode_fac_bits[NEWMV_MODE_CONTEXTS][CDF_SIZE(2)];
-        int32_t zero_mv_mode_fac_bits[GLOBALMV_MODE_CONTEXTS][CDF_SIZE(2)];
-        int32_t ref_mv_mode_fac_bits[REFMV_MODE_CONTEXTS][CDF_SIZE(2)];
-        int32_t drl_mode_fac_bits[DRL_MODE_CONTEXTS][CDF_SIZE(2)];
-
-        int32_t nmv_vec_cost[MV_JOINTS];
-        int32_t nmv_costs[2][MV_VALS];
-        int32_t nmv_costs_hp[2][MV_VALS];
-        int32_t *nmvcoststack[2];
-        int dv_cost[2][MV_VALS];
-        int dv_joint_cost[MV_JOINTS];
-
-        // Compouned Mode
-        int32_t inter_compound_mode_fac_bits[INTER_MODE_CONTEXTS][CDF_SIZE(INTER_COMPOUND_MODES)];
-        int32_t compound_type_fac_bits[BlockSizeS_ALL][CDF_SIZE(MASKED_COMPOUND_TYPES)];
-        int32_t single_ref_fac_bits[REF_CONTEXTS][SINGLE_REFS - 1][CDF_SIZE(2)];
-        int32_t comp_ref_type_fac_bits[COMP_REF_TYPE_CONTEXTS][CDF_SIZE(2)];
-        int32_t uni_comp_ref_fac_bits[UNI_COMP_REF_CONTEXTS][UNIDIR_COMP_REFS - 1][CDF_SIZE(2)];
-        int32_t comp_ref_fac_bits[REF_CONTEXTS][FWD_REFS - 1][CDF_SIZE(2)];
-        int32_t comp_bwd_ref_fac_bits[REF_CONTEXTS][BWD_REFS - 1][CDF_SIZE(2)];
-        int32_t comp_idx_fac_bits[COMP_INDEX_CONTEXTS][CDF_SIZE(2)];
-        int32_t comp_group_idx_fac_bits[COMP_GROUP_IDX_CONTEXTS][CDF_SIZE(2)];
-        int32_t comp_inter_fac_bits[COMP_INTER_CONTEXTS][CDF_SIZE(2)];
-
-        // Wedge Mode
-        int32_t wedge_idx_fac_bits[BlockSizeS_ALL][CDF_SIZE(16)];
-        int32_t inter_intra_fac_bits[BlockSize_GROUPS][CDF_SIZE(2)];
-        int32_t wedge_inter_intra_fac_bits[BlockSizeS_ALL][CDF_SIZE(2)];
-        int32_t inter_intra_mode_fac_bits[BlockSize_GROUPS][CDF_SIZE(INTERINTRA_MODES)];
-        int32_t motion_mode_fac_bits[BlockSizeS_ALL][MOTION_MODES];
-        int32_t motion_mode_fac_bits1[BlockSizeS_ALL][2];
-
-        // Intra Mode
-        int32_t intrabc_fac_bits[CDF_SIZE(2)];
-        int32_t intra_inter_fac_bits[INTRA_INTER_CONTEXTS][2];
-        int32_t filter_intra_fac_bits[BlockSizeS_ALL][CDF_SIZE(2)];
-        int32_t filter_intra_mode_fac_bits[CDF_SIZE(FILTER_INTRA_MODES)];
-        int32_t switchable_restore_fac_bits[CDF_SIZE(RESTORE_SWITCHABLE_TYPES)];
-        int32_t wiener_restore_fac_bits[CDF_SIZE(2)];
-        int32_t sgrproj_restore_fac_bits[CDF_SIZE(2)];
-        int32_t y_mode_fac_bits[KF_MODE_CONTEXTS][KF_MODE_CONTEXTS][CDF_SIZE(INTRA_MODES)];
-        int32_t mb_mode_fac_bits[BlockSize_GROUPS][CDF_SIZE(INTRA_MODES)];
-        int32_t intra_uv_mode_fac_bits[CFL_ALLOWED_TYPES][INTRA_MODES][CDF_SIZE(UV_INTRA_MODES)];
-        int32_t angle_delta_fac_bits[DIRECTIONAL_MODES][CDF_SIZE(2 * MAX_ANGLE_DELTA + 1)];
-        int32_t cfl_alpha_fac_bits[CFL_JOINT_SIGNS][CFL_PRED_PLANES][CFL_ALPHABET_SIZE];
-
-        // Palette Mode
-        int32_t palette_ysize_fac_bits[PALATTE_BSIZE_CTXS][CDF_SIZE(PALETTE_SIZES)];
-        int32_t palette_uv_size_fac_bits[PALATTE_BSIZE_CTXS][CDF_SIZE(PALETTE_SIZES)];
-        int32_t palette_ycolor_fac_bitss[PALETTE_SIZES][PALETTE_COLOR_INDEX_CONTEXTS][PALETTE_COLORS];
-        int32_t palette_uv_color_fac_bits[PALETTE_SIZES][PALETTE_COLOR_INDEX_CONTEXTS][PALETTE_COLORS];
-        int32_t palette_ymode_fac_bits[PALATTE_BSIZE_CTXS][PALETTE_Y_MODE_CONTEXTS][CDF_SIZE(2)];
-        int32_t palette_uv_mode_fac_bits[PALETTE_UV_MODE_CONTEXTS][CDF_SIZE(2)];
-
-        // Tx and Coeff Rate Estimation
-        LvMapCoeffCost coeff_fac_bits[TX_SIZES][PLANE_TYPES];
-        LvMapEobCost eob_frac_bits[7][2];
-        int32_t txfm_partition_fac_bits[TXFM_PARTITION_CONTEXTS][CDF_SIZE(2)];
-        int32_t skip_fac_bits[SKIP_CONTEXTS][CDF_SIZE(2)];
-        int32_t tx_size_fac_bits[MAX_TX_CATS][TX_SIZE_CONTEXTS][CDF_SIZE(MAX_TX_DEPTH + 1)];
-        int32_t intra_tx_type_fac_bits[EXT_TX_SETS_INTRA][EXT_TX_SIZES][INTRA_MODES][CDF_SIZE(TX_TYPES)];
-        int32_t inter_tx_type_fac_bits[EXT_TX_SETS_INTER][EXT_TX_SIZES][CDF_SIZE(TX_TYPES)];
-        int32_t switchable_interp_fac_bitss[SWITCHABLE_FILTER_CONTEXTS][SWITCHABLE_FILTERS];
-        int32_t initialized;
-    } MdRateEstimationContext;
-#endif
     /***************************************************************************
     * AV1 Probability table
     * // round(-log2(i/256.) * (1 << AV1_PROB_COST_SHIFT)); i = 128~255.

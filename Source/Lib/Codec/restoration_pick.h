@@ -18,11 +18,6 @@ extern "C" {
 #include "definitions.h"
 #include "pic_buffer_desc.h"
 
-#if !CLN_FUNCS_HEADER
-struct Yv12BufferConfig;
-struct Av1Comp;
-#endif
-
 static INLINE uint8_t find_average(const uint8_t *src, int32_t h_start, int32_t h_end, int32_t v_start, int32_t v_end,
                                    int32_t stride) {
     uint64_t sum = 0;

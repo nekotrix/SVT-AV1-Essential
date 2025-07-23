@@ -153,14 +153,6 @@ The 0* term provides compile-time type checking */
 #define EC_PROB_SHIFT 6
 #define EC_MIN_PROB 4 // must be <= (1<<EC_PROB_SHIFT)/16
 
-#if !CLN_EC
-/*OPT: OdEcWindow must be at least 32 bits, but if you have fast arithmetic
-on a larger type, you can speed up the decoder by using it here.*/
-typedef uint32_t OdEcWindow;
-
-#define OD_EC_WINDOW_SIZE ((int32_t)sizeof(OdEcWindow) * CHAR_BIT)
-#endif
-
 /*The resolution of fractional-precision bit usage measurements, i.e.,
     3 => 1/8th bits.*/
 #define OD_BITRES (3)
@@ -169,7 +161,6 @@ typedef uint32_t OdEcWindow;
 
 /********************************************************************************************************************************/
 //entenc.h
-#if CLN_EC
 typedef uint64_t OdEcWindow;
 #define OD_EC_WINDOW_SIZE ((int32_t)sizeof(OdEcWindow) * CHAR_BIT)
 #define OD_MEASURE_EC_OVERHEAD (0)
@@ -392,121 +383,6 @@ static INLINE void aom_write_symbol(AomWriter* w, int symb, AomCdfProb* cdf, int
     if (w->allow_update_cdf)
         update_cdf(cdf, symb, nsymbs);
 }
-#else
-typedef struct OdEcEnc OdEcEnc;
-
-#define OD_MEASURE_EC_OVERHEAD (0)
-
-/*The entropy encoder context.*/
-struct OdEcEnc {
-    /*Buffered output.
-        This contains only the raw bits until the final call to svt_od_ec_enc_done(),
-        where all the arithmetic-coded data gets prepended to it.*/
-    uint8_t *buf;
-    /*The size of the buffer.*/
-    uint32_t storage;
-    /*The offset at which the last byte containing raw bits was written.*/
-
-    /*A buffer for output bytes with their associated carry flags.*/
-    uint16_t *precarry_buf;
-    /*The size of the pre-carry buffer.*/
-    uint32_t precarry_storage;
-    /*The offset at which the next entropy-coded byte will be written.*/
-    uint32_t offs;
-    /*The low end of the current range.*/
-    OdEcWindow low;
-    /*The number of values in the current range.*/
-    uint16_t rng;
-    /*The number of bits of data in the current value.*/
-    int16_t cnt;
-    /*Nonzero if an error occurred.*/
-    int32_t error;
-#if OD_MEASURE_EC_OVERHEAD
-    double  entropy;
-    int32_t nb_symbols;
-#endif
-};
-
-/*See entenc.c for further documentation.*/
-
-void svt_od_ec_enc_init(OdEcEnc *enc, uint32_t size) OD_ARG_NONNULL(1);
-void svt_od_ec_enc_reset(OdEcEnc *enc) OD_ARG_NONNULL(1);
-void svt_od_ec_enc_clear(OdEcEnc *enc) OD_ARG_NONNULL(1);
-
-void svt_od_ec_encode_bool_q15(OdEcEnc *enc, int32_t val, unsigned f_q15) OD_ARG_NONNULL(1);
-void svt_od_ec_encode_cdf_q15(OdEcEnc *enc, int32_t s, const uint16_t *cdf, int32_t nsyms) OD_ARG_NONNULL(1)
-    OD_ARG_NONNULL(3);
-
-void od_ec_enc_bits(OdEcEnc *enc, uint32_t fl, unsigned ftb) OD_ARG_NONNULL(1);
-
-OD_WARN_UNUSED_RESULT uint8_t *svt_od_ec_enc_done(OdEcEnc *enc, uint32_t *nbytes) OD_ARG_NONNULL(1) OD_ARG_NONNULL(2);
-
-OD_WARN_UNUSED_RESULT int32_t svt_od_ec_enc_tell(const OdEcEnc *enc) OD_ARG_NONNULL(1);
-
-/********************************************************************************************************************************/
-//daalaboolwriter.h
-struct DaalaWriter {
-    uint32_t pos;
-    uint8_t *buffer;
-    uint32_t buffer_size;
-    OutputBitstreamUnit
-           *buffer_parent; // save a pointer to the container holding the buffer, in case the buffer must be resized
-    OdEcEnc ec;
-    uint8_t allow_update_cdf;
-};
-
-typedef struct DaalaWriter DaalaWriter;
-
-void        svt_aom_daala_start_encode(DaalaWriter *br, OutputBitstreamUnit *source);
-EbErrorType svt_realloc_output_bitstream_unit(OutputBitstreamUnit *output_bitstream_ptr, uint32_t sz);
-int32_t     svt_aom_daala_stop_encode(DaalaWriter *w);
-
-static INLINE void aom_daala_write(DaalaWriter *w, int32_t bit, int32_t prob) {
-    int32_t p = (0x7FFFFF - (prob << 15) + prob) >> 8;
-#if CONFIG_BITSTREAM_DEBUG
-    AomCdfProb cdf[2] = {(AomCdfProb)p, 32767};
-    bitstream_queue_push(bit, cdf, 2);
-#endif
-    svt_od_ec_encode_bool_q15(&w->ec, bit, p);
-}
-
-static INLINE void daala_write_symbol(DaalaWriter *w, int32_t symb, const AomCdfProb *cdf, int32_t nsymbs) {
-#if CONFIG_BITSTREAM_DEBUG
-    bitstream_queue_push(symb, cdf, nsymbs);
-#endif
-    svt_od_ec_encode_cdf_q15(&w->ec, symb, cdf, nsymbs);
-}
-
-/********************************************************************************************************************************/
-// bitwriter.h
-typedef struct DaalaWriter AomWriter;
-static INLINE void         aom_start_encode(AomWriter *bc, OutputBitstreamUnit *buffer) {
-    svt_aom_daala_start_encode(bc, buffer);
-}
-static INLINE int32_t aom_stop_encode(AomWriter *bc) { return svt_aom_daala_stop_encode(bc); }
-
-static INLINE void aom_write(AomWriter *br, int32_t bit, int32_t probability) { aom_daala_write(br, bit, probability); }
-
-static INLINE void aom_write_bit(AomWriter *w, int32_t bit) {
-    aom_write(w, bit, 128); // aom_prob_half
-}
-
-static INLINE void aom_write_literal(AomWriter *w, int32_t data, int32_t bits) {
-    int32_t bit;
-
-    for (bit = bits - 1; bit >= 0; bit--) aom_write_bit(w, 1 & (data >> bit));
-}
-
-static INLINE void aom_write_cdf(AomWriter *w, int32_t symb, const AomCdfProb *cdf, int32_t nsymbs) {
-    daala_write_symbol(w, symb, cdf, nsymbs);
-}
-
-static INLINE void aom_write_symbol(AomWriter *w, int32_t symb, AomCdfProb *cdf, int32_t nsymbs) {
-    aom_write_cdf(w, symb, cdf, nsymbs);
-    if (w->allow_update_cdf)
-        update_cdf(cdf, symb, nsymbs);
-}
-#endif
 
 /********************************************************************************************************************************/
 /********************************************************************************************************************************/

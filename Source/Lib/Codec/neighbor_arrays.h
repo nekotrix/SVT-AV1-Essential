@@ -13,9 +13,6 @@
 #define EbNeighborArrays_h
 
 #include "definitions.h"
-#if !CLN_MOVE_MV_FIELDS
-#include "motion_vector_unit.h"
-#endif
 #include "object.h"
 
 #ifdef __cplusplus

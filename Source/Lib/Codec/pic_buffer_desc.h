@@ -189,13 +189,6 @@ typedef struct AomCodecFrameBuffer {
     */
 typedef int32_t (*AomGetFrameBufferCbFn)(void *priv, size_t min_size, AomCodecFrameBuffer *fb);
 
-#if !CLN_FUNCS_HEADER
-#define ADDRESS_STORAGE_SIZE sizeof(size_t)
-
-/*returns an addr aligned to the byte boundary specified by align*/
-#define align_addr(addr, align) (void *)(((size_t)(addr) + ((align) - 1)) & ~(size_t)((align) - 1))
-#endif
-
 #define AOM_BORDER_IN_PIXELS 288
 
 /************************************

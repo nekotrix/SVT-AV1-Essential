@@ -87,14 +87,12 @@ static INLINE uint8_t major_minor_to_seq_level_idx(BitstreamLevel bl) {
     return ((bl.major - LEVEL_MAJOR_MIN) << LEVEL_MINOR_BITS) + bl.minor;
 }
 
-#if CLN_FUNCS_HEADER
 static INLINE void set_dc_sign(int32_t *cul_level, int32_t dc_val) {
     if (dc_val < 0)
         *cul_level |= 1 << COEFF_CONTEXT_BITS;
     else if (dc_val > 0)
         *cul_level += 2 << COEFF_CONTEXT_BITS;
 }
-#endif
 //**********************************************************************************************************//
 //encoder.h
 static INLINE int32_t get_ref_frame_map_idx(const PictureParentControlSet *pcs, MvReferenceFrame ref_frame) {
@@ -205,20 +203,13 @@ int     svt_aom_get_comp_index_context_enc(PictureParentControlSet *pcs, int cur
                                            int fwd_frame_index, const MacroBlockD *xd);
 int     svt_aom_get_pred_context_switchable_interp(MvReferenceFrame rf0, MvReferenceFrame rf1, const MacroBlockD *xd,
                                                    int dir);
-#if FIX_IFS_MDS0
-int svt_aom_is_nontrans_global_motion(const BlockModeInfo *block_mi, const BlockSize bsize,
-                                      PictureParentControlSet *pcs);
-#else
-int svt_aom_is_nontrans_global_motion_ec(MvReferenceFrame rf0, MvReferenceFrame rf1, PredictionMode pred_mode,
-                                         BlockSize bsize, PictureParentControlSet *pcs);
-#endif
+int     svt_aom_is_nontrans_global_motion(const BlockModeInfo *block_mi, const BlockSize bsize,
+                                          PictureParentControlSet *pcs);
 uint8_t svt_av1_get_intra_inter_context(const MacroBlockD *xd);
 void    svt_aom_get_kf_y_mode_ctx(const MacroBlockD *xd, uint8_t *above_ctx, uint8_t *left_ctx);
 uint8_t av1_get_skip_mode_context(const MacroBlockD *xd);
 uint8_t av1_get_skip_context(const MacroBlockD *xd);
-#if OPT_LD_MEM_2
-void svt_av1_reset_loop_restoration(struct EntropyCodingContext *ctx);
-#endif
+void    svt_av1_reset_loop_restoration(struct EntropyCodingContext *ctx);
 
 #ifdef __cplusplus
 }

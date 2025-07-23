@@ -45,11 +45,6 @@ extern const uint8_t sm_weight_arrays[2 * MAX_BLOCK_DIM];
 #define SHIFT_INTRA_SCALE_BITS 15 - FILTER_INTRA_SCALE_BITS
 extern const int8_t eb_av1_filter_intra_taps[FILTER_INTRA_MODES][8][8];
 
-#if !CLN_FUNCS_HEADER
-/////####.... To make functions common between EbIntraPrediction.c &
-void *svt_aom_memset16(void *dest, int32_t val, size_t length);
-#endif
-
 int32_t svt_aom_use_intra_edge_upsample(int32_t bs0, int32_t bs1, int32_t delta, int32_t type);
 
 BlockSize svt_aom_scale_chroma_bsize(BlockSize bsize, int32_t subsampling_x, int32_t subsampling_y);
@@ -83,11 +78,7 @@ static const int32_t mode_to_angle_map[] = {
 extern uint8_t base_mask[33][32];
 extern uint8_t even_odd_mask_x[8][16];
 
-#if CLN_REMOVE_DEC_STRUCT
-int svt_aom_is_smooth(const BlockModeInfo *mbmi, int plane);
-#else
-int svt_aom_is_smooth(const BlockModeInfoEnc *mbmi, int plane);
-#endif
+int                  svt_aom_is_smooth(const BlockModeInfo *mbmi, int plane);
 extern const uint8_t extend_modes[INTRA_MODES];
 
 /* TODO: Need to harmonize with fun from EbAdaptiveMotionVectorPrediction.c */

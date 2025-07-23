@@ -61,19 +61,11 @@ static void encode_context_dctor(EbPtr p) {
     EB_DESTROY_MUTEX(obj->stat_file_mutex);
     EB_DESTROY_MUTEX(obj->frame_updated_mutex);
     EB_DELETE(obj->prediction_structure_group_ptr);
-#if OPT_PD_REORDER_Q
     EB_DELETE_PTR_ARRAY(obj->picture_decision_reorder_queue, obj->picture_decision_reorder_queue_size);
     obj->picture_decision_reorder_queue_size = 0;
-#else
-    EB_DELETE_PTR_ARRAY(obj->picture_decision_reorder_queue, PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH);
-#endif
     EB_FREE(obj->pre_assignment_buffer);
-#if OPT_PIC_MGR_Q
     EB_DELETE_PTR_ARRAY(obj->pic_mgr_input_pic_list, obj->pic_mgr_input_pic_list_size);
     obj->pic_mgr_input_pic_list_size = 0;
-#else
-    EB_DELETE_PTR_ARRAY(obj->input_picture_queue, INPUT_QUEUE_MAX_DEPTH);
-#endif
     EB_DELETE_PTR_ARRAY(obj->ref_pic_list, obj->ref_pic_list_length);
 #if OPT_LD_LATENCY2
     EB_DESTROY_MUTEX(obj->ref_pic_list_mutex);
@@ -82,15 +74,8 @@ static void encode_context_dctor(EbPtr p) {
 #if OPT_LD_LATENCY2
     EB_DESTROY_MUTEX(obj->pd_dpb_mutex);
 #endif
-#if !CLN_REMOVE_IRC_Q
-    EB_DELETE_PTR_ARRAY(obj->initial_rate_control_reorder_queue, INITIAL_RATE_CONTROL_REORDER_QUEUE_MAX_DEPTH);
-#endif
-#if OPT_PACK_Q
     EB_DELETE_PTR_ARRAY(obj->packetization_reorder_queue, obj->packetization_reorder_queue_size);
     obj->packetization_reorder_queue_size = 0;
-#else
-    EB_DELETE_PTR_ARRAY(obj->packetization_reorder_queue, PACKETIZATION_REORDER_QUEUE_MAX_DEPTH);
-#endif
     EB_FREE(obj->stats_out.stat);
     destroy_stats_buffer(&obj->stats_buf_context, obj->frame_stats_buffer);
     EB_DELETE_PTR_ARRAY(obj->rc.coded_frames_stat_queue, CODED_FRAMES_STAT_QUEUE_MAX_DEPTH);
@@ -111,29 +96,11 @@ EbErrorType svt_aom_encode_context_ctor(EncodeContext *enc_ctx, EbPtr object_ini
 
     EB_CREATE_MUTEX(enc_ctx->total_number_of_recon_frame_mutex);
     EB_CREATE_MUTEX(enc_ctx->frame_updated_mutex);
-#if OPT_PD_REORDER_Q
     enc_ctx->picture_decision_reorder_queue_size = 0;
-#else
-    EB_ALLOC_PTR_ARRAY(enc_ctx->picture_decision_reorder_queue, PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH);
-
-    for (picture_index = 0; picture_index < PICTURE_DECISION_REORDER_QUEUE_MAX_DEPTH; ++picture_index) {
-        EB_NEW(enc_ctx->picture_decision_reorder_queue[picture_index],
-               svt_aom_picture_decision_reorder_entry_ctor,
-               picture_index);
-    }
-#endif
     EB_ALLOC_PTR_ARRAY(enc_ctx->pre_assignment_buffer, PRE_ASSIGNMENT_MAX_DEPTH);
 
-#if OPT_PIC_MGR_Q
     // input pic list allocated in svt_av1_enc_init based on number of ppcs
     enc_ctx->pic_mgr_input_pic_list_size = 0;
-#else
-    EB_ALLOC_PTR_ARRAY(enc_ctx->input_picture_queue, INPUT_QUEUE_MAX_DEPTH);
-
-    for (picture_index = 0; picture_index < INPUT_QUEUE_MAX_DEPTH; ++picture_index) {
-        EB_NEW(enc_ctx->input_picture_queue[picture_index], svt_aom_input_queue_entry_ctor);
-    }
-#endif
 
     EB_ALLOC_PTR_ARRAY(enc_ctx->pd_dpb, REF_FRAMES);
     for (picture_index = 0; picture_index < REF_FRAMES; ++picture_index) {
@@ -142,25 +109,7 @@ EbErrorType svt_aom_encode_context_ctor(EncodeContext *enc_ctx, EbPtr object_ini
 #if OPT_LD_LATENCY2
     EB_CREATE_MUTEX(enc_ctx->pd_dpb_mutex);
 #endif
-#if !CLN_REMOVE_IRC_Q
-    EB_ALLOC_PTR_ARRAY(enc_ctx->initial_rate_control_reorder_queue, INITIAL_RATE_CONTROL_REORDER_QUEUE_MAX_DEPTH);
 
-    for (picture_index = 0; picture_index < INITIAL_RATE_CONTROL_REORDER_QUEUE_MAX_DEPTH; ++picture_index) {
-        EB_NEW(enc_ctx->initial_rate_control_reorder_queue[picture_index],
-               svt_aom_initial_rate_control_reorder_entry_ctor,
-               picture_index);
-    }
-#endif
-
-#if !OPT_PACK_Q
-    EB_ALLOC_PTR_ARRAY(enc_ctx->packetization_reorder_queue, PACKETIZATION_REORDER_QUEUE_MAX_DEPTH);
-
-    for (picture_index = 0; picture_index < PACKETIZATION_REORDER_QUEUE_MAX_DEPTH; ++picture_index) {
-        EB_NEW(enc_ctx->packetization_reorder_queue[picture_index],
-               svt_aom_packetization_reorder_entry_ctor,
-               picture_index);
-    }
-#endif
 #if OPT_LD_LATENCY2
     EB_CREATE_MUTEX(enc_ctx->total_number_of_shown_frames_mutex);
     EB_CREATE_MUTEX(enc_ctx->ref_pic_list_mutex);

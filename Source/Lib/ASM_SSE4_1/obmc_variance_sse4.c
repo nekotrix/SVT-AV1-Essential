@@ -12,26 +12,7 @@
 #include "aom_dsp_rtcd.h"
 #include "synonyms.h"
 
-#if OPT_LD_MEM_2
 #include "filter.h"
-#else
-////////////////////////////////////////////////////////////////////////////////
-// 8 bit
-////////////////////////////////////////////////////////////////////////////////
-// 2 tap bilinear filters
-#define BIL_SUBPEL_BITS 3
-#define BIL_SUBPEL_SHIFTS (1 << BIL_SUBPEL_BITS)
-static const uint8_t bilinear_filters_2t[BIL_SUBPEL_SHIFTS][2] = {
-    {128, 0},
-    {112, 16},
-    {96, 32},
-    {80, 48},
-    {64, 64},
-    {48, 80},
-    {32, 96},
-    {16, 112},
-};
-#endif
 
 void svt_aom_var_filter_block2d_bil_first_pass_ssse3(const uint8_t *a, uint16_t *b, unsigned int src_pixels_per_line,
                                                      unsigned int pixel_step, unsigned int output_height,

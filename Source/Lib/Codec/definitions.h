@@ -51,11 +51,7 @@ extern "C" {
 #define MAX_TPL_GROUP_SIZE 512 //enough to cover 6L gop
 
 #define MAX_TPL_EXT_GROUP_SIZE MAX_TPL_GROUP_SIZE
-#if OPT_REF_Q
 #define OUT_Q_ADVANCE(h, size) (((h) == (size) - 1) ? 0 : (h) + 1)
-#else
-#define OUT_Q_ADVANCE(h) ((h == REFERENCE_QUEUE_MAX_DEPTH - 1) ? 0 : h + 1)
-#endif
 #define MIN_LAD_MG 1
 #define RC_DEFAULT_LAD_MG 2 // default look ahead value for rate control
 void svt_aom_assert_err(uint32_t condition, char *err_msg);
@@ -82,9 +78,6 @@ void svt_aom_assert_err(uint32_t condition, char *err_msg);
 #define VQ_NOISE_LVL_TH 15000
 #define VQ_STABILITY_ME_VAR_TH 750
 #define VQ_PIC_AVG_VARIANCE_TH 1000
-#if !OPT_INTRA
-#define MDS0_REDUCE_ANGULAR_INTRA_TH 25
-#endif
 #define NUM_MV_COMPONENTS 2
 #define NUM_MV_HIST 2
 #define MAX_MV_HIST_SIZE 2 * REF_LIST_MAX_DEPTH *NUM_MV_COMPONENTS *NUM_MV_HIST
@@ -101,16 +94,8 @@ typedef struct SharpnessCtrls {
     uint8_t restoration;
     uint8_t rdoq;
 } SharpnessCtrls;
-#if !OPT_DEPTHS_CTRL
-typedef struct StabilityCtrls {
-    uint8_t depth_refinement;
-} StabilityCtrls;
-#endif
 typedef struct VqCtrls {
     SharpnessCtrls sharpness_ctrls;
-#if !OPT_DEPTHS_CTRL
-    StabilityCtrls stability_ctrls;
-#endif
 } VqCtrls;
 typedef struct MrpCtrls {
     /*
@@ -150,7 +135,6 @@ typedef struct MrpCtrls {
     //2:use with TPL constraint                 faster
     //3:use with no constraint                  fastest
     uint8_t use_best_references;
-#if OPT_PIC_BUFFS
     // When LD rtc is used, reduce the number of ref buffers based on the number of references used
     // and the known rps structure. Signal is set automatically based on refs used.
     // 0: off, use at least DPB ref buffers.
@@ -159,7 +143,6 @@ typedef struct MrpCtrls {
     // 2: on; when each ref list uses <=1 refs, further reduce the number of ref frame buffers because only
     // one base and one layer1 pic are added to the dpb at a time.
     uint8_t ld_reduce_ref_buffs;
-#endif
 
 } MrpCtrls;
 typedef struct TfControls {
@@ -346,10 +329,6 @@ enum {
 #define MAX_TXB_COUNT_UV 4 // Maximum number of transform blocks per depth for chroma planes
 #define MAX_LAD 120 // max lookahead-distance 2x60fps
 #define ROUND_UV(x) (((x) >> 3) << 3)
-#if !OPT_LD_MEM_2
-#define AV1_PROB_COST_SHIFT 9
-#define AOMINNERBORDERINPIXELS 160
-#endif
 #define SWITCHABLE_FILTER_CONTEXTS ((SWITCHABLE_FILTERS + 1) * 4)
 #define MAX_MB_PLANE 3
 #define CFL_MAX_BlockSize (BLOCK_32X32)
@@ -363,11 +342,6 @@ enum {
 #define CONFIG_BUFFER_MODEL 1
 #define CONFIG_COEFFICIENT_RANGE_CHECKING 0
 #define CONFIG_ENTROPY_STATS 0
-#if !CLN_MOVE_FIELDS_MBMI
-#define CONFIG_FP_MB_STATS 0
-#define CONFIG_INTERNAL_STATS 0
-#define CONFIG_RD_DEBUG 0
-#endif
 
 // Max superblock size
 #define MAX_SB_SIZE_LOG2 7
@@ -732,14 +706,6 @@ static const uint32_t MD_STAGE_NICS_SCAL_NUM[NICS_SCALING_LEVELS][MD_STAGE_TOTAL
     {0, 2, 0, 0}, // LEVEL 14
     {0, 0, 0, 0} // LEVEL 15
 };
-#if !CLN_UNUSED_SIGS
-// NICS
-#define MAX_FRAME_TYPE 3 // Max number of frame type allowed for nics
-#define ALL_S0 -1 // Allow all candidates from stage0
-#define MAX_REF_TYPE_CAND 30
-#define PRUNE_REC_TH 5
-#define PRUNE_REF_ME_TH 2
-#endif
 typedef enum {
     EIGHTTAP_REGULAR,
     EIGHTTAP_SMOOTH,
@@ -783,14 +749,12 @@ typedef enum IfsLevel {
     IFS_MDS2, // IFS @ md_stage_2()
     IFS_MDS3, // IFS @ md_stage_3()
 } IfsLevel;
-#if TUNE_MR_2
 typedef enum SpatialSseLevel {
     SSSE_MDS1, // Spatial SSE @ md_stage_1() and beyond
     SSSE_MDS2, // Spatial SSE @ md_stage_2() and beyond
     SSSE_MDS3, // Spatial SSE @ md_stage_3() and beyond
     SSSE_OFF // Spatial SSE OFF
 } SpatialSseLevel;
-#endif
 typedef enum DistortionType { SAD, VAR, SSD, DIST_TYPES } DistortionType;
 // Profile 0.  8-bit and 10-bit 4:2:0 and 4:0:0 only.
 // Profile 1.  8-bit and 10-bit 4:4:4
@@ -1467,10 +1431,6 @@ MAX_NUM_TEMPORAL_LAYERS * MAX_NUM_SPATIAL_LAYERS
 static INLINE int32_t is_valid_seq_level_idx(uint8_t seq_level_idx) {
     return seq_level_idx < 24 || seq_level_idx == 31;
 }
-#if !CLN_UNUSED_SIGS
-#define TXCOEFF_TIMER 0
-#define TXCOEFF_COST_TIMER 0
-#endif
 
 typedef enum
 {
@@ -1914,12 +1874,6 @@ typedef enum FrameContextIndex {
 // Total number of QM sets stored
 #define QM_LEVEL_BITS 4
 #define NUM_QM_LEVELS (1 << QM_LEVEL_BITS)
-#if !CLN_UNUSED_SIGS
-//**********************************************************************************************************************//
-// blockd.h
-#define NO_FILTER_FOR_IBC 1 // Disable in-loop filters for frame with intrabc
-//**********************************************************************************************************************//
-#endif
 // av1_loopfilter.h
 #define MAX_LOOP_FILTER 63
 #define MAX_SHARPNESS 7
@@ -1947,12 +1901,6 @@ struct LoopFilter {
 #define MAX_SEGMENTS 8
 #define MAX_MB_PLANE 3
 
-#if !CLN_UNUSED_SIGS
-#define MAX_LOOP_FILTER 63
-#define MAX_SHARPNESS 7
-
-#define SIMD_WIDTH 16
-#endif
 // Need to align this structure so when it is declared and
 // passed it can be loaded into vector registers.
 typedef struct LoopFilterThresh {
@@ -2154,7 +2102,6 @@ typedef enum MD_BIT_DEPTH_MODE
     EB_DUAL_BIT_MD  = 2     // Auto: 8bit & 10bit mode decision
 } MD_BIT_DEPTH_MODE;
 
-#if CLN_REMOVE_LDP
  /* Indicates what prediction structure to use
   *
   * SVT_AV1_PRED_UNUSED is not used, and not supported in the code. It is a placeholder after removing SVT_AV1_PRED_LOW_DELAY_P
@@ -2169,35 +2116,15 @@ typedef enum PredStructure {
     PRED_TOTAL_COUNT = 3,
     PRED_INVALID = 0xFF
 } PredStructure;
-#endif
 /*
  * The SliceType type is used to describe the slice prediction type.
  */
-#if CLN_REMOVE_P_SLICE
 typedef enum ATTRIBUTE_PACKED {
     B_SLICE = 0, // Inter frame
     I_SLICE = 1, // Intra only frame
     INVALID_SLICE = 0xFF
 } SliceType;
-#else
-typedef enum ATTRIBUTE_PACKED {
-    B_SLICE = 0,
-    P_SLICE = 1,
-    I_SLICE = 2,
-    IDR_SLICE = 3,
-    INVALID_SLICE = 0xFF
-} SliceType;
-#endif
 
-#if !CLN_UNUSED_SIGS
-/** The EbModeType type is used to describe the PU type.
-*/
-typedef uint8_t EbModeType;
-#define INTER_MODE 1
-#define INTRA_MODE 2
-
-#define INVALID_MODE 0xFFu
-#endif
 #define SPEED_CONTROL_INIT_MOD ENC_M5;
 typedef enum ATTRIBUTE_PACKED {
     REF_LIST_0 = 0,
@@ -2255,31 +2182,6 @@ object_init_data_ptr is a EbPtr to a data structure used to initialize the objec
 typedef EbErrorType(*EbCreator)(
     EbPtr *object_dbl_ptr,
     EbPtr object_init_data_ptr);
-#if !CLN_MOVE_MV_FIELDS
-#define INVALID_MV            0x80008000 //0xFFFFFFFF    //ICOPY They changed this to 0x80008000
-#endif
-#if !CLN_REMOVE_DATA_LL
-/***************************************
-* Generic linked list data structure for passing data into/out from the library
-***************************************/
-typedef int32_t EbLinkedListType;
-
-typedef struct EbLinkedListNode
-{
-    void*                     app;                       // points to an application object this node is associated
-                                                            // with. this is an opaque pointer to the encoder lib, but
-                                                            // release_cb_fnc_ptr may need to access it.
-    EbLinkedListType       type;                      // type of data pointed by "data" member variable
-    uint32_t                    size;                      // size of (data)
-    bool                   passthrough;               // whether this is passthrough data from application
-    void(*release_cb_fnc_ptr)(struct EbLinkedListNode*); // callback to be executed by encoder when picture reaches end of pipeline, or
-                                                        // when aborting. However, at end of pipeline encoder shall
-                                                        // NOT invoke this callback if passthrough is true (but
-                                                        // still needs to do so when aborting)
-    void                     *data;                      // pointer to application's data
-    struct EbLinkedListNode  *next;                      // pointer to next node (null when last)
-} EbLinkedListNode;
-#endif
 typedef enum DistCalcType
 {
     DIST_CALC_RESIDUAL = 0,    // SSE(Coefficients - ReconCoefficients)
@@ -2312,11 +2214,6 @@ typedef struct EbMemoryMapEntry
     EbPtr                    prev_entry;     // pointer to the prev entry
 } EbMemoryMapEntry;
 
-#if !CLN_UNUSED_SIGS
-// Rate Control
-#define THRESHOLD1QPINCREASE     1
-#define THRESHOLD2QPINCREASE     2
-#endif
 #define ALVALUE 64
 
 #define EB_CREATE_SEMAPHORE(pointer, initial_count, max_count) \
@@ -2363,11 +2260,6 @@ svt_memcpy_intrin_sse(void* dst_ptr, const void* src_ptr, size_t size);
 #define EB_MEMSET(dst, val, count) \
 memset(dst, val, count)
 
-#if !CLN_UNUSED_SIGS
-//#ifdef __cplusplus
-//}
-//#endif // __cplusplus
-#endif
 
 /**************************************
 * Callback Functions
@@ -2389,29 +2281,13 @@ void(*error_handler)(
 
 //***Encoding Parameters***
 
-#if !CLN_UNUSED_SIGS
-#define INTERNAL_BIT_DEPTH                          8 // to be modified
-#define MAX_SAMPLE_VALUE                            ((1 << INTERNAL_BIT_DEPTH) - 1)
-#define MAX_SAMPLE_VALUE_10BIT                      0x3FF
-#endif
 #define BLOCK_SIZE_64                                64u
 #define LOG2F_MAX_SB_SIZE                          6u
 #define LOG2_64_SIZE                                6 // log2(BLOCK_SIZE_64)
 #define MAX_LEVEL_COUNT                             5 // log2(BLOCK_SIZE_64) - log2(MIN_BLOCK_SIZE)
 #define LOG_MIN_BLOCK_SIZE                          3
 #define MIN_BLOCK_SIZE                              (1 << LOG_MIN_BLOCK_SIZE)
-#if !CLN_UNUSED_SIGS
-#define LOG_MIN_PU_SIZE                             2
-#define MIN_PU_SIZE                                 (1 << LOG_MIN_PU_SIZE)
-#define MAX_NUM_OF_PU_PER_CU                        1
-#endif
 #define MAX_NUM_OF_REF_PIC_LIST                     2
-#if !CLN_UNUSED_SIGS
-#define MAX_NUM_OF_PART_SIZE                        8
-#define MIN_CU_BLK_COUNT                            ((BLOCK_SIZE_64 / MIN_BLOCK_SIZE) * (BLOCK_SIZE_64 / MIN_BLOCK_SIZE))
-#define MAX_NUM_OF_TU_PER_CU                        21
-#define MIN_NUM_OF_TU_PER_CU                        5
-#endif
 // super-resolution definitions
 #define MIN_SUPERRES_DENOM                          8
 #define MAX_SUPERRES_DENOM                          16
@@ -2433,16 +2309,6 @@ void(*error_handler)(
 #define _MVXT(mv) ( (int16_t)((mv) &  0xFFFF) )
 #define _MVYT(mv) ( (int16_t)((mv) >> 16    ) )
 
-#if !CLN_UNUSED_SIGS
-//***MCP***
-
-#define InternalBitDepth            8                                     // to be modified
-#define MAX_Sample_Value            ((1 << InternalBitDepth) - 1)
-#define IF_Shift                    6                                     // to be modified
-#define IF_Prec                     14                                    // to be modified
-#define IF_Negative_Offset          (IF_Prec - 1)                         // to be modified
-#define InternalBitDepthIncrement   (InternalBitDepth - 8)
-#endif
 #define MIN_QP_VALUE                     0
 #define MAX_QP_VALUE                    63
 // Noise detection
@@ -2683,9 +2549,6 @@ typedef struct StatStruct
     uint8_t    worst_qindex;
     uint8_t    temporal_layer_index;
 } StatStruct;
-#if !CLN_UNUSED_SIGS
-#define SC_MAX_LEVEL 2 // 2 sets of HME/ME settings are used depending on the scene content mode
-#endif
 static const uint8_t me_idx_85_8x8_to_16x16_conversion[] = {
     5,5,      6,6,      7,7,      8,8,
     5,5,      6,6,      7,7,      8,8,

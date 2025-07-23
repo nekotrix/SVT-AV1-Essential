@@ -33,9 +33,7 @@
 #include "svt_log.h"
 #include <limits.h>
 #include "pack_unpack_c.h"
-#if CLN_FUNCS_HEADER
 #include "pic_operators.h"
-#endif
 
 #undef _MM_HINT_T2
 #define _MM_HINT_T2 1
@@ -83,11 +81,6 @@ static const uint32_t idx_32x32_to_idx_8x8[4][4][4] = {
 int32_t svt_aom_get_frame_update_type(SequenceControlSet *scs, PictureParentControlSet *pcs);
 int32_t svt_av1_compute_qdelta_fp(int32_t qstart_fp8, int32_t qtarget_fp8, EbBitDepth bit_depth);
 int32_t svt_av1_compute_qdelta(double qstart, double qtarget, EbBitDepth bit_depth);
-#if !CLN_FUNCS_HEADER
-void svt_c_unpack_compressed_10bit(const uint8_t *inn_bit_buffer, uint32_t inn_stride,
-                                   uint8_t *in_compn_bit_buffer, uint32_t out_stride,
-                                   uint32_t height);
-#endif
 #if DEBUG_SCALING
 // save YUV to file - auxiliary function for debug
 void save_YUV_to_file(char *filename, EbByte buffer_y, EbByte buffer_u, EbByte buffer_v,
@@ -154,89 +147,6 @@ void save_YUV_to_file_highbd(char *filename, uint16_t *buffer_y, uint16_t *buffe
         }
         fclose(fid);
     }
-}
-#endif
-#if !CLN_FUNCS_HEADER
-void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffer_16bit[3], uint32_t ss_x,
-                     uint32_t ss_y, bool include_padding) {
-    uint16_t width  = pic_ptr->stride_y;
-    uint16_t height = (uint16_t)(pic_ptr->org_y * 2 + pic_ptr->height);
-
-    svt_aom_assert_err(include_padding == 1, "not supporting OFF");
-
-    uint32_t comp_stride_y = pic_ptr->stride_y / 4;
-
-    svt_aom_compressed_pack_sb(pic_ptr->buffer_y,
-                       pic_ptr->stride_y,
-                       pic_ptr->buffer_bit_inc_y,
-                       comp_stride_y,
-                       buffer_16bit[C_Y],
-                       pic_ptr->stride_y,
-                       width,
-                       height);
-
-    uint32_t comp_stride_uv = pic_ptr->stride_cb / 4;
-    if (buffer_16bit[C_U])
-        svt_aom_compressed_pack_sb(pic_ptr->buffer_cb,
-                           pic_ptr->stride_cb,
-                           pic_ptr->buffer_bit_inc_cb,
-                           comp_stride_uv,
-                           buffer_16bit[C_U],
-                           pic_ptr->stride_cb,
-                           (width + ss_x) >> ss_x,
-                           (height + ss_y) >> ss_y);
-    if (buffer_16bit[C_V])
-        svt_aom_compressed_pack_sb(pic_ptr->buffer_cr,
-                           pic_ptr->stride_cr,
-                           pic_ptr->buffer_bit_inc_cr,
-                           comp_stride_uv,
-                           buffer_16bit[C_V],
-                           pic_ptr->stride_cr,
-                           (width + ss_x) >> ss_x,
-                           (height + ss_y) >> ss_y);
-}
-
-void svt_aom_unpack_highbd_pic(uint16_t *buffer_highbd[3], EbPictureBufferDesc *pic_ptr, uint32_t ss_x,
-                       uint32_t ss_y, bool include_padding) {
-    uint16_t width  = pic_ptr->stride_y;
-    uint16_t height = (uint16_t)(pic_ptr->org_y * 2 + pic_ptr->height);
-
-    svt_aom_assert_err(include_padding == 1, "not supporting OFF");
-
-    uint32_t comp_stride_y  = pic_ptr->stride_y / 4;
-    uint32_t comp_stride_uv = pic_ptr->stride_cb / 4;
-
-    svt_unpack_and_2bcompress(
-        buffer_highbd[C_Y],
-        pic_ptr->stride_y,
-        pic_ptr->buffer_y,
-        pic_ptr->stride_y,
-        pic_ptr->buffer_bit_inc_y,
-        comp_stride_y,
-        width,
-        height);
-
-    if (buffer_highbd[C_U])
-        svt_unpack_and_2bcompress(
-            buffer_highbd[C_U],
-            pic_ptr->stride_cb,
-            pic_ptr->buffer_cb,
-            pic_ptr->stride_cb,
-            pic_ptr->buffer_bit_inc_cb,
-            comp_stride_uv,
-            (width + ss_x) >> ss_x,
-            (height + ss_y) >> ss_y);
-
-    if (buffer_highbd[C_V])
-        svt_unpack_and_2bcompress(
-            buffer_highbd[C_V],
-            pic_ptr->stride_cr,
-            pic_ptr->buffer_cr,
-            pic_ptr->stride_cr,
-            pic_ptr->buffer_bit_inc_cr,
-            comp_stride_uv,
-            (width + ss_x) >> ss_x,
-            (height + ss_y) >> ss_y);
 }
 #endif
 
@@ -1588,30 +1498,16 @@ static void svt_check_position(TF_SUBPEL_SEARCH_PARAMS* tf_sp_param, PicturePare
     }
 
     SequenceControlSet* scs = pcs->scs;
-#if CLN_MV_UNIT
     Mv mv;
     mv.x = tf_sp_param->mv_x + tf_sp_param->xd;
     mv.y = tf_sp_param->mv_y + tf_sp_param->yd;
-#else
-    MvUnit mv_unit;
-    mv_unit.pred_direction = UNI_PRED_LIST_0;
-    mv_unit.mv->x = tf_sp_param->mv_x + tf_sp_param->xd;
-    mv_unit.mv->y = tf_sp_param->mv_y + tf_sp_param->yd;
-#endif
 
     svt_aom_simple_luma_unipred(
         scs,
         scs->sf_identity,
         tf_sp_param->interp_filters,
         blk_ptr,
-#if !CLN_CAND_REF_FRAME
-        0, //ref_frame_type,
-#endif
-#if CLN_MV_UNIT
         mv,
-#else
-        &mv_unit,
-#endif
         tf_sp_param->pu_origin_x,
         tf_sp_param->pu_origin_y,
         tf_sp_param->bsize,
@@ -1677,13 +1573,8 @@ static void svt_check_position(TF_SUBPEL_SEARCH_PARAMS* tf_sp_param, PicturePare
     // If the new point is better than the old, update MV and distortion
     if (distortion < *best_dist) {
         *best_dist = distortion;
-#if CLN_MV_UNIT
         *best_mv_x = mv.x;
         *best_mv_y = mv.y;
-#else
-        *best_mv_x = mv_unit.mv->x;
-        *best_mv_y = mv_unit.mv->y;
-#endif
     }
 }
 
@@ -2291,10 +2182,6 @@ static void tf_64x64_inter_prediction(PictureParentControlSet* pcs, MeContext* m
     BlkStruct   blk_ptr;
     MacroBlockD av1xd;
     blk_ptr.av1xd = &av1xd;
-#if !CLN_MV_UNIT
-    MvUnit mv_unit;
-    mv_unit.pred_direction = UNI_PRED_LIST_0;
-#endif
 
     EbPictureBufferDesc reference_ptr;
     EbPictureBufferDesc prediction_ptr;
@@ -2352,11 +2239,6 @@ static void tf_64x64_inter_prediction(PictureParentControlSet* pcs, MeContext* m
 
     // Perform final pass using the 1/8 MV
     // AV1 MVs are always in 1/8th pel precision.
-#if !CLN_MV_UNIT
-    mv_unit.mv->x = me_ctx->tf_64x64_mv_x;
-    mv_unit.mv->y = me_ctx->tf_64x64_mv_y;
-#endif
-#if CLN_INTER_PRED_FUNC
     BlockModeInfo block_mi = {
         .mv[0] = {{me_ctx->tf_64x64_mv_x, me_ctx->tf_64x64_mv_y}},
         .ref_frame[0] = LAST_FRAME,
@@ -2372,10 +2254,8 @@ static void tf_64x64_inter_prediction(PictureParentControlSet* pcs, MeContext* m
         scs,
         NULL, //pcs,
         &block_mi,
-#if CLN_MERGE_WM_INTER_PRED
         NULL, // wm_params
         NULL, // wm_params
-#endif
         &blk_ptr,
         blk_geom,
         false, // use_precomputed_obmc
@@ -2394,48 +2274,6 @@ static void tf_64x64_inter_prediction(PictureParentControlSet* pcs, MeContext* m
         me_ctx->tf_chroma ? PICTURE_BUFFER_DESC_FULL_MASK : PICTURE_BUFFER_DESC_LUMA_MASK,
         (uint8_t)encoder_bit_depth,
         is_highbd);
-#else
-    svt_aom_inter_prediction(
-        scs,
-        NULL, //pcs,
-        (uint32_t)interp_filters,
-        &blk_ptr,
-#if CLN_CAND_REF_FRAME
-        0, //ref_frame_type,
-        0, //ref_frame_type,
-#else
-        0, //ref_frame_type,
-#endif
-        & mv_unit,
-        0, //use_intrabc,
-        SIMPLE_TRANSLATION,
-        0,
-#if OPT_II_PRECOMPUTE
-        false, // use_precomputed_ii
-#endif
-        0,
-        1, //compound_idx not used
-        NULL, // interinter_comp not used
-        NULL,
-        NULL,
-        NULL,
-        0,
-        0,
-        0,
-        0,
-        pu_origin_x,
-        pu_origin_y,
-        bsize,
-        bsize,
-        !is_highbd ? pic_ptr_ref : &reference_ptr,
-        NULL, //ref_pic_list1,
-        &prediction_ptr,
-        local_origin_x,
-        local_origin_y,
-        me_ctx->tf_chroma ? PICTURE_BUFFER_DESC_FULL_MASK : PICTURE_BUFFER_DESC_LUMA_MASK,
-        (uint8_t)encoder_bit_depth,
-        is_highbd);
-#endif
 }
 static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *me_ctx,
                                       PictureParentControlSet *pcs_ref,
@@ -2450,10 +2288,6 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
     BlkStruct   blk_ptr;
     MacroBlockD av1xd;
     blk_ptr.av1xd = &av1xd;
-#if !CLN_INTER_PRED_FUNC
-    MvUnit mv_unit;
-    mv_unit.pred_direction = UNI_PRED_LIST_0;
-#endif
 
     EbPictureBufferDesc reference_ptr;
     EbPictureBufferDesc prediction_ptr;
@@ -2519,7 +2353,6 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
                     blk_ptr.av1xd->mb_to_left_edge = -(int32_t)((micol * MI_SIZE) * 8);
                     blk_ptr.av1xd->mb_to_right_edge = ((pcs->av1_cm->mi_cols - bh - micol) * MI_SIZE) *
                         8;
-#if CLN_INTER_PRED_FUNC
                     // Perform final pass using the 1/8 MV
                     //AV1 MVs are always in 1/8th pel precision.
                     BlockModeInfo block_mi = {
@@ -2537,10 +2370,8 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
                         scs,
                         NULL, //pcs,
                         &block_mi,
-#if CLN_MERGE_WM_INTER_PRED
                         NULL, // wm_params
                         NULL, // wm_params
-#endif
                         &blk_ptr,
                         blk_geom,
                         false, // use_precomputed_obmc
@@ -2559,52 +2390,6 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
                         me_ctx->tf_chroma ? PICTURE_BUFFER_DESC_FULL_MASK : PICTURE_BUFFER_DESC_LUMA_MASK,
                         (uint8_t)encoder_bit_depth,
                         is_highbd);
-#else
-                    // Perform final pass using the 1/8 MV
-                    //AV1 MVs are always in 1/8th pel precision.
-                    mv_unit.mv->x = me_ctx->tf_8x8_mv_x[idx_32x32 * 16 + 4 * idx_16x16 + idx_8x8];
-                    mv_unit.mv->y = me_ctx->tf_8x8_mv_y[idx_32x32 * 16 + 4 * idx_16x16 + idx_8x8];
-                    svt_aom_inter_prediction(scs,
-                        NULL, //pcs,
-                        (uint32_t)interp_filters,
-                        &blk_ptr,
-#if CLN_CAND_REF_FRAME
-                        0, //ref_frame_type,
-                        0, //ref_frame_type,
-#else
-                        0, //ref_frame_type,
-#endif
-                        &mv_unit,
-                        0, //use_intrabc,
-                        SIMPLE_TRANSLATION,
-                        0,
-#if OPT_II_PRECOMPUTE
-                        false, // use_precomputed_ii
-#endif
-                        0,
-                        1, //compound_idx not used
-                        NULL, // interinter_comp not used
-                        NULL,
-                        NULL,
-                        NULL,
-                        0,
-                        0,
-                        0,
-                        0,
-                        pu_origin_x,
-                        pu_origin_y,
-                        bsize,
-                        bsize,
-                        !is_highbd ? pic_ptr_ref : &reference_ptr,
-                        NULL, //ref_pic_list1,
-                        &prediction_ptr,
-                        local_origin_x,
-                        local_origin_y,
-                        me_ctx->tf_chroma ? PICTURE_BUFFER_DESC_FULL_MASK
-                        : PICTURE_BUFFER_DESC_LUMA_MASK,
-                        (uint8_t)encoder_bit_depth,
-                        0); // is_16bit_pipeline
-#endif
                 }
             }
             else {
@@ -2632,7 +2417,6 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
             blk_ptr.av1xd->mb_to_left_edge  = -(int32_t)((micol * MI_SIZE) * 8);
             blk_ptr.av1xd->mb_to_right_edge = ((pcs->av1_cm->mi_cols - bh - micol) * MI_SIZE) *
                 8;
-#if CLN_INTER_PRED_FUNC
             // Perform final pass using the 1/8 MV
             //AV1 MVs are always in 1/8th pel precision.
             BlockModeInfo block_mi = {
@@ -2650,10 +2434,8 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
                 scs,
                 NULL, //pcs,
                 &block_mi,
-#if CLN_MERGE_WM_INTER_PRED
                 NULL, // wm_params
                 NULL, // wm_params
-#endif
                 &blk_ptr,
                 blk_geom,
                 false, // use_precomputed_obmc
@@ -2672,52 +2454,6 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
                 me_ctx->tf_chroma ? PICTURE_BUFFER_DESC_FULL_MASK : PICTURE_BUFFER_DESC_LUMA_MASK,
                 (uint8_t)encoder_bit_depth,
                 is_highbd);
-#else
-            // Perform final pass using the 1/8 MV
-            //AV1 MVs are always in 1/8th pel precision.
-            mv_unit.mv->x = me_ctx->tf_16x16_mv_x[idx_32x32 * 4 + idx_16x16];
-            mv_unit.mv->y = me_ctx->tf_16x16_mv_y[idx_32x32 * 4 + idx_16x16];
-            svt_aom_inter_prediction(scs,
-                                 NULL, //pcs,
-                                 (uint32_t)interp_filters,
-                                 &blk_ptr,
-#if CLN_CAND_REF_FRAME
-                                 0, //ref_frame_type,
-                                 0, //ref_frame_type,
-#else
-                                 0, //ref_frame_type,
-#endif
-                                 &mv_unit,
-                                 0, //use_intrabc,
-                                 SIMPLE_TRANSLATION,
-                                 0,
-#if OPT_II_PRECOMPUTE
-                                 false, // use_precomputed_ii
-#endif
-                                 0,
-                                 1, //compound_idx not used
-                                 NULL, // interinter_comp not used
-                                 NULL,
-                                 NULL,
-                                 NULL,
-                                 0,
-                                 0,
-                                 0,
-                                 0,
-                                 pu_origin_x,
-                                 pu_origin_y,
-                                 bsize,
-                                 bsize,
-                                 !is_highbd ? pic_ptr_ref : &reference_ptr,
-                                 NULL, //ref_pic_list1,
-                                 &prediction_ptr,
-                                 local_origin_x,
-                                 local_origin_y,
-                                 me_ctx->tf_chroma ? PICTURE_BUFFER_DESC_FULL_MASK
-                                                        : PICTURE_BUFFER_DESC_LUMA_MASK,
-                                 (uint8_t)encoder_bit_depth,
-                                 0); // is_16bit_pipeline
-#endif
         }
         }
     } else {
@@ -2744,7 +2480,6 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
         blk_ptr.av1xd->mb_to_left_edge   = -(int32_t)((micol * MI_SIZE) * 8);
         blk_ptr.av1xd->mb_to_right_edge  = ((pcs->av1_cm->mi_cols - bh - micol) * MI_SIZE) * 8;
 
-#if CLN_INTER_PRED_FUNC
         // Perform final pass using the 1/8 MV
         //AV1 MVs are always in 1/8th pel precision.
         BlockModeInfo block_mi = {
@@ -2762,10 +2497,8 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
             scs,
             NULL, //pcs,
             &block_mi,
-#if CLN_MERGE_WM_INTER_PRED
             NULL, // wm_params
             NULL, // wm_params
-#endif
             &blk_ptr,
             blk_geom,
             false, // use_precomputed_obmc
@@ -2784,53 +2517,6 @@ static void tf_32x32_inter_prediction(PictureParentControlSet *pcs, MeContext *m
             me_ctx->tf_chroma ? PICTURE_BUFFER_DESC_FULL_MASK : PICTURE_BUFFER_DESC_LUMA_MASK,
             (uint8_t)encoder_bit_depth,
             is_highbd);
-#else
-        // Perform final pass using the 1/8 MV
-        // AV1 MVs are always in 1/8th pel precision.
-        mv_unit.mv->x = me_ctx->tf_32x32_mv_x[idx_32x32];
-        mv_unit.mv->y = me_ctx->tf_32x32_mv_y[idx_32x32];
-
-        svt_aom_inter_prediction(
-            scs,
-            NULL, //pcs,
-            (uint32_t)interp_filters,
-            &blk_ptr,
-#if CLN_CAND_REF_FRAME
-            0, //ref_frame_type,
-            0, //ref_frame_type,
-#else
-            0, //ref_frame_type,
-#endif
-            &mv_unit,
-            0, //use_intrabc,
-            SIMPLE_TRANSLATION,
-            0,
-#if OPT_II_PRECOMPUTE
-            false, // use_precomputed_ii
-#endif
-            0,
-            1, //compound_idx not used
-            NULL, // interinter_comp not used
-            NULL,
-            NULL,
-            NULL,
-            0,
-            0,
-            0,
-            0,
-            pu_origin_x,
-            pu_origin_y,
-            bsize,
-            bsize,
-            !is_highbd ? pic_ptr_ref : &reference_ptr,
-            NULL, //ref_pic_list1,
-            &prediction_ptr,
-            local_origin_x,
-            local_origin_y,
-            me_ctx->tf_chroma ? PICTURE_BUFFER_DESC_FULL_MASK : PICTURE_BUFFER_DESC_LUMA_MASK,
-            (uint8_t)encoder_bit_depth,
-            0); // is_16bit_pipeline
-#endif
     }
 }
 
@@ -4446,11 +4132,7 @@ EbErrorType svt_av1_init_temporal_filtering(
          i++)
         list_input_picture_ptr[i] = pcs_list[i]->enhanced_unscaled_pic;
 
-#if CLN_REMOVE_LDP
     if (centre_pcs->scs->static_config.pred_structure == LOW_DELAY)
-#else
-    if(centre_pcs->scs->static_config.pred_structure == SVT_AV1_PRED_LOW_DELAY_B)
-#endif
         produce_temporally_filtered_pic_ld(pcs_list,
                                         list_input_picture_ptr,
                                         index_center,

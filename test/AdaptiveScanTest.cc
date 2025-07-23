@@ -142,13 +142,8 @@ TEST(AdaptiveScanTest, scan_tables_test) {
 }
 
 using svt_av1_test_tool::SVTRandom;
-#if CLN_REMOVE_MODE_INFO
 using CopyMiMapGridFunc = void (*)(MbModeInfo **mi_grid_ptr, uint32_t mi_stride,
                                    uint8_t num_rows, uint8_t num_cols);
-#else
-using CopyMiMapGridFunc = void (*)(ModeInfo **mi_grid_ptr, uint32_t mi_stride,
-                                   uint8_t num_rows, uint8_t num_cols);
-#endif
 
 using CopyMiMapGridParam = std::tuple<int, CopyMiMapGridFunc>;
 
@@ -161,13 +156,8 @@ class CopyMiMapGridTest : public ::testing::TestWithParam<CopyMiMapGridParam> {
     void test_match() {
         SVTRandom rnd(0, (1 << 10) - 1);
         const int max_size = 100;
-#if CLN_REMOVE_MODE_INFO
         MbModeInfo *mi_grid_ref[max_size * max_size];
         MbModeInfo *mi_grid_tst[max_size * max_size];
-#else
-        ModeInfo *mi_grid_ref[max_size * max_size];
-        ModeInfo *mi_grid_tst[max_size * max_size];
-#endif
 
         const int txb_height = get_txb_high((TxSize)tx_size_);
         const int txb_width = get_txb_wide((TxSize)tx_size_);
@@ -176,12 +166,8 @@ class CopyMiMapGridTest : public ::testing::TestWithParam<CopyMiMapGridParam> {
         memset(mi_grid_ref, 0xcd, sizeof(mi_grid_ref));
         memset(mi_grid_tst, 0xcd, sizeof(mi_grid_ref));
 
-#if CLN_REMOVE_MODE_INFO
         mi_grid_ref[0] = mi_grid_tst[0] =
             (MbModeInfo *)((uint64_t)rnd.random());
-#else
-        mi_grid_ref[0] = mi_grid_tst[0] = (ModeInfo *)((uint64_t)rnd.random());
-#endif
 
         svt_copy_mi_map_grid_c(mi_grid_ref, stride, txb_height, txb_width);
 
@@ -196,13 +182,8 @@ class CopyMiMapGridTest : public ::testing::TestWithParam<CopyMiMapGridParam> {
             memset(mi_grid_ref, 0xcd, sizeof(mi_grid_ref));
             memset(mi_grid_tst, 0xcd, sizeof(mi_grid_ref));
 
-#if CLN_REMOVE_MODE_INFO
             mi_grid_ref[0] = mi_grid_tst[0] =
                 (MbModeInfo *)((uint64_t)rnd.random());
-#else
-            mi_grid_ref[0] = mi_grid_tst[0] =
-                (ModeInfo *)((uint64_t)rnd.random());
-#endif
 
             svt_copy_mi_map_grid_c(mi_grid_ref, stride, cols, cols);
 

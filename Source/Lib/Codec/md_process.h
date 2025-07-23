@@ -79,16 +79,9 @@ typedef enum InterCandGroup {
     WARP_GROUP,
     OBMC_GROUP,
     INTER_INTRA_GROUP,
-#if CLN_COMPOUND_CHECKS
     INTER_COMP_GROUP, // dist, diff, wedge
-#else
-    COMP_DIST,
-    COMP_DIFF,
-    COMP_WEDGE,
-#endif
     TOT_INTER_GROUP
 } InterCandGroup;
-#if OPT_COMPOUND
 typedef struct InterCompCtrls {
     // total compound types to test; 0: OFF, 1: AVG, 2: AVG/DIST, 3: AVG/DIST/DIFF/WEDGE, 4:
     // AVG/DIST/DIFF/WEDGE
@@ -112,10 +105,6 @@ typedef struct InterCompCtrls {
     uint8_t pred0_to_pred1_mult;
     // Skip compound if any of the MV components are greater than max_mv_length
     uint16_t max_mv_length;
-#if !CLN_INTER_COMP_LVLS
-    // skip compound if block per-pixel distortion (from subpel/pme) is below the TH
-    uint16_t distortion_exit_th;
-#endif
     // Skip MVP compound based on ref frame type and neighbour ref frame types
     bool skip_on_ref_info;
     // if true, use rate @ compound params derivation
@@ -123,38 +112,6 @@ typedef struct InterCompCtrls {
     // no distance for symteric refs
     bool no_sym_dist;
 } InterCompCtrls;
-#else
-typedef struct InterCompCtrls {
-    // total compound types to test; 0: OFF, 1: AVG, 2: AVG/DIST, 3: AVG/DIST/DIFF/WEDGE, 4:
-    // AVG/DIST/DIFF/WEDGE
-    uint8_t tot_comp_types;
-    // if true, test all compound types for me
-    uint8_t do_me;
-    // if true, test all compound types for pme
-    uint8_t do_pme;
-    // if true, test all compound types for nearest_nearest
-    uint8_t do_nearest_nearest;
-    // if true, test all compound types for near_near
-    uint8_t do_near_near;
-    // if true, test all compound types for nearest_near_new
-    uint8_t do_nearest_near_new;
-    // if true, test all compound types for 3x3_bipred
-    uint8_t do_3x3_bi;
-    // Skip MVP compound based on ref frame type and neighbour ref frame types
-    uint8_t skip_mvp_on_ref_info;
-    // multiplier to the pred0_to_pred1_sad; 0: no pred0_to_pred1_sad-based pruning, >= 1: towards
-    // more inter-inter compound
-    uint8_t pred0_to_pred1_mult;
-    // if true, use rate @ compound params derivation
-    uint8_t use_rate;
-    //no diff for nsq (MVP only)
-    uint8_t mvp_no_diff_nsq;
-    //no wedge if blk variance is less than mvp_no_wdg_var_th; 0: OFF (MVP only)
-    uint8_t mvp_no_wdg_var_th;
-    //no distance for symteric refs
-    uint8_t no_sym_dist;
-} InterCompCtrls;
-#endif
 typedef struct InterIntraCompCtrls {
     uint8_t enabled;
     // if 1 use curvefit model to estimate RD cost; if 0 use SSE
@@ -175,10 +132,6 @@ typedef struct ObmcControls {
     uint8_t refine_level;
     // if true, a face-off between simple-translation and obmc will take place at mds0
     uint8_t trans_face_off;
-#if !OPT_OBMC
-    // if trans_face_off ON; perform the face-off for only the tran-MV that beats the best-class0 by at least trans_face_off_th percentage
-    uint8_t trans_face_off_th;
-#endif
     // Specifies the search range @ the full-pel of OBMC
     uint8_t fpel_search_range;
     // Whether to search diagonal positions @ the full-pel of OBMC
@@ -212,11 +165,7 @@ typedef struct TxtControls {
     // skip testing the TX type. txt_rate_cost_th is specified as a perentage * 10 (i.e. a value of 70 corresponds to skipping the TX type if the
     // txt rate cost is > 7% of the best TX type cost). 0 is off.  Lower values are more aggressive.
     uint16_t txt_rate_cost_th;
-#if OPT_USE_EXP_TXT
     // Whether to perform QP-based SATD-threshold pruning
-#else
-    // a multiplier to control the q-based modulation of satd_early_exit_th; ~0 is off, lower values are more aggressive.
-#endif
     uint16_t satd_th_q_weight;
 } TxtControls;
 typedef struct TxsCycleRControls {
@@ -268,22 +217,8 @@ typedef struct DepthRemovalCtrls {
     // remove 8x8 blocks and below based on the sb_64x64 (me_distortion, variance)
     uint8_t disallow_4x4;
 } DepthRemovalCtrls;
-#if !OPT_DEPTHS_CTRL
-typedef struct DepthCtrls {
-    // start depth; 0: consider no parent blocks; else number of parent blocks to consider,
-    // specified as a negative number (e.g. -2 means consider 2 parents)
-    int8_t s_depth;
-    // end depth; 0: consider no child blocks; else number of child blocks to consider, specified as
-    // a positive number (e.g. 2 means consider 2 children)
-    int8_t e_depth;
-    // If true, limit the max/min block sizes for PD1 to the max/min selected by PD0 (when the max/min block sizes are different).
-    uint8_t limit_max_min_to_pd0;
-    uint8_t use_pred_mode; // 0: OFF, 1: reduce the number of depth(s) if the pred mode is INTER
-} DepthCtrls;
-#endif
 #define MAX_RANGE_CNT 8
 
-#if OPT_DEPTHS_CTRL
 #define PD0_DEPTH_NO_RESTRICTION 0 // No depth restriction
 #define PD0_DEPTH_ADAPTIVE 1 // Adaptive depth control
 #define PD0_DEPTH_PRED_PART_ONLY 2 // Pred-part only
@@ -325,61 +260,14 @@ typedef struct DepthRefinementCtrls {
     uint8_t limit_max_min_to_pd0;
     // If true, check whether current and ref are selecting the largest block size, then force Pred
     uint8_t use_ref_info;
-#if OPT_USE_EXP_DEPTHS
     // Whether to use QP to modulate the sub/parent-to-current threshold(s).
     uint8_t q_weight;
-#else
-    // Modulate sub/parent-to-current TH using QP. 0 is off; lower is more aggressive.
-    uint32_t q_weight;
-#endif
     // Handling mode for cases where PD0 information is unavailable
     // 0 - use default s_depth and e_depth
     // 1 - cap s_depth and e_depth to -1 and 1
     // 2 - set s_depth and e_depth to 0
     uint32_t pd0_unavail_mode_depth;
 } DepthRefinementCtrls;
-#else
-typedef struct DepthRefinementCtrls {
-    uint8_t enabled;
-    // maximum allowed parent-to-current cost deviation beyond which the previous depth will not be
-    // added to PRED
-    int64_t parent_to_current_th;
-    // maximum allowed sub-to-current cost deviation beyond which the next depth will not be added
-    // to PRED
-    int64_t sub_to_current_th;
-    // When enabled, only prune the parent depth when the cost is sufficiently high (i.e. the parent block is
-    // sufficiently complex). The signal is specified as a multiplier to a threshold (the threshold is
-    // an absolute cost).  A higher value is more conservative; 0 is off.
-    // parent_max_cost_th_mult not relevant when parent is never skipped by parent_to_current_th
-    uint16_t parent_max_cost_th_mult;
-    // when 1, a maximum of 2 depth per block (PRED+Parent or PRED+Sub), 0: no restriction(s)
-    uint8_t up_to_2_depth;
-    // whether to decrement parent_to_current_th and sub_to_current_th based on the cost range of
-    // the parent block or not
-    uint8_t cost_band_based_modulation;
-    // the max cost beyond which the decrement is ignored
-    uint16_t max_cost_multiplier;
-    // the number of band(s)
-    uint8_t max_band_cnt;
-    // the offset per band
-    int64_t decrement_per_band[MAX_RANGE_CNT];
-    // an offset (towards more aggressive pruning) when the child-depth is 4x4
-    int64_t limit_4x4_depth;
-    // If current depth has fewer than sub_to_current_pd0_coeff_th PD0 coeffs, subtract
-    // sub_to_current_pd0_coeff_offset from
-    unsigned int sub_to_current_pd0_coeff_th;
-    // sub_to_current_th towards skipping child depths (doesn't work with very light PD0)
-    int sub_to_current_pd0_coeff_offset;
-    // Prune child depths if they were not tested in PD0 (typically due to elimination from depth early exit tools)
-    uint8_t prune_child_if_not_avail;
-    // Skip parent depth if PARTITION_SPLIT rate of parent depth is much lower than parent cost. 0 is off; higher is more aggressive.
-    uint32_t lower_depth_split_cost_th;
-    // Skip child depth if PARTITION_SPLIT rate of current depth is X% higher than current cost. 0 is off; lower is more aggressive.
-    uint32_t split_rate_th;
-    // Modulate sub/parent-to-current TH using QP. 0 is off; lower is more aggressive.
-    uint32_t q_weight;
-} DepthRefinementCtrls;
-#endif
 typedef struct SubresCtrls {
     // Residual sub-sampling step (0:OFF)
     uint8_t step;
@@ -478,11 +366,7 @@ typedef struct MdPmeCtrls {
     int post_fp_pme_to_me_mv_th;
     // Enable pSad
     uint8_t enable_psad;
-#if OPT_USE_EXP_PME
     // Whether to perform QP-based search-area pruning
-#else
-    // a weight to control the q-based modulation of the fpel width and height, lower values are more aggressive.
-#endif
     uint8_t sa_q_weight;
 } MdPmeCtrls;
 typedef struct MdSubPelSearchCtrls {
@@ -523,32 +407,6 @@ typedef struct MdSubPelSearchCtrls {
     int32_t
         bias_fp; // Bias towards fpel at the MD subpel-search: apply a penalty to the cost of fractional positions during the subpel-search each time we check against a full-pel MV
 } MdSubPelSearchCtrls;
-#if !CLN_REMOVE_PSQ_FEAT
-typedef struct ParentSqCmplxCtrls {
-    bool enabled;
-
-    // cutoff for the highest coeff-area band [0-100]
-    uint8_t high_freq_band1_th;
-    // level of action to use if luma coeff-area of parent SQ is >= high_freq_band1_th
-    uint8_t high_freq_band1_level;
-    // cutoff for the second high coeff-area band [0-100]; should be less than high_freq_band1_th
-    uint8_t high_freq_band2_th;
-    // level of action to use if luma coeff-area of parent SQ is >= high_freq_band2_th
-    uint8_t high_freq_band2_level;
-    // cutoff for the third high coeff-area band [0-100]; should be less than high_freq_band2_th
-    uint8_t high_freq_band3_th;
-    // level of action to use if luma coeff-area of parent SQ is >= high_freq_band3_th
-    uint8_t high_freq_band3_level;
-    // enable for whether to apply action when parent SQ has 0 luma coefficients
-    uint8_t enable_zero_coeff_action;
-    // level of action to use if parent SQ has 0 luma coeffs
-    uint8_t zero_coeff_action;
-    // enable for whether to apply action when parent SQ has 1 luma coefficients
-    uint8_t enable_one_coeff_action;
-    // level of action to use if parent SQ has 1 luma coeff
-    uint8_t one_coeff_action;
-} ParentSqCmplxCtrls;
-#endif
 typedef struct NsqPsqTxsCtrls {
     uint8_t enabled;
     uint32_t
@@ -648,17 +506,7 @@ typedef struct NicPruningCtrls {
     uint64_t mds3_cand_base_th;
 
     // enable skipping MDS1 in PD1 when there is only 1 cand post-mds0
-    bool enable_skipping_mds1;
-#if !CLN_REMOVE_FORCE_1_CAND
-    // if (best_mds0_distortion/QP < TH) consider only the best candidate after MDS0; 0: OFF,
-    // higher: more aggressive.
-    uint32_t force_1_cand_th;
-#endif
-#if !OPT_REMOVE_NIC_QP_BANDS
-    uint16_t mds1_q_weight;
-    uint16_t mds2_q_weight;
-    uint16_t mds3_q_weight;
-#endif
+    bool    enable_skipping_mds1;
     uint8_t merge_inter_cands_mult;
 } NicPruningCtrls;
 typedef struct NicCtrls {
@@ -686,10 +534,6 @@ typedef struct NsqSearchCtrls {
     // compute overhead. If not enabled, NSQ shapes may still be allowed by nsq_geom_ctrls, but no search will be performed
     // (therefore, each depth  must specify one block to be tested at MD, whether SQ or NSQ).
     bool enabled;
-#if !CLN_REMOVE_PSQ_FEAT
-    // Set the level for coeff-based NSQ accuracy reduction
-    uint8_t psq_cplx_lvl;
-#endif
     // Weighting (expressed as a percentage) applied to square shape costs for determining if a and
     // b shapes should be skipped. Namely: skip HA, HB, and H4 if h_cost > (weighted sq_cost) skip
     // VA, VB, and V4 if v_cost > (weighted sq_cost)
@@ -723,10 +567,6 @@ typedef struct NsqSearchCtrls {
     uint8_t psq_txs_lvl;
     // Whether to use the default or aggressive settings for the sub-Pred_depth block(s) (i.e. not applicable when PRED only)
     uint8_t sub_depth_block_lvl;
-#if !CLN_HIGH_FREQUENCY
-    // Whether to use conservative settings for high energy area (not applicable when sb-size=128)
-    uint8_t high_energy_weight;
-#endif
 } NsqSearchCtrls;
 typedef struct DepthEarlyExitCtrls {
     // If the rate cost of splitting into lower depths is greater than the percentage threshold of the cost of the parent block, skip testing the lower depth.
@@ -754,10 +594,6 @@ typedef struct TxsControls {
     int depth1_txt_group_offset;
     // Offset to be subtracted from default txt-group to derive the txt-group of depth-2
     int depth2_txt_group_offset;
-#if !CLN_TXS_MIN_SQ_SIZE
-    // Min. sq size to use TXS for
-    uint16_t min_sq_size;
-#endif
     //skip depth if cost of processed sublocks of curent depth > th% of normalized
     //parent cost. th is the smaller the faster (sf)
     int32_t quadrant_th_sf;
@@ -775,11 +611,6 @@ typedef struct WmCtrls {
     // Specifies the MD Stage where the wm refinement will take place. 0: Before MDS0.  1: At MDS1.  2: At MDS3.
     uint8_t refine_level;
     // Specifies minimum neighbour percentage for WM
-#if !CLN_WM_CTRLS
-    uint8_t min_neighbour_perc;
-    // Specifies corner bias for WM
-    uint8_t corner_perc_bias;
-#endif
     // Skip if alpha/ beta / gamma / delta is lower than threshold value
     uint16_t lower_band_th;
     // Skip if alpha/ beta / gamma / delta is higher than threshold value
@@ -820,16 +651,11 @@ typedef struct InterpolationSearchCtrls {
     uint8_t skip_sse_rd_model;
 } InterpolationSearchCtrls;
 typedef struct SpatialSSECtrls {
-#if TUNE_MR_2
     // Specifies the MD Stage where the spatial SSE will start being used in the full loop (SSSE_MDS1, SSSE_MDS2, or
     // SSSE_MDS3 for respectively MD Stage 1, MD Stage 2, and MD Stage 3).  Spatial SSE will also be enabled
     // in all subsequent MD stages, beyond the stage in which it's first enabled.  For example, if set to SSSE_MDS2,
     // spatial SSE would be enabled in MDS2 and MDS3.
     SpatialSseLevel level;
-#else
-    // enable spatial-sse for each superblock
-    bool spatial_sse_full_loop_level;
-#endif
 } SpatialSSECtrls;
 typedef struct RedundantCandCtrls {
     int score_th;
@@ -889,24 +715,6 @@ typedef struct Lpd1Ctrls {
     // Shift applied to ME dist and var of top and left SBs when PD0 is skipped
     uint16_t skip_pd0_me_shift[LPD1_LEVELS];
 } Lpd1Ctrls;
-#if !CLN_HIGH_FREQUENCY
-typedef struct DetectHighFreqCtrls {
-    int8_t enabled;
-    // me-8x8 SADs deviation threshold beyond which the SB is not considered
-    uint16_t me_8x8_sad_var_th;
-    // 32x32 satd threshold beyond which the SB is tagged
-    uint16_t high_satd_th;
-    // me-SAD-to-SATD deviation of the 32x32 blocks threshold beyond which the SB is tagged (~2x is
-    // the fundamental deviation)
-    uint16_t satd_to_sad_dev_th;
-    // maximum lpd0 level for the detected SB(s)
-    uint8_t max_pic_lpd0_lvl;
-    // maximum lpd1 level for the detected SB(s)
-    uint8_t max_pic_lpd1_lvl;
-    // maximum pd1-txt level for the detected SB(s)
-    uint8_t max_pd1_txt_lvl;
-} DetectHighFreqCtrls;
-#endif
 
 typedef struct Lpd1TxCtrls {
     // skip cost calc and chroma TX/compensation if there are zero luma coeffs
@@ -952,22 +760,13 @@ typedef struct IntraCtrls {
     uint8_t intra_mode_end;
     // 0: angular off; 1: angular full; 2/3: limit num. angular candidates; 4: H + V only
     uint8_t angular_pred_level;
-#if OPT_INTRA
-    int8_t skip_angular_delta1_th;
-    int8_t skip_angular_delta2_th;
-    int8_t skip_angular_delta3_th;
-#endif
+    int8_t  skip_angular_delta1_th;
+    int8_t  skip_angular_delta2_th;
+    int8_t  skip_angular_delta3_th;
 } IntraCtrls;
 typedef struct TxShortcutCtrls {
-#if CLN_BYPASS_TX_ZCOEFF
     // Skip TX at MDS3 if the prev MD stage gave 0 coeffs and MDS0 Distortion is less than the TH. 0 is off, lower is more aggressive
     uint32_t bypass_tx_th;
-#else
-    // Skip TX at MDS3 if the MDS1 TX gave 0 coeffs
-    uint8_t bypass_tx_when_zcoeff;
-    // Skip TX at MDS3 if the MDS0 Distortion is less than certain threshold
-    uint32_t bypass_tx_th;
-#endif
     // Apply pf based on the number of coeffs
     uint8_t apply_pf_on_coeffs;
     // Use a detector to protect chroma from aggressive actions based on luma info: 0: OFF, 1:
@@ -976,16 +775,8 @@ typedef struct TxShortcutCtrls {
     // if (best_mds0_distortion/QP < TH) use shortcuts for candidates at MDS3; 0: OFF, higher: more
     // aggressive
     uint32_t use_mds3_shortcuts_th;
-#if !CLN_USE_NEIGHBOUR_SIG
-    // if true, use info from neighbouring blocks to use more aggressive THs/actions
-    uint8_t use_neighbour_info;
-#endif
 } TxShortcutCtrls;
 typedef struct Mds0Ctrls {
-#if !CLN_MDS0
-    // Distortion metric to use MDS0: SSD, VAR, SAD
-    uint8_t mds0_dist_type;
-#endif
     // 0: disabled, > 0: switch between: (1) reset reference cost for each subsequent class, (2) continuously update reference cost, (uint8_t) ~0: continuously update reference cost
     uint8_t pruning_method_th;
     // % TH(s) used to compare candidate distortion to best cost; higher is safer (applies to reg. PD1 only)
@@ -1000,11 +791,7 @@ typedef struct CandReductionCtrls {
     UseNeighbouringModeCtrls use_neighbouring_mode_ctrls;
     CandEliminationCtlrs     cand_elimination_ctrls;
     uint8_t                  reduce_unipred_candidates;
-#if OPT_INTRA
-    uint8_t reduce_filter_intra;
-#else
-    uint8_t mds0_reduce_intra;
-#endif
+    uint8_t                  reduce_filter_intra;
 } CandReductionCtrls;
 typedef struct SkipSubDepthCtrls {
     uint8_t enabled;
@@ -1024,7 +811,6 @@ typedef struct FilterIntraCtrls {
     FilterIntraMode max_filter_intra_mode;
 } FilterIntraCtrls;
 
-#if CLN_UNIFY_MV_TYPE
 typedef struct CompoundPredictionStore {
     //avoid doing Unipred prediction for redundant MV
     //example: NRST_NRST:  (0,0) (1,2)
@@ -1038,23 +824,7 @@ typedef struct CompoundPredictionStore {
     uint8_t *pred1_buf[4];
     Mv       pred1_mv[4];
 } CompoundPredictionStore;
-#else
-typedef struct CompoundPredictionStore {
-    //avoid doing Unipred prediction for redundant MV
-    //example: NRST_NRST:  (0,0) (1,2)
-    //         NEAR_NEAR:  (1,0) (1,2)
-    //pred1 for NEAR_NEAR could be retrived from  NRST_NRST
-    uint8_t  pred0_cnt; //actual size for available predictions
-    uint8_t *pred0_buf[4]; //stores prediction for up to 4 different MVs (NEAREST + 3 NEAR)
-    IntMv    pred0_mv[4]; //MVs for availble predictions
 
-    uint8_t  pred1_cnt;
-    uint8_t *pred1_buf[4];
-    IntMv    pred1_mv[4];
-} CompoundPredictionStore;
-#endif
-
-#if CLN_FUNCS_HEADER
 typedef struct EbMdcLeafData {
     uint32_t mds_idx;
     // array containing all shapes to be tested for the current SQ block
@@ -1072,15 +842,11 @@ typedef struct MdcSbData {
     // 0: do not encode, 1: current or parent depth(s), 2: child depth(s)
     uint8_t *consider_block;
 } MdcSbData;
-#endif
 typedef struct ModeDecisionContext {
     EbDctor dctor;
 
-    EbFifo *mode_decision_configuration_input_fifo_ptr;
-    EbFifo *mode_decision_output_fifo_ptr;
-#if !OPT_LD_MEM_3
-    ModeDecisionCandidate **fast_cand_ptr_array;
-#endif
+    EbFifo                       *mode_decision_configuration_input_fifo_ptr;
+    EbFifo                       *mode_decision_output_fifo_ptr;
     ModeDecisionCandidate        *fast_cand_array;
     ModeDecisionCandidateBuffer **cand_bf_ptr_array;
     ModeDecisionCandidateBuffer  *cand_bf_tx_depth_1;
@@ -1138,10 +904,7 @@ typedef struct ModeDecisionContext {
     PaletteInfo    *palette_cand_array;
     uint8_t        *palette_size_array_0;
     // simple geometry 64x64SB, Sq only, no 4xN
-    uint8_t sb64_sq_no4xn_geom;
-#if !OPT_LD_MEM_3
-    uint8_t pu_itr;
-#endif
+    uint8_t          sb64_sq_no4xn_geom;
     uint32_t        *best_candidate_index_array;
     uint16_t         blk_org_x;
     uint16_t         blk_org_y;
@@ -1167,10 +930,8 @@ typedef struct ModeDecisionContext {
     uint8_t intra_luma_left_ctx;
     uint8_t intra_luma_top_ctx;
 
-#if CLN_WM_SAMPLES
     WarpSampleInfo wm_sample_info[REF_FRAMES];
-#endif
-    int16_t *pred_buf_q3;
+    int16_t       *pred_buf_q3;
     // Track all MVs that are prepared for candidates prior to MDS0. Used to avoid MV duplication.
     Mv **injected_mvs;
     // Track the reference types for each MV
@@ -1205,31 +966,14 @@ typedef struct ModeDecisionContext {
     uint16_t         *cfl_temp_luma_recon16bit;
     bool              blk_skip_decision;
     int8_t            rdoq_level;
-#if CLN_MV_ARRAYS
-    Mv sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
-#else
-    int16_t sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
-#endif
+    Mv                sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
     // Store ME MV of the square to use with NSQ shapes; 4x4 will also use the 8x8 ME MVs
-#if CLN_MV_ARRAYS
-    Mv sq_sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
-#else
-    int16_t sq_sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
-#endif
-#if CLN_UNIFY_MV_TYPE
-    Mv fp_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
-    Mv sub_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
-#else
-    MV fp_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
-    MV sub_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
-#endif
+    Mv       sq_sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
+    Mv       fp_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
+    Mv       sub_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     uint32_t post_subpel_me_mv_cost[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
-#if CLN_MV_ARRAYS
-    Mv best_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
-#else
-    int16_t best_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX][2];
-#endif
-    int8_t valid_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
+    Mv       best_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
+    int8_t   valid_pme_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
     // Store MVP during MD search - only results are forwarded to encdec
     CandidateMv ref_mv_stack[MODE_CTX_REF_FRAMES][MAX_REF_MV_STACK_SIZE];
     // Store inter_mode_ctx for each reference during MD search - only ctx for winning ref frame is forwarded to encdec
@@ -1260,38 +1004,13 @@ typedef struct ModeDecisionContext {
     uint8_t   perform_mds1;
     uint8_t   use_tx_shortcuts_mds3;
     uint8_t   lpd1_allow_skipping_tx;
-#if CLN_RENAME_MDS_SKIP
     // Signals controlling which features are used at each MD stage
     bool mds_do_ifs;
     bool mds_do_txs;
     bool mds_do_txt;
     bool mds_do_rdoq;
     bool mds_do_spatial_sse;
-#if CLN_PRED_SIGS
     bool mds_do_chroma;
-#else
-    // Signals controlling which predictions must be generated (if any) in a given MD stage
-    bool mds_do_inter_pred;
-    bool mds_skip_uv_pred;
-    bool mds_skip_full_uv;
-    bool mds_do_intra_uv_pred;
-#endif
-#else
-    // fast_loop_core signals
-    // was md_staging_skip_interpolation_search
-    bool mds_skip_ifs;
-    bool mds_skip_uv_pred;
-    // full_loop_core signals 0: perform luma & chroma prediction + interpolation search, 2: nothing
-    // (use information from previous stages)
-    bool mds_do_inter_pred;
-    // 0: Tx Size recon only, 1:Tx Size search and recon
-    bool mds_tx_size_mode;
-    bool mds_txt_level;
-    bool mds_skip_full_uv;
-    bool mds_skip_rdoq;
-    bool mds_spatial_sse;
-    bool mds_do_intra_uv_pred;
-#endif
     // Store intra prediction for inter-intra
     uint8_t **intrapred_buf;
     // Store OBMC pre-computed data
@@ -1308,26 +1027,18 @@ typedef struct ModeDecisionContext {
     // Control fast_coeff_est_level per mds
     uint8_t mds_fast_coeff_est_level;
     // Control subres_step per mds
-    uint8_t           mds_subres_step;
-    uint8_t           md_pic_obmc_level;
-    FilterIntraCtrls  filter_intra_ctrls;
-    uint8_t           md_allow_intrabc;
-    uint8_t           md_palette_level;
-    uint8_t           dist_based_ref_pruning;
-    DepthRemovalCtrls depth_removal_ctrls;
-#if !OPT_DEPTHS_CTRL
-    // control which depths can be considered in PD1
-    DepthCtrls depth_ctrls;
-#endif
+    uint8_t              mds_subres_step;
+    uint8_t              md_pic_obmc_level;
+    FilterIntraCtrls     filter_intra_ctrls;
+    uint8_t              md_allow_intrabc;
+    uint8_t              md_palette_level;
+    uint8_t              dist_based_ref_pruning;
+    DepthRemovalCtrls    depth_removal_ctrls;
     DepthRefinementCtrls depth_refinement_ctrls;
     SkipSubDepthCtrls    skip_sub_depth_ctrls;
-#if !OPT_DEPTHS_CTRL
-    int64_t parent_to_current_deviation;
-    int64_t child_to_current_deviation;
-#endif
-    SubresCtrls subres_ctrls;
-    uint8_t     is_subres_safe;
-    PfCtrls     pf_ctrls;
+    SubresCtrls          subres_ctrls;
+    uint8_t              is_subres_safe;
+    PfCtrls              pf_ctrls;
     // Control signals for MD sparse search (used for increasing ME search for active clips)
     MdSqMotionSearchCtrls  md_sq_me_ctrls;
     MdNsqMotionSearchCtrls md_nsq_me_ctrls;
@@ -1352,28 +1063,16 @@ typedef struct ModeDecisionContext {
     NsqSearchCtrls      nsq_search_ctrls;
     DepthEarlyExitCtrls depth_early_exit_ctrls;
     RdoqCtrls           rdoq_ctrls;
-#if OPT_RTC_B8
-    uint8_t disallow_8x8;
-#endif
-    uint8_t disallow_4x4;
-    uint8_t md_disallow_nsq_search;
-    uint8_t params_status; // specifies the status of MD parameters; 0: default, 1: modified
-#if !CLN_REMOVE_PSQ_FEAT
-    // was parent_sq_coeff_area_based_cycles_reduction_ctrls
-    ParentSqCmplxCtrls psq_cplx_ctrls;
-#endif
-    NsqPsqTxsCtrls nsq_psq_txs_ctrls;
-    uint8_t        sb_size;
-#if OPT_LD_MEM_3
+    uint8_t             disallow_8x8;
+    uint8_t             disallow_4x4;
+    uint8_t             md_disallow_nsq_search;
+    uint8_t             params_status; // specifies the status of MD parameters; 0: default, 1: modified
+    NsqPsqTxsCtrls      nsq_psq_txs_ctrls;
+    uint8_t             sb_size;
     // Temp buffers to store results during TXT search
     EbPictureBufferDesc *tx_search_recon_coeff_ptr;
     EbPictureBufferDesc *tx_search_recon_ptr;
     EbPictureBufferDesc *tx_search_quant_coeff_ptr;
-#else
-    EbPictureBufferDesc *recon_coeff_ptr[TX_TYPES];
-    EbPictureBufferDesc *recon_ptr[TX_TYPES];
-    EbPictureBufferDesc *quant_coeff_ptr[TX_TYPES];
-#endif
     // buffer used to store transformed coeffs during TX/Q/IQ. TX'd coeffs are only needed
     // temporarily, so no need to save for each TX type.
     EbPictureBufferDesc *tx_coeffs;
@@ -1382,27 +1081,19 @@ typedef struct ModeDecisionContext {
     EbPictureBufferDesc *temp_residual;
     EbPictureBufferDesc *temp_recon_ptr;
     // Array for all nearest/near MVs for a block for single ref case
-#if CLN_UNIFY_MV_TYPE
     Mv mvp_array[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH][MAX_MVP_CANIDATES];
-#else
-    MV mvp_array[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH][MAX_MVP_CANIDATES];
-#endif
     // Count of all nearest/near MVs for a block for single ref case
     int8_t   mvp_count[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     uint16_t best_fp_mvp_idx[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     uint32_t best_fp_mvp_dist[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     uint32_t fp_me_dist[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     // Start/end position for MD sparse search
-    int16_t  sprs_lev0_start_x;
-    int16_t  sprs_lev0_end_x;
-    int16_t  sprs_lev0_start_y;
-    int16_t  sprs_lev0_end_y;
-    NicCtrls nic_ctrls;
-#if CLN_UNIFY_MV_TYPE
-    Mv ref_mv;
-#else
-    MV ref_mv;
-#endif
+    int16_t         sprs_lev0_start_x;
+    int16_t         sprs_lev0_end_x;
+    int16_t         sprs_lev0_start_y;
+    int16_t         sprs_lev0_end_y;
+    NicCtrls        nic_ctrls;
+    Mv              ref_mv;
     uint16_t        sb_index;
     uint64_t        mds0_best_cost_per_class[CAND_CLASS_TOTAL];
     uint64_t        mds0_best_cost;
@@ -1440,9 +1131,6 @@ typedef struct ModeDecisionContext {
     uint16_t  coded_area_sb;
     uint16_t  coded_area_sb_uv;
     Lpd0Ctrls lpd0_ctrls;
-#if !CLN_HIGH_FREQUENCY
-    DetectHighFreqCtrls detect_high_freq_ctrls;
-#endif
     // 0 : Use regular PD0 1 : Use light PD0 path. Assumes one class, no NSQ, no 4x4, TXT off, TXS
     // off, PME off, etc. 2 : Use very light PD0 path: only mds0 (no transform path), no
     // compensation(s) @ mds0 (only umpired candidates, and read directly from reference buffer(s)
@@ -1457,9 +1145,6 @@ typedef struct ModeDecisionContext {
     SpatialSSECtrls spatial_sse_ctrls;
 
     uint16_t init_max_block_cnt;
-#if !CLN_PRED_SIGS
-    uint8_t end_plane;
-#endif
     // set to true if MDS3 needs to perform a full 10bit compensation in MDS3 (to make MDS3
     // conformant when using bypass_encdec)
     uint8_t need_hbd_comp_mds3;
@@ -1467,12 +1152,9 @@ typedef struct ModeDecisionContext {
     // be removed)
     uint8_t approx_inter_rate;
     // Enable pSad
-    uint8_t  enable_psad;
-    uint32_t inter_depth_bias;
-    uint32_t d2_parent_bias;
-#if !OPT_REF_INFO
-    uint8_t bipred_available;
-#endif
+    uint8_t     enable_psad;
+    uint32_t    inter_depth_bias;
+    uint32_t    d2_parent_bias;
     uint8_t     is_intra_bordered;
     uint8_t     updated_enable_pme;
     Lpd1TxCtrls lpd1_tx_ctrls;
@@ -1491,12 +1173,7 @@ typedef struct ModeDecisionContext {
     uint8_t        corrupted_mv_check;
     uint8_t        pred_mode_depth_refine;
     // when MD is done on 8bit, scale palette colors to 10bit (valid when bypass is 1)
-    uint8_t scale_palette;
-#if !CLN_HIGH_FREQUENCY
-    uint8_t  high_freq_present;
-    uint32_t high_freq_satd_to_me;
-    uint32_t b32_satd[4];
-#endif
+    uint8_t  scale_palette;
     uint64_t rec_dist_per_quadrant[4];
     // non-normative txs
     uint16_t min_nz_h;
@@ -1507,44 +1184,22 @@ typedef struct ModeDecisionContext {
     // SSIM_LVL_1: use ssim cost to find best candidate in product_full_mode_decision()
     // SSIM_LVL_2: addition to level 1, also use ssim cost to find best tx type in tx_type_search()
     SsimLevel tune_ssim_level;
-#if FIX_R2R
     // OBMC control signals (flags related to OBMC prediction readiness and bit depth)
-#endif
-#if OPT_OBMC
     bool obmc_weighted_pred_ready; // Flag indicating if weighted prediction is prepared
     bool obmc_neighbor_luma_pred_ready; // Flag indicating if luma neighbor prediction is prepared
     bool obmc_neighbor_chroma_pred_ready; // Flag indicating if luma neighbor prediction is prepared
-#endif
-#if FIX_R2R
     bool obmc_is_luma_neigh_10bit; // Flag indicating if neighbor uses 10-bit data
-#endif
 } ModeDecisionContext;
-
-#if !CLN_MISC
-typedef void (*EbAv1LambdaAssignFunc)(PictureControlSet *pcs, uint32_t *fast_lambda, uint32_t *full_lambda,
-                                      uint8_t bit_depth, uint16_t qp_index, bool multiply_lambda);
-#endif
 
 /**************************************
  * Extern Function Declarations
  **************************************/
-extern EbErrorType svt_aom_mode_decision_context_ctor(
-#if TUNE_MR_2
-    ModeDecisionContext *ctx, SequenceControlSet *scs, EbColorFormat color_format, uint8_t sb_size, EncMode enc_mode,
-    uint16_t max_block_cnt,
-#else
-    ModeDecisionContext *ctx, EbColorFormat color_format, uint8_t sb_size, EncMode enc_mode, uint16_t max_block_cnt,
-#endif
-    uint32_t encoder_bit_depth, EbFifo *mode_decision_configuration_input_fifo_ptr,
-#if OPT_LD_MEM_3
-    EbFifo *mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision, uint8_t seq_qp_mod);
-#else
-    EbFifo *mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision, uint8_t cfg_palette, uint8_t seq_qp_mod);
-#endif
-
-#if !CLN_MISC
-extern const EbAv1LambdaAssignFunc svt_aom_av1_lambda_assignment_function_table[4];
-#endif
+extern EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, SequenceControlSet *scs,
+                                                      EbColorFormat color_format, uint8_t sb_size, EncMode enc_mode,
+                                                      uint16_t max_block_cnt, uint32_t encoder_bit_depth,
+                                                      EbFifo *mode_decision_configuration_input_fifo_ptr,
+                                                      EbFifo *mode_decision_output_fifo_ptr,
+                                                      uint8_t enable_hbd_mode_decision, uint8_t seq_qp_mod);
 
 // Table that converts 0-63 Q-range values passed in outside to the Qindex
 // range used internally.

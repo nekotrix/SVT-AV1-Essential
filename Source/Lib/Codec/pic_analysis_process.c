@@ -1899,19 +1899,11 @@ static bool is_valid_palette_nb_colors(const uint8_t *src, int stride, int rows,
 // Estimate if the source frame is screen content, based on the portion of
 // blocks that have no more than 4 (experimentally selected) luma colors.
 void svt_aom_is_screen_content(PictureParentControlSet *pcs) {
-#if OPT_SC_ME
     int blk_w = 16;
     int blk_h = 16;
     // These threshold values are selected experimentally.
     int color_thresh = 4;
     int var_thresh   = 0;
-#else
-    const int blk_w = 16;
-    const int blk_h = 16;
-    // These threshold values are selected experimentally.
-    const int color_thresh = 4;
-    const int var_thresh   = 0;
-#endif
     // Counts of blocks with no more than color_thresh colors.
     int counts_1 = 0;
     // Counts of blocks with no more than color_thresh colors and variance larger
@@ -1952,7 +1944,6 @@ void svt_aom_is_screen_content(PictureParentControlSet *pcs) {
         (counts_1 * blk_h * blk_w * 8 > input_pic->width * input_pic->height &&
          counts_2 * blk_h * blk_w * 50 > input_pic->width * input_pic->height);
 
-#if OPT_SC_ME
     blk_w = 8;
     blk_h = 8;
     // These threshold values are selected experimentally.
@@ -1982,7 +1973,6 @@ void svt_aom_is_screen_content(PictureParentControlSet *pcs) {
     // v0 pcs->sc_class4 = (counts_1 * blk_h * blk_w * 12 > input_pic->width * input_pic->height) && (counts_2 * blk_h * blk_w * 13 > input_pic->width * input_pic->height);
     pcs->sc_class4 = (counts_1 * blk_h * blk_w * 18 > input_pic->width * input_pic->height) &&
         (counts_2 * blk_h * blk_w * 20 > input_pic->width * input_pic->height);
-#endif
 }
 
 /************************************************
@@ -2218,17 +2208,9 @@ void *svt_aom_picture_analysis_kernel(void *input_ptr) {
                     if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE)
                         svt_aom_is_screen_content(pcs);
                     else
-#if OPT_SC_ME
                         pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = pcs->sc_class4 = 0;
-#else
-                        pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = 0;
-#endif
                 } else // off / on
-#if OPT_SC_ME
                     pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = pcs->sc_class4 =
-#else
-                    pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 =
-#endif
                         scs->static_config.screen_content_mode;
             }
         }

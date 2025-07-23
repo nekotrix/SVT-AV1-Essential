@@ -14,9 +14,7 @@
 
 #include "definitions.h"
 #include "object.h"
-#if CLN_REMOVE_MVCAND
 #include "mv.h"
-#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,25 +33,12 @@ typedef struct MeCandidate {
     uint8_t ref0_list : 1;
     uint8_t ref1_list : 1;
 } MeCandidate;
-#if !CLN_REMOVE_MVCAND
-typedef union MvCandidate {
-    uint32_t as_int;
-    struct {
-        int16_t x_mv;
-        int16_t y_mv;
-    };
-} MvCandidate;
-#endif
 // move this to a new file with ctor & dtor
 typedef struct MeSbResults {
     EbDctor  dctor;
     uint8_t *total_me_candidate_index;
-#if CLN_REMOVE_MVCAND
     // ME MVs are stored in fullpel precision
-    Mv *me_mv_array;
-#else
-    MvCandidate *me_mv_array;
-#endif
+    Mv          *me_mv_array;
     MeCandidate *me_candidate_array;
     // [PU][LAST, LAST2, LAST3, GOLD, BWD, ALT2, ALT] if MRP Mode 0,
     // [PU][LAST, LAST2, BWD, ALT2] if MRP Mode 1,

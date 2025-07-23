@@ -25,7 +25,6 @@
 #include "utility.h"
 #include "pcs.h"
 #include "resize.h"
-#if CLN_FUNCS_HEADER
 #include "super_res.h"
 
 static void set_unscaled_input_16bit(PictureControlSet *pcs) {
@@ -211,22 +210,6 @@ static void svt_av1_superres_upscale_frame(struct Av1Common *cm, PictureControlS
     EB_FREE_ALIGNED_ARRAY(ps_recon_pic_temp->buffer_cb);
     EB_FREE_ALIGNED_ARRAY(ps_recon_pic_temp->buffer_cr);
 }
-#else
-void  svt_aom_copy_sb8_16(uint16_t *dst, int32_t dstride, const uint8_t *src, int32_t src_voffset, int32_t src_hoffset,
-                          int32_t sstride, int32_t vsize, int32_t hsize, bool is_16bit);
-void *svt_aom_memalign(size_t align, size_t size);
-void  svt_aom_free(void *memblk);
-void *svt_aom_malloc(size_t size);
-int32_t svt_sb_all_skip(PictureControlSet *pcs, const Av1Common *const cm, int32_t mi_row, int32_t mi_col);
-int32_t svt_sb_compute_cdef_list(PictureControlSet *pcs, const Av1Common *const cm, int32_t mi_row, int32_t mi_col,
-                                 CdefList *dlist, BlockSize bs);
-void    finish_cdef_search(PictureControlSet *pcs);
-void    svt_av1_cdef_frame(SequenceControlSet *scs, PictureControlSet *pcs);
-void    svt_av1_loop_restoration_save_boundary_lines(const Yv12BufferConfig *frame, Av1Common *cm, int32_t after_cdef);
-void    svt_av1_superres_upscale_frame(struct Av1Common *cm, PictureControlSet *pcs, SequenceControlSet *scs);
-void    set_unscaled_input_16bit(PictureControlSet *pcs);
-void    svt_aom_get_recon_pic(PictureControlSet *pcs, EbPictureBufferDesc **recon_ptr, bool is_highbd);
-#endif
 
 /**************************************
  * Cdef Context
@@ -261,7 +244,6 @@ EbErrorType svt_aom_cdef_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
 }
 
 #define default_mse_uv 1040400
-#if FIX_CDEF_MSE
 static uint64_t compute_cdef_dist(const EbByte dst, int32_t doffset, int32_t dstride, const uint8_t *src,
                                   const CdefList *dlist, int32_t cdef_count, BlockSize bsize, int32_t coeff_shift,
                                   uint8_t subsampling_factor, bool is_16bit) {
@@ -282,29 +264,6 @@ static uint64_t compute_cdef_dist(const EbByte dst, int32_t doffset, int32_t dst
     }
     return curr_mse;
 }
-#else
-static uint64_t compute_cdef_dist(const EbByte dst, int32_t doffset, int32_t dstride, const uint8_t *src,
-                                  const CdefList *dlist, int32_t cdef_count, BlockSize bsize, int32_t coeff_shift,
-                                  int32_t pli, uint8_t subsampling_factor, bool is_16bit) {
-    uint64_t curr_mse = 0;
-    if (is_16bit) {
-        curr_mse = svt_compute_cdef_dist_16bit(((uint16_t *)dst) + doffset,
-                                               dstride,
-                                               (uint16_t *)src,
-                                               dlist,
-                                               cdef_count,
-                                               bsize,
-                                               coeff_shift,
-                                               pli,
-                                               subsampling_factor);
-
-    } else {
-        curr_mse = svt_compute_cdef_dist_8bit(
-            dst + doffset, dstride, src, dlist, cdef_count, bsize, coeff_shift, pli, subsampling_factor);
-    }
-    return curr_mse;
-}
-#endif
 
 /* Search for the best filter strength pair for each 64x64 filter block.
  *
@@ -377,25 +336,16 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
     // Loop over all filter blocks (64x64)
     for (uint32_t fbr = y_b64_start_idx; fbr < y_b64_end_idx; ++fbr) {
         for (uint32_t fbc = x_b64_start_idx; fbc < x_b64_end_idx; ++fbc) {
-            int32_t        dirinit = 0;
-            const uint32_t lc      = MI_SIZE_64X64 * fbc;
-            const uint32_t lr      = MI_SIZE_64X64 * fbr;
-            int            nhb     = AOMMIN(MI_SIZE_64X64, mi_cols - lc);
-            int            nvb     = AOMMIN(MI_SIZE_64X64, mi_rows - lr);
-            int            hb_step = 1; //these should be all time with 64x64 SBs
-            int            vb_step = 1;
-            BlockSize      bs      = BLOCK_64X64;
-#if CLN_REMOVE_MODE_INFO
-            const MbModeInfo *mbmi = pcs->mi_grid_base[lr * cm->mi_stride + lc];
-#else
-            ModeInfo        **mi   = pcs->mi_grid_base + lr * cm->mi_stride + lc;
-            const MbModeInfo *mbmi = &mi[0]->mbmi;
-#endif
-#if CLN_MOVE_FIELDS_MBMI
-            const BlockSize bsize = mbmi->bsize;
-#else
-            const BlockSize bsize = mbmi->block_mi.bsize;
-#endif
+            int32_t           dirinit = 0;
+            const uint32_t    lc      = MI_SIZE_64X64 * fbc;
+            const uint32_t    lr      = MI_SIZE_64X64 * fbr;
+            int               nhb     = AOMMIN(MI_SIZE_64X64, mi_cols - lc);
+            int               nvb     = AOMMIN(MI_SIZE_64X64, mi_rows - lr);
+            int               hb_step = 1; //these should be all time with 64x64 SBs
+            int               vb_step = 1;
+            BlockSize         bs      = BLOCK_64X64;
+            const MbModeInfo *mbmi    = pcs->mi_grid_base[lr * cm->mi_stride + lc];
+            const BlockSize   bsize   = mbmi->bsize;
             if (((fbc & 1) && (bsize == BLOCK_128X128 || bsize == BLOCK_128X64)) ||
                 ((fbr & 1) && (bsize == BLOCK_128X128 || bsize == BLOCK_64X128)))
                 continue;
@@ -498,9 +448,6 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
                         cdef_count,
                         (BlockSize)plane_bsize[pli],
                         coeff_shift,
-#if !FIX_CDEF_MSE
-                        pli,
-#endif
                         subsampling_factor,
                         is_16bit);
 
@@ -552,9 +499,6 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
                         cdef_count,
                         (BlockSize)plane_bsize[pli],
                         coeff_shift,
-#if !FIX_CDEF_MSE
-                        pli,
-#endif
                         subsampling_factor,
                         is_16bit);
 
@@ -568,61 +512,6 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
     }
 }
 
-#if !FIX_CDEF_RACE_COND
-const uint32_t disable_cdef_th[4][INPUT_SIZE_COUNT] = {{0, 0, 0, 0, 0, 0, 0},
-                                                       {100, 200, 500, 800, 1000, 1000, 1000},
-                                                       {900, 1000, 2000, 3000, 4000, 4000, 4000},
-                                                       {6000, 7000, 8000, 9000, 10000, 10000, 10000}};
-static void    me_based_cdef_skip(PictureControlSet *pcs, uint16_t prev_cdef_dist_th, bool *do_cdef) {
-    *do_cdef = true;
-    if (pcs->slice_type == I_SLICE)
-        return;
-
-    const uint8_t  in_res = pcs->ppcs->input_resolution;
-    const uint32_t use_zero_strength_th =
-        disable_cdef_th[pcs->ppcs->cdef_recon_ctrls.zero_filter_strength_lvl][in_res] * (pcs->temporal_layer_index + 1);
-    if (!use_zero_strength_th)
-        return;
-
-    uint32_t total_me_sad = 0;
-    for (uint16_t b64_index = 0; b64_index < pcs->b64_total_count; ++b64_index) {
-        total_me_sad += pcs->ppcs->rc_me_distortion[b64_index];
-    }
-    uint32_t average_me_sad = total_me_sad / pcs->b64_total_count;
-
-    int32_t prev_cdef_dist = 0;
-    if (prev_cdef_dist_th) {
-        int32_t tot_refs = 0;
-        for (uint32_t ref_it = 0; ref_it < pcs->ppcs->tot_ref_frame_types; ++ref_it) {
-            MvReferenceFrame ref_pair = pcs->ppcs->ref_frame_type_arr[ref_it];
-            MvReferenceFrame rf[2];
-            av1_set_ref_frame(rf, ref_pair);
-
-            if (rf[1] == NONE_FRAME) {
-                uint8_t            list_idx = get_list_idx(rf[0]);
-                uint8_t            ref_idx  = get_ref_frame_idx(rf[0]);
-                EbReferenceObject *ref_obj  = pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
-
-#if OPT_REF_INFO
-                if (ref_obj->cdef_dist_dev >= 0 && ref_obj->tmp_layer_idx <= pcs->temporal_layer_index) {
-#else
-                if (ref_obj->cdef_dist_dev >= 0) {
-#endif
-                    prev_cdef_dist += ref_obj->cdef_dist_dev;
-                    tot_refs++;
-                }
-            }
-        }
-        if (tot_refs)
-            prev_cdef_dist /= tot_refs;
-    }
-
-    if (!prev_cdef_dist_th || (prev_cdef_dist < prev_cdef_dist_th * (pcs->temporal_layer_index + 1))) {
-        if (average_me_sad < use_zero_strength_th)
-            *do_cdef = false;
-    }
-}
-#endif
 /******************************************************
  * CDEF Kernel
  ******************************************************/
@@ -654,16 +543,9 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
         PictureParentControlSet *ppcs = pcs->ppcs;
         scs                           = pcs->scs;
 
-        bool       is_16bit = scs->is_16bit_pipeline;
-        Av1Common *cm       = pcs->ppcs->av1_cm;
-        frm_hdr             = &pcs->ppcs->frm_hdr;
-#if !FIX_CDEF_RACE_COND
-        pcs->cdef_dist_dev = -1;
-        bool do_cdef       = true;
-        me_based_cdef_skip(pcs, pcs->ppcs->cdef_recon_ctrls.prev_cdef_dist_th, &do_cdef);
-        if (!do_cdef)
-            pcs->ppcs->cdef_level = 0;
-#endif
+        bool       is_16bit                   = scs->is_16bit_pipeline;
+        Av1Common *cm                         = pcs->ppcs->av1_cm;
+        frm_hdr                               = &pcs->ppcs->frm_hdr;
         CdefSearchControls *cdef_search_ctrls = &pcs->ppcs->cdef_search_ctrls;
         if (!cdef_search_ctrls->use_reference_cdef_fs) {
             if (scs->seq_header.cdef_level && pcs->ppcs->cdef_level) {
@@ -675,9 +557,7 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
 
         pcs->tot_seg_searched_cdef++;
         if (pcs->tot_seg_searched_cdef == pcs->cdef_segments_total_count) {
-#if FIX_CDEF_RACE_COND
             pcs->cdef_dist_dev = -1;
-#endif
             if (scs->seq_header.cdef_level && pcs->ppcs->cdef_level) {
                 finish_cdef_search(pcs);
                 if (ppcs->enable_restoration || pcs->ppcs->is_ref || scs->static_config.recon_enabled) {

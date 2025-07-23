@@ -200,9 +200,7 @@
 #define LUMINANCE_QP_BIAS_TOKEN "--luminance-qp-bias"
 #define LOSSLESS_TOKEN "--lossless"
 #define AVIF_TOKEN "--avif"
-#if FTR_RTC_MODE
 #define RTC_TOKEN "--rtc"
-#endif
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -826,11 +824,9 @@ ConfigDescription config_entry_intra_refresh[] = {
      "Set hierarchical levels beyond the base layer, default is <=M12: 5, else: 4 [2: 3 temporal "
      "layers, 3: 4 temporal layers, 4: 5 layers, 5: 6 layers]"},
     {PRED_STRUCT_TOKEN, "Set prediction structure, default is 2 [1: low delay frames, 2: random access]"},
-#if FTR_RTC_MODE
     {RTC_TOKEN,
      "Enables fast settings for rtc when using low-delay mode. Forces low-delay pred struct to be used, "
      "default is 0, [0-1]]"},
-#endif
     {FORCE_KEY_FRAMES_TOKEN, "Force key frames at the comma separated specifiers. `#f` for frames, `#.#s` for seconds"},
     {STARTUP_MG_SIZE_TOKEN,
      "Specify another mini-gop configuration for the first mini-gop after the key-frame, default "
@@ -1142,10 +1138,8 @@ ConfigEntry config_entry[] = {
     // Lossless coding
     {LOSSLESS_TOKEN, "Lossless", set_cfg_generic_token},
     {AVIF_TOKEN, "Avif", set_cfg_generic_token},
-#if FTR_RTC_MODE
     // Real-time Coding
     {RTC_TOKEN, "RealTime", set_cfg_generic_token},
-#endif
     // Termination
     {NULL, NULL, NULL}};
 
