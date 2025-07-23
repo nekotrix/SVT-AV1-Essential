@@ -1162,3 +1162,84 @@ int32_t svt_estimate_noise_highbd_fp16_neon(const uint16_t *src, int width, int 
     FP_ASSERT((((int64_t)final_acc * SQRT_PI_BY_2_FP16) / (6 * final_count)) < ((int64_t)1 << 31));
     return (int32_t)((final_acc * SQRT_PI_BY_2_FP16) / (6 * final_count));
 }
+
+static void svt_av1_apply_zz_based_temporal_filter_planewise_medium_partial_neon(
+    struct MeContext *me_ctx, const uint8_t *y_pre, int y_pre_stride, unsigned int block_width,
+    unsigned int block_height, uint32_t *y_accum, uint16_t *y_count, const uint32_t tf_decay_factor_fp16) {
+    // Decay factors for non-local mean approach.
+    // Larger noise -> larger filtering weight.
+    int32_t idx_32x32 = me_ctx->tf_block_col + me_ctx->tf_block_row * 2;
+
+    uint32_t block_error_fp8[4];
+
+    if (me_ctx->tf_32x32_block_split_flag[idx_32x32]) {
+        uint64x2_t b0 = vld1q_u64(&me_ctx->tf_16x16_block_error[idx_32x32 * 4]);
+        uint64x2_t b1 = vld1q_u64(&me_ctx->tf_16x16_block_error[idx_32x32 * 4 + 2]);
+        vst1q_u32(block_error_fp8, vcombine_u32(vmovn_u64(b0), vmovn_u64(b1)));
+    } else {
+        vst1q_u32(block_error_fp8, vdupq_n_u32((uint32_t)(me_ctx->tf_32x32_block_error[idx_32x32] >> 2)));
+    }
+
+    // Calculation for every quarter.
+    for (int subblock_idx = 0; subblock_idx < 4; subblock_idx++) {
+        uint32_t avg_err_fp10 = (block_error_fp8[subblock_idx]) << 2;
+        FP_ASSERT((((int64_t)block_error_fp8[subblock_idx]) << 2) < ((int64_t)1 << 31));
+
+        uint32_t scaled_diff16   = AOMMIN((avg_err_fp10) / AOMMAX((tf_decay_factor_fp16 >> 10), 1), 7 * 16);
+        uint16_t adjusted_weight = (uint16_t)((expf_tab_fp16[scaled_diff16] * TF_WEIGHT_SCALE) >> 17);
+
+        int x_offset = (subblock_idx % 2) * block_width / 2;
+        int y_offset = (subblock_idx / 2) * block_height / 2;
+
+        unsigned int i = 0;
+        do {
+            unsigned int j = 0;
+            do {
+                const int k = (i + y_offset) * y_pre_stride + x_offset + j;
+
+                uint16x8_t count_lo = vld1q_u16(y_count + k);
+                count_lo            = vaddq_u16(count_lo, vdupq_n_u16(adjusted_weight));
+                vst1q_u16(y_count + k, count_lo);
+
+                uint16x8_t pre    = vmovl_u8(vld1_u8(y_pre + k));
+                uint32x4_t accum0 = vld1q_u32(y_accum + k + 0);
+                uint32x4_t accum1 = vld1q_u32(y_accum + k + 4);
+
+                accum0 = vmlal_n_u16(accum0, vget_low_u16(pre), adjusted_weight);
+                accum1 = vmlal_n_u16(accum1, vget_high_u16(pre), adjusted_weight);
+                vst1q_u32(y_accum + k + 0, accum0);
+                vst1q_u32(y_accum + k + 4, accum1);
+
+                j += 8;
+            } while (j < block_width / 2);
+        } while (++i < block_height / 2);
+    }
+}
+
+void svt_av1_apply_zz_based_temporal_filter_planewise_medium_neon(
+    struct MeContext *me_ctx, const uint8_t *y_pre, int y_pre_stride, const uint8_t *u_pre, const uint8_t *v_pre,
+    int uv_pre_stride, unsigned int block_width, unsigned int block_height, int ss_x, int ss_y, uint32_t *y_accum,
+    uint16_t *y_count, uint32_t *u_accum, uint16_t *u_count, uint32_t *v_accum, uint16_t *v_count) {
+    svt_av1_apply_zz_based_temporal_filter_planewise_medium_partial_neon(
+        me_ctx, y_pre, y_pre_stride, block_width, block_height, y_accum, y_count, me_ctx->tf_decay_factor_fp16[C_Y]);
+
+    if (me_ctx->tf_chroma) {
+        svt_av1_apply_zz_based_temporal_filter_planewise_medium_partial_neon(me_ctx,
+                                                                             u_pre,
+                                                                             uv_pre_stride,
+                                                                             block_width >> ss_x,
+                                                                             block_height >> ss_y,
+                                                                             u_accum,
+                                                                             u_count,
+                                                                             me_ctx->tf_decay_factor_fp16[C_U]);
+
+        svt_av1_apply_zz_based_temporal_filter_planewise_medium_partial_neon(me_ctx,
+                                                                             v_pre,
+                                                                             uv_pre_stride,
+                                                                             block_width >> ss_x,
+                                                                             block_height >> ss_y,
+                                                                             v_accum,
+                                                                             v_count,
+                                                                             me_ctx->tf_decay_factor_fp16[C_V]);
+    }
+}

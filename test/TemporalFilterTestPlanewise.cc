@@ -664,9 +664,6 @@ class TemporalFilterZZTestPlanewiseMedium
     }
 };
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
-    TemporalFilterZZTestPlanewiseMedium);
-
 TEST_P(TemporalFilterZZTestPlanewiseMedium, OperationCheck) {
     RunTest(100);
 }
@@ -688,6 +685,15 @@ INSTANTIATE_TEST_SUITE_P(
         svt_av1_apply_zz_based_temporal_filter_planewise_medium_avx2));
 
 #endif  // ARCH_X86_64
+
+#ifdef ARCH_AARCH64
+
+INSTANTIATE_TEST_SUITE_P(
+    NEON, TemporalFilterZZTestPlanewiseMedium,
+    ::testing::Values(
+        svt_av1_apply_zz_based_temporal_filter_planewise_medium_neon));
+
+#endif  // ARCH_AARCH64
 
 typedef void (*TemporalFilterFuncHbd)(
     struct MeContext *me_ctx, const uint16_t *y_src, int y_src_stride,
