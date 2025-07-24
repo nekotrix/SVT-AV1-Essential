@@ -1,5 +1,33 @@
 # Changelog
 
+## [3.1.0] - 2025-7-24
+
+Encoder
+
+- More Arm simd improvements (!2412, !2413, !2416, !2418, !2414, !2425, !2419, !2421, !2428, !2430, !2429, !2433, !2436, !2440, !2437, !2460)
+- Additional improvements to components such as variance boost (!2431, !2432)
+- General simd improvements (!2447)
+- LP optimizations (!2446, !2449, !2450)
+- Further bd-rate optimizations (!2443)
+- RTC mode optimizations (!2452)
+- New S-Frame randomd access mode (!2451)
+- Added new flags for `--chroma-qm-min` and `--chroma-qm-max` from SVT-AV1-PSY (!2442)
+
+Cleanup Build and bug fixes and documentation
+
+- Deprecated unused avx512{er,pf} as they were never used and also removed with GCC 15 (!2415)
+- Visual console display fixes (!2420, !2423)
+- Fixed compilation bugs and cleanup with Arm (!2417, #2259, !2427, !2434, !2438, !2439)
+- Fixed some formulas in the documentation (!2444)
+- Added new options to slim down SVT-AV1 for RTC use cases (!2456, !2457, !2459)
+- Fixed some issues with QP handling, vbr stability, and screen content (!2458, #2262, #2272, #2273)
+- Fixes issue with resize-mode (!2463, #2282, #2260)
+- Removed cpuinfo dependency and instead use cpu detection code from aom (!2426, !2453)
+
+Testing
+
+- General testing improvements and fixes (!2406, !2454)
+
 ## [3.0.2] - 2025-3-21
 
 Encoder
