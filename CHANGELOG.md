@@ -32,6 +32,27 @@ Cleanup Build and bug fixes and documentation
 - Fixes issue with resize-mode (!2463, #2282, #2260)
 - Removed cpuinfo dependency and instead use cpu detection code from aom (!2426, !2453)
 
+Arm Improvements
+
+- Speed comparison was done against v3.0.2 on AWS Graviton4 instances with Clang 20
+- Uplits are geometric means across presets 0-10
+
+Landscape video:
+
+- 1080p: +4%
+- 720p: +6%
+- 480p: +6%
+- 360p: +3%
+- 240p: +4%
+
+Portrait video:
+
+- 1080p: +8%
+- 720p: +4%
+- 480p: +3%
+- 360p: +7%
+- 240p: +4%
+
 ## [3.0.2] - 2025-3-21
 
 Encoder
