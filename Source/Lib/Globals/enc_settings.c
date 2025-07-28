@@ -825,7 +825,9 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         scs->static_config.min_intra_period_length = 0;
         SVT_WARN("min-keyint was set to 0 as SCD is disabled.\n", channel_number + 1);
     }
-    if (config->fast_decode < 1 && (config->tile_columns > 0 || config->tile_rows > 0)) {
+    if (config->fast_decode < 1 && 
+        config->auto_tiling == 0 &&
+       (config->tile_columns > 2 || config->tile_rows > 2)) {
         SVT_WARN(
             "If you are using tiles with the intent of increasing the decoder speed, please also "
             "consider using --fast-decode 1 or 2, especially if the intended decoder is running with "
@@ -833,9 +835,9 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     }
     if (config->tune == 0 && config->fast_decode > 0) {
         SVT_WARN(
-            "--fast - decode has been developed and optimized with --tune 1. "
+            "--fast-decode has been developed and optimized with --tune 1. "
             "Please use it with caution when encoding with --tune 0. You can also consider using "
-            "--tile-columns 1 if you are targeting a high quality encode and a multi-core "
+            "tiles if you are targeting a high quality encode and a multi-core "
             "high-performance decoder HW\n");
     }
     if (config->enable_qm && config->min_qm_level > config->max_qm_level) {

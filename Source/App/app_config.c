@@ -38,6 +38,7 @@
  * Defines
  **********************************/
 #define HELP_TOKEN "--help"
+#define FHELP_TOKEN "--full-help"
 #define COLORH_TOKEN "--color-help"
 #define VERSION_TOKEN "--version"
 #define CHANNEL_NUMBER_TOKEN "--nch"
@@ -56,7 +57,7 @@
 #define STAT_FILE_TOKEN "--stat-file"
 #define WIDTH_TOKEN "-w"
 #define HEIGHT_TOKEN "-h"
-#define NUMBER_OF_PICTURES_TOKEN "-n"
+#define NUMBER_OF_PICTURES_TOKEN "--frames"
 #define BUFFERED_INPUT_TOKEN "--nb"
 #define NO_PROGRESS_TOKEN "--no-progress" // tbd if it should be removed
 #define PROGRESS_TOKEN "--progress"
@@ -161,7 +162,6 @@
 #define OUTPUT_RECON_LONG_TOKEN "--recon"
 #define WIDTH_LONG_TOKEN "--width"
 #define HEIGHT_LONG_TOKEN "--height"
-#define NUMBER_OF_PICTURES_LONG_TOKEN "--frames"
 #define NUMBER_OF_PICTURES_TO_SKIP "--skip"
 
 #define QP_LONG_TOKEN "--qp"
@@ -203,7 +203,7 @@
 #define AVIF_TOKEN "--avif"
 #define RTC_TOKEN "--rtc"
 #define QP_SCALE_COMPRESS_STRENGTH_TOKEN "--qp-scale-compress-strength"
-#define AUTO_TILING "--auto-tiling"
+#define AUTO_TILING_TOKEN "--auto-tiling"
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -627,7 +627,207 @@ typedef struct config_description_s {
  **********************************/
 ConfigDescription config_entry_options[] = {
     // File I/O
-    {HELP_TOKEN, "Shows the command line options currently available"},
+    {HELP_TOKEN, "Shows the important command line options currently available"},
+    {FHELP_TOKEN, "Shows all the command line options currently available"},
+    {COLORH_TOKEN, "Extra help for adding AV1 metadata to the bitstream"},
+    {VERSION_TOKEN, "Shows the version of the library that's linked to the library"},
+    {INPUT_FILE_TOKEN,
+     "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
+    {INPUT_FILE_LONG_TOKEN,
+     "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
+
+    {OUTPUT_BITSTREAM_TOKEN,
+     "Output compressed (ivf) file path, use `stdout` or `-` to write to pipe"},
+    {OUTPUT_BITSTREAM_LONG_TOKEN,
+     "Output compressed (ivf) file path, use `stdout` or `-` to write to pipe"},
+
+    {PROGRESS_TOKEN,
+     "Verbosity of the output, default is 1 [0: no progress is printed, 1: basic progress, 2: detailed progress]"},
+    {NO_PROGRESS_TOKEN,
+     "Do not print out progress, default is 0 [1: `" PROGRESS_TOKEN " 0`, 0: `" PROGRESS_TOKEN " 1`]"},
+
+    {PRESET_TOKEN,
+     "Encoder preset. Higher presets means faster encodes, but with "
+     "a quality tradeoff, default is 4 [-1-10]"},
+
+    {NULL, NULL}};
+
+ConfigDescription config_entry_global_options[] = {
+    // Picture Dimensions
+    {WIDTH_TOKEN,
+     "Frame width in pixels, inferred if y4m, default is 0 [4-16384]"},
+    {WIDTH_LONG_TOKEN,
+     "Frame width in pixels, inferred if y4m, default is 0 [4-16384]"},
+
+    {HEIGHT_TOKEN,
+     "Frame height in pixels, inferred if y4m, default is 0 [4-8704]"},
+    {HEIGHT_LONG_TOKEN,
+     "Frame height in pixels, inferred if y4m, default is 0 [4-8704]"},
+
+    {NUMBER_OF_PICTURES_TOKEN,
+     "Number of frames to encode. If `n` is larger than the input, the encoder will loop back and "
+     "continue encoding, default is 0 [0: until EOF, 1-`(2^63)-1`]"},
+
+    {NUMBER_OF_PICTURES_TO_SKIP,
+     "Number of frames to skip. Default is 0 [0: don`t skip, 1-`(2^63)-1`]"},
+
+    {FRAME_RATE_TOKEN,
+     "Input video frame rate, integer values only, inferred if y4m, default is 60 [1-240]"},
+    {FRAME_RATE_NUMERATOR_TOKEN,
+     "Input video frame rate numerator, default is 60000 [0-2^32-1]"},
+    {FRAME_RATE_DENOMINATOR_TOKEN,
+     "Input video frame rate denominator, default is 1000 [0-2^32-1]"},
+
+    // Asm Type
+    {THREAD_MGMNT,
+     "Amount of parallelism to use. 0 means choose the level based on machine core count. Refer to Appendix A.1 "
+     "of the user "
+     "guide, default is 0 [0, 6]"},
+    {TARGET_SOCKET,
+     "Specifies which socket to run on, assumes a max of two sockets. Refer to Appendix A.1 of the "
+     "user guide, default is -1 [-1, 0, -1]"},
+    // Termination
+    {NULL, NULL}};
+
+ConfigDescription config_entry_rc[] = {
+    // Rate Control
+    {QP_TOKEN, "Initial QP level value, default is 30 [1-63]"},
+    {QP_LONG_TOKEN, "Initial QP level value, default is 30 [1-63]"},
+    {CRF_LONG_TOKEN,
+     "Constant Rate Factor value, setting this value is equal to `--rc 0 --aq-mode 2 --qp "
+     "x`, default is 30 [1-63]"},
+
+    {MAX_BIT_RATE_TOKEN,
+     "Maximum Bitrate (kbps) only applicable for CRF encoding, default is 0 [1-100000]"},
+
+    {ADAPTIVE_QP_ENABLE_NEW_TOKEN,
+     "Set adaptive QP level, default is 2 [0: off, 1: variance base using AV1 segments, 2: deltaq "
+     "pred efficiency]"},
+    {MBR_OVER_SHOOT_PCT_TOKEN,
+     "Only for Capped CRF, allowable datarate overshoot (max) target (percentage), default is 0, "
+     "but can change based on rate control [0-100]"},
+#if CONFIG_ENABLE_QUANT_MATRIX
+    {ENABLE_QM_TOKEN, "Enable quantisation matrices, default is 0 [0-1]"},
+    {MIN_QM_LEVEL_TOKEN, "Min quant matrix flatness, default is 0 [0-15]"},
+    {MAX_QM_LEVEL_TOKEN, "Max quant matrix flatness, default is 15 [0-15]"},
+    {MIN_CHROMA_QM_LEVEL_TOKEN, "Min chroma quant matrix flatness, default is 0 [0-15]"},
+    {MAX_CHROMA_QM_LEVEL_TOKEN, "Max chroma quant matrix flatness, default is 15 [0-15]"},
+#endif
+    // TF Strength
+    {TF_STRENGTH_FILTER_TOKEN,
+     "Adjust temporal filtering strength, default is 1 [0-4]"},
+    // Frame-level luminance-based QP bias
+    {LUMINANCE_QP_BIAS_TOKEN,
+     "Adjusts a frame's QP based on its average luma value, default is 50 [0-100]"},
+    // Sharpness
+    {SHARPNESS_TOKEN,
+     "Bias towards decreased/increased sharpness, default is 1 [-7 to 7]"},
+    // QP scale compress strength
+    {QP_SCALE_COMPRESS_STRENGTH_TOKEN,
+     "QP scale compress strength, default is 3 [0-8]"},
+    // Termination
+    {NULL, NULL}};
+
+ConfigDescription config_entry_intra_refresh[] = {
+    {KEYINT_TOKEN,
+     "Max GOP size (frames), default is -1 [-1: ~5 seconds, 0: \"infinite\" and only applicable for "
+     "CRF]"},
+    {MIN_KEYINT_TOKEN,
+     "Min GOP size (frames), default is -1 [-1: multiple of the mini-gop length (automatic), "
+     "0: no minimum]"},
+    {SCENE_CHANGE_DETECTION_TOKEN,
+     "Scene change detection control, default is 1 [0-1]"},
+    {HIERARCHICAL_LEVELS_TOKEN,
+     "Set hierarchical levels beyond the base layer, default is <=M12: 5, else: 4 [2: 3 temporal "
+     "layers, 3: 4 "
+     "temporal layers, 4: 5 "
+     "layers, 5: 6 layers]"},
+    {RTC_TOKEN,
+     "Enables fast settings for rtc when using low-delay mode. Forces low-delay pred struct to be used, "
+     "default is 0, [0-1]]"},
+    {STARTUP_MG_SIZE_TOKEN,
+     "Specify another mini-gop configuration for the first mini-gop after the key-frame, default "
+     "is 0 [0: OFF, "
+     "2: 3 temporal layers, 3: 4 temporal layers, 4: 5 temporal layers]"},
+    // Termination
+    {NULL, NULL}};
+
+ConfigDescription config_entry_specific[] = {
+    // Auto tiling
+    {AUTO_TILING_TOKEN,
+     "Auto tiling, default is 1 [0-1]"},
+    {TILE_ROW_TOKEN,
+     "Number of tile rows to use, `TileRow == log2(x)`, default is 0 "
+     "[0-6]"},
+    {TILE_COL_TOKEN,
+     "Number of tile columns to use, `TileCol == log2(x)`, default is 0 "
+     "[0-4]"},
+
+    // DLF
+    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 1 [0-1]"},
+    // CDEF
+    {CDEF_ENABLE_TOKEN,
+     "Enable Constrained Directional Enhancement Filter, default is 1 [0-1]"},
+    // RESTORATION
+    {ENABLE_RESTORATION_TOKEN,
+     "Enable loop restoration filter, default is 1 [0-1]"},
+    {FAST_DECODE_TOKEN, "Fast Decoder levels, default is 0 [0-2]"},
+    // --- start: ALTREF_FILTERING_SUPPORT
+    {ENABLE_TF_TOKEN,
+     "Enable ALT-REF (temporally filtered) frames, default is 1 [0-2]"},
+
+    {ENABLE_OVERLAYS,
+     "Enable the insertion of overlayer pictures which will be used as an additional reference "
+     "frame for the base layer picture, default is 0 [0-1]"},
+    // --- end: ALTREF_FILTERING_SUPPORT
+    {TUNE_TOKEN,
+     "Specifies whether to use PSNR or VQ as the tuning metric [0 = VQ, 1 = PSNR, 2 = SSIM], "
+     "default is 1 "
+     "[0-2]"},
+    // MD Parameters
+    {SCREEN_CONTENT_TOKEN,
+     "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive]"},
+    // Annex A parameters
+#if CONFIG_ENABLE_FILM_GRAIN
+    {FILM_GRAIN_TOKEN,
+     "Enable film grain, default is 0 [0: off, 1-50: level of graining* for film grain (*and denoising if on)]"},
+
+    {FILM_GRAIN_DENOISE_APPLY_TOKEN,
+     "Apply denoising when film grain is ON, default is 0 [0: no denoising, film grain data is "
+     "still in frame header, "
+     "1: level of denoising is set by the film-grain parameter]"},
+
+    {FGS_TABLE_TOKEN, "Set the film grain model table path"},
+#endif
+    {LOSSLESS_TOKEN, "Enable lossless coding, default is 0 [0-1]"},
+    {AVIF_TOKEN, "Enable still-picture coding, default is 0 [0-1]"},
+    // Termination
+    {NULL, NULL}};
+
+ConfigDescription config_entry_color_description[] = {
+    // Color description help
+    {COLORH_TOKEN, "Metadata help from user guide Appendix A.2"},
+    // Color description
+    {COLOR_PRIMARIES_NEW_TOKEN,
+     "Color primaries, refer to --color-help. Default is 2 [0-12, 22]"},
+    {TRANSFER_CHARACTERISTICS_NEW_TOKEN,
+     "Transfer characteristics, refer to --color-help. Default is 2 [0-22]"},
+    {MATRIX_COEFFICIENTS_NEW_TOKEN,
+     "Matrix coefficients, refer to --color-help. Default is 2 [0-14]"},
+    // Termination
+    {NULL, NULL}};
+
+ConfigDescription config_entry_variance_boost[] = {
+    // Variance boost
+    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 2 [1-4]"},
+    {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 5 [1-8]"},
+    // Termination
+    {NULL, NULL}};
+
+ConfigDescription fconfig_entry_options[] = {
+    // File I/O
+    {HELP_TOKEN, "Shows the important command line options currently available"},
+    {FHELP_TOKEN, "Shows all the command line options currently available"},
     {COLORH_TOKEN, "Extra help for adding AV1 metadata to the bitstream"},
     {VERSION_TOKEN, "Shows the version of the library that's linked to the library"},
     {INPUT_FILE_TOKEN, "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
@@ -652,13 +852,13 @@ ConfigDescription config_entry_options[] = {
 
     {PRESET_TOKEN,
      "Encoder preset, presets < 0 are for debugging. Higher presets means faster encodes, but with "
-     "a quality tradeoff, default is 10 [-1-13]"},
+     "a quality tradeoff, default is 4 [-1-13]"},
 
     {SVTAV1_PARAMS, "colon separated list of key=value pairs of parameters with keys based on config file options"},
 
     {NULL, NULL}};
 
-ConfigDescription config_entry_global_options[] = {
+ConfigDescription fconfig_entry_global_options[] = {
     // Picture Dimensions
     {WIDTH_TOKEN, "Frame width in pixels, inferred if y4m, default is 0 [4-16384]"},
     {WIDTH_LONG_TOKEN, "Frame width in pixels, inferred if y4m, default is 0 [4-16384]"},
@@ -671,9 +871,6 @@ ConfigDescription config_entry_global_options[] = {
     {FORCED_MAX_FRAME_HEIGHT_TOKEN, "Maximum frame height value to force, default is 0 [4-8704]"},
 
     {NUMBER_OF_PICTURES_TOKEN,
-     "Number of frames to encode. If `n` is larger than the input, the encoder will loop back and "
-     "continue encoding, default is 0 [0: until EOF, 1-`(2^63)-1`]"},
-    {NUMBER_OF_PICTURES_LONG_TOKEN,
      "Number of frames to encode. If `n` is larger than the input, the encoder will loop back and "
      "continue encoding, default is 0 [0: until EOF, 1-`(2^63)-1`]"},
 
@@ -692,7 +889,7 @@ ConfigDescription config_entry_global_options[] = {
     {FRAME_RATE_TOKEN, "Input video frame rate, integer values only, inferred if y4m, default is 60 [1-240]"},
     {FRAME_RATE_NUMERATOR_TOKEN, "Input video frame rate numerator, default is 60000 [0-2^32-1]"},
     {FRAME_RATE_DENOMINATOR_TOKEN, "Input video frame rate denominator, default is 1000 [0-2^32-1]"},
-    {INPUT_DEPTH_TOKEN, "Input video file and output bitstream bit-depth, default is 8 [8, 10]"},
+    {INPUT_DEPTH_TOKEN, "Input video file and output bitstream bit-depth, forced to the source input bit-depth [8, 10]"},
     // Latency
     {INJECTOR_TOKEN, "Inject pictures to the library at defined frame rate, default is 0 [0-1]"},
     {INJECTOR_FRAMERATE_TOKEN, "Set injector frame rate, only applicable with `--inj 1`, default is 60 [0-240]"},
@@ -719,15 +916,15 @@ ConfigDescription config_entry_global_options[] = {
     // Termination
     {NULL, NULL}};
 
-ConfigDescription config_entry_rc[] = {
+ConfigDescription fconfig_entry_rc[] = {
     // Rate Control
     {RATE_CONTROL_ENABLE_TOKEN,
      "Rate control mode, default is 0 [0: CRF or CQP (if `--aq-mode` is 0), 1: VBR, 2: CBR]"},
-    {QP_TOKEN, "Initial QP level value, default is 35 [1-63]"},
-    {QP_LONG_TOKEN, "Initial QP level value, default is 35 [1-63]"},
+    {QP_TOKEN, "Initial QP level value, default is 30 [1-63]"},
+    {QP_LONG_TOKEN, "Initial QP level value, default is 30 [1-63]"},
     {CRF_LONG_TOKEN,
      "Constant Rate Factor value, setting this value is equal to `--rc 0 --aq-mode 2 --qp "
-     "x`, default is 35 [1-63]"},
+     "x`, default is 30 [1-63]"},
 
     {TARGET_BIT_RATE_TOKEN,
      "Target Bitrate (kbps), only applicable for VBR and CBR encoding, default is 7000 [1-100000]"},
@@ -771,7 +968,7 @@ ConfigDescription config_entry_rc[] = {
      "Only for VBR and CBR, allowable datarate overshoot (max) target (percentage), default is 25, "
      "but can change based on rate control [0-100]"},
     {MBR_OVER_SHOOT_PCT_TOKEN,
-     "Only for Capped CRF, allowable datarate overshoot (max) target (percentage), default is 50, "
+     "Only for Capped CRF, allowable datarate overshoot (max) target (percentage), default is 0, "
      "but can change based on rate control [0-100]"},
     {GOP_CONSTRAINT_RC_TOKEN,
      "Enable GoP constraint rc.  When enabled, the rate control matches the target rate for each "
@@ -787,22 +984,24 @@ ConfigDescription config_entry_rc[] = {
      "GOP max bitrate (expressed as a percentage of the target rate), default is 2000 [0-10000]"},
 #if CONFIG_ENABLE_QUANT_MATRIX
     {ENABLE_QM_TOKEN, "Enable quantisation matrices, default is 0 [0-1]"},
-    {MIN_QM_LEVEL_TOKEN, "Min quant matrix flatness, default is 8 [0-15]"},
+    {MIN_QM_LEVEL_TOKEN, "Min quant matrix flatness, default is 0 [0-15]"},
     {MAX_QM_LEVEL_TOKEN, "Max quant matrix flatness, default is 15 [0-15]"},
-    {MIN_CHROMA_QM_LEVEL_TOKEN, "Min chroma quant matrix flatness, default is 8 [0-15]"},
+    {MIN_CHROMA_QM_LEVEL_TOKEN, "Min chroma quant matrix flatness, default is 0 [0-15]"},
     {MAX_CHROMA_QM_LEVEL_TOKEN, "Max chroma quant matrix flatness, default is 15 [0-15]"},
 #endif
     {ROI_MAP_FILE_TOKEN, "Enable Region Of Interest and specify a picture based QP Offset map file, default is off"},
     // TF Strength
-    {TF_STRENGTH_FILTER_TOKEN, "[PSY] Adjust temporal filtering strength, default is 1 [0-4]"},
+    {TF_STRENGTH_FILTER_TOKEN, "Adjust temporal filtering strength, default is 1 [0-4]"},
     // Frame-level luminance-based QP bias
-    {LUMINANCE_QP_BIAS_TOKEN, "Adjusts a frame's QP based on its average luma value, default is 0 [0-100]"},
+    {LUMINANCE_QP_BIAS_TOKEN, "Adjusts a frame's QP based on its average luma value, default is 50 [0-100]"},
     // Sharpness
-    {SHARPNESS_TOKEN, "Bias towards decreased/increased sharpness, default is 0 [-7 to 7]"},
+    {SHARPNESS_TOKEN, "Bias towards decreased/increased sharpness, default is 1 [-7 to 7]"},
+    // QP scale compress strength
+    {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 3 [0-8]"},
     // Termination
     {NULL, NULL}};
 
-ConfigDescription config_entry_2p[] = {
+ConfigDescription fconfig_entry_2p[] = {
     // 2 pass
     {PASS_TOKEN,
      "Multi-pass selection, pass 2 is only available for VBR, default is 0 [0: single pass encode, "
@@ -814,18 +1013,14 @@ ConfigDescription config_entry_2p[] = {
     // Termination
     {NULL, NULL}};
 
-ConfigDescription config_entry_intra_refresh[] = {
+ConfigDescription fconfig_entry_intra_refresh[] = {
     {KEYINT_TOKEN,
      "Max GOP size (frames), default is -1 [-1: ~5 seconds, 0: \"infinite\" and only applicable for "
      "CRF]"},
     {MIN_KEYINT_TOKEN,
      "Min GOP size (frames), default is -1 [-1: multiple of the mini-gop length (automatic), "
      "0: no minimum]"},
-    {INTRA_REFRESH_TYPE_TOKEN, "Intra refresh type, default is 2 [1: FWD Frame (Open GOP), 2: KEY Frame (Closed GOP)]"},
-    {SCENE_CHANGE_DETECTION_TOKEN, "Scene change detection control, default is 0 [0-1]"},
-    {LOOKAHEAD_NEW_TOKEN,
-     "Number of frames in the future to look ahead, not including minigop, temporal filtering, and "
-     "rate control, default is -1 [-1: auto, 0-120]"},
+    {SCENE_CHANGE_DETECTION_TOKEN, "Scene change detection control, default is 1 [0-1]"},
     {HIERARCHICAL_LEVELS_TOKEN,
      "Set hierarchical levels beyond the base layer, default is <=M12: 5, else: 4 [2: 3 temporal "
      "layers, 3: 4 temporal layers, 4: 5 layers, 5: 6 layers]"},
@@ -843,10 +1038,12 @@ ConfigDescription config_entry_intra_refresh[] = {
     // Termination
     {NULL, NULL}};
 
-ConfigDescription config_entry_specific[] = {
-    {TILE_ROW_TOKEN, "Number of tile rows to use, `TileRow == log2(x)`, default changes per resolution but is 1 [0-6]"},
+ConfigDescription fconfig_entry_specific[] = {
+    // Auto tiling
+    {AUTO_TILING_TOKEN, "Auto tiling, default is 1 [0-1]"},
+    {TILE_ROW_TOKEN, "Number of tile rows to use, `TileRow == log2(x)`, default is 0 [0-6]"},
     {TILE_COL_TOKEN,
-     "Number of tile columns to use, `TileCol == log2(x)`, default changes per resolution but is 1 [0-4]"},
+     "Number of tile columns to use, `TileCol == log2(x)`, default is 0 [0-4]"},
 
     // DLF
     {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 1 [0-1]"},
@@ -874,7 +1071,7 @@ ConfigDescription config_entry_specific[] = {
     {SCREEN_CONTENT_TOKEN, "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive]"},
 #if CONFIG_ENABLE_FILM_GRAIN
     // Annex A parameters
-    {FILM_GRAIN_TOKEN, "Enable film grain, default is 0 [0: off, 1-50: level of denoising for film grain]"},
+    {FILM_GRAIN_TOKEN, "Enable film grain, default is 0 [0: off, 1-50: level of graining* for film grain (*and denoising if enabled)]"},
 
     {FILM_GRAIN_DENOISE_APPLY_TOKEN,
      "Apply denoising when film grain is ON, default is 0 [0: no denoising, film grain data is "
@@ -920,13 +1117,13 @@ ConfigDescription config_entry_specific[] = {
     {LOSSLESS_TOKEN, "Enable lossless coding, default is 0 [0-1]"},
     {AVIF_TOKEN, "Enable still-picture coding, default is 0 [0-1]"},
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 3 [0-8]"},
-    {AUTO_TILING, "Auto tiling, default is 1 [0-1]"},
+    {AUTO_TILING_TOKEN, "Auto tiling, default is 1 [0-1]"},
     // Termination
     {NULL, NULL}};
 
-ConfigDescription config_entry_color_description[] = {
+ConfigDescription fconfig_entry_color_description[] = {
     // Color description help
-    {COLORH_TOKEN, "[PSY] Metadata help from user guide Appendix A.2"},
+    {COLORH_TOKEN, "Metadata help from user guide Appendix A.2"},
     // Color description
     {COLOR_PRIMARIES_NEW_TOKEN, "Color primaries, refer to --color-help. Default is 2 [0-12, 22]"},
     {TRANSFER_CHARACTERISTICS_NEW_TOKEN, "Transfer characteristics, refer to --color-help. Default is 2 [0-22]"},
@@ -945,11 +1142,11 @@ ConfigDescription config_entry_color_description[] = {
     // Termination
     {NULL, NULL}};
 
-ConfigDescription config_entry_variance_boost[] = {
+ConfigDescription fconfig_entry_variance_boost[] = {
     // Variance boost
-    {ENABLE_VARIANCE_BOOST_TOKEN, "Enable variance boost, default is 0 [0-1]"},
+    {ENABLE_VARIANCE_BOOST_TOKEN, "Enable variance boost, default is 1 [0-1]"},
     {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 2 [1-4]"},
-    {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 6 [1-8]"},
+    {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 5 [1-8]"},
     {VARIANCE_BOOST_CURVE_TOKEN, "Curve for variance boost, default is 0 [0-2]"},
     // Termination
     {NULL, NULL}};
@@ -980,7 +1177,6 @@ ConfigEntry config_entry[] = {
     {FORCED_MAX_FRAME_HEIGHT_TOKEN, "ForcedMaximumFrameHeight", set_cfg_generic_token},
     // Prediction Structure
     {NUMBER_OF_PICTURES_TOKEN, "FrameToBeEncoded", set_cfg_frames_to_be_encoded},
-    {NUMBER_OF_PICTURES_LONG_TOKEN, "FrameToBeEncoded", set_cfg_frames_to_be_encoded},
     {BUFFERED_INPUT_TOKEN, "BufferedInput", set_buffered_input},
 
     {NUMBER_OF_PICTURES_TO_SKIP, "FrameToBeSkipped", set_cfg_frames_to_be_skipped},
@@ -1151,7 +1347,7 @@ ConfigEntry config_entry[] = {
     {RTC_TOKEN, "RealTime", set_cfg_generic_token},
     // QP scale compress
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QpScaleCompressStrength", set_cfg_generic_token},
-    {AUTO_TILING, "AutoTiling", set_cfg_generic_token},
+    {AUTO_TILING_TOKEN, "AutoTiling", set_cfg_generic_token},
     // Termination
     {NULL, NULL, NULL}};
 
@@ -1687,6 +1883,24 @@ uint32_t get_help(int32_t argc, char *const argv[]) {
         return 0;
 
     printf(
+        "Usage: SvtAv1EncApp <options> -i src_filename -b dst_filename\n");
+    print_options("Options", config_entry_options);
+    print_options("Encoder Global Options", config_entry_global_options);
+    print_options("Rate Control Options", config_entry_rc);
+    print_options("GOP size and type Options", config_entry_intra_refresh);
+    print_options("AV1 Specific Options", config_entry_specific);
+    print_options("Color Description Options", config_entry_color_description);
+    print_options("Variance Boost Options", config_entry_variance_boost);
+
+    return 1;
+}
+
+uint32_t get_fhelp(int32_t argc, char *const argv[]) {
+    char config_string[COMMAND_LINE_MAX_SIZE];
+    if (find_token(argc, argv, FHELP_TOKEN, config_string))
+        return 0;
+
+    printf(
         "Usage: SvtAv1EncApp <options> <-b dst_filename> -i src_filename\n"
         "\n"
         "Examples:\n"
@@ -1698,14 +1912,14 @@ uint32_t get_help(int32_t argc, char *const argv[]) {
         "src_filename\n"
         "Single-pass encode (VBR):\n"
         "    SvtAv1EncApp --passes 1 --rc 1 --tbr 1000 -b dst_filename -i src_filename\n");
-    print_options("Options", config_entry_options);
-    print_options("Encoder Global Options", config_entry_global_options);
-    print_options("Rate Control Options", config_entry_rc);
-    print_options("Multi-pass Options", config_entry_2p);
-    print_options("GOP size and type Options", config_entry_intra_refresh);
-    print_options("AV1 Specific Options", config_entry_specific);
-    print_options("Color Description Options", config_entry_color_description);
-    print_options("Variance Boost Options", config_entry_variance_boost);
+    print_options("Options", fconfig_entry_options);
+    print_options("Encoder Global Options", fconfig_entry_global_options);
+    print_options("Rate Control Options", fconfig_entry_rc);
+    print_options("Multi-pass Options", fconfig_entry_2p);
+    print_options("GOP size and type Options", fconfig_entry_intra_refresh);
+    print_options("AV1 Specific Options", fconfig_entry_specific);
+    print_options("Color Description Options", fconfig_entry_color_description);
+    print_options("Variance Boost Options", fconfig_entry_variance_boost);
 
     return 1;
 }
