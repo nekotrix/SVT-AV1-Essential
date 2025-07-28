@@ -205,6 +205,24 @@ typedef enum SvtAv1FrameUpdateType {
     SVT_AV1_FRAME_UPDATE_TYPES
 } SvtAv1FrameUpdateType;
 
+typedef enum {
+    SPEED_UNKNOWN = -1,
+    SPEED_SLOWER  =  0,
+    SPEED_SLOW    =  1,
+    SPEED_MEDIUM  =  2,
+    SPEED_FAST    =  3,
+    SPEED_FASTER  =  4
+} SpeedPreset;
+
+typedef enum {
+    QUALITY_UNKNOWN = -1,
+    QUALITY_HIGHER  =  0,
+    QUALITY_HIGH    =  1,
+    QUALITY_MEDIUM  =  2,
+    QUALITY_LOW     =  3,
+    QUALITY_LOWER   =  4
+} QualityPreset;
+
 typedef struct SvtAv1FrameScaleEvts {
     uint32_t  evt_num;
     uint64_t *start_frame_nums;
@@ -994,12 +1012,23 @@ typedef struct EbSvtAv1EncConfiguration {
     // Internal parsed zones (not exposed to CLI)
     QualityZone* parsed_zones;
     uint16_t num_zones;
+
+    /* @brief speed override
+     *
+     * Default is None
+     */
+    SpeedPreset speed;
+
+    /* @brief quality override
+     *
+     * Default is None
+     */
+    QualityPreset quality;
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
-    uint8_t padding[128 - (sizeof(uint8_t) * 3)
-        - (sizeof(bool) * 2) - sizeof(int32_t)
-        - sizeof(char*) - sizeof(QualityZone*)
-        - sizeof(uint16_t)
+    uint8_t padding[128 - (sizeof(uint8_t) * 3) - (sizeof(bool) * 2)
+        - sizeof(int32_t) - sizeof(char*) - sizeof(QualityZone*)
+        - sizeof(uint16_t) - sizeof(SpeedPreset) - sizeof(QualityPreset)
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;

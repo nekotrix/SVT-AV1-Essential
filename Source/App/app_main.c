@@ -310,11 +310,17 @@ static void print_summary(const EncContext* const enc_context) {
                         ((double)(app_cfg->performance_context.byte_count << 3) * frame_rate /
                          (app_cfg->frames_encoded * 1000)));
             }
-
-            fprintf(stderr,
-                    "\nSUMMARY --------------------------------- Channel %u  "
-                    "--------------------------------\n",
+            if (enc_context->num_channels == 1) {
+                fprintf(stderr,
+                        "\nSUMMARY "
+                        "------------------------------------------------------"
+                        "-----------------------\n");
+            } else {
+                fprintf(stderr,
+                        "\nSUMMARY --------------------------------- Channel %u  "
+                        "--------------------------------\n",
                     inst_cnt + 1);
+            }
             fprintf(stderr, "Total Frames\t\tFrame Rate\t\tByte Count\t\tBitrate\n");
             fprintf(stderr,
                     "%12d\t\t%4.2f fps\t\t%10.0f\t\t%5.2f kbps\n",
@@ -363,17 +369,47 @@ static void print_performance(const EncContext* const enc_context) {
             if (app_cfg->stop_encoder == false) {
                 if ((app_cfg->config.pass == 0 ||
                      (app_cfg->config.pass == 2 && app_cfg->config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF) ||
-                     app_cfg->config.pass == 3))
-                    fprintf(stderr,
-                            "\nChannel %u\nAverage Speed:\t\t%.3f fps\nTotal Encoding Time:\t%.0f "
-                            "ms\nTotal Execution Time:\t%.0f ms\nAverage Latency:\t%.0f ms\nMax "
-                            "Latency:\t\t%u ms\n",
-                            (uint32_t)(inst_cnt + 1),
-                            app_cfg->performance_context.average_speed,
-                            app_cfg->performance_context.total_encode_time * 1000,
-                            app_cfg->performance_context.total_execution_time * 1000,
-                            app_cfg->performance_context.average_latency,
-                            (uint32_t)(app_cfg->performance_context.max_latency));
+                     app_cfg->config.pass == 3)) {
+                    if (app_cfg->config.pred_structure == 2) {
+                        if (enc_context->num_channels == 1)
+                            fprintf(stderr,
+                                    "Average Speed:\t\t%.3f fps\nTotal Encoding Time:\t%.0f "
+                                    "ms\nTotal Execution Time:\t%.0f ms\n",
+                                    app_cfg->performance_context.average_speed,
+                                    app_cfg->performance_context.total_encode_time * 1000,
+                                    app_cfg->performance_context.total_execution_time * 1000);
+                        else
+                            fprintf(stderr,
+                                    "Channel %u\nAverage Speed:\t\t%.3f fps\nTotal Encoding Time:\t%.0f "
+                                    "ms\nTotal Execution Time:\t%.0f ms\n",
+                                    (uint32_t)(inst_cnt + 1),
+                                    app_cfg->performance_context.average_speed,
+                                    app_cfg->performance_context.total_encode_time * 1000,
+                                    app_cfg->performance_context.total_execution_time * 1000);
+                    } else {
+                        if (enc_context->num_channels == 1)
+                            fprintf(stderr,
+                                    "Average Speed:\t\t%.3f fps\nTotal Encoding Time:\t%.0f "
+                                    "ms\nTotal Execution Time:\t%.0f ms\nAverage Latency:\t%.0f ms\nMax "
+                                    "Latency:\t\t%u ms\n",
+                                    app_cfg->performance_context.average_speed,
+                                    app_cfg->performance_context.total_encode_time * 1000,
+                                    app_cfg->performance_context.total_execution_time * 1000,
+                                    app_cfg->performance_context.average_latency,
+                                    (uint32_t)(app_cfg->performance_context.max_latency));
+                        else    
+                            fprintf(stderr,
+                                    "Channel %u\nAverage Speed:\t\t%.3f fps\nTotal Encoding Time:\t%.0f "
+                                    "ms\nTotal Execution Time:\t%.0f ms\nAverage Latency:\t%.0f ms\nMax "
+                                    "Latency:\t\t%u ms\n",
+                                    (uint32_t)(inst_cnt + 1),
+                                    app_cfg->performance_context.average_speed,
+                                    app_cfg->performance_context.total_encode_time * 1000,
+                                    app_cfg->performance_context.total_execution_time * 1000,
+                                    app_cfg->performance_context.average_latency,
+                                    (uint32_t)(app_cfg->performance_context.max_latency));
+                    }
+                }
             } else
                 fprintf(stderr, "\nChannel %u Encoding Interrupted\n", (uint32_t)(inst_cnt + 1));
         } else if (c->return_error == EB_ErrorInsufficientResources)

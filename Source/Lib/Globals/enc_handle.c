@@ -3856,7 +3856,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     }
     // Set initial qp for vbr and middle pass
     if ((scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR) || (scs->static_config.pass == ENC_FIRST_PASS)) {
-        if (scs->static_config.qp != DEFAULT_QP) {
+        if ((int)scs->static_config.qp != DEFAULT_QP) {
             SVT_WARN("The input q value is ignored in vbr mode %d\n", scs->static_config.qp);
         }
         const uint8_t tbr_bands[5] = { 1,2,4,6,8};
@@ -4283,6 +4283,48 @@ static void copy_api_from_app(
     scs->static_config.multiply_keyint = config_struct->multiply_keyint;
     scs->static_config.intra_refresh_type = ((EbSvtAv1EncConfiguration*)config_struct)->intra_refresh_type;
     scs->static_config.enc_mode = ((EbSvtAv1EncConfiguration*)config_struct)->enc_mode;
+    EbInputResolution input_resolution;
+    svt_aom_derive_input_resolution(
+        &input_resolution,
+        scs->max_input_luma_width * scs->max_input_luma_height);
+    
+    scs->static_config.qp = ((EbSvtAv1EncConfiguration*)config_struct)->qp;
+
+    // Quality & Speed presets
+    scs->static_config.speed = config_struct->speed;
+    scs->static_config.quality = config_struct->quality;
+
+    switch (scs->static_config.speed) {
+    case SPEED_SLOWER: scs->static_config.enc_mode = ENC_M2; break;
+    case SPEED_SLOW:   scs->static_config.enc_mode = ENC_M4; break;
+    case SPEED_MEDIUM: scs->static_config.enc_mode = ENC_M5; break;
+    case SPEED_FAST:   scs->static_config.enc_mode = ENC_M6; break;
+    case SPEED_FASTER: scs->static_config.enc_mode = ENC_M8; break;
+    default:
+        if (scs->static_config.enc_mode == DEFAULT_MODE && (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080)) {
+            scs->static_config.enc_mode = ENC_M5;
+        } else if (scs->static_config.enc_mode == DEFAULT_MODE && (scs->max_input_luma_width * scs->max_input_luma_height <= 1920 * 1080)) {
+            scs->static_config.enc_mode = ENC_M4;
+        }
+        // else keep whatever enc_mode was manually set
+        break;
+    }
+
+    switch (scs->static_config.quality) {
+    case QUALITY_HIGHER: scs->static_config.qp = (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080) ? 25 : 20; break;
+    case QUALITY_HIGH:   scs->static_config.qp = (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080) ? 30 : 25; break;
+    case QUALITY_MEDIUM: scs->static_config.qp = (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080) ? 35 : 30; break;
+    case QUALITY_LOW:    scs->static_config.qp = (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080) ? 40 : 35; break;
+    case QUALITY_LOWER:  scs->static_config.qp = (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080) ? 45 : 40; break;
+    default:
+        if ((int)scs->static_config.qp == DEFAULT_QP && (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080)) {
+            scs->static_config.qp = 35;
+        } else if ((int)scs->static_config.qp == DEFAULT_QP && (scs->max_input_luma_width * scs->max_input_luma_height <= 1920 * 1080)) {
+            scs->static_config.qp = 30;
+        }
+        // else keep whatever qp was manually set
+        break;
+    }
     if(scs->static_config.rtc) {
         if (scs->static_config.enc_mode > ENC_M12) {
             SVT_WARN("Preset M%d is mapped to M12.\n", scs->static_config.enc_mode);
@@ -4295,10 +4337,6 @@ static void copy_api_from_app(
         scs->static_config.enc_mode = ENC_M10;
     }
 
-    EbInputResolution input_resolution;
-    svt_aom_derive_input_resolution(
-        &input_resolution,
-        scs->max_input_luma_width * scs->max_input_luma_height);
     if (scs->static_config.pred_structure == RANDOM_ACCESS && scs->static_config.enc_mode > ENC_M9 && input_resolution >= INPUT_SIZE_4K_RANGE) {
         scs->static_config.enc_mode = ENC_M9;
         SVT_WARN("Setting preset to M9 as it is the highest supported preset for 4k and higher resolutions in Random Access mode\n");
@@ -4556,7 +4594,6 @@ static void copy_api_from_app(
     }
     scs->static_config.pin_threads = ((EbSvtAv1EncConfiguration*)config_struct)->pin_threads;
     scs->static_config.target_socket = ((EbSvtAv1EncConfiguration*)config_struct)->target_socket;
-    scs->static_config.qp = ((EbSvtAv1EncConfiguration*)config_struct)->qp;
     scs->static_config.recon_enabled = ((EbSvtAv1EncConfiguration*)config_struct)->recon_enabled;
     scs->static_config.enable_tpl_la = ((EbSvtAv1EncConfiguration*)config_struct)->enable_tpl_la;
     if (scs->static_config.enable_tpl_la != 1){
@@ -4675,6 +4712,7 @@ static void copy_api_from_app(
 
     // QP scaling compression
     scs->static_config.qp_scale_compress_strength = config_struct->qp_scale_compress_strength;
+
     return;
 }
 

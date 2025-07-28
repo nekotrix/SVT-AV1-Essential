@@ -205,6 +205,8 @@
 #define QP_SCALE_COMPRESS_STRENGTH_TOKEN "--qp-scale-compress-strength"
 #define AUTO_TILING_TOKEN "--auto-tiling"
 #define ZONES_TOKEN "--zones"
+#define SPEED_TOKEN "--speed"
+#define QUALITY_TOKEN "--quality"
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -662,9 +664,9 @@ ConfigDescription config_entry_options[] = {
     {NO_PROGRESS_TOKEN,
      "Do not print out progress, default is 0 [1: `" PROGRESS_TOKEN " 0`, 0: `" PROGRESS_TOKEN " 1`]"},
 
-    {PRESET_TOKEN,
-     "Encoder preset. Higher presets means faster encodes, but with "
-     "a quality tradeoff, default is 4 [-1-10]"},
+    {SPEED_TOKEN,
+     "Encoder speed. Overrides the preset parameter. "
+     "Available speeds are: slower, slow, medium, fast, faster. Default is slow."},
 
     {NULL, NULL}};
 
@@ -707,11 +709,9 @@ ConfigDescription config_entry_global_options[] = {
 
 ConfigDescription config_entry_rc[] = {
     // Rate Control
-    {QP_TOKEN, "Initial QP level value, default is 30 [1-63]"},
-    {QP_LONG_TOKEN, "Initial QP level value, default is 30 [1-63]"},
-    {CRF_LONG_TOKEN,
-     "Constant Rate Factor value, setting this value is equal to `--rc 0 --aq-mode 2 --qp "
-     "x`, default is 30 [1-63]"},
+    {QUALITY_TOKEN,
+     "Quality preset. Overrides CRF/CQP. "
+     "Available qualities are: higher, high, medium, low, lower. Default is medium."},
 
     {MAX_BIT_RATE_TOKEN,
      "Maximum Bitrate (kbps) only applicable for CRF encoding, default is 0 [1-100000]"},
@@ -872,6 +872,10 @@ ConfigDescription fconfig_entry_options[] = {
     {PRESET_TOKEN,
      "Encoder preset, presets < 0 are for debugging. Higher presets means faster encodes, but with "
      "a quality tradeoff, default is 4 [-1-13]"},
+    
+    {SPEED_TOKEN,
+     "Encoder speed. Overrides the preset parameter. "
+     "Available speeds are: slower, slow, medium, fast, faster. Default is slow."},
 
     {SVTAV1_PARAMS, "colon separated list of key=value pairs of parameters with keys based on config file options"},
 
@@ -944,6 +948,10 @@ ConfigDescription fconfig_entry_rc[] = {
     {CRF_LONG_TOKEN,
      "Constant Rate Factor value, setting this value is equal to `--rc 0 --aq-mode 2 --qp "
      "x`, default is 30 [1-63]"},
+
+    {QUALITY_TOKEN,
+     "Quality preset. Overrides CRF/CQP. "
+     "Available qualities are: higher, high, medium, low, lower. Default is medium."},
 
     {TARGET_BIT_RATE_TOKEN,
      "Target Bitrate (kbps), only applicable for VBR and CBR encoding, default is 7000 [1-100000]"},
@@ -1371,6 +1379,8 @@ ConfigEntry config_entry[] = {
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QpScaleCompressStrength", set_cfg_generic_token},
     {AUTO_TILING_TOKEN, "AutoTiling", set_cfg_generic_token},
     {ZONES_TOKEN, "Zones", set_cfg_quality_zones},
+    {SPEED_TOKEN, "Speed", set_cfg_generic_token},
+    {QUALITY_TOKEN, "Quality", set_cfg_generic_token},
     // Termination
     {NULL, NULL, NULL}};
 
