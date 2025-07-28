@@ -1414,6 +1414,9 @@ static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t i
     const bool    rtc_tune        = pcs->scs->static_config.rtc;
     const bool    flat_rtc        = rtc_tune && pcs->scs->use_flat_ipp;
 
+    if (pcs->scs->static_config.enable_dlf_flag == 3) {
+        return 1;
+    }
     if (allintra) {
         if (pcs->scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
             if (fast_decode <= 1 || resolution <= INPUT_SIZE_360p_RANGE) {
