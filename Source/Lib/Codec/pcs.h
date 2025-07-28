@@ -1191,6 +1191,7 @@ typedef struct PictureControlSetInitData {
     uint8_t tf_strength;
     bool    allintra;
     uint8_t qp_scale_compress_strength;
+    bool    auto_tiling;
 } PictureControlSetInitData;
 
 /**************************************

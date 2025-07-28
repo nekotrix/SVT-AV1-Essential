@@ -202,6 +202,7 @@
 #define AVIF_TOKEN "--avif"
 #define RTC_TOKEN "--rtc"
 #define QP_SCALE_COMPRESS_STRENGTH_TOKEN "--qp-scale-compress-strength"
+#define AUTO_TILING "--auto-tiling"
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -915,6 +916,7 @@ ConfigDescription config_entry_specific[] = {
     {LOSSLESS_TOKEN, "Enable lossless coding, default is 0 [0-1]"},
     {AVIF_TOKEN, "Enable still-picture coding, default is 0 [0-1]"},
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 3 [0-8]"},
+    {AUTO_TILING, "Auto tiling, default is 1 [0-1]"},
     // Termination
     {NULL, NULL}};
 
@@ -1144,6 +1146,7 @@ ConfigEntry config_entry[] = {
     {RTC_TOKEN, "RealTime", set_cfg_generic_token},
     // QP scale compress
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QpScaleCompressStrength", set_cfg_generic_token},
+    {AUTO_TILING, "AutoTiling", set_cfg_generic_token},
     // Termination
     {NULL, NULL, NULL}};
 
