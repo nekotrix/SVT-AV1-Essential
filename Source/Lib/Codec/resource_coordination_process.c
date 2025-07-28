@@ -385,7 +385,7 @@ static EbErrorType reset_pcs_av1(PictureParentControlSet *pcs) {
     for (int32_t i = 0; i < REF_FRAMES; i++) pcs->fb_of_context_type[i] = 0;
     frm_hdr->primary_ref_frame = PRIMARY_REF_NONE;
     if (pcs->scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR &&
-        pcs->scs->static_config.intra_period_length != -1) {
+        pcs->scs->static_config.intra_period_length != 0) {
         pcs->frame_offset = pcs->picture_number % (pcs->scs->static_config.intra_period_length + 1);
     } else
         pcs->frame_offset = pcs->picture_number;

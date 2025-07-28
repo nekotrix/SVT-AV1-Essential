@@ -2452,10 +2452,25 @@ static int32_t compute_default_intra_period(
 
     intra_period                       = ((int)((fps + mini_gop_size) / mini_gop_size)*(mini_gop_size));
     intra_period                       = intra_period * 5; // use a 5-sec gop by default.
+    if (intra_period > 300)
+        intra_period = 288;
     if (config->intra_refresh_type == 1)
         intra_period -= 1;
 
     return intra_period;
+}
+static int32_t compute_default_min_intra_period(
+    SequenceControlSet       *scs){
+    int32_t min_intra_period           = 0;
+    EbSvtAv1EncConfiguration   *config = &scs->static_config;
+    int32_t fps                        = scs->frame_rate >> 16;
+    int32_t mini_gop_size              = (1 << (config->hierarchical_levels));
+
+    min_intra_period                   = ((int)((fps + mini_gop_size) / mini_gop_size)*mini_gop_size);
+    if (config->intra_refresh_type == 1)
+        min_intra_period -= 1;
+
+    return min_intra_period;
 }
 
 /*
@@ -4159,7 +4174,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
 
     // Throws a warning when scene change is on, as the feature is not optimal and may produce false detections
     if (scs->static_config.scene_change_detection == 1)
-        SVT_WARN("Scene Change is not optimal and may produce suboptimal keyframe placements\n");
+        SVT_WARN("SCD has been optimized on the encoder defaults. Accuracy cannot be guaranteed otherwise.\n");
     // MRP level
     uint8_t mrp_level;
     if (scs->static_config.rtc) {
@@ -4261,7 +4276,8 @@ static void copy_api_from_app(
     // Padding Offsets
     scs->b64_size = 64;
     scs->static_config.intra_period_length = ((EbSvtAv1EncConfiguration*)config_struct)->intra_period_length;
-    scs->allintra = (scs->static_config.intra_period_length == 0);
+    scs->static_config.min_intra_period_length = ((EbSvtAv1EncConfiguration*)config_struct)->min_intra_period_length;
+    scs->allintra = (scs->static_config.intra_period_length == 1);
     scs->static_config.multiply_keyint = config_struct->multiply_keyint;
     scs->static_config.intra_refresh_type = ((EbSvtAv1EncConfiguration*)config_struct)->intra_refresh_type;
     scs->static_config.enc_mode = ((EbSvtAv1EncConfiguration*)config_struct)->enc_mode;
@@ -4543,7 +4559,7 @@ static void copy_api_from_app(
     if (scs->static_config.frame_rate_numerator != 0 && scs->static_config.frame_rate_denominator != 0)
         scs->frame_rate = ((scs->static_config.frame_rate_numerator << 8) / (scs->static_config.frame_rate_denominator)) << 8;
     // Get Default Intra Period if not specified
-    if (scs->static_config.intra_period_length == -2) {
+    if (scs->static_config.intra_period_length == -1) {
         scs->static_config.intra_period_length = compute_default_intra_period(scs);
         scs->allintra = (scs->static_config.intra_period_length == 0);
     }
@@ -4552,6 +4568,12 @@ static void copy_api_from_app(
             scs->static_config.frame_rate_denominator;
         scs->static_config.intra_period_length =
             (int32_t)(fps * scs->static_config.intra_period_length);
+    }
+    if (scs->static_config.intra_period_length == 0)
+        scs->static_config.min_intra_period_length = 0;
+    else {
+        if (scs->static_config.min_intra_period_length == -1)
+            scs->static_config.min_intra_period_length = compute_default_min_intra_period(scs);
     }
     if (scs->static_config.look_ahead_distance == (uint32_t)~0)
         scs->static_config.look_ahead_distance = compute_default_look_ahead(&scs->static_config);
