@@ -639,7 +639,7 @@ ConfigDescription config_entry_options[] = {
 
     {STAT_FILE_TOKEN, "PSNR / SSIM per picture stat output file path, requires `--enable-stat-report 1`"},
 
-    {PROGRESS_TOKEN, "Verbosity of the output, default is 1 [0: no progress is printed, 2: detailed progress]"},
+    {PROGRESS_TOKEN, "Verbosity of the output, default is 1 [0: no progress is printed, 1: basic progress, 2: detailed progress]"},
     {NO_PROGRESS_TOKEN,
      "Do not print out progress, default is 0 [1: `" PROGRESS_TOKEN " 0`, 0: `" PROGRESS_TOKEN " 1`]"},
 

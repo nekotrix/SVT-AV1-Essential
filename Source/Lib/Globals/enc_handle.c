@@ -593,8 +593,8 @@ static EbErrorType load_default_buffer_configuration_settings(
 
     scs->total_process_init_count += 6; // single processes count
     if (scs->static_config.pass == 0 || scs->static_config.pass == 2) {
-        SVT_INFO("Level of Parallelism: %u\n", lp);
-        SVT_INFO("Number of PPCS %u\n", scs->picture_control_set_pool_init_count);
+        SVT_DEBUG("Level of Parallelism: %u\n", lp);
+        SVT_DEBUG("Number of PPCS %u\n", scs->picture_control_set_pool_init_count);
 
         /******************************************************************
         * Platform detection, limit cpu flags to hardware available CPU
@@ -603,12 +603,12 @@ static EbErrorType load_default_buffer_configuration_settings(
         const EbCpuFlags cpu_flags = svt_aom_get_cpu_flags();
         const EbCpuFlags cpu_flags_to_use = svt_aom_get_cpu_flags_to_use();
         scs->static_config.use_cpu_flags &= cpu_flags_to_use;
-        SVT_INFO("[asm level on system : up to %s]\n", get_asm_level_name_str(cpu_flags));
-        SVT_INFO("[asm level selected : up to %s]\n", get_asm_level_name_str(scs->static_config.use_cpu_flags));
+        SVT_DEBUG("[asm level on system : up to %s]\n", get_asm_level_name_str(cpu_flags));
+        SVT_DEBUG("[asm level selected : up to %s]\n", get_asm_level_name_str(scs->static_config.use_cpu_flags));
 #else
         scs->static_config.use_cpu_flags &= 0;
-        SVT_INFO("[asm level on system : up to %s]\n", get_asm_level_name_str(0));
-        SVT_INFO("[asm level selected : up to %s]\n", get_asm_level_name_str(scs->static_config.use_cpu_flags));
+        SVT_DEBUG("[asm level on system : up to %s]\n", get_asm_level_name_str(0));
+        SVT_DEBUG("[asm level selected : up to %s]\n", get_asm_level_name_str(scs->static_config.use_cpu_flags));
 #endif
     }
     return return_error;
@@ -5449,7 +5449,7 @@ EB_API void svt_av1_print_version(void) {
     ;
     SVT_INFO("SVT [build]  :\t%s %zu bit\n", compiler,  sizeof(void*) * 8);
 #if !REPRODUCIBLE_BUILDS
-    SVT_INFO("LIB Build date: %s %s\n", __DATE__, __TIME__);
+    SVT_INFO("LIB Build date:\t%s %s\n", __DATE__, __TIME__);
 #endif
     SVT_INFO("-------------------------------------------\n");
 }
