@@ -263,6 +263,10 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u: Invalid intra Refresh Type [1-2]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+    if (config->intra_refresh_type == 1) {
+        SVT_WARN("Open GOP force disables the encoder key frames placement. Its usage can only "
+                 "be recommended in a chunked encoding scenario.\n", channel_number + 1);
+    }
     if (config->rate_control_mode > SVT_AV1_RC_MODE_CBR &&
         (config->pass == ENC_FIRST_PASS || config->rc_stats_buffer.buf)) {
         SVT_ERROR("Instance %u: Only rate control mode 0~2 are supported for 2-pass \n", channel_number + 1);
@@ -925,7 +929,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->max_qp_allowed               = 63;
     config_ptr->min_qp_allowed               = MIN_QP_AUTO;
     config_ptr->enable_adaptive_quantization = 2;
-    config_ptr->enc_mode                     = ENC_M8;
+    config_ptr->enc_mode                     = ENC_M4;
     config_ptr->intra_period_length          = -2;
     config_ptr->multiply_keyint              = false;
     config_ptr->intra_refresh_type           = 2;
@@ -945,7 +949,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->vbr_max_section_pct      = 2000;
     config_ptr->under_shoot_pct          = (uint32_t)DEFAULT;
     config_ptr->over_shoot_pct           = (uint32_t)DEFAULT;
-    config_ptr->mbr_over_shoot_pct       = 50;
+    config_ptr->mbr_over_shoot_pct       = 0;
     config_ptr->gop_constraint_rc        = 0;
     config_ptr->maximum_buffer_size_ms   = 1000; // default settings for CBR
     config_ptr->starting_buffer_level_ms = 600; // default settings for CBR
@@ -1008,9 +1012,9 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
 
     // Quant Matrices (QM)
     config_ptr->enable_qm           = 0;
-    config_ptr->min_qm_level        = 8;
+    config_ptr->min_qm_level        = 0;
     config_ptr->max_qm_level        = 15;
-    config_ptr->min_chroma_qm_level = 8;
+    config_ptr->min_chroma_qm_level = 0;
     config_ptr->max_chroma_qm_level = 15;
 
     config_ptr->startup_mg_size                   = 0;
@@ -1021,13 +1025,13 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->frame_scale_evts.start_frame_nums = NULL;
     config_ptr->enable_roi_map                    = false;
     config_ptr->fgs_table                         = NULL;
-    config_ptr->enable_variance_boost             = false;
+    config_ptr->enable_variance_boost             = true;
     config_ptr->variance_boost_strength           = 2;
-    config_ptr->variance_octile                   = 6;
-    config_ptr->tf_strength                       = 3;
+    config_ptr->variance_octile                   = 5;
+    config_ptr->tf_strength                       = 1;
     config_ptr->variance_boost_curve              = 0;
-    config_ptr->luminance_qp_bias                 = 0;
-    config_ptr->sharpness                         = 0;
+    config_ptr->luminance_qp_bias                 = 50;
+    config_ptr->sharpness                         = 1;
     config_ptr->lossless                          = false;
     config_ptr->avif                              = false;
     config_ptr->qp_scale_compress_strength        = 3;
@@ -1093,8 +1097,8 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
             "%d / %d / %s\n",
             config->intra_period_length + 1,
             (1 << config->hierarchical_levels),
-            config->intra_refresh_type == SVT_AV1_FWDKF_REFRESH    ? "FWD key frame"
-                : config->intra_refresh_type == SVT_AV1_KF_REFRESH ? "key frame"
+            config->intra_refresh_type == SVT_AV1_FWDKF_REFRESH    ? "Open GOP"
+                : config->intra_refresh_type == SVT_AV1_KF_REFRESH ? "Closed GOP"
                                                                    : "Unknown key frame type");
         if (config->lossless) {
             SVT_INFO("SVT [config]: BRC mode \t\t\t\t\t\t: Lossless Coding \n");
@@ -1157,7 +1161,7 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
         case 2: SVT_INFO("SVT [config]: temporal filtering strength \t\t\t\t: auto\n"); break;
         default: break;
         }
-        
+
         SVT_INFO("SVT [config]: QP scale compress strength \t\t\t\t: %d\n",
             config->qp_scale_compress_strength);
     }
