@@ -140,6 +140,12 @@ typedef struct RateControlContext {
     EbFifo *rate_control_output_results_fifo_ptr;
     EbFifo *picture_decision_results_output_fifo_ptr;
 } RateControlContext;
+
+typedef struct QualityZones {
+    QualityZone *zones;
+    int      num_zones;
+    bool     enabled;
+} QualityZones;
 EbErrorType svt_aom_rate_control_coded_frames_stats_context_ctor(coded_frames_stats_entry *entry_ptr,
                                                                  uint64_t                  picture_number) {
     entry_ptr->picture_number         = picture_number;
@@ -3458,6 +3464,21 @@ void reset_rc_param(PictureParentControlSet *ppcs) {
     ppcs->undershoot_seen = 0;
 }
 
+// Helper function to find the active zone for a given frame
+static int get_zone_quality_for_frame(const QualityZone *zones, int num_zones, uint64_t frame_number) {
+    if (!zones || num_zones == 0) {
+        return -1; // No zone active
+    }
+    
+    for (int i = 0; i < num_zones; i++) {
+        if (frame_number >= zones[i].start_frame && 
+            frame_number <= zones[i].end_frame) {
+            return zones[i].zone_quality;
+        }
+    }
+    return -1; // No zone active for this frame
+}
+
 void *svt_aom_rate_control_kernel(void *input_ptr) {
     // Context
     EbThreadContext         *thread_ctx  = (EbThreadContext *)input_ptr;
@@ -3576,6 +3597,8 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                     if (pcs->ppcs->seq_param_changed)
                         rc->active_worst_quality = quantizer_to_qindex[scs_qp];
                     frm_hdr->quantization_params.base_q_idx = quantizer_to_qindex[pcs->picture_qp];
+                    int32_t zone_qindex = -1;
+                    int zone_quality = -1;
                     if (pcs->ppcs->qp_on_the_fly == true) {
                         pcs->picture_qp = (uint8_t)CLIP3((int32_t)scs->static_config.min_qp_allowed,
                                                          (int32_t)scs->static_config.max_qp_allowed,
@@ -3585,17 +3608,39 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                     } else {
                         if (scs->enable_qp_scaling_flag) {
                             const int32_t qindex = quantizer_to_qindex[scs_qp];
-                            // if there are need enough pictures in the LAD/SlidingWindow, the adaptive QP scaling is not used
                             int32_t new_qindex;
-                            // if CRF
+
+                            if (scs->static_config.zones) {
+                                zone_quality = get_zone_quality_for_frame(
+                                    scs->static_config.parsed_zones,
+                                    scs->static_config.num_zones,
+                                    pcs->picture_number);
+
+                                if (zone_quality >= 0) {
+                                    int32_t effective_quality = (uint8_t)CLIP3(
+                                        (int32_t)scs->static_config.min_qp_allowed,
+                                        (int32_t)scs->static_config.max_qp_allowed,
+                                        zone_quality);
+                                    zone_qindex = quantizer_to_qindex[effective_quality];
+                                }
+                            }
+
                             if (pcs->ppcs->tpl_ctrls.enable) {
                                 if (pcs->picture_number == 0) {
                                     rc->active_worst_quality = quantizer_to_qindex[scs_qp];
                                     av1_rc_init(scs);
                                 }
+
+                                rc->active_worst_quality = (zone_qindex >= 0) ? zone_qindex : quantizer_to_qindex[scs_qp];
+
                                 new_qindex = crf_qindex_calc(pcs, rc, rc->active_worst_quality);
-                            } else // if CQP
-                                new_qindex = cqp_qindex_calc(pcs, qindex);
+
+                            } else {  // CQP
+                                new_qindex = cqp_qindex_calc(
+                                    pcs,
+                                    (zone_qindex >= 0) ? zone_qindex : qindex);
+                            }
+
                             frm_hdr->quantization_params.base_q_idx = (uint8_t)CLIP3(
                                 (int32_t)quantizer_to_qindex[scs->static_config.min_qp_allowed],
                                 (int32_t)quantizer_to_qindex[scs->static_config.max_qp_allowed],

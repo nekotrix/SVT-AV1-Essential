@@ -21,6 +21,7 @@ extern "C" {
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stddef.h>
 /**
  * @brief SVT-AV1 encoder ABI version
  *
@@ -210,6 +211,12 @@ typedef struct SvtAv1FrameScaleEvts {
     uint32_t *resize_kf_denoms;
     uint32_t *resize_denoms;
 } SvtAv1FrameScaleEvts;
+
+typedef struct QualityZone {
+    uint64_t start_frame;  // inclusive
+    uint64_t end_frame;    // inclusive
+    int      zone_quality; // CRF/CQP value for this zone
+} QualityZone;
 
 // Will contain the EbEncApi which will live in the EncHandle class
 // Only modifiable during config-time.
@@ -975,10 +982,24 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is true.
      */
     bool auto_tiling;
+
+    /* @brief CRF zones configuration string
+     *
+     * Format: "start1,end1,crf1;start2,end2,crf2;..."
+     * Example: "0,100,35;101,200,25"
+     * Default is NULL (no zones).
+     */
+    char* zones;
+    
+    // Internal parsed zones (not exposed to CLI)
+    QualityZone* parsed_zones;
+    uint16_t num_zones;
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128 - (sizeof(uint8_t) * 3)
         - (sizeof(bool) * 2) - sizeof(int32_t)
+        - sizeof(char*) - sizeof(QualityZone*)
+        - sizeof(uint16_t)
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;

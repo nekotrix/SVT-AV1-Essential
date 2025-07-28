@@ -1528,6 +1528,8 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
         input_data.qp_scale_compress_strength = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.qp_scale_compress_strength;
         input_data.auto_tiling = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.auto_tiling;
+        input_data.zones = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.parsed_zones;
+        input_data.num_zones = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.num_zones;
         input_data.static_config = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config;
         EB_NEW(
             enc_handle_ptr->picture_parent_control_set_pool_ptr_array[instance_index],
@@ -4415,6 +4417,11 @@ static void copy_api_from_app(
             }
         }
     }
+
+    // Zones
+    scs->static_config.zones = config_struct->zones;
+    scs->static_config.parsed_zones = config_struct->parsed_zones;
+    scs->static_config.num_zones = config_struct->num_zones;
 
     // Rate Control
     scs->static_config.scene_change_detection = ((EbSvtAv1EncConfiguration*)config_struct)->scene_change_detection;

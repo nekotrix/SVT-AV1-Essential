@@ -1192,6 +1192,8 @@ typedef struct PictureControlSetInitData {
     bool    allintra;
     uint8_t qp_scale_compress_strength;
     bool    auto_tiling;
+    QualityZone* zones;
+    uint16_t num_zones;
 } PictureControlSetInitData;
 
 /**************************************

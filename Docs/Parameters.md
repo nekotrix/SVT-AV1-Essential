@@ -129,7 +129,7 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **TemporalFilteringStrength**    | --tf-strength                    | [0-4]      | 1           | Manually adjust temporal filtering strength. Higher values = stronger temporal filtering                                                             |
 | **LuminanceQpBias**              | --luminance-qp-bias              | [0-100]    | 50          | Adjusts a frame's QP based on its average luma value                                                                                                 |
 | **Sharpness**                    | --sharpness                      | [-7-7]     | 1           | Bias towards decreased/increased sharpness                                                                                                           |
-
+| **Zones**                        | --zones                          | any string | Null        | Zones adjust CRF/CQP for given frame ranges. Format: start,end,quality;start,end,quality;... Default is none                                         |
 
 ### **UseFixedQIndexOffsets** and more information
 

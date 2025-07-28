@@ -204,6 +204,7 @@
 #define RTC_TOKEN "--rtc"
 #define QP_SCALE_COMPRESS_STRENGTH_TOKEN "--qp-scale-compress-strength"
 #define AUTO_TILING_TOKEN "--auto-tiling"
+#define ZONES_TOKEN "--zones"
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -487,6 +488,21 @@ err:
     free(fkf.specifiers);
     return EB_ErrorBadParameter;
 }
+static EbErrorType set_cfg_quality_zones(EbConfig *cfg, const char *token, const char *value) {
+    (void)token;
+
+    if (!value || strlen(value) == 0) {
+        return svt_av1_enc_parse_parameter(&cfg->config, "zones", "");
+    }
+
+    EbErrorType err = svt_av1_enc_parse_parameter(&cfg->config, "zones", value);
+    if (err != EB_ErrorNone) {
+        fprintf(stderr, "Error: Failed to parse quality zones from config file: %s\n", value);
+        return err;
+    }
+
+    return EB_ErrorNone;
+}
 static EbErrorType set_no_progress(EbConfig *cfg, const char *token, const char *value) {
     (void)token;
     switch (value ? *value : '1') {
@@ -725,6 +741,9 @@ ConfigDescription config_entry_rc[] = {
     // QP scale compress strength
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN,
      "QP scale compress strength, default is 3 [0-8]"},
+    // Zones
+    {ZONES_TOKEN,
+     "CRF/CQP zones, format: start,end,quality;start,end,quality;..., default is none",},
     // Termination
     {NULL, NULL}};
 
@@ -998,6 +1017,9 @@ ConfigDescription fconfig_entry_rc[] = {
     {SHARPNESS_TOKEN, "Bias towards decreased/increased sharpness, default is 1 [-7 to 7]"},
     // QP scale compress strength
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 3 [0-8]"},
+    // Zones
+    {ZONES_TOKEN,
+     "CRF/CQP zones, format: start,end,quality;start,end,quality;..., default is none",},
     // Termination
     {NULL, NULL}};
 
@@ -1348,6 +1370,7 @@ ConfigEntry config_entry[] = {
     // QP scale compress
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QpScaleCompressStrength", set_cfg_generic_token},
     {AUTO_TILING_TOKEN, "AutoTiling", set_cfg_generic_token},
+    {ZONES_TOKEN, "Zones", set_cfg_quality_zones},
     // Termination
     {NULL, NULL, NULL}};
 
