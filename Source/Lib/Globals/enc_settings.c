@@ -243,7 +243,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     }
 
     if (config->qp > MAX_QP_VALUE) {
-        SVT_ERROR("%s must be [0 - %d]\n", config->aq_mode ? "CRF" : "QP", MAX_QP_VALUE);
+        SVT_ERROR("%s must be [0 - %d], not %d\n", config->aq_mode ? "CRF" : "QP", MAX_QP_VALUE, config->qp);
         return_error = EB_ErrorBadParameter;
     }
 
@@ -909,7 +909,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->max_qp_allowed               = 63;
     config_ptr->min_qp_allowed               = MIN_QP_AUTO;
     config_ptr->aq_mode                      = 2;
-    config_ptr->enc_mode                     = ENC_M4;
+    config_ptr->enc_mode                     = DEFAULT_MODE;
     config_ptr->intra_period_length          = -1;
     config_ptr->min_intra_period_length      = -1;
     config_ptr->multiply_keyint              = false;
@@ -1024,6 +1024,8 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->extended_crf_qindex_offset        = 0;
     config_ptr->ac_bias                           = 0.0;
     config_ptr->auto_tiling                       = true;
+    config_ptr->speed                             = SPEED_UNKNOWN;
+    config_ptr->quality                           = QUALITY_UNKNOWN;
     return return_error;
 }
 
@@ -1078,16 +1080,54 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                 : config->encoder_color_format == EB_YUV444 ? "YUV444"
                                                             : "Unknown color format");
 
-        SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t: %d / %s / %s\n",
-                 config->enc_mode,
-                 config->tune == TUNE_VQ            ? "VQ"
-                     : config->tune == TUNE_PSNR    ? "PSNR"
-                     : config->tune == TUNE_SSIM    ? "SSIM"
-                     : config->tune == TUNE_MS_SSIM ? "MS_SSIM"
-                                                    : "IQ",
-                 config->pred_structure == LOW_DELAY           ? "low delay"
-                     : config->pred_structure == RANDOM_ACCESS ? "random access"
-                                                               : "Unknown pred structure");
+        if (scs->static_config.speed != SPEED_UNKNOWN || (scs->static_config.speed == SPEED_UNKNOWN &&
+            config->enc_mode == ENC_M5 &&
+            (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080))) {
+            SVT_INFO("SVT [config]: speed / tune / pred struct \t\t\t\t: %s / %s / %s\n",
+                    scs->static_config.speed == 0       ? "slower"
+                        : scs->static_config.speed == 1 ? "slow"
+                        : scs->static_config.speed == 2 ? "medium"
+                        : scs->static_config.speed == 3 ? "fast"
+                        : scs->static_config.speed == 4 ? "faster"
+                                                        : "medium",
+                    config->tune == TUNE_VQ            ? "VQ"
+                        : config->tune == TUNE_PSNR    ? "PSNR"
+                        : config->tune == TUNE_SSIM    ? "SSIM"
+                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM"
+                                                       : "IQ",
+                    config->pred_structure == LOW_DELAY           ? "low delay"
+                        : config->pred_structure == RANDOM_ACCESS ? "random access"
+                                                                  : "Unknown pred structure");
+        } else if (scs->static_config.speed != SPEED_UNKNOWN || (scs->static_config.speed == SPEED_UNKNOWN &&
+            config->enc_mode == ENC_M4 &&
+            (scs->max_input_luma_width * scs->max_input_luma_height <= 1920 * 1080))) {
+            SVT_INFO("SVT [config]: speed / tune / pred struct \t\t\t\t: %s / %s / %s\n",
+                    scs->static_config.speed == 0       ? "slower"
+                        : scs->static_config.speed == 1 ? "slow"
+                        : scs->static_config.speed == 2 ? "medium"
+                        : scs->static_config.speed == 3 ? "fast"
+                        : scs->static_config.speed == 4 ? "faster"
+                                                        : "slow",
+                    config->tune == TUNE_VQ            ? "VQ"
+                        : config->tune == TUNE_PSNR    ? "PSNR"
+                        : config->tune == TUNE_SSIM    ? "SSIM"
+                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM"
+                                                       : "IQ",
+                    config->pred_structure == LOW_DELAY           ? "low delay"
+                        : config->pred_structure == RANDOM_ACCESS ? "random access"
+                                                                  : "Unknown pred structure");
+        } else {
+            SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t: %d / %s / %s\n",
+                    config->enc_mode,
+                    config->tune == TUNE_VQ            ? "VQ"
+                        : config->tune == TUNE_PSNR    ? "PSNR"
+                        : config->tune == TUNE_SSIM    ? "SSIM"
+                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM"
+                                                       : "IQ",
+                    config->pred_structure == LOW_DELAY           ? "low delay"
+                        : config->pred_structure == RANDOM_ACCESS ? "random access"
+                                                                  : "Unknown pred structure");
+        }
         SVT_INFO(
             "SVT [config]: max / min gop size / mini-gop size / type \t\t: "
             "%d / %d / %d / %s\n",
@@ -1104,19 +1144,48 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
         } else {
             switch (config->rate_control_mode) {
             case SVT_AV1_RC_MODE_CQP_OR_CRF:
-                if (config->max_bit_rate) {
-                    SVT_INFO(
-                        "SVT [config]: BRC mode / %s / max bitrate (kbps) \t\t: %s / %d / "
-                        "%d\n",
-                        scs->tpl || scs->static_config.enable_variance_boost ? "rate factor" : "CQP Assignment",
-                        scs->tpl || scs->static_config.enable_variance_boost ? "capped CRF" : "CQP",
-                        get_extended_crf(config),
-                        (int)config->max_bit_rate / 1000);
+                if (scs->static_config.quality != QUALITY_UNKNOWN ||
+                    (scs->static_config.quality == QUALITY_UNKNOWN &&
+                    scs->static_config.qp == 30 &&
+                    (scs->max_input_luma_width * scs->max_input_luma_height <= 1920 * 1080)) ||
+                    (scs->static_config.quality == QUALITY_UNKNOWN &&
+                    scs->static_config.qp == 35 &&
+                    (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080))) {
+                    if (config->max_bit_rate)
+                        SVT_INFO(
+                                "SVT [config]: BRC mode / quality / max bitrate (kbps) \t\t: %s / %s / "
+                                "%d\n",
+                                scs->tpl || scs->static_config.enable_variance_boost ? "capped CRF" : "CQP",
+                                scs->static_config.quality == 0       ? "higher"
+                                    : scs->static_config.quality == 1 ? "high"
+                                    : scs->static_config.quality == 2 ? "medium"
+                                    : scs->static_config.quality == 3 ? "low"
+                                    : scs->static_config.quality == 4 ? "lower"
+                                                                      : "medium",
+                                (int)config->max_bit_rate / 1000);
+                    else
+                        SVT_INFO("SVT [config]: BRC mode / quality \t\t\t\t\t: %s / %s \n",
+                                scs->tpl || scs->static_config.enable_variance_boost ? "CRF" : "CQP",
+                                scs->static_config.quality == 0       ? "higher"
+                                    : scs->static_config.quality == 1 ? "high"
+                                    : scs->static_config.quality == 2 ? "medium"
+                                    : scs->static_config.quality == 3 ? "low"
+                                    : scs->static_config.quality == 4 ? "lower"
+                                                                      : "medium");
                 } else {
-                    SVT_INFO("SVT [config]: BRC mode / %s \t\t\t\t: %s / %d \n",
-                             scs->tpl || scs->static_config.enable_variance_boost ? "rate factor" : "CQP Assignment",
-                             scs->tpl || scs->static_config.enable_variance_boost ? "CRF" : "CQP",
-                             get_extended_crf(config));
+                    if (config->max_bit_rate)
+                        SVT_INFO(
+                                "SVT [config]: BRC mode / %s / max bitrate (kbps) \t\t: %s / %d / "
+                                "%.2f\n",
+                                scs->tpl || scs->static_config.enable_variance_boost ? "rate factor" : "CQP Assignment",
+                                scs->tpl || scs->static_config.enable_variance_boost ? "capped CRF" : "CQP",
+                                get_extended_crf(config),
+                                (int)config->max_bit_rate / 1000);
+                    else
+                        SVT_INFO("SVT [config]: BRC mode / %s \t\t\t\t: %s / %.2f \n",
+                                scs->tpl || scs->static_config.enable_variance_boost ? "rate factor" : "CQP Assignment",
+                                scs->tpl || scs->static_config.enable_variance_boost ? "CRF" : "CQP",
+                                get_extended_crf(config));
                 }
                 break;
             case SVT_AV1_RC_MODE_VBR:
@@ -1456,6 +1525,54 @@ static EbErrorType str_to_keyint(const char *nptr, int32_t *out, bool *multi) {
     }
 
     return EB_ErrorNone;
+}
+
+static EbErrorType str_to_speed(const char *nptr, SpeedPreset *out) {
+    const struct {
+        const char   *name;
+        SpeedPreset   preset;
+    } speeds[] = {
+        {"slower", SPEED_SLOWER},
+        {"slow",   SPEED_SLOW},
+        {"medium", SPEED_MEDIUM},
+        {"fast",   SPEED_FAST},
+        {"faster", SPEED_FASTER},
+    };
+
+    const size_t speeds_size = sizeof(speeds) / sizeof(speeds[0]);
+
+    for (size_t i = 0; i < speeds_size; i++) {
+        if (!strcmp(nptr, speeds[i].name)) {
+            *out = speeds[i].preset;
+            return EB_ErrorNone;
+        }
+    }
+
+    return EB_ErrorBadParameter;
+}
+
+static EbErrorType str_to_quality(const char *nptr, QualityPreset *out) {
+    const struct {
+        const char    *name;
+        QualityPreset  preset;
+    } qualities[] = {
+        {"higher", QUALITY_HIGHER},
+        {"high",   QUALITY_HIGH},
+        {"medium", QUALITY_MEDIUM},
+        {"low",    QUALITY_LOW},
+        {"lower",  QUALITY_LOWER},
+    };
+
+    const size_t qualities_size = sizeof(qualities) / sizeof(qualities[0]);
+
+    for (size_t i = 0; i < qualities_size; i++) {
+        if (!strcmp(nptr, qualities[i].name)) {
+            *out = qualities[i].preset;
+            return EB_ErrorNone;
+        }
+    }
+
+    return EB_ErrorBadParameter;
 }
 
 static EbErrorType str_to_bitrate(const char *nptr, uint32_t *out) {
@@ -1959,6 +2076,12 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
 
     if (!strcmp(name, "min-keyint"))
         return str_to_keyint(value, &config_struct->min_intra_period_length, &config_struct->multiply_keyint);
+    
+    if (!strcmp(name, "speed"))
+        return str_to_speed(value, &config_struct->speed);
+    
+    if (!strcmp(name, "quality"))
+        return str_to_quality(value, &config_struct->quality);
 
     if (!strcmp(name, "tbr"))
         return str_to_bitrate(value, &config_struct->target_bit_rate);
