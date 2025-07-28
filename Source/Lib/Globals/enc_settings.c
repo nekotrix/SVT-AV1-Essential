@@ -284,6 +284,10 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_WARN("Open GOP force disables the encoder key frames placement. Its usage can only "
                  "be recommended in a chunked encoding scenario.\n", channel_number + 1);
     }
+    if (config->enable_dlf_flag > 3) {
+        SVT_ERROR("Instance %u: Invalid LoopFilterEnable. LoopFilterEnable must be [0 - 3]\n", channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
     if (config->rate_control_mode > SVT_AV1_RC_MODE_CBR &&
         (config->pass == ENC_FIRST_PASS || config->rc_stats_buffer.buf)) {
         SVT_ERROR("Instance %u: Only rate control mode 0~2 are supported for 2-pass \n", channel_number + 1);
@@ -957,7 +961,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->intra_refresh_type           = 2;
     config_ptr->hierarchical_levels          = HIERARCHICAL_LEVELS_AUTO;
     config_ptr->pred_structure               = RANDOM_ACCESS;
-    config_ptr->enable_dlf_flag              = true;
+    config_ptr->enable_dlf_flag              = 2;
     config_ptr->cdef_level                   = DEFAULT;
     config_ptr->enable_restoration_filtering = DEFAULT;
     config_ptr->enable_mfmv                  = DEFAULT;
@@ -2259,6 +2263,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"superres-kf-denom", &config_struct->superres_kf_denom},
         {"tune", &config_struct->tune},
         {"film-grain-denoise", &config_struct->film_grain_denoise_apply},
+        {"enable-dlf", &config_struct->enable_dlf_flag},
         {"resize-mode", &config_struct->resize_mode},
         {"resize-denom", &config_struct->resize_denom},
         {"resize-kf-denom", &config_struct->resize_kf_denom},
@@ -2372,7 +2377,6 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         bool       *out;
     } bool_opts[] = {
         {"use-q-file", &config_struct->use_qp_file},
-        {"enable-dlf", &config_struct->enable_dlf_flag},
         {"enable-overlays", &config_struct->enable_overlays},
         {"enable-force-key-frames", &config_struct->force_key_frames},
 #if CONFIG_ENABLE_QUANT_MATRIX

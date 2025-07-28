@@ -1372,6 +1372,9 @@ static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t i
     const uint8_t sc_class1       = pcs->ppcs->sc_class1;
     uint8_t       dlf_level       = 0;
     uint8_t       modulation_mode = 0; // 0: off, 1: only towards bd-rate, 2: both sides; , 3: only towards speed
+    if (pcs->scs->static_config.enable_dlf_flag == 3) {
+        return 1;
+    }
     if (rtc_tune) {
         if (enc_mode <= ENC_M7) {
             dlf_level       = is_base ? 5 : 6;
@@ -7884,8 +7887,16 @@ set lpd0_level
     }
     uint8_t dlf_level = 0;
     if (pcs->scs->static_config.enable_dlf_flag && frm_hdr->allow_intrabc == 0) {
+        EncMode dlf_enc_mode = enc_mode;
+
+        if (pcs->scs->static_config.enable_dlf_flag == 2) {
+            // trade off more accurate deblocking for longer encode time
+            // use dlf_mode as if were being set for 3 presets lower
+            dlf_enc_mode = AOMMAX(ENC_MR, enc_mode - 3);
+        }
+
         dlf_level = get_dlf_level(pcs,
-                                  enc_mode,
+                                  dlf_enc_mode,
                                   is_not_last_layer,
                                   fast_decode,
                                   input_resolution,
