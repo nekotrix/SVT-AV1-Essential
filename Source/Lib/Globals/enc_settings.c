@@ -324,13 +324,13 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
     if (config->max_qp_allowed > MAX_QP_VALUE) {
-        SVT_ERROR("Instance %u: MaxQpAllowed must be [1 - %d]\n", channel_number + 1, MAX_QP_VALUE);
+        SVT_ERROR("Instance %u: MaxQpAllowed must be [0 - %d]\n", channel_number + 1, MAX_QP_VALUE);
         return_error = EB_ErrorBadParameter;
-    } else if (config->min_qp_allowed >= MAX_QP_VALUE) {
-        SVT_ERROR("Instance %u: MinQpAllowed must be [1 - %d]\n", channel_number + 1, MAX_QP_VALUE - 1);
+    } else if (config->min_qp_allowed > MAX_QP_VALUE) {
+        SVT_ERROR("Instance %u: MinQpAllowed must be [0 - %d]\n", channel_number + 1, MAX_QP_VALUE);
         return_error = EB_ErrorBadParameter;
-    } else if ((config->min_qp_allowed) > (config->max_qp_allowed)) {
-        SVT_ERROR("Instance %u:  MinQpAllowed must be smaller than MaxQpAllowed\n", channel_number + 1);
+    } else if (config->min_qp_allowed > config->max_qp_allowed) {
+        SVT_ERROR("Instance %u:  MinQpAllowed must be smaller than or equal to MaxQpAllowed\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
     if (config->use_fixed_qindex_offsets > 2) {
