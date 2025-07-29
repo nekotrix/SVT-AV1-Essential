@@ -41,6 +41,7 @@ extern "C" {
 #endif
 #endif /* ATTRIBUTE_PACKED */
 typedef enum ATTRIBUTE_PACKED {
+    ENC_MRS        = -3, // Highest quality research mode (slowest)
     ENC_MR         = -1, //Research mode with higher quality than M0
     ENC_M0         = 0,
     ENC_M1         = 1,
@@ -558,9 +559,12 @@ typedef struct EbSvtAv1EncConfiguration {
     /**
      * @brief Deblocking loop filter control
      *
-     * Default is true.
+     * 0: disabled
+     * 1: enabled
+     * 2: more accurate (slower)
      */
-    bool enable_dlf_flag;
+    uint8_t enable_dlf_flag;
+
     /* Film grain denoising the input picture
     * Flag to enable the denoising
     *
