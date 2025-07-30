@@ -34,6 +34,9 @@
 extern "C" {
 #endif // __cplusplus
 
+#define FTR_FRAME_RATE_ON_THE_FLY   1 // Add ability to change frame rate on the fly (without inserting keyframe)
+#define OPT_RATE_ON_THE_FLY_NO_KF   1 // Add ability to change bitrate on the fly without inserting keyframe
+
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one
@@ -49,9 +52,12 @@ extern "C" {
 #define RC_NO_R2R               0 // This is a debugging flag for RC and makes encoder to run with no R2R in RC mode
                                   // Note that the speed might impacted significantly
 #if !RC_NO_R2R
-#define FTR_KF_ON_FLY_SAMPLE      0 // Sample code to signal KF
-#define FTR_RES_ON_FLY_SAMPLE     0 // Sample functions to change the resolution on the fly
-#define FTR_RATE_ON_FLY_SAMPLE     0 // Sample functions to change bit rate
+#define FTR_KF_ON_FLY_SAMPLE         0 // Sample code to signal KF
+#define FTR_RES_ON_FLY_SAMPLE        0 // Sample functions to change the resolution on the fly
+#define FTR_RATE_ON_FLY_SAMPLE       0 // Sample functions to change bit rate
+#if FTR_FRAME_RATE_ON_THE_FLY
+#define FTR_FRAME_RATE_ON_FLY_SAMPLE 0 // Sample functions to change frame rate
+#endif
 #endif
 // Super-resolution debugging code
 #define DEBUG_SCALING           0

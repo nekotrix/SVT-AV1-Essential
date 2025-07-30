@@ -5379,11 +5379,13 @@ static EbErrorType validate_on_the_fly_settings(EbBufferHeaderType *input_ptr, S
         }
         else if (node->node_type == RATE_CHANGE_EVENT) {
             SvtAv1RateInfo  *node_data = (SvtAv1RateInfo *)node->data;
+#if !OPT_RATE_ON_THE_FLY_NO_KF
             if (input_ptr->pic_type != EB_AV1_KEY_PICTURE) {
                 input_ptr->flags = EB_BUFFERFLAG_EOS;
                 SVT_ERROR("QP/TBR change on the fly not supported for non key frames\n");
                 return EB_ErrorBadParameter;
             }
+#endif
             if ((scs->static_config.target_bit_rate != node_data->target_bit_rate) &&
                 !((scs->static_config.pred_structure == LOW_DELAY) && (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR))) {
                 input_ptr->flags = EB_BUFFERFLAG_EOS;
@@ -5403,6 +5405,21 @@ static EbErrorType validate_on_the_fly_settings(EbBufferHeaderType *input_ptr, S
                 return EB_ErrorBadParameter;
             }
         }
+#if FTR_FRAME_RATE_ON_THE_FLY
+        else if (node->node_type == FRAME_RATE_CHANGE_EVENT) {
+            SvtAv1FrameRateInfo* node_data = (SvtAv1FrameRateInfo*)node->data;
+            if (!((scs->static_config.pred_structure == LOW_DELAY) && (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR))) {
+                input_ptr->flags = EB_BUFFERFLAG_EOS;
+                SVT_ERROR("Frame rate change on the fly not supported for any mode other than Low-Delay CBR\n");
+                return EB_ErrorBadParameter;
+            }
+            if (node_data->frame_rate_numerator == 0 || node_data->frame_rate_denominator == 0) {
+                input_ptr->flags = EB_BUFFERFLAG_EOS;
+                SVT_ERROR("Frame rate change on the fly requires that he frame_rate_numerator and frame_rate_denominator must be greater than 0\n");
+                return EB_ErrorBadParameter;
+            }
+        }
+#endif
         node = node->next;
     }
     return EB_ErrorNone;

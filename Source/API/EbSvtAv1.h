@@ -264,7 +264,14 @@ typedef enum {
     REF_FRAME_SCALING_EVENT, // reference frame scaling data per picture
     ROI_MAP_EVENT, // ROI map data per picture
     RES_CHANGE_EVENT, // resolution change data per picture (KF only)
+#if OPT_RATE_ON_THE_FLY_NO_KF
+    RATE_CHANGE_EVENT, // Rate change data per picture
+#else
     RATE_CHANGE_EVENT, // Rate change data per picture (KF only)
+#endif
+#if FTR_FRAME_RATE_ON_THE_FLY
+    FRAME_RATE_CHANGE_EVENT, // Frame rate change data per picture
+#endif
     PRIVATE_DATA_TYPES // end of private data types
 } PrivDataType;
 typedef struct EbPrivDataNode {
@@ -304,6 +311,13 @@ typedef struct SvtAv1RateInfo {
     uint32_t seq_qp;
     uint32_t target_bit_rate;
 } SvtAv1RateInfo;
+#if FTR_FRAME_RATE_ON_THE_FLY
+typedef struct SvtAv1FrameRateInfo {
+    // Sequence frame rate which over writes the sequence frame rate.
+    uint32_t frame_rate_numerator;
+    uint32_t frame_rate_denominator;
+} SvtAv1FrameRateInfo;
+#endif
 
 /*!\brief Structure containing film grain synthesis parameters for a frame
      *

@@ -721,7 +721,9 @@ static void update_rate_info(ResourceCoordinationContext *ctx, EbBufferHeaderTyp
     EbPrivDataNode *node = (EbPrivDataNode *)input_ptr->p_app_private;
     while (node) {
         if (node->node_type == RATE_CHANGE_EVENT) {
+#if !OPT_RATE_ON_THE_FLY_NO_KF
             if (input_ptr->pic_type == EB_AV1_KEY_PICTURE) {
+#endif
                 svt_aom_assert_err(node->size == sizeof(SvtAv1RateInfo) && node->data,
                                    "invalide private data of type RATE_CHANGE_EVENT");
                 SvtAv1RateInfo *input_pic_def = (SvtAv1RateInfo *)node->data;
@@ -730,11 +732,33 @@ static void update_rate_info(ResourceCoordinationContext *ctx, EbBufferHeaderTyp
                 if (input_pic_def->target_bit_rate != 0)
                     scs->static_config.target_bit_rate = input_pic_def->target_bit_rate;
                 ctx->seq_param_change = true;
+#if !OPT_RATE_ON_THE_FLY_NO_KF
             }
+#endif
         }
         node = node->next;
     }
 }
+#if FTR_FRAME_RATE_ON_THE_FLY
+// Update the target rate, sequence QP...
+static void update_frame_rate_info(ResourceCoordinationContext *ctx, EbBufferHeaderType *input_ptr,
+                                   SequenceControlSet *scs) {
+    EbPrivDataNode *node = (EbPrivDataNode *)input_ptr->p_app_private;
+    while (node) {
+        if (node->node_type == FRAME_RATE_CHANGE_EVENT) {
+            svt_aom_assert_err(node->size == sizeof(SvtAv1FrameRateInfo) && node->data,
+                               "invalid private data of type FRAME_RATE_CHANGE_EVENT");
+            SvtAv1FrameRateInfo *input_pic_def        = (SvtAv1FrameRateInfo *)node->data;
+            scs->static_config.frame_rate_numerator   = input_pic_def->frame_rate_numerator;
+            scs->static_config.frame_rate_denominator = input_pic_def->frame_rate_denominator;
+            scs->frame_rate =
+                ((scs->static_config.frame_rate_numerator << 8) / (scs->static_config.frame_rate_denominator)) << 8;
+            ctx->seq_param_change = true;
+        }
+        node = node->next;
+    }
+}
+#endif
 static void update_frame_event(PictureParentControlSet *pcs, uint64_t pic_num) {
     SequenceControlSet *scs  = pcs->scs;
     EbPrivDataNode     *node = (EbPrivDataNode *)pcs->input_ptr->p_app_private;
@@ -863,6 +887,10 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
         update_input_pic_def(context_ptr, eb_input_ptr, scs);
         // Update the target rate
         update_rate_info(context_ptr, eb_input_ptr, scs);
+#if FTR_FRAME_RATE_ON_THE_FLY
+        // Update the frame rate
+        update_frame_rate_info(context_ptr, eb_input_ptr, scs);
+#endif
         // If config changes occured since the last picture began encoding, then
         //   prepare a new scs containing the new changes and update the state
         //   of the previous Active scs

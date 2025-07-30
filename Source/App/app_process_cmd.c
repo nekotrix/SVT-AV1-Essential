@@ -257,27 +257,37 @@ static EbErrorType test_update_rate_info(uint64_t pic_num, EbBufferHeaderType *h
         data = (SvtAv1RateInfo *)malloc(sizeof(SvtAv1RateInfo));
         memset(data, 0, sizeof(SvtAv1RateInfo));
         data->target_bit_rate = 2000;
-        header_ptr->pic_type  = EB_AV1_KEY_PICTURE;
+#if !OPT_RATE_ON_THE_FLY_NO_KF
+        header_ptr->pic_type = EB_AV1_KEY_PICTURE;
+#endif
     } else if (pic_num % (4 * interval) == 0) {
         data = (SvtAv1RateInfo *)malloc(sizeof(SvtAv1RateInfo));
         memset(data, 0, sizeof(SvtAv1RateInfo));
         data->target_bit_rate = 300;
-        header_ptr->pic_type  = EB_AV1_KEY_PICTURE;
+#if !OPT_RATE_ON_THE_FLY_NO_KF
+        header_ptr->pic_type = EB_AV1_KEY_PICTURE;
+#endif
     } else if (pic_num % (3 * interval) == 0) {
         data = (SvtAv1RateInfo *)malloc(sizeof(SvtAv1RateInfo));
         memset(data, 0, sizeof(SvtAv1RateInfo));
         data->target_bit_rate = 500;
-        header_ptr->pic_type  = EB_AV1_KEY_PICTURE;
+#if !OPT_RATE_ON_THE_FLY_NO_KF
+        header_ptr->pic_type = EB_AV1_KEY_PICTURE;
+#endif
     } else if (pic_num % (2 * interval) == 0) {
         data = (SvtAv1RateInfo *)malloc(sizeof(SvtAv1RateInfo));
         memset(data, 0, sizeof(SvtAv1RateInfo));
         data->target_bit_rate = 1000;
-        header_ptr->pic_type  = EB_AV1_KEY_PICTURE;
+#if !OPT_RATE_ON_THE_FLY_NO_KF
+        header_ptr->pic_type = EB_AV1_KEY_PICTURE;
+#endif
     } else if (pic_num % interval == 0) {
         data = (SvtAv1RateInfo *)malloc(sizeof(SvtAv1RateInfo));
         memset(data, 0, sizeof(SvtAv1RateInfo));
         data->target_bit_rate = 200;
-        header_ptr->pic_type  = EB_AV1_KEY_PICTURE;
+#if !OPT_RATE_ON_THE_FLY_NO_KF
+        header_ptr->pic_type = EB_AV1_KEY_PICTURE;
+#endif
     } else {
         return EB_ErrorNone;
     }
@@ -336,6 +346,59 @@ static EbErrorType test_update_qp_info(uint64_t pic_num, EbBufferHeaderType *hea
     EbPrivDataNode *new_node = (EbPrivDataNode *)malloc(sizeof(EbPrivDataNode));
     new_node->size           = sizeof(SvtAv1RateInfo);
     new_node->node_type      = RATE_CHANGE_EVENT;
+    new_node->data           = data;
+    new_node->next           = NULL;
+
+    // append to tail
+    if (header_ptr->p_app_private == NULL) {
+        header_ptr->p_app_private = new_node;
+    } else {
+        EbPrivDataNode *last = header_ptr->p_app_private;
+        while (last->next != NULL) { last = last->next; }
+        last->next = new_node;
+    }
+
+    return EB_ErrorNone;
+}
+#endif
+#if FTR_FRAME_RATE_ON_FLY_SAMPLE
+// test_update_frame_rate_info: sample test case for updating the rate info on the fly
+static EbErrorType test_update_frame_rate_info(uint64_t pic_num, EbBufferHeaderType *header_ptr) {
+    SvtAv1FrameRateInfo *data;
+    int                  interval = 500;
+    if (pic_num == 0)
+        return EB_ErrorNone;
+    else if (pic_num % (5 * interval) == 0) {
+        data = (SvtAv1FrameRateInfo *)malloc(sizeof(SvtAv1FrameRateInfo));
+        memset(data, 0, sizeof(SvtAv1FrameRateInfo));
+        data->frame_rate_numerator   = 24000;
+        data->frame_rate_denominator = 1000;
+    } else if (pic_num % (4 * interval) == 0) {
+        data = (SvtAv1FrameRateInfo *)malloc(sizeof(SvtAv1FrameRateInfo));
+        memset(data, 0, sizeof(SvtAv1FrameRateInfo));
+        data->frame_rate_numerator   = 30000;
+        data->frame_rate_denominator = 1000;
+    } else if (pic_num % (3 * interval) == 0) {
+        data = (SvtAv1FrameRateInfo *)malloc(sizeof(SvtAv1FrameRateInfo));
+        memset(data, 0, sizeof(SvtAv1FrameRateInfo));
+        data->frame_rate_numerator   = 15000;
+        data->frame_rate_denominator = 1000;
+    } else if (pic_num % (2 * interval) == 0) {
+        data = (SvtAv1FrameRateInfo *)malloc(sizeof(SvtAv1FrameRateInfo));
+        memset(data, 0, sizeof(SvtAv1FrameRateInfo));
+        data->frame_rate_numerator   = 60000;
+        data->frame_rate_denominator = 1000;
+    } else if (pic_num % interval == 0) {
+        data = (SvtAv1FrameRateInfo *)malloc(sizeof(SvtAv1FrameRateInfo));
+        memset(data, 0, sizeof(SvtAv1FrameRateInfo));
+        data->frame_rate_numerator   = 30000;
+        data->frame_rate_denominator = 1000;
+    } else {
+        return EB_ErrorNone;
+    }
+    EbPrivDataNode *new_node = (EbPrivDataNode *)malloc(sizeof(EbPrivDataNode));
+    new_node->size           = sizeof(SvtAv1FrameRateInfo);
+    new_node->node_type      = FRAME_RATE_CHANGE_EVENT;
     new_node->data           = data;
     new_node->next           = NULL;
 
@@ -523,6 +586,9 @@ void process_input_buffer(EncChannel *channel) {
 #if FTR_RATE_ON_FLY_SAMPLE
             test_update_rate_info(header_ptr->pts, header_ptr);
             //  test_update_qp_info(header_ptr->pts, header_ptr);
+#endif
+#if FTR_FRAME_RATE_ON_FLY_SAMPLE
+            test_update_frame_rate_info(header_ptr->pts, header_ptr);
 #endif
             retrieve_roi_map_event(app_cfg->roi_map, header_ptr->pts, header_ptr);
             // Send the picture
