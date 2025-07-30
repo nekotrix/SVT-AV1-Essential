@@ -1026,6 +1026,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             pcs->pic_block_based_depth_refinement_level = 0;
             pcs->pic_lpd0_lvl                           = 0;
             pcs->pic_lpd1_lvl                           = 0;
+            pcs->pic_bypass_encdec = scs->static_config.encoder_bit_depth != EB_EIGHT_BIT ? 0 : pcs->pic_bypass_encdec;
         }
         // Post the results to the MD processes
         uint16_t tg_count = pcs->ppcs->tile_group_cols * pcs->ppcs->tile_group_rows;
