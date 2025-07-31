@@ -384,9 +384,7 @@ static const vector<uint8_t> valid_enable_dlf_flag = {
     1,
     2,
 };
-static const vector<uint8_t> invalid_enable_dlf_flag = {
-    3
-};
+static const vector<uint8_t> invalid_enable_dlf_flag = {3};
 
 /* Film grain denoising the input picture
  * Flag to enable the denoising
