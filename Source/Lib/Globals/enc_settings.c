@@ -848,8 +848,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
-    if (config->qp_scale_compress_strength > 3) {
-        SVT_ERROR("QP scale compress strength must be between 0 and 3\n");
+    if (config->qp_scale_compress_strength > 8) {
+        SVT_ERROR("QP scale compress strength must be between 0 and 8\n");
         return_error = EB_ErrorBadParameter;
     }
 
@@ -1003,15 +1003,15 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->enable_roi_map                    = false;
     config_ptr->fgs_table                         = NULL;
     config_ptr->enable_variance_boost             = true;
-    config_ptr->variance_boost_strength           = 2;
-    config_ptr->variance_octile                   = 5;
+    config_ptr->variance_boost_strength           = 1;
+    config_ptr->variance_octile                   = 4;
     config_ptr->tf_strength                       = 1;
     config_ptr->variance_boost_curve              = 0;
-    config_ptr->luminance_qp_bias                 = 50;
+    config_ptr->luminance_qp_bias                 = 10;
     config_ptr->sharpness                         = 1;
     config_ptr->lossless                          = false;
     config_ptr->avif                              = false;
-    config_ptr->qp_scale_compress_strength        = 0;
+    config_ptr->qp_scale_compress_strength        = 1;
     config_ptr->sframe_posi.sframe_num            = 0;
     config_ptr->sframe_posi.sframe_posis          = NULL;
     config_ptr->sframe_posi.sframe_qp_num         = 0;
