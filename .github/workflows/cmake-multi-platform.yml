@@ -1,0 +1,166 @@
+name: auto build
+
+on:
+  workflow_dispatch:
+    branches: [ "master", "Essential-v3.1.0" ]
+  push:
+    branches: [ "master", "Essential-v3.1.0" ]
+  pull_request:
+    branches: [ "master", "Essential-v3.1.0" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+              name: "Windows x86_64-v3",
+              os: windows-2022,
+              generators: "Ninja",
+              msvc_arch: x64,
+              c_compiler: clang,
+              cpp_compiler: clang++,
+              march: "x86-64-v3"
+            }
+          - {
+              name: "Windows Generic",
+              os: windows-2022,
+              generators: "Ninja",
+              msvc_arch: x64,
+              c_compiler: clang,
+              cpp_compiler: clang++,
+              march: "generic"
+            }
+          - {
+              name: "Ubuntu x86_64-v3",
+              os: ubuntu-latest,
+              c_compiler: gcc,
+              cpp_compiler: g++,
+              march: "x86-64-v3"
+            }
+          - {
+              name: "Ubuntu Generic",
+              os: ubuntu-latest,
+              c_compiler: gcc,
+              cpp_compiler: g++,
+              march: "generic"
+            }
+          - {
+              name: "Ubuntu x86_64-v3 (Clang)",
+              os: ubuntu-latest,
+              c_compiler: clang,
+              cpp_compiler: clang++,
+              march: "x86-64-v3"
+            }
+          - {
+              name: "Ubuntu Generic (Clang)",
+              os: ubuntu-latest,
+              c_compiler: clang,
+              cpp_compiler: clang++,
+              march: "generic"
+            }
+          - {
+              name: "Mac OS Latest arm64",
+              os: macos-latest,
+              c_compiler: clang,
+              cpp_compiler: clang++,
+              osx_arch: arm64,
+              march: "native"
+            }
+    env:
+      CMAKE_GENERATOR: "${{ matrix.config.generators }}"
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ilammy/setup-nasm@v1
+    - name: Ubuntu/Mac OS X
+      if: ${{ !contains( matrix.config.os, 'windows' ) }}
+      run: |
+        if [ "${{ matrix.config.march }}" = "generic" ]; then
+          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DBUILD_DEC=OFF -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}"
+        else
+          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DENABLE_AVX512=ON -DBUILD_DEC=OFF -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}" "-DCMAKE_C_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -DNDEBUG"
+        fi
+        cmake --build svt_build --config Release
+      shell: bash
+    - name: Windows build
+      if: contains( matrix.config.os, 'windows' )
+      run: |
+        set CC=clang
+        set CXX=clang++
+        if "${{ matrix.config.march }}" == "generic" (
+          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
+        ) else (
+          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O3 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O3 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
+        )
+        ninja -C svt_build
+      shell: cmd
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.config.name }}
+        path: Bin/Release/
+        retention-days: 90
+
+    - name: Get latest release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v3.1.0'
+      id: latest_release
+      uses: actions/github-script@v7
+      with:
+        result-encoding: string
+        script: |
+          const release = await github.rest.repos.getLatestRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo
+          });
+          console.log('Latest release tag:', release.data.tag_name);
+          return release.data.tag_name;
+
+    - name: Upload binaries to existing release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v3.1.0'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          const tag = '${{ steps.latest_release.outputs.result }}';
+          console.log('Using tag:', tag);
+
+          // Get the existing release
+          const release = await github.rest.repos.getReleaseByTag({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag: tag
+          });
+
+          // Find binary files (executables only, not .a files)
+          const binDir = 'Bin/Release';
+          const files = fs.readdirSync(binDir);
+          const binaries = files.filter(file => {
+            const ext = path.extname(file).toLowerCase();
+            return !ext || ext === '.exe'; // No extension (Unix) or .exe (Windows)
+          });
+
+          console.log('Found binaries:', binaries);
+
+          // Upload each binary
+          for (const binary of binaries) {
+            const filePath = path.join(binDir, binary);
+            const fileName = `${{ matrix.config.name }}-${binary}`;
+
+            console.log(`Uploading ${fileName}...`);
+
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: fileName,
+              data: fs.readFileSync(filePath)
+            });
+          }
