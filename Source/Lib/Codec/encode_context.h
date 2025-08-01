@@ -54,7 +54,6 @@ typedef struct RateControlIntervalParamContext {
     uint8_t end_of_seq_seen;
     int32_t processed_frame_number;
     int32_t size;
-    uint8_t last_i_qp;
     int64_t vbr_bits_off_target;
     int64_t vbr_bits_off_target_fast;
     int     rolling_target_bits;

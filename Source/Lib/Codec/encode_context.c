@@ -143,7 +143,6 @@ EbErrorType svt_aom_encode_context_ctor(EncodeContext *enc_ctx, EbPtr object_ini
         enc_ctx->rc_param_queue[interval_index]->processed_frame_number   = 0;
         enc_ctx->rc_param_queue[interval_index]->size                     = -1;
         enc_ctx->rc_param_queue[interval_index]->end_of_seq_seen          = 0;
-        enc_ctx->rc_param_queue[interval_index]->last_i_qp                = 0;
         enc_ctx->rc_param_queue[interval_index]->vbr_bits_off_target      = 0;
         enc_ctx->rc_param_queue[interval_index]->vbr_bits_off_target_fast = 0;
         enc_ctx->rc_param_queue[interval_index]->rolling_target_bits      = enc_ctx->rc.avg_frame_bandwidth;
