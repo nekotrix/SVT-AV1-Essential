@@ -78,8 +78,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: ilammy/setup-nasm@v1
-    - name: Ubuntu/Mac OS X
-      if: ${{ !contains( matrix.config.os, 'windows' ) }}
+    - name: Mac OS
+      if: contains( matrix.config.os, 'macos' )
+      run: |
+        cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DNATIVE=ON -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DENABLE_AVX512=ON -DBUILD_DEC=OFF -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}"
+        cmake --build svt_build --config Release
+      shell: bash
+    - name: Ubuntu
+      if: contains( matrix.config.os, 'ubuntu' )
       run: |
         if [ "${{ matrix.config.march }}" = "generic" ]; then
           cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DBUILD_DEC=OFF -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}"
