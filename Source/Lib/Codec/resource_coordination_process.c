@@ -676,6 +676,17 @@ static void update_new_param(SequenceControlSet *scs) {
     scs->chroma_height               = scs->max_input_luma_height >> subsampling_y;
     scs->static_config.source_width  = scs->max_input_luma_width;
     scs->static_config.source_height = scs->max_input_luma_height;
+#if FTR_SFRAME_POSI
+    scs->seq_header.max_frame_width  = scs->static_config.forced_max_frame_width > 0
+         ? scs->static_config.forced_max_frame_width
+         : scs->static_config.sframe_dist > 0 || scs->static_config.sframe_posi.sframe_posis ? 16384
+                                                                                             : scs->max_input_luma_width;
+    scs->seq_header.max_frame_height = scs->static_config.forced_max_frame_height > 0
+        ? scs->static_config.forced_max_frame_height
+        : scs->static_config.sframe_dist > 0 || scs->static_config.sframe_posi.sframe_posis
+        ? 8704
+        : scs->max_input_luma_height;
+#else
     scs->seq_header.max_frame_width  = scs->static_config.forced_max_frame_width > 0
          ? scs->static_config.forced_max_frame_width
          : scs->static_config.sframe_dist > 0 ? 16384
@@ -684,6 +695,7 @@ static void update_new_param(SequenceControlSet *scs) {
         ? scs->static_config.forced_max_frame_height
         : scs->static_config.sframe_dist > 0 ? 8704
                                              : scs->max_input_luma_height;
+#endif // FTR_SFRAME_POSI
 
     svt_aom_derive_input_resolution(&scs->input_resolution, scs->max_input_luma_width * scs->max_input_luma_height);
 

@@ -688,14 +688,30 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
     if (config->sframe_dist > 0 && config->sframe_mode != SFRAME_STRICT_BASE &&
+#if FTR_SFRAME_FLEX
+        config->sframe_mode != SFRAME_NEAREST_BASE && config->sframe_mode != SFRAME_FLEXIBLE_BASE) {
+        SVT_ERROR("Error instance %u: invalid switch frame mode %d, should be in the range [%d - %d]\n",
+                  channel_number + 1,
+                  config->sframe_mode,
+                  SFRAME_STRICT_BASE,
+                  SFRAME_FLEXIBLE_BASE);
+#else
         config->sframe_mode != SFRAME_NEAREST_BASE) {
         SVT_ERROR("Error instance %u: invalid switch frame mode %d, should be in the range [%d - %d]\n",
                   channel_number + 1,
                   config->sframe_mode,
                   SFRAME_STRICT_BASE,
                   SFRAME_NEAREST_BASE);
+#endif // FTR_SFRAME_FLEX
         return_error = EB_ErrorBadParameter;
     }
+#if FTR_SFRAME_POSI
+    if (config->sframe_posi.sframe_posis && config->sframe_mode != SFRAME_FLEXIBLE_BASE) {
+        SVT_ERROR("Error instance %u: S-Frame positions are only supported in S-Frame Flexible ARF mode\n",
+                  channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
+#endif // FTR_SFRAME_POSI
 
     /* Warnings about the use of features that are incomplete */
     if (config->enable_adaptive_quantization == 1) {
@@ -1025,6 +1041,10 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->sharpness                         = 0;
     config_ptr->lossless                          = false;
     config_ptr->avif                              = false;
+#if FTR_SFRAME_POSI
+    config_ptr->sframe_posi.sframe_num   = 0;
+    config_ptr->sframe_posi.sframe_posis = NULL;
+#endif // FTR_SFRAME_POSI
     return return_error;
 }
 
@@ -1724,6 +1744,9 @@ static EbErrorType str_to_sframe_mode(const char *nptr, EbSFrameMode *out) {
     } sframe_mode[] = {
         {"strict", SFRAME_STRICT_BASE},
         {"nearest", SFRAME_NEAREST_BASE},
+#if FTR_SFRAME_FLEX
+        {"flexible", SFRAME_FLEXIBLE_BASE},
+#endif // FTR_SFRAME_FLEX
     };
     const size_t sframe_mode_size = sizeof(sframe_mode) / sizeof(sframe_mode[0]);
 
@@ -1825,6 +1848,21 @@ static EbErrorType str_to_resz_denoms(const char *nptr, SvtAv1FrameScaleEvts *ev
     return parse_list_u32(nptr, evts->resize_denoms, param_count);
 }
 
+#if FTR_SFRAME_POSI
+static EbErrorType str_to_sframe_posi(const char *nptr, SvtAv1SFramePositions *posis) {
+    const uint32_t param_count = count_params(nptr);
+    if ((posis->sframe_num != 0 && posis->sframe_num != param_count) || param_count == 0) {
+        SVT_ERROR("Error: Size for the list passed to %s doesn't match %u\n", "sframe-posi", posis->sframe_num);
+        return EB_ErrorBadParameter;
+    }
+    if (posis->sframe_posis)
+        EB_FREE(posis->sframe_posis);
+    EB_MALLOC(posis->sframe_posis, param_count * sizeof(uint64_t));
+    posis->sframe_num = param_count;
+    return parse_list_u64(nptr, posis->sframe_posis, param_count);
+}
+#endif // FTR_SFRAME_POSI
+
 #define COLOR_OPT(par, opt)                                          \
     do {                                                             \
         if (!strcmp(name, par)) {                                    \
@@ -1920,6 +1958,11 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
 
     if (!strcmp(name, "frame-resz-denoms"))
         return str_to_resz_denoms(value, &config_struct->frame_scale_evts);
+
+#if FTR_SFRAME_POSI
+    if (!strcmp(name, "sframe-posi"))
+        return str_to_sframe_posi(value, &config_struct->sframe_posi);
+#endif // FTR_SFRAME_POSI
 
     // uint32_t fields
     const struct {

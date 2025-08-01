@@ -180,6 +180,9 @@
 
 #define SFRAME_DIST_TOKEN "--sframe-dist"
 #define SFRAME_MODE_TOKEN "--sframe-mode"
+#if FTR_SFRAME_POSI
+#define SFRAME_POSI_TOKEN "--sframe-posi"
+#endif // FTR_SFRAME_POSI
 
 #define ENABLE_QM_TOKEN "--enable-qm"
 #define MIN_QM_LEVEL_TOKEN "--qm-min"
@@ -894,8 +897,19 @@ ConfigDescription config_entry_specific[] = {
     // --- start: SWITCH_FRAME SUPPORT
     {SFRAME_DIST_TOKEN, "S-Frame interval (frames) (0: OFF[default], > 0: ON)"},
     {SFRAME_MODE_TOKEN,
+#if FTR_SFRAME_FLEX
+     "S-Frame insertion mode ([1-3], 1: the considered frame will be made into an S-Frame only if "
+     "it is an altref frame, 2: the next altref frame will be made into an S-Frame[default], "
+     "3: adjust minigop size to make an S-Frame at specific position)"},
+#else
      "S-Frame insertion mode ([1-2], 1: the considered frame will be made into an S-Frame only if "
      "it is an altref frame, 2: the next altref frame will be made into an S-Frame[default])"},
+#endif // FTR_SFRAME_FLEX
+#if FTR_SFRAME_POSI
+    {SFRAME_POSI_TOKEN,
+     "S-Frame insertion positions, a list separated by ',', S-Frame process inserts by "
+     "the specified frame numbers (0 based), only applicable for mode 3"},
+#endif // FTR_SFRAME_POSI
     // --- end: SWITCH_FRAME SUPPORT
     // --- start: REFERENCE SCALING SUPPORT
     {RESIZE_MODE_INPUT,
@@ -1092,6 +1106,10 @@ ConfigEntry config_entry[] = {
     // Switch frame support
     {SFRAME_DIST_TOKEN, "SframeInterval", set_cfg_generic_token},
     {SFRAME_MODE_TOKEN, "SframeMode", set_cfg_generic_token},
+#if FTR_SFRAME_POSI
+    {SFRAME_POSI_TOKEN, "SframePositions", set_cfg_generic_token},
+#endif //FTR_SFRAME_POSI
+
     // Reference Scaling support
     {RESIZE_MODE_INPUT, "ResizeMode", set_cfg_generic_token},
     {RESIZE_DENOM, "ResizeDenom", set_cfg_generic_token},

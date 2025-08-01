@@ -257,6 +257,10 @@ EbErrorType svt_aom_picture_decision_context_ctor(
     pd_ctx->last_long_base_pic = 0;
     pd_ctx->enable_startup_mg = false;
     pd_ctx->is_startup_gop = false;
+#if FTR_SFRAME_FLEX
+    pd_ctx->sframe_hier_lvls = 0;
+    pd_ctx->sframe_last_arf = 0;
+#endif // FTR_SFRAME_FLEX
     return EB_ErrorNone;
 }
 static bool scene_transition_detector(
@@ -1148,14 +1152,32 @@ static void set_key_frame_rps(PictureParentControlSet *pcs, PictureDecisionConte
     return;
 }
 
+#if FTR_SFRAME_POSI
+// returns the distance to the nearest S-Frame, and dist_to_next_s will be filled if current is an S-Frame
+// dist_to_next_s is for there being more than one S-Frame inserted within one miniGOP size
+static int32_t get_dist_to_s(SvtAv1SFramePositions const *sframe_posi, uint64_t picture_num, int32_t *dist_to_next_s) {
+    *dist_to_next_s = -1;
+    for (uint32_t i = 0; i < sframe_posi->sframe_num; i++) {
+        if (sframe_posi->sframe_posis[i] >= picture_num) {
+            if (sframe_posi->sframe_posis[i] == picture_num)
+                *dist_to_next_s = (i < sframe_posi->sframe_num - 1) ? (int32_t)(sframe_posi->sframe_posis[i + 1] - picture_num) : -1;
+            return (int32_t)(sframe_posi->sframe_posis[i] - picture_num);
+        }
+    }
+    return -1; // all s-frame spots are expired
+}
+#endif // FTR_SFRAME_POSI
+
 // Decide whether to make an inter frame into an S-Frame
 static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ctx, PictureDecisionContext *pd_ctx)
 {
     FrameHeader *frm_hdr = &ppcs->frm_hdr;
     const int sframe_dist = enc_ctx->sf_cfg.sframe_dist;
     const EbSFrameMode sframe_mode = enc_ctx->sf_cfg.sframe_mode;
+#if !FTR_SFRAME_FLEX
     // handle multiple hierarchical levels only, no flat IPPP support
     svt_aom_assert_err(ppcs->hierarchical_levels > 0, "S-frame doesn't support flat IPPP...");
+#endif // !FTR_SFRAME_FLEX
 
     const int is_arf = ppcs->temporal_layer_index == 0 ? true : false;
     const uint64_t frames_since_key = ppcs->picture_number - pd_ctx->key_poc;
@@ -1165,7 +1187,11 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
             frm_hdr->frame_type = S_FRAME;
         }
     }
+#if FTR_SFRAME_FLEX
+    else if (sframe_mode == SFRAME_NEAREST_BASE) {
+#else
     else {
+#endif // FTR_SFRAME_FLEX
         // SFRAME_NEAREST_ARF: if sframe will be inserted at the next available altref frame
         if (ppcs->scs->static_config.pred_structure == RANDOM_ACCESS) {
             // frames in PD are in decode order, when ARF position is in this miniGop range,
@@ -1184,6 +1210,65 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
             }
         }
     }
+#if FTR_SFRAME_FLEX
+    else {
+        // SFRAME_FLEXIBLE_ARF: if the considered frame is not an altref frame, modify the mini-GOP structure to promote it to an altref frame
+        if (is_arf) {
+            uint32_t next_mg_size = 1 << pd_ctx->sframe_hier_lvls;
+#if FTR_SFRAME_POSI
+            if (ppcs->scs->static_config.sframe_posi.sframe_posis) {
+                // When the user specifies the positions of S-Frames, the encoder retrieves the distances to the next two S-Frames
+                // to assist in deciding the mini-GOP structure.
+                int32_t dist_to_next_s = 0;
+                int32_t dist_to_s = get_dist_to_s(&ppcs->scs->static_config.sframe_posi, ppcs->picture_number, &dist_to_next_s);
+                if (dist_to_s == 0) {
+                    frm_hdr->frame_type = S_FRAME;
+                    // After inserting a new S-Frame, reset sframe_hier_lvls and use it for the next mini-GOP evaluation.
+                    pd_ctx->sframe_hier_lvls = ppcs->scs->static_config.hierarchical_levels;
+                    next_mg_size = 1 << pd_ctx->sframe_hier_lvls;
+                    dist_to_s = dist_to_next_s;
+                }
+                if (dist_to_s > 0 && dist_to_s < (int32_t)next_mg_size) {
+                    for (int32_t lvl = 0; lvl < pd_ctx->sframe_hier_lvls; lvl++) {
+                        if (dist_to_s < (1 << (lvl + 1))) {
+                            pd_ctx->sframe_hier_lvls = lvl;
+                            break;
+                        }
+                    }
+                    assert(pd_ctx->sframe_hier_lvls >= 0 && pd_ctx->sframe_hier_lvls <= (int32_t)ppcs->scs->static_config.hierarchical_levels);
+                }
+            }
+            else
+#endif // FTR_SFRAME_POSI
+            {
+                if ((frames_since_key % sframe_dist) == 0) {
+                    frm_hdr->frame_type = S_FRAME;
+
+                    // After inserting a new S-Frame, reset sframe_hier_lvls and use it for the next mini-GOP evaluation.
+                    pd_ctx->sframe_hier_lvls = ppcs->scs->static_config.hierarchical_levels;
+                    next_mg_size = 1 << pd_ctx->sframe_hier_lvls;
+                }
+                {
+                    // modify hierarchical level of next miniGOP
+                    uint32_t gap_arf = (frames_since_key + next_mg_size) % sframe_dist;
+                    if (gap_arf != 0 && gap_arf < next_mg_size) {
+                        // Downgrade the next mini-GOP if it contains the upcoming S-Frame.
+                        int32_t arf_dist = next_mg_size - gap_arf;
+                        for (int32_t lvl = 0; lvl < pd_ctx->sframe_hier_lvls; lvl++) {
+                            if (arf_dist < (1 << (lvl + 1))) {
+                                pd_ctx->sframe_hier_lvls = lvl;
+                                break;
+                            }
+                        }
+                        assert(pd_ctx->sframe_hier_lvls >= 0 && pd_ctx->sframe_hier_lvls <= (int32_t)ppcs->scs->static_config.hierarchical_levels);
+                    }
+                }
+            }
+            pd_ctx->sframe_last_arf = frames_since_key;
+        }
+    }
+#endif // FTR_SFRAME_FLEX
+
     ppcs->sframe_ref_pruned = false;
 #if DEBUG_SFRAME
     if (frm_hdr->frame_type == S_FRAME) {
@@ -1192,6 +1277,49 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
 #endif
     return;
 }
+
+#if FTR_SFRAME_FLEX
+// Determine the size of the first mini-GOP after inserting a key frame
+static void decide_sframe_mg(PictureParentControlSet *ppcs, EncodeContext *enc_ctx, PictureDecisionContext *pd_ctx)
+{
+    SequenceControlSet* scs = ppcs->scs;
+    int32_t sframe_dist = enc_ctx->sf_cfg.sframe_dist;
+    const EbSFrameMode sframe_mode = enc_ctx->sf_cfg.sframe_mode;
+    if (sframe_mode == SFRAME_FLEXIBLE_BASE) {
+        // reset sframe_hier_lvls when key frame inserted
+        pd_ctx->sframe_hier_lvls = scs->static_config.hierarchical_levels;
+
+        int32_t next_mg_size = 1 << pd_ctx->sframe_hier_lvls;
+#if FTR_SFRAME_POSI
+        if (scs->static_config.sframe_posi.sframe_posis)
+        {
+            int32_t dist_to_next_s = 0;
+            int32_t dist_to_s = get_dist_to_s(&ppcs->scs->static_config.sframe_posi, ppcs->picture_number, &dist_to_next_s);
+            if (dist_to_s > 0) {
+                sframe_dist = (uint32_t)dist_to_s;
+            }
+            else if (dist_to_s == 0 && dist_to_next_s > 0) {
+                sframe_dist = (uint32_t)dist_to_next_s;
+            }
+            else {
+                return;
+            }
+        }
+#endif // FTR_SFRAME_POSI
+        if (sframe_dist < next_mg_size) {
+            // If the S-Frame falls within the next mini-GOP, downgrade the next mini-GOP.
+            for (int32_t lvl = 0; lvl < pd_ctx->sframe_hier_lvls; lvl++) {
+                if (sframe_dist < (1 << (lvl + 1))) {
+                    pd_ctx->sframe_hier_lvls = lvl;
+                    break;
+                }
+            }
+            assert(pd_ctx->sframe_hier_lvls >= 0 && pd_ctx->sframe_hier_lvls <= (int32_t)scs->static_config.hierarchical_levels);
+        }
+    }
+    return;
+}
+#endif // FTR_SFRAME_FLEX
 
 // Update RPS info for S-Frame
 static void set_sframe_rps(PictureParentControlSet *ppcs, EncodeContext *enc_ctx, PictureDecisionContext *pd_ctx)
@@ -1407,6 +1535,10 @@ static void  av1_generate_rps_info(
         if (frm_hdr->frame_type == KEY_FRAME) {
             set_key_frame_rps(pcs, ctx);
             set_ref_list_counts(pcs, ctx);
+#if FTR_SFRAME_FLEX
+            if (scs->static_config.sframe_mode == SFRAME_FLEXIBLE_BASE)
+                decide_sframe_mg(pcs, enc_ctx, ctx);
+#endif // FTR_SFRAME_FLEX
             return;
         }
     }
@@ -1414,7 +1546,11 @@ static void  av1_generate_rps_info(
         frm_hdr->frame_type = INTER_FRAME;
 
         // test s-frame on base layer inter frames
+#if FTR_SFRAME_POSI
+        if (enc_ctx->sf_cfg.sframe_dist > 0 || scs->static_config.sframe_posi.sframe_posis) {
+#else
         if (enc_ctx->sf_cfg.sframe_dist > 0) {
+#endif // FTR_SFRAME_POSI
             set_sframe_type(pcs, enc_ctx, ctx);
         }
     }
@@ -3588,7 +3724,11 @@ static void low_delay_store_tf_pictures(
     PictureParentControlSet *pcs,
     PictureDecisionContext  *ctx)
 {
+#if FTR_SFRAME_FLEX
+    const uint32_t mg_size = 1 << (scs->static_config.sframe_mode == SFRAME_FLEXIBLE_BASE ? (uint32_t)ctx->sframe_hier_lvls : scs->static_config.hierarchical_levels);
+#else
     const uint32_t mg_size = 1 << (scs->static_config.hierarchical_levels);
+#endif // FTR_SFRAME_FLEX
     const uint32_t tot_past = scs->tf_params_per_type[1].max_num_past_pics;
     if (pcs->temporal_layer_index != 0 && pcs->pic_idx_in_mg + 1 + tot_past >= mg_size)
     {
@@ -3893,7 +4033,11 @@ static PaReferenceEntry * search_ref_in_ref_queue_pa(
 /*
  * Copy TF params: sps -> pcs
  */
+#if FTR_SFRAME_FLEX
+static void copy_tf_params(SequenceControlSet *scs, PictureParentControlSet *pcs, PictureDecisionContext *ctx) {
+#else
 static void copy_tf_params(SequenceControlSet *scs, PictureParentControlSet *pcs) {
+#endif // FTR_SFRAME_FLEX
 
     // Map TF settings sps -> pcs
     if (scs->static_config.pred_structure != RANDOM_ACCESS) {
@@ -3901,6 +4045,13 @@ static void copy_tf_params(SequenceControlSet *scs, PictureParentControlSet *pcs
             pcs->tf_ctrls = scs->tf_params_per_type[1];
         else
             pcs->tf_ctrls.enabled = 0;
+#if FTR_SFRAME_FLEX
+        // When the hierarchical level reaches zero during flexible S-Frame insertion, tf_pic_arr_cnt is reset to zero upon mini-GOP closure.
+        // Add additional protection for TF handling.
+        if (scs->static_config.sframe_mode == SFRAME_FLEXIBLE_BASE && pcs->tf_ctrls.enabled && ctx->tf_pic_arr_cnt == 0)
+            pcs->tf_ctrls.enabled = 0;
+#endif // FTR_SFRAME_FLEX
+
         return;
    }
    // Don't perform TF for overlay pics or pics in the highest layer (relevant for 2L)
@@ -4149,6 +4300,12 @@ static void set_mini_gop_structure(SequenceControlSet* scs, EncodeContext* enc_c
     PictureParentControlSet* pcs, PictureDecisionContext* ctx) {
 
     uint32_t next_mg_hierarchical_levels = scs->static_config.hierarchical_levels;
+#if FTR_SFRAME_FLEX
+    // Overwrite next_mg_hierarchical_levels when an S-Frame needs to modify the mini-GOP size.
+    if (ctx->sframe_hier_lvls != (int32_t)scs->static_config.hierarchical_levels) {
+        next_mg_hierarchical_levels = ctx->sframe_hier_lvls;
+    }
+#endif // FTR_SFRAME_FLEX
     if (ctx->enable_startup_mg) {
         next_mg_hierarchical_levels = scs->static_config.startup_mg_size;
     }
@@ -4303,6 +4460,13 @@ static uint32_t get_pic_idx_in_mg(SequenceControlSet* scs, PictureParentControlS
             pic_idx_in_mg = (distance_to_last_idr == 0) ? 0 :
                 (uint32_t)((distance_to_last_idr - 1) % pcs->pred_struct_ptr->pred_struct_period);
         }
+#if FTR_SFRAME_FLEX
+        // In S-Frame flexible insertion mode, hierarchical levels are adjusted based on the S-Frame position.
+        // Picture indices in the low-delay mini-GOP are calculated from the last saved ARF.
+        if (scs->static_config.sframe_mode == SFRAME_FLEXIBLE_BASE) {
+            pic_idx_in_mg = distance_to_last_idr > ctx->sframe_last_arf ? distance_to_last_idr - ctx->sframe_last_arf - 1 : 0;
+        }
+#endif // FTR_SFRAME_FLEX
         pcs->frame_offset = distance_to_last_idr;
     }
 
@@ -4345,7 +4509,11 @@ static void init_pic_settings(SequenceControlSet* scs, PictureParentControlSet* 
 
 
     // TODO: put this in EbMotionEstimationProcess?
+#if FTR_SFRAME_FLEX
+    copy_tf_params(scs, pcs, ctx);
+#else
     copy_tf_params(scs, pcs);
+#endif // FTR_SFRAME_FLEX
     // TODO: put this in EbMotionEstimationProcess?
     // ME Kernel Multi-Processes Signal(s) derivation
     svt_aom_sig_deriv_multi_processes(scs, pcs);
@@ -4874,6 +5042,10 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
             pcs->tpl_group_size = 0;
             if (pcs->picture_number == 0)
                 ctx->prev_delayed_intra = NULL;
+#if FTR_SFRAME_FLEX
+            if (pcs->picture_number == 0)
+                ctx->sframe_hier_lvls = scs->static_config.hierarchical_levels;
+#endif // FTR_SFRAME_FLEX
 
             release_prev_picture_from_reorder_queue(enc_ctx);
             assert(IMPLIES(scs->allintra, scs->static_config.intra_period_length == 0));
@@ -4907,6 +5079,17 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
                 (pcs->scene_change_flag == true ||  pcs->input_ptr->pic_type == EB_AV1_KEY_PICTURE) ?
                 true :
                 pcs->idr_flag;
+#if FTR_SFRAME_POSI
+            if (!scs->allintra && pcs->picture_number > 0 && scs->static_config.sframe_posi.sframe_posis && (pcs->cra_flag || pcs->idr_flag)) {
+                // if this key frame position is set to an S-frame by sframe-posi, replace this I frame with B frame,
+                // and then the S_FRAME will be set in set_sframe_type()
+                int32_t dist_next_s = 0;
+                if (get_dist_to_s(&scs->static_config.sframe_posi, pcs->picture_number, &dist_next_s) == 0) {
+                    pcs->cra_flag = false;
+                    pcs->idr_flag = false;
+                }
+            }
+#endif // FTR_SFRAME_POSI
             enc_ctx->pre_assignment_buffer_eos_flag = (pcs->end_of_sequence_flag) ? (uint32_t)true : enc_ctx->pre_assignment_buffer_eos_flag;
 
             // Histogram data to be used at the next input (N + 1)
@@ -4932,6 +5115,12 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
 #endif
 
             uint32_t next_mg_hierarchical_levels = scs->static_config.hierarchical_levels;
+#if FTR_SFRAME_FLEX
+            // Overwrite next_mg_hierarchical_levels when an S-Frame needs to modify the mini-GOP size.
+            if (ctx->sframe_hier_lvls != (int32_t)scs->static_config.hierarchical_levels) {
+                next_mg_hierarchical_levels = ctx->sframe_hier_lvls;
+            }
+#endif // FTR_SFRAME_FLEX
             if (ctx->enable_startup_mg) {
                 next_mg_hierarchical_levels = scs->static_config.startup_mg_size;
             }
@@ -5126,7 +5315,11 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
                             pcs->pic_idx_in_mg,
                             mini_gop_index);
 
+#if FTR_SFRAME_POSI
+                        if (scs->static_config.sframe_dist != 0 || !pcs->is_not_scaled || scs->static_config.sframe_posi.sframe_posis) {
+#else
                         if (scs->static_config.sframe_dist != 0 || !pcs->is_not_scaled) {
+#endif // FTR_SFRAME_POSI
                             update_sframe_ref_order_hint(pcs, ctx);
                         }
 

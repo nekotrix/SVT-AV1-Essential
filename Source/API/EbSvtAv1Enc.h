@@ -169,6 +169,10 @@ typedef enum EbSFrameMode {
         1, /**< The considered frame will be made into an S-Frame only if it is a base layer inter frame */
     SFRAME_NEAREST_BASE =
         2, /**< If the considered frame is not an altref frame, the next base layer inter frame will be made into an S-Frame */
+#if FTR_SFRAME_FLEX
+    SFRAME_FLEXIBLE_BASE =
+        3, /**< If the considered frame is not an altref frame, modify the miniGOP layers to make the considered frame as an altref frame, then it will be made into an S-Frame */
+#endif // FTR_SFRAME_FLEX
 } EbSFrameMode;
 
 #if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
@@ -210,6 +214,11 @@ typedef struct SvtAv1FrameScaleEvts {
     uint32_t *resize_kf_denoms;
     uint32_t *resize_denoms;
 } SvtAv1FrameScaleEvts;
+
+typedef struct SvtAv1SFramePositions {
+    uint32_t  sframe_num;
+    uint64_t *sframe_posis;
+} SvtAv1SFramePositions;
 
 // Will contain the EbEncApi which will live in the EncHandle class
 // Only modifiable during config-time.
@@ -681,6 +690,9 @@ typedef struct EbSvtAv1EncConfiguration {
     * values are from EbSFrameMode
     * SFRAME_STRICT_ARF: the considered frame will be made into an S-Frame only if it is an altref frame
     * SFRAME_NEAREST_ARF: if the considered frame is not an altref frame, the next altref frame will be made into an S-Frame
+#if FTR_SFRAME_FLEX
+    * SFRAME_FLEXIBLE_ARF: if the considered frame is not an altref frame, modify the mini-GOP structure to promote it to an altref frame
+#endif // FTR_SFRAME_FLEX
     */
     EbSFrameMode sframe_mode;
 
@@ -951,10 +963,19 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is false.
      */
     bool rtc;
+
+#if FTR_SFRAME_POSI
+    /* @brief Indicates where to insert an S-Frame, only available when sframe_mode is SFRAME_FLEXIBLE_ARF */
+    SvtAv1SFramePositions sframe_posi;
+#endif // FTR_SFRAME_POSI
+
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128 - (sizeof(uint8_t) * 2)
         - sizeof(bool)
+#if FTR_SFRAME_POSI
+        - sizeof(SvtAv1SFramePositions)
+#endif // FTR_SFRAME_POSI
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;
