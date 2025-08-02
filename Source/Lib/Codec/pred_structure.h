@@ -17,15 +17,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/************************************************
-     * Prediction Structure Config
-     *   Contains a collection of basic control data
-     *   for the basic prediction structure.
-     ************************************************/
-typedef struct PredictionStructureConfig {
-    uint32_t                        entry_count;
-    PredictionStructureConfigEntry *entry_array;
-} PredictionStructureConfig;
 
 /************************************************
      * Prediction Structure Entry
@@ -48,7 +39,6 @@ typedef struct PredictionStructure {
     uint32_t                   pred_struct_entry_count;
     PredictionStructureEntry **pred_struct_entry_ptr_array;
     PredStructure              pred_type;
-    uint32_t                   pred_struct_period;
     // Section Indices
     uint32_t init_pic_index;
 } PredictionStructure;
@@ -62,7 +52,6 @@ typedef struct PredictionStructureGroup {
     EbDctor               dctor;
     PredictionStructure **prediction_structure_ptr_array;
     uint32_t              prediction_structure_count;
-    void                 *priv; /* private member*/
 } PredictionStructureGroup;
 
 /************************************************

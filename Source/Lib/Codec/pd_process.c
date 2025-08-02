@@ -44,12 +44,7 @@
 #define  LAY2_OFF  5
 #define  LAY3_OFF  6
 #define  LAY4_OFF  7
-extern PredictionStructureConfigEntry flat_pred_struct[];
-extern PredictionStructureConfigEntry two_level_hierarchical_pred_struct[];
-extern PredictionStructureConfigEntry three_level_hierarchical_pred_struct[];
-extern PredictionStructureConfigEntry four_level_hierarchical_pred_struct[];
-extern PredictionStructureConfigEntry five_level_hierarchical_pred_struct[];
-extern PredictionStructureConfigEntry six_level_hierarchical_pred_struct[];
+
 void  svt_aom_get_max_allocated_me_refs(uint8_t ref_count_used_list0, uint8_t ref_count_used_list1, uint8_t* max_ref_to_alloc, uint8_t* max_cand_to_alloc);
 void svt_aom_init_resize_picture(SequenceControlSet* scs, PictureParentControlSet* pcs);
 MvReferenceFrame svt_get_ref_frame_type(uint8_t list, uint8_t ref_idx);
@@ -906,7 +901,7 @@ static EbErrorType handle_incomplete_picture_window_map(
 uint8_t is_pic_cutting_short_ra_mg(PictureDecisionContext   *pd_ctx, PictureParentControlSet *pcs, uint32_t mg_idx)
 {
     //if the size < complete MG or if there is usage of closed GOP
-    if ((pd_ctx->mini_gop_length[mg_idx] < pcs->pred_struct_ptr->pred_struct_period || pd_ctx->mini_gop_idr_count[mg_idx] > 0) &&
+    if ((pd_ctx->mini_gop_length[mg_idx] < pcs->pred_struct_ptr->pred_struct_entry_count || pd_ctx->mini_gop_idr_count[mg_idx] > 0) &&
         pcs->pred_struct_ptr->pred_type == RANDOM_ACCESS &&
         pcs->idr_flag == false &&
         pcs->cra_flag == false) {
@@ -1122,7 +1117,7 @@ static bool set_frame_display_params(
         //Decide on Show Mecanism
         if (pcs->slice_type == I_SLICE) {
             //3 cases for I slice:  1:Key Frame treated above.  2: broken MiniGop due to sc or intra refresh  3: complete miniGop due to sc or intra refresh
-            if (pd_ctx->mini_gop_length[mini_gop_index] < pcs->pred_struct_ptr->pred_struct_period) {
+            if (pd_ctx->mini_gop_length[mini_gop_index] < pcs->pred_struct_ptr->pred_struct_entry_count) {
                 //Scene Change that breaks the mini gop and switch to LDP (if I scene change happens to be aligned with a complete miniGop, then we do not break the pred structure)
                 frm_hdr->show_frame = true;
                 pcs->has_show_existing = false;
@@ -1131,7 +1126,7 @@ static bool set_frame_display_params(
                 pcs->has_show_existing = false;
             }
         } else {
-            if (pd_ctx->mini_gop_length[mini_gop_index] != pcs->pred_struct_ptr->pred_struct_period) {
+            if (pd_ctx->mini_gop_length[mini_gop_index] != pcs->pred_struct_ptr->pred_struct_entry_count) {
                 SVT_LOG("Error in GOP indexing3\n");
             }
             // Handle b frame of Random Access out
@@ -3200,7 +3195,7 @@ bool svt_aom_is_delayed_intra(PictureParentControlSet *pcs) {
     if ((pcs->idr_flag || pcs->cra_flag) && pcs->pred_structure == RANDOM_ACCESS) {
         if (pcs->scs->static_config.intra_period_length == 0 || pcs->end_of_sequence_flag)
             return 0;
-        else if (pcs->idr_flag || (pcs->cra_flag && pcs->pre_assignment_buffer_count < pcs->pred_struct_ptr->pred_struct_period))
+        else if (pcs->idr_flag || (pcs->cra_flag && pcs->pre_assignment_buffer_count < pcs->pred_struct_ptr->pred_struct_entry_count))
             return 1;
         else
             return 0;
@@ -4417,7 +4412,7 @@ static void update_pred_struct_and_pic_type(SequenceControlSet* scs, EncodeConte
         // If Intra, reset position
         if (pcs->idr_flag == true)
             enc_ctx->pred_struct_position = pcs->pred_struct_ptr->init_pic_index;
-        else if (pcs->cra_flag == true && ctx->mini_gop_length[mini_gop_index] < pcs->pred_struct_ptr->pred_struct_period)
+        else if (pcs->cra_flag == true && ctx->mini_gop_length[mini_gop_index] < pcs->pred_struct_ptr->pred_struct_entry_count)
             enc_ctx->pred_struct_position = pcs->pred_struct_ptr->init_pic_index;
         else if (enc_ctx->elapsed_non_cra_count == 0) {
             // If we are the picture directly after a CRA, we have to not use references that violate the CRA
@@ -4436,7 +4431,7 @@ static void update_pred_struct_and_pic_type(SequenceControlSet* scs, EncodeConte
         pcs->last_idr_picture = enc_ctx->last_idr_picture;
         // Cycle the PredStructPosition if its overflowed
     enc_ctx->pred_struct_position = (enc_ctx->pred_struct_position == pcs->pred_struct_ptr->pred_struct_entry_count) ?
-        enc_ctx->pred_struct_position - pcs->pred_struct_ptr->pred_struct_period :
+        enc_ctx->pred_struct_position - pcs->pred_struct_ptr->pred_struct_entry_count :
         enc_ctx->pred_struct_position;
 
     *pred_position_ptr = pcs->pred_struct_ptr->pred_struct_entry_ptr_array[enc_ctx->pred_struct_position];
@@ -4453,12 +4448,12 @@ static uint32_t get_pic_idx_in_mg(SequenceControlSet* scs, PictureParentControlS
         // For low delay P or low delay b case, get the the picture_index by mini_gop size
         if (scs->static_config.intra_period_length >= 0) {
             pic_idx_in_mg = (distance_to_last_idr == 0) ? 0 :
-                (uint32_t)(((distance_to_last_idr - 1) % (scs->static_config.intra_period_length + 1)) % pcs->pred_struct_ptr->pred_struct_period);
+                (uint32_t)(((distance_to_last_idr - 1) % (scs->static_config.intra_period_length + 1)) % pcs->pred_struct_ptr->pred_struct_entry_count);
         }
         else {
             // intra-period=-1 case, no gop
             pic_idx_in_mg = (distance_to_last_idr == 0) ? 0 :
-                (uint32_t)((distance_to_last_idr - 1) % pcs->pred_struct_ptr->pred_struct_period);
+                (uint32_t)((distance_to_last_idr - 1) % pcs->pred_struct_ptr->pred_struct_entry_count);
         }
 #if FTR_SFRAME_FLEX
         // In S-Frame flexible insertion mode, hierarchical levels are adjusted based on the S-Frame position.
@@ -5239,7 +5234,7 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
 
 
                             CHECK_REPORT_ERROR(
-                                (pcs->pred_struct_ptr->pred_struct_period * REF_LIST_MAX_DEPTH < MAX_ELAPSED_IDR_COUNT),
+                                (pcs->pred_struct_ptr->pred_struct_entry_count * REF_LIST_MAX_DEPTH < MAX_ELAPSED_IDR_COUNT),
                                 enc_ctx->app_callback_ptr,
                                 EB_ENC_PD_ERROR5);
                         }
@@ -5264,7 +5259,7 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
 
                         // Set the Decode Order
                         if ((ctx->mini_gop_idr_count[mini_gop_index] == 0) &&
-                            (ctx->mini_gop_length[mini_gop_index] == pcs->pred_struct_ptr->pred_struct_period) &&
+                            (ctx->mini_gop_length[mini_gop_index] == pcs->pred_struct_ptr->pred_struct_entry_count) &&
                             (scs->static_config.pred_structure == RANDOM_ACCESS) &&
                             !pcs->is_overlay) {
                             pcs->decode_order = enc_ctx->decode_base_number + pcs->pred_struct_ptr->pred_struct_entry_ptr_array[pcs->pred_struct_index]->decode_order;

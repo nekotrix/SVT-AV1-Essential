@@ -100,17 +100,6 @@ struct EbSvtAv1MasteringDisplayInfo {
     uint32_t                    min_luma;
 };
 
-/************************************************
- * Prediction Structure Config Entry
- *   Contains the basic reference lists and
- *   configurations for each Prediction Structure
- *   Config Entry.
- ************************************************/
-typedef struct PredictionStructureConfigEntry {
-    uint32_t temporal_layer_index;
-    uint32_t decode_order;
-} PredictionStructureConfigEntry;
-
 // super-res modes
 typedef enum {
     SUPERRES_NONE, // No frame superres allowed.

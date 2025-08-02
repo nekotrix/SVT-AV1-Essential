@@ -388,7 +388,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 ref_entry->frame_end_cdf_update_required = pcs->frame_end_cdf_update_mode;
 
                 CHECK_REPORT_ERROR(
-                    (pcs->pred_struct_ptr->pred_struct_period * REF_LIST_MAX_DEPTH < MAX_ELAPSED_IDR_COUNT),
+                    (pcs->pred_struct_ptr->pred_struct_entry_count * REF_LIST_MAX_DEPTH < MAX_ELAPSED_IDR_COUNT),
                     enc_ctx->app_callback_ptr,
                     EB_ENC_PM_ERROR6);
 #if OPT_LD_LATENCY2

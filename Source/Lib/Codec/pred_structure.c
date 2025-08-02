@@ -20,6 +20,7 @@
  **********************************************************/
 #define PRED_STRUCT_INDEX(hierarchicalLevelCount, predType) ((hierarchicalLevelCount) * PRED_TOTAL_COUNT + (predType))
 
+// clang-format off
 /**********************************************************
  * Instructions for how to create a Predicion Structure
  *
@@ -73,7 +74,7 @@
  *  0 1 2 3 4 5 6 7 8
  *
  ************************************************/
-static PredictionStructureConfigEntry flat_pred_struct[] = {{
+static PredictionStructureEntry flat_pred_struct[] = {{
     0, // GOP Index 0 - Temporal Layer
     0 // GOP Index 0 - Decode Order
 }};
@@ -91,14 +92,16 @@ static PredictionStructureConfigEntry flat_pred_struct[] = {{
 * Coding Order:
 *  0 2 1 4 3 6 5 8 7
 ************************************************/
-static PredictionStructureConfigEntry two_level_hierarchical_pred_struct[] = {{
-                                                                                  0, // GOP Index 0 - Temporal Layer
-                                                                                  0 // GOP Index 0 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  1, // GOP Index 1 - Temporal Layer
-                                                                                  1 // GOP Index 1 - Decode Order
-                                                                              }};
+static PredictionStructureEntry two_level_hierarchical_pred_struct[] = {
+    {
+        0, // GOP Index 0 - Temporal Layer
+        0 // GOP Index 0 - Decode Order
+    },
+    {
+        1, // GOP Index 1 - Temporal Layer
+        1 // GOP Index 1 - Decode Order
+    }
+};
 
 /************************************************
 * Three-Level Hierarchical
@@ -117,22 +120,24 @@ static PredictionStructureConfigEntry two_level_hierarchical_pred_struct[] = {{
 *  0   3 2 4   1   7 6 8   5   1 1 1   9
 *                              1 0 2
 ************************************************/
-static PredictionStructureConfigEntry three_level_hierarchical_pred_struct[] = {{
-                                                                                    0, // GOP Index 0 - Temporal Layer
-                                                                                    0 // GOP Index 0 - Decode Order
-                                                                                },
-                                                                                {
-                                                                                    2, // GOP Index 1 - Temporal Layer
-                                                                                    2 // GOP Index 1 - Decode Order
-                                                                                },
-                                                                                {
-                                                                                    1, // GOP Index 2 - Temporal Layer
-                                                                                    1 // GOP Index 2 - Decode Order
-                                                                                },
-                                                                                {
-                                                                                    2, // GOP Index 3 - Temporal Layer
-                                                                                    3 // GOP Index 3 - Decode Order
-                                                                                }};
+static PredictionStructureEntry three_level_hierarchical_pred_struct[] = {
+    {
+        0, // GOP Index 0 - Temporal Layer
+        0 // GOP Index 0 - Decode Order
+    },
+    {
+        2, // GOP Index 1 - Temporal Layer
+        2 // GOP Index 1 - Decode Order
+    },
+    {
+        1, // GOP Index 2 - Temporal Layer
+        1 // GOP Index 2 - Decode Order
+    },
+    {
+        2, // GOP Index 3 - Temporal Layer
+        3 // GOP Index 3 - Decode Order
+    }
+};
 
 /************************************************************************************************************
 * Four-Level Hierarchical
@@ -157,38 +162,40 @@ static PredictionStructureConfigEntry three_level_hierarchical_pred_struct[] = {
 *                                                  2  1  3     0     5  4  6
 *
 ***********************************************************************************************************/
-static PredictionStructureConfigEntry four_level_hierarchical_pred_struct[] = {{
-                                                                                   0, // GOP Index 0 - Temporal Layer
-                                                                                   0 // GOP Index 0 - Decode Order
-                                                                               },
-                                                                               {
-                                                                                   3, // GOP Index 1 - Temporal Layer
-                                                                                   3 // GOP Index 1 - Decode Order
-                                                                               },
-                                                                               {
-                                                                                   2, // GOP Index 2 - Temporal Layer
-                                                                                   2 // GOP Index 2 - Decode Order
-                                                                               },
-                                                                               {
-                                                                                   3, // GOP Index 3 - Temporal Layer
-                                                                                   4 // GOP Index 3 - Decode Order
-                                                                               },
-                                                                               {
-                                                                                   1, // GOP Index 4 - Temporal Layer
-                                                                                   1 // GOP Index 4 - Decode Order
-                                                                               },
-                                                                               {
-                                                                                   3, // GOP Index 5 - Temporal Layer
-                                                                                   6 // GOP Index 5 - Decode Order
-                                                                               },
-                                                                               {
-                                                                                   2, // GOP Index 6 - Temporal Layer
-                                                                                   5 // GOP Index 6 - Decode Order
-                                                                               },
-                                                                               {
-                                                                                   3, // GOP Index 7 - Temporal Layer
-                                                                                   7 // GOP Index 7 - Decode Order
-                                                                               }};
+static PredictionStructureEntry four_level_hierarchical_pred_struct[] = {
+    {
+        0, // GOP Index 0 - Temporal Layer
+        0 // GOP Index 0 - Decode Order
+    },
+    {
+        3, // GOP Index 1 - Temporal Layer
+        3 // GOP Index 1 - Decode Order
+    },
+    {
+        2, // GOP Index 2 - Temporal Layer
+        2 // GOP Index 2 - Decode Order
+    },
+    {
+        3, // GOP Index 3 - Temporal Layer
+        4 // GOP Index 3 - Decode Order
+    },
+    {
+        1, // GOP Index 4 - Temporal Layer
+        1 // GOP Index 4 - Decode Order
+    },
+    {
+        3, // GOP Index 5 - Temporal Layer
+        6 // GOP Index 5 - Decode Order
+    },
+    {
+        2, // GOP Index 6 - Temporal Layer
+        5 // GOP Index 6 - Decode Order
+    },
+    {
+        3, // GOP Index 7 - Temporal Layer
+        7 // GOP Index 7 - Decode Order
+    }
+};
 
 /***********************************************************************************************************
 * Five-Level Level Hierarchical
@@ -214,8 +221,7 @@ static PredictionStructureConfigEntry four_level_hierarchical_pred_struct[] = {{
 *                                                   2  1  3     0     5  4  6
 *
 ***********************************************************************************************************/
-static PredictionStructureConfigEntry five_level_hierarchical_pred_struct[] = {
-
+static PredictionStructureEntry five_level_hierarchical_pred_struct[] = {
     {
         0, // GOP Index 0 - Temporal Layer
         0 // GOP Index 0 - Decode Order
@@ -280,7 +286,8 @@ static PredictionStructureConfigEntry five_level_hierarchical_pred_struct[] = {
     {
         4, // GOP Index 15 - Temporal Layer
         15 // GOP Index 15 - Decode Order
-    }};
+    }
+};
 
 /**********************************************************************************************************************************************************************************************************************
 * Six-Level Level Hierarchical
@@ -309,134 +316,147 @@ static PredictionStructureConfigEntry five_level_hierarchical_pred_struct[] = {
 *                                      0               3  2  4     1     6  5  7                   1  0  2     9     4  3  5       8       8  7  9     6     1  0  2
 *
 **********************************************************************************************************************************************************************************************************************/
-static PredictionStructureConfigEntry six_level_hierarchical_pred_struct[] = {{
-                                                                                  0, // GOP Index 0 - Temporal Layer
-                                                                                  0 // GOP Index 0 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 1 - Temporal Layer
-                                                                                  5 // GOP Index 1 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  4, // GOP Index 2 - Temporal Layer
-                                                                                  4 // GOP Index 2 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 3 - Temporal Layer
-                                                                                  6 // GOP Index 3 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  3, // GOP Index 4 - Temporal Layer
-                                                                                  3 // GOP Index 4 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 5 - Temporal Layer
-                                                                                  8 // GOP Index 5 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  4, // GOP Index 6 - Temporal Layer
-                                                                                  7 // GOP Index 6 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 7 - Temporal Layer
-                                                                                  9 // GOP Index 7 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  2, // GOP Index 8 - Temporal Layer
-                                                                                  2 // GOP Index 8 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 9 - Temporal Layer
-                                                                                  12 // GOP Index 9 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  4, // GOP Index 10 - Temporal Layer
-                                                                                  11 // GOP Index 10 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 11 - Temporal Layer
-                                                                                  13 // GOP Index 11 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  3, // GOP Index 12 - Temporal Layer
-                                                                                  10 // GOP Index 12 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 13 - Temporal Layer
-                                                                                  15 // GOP Index 13 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  4, // GOP Index 14 - Temporal Layer
-                                                                                  14 // GOP Index 14 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 15 - Temporal Layer
-                                                                                  16 // GOP Index 15 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  1, // GOP Index 16 - Temporal Layer
-                                                                                  1 // GOP Index 16 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 17 - Temporal Layer
-                                                                                  20 // GOP Index 17 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  4, // GOP Index 18 - Temporal Layer
-                                                                                  19 // GOP Index 18 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 19 - Temporal Layer
-                                                                                  21 // GOP Index 19 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  3, // GOP Index 20 - Temporal Layer
-                                                                                  18 // GOP Index 20 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 21 - Temporal Layer
-                                                                                  23 // GOP Index 21 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  4, // GOP Index 22 - Temporal Layer
-                                                                                  22 // GOP Index 22 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 23 - Temporal Layer
-                                                                                  24 // GOP Index 23 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  2, // GOP Index 24 - Temporal Layer
-                                                                                  17 // GOP Index 24 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 25 - Temporal Layer
-                                                                                  27 // GOP Index 25 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  4, // GOP Index 26 - Temporal Layer
-                                                                                  26 // GOP Index 26 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 27 - Temporal Layer
-                                                                                  28 // GOP Index 27 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  3, // GOP Index 28 - Temporal Layer
-                                                                                  25 // GOP Index 28 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 29 - Temporal Layer
-                                                                                  30 // GOP Index 29 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  4, // GOP Index 30 - Temporal Layer
-                                                                                  29 // GOP Index 30 - Decode Order
-                                                                              },
-                                                                              {
-                                                                                  5, // GOP Index 31 - Temporal Layer
-                                                                                  31 // GOP Index 31 - Decode Order
-                                                                              }};
+static PredictionStructureEntry six_level_hierarchical_pred_struct[] = {
+    {
+        0, // GOP Index 0 - Temporal Layer
+        0 // GOP Index 0 - Decode Order
+    },
+    {
+        5, // GOP Index 1 - Temporal Layer
+        5 // GOP Index 1 - Decode Order
+    },
+    {
+        4, // GOP Index 2 - Temporal Layer
+        4 // GOP Index 2 - Decode Order
+    },
+    {
+        5, // GOP Index 3 - Temporal Layer
+        6 // GOP Index 3 - Decode Order
+    },
+    {
+        3, // GOP Index 4 - Temporal Layer
+        3 // GOP Index 4 - Decode Order
+    },
+    {
+        5, // GOP Index 5 - Temporal Layer
+        8 // GOP Index 5 - Decode Order
+    },
+    {
+        4, // GOP Index 6 - Temporal Layer
+        7 // GOP Index 6 - Decode Order
+    },
+    {
+        5, // GOP Index 7 - Temporal Layer
+        9 // GOP Index 7 - Decode Order
+    },
+    {
+        2, // GOP Index 8 - Temporal Layer
+        2 // GOP Index 8 - Decode Order
+    },
+    {
+        5, // GOP Index 9 - Temporal Layer
+        12 // GOP Index 9 - Decode Order
+    },
+    {
+        4, // GOP Index 10 - Temporal Layer
+        11 // GOP Index 10 - Decode Order
+    },
+    {
+        5, // GOP Index 11 - Temporal Layer
+        13 // GOP Index 11 - Decode Order
+    },
+    {
+        3, // GOP Index 12 - Temporal Layer
+        10 // GOP Index 12 - Decode Order
+    },
+    {
+        5, // GOP Index 13 - Temporal Layer
+        15 // GOP Index 13 - Decode Order
+    },
+    {
+        4, // GOP Index 14 - Temporal Layer
+        14 // GOP Index 14 - Decode Order
+    },
+    {
+        5, // GOP Index 15 - Temporal Layer
+        16 // GOP Index 15 - Decode Order
+    },
+    {
+        1, // GOP Index 16 - Temporal Layer
+        1 // GOP Index 16 - Decode Order
+    },
+    {
+        5, // GOP Index 17 - Temporal Layer
+        20 // GOP Index 17 - Decode Order
+    },
+    {
+        4, // GOP Index 18 - Temporal Layer
+        19 // GOP Index 18 - Decode Order
+    },
+    {
+        5, // GOP Index 19 - Temporal Layer
+        21 // GOP Index 19 - Decode Order
+    },
+    {
+        3, // GOP Index 20 - Temporal Layer
+        18 // GOP Index 20 - Decode Order
+    },
+    {
+        5, // GOP Index 21 - Temporal Layer
+        23 // GOP Index 21 - Decode Order
+    },
+    {
+        4, // GOP Index 22 - Temporal Layer
+        22 // GOP Index 22 - Decode Order
+    },
+    {
+        5, // GOP Index 23 - Temporal Layer
+        24 // GOP Index 23 - Decode Order
+    },
+    {
+        2, // GOP Index 24 - Temporal Layer
+        17 // GOP Index 24 - Decode Order
+    },
+    {
+        5, // GOP Index 25 - Temporal Layer
+        27 // GOP Index 25 - Decode Order
+    },
+    {
+        4, // GOP Index 26 - Temporal Layer
+        26 // GOP Index 26 - Decode Order
+    },
+    {
+        5, // GOP Index 27 - Temporal Layer
+        28 // GOP Index 27 - Decode Order
+    },
+    {
+        3, // GOP Index 28 - Temporal Layer
+        25 // GOP Index 28 - Decode Order
+    },
+    {
+        5, // GOP Index 29 - Temporal Layer
+        30 // GOP Index 29 - Decode Order
+    },
+    {
+        4, // GOP Index 30 - Temporal Layer
+        29 // GOP Index 30 - Decode Order
+    },
+    {
+        5, // GOP Index 31 - Temporal Layer
+        31 // GOP Index 31 - Decode Order
+    }
+};
+// clang-format on
+
+/************************************************
+     * Prediction Structure Config
+     *   Contains a collection of basic control data
+     *   for the basic prediction structure.
+     ************************************************/
+typedef struct PredictionStructureConfig {
+    uint32_t                  entry_count;
+    PredictionStructureEntry *entry_array;
+} PredictionStructureConfig;
 
 /************************************************
  * Prediction Structure Config Array
@@ -448,57 +468,23 @@ static const PredictionStructureConfig g_prediction_structure_config_array[] = {
     {8, four_level_hierarchical_pred_struct},
     {16, five_level_hierarchical_pred_struct},
     {32, six_level_hierarchical_pred_struct},
-    {0, (PredictionStructureConfigEntry *)NULL} // Terminating Code, must always come last!
+    {0, (PredictionStructureEntry *)NULL} // Terminating Code, must always come last!
 };
 
-typedef struct PredictionStructureConfigArray {
-    EbDctor                    dctor;
-    PredictionStructureConfig *prediction_structure_config_array;
-} PredictionStructureConfigArray;
-
-static void prediction_structure_config_array_dctor(EbPtr p) {
-    PredictionStructureConfigArray *obj    = (PredictionStructureConfigArray *)p;
-    PredictionStructureConfig      *config = obj->prediction_structure_config_array;
-    if (!config)
-        return;
-    for (int i = 0; config[i].entry_count; i++) { EB_FREE_ARRAY(config[i].entry_array); }
-    EB_FREE_ARRAY(config);
-}
-
-#define DIM(array) (sizeof(array) / sizeof(array[0]))
-static EbErrorType prediction_structure_config_array_ctor(PredictionStructureConfigArray *array_ptr) {
-    array_ptr->dctor = prediction_structure_config_array_dctor;
-    EB_CALLOC_ARRAY(array_ptr->prediction_structure_config_array, DIM(g_prediction_structure_config_array));
-    const PredictionStructureConfig *src  = &g_prediction_structure_config_array[0];
-    PredictionStructureConfig       *dest = &array_ptr->prediction_structure_config_array[0];
-    for (; src->entry_count; src++, dest++) {
-        const uint32_t count = src->entry_count;
-
-        dest->entry_count = count;
-        EB_CALLOC_ARRAY(dest->entry_array, count);
-        memcpy(dest->entry_array, src->entry_array, sizeof(PredictionStructureConfigEntry) * count);
-    }
-    return EB_ErrorNone;
-}
 /************************************************
  * Get Prediction Structure
  ************************************************/
 PredictionStructure *svt_aom_get_prediction_structure(PredictionStructureGroup *pred_struct_group_ptr,
                                                       PredStructure pred_struct, uint32_t levels_of_hierarchy) {
-    PredictionStructure *pred_struct_ptr;
-    uint32_t             pred_struct_index;
     // Determine the Index value
-    pred_struct_index = PRED_STRUCT_INDEX(levels_of_hierarchy, (uint32_t)pred_struct);
+    uint32_t pred_struct_index = PRED_STRUCT_INDEX(levels_of_hierarchy, pred_struct);
 
-    pred_struct_ptr = pred_struct_group_ptr->prediction_structure_ptr_array[pred_struct_index];
-
-    return pred_struct_ptr;
+    return pred_struct_group_ptr->prediction_structure_ptr_array[pred_struct_index];
 }
 
 static void prediction_structure_dctor(EbPtr p) {
-    PredictionStructure       *obj = (PredictionStructure *)p;
-    PredictionStructureEntry **pe  = obj->pred_struct_entry_ptr_array;
-    if (pe) {
+    PredictionStructure *obj = (PredictionStructure *)p;
+    if (obj->pred_struct_entry_ptr_array) {
         EB_FREE_2D(obj->pred_struct_entry_ptr_array);
     }
 }
@@ -686,9 +672,8 @@ static EbErrorType prediction_structure_ctor(PredictionStructure             *pr
 
     pred_struct->pred_type = pred_type;
 
-    // Set the Pred Struct Period and total Entry Count
-    const uint32_t pred_struct_period = pred_struct->pred_struct_period = pred_struct->pred_struct_entry_count =
-        pred_struct_cfg->entry_count;
+    // Set total Entry Count
+    pred_struct->pred_struct_entry_count = pred_struct_cfg->entry_count;
 
     // Set the Section Indices
     pred_struct->init_pic_index = 0;
@@ -700,9 +685,9 @@ static EbErrorType prediction_structure_ctor(PredictionStructure             *pr
     // Construct Steady-state Pictures
     //   -Copy directly from the Config
     //----------------------------------------
-    for (unsigned int entry_idx = 0; entry_idx < pred_struct_period; ++entry_idx) {
-        PredictionStructureConfigEntry *cfg_entry  = &pred_struct_cfg->entry_array[entry_idx];
-        PredictionStructureEntry       *pred_entry = pred_struct->pred_struct_entry_ptr_array[entry_idx];
+    for (unsigned int entry_idx = 0; entry_idx < pred_struct->pred_struct_entry_count; ++entry_idx) {
+        PredictionStructureEntry *cfg_entry  = &pred_struct_cfg->entry_array[entry_idx];
+        PredictionStructureEntry *pred_entry = pred_struct->pred_struct_entry_ptr_array[entry_idx];
 
         // Set the Temporal Layer Index
         pred_entry->temporal_layer_index = cfg_entry->temporal_layer_index;
@@ -717,8 +702,6 @@ static EbErrorType prediction_structure_ctor(PredictionStructure             *pr
 static void prediction_structure_group_dctor(EbPtr p) {
     PredictionStructureGroup *obj = (PredictionStructureGroup *)p;
     EB_DELETE_PTR_ARRAY(obj->prediction_structure_ptr_array, obj->prediction_structure_count);
-    PredictionStructureConfigArray *array = (PredictionStructureConfigArray *)obj->priv;
-    EB_DELETE(array);
 }
 /*************************************************
  * Prediction Structure Group Ctor
@@ -741,21 +724,17 @@ static void prediction_structure_group_dctor(EbPtr p) {
  *************************************************/
 EbErrorType svt_aom_prediction_structure_group_ctor(PredictionStructureGroup *pred_struct_group_ptr) {
     pred_struct_group_ptr->dctor = prediction_structure_group_dctor;
-    PredictionStructureConfigArray *config_array;
-    EB_NEW(config_array, prediction_structure_config_array_ctor);
-    pred_struct_group_ptr->priv = config_array;
 
-    PredictionStructureConfig *prediction_structure_config_array = config_array->prediction_structure_config_array;
-    pred_struct_group_ptr->prediction_structure_count            = MAX_TEMPORAL_LAYERS * PRED_TOTAL_COUNT;
+    pred_struct_group_ptr->prediction_structure_count = MAX_TEMPORAL_LAYERS * PRED_TOTAL_COUNT;
     EB_ALLOC_PTR_ARRAY(pred_struct_group_ptr->prediction_structure_ptr_array,
                        pred_struct_group_ptr->prediction_structure_count);
-    for (unsigned int hierarchical_levels = 0; hierarchical_levels < MAX_TEMPORAL_LAYERS; hierarchical_levels++) {
+    for (uint32_t hierarchical_levels = 0; hierarchical_levels < MAX_TEMPORAL_LAYERS; hierarchical_levels++) {
         for (PredStructure pred_type = 0; pred_type < PRED_TOTAL_COUNT; ++pred_type) {
-            const unsigned int pred_struct_index = PRED_STRUCT_INDEX(hierarchical_levels, pred_type);
+            uint32_t pred_struct_index = PRED_STRUCT_INDEX(hierarchical_levels, pred_type);
 
             EB_NEW(pred_struct_group_ptr->prediction_structure_ptr_array[pred_struct_index],
                    prediction_structure_ctor,
-                   &(prediction_structure_config_array[hierarchical_levels]),
+                   &g_prediction_structure_config_array[hierarchical_levels],
                    pred_type);
         }
     }
