@@ -734,13 +734,13 @@ ConfigDescription config_entry_rc[] = {
      "Adjust temporal filtering strength, default is 1 [0-4]"},
     // Frame-level luminance-based QP bias
     {LUMINANCE_QP_BIAS_TOKEN,
-     "Adjusts a frame's QP based on its average luma value, default is 50 [0-100]"},
+     "Adjusts a frame's QP based on its average luma value, default is 10 [0-100]"},
     // Sharpness
     {SHARPNESS_TOKEN,
      "Bias towards decreased/increased sharpness, default is 1 [-7 to 7]"},
     // QP scale compress strength
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN,
-     "QP scale compress strength, default is 3 [0-8]"},
+     "QP scale compress strength, default is 1 [0-8]"},
     // Zones
     {ZONES_TOKEN,
      "CRF/CQP zones, format: start,end,quality;start,end,quality;..., default is none",},
@@ -783,7 +783,7 @@ ConfigDescription config_entry_specific[] = {
      "[0-4]"},
 
     // DLF
-    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 1 [0-1]"},
+    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 2 [0-3]"},
     // CDEF
     {CDEF_ENABLE_TOKEN,
      "Enable Constrained Directional Enhancement Filter, default is 1 [0-1]"},
@@ -838,8 +838,8 @@ ConfigDescription config_entry_color_description[] = {
 
 ConfigDescription config_entry_variance_boost[] = {
     // Variance boost
-    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 2 [1-4]"},
-    {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 5 [1-8]"},
+    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 1 [1-4]"},
+    {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 4 [1-8]"},
     // Termination
     {NULL, NULL}};
 
@@ -1020,11 +1020,11 @@ ConfigDescription fconfig_entry_rc[] = {
     // TF Strength
     {TF_STRENGTH_FILTER_TOKEN, "Adjust temporal filtering strength, default is 1 [0-4]"},
     // Frame-level luminance-based QP bias
-    {LUMINANCE_QP_BIAS_TOKEN, "Adjusts a frame's QP based on its average luma value, default is 50 [0-100]"},
+    {LUMINANCE_QP_BIAS_TOKEN, "Adjusts a frame's QP based on its average luma value, default is 10 [0-100]"},
     // Sharpness
     {SHARPNESS_TOKEN, "Bias towards decreased/increased sharpness, default is 1 [-7 to 7]"},
     // QP scale compress strength
-    {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 3 [0-8]"},
+    {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 1 [0-8]"},
     // Zones
     {ZONES_TOKEN,
      "CRF/CQP zones, format: start,end,quality;start,end,quality;..., default is none",},
@@ -1076,7 +1076,7 @@ ConfigDescription fconfig_entry_specific[] = {
      "Number of tile columns to use, `TileCol == log2(x)`, default is 0 [0-4]"},
 
     // DLF
-    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 1 [0-1]"},
+    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 2 [0-3]"},
     // CDEF
     {CDEF_ENABLE_TOKEN, "Enable Constrained Directional Enhancement Filter, default is 1 [0-1]"},
     // RESTORATION
@@ -1146,7 +1146,7 @@ ConfigDescription fconfig_entry_specific[] = {
     // --- end: REFERENCE SCALING SUPPORT
     {LOSSLESS_TOKEN, "Enable lossless coding, default is 0 [0-1]"},
     {AVIF_TOKEN, "Enable still-picture coding, default is 0 [0-1]"},
-    {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 3 [0-8]"},
+    {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 1 [0-8]"},
     {AUTO_TILING_TOKEN, "Auto tiling, default is 1 [0-1]"},
     // Termination
     {NULL, NULL}};
@@ -1175,8 +1175,8 @@ ConfigDescription fconfig_entry_color_description[] = {
 ConfigDescription fconfig_entry_variance_boost[] = {
     // Variance boost
     {ENABLE_VARIANCE_BOOST_TOKEN, "Enable variance boost, default is 1 [0-1]"},
-    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 2 [1-4]"},
-    {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 5 [1-8]"},
+    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 1 [1-4]"},
+    {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 4 [1-8]"},
     {VARIANCE_BOOST_CURVE_TOKEN, "Curve for variance boost, default is 0 [0-2]"},
     // Termination
     {NULL, NULL}};

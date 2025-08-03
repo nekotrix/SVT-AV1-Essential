@@ -919,14 +919,25 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
                     fprintf(stderr, "\b\b\b\b\b\b\b\b\b%9d", *frame_count);
                 break;
             case 2:
-                fprintf(stderr,
-                        "\rEncoding: %4d/%4ld Frames @ %.2f fp%c | %.2f kbps | Time: %d:%02d:%02d [-%d:%02d:%02d] | Size: %.2f MB [%.2f MB]",
-                        *frame_count,
-                        (long)app_cfg->frames_to_be_encoded,
-                        fps >= 1.0 ? fps : fps * 60,
-                        fps >= 1.0 ? 's' : 'm',
-                        ((double)(app_cfg->performance_context.byte_count << 3) * frame_rate / (app_cfg->frames_encoded * 1000)),
-                        ete_hh, ete_mm, ete_ss, eta_hh, eta_mm, eta_ss, size, estsz);
+                if ((int)app_cfg->frames_to_be_encoded == -1) {
+                    fprintf(stderr,
+                            "\rEncoding: %4d Frames @ %.2f fp%c | %.2f kbps | Time: %d:%02d:%02d | Size: %.2f MB",
+                            *frame_count,
+                            fps >= 1.0 ? fps : fps * 60,
+                            fps >= 1.0 ? 's' : 'm',
+                            ((double)(app_cfg->performance_context.byte_count << 3) * frame_rate / (app_cfg->frames_encoded * 1000)),
+                            ete_hh, ete_mm, ete_ss, size);
+                } else {
+                    fprintf(stderr,
+                            "\rEncoding: %4d/%4ld Frames @ %.2f fp%c | %.2f kbps | Time: %d:%02d:%02d [-%d:%02d:%02d] | Size: %.2f MB [%.2f MB]",
+                            *frame_count,
+                            (long)app_cfg->frames_to_be_encoded,
+                            fps >= 1.0 ? fps : fps * 60,
+                            fps >= 1.0 ? 's' : 'm',
+                            ((double)(app_cfg->performance_context.byte_count << 3) * frame_rate / (app_cfg->frames_encoded * 1000)),
+                            ete_hh, ete_mm, ete_ss, eta_hh, eta_mm, eta_ss, size, estsz);
+                }
+                break;
             default: break;
             }
             fflush(stderr);
@@ -1023,14 +1034,25 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
                     fprintf(stderr, "\b\b\b\b\b\b\b\b\b%9d", *frame_count);
                 break;
             case 2:
-                fprintf(stderr,
-                        "\rEncoding: %4d/%4ld Frames @ %.2f fp%c | %.2f kbps | Time: %d:%02d:%02d [-%d:%02d:%02d] | Size: %.2f MB [%.2f MB]",
-                        *frame_count,
-                        (long)app_cfg->frames_to_be_encoded,
-                        fps >= 1.0 ? fps : fps * 60,
-                        fps >= 1.0 ? 's' : 'm',
-                        ((double)(app_cfg->performance_context.byte_count << 3) * frame_rate / (app_cfg->frames_encoded * 1000)),
-                        ete_hh, ete_mm, ete_ss, eta_hh, eta_mm, eta_ss, size, estsz);
+                if ((int)app_cfg->frames_to_be_encoded == -1) {
+                    fprintf(stderr,
+                            "\rEncoding: %4d Frames @ %.2f fp%c | %.2f kbps | Time: %d:%02d:%02d | Size: %.2f MB",
+                            *frame_count,
+                            fps >= 1.0 ? fps : fps * 60,
+                            fps >= 1.0 ? 's' : 'm',
+                            ((double)(app_cfg->performance_context.byte_count << 3) * frame_rate / (app_cfg->frames_encoded * 1000)),
+                            ete_hh, ete_mm, ete_ss, size);
+                } else {
+                    fprintf(stderr,
+                            "\rEncoding: %4d/%4ld Frames @ %.2f fp%c | %.2f kbps | Time: %d:%02d:%02d [-%d:%02d:%02d] | Size: %.2f MB [%.2f MB]",
+                            *frame_count,
+                            (long)app_cfg->frames_to_be_encoded,
+                            fps >= 1.0 ? fps : fps * 60,
+                            fps >= 1.0 ? 's' : 'm',
+                            ((double)(app_cfg->performance_context.byte_count << 3) * frame_rate / (app_cfg->frames_encoded * 1000)),
+                            ete_hh, ete_mm, ete_ss, eta_hh, eta_mm, eta_ss, size, estsz);
+                }
+                break;
             default: break;
             }
             fflush(stderr);
