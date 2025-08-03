@@ -20,7 +20,7 @@ jobs:
       matrix:
         config:
           - {
-              name: "Windows_Optimized_x86_64-v3",
+              name: "Windows_Optimized",
               os: windows-2022,
               generators: "Ninja",
               msvc_arch: x64,
@@ -38,21 +38,21 @@ jobs:
               march: "generic"
             }
           - {
-              name: "Ubuntu_Optimized_x86_64-v3",
+              name: "Linux_Optimized",
               os: ubuntu-latest,
               c_compiler: clang,
               cpp_compiler: clang++,
               march: "x86-64-v3"
             }
           - {
-              name: "Ubuntu_Generic",
+              name: "Linux_Generic",
               os: ubuntu-latest,
               c_compiler: clang,
               cpp_compiler: clang++,
               march: "generic"
             }
           - {
-              name: "MacOS_arm64",
+              name: "MacOS_Arm",
               os: macos-latest,
               c_compiler: clang,
               cpp_compiler: clang++,
@@ -64,14 +64,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: ilammy/setup-nasm@v1
-    - name: Ubuntu/Mac OS X
-      if: ${{ !contains( matrix.config.os, 'windows' ) }}
+    - name: Ubuntu
+      if: contains( matrix.config.os, 'ubuntu' )
       run: |
         if [ "${{ matrix.config.march }}" = "generic" ]; then
-          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=OFF -DBUILD_DEC=OFF -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}"
+          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=OFF -DBUILD_DEC=OFF -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
         else
-          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DENABLE_AVX512=ON -DBUILD_DEC=OFF -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}" "-DCMAKE_C_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -DNDEBUG"
+          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DENABLE_AVX512=ON -DBUILD_DEC=OFF -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_C_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -DNDEBUG"
         fi
+        cmake --build svt_build --config Release
+      shell: bash
+    - name: Mac OS X
+      if: contains( matrix.config.os, 'macos' )
+      run: |
+        cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DENABLE_AVX512=OFF -DBUILD_DEC=OFF -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}"
         cmake --build svt_build --config Release
       shell: bash
     - name: Windows build
@@ -80,9 +86,9 @@ jobs:
         set CC=clang
         set CXX=clang++
         if "${{ matrix.config.march }}" == "generic" (
-          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=OFF -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
+          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=OFF -DBUILD_DEC=OFF -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
         ) else (
-          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O3 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O3 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
+          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DENABLE_AVX512=ON -DBUILD_DEC=OFF -DCMAKE_C_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O3 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O3 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
         )
         ninja -C svt_build
       shell: cmd
@@ -125,6 +131,9 @@ jobs:
             tag: tag
           });
 
+          // Extract version without leading "v" if present
+          const version = tag.startsWith('v') ? tag.slice(1) : tag;
+
           // Find binary files (executables only, not .a files)
           const binDir = 'Bin/Release';
           const files = fs.readdirSync(binDir);
@@ -134,11 +143,13 @@ jobs:
           });
 
           console.log('Found binaries:', binaries);
-
+          
           // Upload each binary
           for (const binary of binaries) {
             const filePath = path.join(binDir, binary);
-            const fileName = `${{ matrix.config.name }}-${binary}`;
+            const ext = path.extname(binary);
+            const base = path.basename(binary, ext);
+            const fileName = `${base}-${version}-${{ matrix.config.name }}${ext}`;
 
             console.log(`Uploading ${fileName}...`);
 

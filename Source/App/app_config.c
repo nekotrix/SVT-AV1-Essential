@@ -702,13 +702,13 @@ ConfigDescription config_entry_rc[] = {
      "Adjust temporal filtering strength, default is 1 [0-4]"},
     // Frame-level luminance-based QP bias
     {LUMINANCE_QP_BIAS_TOKEN,
-     "Adjusts a frame's QP based on its average luma value, default is 50 [0-100]"},
+     "Adjusts a frame's QP based on its average luma value, default is 10 [0-100]"},
     // Sharpness
     {SHARPNESS_TOKEN,
      "Bias towards decreased/increased sharpness, default is 1 [-7 to 7]"},
     // QP scale compress strength
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN,
-     "QP scale compress strength, default is 3 [0-8]"},
+     "QP scale compress strength, default is 1 [0-8]"},
     // Termination
     {NULL, NULL}};
 
@@ -745,7 +745,7 @@ ConfigDescription config_entry_specific[] = {
      "[0-4]"},
 
     // DLF
-    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 1 [0-1]"},
+    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 2 [0-3]"},
     // CDEF
     {CDEF_ENABLE_TOKEN,
      "Enable Constrained Directional Enhancement Filter, default is 1 [0-1]"},
@@ -800,8 +800,8 @@ ConfigDescription config_entry_color_description[] = {
 
 ConfigDescription config_entry_psychovisual[] = {
     // Variance boost
-    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 2 [1-4]"},
-    {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 5 [1-8]"},
+    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 1 [1-4]"},
+    {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 4 [1-8]"},
     // AC-Bias
     {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.0 [0.0-8.0]"},
     // Termination
@@ -978,11 +978,11 @@ ConfigDescription fconfig_entry_rc[] = {
     // TF Strength
     {TF_STRENGTH_FILTER_TOKEN, "Adjust temporal filtering strength, default is 1 [0-4]"},
     // Frame-level luminance-based QP bias
-    {LUMINANCE_QP_BIAS_TOKEN, "Adjusts a frame's QP based on its average luma value, default is 50 [0-100]"},
+    {LUMINANCE_QP_BIAS_TOKEN, "Adjusts a frame's QP based on its average luma value, default is 10 [0-100]"},
     // Sharpness
     {SHARPNESS_TOKEN, "Bias towards decreased/increased sharpness, default is 1 [-7 to 7]"},
     // QP scale compress strength
-    {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 3 [0-8]"},
+    {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 1 [0-8]"},
     // Termination
     {NULL, NULL}};
 
@@ -1031,7 +1031,7 @@ ConfigDescription fconfig_entry_specific[] = {
      "Number of tile columns to use, `TileCol == log2(x)`, default is 0 [0-4]"},
 
     // DLF
-    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 1 [0-2]"},
+    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 2 [0-3]"},
     // CDEF
     {CDEF_ENABLE_TOKEN, "Enable Constrained Directional Enhancement Filter, default is 1 [0-1]"},
     // RESTORATION
@@ -1134,9 +1134,9 @@ ConfigDescription fconfig_entry_color_description[] = {
 
 ConfigDescription fconfig_entry_psychovisual[] = {
     // Variance Boost
-    {ENABLE_VARIANCE_BOOST_TOKEN, "Enable Variance Boost, default is 0 [0-1]"},
-    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance Boost strength, default is 2 [1-4]"},
-    {VARIANCE_OCTILE_TOKEN, "Octile for Variance Boost, default is 5 [1-8]"},
+    {ENABLE_VARIANCE_BOOST_TOKEN, "Enable Variance Boost, default is 1 [0-1]"},
+    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance Boost strength, default is 1 [1-4]"},
+    {VARIANCE_OCTILE_TOKEN, "Octile for Variance Boost, default is 4 [1-8]"},
     {VARIANCE_BOOST_CURVE_TOKEN, "Curve for Variance Boost, default is 0 [0-2]"},
     // Adaptive film grain
     {ADAPTIVE_FILM_GRAIN_TOKEN, "Adapts film grain blocksize based on video resolution, default is 1 [0-1]"},
