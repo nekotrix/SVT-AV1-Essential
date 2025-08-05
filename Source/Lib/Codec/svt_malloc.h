@@ -87,11 +87,6 @@ static inline void* svt_aom_memset16(void* dest, int32_t val, size_t length) {
     return dest;
 }
 //-------------------------------
-#if EXCLUDE_HASH
-#define svt_print_alloc_fail(a, b) svt_print_alloc_fail_impl(a, 0)
-#else
-#define svt_print_alloc_fail(a, b) svt_print_alloc_fail_impl(a, b)
-#endif
 void svt_print_alloc_fail_impl(const char* file, int line);
 
 #ifdef DEBUG_MEMORY_USAGE
@@ -101,13 +96,7 @@ void svt_decrease_component_count(void);
 void svt_add_mem_entry_impl(void* ptr, EbPtrType type, size_t count, const char* file, uint32_t line);
 void svt_remove_mem_entry(void* ptr, EbPtrType type);
 
-#if EXCLUDE_HASH
-#define svt_add_mem_entry(a, b, c, d, e) svt_add_mem_entry_impl(a, b, c, d, 0)
-#else
-#define svt_add_mem_entry(a, b, c, d, e) svt_add_mem_entry_impl(a, b, c, d, e)
-#endif
-
-#define EB_ADD_MEM_ENTRY(p, type, count) svt_add_mem_entry(p, type, count, __FILE__, __LINE__)
+#define EB_ADD_MEM_ENTRY(p, type, count) svt_add_mem_entry_impl(p, type, count, __FILE__, EB_LINE_NUM)
 #define EB_REMOVE_MEM_ENTRY(p, type) svt_remove_mem_entry(p, type);
 
 #else
@@ -129,12 +118,12 @@ void svt_remove_mem_entry(void* ptr, EbPtrType type);
 
 #endif //DEBUG_MEMORY_USAGE
 
-#define EB_NO_THROW_ADD_MEM(p, size, type)            \
-    do {                                              \
-        if (!p)                                       \
-            svt_print_alloc_fail(__FILE__, __LINE__); \
-        else                                          \
-            EB_ADD_MEM_ENTRY(p, type, size);          \
+#define EB_NO_THROW_ADD_MEM(p, size, type)                    \
+    do {                                                      \
+        if (!p)                                               \
+            svt_print_alloc_fail_impl(__FILE__, EB_LINE_NUM); \
+        else                                                  \
+            EB_ADD_MEM_ENTRY(p, type, size);                  \
     } while (0)
 
 #define EB_CHECK_MEM(p)                           \

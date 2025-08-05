@@ -327,93 +327,46 @@ EbCpuFlags svt_aom_get_cpu_flags_to_use() { return 0; }
 #endif
 
 #ifdef ARCH_X86_64
-#if EXCLUDE_HASH
 #define SET_FUNCTIONS(ptr, c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512)     \
     do {                                                                                          \
         if (check_pointer_was_set && ptr != 0) {                                                  \
-            printf("Error: %s:%i: Pointer \"%s\" is set before!\n", __FILE__, 0, #ptr);           \
+            printf("Error: %s:%i: Pointer \"%s\" is set before!\n", __FILE__, EB_LINE_NUM, #ptr); \
             assert(0);                                                                            \
         }                                                                                         \
         if ((uintptr_t)NULL == (uintptr_t)c) {                                                    \
-            printf("Error: %s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, 0, #ptr);            \
+            printf("Error: %s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, EB_LINE_NUM, #ptr);  \
             assert(0);                                                                            \
         }                                                                                         \
         ptr = c;                                                                                  \
         SET_FUNCTIONS_X86(ptr, c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512) \
     } while (0)
-#else
-#define SET_FUNCTIONS(ptr, c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512)     \
-    do {                                                                                          \
-        if (check_pointer_was_set && ptr != 0) {                                                  \
-            printf("Error: %s:%i: Pointer \"%s\" is set before!\n", __FILE__, __LINE__, #ptr);    \
-            assert(0);                                                                            \
-        }                                                                                         \
-        if ((uintptr_t)NULL == (uintptr_t)c) {                                                    \
-            printf("Error: %s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, __LINE__, #ptr);     \
-            assert(0);                                                                            \
-        }                                                                                         \
-        ptr = c;                                                                                  \
-        SET_FUNCTIONS_X86(ptr, c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512) \
-    } while (0)
-#endif
 #elif defined ARCH_AARCH64
-#if EXCLUDE_HASH
-#define SET_FUNCTIONS(ptr, c, neon, neon_dotprod, neon_i8mm, sve, sve2)                 \
-    do {                                                                                \
-        if (check_pointer_was_set && ptr != 0) {                                        \
-            printf("Error: %s:%i: Pointer \"%s\" is set before!\n", __FILE__, 0, #ptr); \
-            assert(0);                                                                  \
-        }                                                                               \
-        if ((uintptr_t)NULL == (uintptr_t)c) {                                          \
-            printf("Error: %s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, 0, #ptr);  \
-            assert(0);                                                                  \
-        }                                                                               \
-        ptr = c;                                                                        \
-        SET_FUNCTIONS_AARCH64(ptr, c, neon, neon_dotprod, neon_i8mm, sve, sve2)         \
+#define SET_FUNCTIONS(ptr, c, neon, neon_dotprod, neon_i8mm, sve, sve2)                           \
+    do {                                                                                          \
+        if (check_pointer_was_set && ptr != 0) {                                                  \
+            printf("Error: %s:%i: Pointer \"%s\" is set before!\n", __FILE__, EB_LINE_NUM, #ptr); \
+            assert(0);                                                                            \
+        }                                                                                         \
+        if ((uintptr_t)NULL == (uintptr_t)c) {                                                    \
+            printf("Error: %s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, EB_LINE_NUM, #ptr);  \
+            assert(0);                                                                            \
+        }                                                                                         \
+        ptr = c;                                                                                  \
+        SET_FUNCTIONS_AARCH64(ptr, c, neon, neon_dotprod, neon_i8mm, sve, sve2)                   \
     } while (0)
 #else
-#define SET_FUNCTIONS(ptr, c, neon, neon_dotprod, neon_i8mm, sve, sve2)                        \
-    do {                                                                                       \
-        if (check_pointer_was_set && ptr != 0) {                                               \
-            printf("Error: %s:%i: Pointer \"%s\" is set before!\n", __FILE__, __LINE__, #ptr); \
-            assert(0);                                                                         \
-        }                                                                                      \
-        if ((uintptr_t)NULL == (uintptr_t)c) {                                                 \
-            printf("Error: %s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, __LINE__, #ptr);  \
-            assert(0);                                                                         \
-        }                                                                                      \
-        ptr = c;                                                                               \
-        SET_FUNCTIONS_AARCH64(ptr, c, neon, neon_dotprod, neon_i8mm, sve, sve2)                \
+#define SET_FUNCTIONS(ptr, c)                                                                     \
+    do {                                                                                          \
+        if (check_pointer_was_set && ptr != 0) {                                                  \
+            printf("Error: %s:%i: Pointer \"%s\" is set before!\n", __FILE__, EB_LINE_NUM, #ptr); \
+            assert(0);                                                                            \
+        }                                                                                         \
+        if ((uintptr_t)NULL == (uintptr_t)c) {                                                    \
+            printf("Error: %s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, EB_LINE_NUM, #ptr);  \
+            assert(0);                                                                            \
+        }                                                                                         \
+        ptr = c;                                                                                  \
     } while (0)
-#endif
-#else
-#if EXCLUDE_HASH
-#define SET_FUNCTIONS(ptr, c)                                                           \
-    do {                                                                                \
-        if (check_pointer_was_set && ptr != 0) {                                        \
-            printf("Error: %s:%i: Pointer \"%s\" is set before!\n", __FILE__, 0, #ptr); \
-            assert(0);                                                                  \
-        }                                                                               \
-        if ((uintptr_t)NULL == (uintptr_t)c) {                                          \
-            printf("Error: %s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, 0, #ptr);  \
-            assert(0);                                                                  \
-        }                                                                               \
-        ptr = c;                                                                        \
-    } while (0)
-#else
-#define SET_FUNCTIONS(ptr, c)                                                                  \
-    do {                                                                                       \
-        if (check_pointer_was_set && ptr != 0) {                                               \
-            printf("Error: %s:%i: Pointer \"%s\" is set before!\n", __FILE__, __LINE__, #ptr); \
-            assert(0);                                                                         \
-        }                                                                                      \
-        if ((uintptr_t)NULL == (uintptr_t)c) {                                                 \
-            printf("Error: %s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, __LINE__, #ptr);  \
-            assert(0);                                                                         \
-        }                                                                                      \
-        ptr = c;                                                                               \
-    } while (0)
-#endif
 #endif
 
 // clang-format off
