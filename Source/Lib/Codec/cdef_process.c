@@ -308,6 +308,10 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
     const int32_t       num_planes  = 3;
     CdefList            dlist[MI_SIZE_128X128 * MI_SIZE_128X128];
 
+    int32_t toff_prev  = CDEF_VBORDER;
+    int32_t loff_prev  = CDEF_HBORDER;
+    int32_t ysize_prev = (1 << MAX_SB_SIZE_LOG2) + 2 * CDEF_VBORDER;
+    int32_t xsize_prev = (1 << MAX_SB_SIZE_LOG2) + 2 * CDEF_HBORDER;
     DECLARE_ALIGNED(32, uint16_t, inbuf[CDEF_INBUF_SIZE]);
     uint16_t *in = inbuf + CDEF_VBORDER * CDEF_BSTRIDE + CDEF_HBORDER;
     // tmp_dst is uint16_t to accomodate high bit depth content; 8bit will treat it as a uint8_t
@@ -369,25 +373,39 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
             }
             pcs->skip_cdef_seg[fb_idx] = 0;
 
-            uint8_t(*dir)[CDEF_NBLOCKS][CDEF_NBLOCKS] = &pcs->cdef_dir_data[fb_idx].dir;
-            int32_t(*var)[CDEF_NBLOCKS][CDEF_NBLOCKS] = &pcs->cdef_dir_data[fb_idx].var;
+            int32_t toff = CDEF_VBORDER * (fbr != 0);
+            int32_t loff = CDEF_HBORDER * (fbc != 0);
+            int32_t boff = CDEF_VBORDER * ((int32_t)fbr + vb_step < nvfb);
+            int32_t roff = CDEF_HBORDER * ((int32_t)fbc + hb_step < nhfb);
+
+            uint8_t (*dir)[CDEF_NBLOCKS][CDEF_NBLOCKS] = &pcs->cdef_dir_data[fb_idx].dir;
+            int32_t (*var)[CDEF_NBLOCKS][CDEF_NBLOCKS] = &pcs->cdef_dir_data[fb_idx].var;
             for (int pli = 0; pli < num_planes; pli++) {
+                int32_t ysize = (nvb << mi_high_l2[pli]) + boff + toff;
+                int32_t xsize = (nhb << mi_wide_l2[pli]) + roff + loff;
                 /* We avoid filtering the pixels for which some of the pixels to
                    average are outside the frame. We could change the filter instead,
                    but it would add special cases for any future vectorization.
-                   No need to set pli == 2 because the copy size will be the same as for pli == 1. */
-                if (pli < 2)
-                    memset(inbuf, (uint8_t)CDEF_VERY_LARGE, sizeof(inbuf[0]) * CDEF_INBUF_SIZE);
-                int32_t yoff  = CDEF_VBORDER * (fbr != 0);
-                int32_t xoff  = CDEF_HBORDER * (fbc != 0);
-                int32_t ysize = (nvb << mi_high_l2[pli]) + CDEF_VBORDER * ((int32_t)fbr + vb_step < nvfb) + yoff;
-                int32_t xsize = (nhb << mi_wide_l2[pli]) + CDEF_HBORDER * ((int32_t)fbc + hb_step < nhfb) + xoff;
+                   Avoid memset'ting when dirty rect is inside the new one.
+                   TODO: this could be further optimized - fill out only borders, separate buffers for Y & UV */
+                bool need_to_reset = toff_prev > toff || loff_prev > loff || ysize < ysize_prev || xsize < xsize_prev;
+                if (need_to_reset) {
+                    uint16_t *p = &in[(-toff_prev * CDEF_BSTRIDE - loff_prev)];
+                    for (int r = 0; r < ysize_prev; r++) {
+                        memset(p, (uint8_t)CDEF_VERY_LARGE, sizeof(p[0]) * xsize_prev);
+                        p += CDEF_BSTRIDE;
+                    }
+                }
+                toff_prev  = toff;
+                loff_prev  = loff;
+                ysize_prev = ysize;
+                xsize_prev = xsize;
 
-                svt_aom_copy_sb8_16(&in[(-yoff * CDEF_BSTRIDE - xoff)],
+                svt_aom_copy_sb8_16(&in[(-toff * CDEF_BSTRIDE - loff)],
                                     CDEF_BSTRIDE,
                                     src[pli],
-                                    (lr << mi_high_l2[pli]) - yoff,
-                                    (lc << mi_wide_l2[pli]) - xoff,
+                                    (lr << mi_high_l2[pli]) - toff,
+                                    (lc << mi_wide_l2[pli]) - loff,
                                     stride_src[pli],
                                     ysize,
                                     xsize,
