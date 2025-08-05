@@ -1575,7 +1575,6 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
             input_data.b64_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->b64_size;
             input_data.sb_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->super_block_size;
             input_data.hbd_md = enc_handle_ptr->scs_instance_array[instance_index]->scs->enable_hbd_mode_decision;
-            input_data.cdf_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->cdf_mode;
             input_data.mfmv = enc_handle_ptr->scs_instance_array[instance_index]->scs->mfmv_enabled;
             input_data.cfg_palette = enc_handle_ptr->scs_instance_array[0]->scs->static_config.screen_content_mode;
             //Jing: Get tile info from parent_pcs
@@ -1629,7 +1628,6 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
             input_data.b64_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->b64_size;
             input_data.sb_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->super_block_size;
             input_data.hbd_md = enc_handle_ptr->scs_instance_array[instance_index]->scs->enable_hbd_mode_decision;
-            input_data.cdf_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->cdf_mode;
             input_data.mfmv = enc_handle_ptr->scs_instance_array[instance_index]->scs->mfmv_enabled;
             input_data.cfg_palette = enc_handle_ptr->scs_instance_array[0]->scs->static_config.screen_content_mode;
             //Jing: Get tile info from parent_pcs
@@ -3856,7 +3854,6 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         else
             scs->static_config.qp = 30;
     }
-    scs->initial_qp = scs->static_config.qp;
     svt_aom_derive_input_resolution(
         &scs->input_resolution,
         scs->max_input_luma_width *scs->max_input_luma_height);
@@ -4106,10 +4103,6 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     scs->static_config.enable_overlays = !scs->static_config.enable_tf ||
         (scs->static_config.rate_control_mode != SVT_AV1_RC_MODE_CQP_OR_CRF) ?
         0 : scs->static_config.enable_overlays;
-    //0: ON
-    //1: OFF
-    // Memory Footprint reduction tool ONLY if no CDF (should be controlled using an API signal and not f(enc_mode))
-    scs->cdf_mode = 0;
 
     // Enforce starting frame in decode order (at PicMgr)
     // Does not wait for feedback from PKT
@@ -4228,8 +4221,6 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->static_config.enc_mode <= ENC_M7)
         ? 1
         : 0;
-
-    scs->max_heirachical_level = scs->static_config.hierarchical_levels;
 }
 static void copy_api_from_app(
     SequenceControlSet       *scs,

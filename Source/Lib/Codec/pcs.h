@@ -1151,7 +1151,6 @@ typedef struct PictureControlSetInitData {
     EbSvtAv1EncConfiguration static_config;
     uint8_t                  speed_control;
     int8_t                   hbd_md;
-    uint8_t                  cdf_mode;
     uint8_t                  over_boundary_block_mode;
     uint8_t                  mfmv;
     // init value for child pcs

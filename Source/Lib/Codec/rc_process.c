@@ -1399,7 +1399,8 @@ void svt_aom_cyclic_refresh_init(PictureParentControlSet *ppcs) {
     if (cr->percent_refresh > 0) {
         if (!ppcs->sc_class1) {
             cr->rate_ratio_qdelta = ((uint64_t)rc->frames_since_key <
-                                     (uint64_t)(4 * (1 << scs->max_heirachical_level) * 100 / cr->percent_refresh))
+                                     (uint64_t)(4 * (1 << scs->static_config.hierarchical_levels) * 100 /
+                                                cr->percent_refresh))
                 ? 1.50
                 : 1.15;
             cr->rate_ratio_qdelta += rc->rate_ratio_qdelta_adjustment;

@@ -79,17 +79,12 @@ typedef struct SequenceControlSet {
     */
     /*!< Maximum number of allowed temporal layers */
     uint32_t max_temporal_layers;
-    /*!< Overflow bits used for the picture order count increments */
-    uint32_t bits_for_picture_order_count;
-    /*!< Screen change detection mode 0=OFF, 1=use decimated picture, 2=use full picture */
-    EbScdMode scd_mode;
     /*!< Number of delay frames needed to implement future window
          for algorithms such as SceneChange or TemporalFiltering */
     uint32_t scd_delay;
     /*!<  */
     EbBlockMeanPrec block_mean_calc_prec;
-    /*!< CDF (The signal changes per preset; 0: CDF update, 1: no CDF update) Default is 0.*/
-    uint8_t  cdf_mode;
+
     uint32_t svt_aom_geom_idx; //geometry type
 
     /*  1..15    | 17..31  | 33..47  |
@@ -123,9 +118,6 @@ typedef struct SequenceControlSet {
         (The signal changes per preset; 0: No over boundary blk allowed, 1: over boundary blk allowed) Default is 1.
         to enable when md_skip_blk is on */
     uint8_t over_boundary_block_mode;
-    /*!< Enable compound prediction to be used in the stream, decisions will be taken at a picture level subsequently
-    (The signal changes per preset; 0: compound disabled, 1: compound enabled) Default is 1. */
-    uint8_t compound_mode;
 
     /*!< Sequence resolution parameters */
     uint32_t          chroma_format_idc;
@@ -139,7 +131,6 @@ typedef struct SequenceControlSet {
     uint16_t          max_initial_input_luma_height; // max init time input luma height aligned to 8
     uint16_t          max_initial_input_pad_bottom; // max init time input pad bottom
     uint16_t          max_initial_input_pad_right; // max init time input pad right
-    uint16_t          initial_qp; // init time qp
     uint32_t          chroma_width;
     uint32_t          chroma_height;
     uint32_t          pad_right;
@@ -242,8 +233,9 @@ typedef struct SequenceControlSet {
     MrpCtrls     mrp_ctrls;
     /*!< The RC stat generation pass mode (0: The default, 1: optimized)*/
     uint8_t rc_stat_gen_pass_mode;
-    int     cqp_base_q_tf;
-    int     cqp_base_q;
+#if TUNE_CQP_CHROMA_SSIM
+    int cqp_base_q;
+#endif
     // less than 200 frames or gop_constraint_rc is set, used in VBR and set in multipass encode
     uint8_t           is_short_clip;
     uint8_t           passes;
@@ -263,8 +255,8 @@ typedef struct SequenceControlSet {
     uint32_t super_block_size;
     /* Picture based rate estimation
     *
-    * Default is - 1. */
-    int pic_based_rate_est;
+    * Default is false. */
+    bool pic_based_rate_est;
 
     // MD Parameters
     /* Enable the use of HBD (10-bit) for 10 bit content at the mode decision step
@@ -281,7 +273,6 @@ typedef struct SequenceControlSet {
     * Default is null.*/
     int enable_qp_scaling_flag;
 
-    int max_heirachical_level;
     /* Flag to enable the Speed Control functionality to achieve the real-time
     * encoding speed defined by dynamically changing the encoding preset to meet
     * the average speed defined in injectorFrameRate. When this parameter is set
