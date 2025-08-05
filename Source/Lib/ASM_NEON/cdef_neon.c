@@ -205,7 +205,7 @@ uint64_t svt_search_one_dual_neon(int *lev0, int *lev1, int nb_strengths, uint64
         return svt_search_one_dual_c(lev0, lev1, nb_strengths, mse, sb_count, start_gi, end_gi);
     }
 
-    uint64_t      tot_mse[TOTAL_STRENGTHS][TOTAL_STRENGTHS];
+    uint64_t      tot_mse[end_gi][(end_gi + 3) & ~3];
     int32_t       i, j;
     uint64_t      best_tot_mse    = (uint64_t)1 << 63;
     int32_t       best_id0        = 0;
