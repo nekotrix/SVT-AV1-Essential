@@ -24,6 +24,7 @@
 
 #if RTC_BUILD
 #define CONFIG_LOG_QUIET                    1
+#define CONFIG_ENABLE_C_FUNCTIONS           0
 
 #define CONFIG_ENABLE_QUANT_MATRIX          0
 #define CONFIG_ENABLE_OBMC                  0
@@ -33,6 +34,10 @@
 
 #ifndef CONFIG_LOG_QUIET
 #define CONFIG_LOG_QUIET                    0
+#endif
+
+#ifndef CONFIG_ENABLE_C_FUNCTIONS
+#define CONFIG_ENABLE_C_FUNCTIONS           1
 #endif
 
 #ifndef CONFIG_ENABLE_QUANT_MATRIX
