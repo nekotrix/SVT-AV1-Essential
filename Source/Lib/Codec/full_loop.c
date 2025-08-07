@@ -35,11 +35,11 @@ uint64_t svt_spatial_full_distortion_ssim_kernel(uint8_t *input, uint32_t input_
                                                  uint8_t *recon, int32_t recon_offset, uint32_t recon_stride,
                                                  uint32_t area_width, uint32_t area_height, bool hbd);
 
-void svt_aom_quantize_b_c_ii(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr,
-                             const int16_t *round_ptr, const int16_t *quant_ptr, const int16_t *quant_shift_ptr,
-                             TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr, uint16_t *eob_ptr,
-                             const int16_t *scan, const int16_t *iscan, const QmVal *qm_ptr, const QmVal *iqm_ptr,
-                             const int32_t log_scale) {
+void svt_aom_quantize_b_c(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr,
+                          const int16_t *round_ptr, const int16_t *quant_ptr, const int16_t *quant_shift_ptr,
+                          TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr, uint16_t *eob_ptr,
+                          const int16_t *scan, const int16_t *iscan, const QmVal *qm_ptr, const QmVal *iqm_ptr,
+                          const int32_t log_scale) {
     const int32_t zbins[2]  = {ROUND_POWER_OF_TWO(zbin_ptr[0], log_scale), ROUND_POWER_OF_TWO(zbin_ptr[1], log_scale)};
     const int32_t nzbins[2] = {zbins[0] * -1, zbins[1] * -1};
     intptr_t      non_zero_count = n_coeffs, eob = -1;
@@ -87,74 +87,6 @@ void svt_aom_quantize_b_c_ii(const TranLow *coeff_ptr, intptr_t n_coeffs, const 
     *eob_ptr = (uint16_t)(eob + 1);
 }
 
-void svt_aom_quantize_b_c(const TranLow *coeff_ptr, int32_t stride, int32_t width, int32_t height, intptr_t n_coeffs,
-                          const int16_t *zbin_ptr, const int16_t *round_ptr, const int16_t *quant_ptr,
-                          const int16_t *quant_shift_ptr, TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr,
-                          const int16_t *dequant_ptr, uint16_t *eob_ptr, const int16_t *scan, const int16_t *iscan,
-                          const QmVal *qm_ptr, const QmVal *iqm_ptr, const int32_t log_scale) {
-    const int32_t zbins[2]  = {ROUND_POWER_OF_TWO(zbin_ptr[0], log_scale), ROUND_POWER_OF_TWO(zbin_ptr[1], log_scale)};
-    const int32_t nzbins[2] = {zbins[0] * -1, zbins[1] * -1};
-    intptr_t      non_zero_count = n_coeffs, eob = -1;
-    (void)iscan;
-
-    // Nader quantisation
-    for (int32_t x = 0; x < height; x++) {
-        memset(qcoeff_ptr + (x * stride), 0, width /*n_coeffs*/ * sizeof(*qcoeff_ptr));
-        memset(dqcoeff_ptr + (x * stride), 0, width /*n_coeffs*/ * sizeof(*dqcoeff_ptr));
-    }
-
-    // Pre-scan pass
-    for (intptr_t i = n_coeffs - 1; i >= 0; i--) {
-        const int32_t map_rc = scan[i];
-
-        const int32_t rc = ((map_rc / MIN(32, height)) * stride) + (map_rc % MIN(32, width));
-
-        const QmVal   wt    = qm_ptr != NULL ? qm_ptr[rc] : (1 << AOM_QM_BITS);
-        const int32_t coeff = coeff_ptr[rc] * wt;
-
-        ////if (map_rc != NewTab[rc])
-        //SVT_LOG("%d\n", coeff);
-
-        if (coeff < (zbins[rc != 0] * (1 << AOM_QM_BITS)) && coeff > (nzbins[rc != 0] * (1 << AOM_QM_BITS)))
-            non_zero_count--;
-        else
-            break;
-    }
-    // Quantization pass: All coefficients with index >= zero_flag are
-    // skippable. Note: zero_flag can be zero.
-    for (intptr_t i = 0; i < non_zero_count; i++) {
-        const int32_t map_rc = scan[i];
-
-        const int32_t rc         = ((map_rc / MIN(32, height)) * stride) + (map_rc % MIN(32, width));
-        const int32_t coeff      = coeff_ptr[rc];
-        const int     coeff_sign = coeff < 0 ? -1 : 0;
-        const int32_t abs_coeff  = (coeff ^ coeff_sign) - coeff_sign;
-
-        const QmVal wt = qm_ptr != NULL ? qm_ptr[map_rc] : (1 << AOM_QM_BITS);
-
-        if (abs_coeff * wt >= (zbins[rc != 0] << AOM_QM_BITS)) {
-            int64_t tmp = clamp(abs_coeff + ROUND_POWER_OF_TWO(round_ptr[rc != 0], log_scale), INT16_MIN, INT16_MAX);
-
-            tmp *= wt;
-
-            int32_t tmp32 = (int32_t)(((((tmp * quant_ptr[rc != 0]) >> 16) + tmp) * quant_shift_ptr[rc != 0]) >>
-                                      (16 - log_scale + AOM_QM_BITS)); // quantization
-
-            qcoeff_ptr[rc] = (tmp32 ^ coeff_sign) - coeff_sign;
-
-            const int32_t iwt = iqm_ptr != NULL ? iqm_ptr[map_rc] : (1 << AOM_QM_BITS);
-
-            const int32_t dequant = (dequant_ptr[rc != 0] * iwt + (1 << (AOM_QM_BITS - 1))) >> AOM_QM_BITS;
-
-            dqcoeff_ptr[rc] = qcoeff_ptr[rc] * dequant / (1 << log_scale);
-
-            if (tmp32)
-                eob = i;
-        }
-    }
-
-    *eob_ptr = (uint16_t)(eob + 1);
-}
 void svt_aom_highbd_quantize_b_c(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr,
                                  const int16_t *round_ptr, const int16_t *quant_ptr, const int16_t *quant_shift_ptr,
                                  TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr,
