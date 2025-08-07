@@ -71,23 +71,23 @@
 #endif
 
 
-#define CHECK_PTR_IS_NOT_SET(ptr)                                                             \
-    if (check_pointer_was_set && (uintptr_t)NULL != (uintptr_t)ptr) {                         \
-        printf("Error: %s:%i: Pointer \"%s\" is set before!\n", __FILE__, EB_LINE_NUM, #ptr); \
-        assert(0);                                                                            \
+#define CHECK_PTR_IS_NOT_SET(ptr)                                                         \
+    if (check_pointer_was_set && (uintptr_t)NULL != (uintptr_t)ptr) {                     \
+        SVT_ERROR("%s:%i: Pointer \"%s\" is set before!\n", __FILE__, EB_LINE_NUM, #ptr); \
+        assert(0);                                                                        \
     }
 
-#define CHECK_PTR_IS_SET(ptr)                                                                   \
-    if ((uintptr_t)NULL == (uintptr_t)ptr) {                                                    \
-        printf("Error: %s:%i: Pointer \"%s\" is not assigned!\n", __FILE__, EB_LINE_NUM, #ptr); \
-        assert(0);                                                                              \
+#define CHECK_PTR_IS_SET(ptr)                                                               \
+    if ((uintptr_t)NULL == (uintptr_t)ptr) {                                                \
+        SVT_ERROR("%s:%i: Pointer \"%s\" is not assigned!\n", __FILE__, EB_LINE_NUM, #ptr); \
+        assert(0);                                                                          \
     }
 
-#define SET_FUNCTION_C(ptr, c)                                                               \
-    if ((uintptr_t)NULL == (uintptr_t)c) {                                                   \
-        printf("Error: %s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, EB_LINE_NUM, #ptr); \
-        assert(0);                                                                           \
-    }                                                                                        \
+#define SET_FUNCTION_C(ptr, c)                                                           \
+    if ((uintptr_t)NULL == (uintptr_t)c) {                                               \
+        SVT_ERROR("%s:%i: Pointer \"%s\" on C is NULL!\n", __FILE__, EB_LINE_NUM, #ptr); \
+        assert(0);                                                                       \
+    }                                                                                    \
     ptr = c;
 
 #ifdef ARCH_X86_64
@@ -171,7 +171,7 @@
 #endif
 
 void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
-    /* Avoid check that pointer is set double, after first  setup. */
+    /* Avoid check that pointer is set double, after first setup. */
     static bool first_call_setup = true;
     bool        check_pointer_was_set = first_call_setup;
     first_call_setup = false;
