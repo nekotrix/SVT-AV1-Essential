@@ -22,9 +22,24 @@
 
 // clang-format off
 
+// When set to 1, EB_CPU_FLAGS_NEON is unconditionally set for all ARCH_AARCH64
+// builds, i.e. requiring Neon for library to work. This also allows linker to
+// strip code for all C functions which are optimized with Neon SIMD and thus
+// reduce final binary size.
+// Neon is mandatory in Armv8.0-A (AArch64), which is our minimum Arm target,
+// so it is guaranteed for our builds.
+#define CONFIG_ARM_NEON_IS_GUARANTEED       1
+
+// Same for x86 builds and AVX2 as minimum required SIMD level.
+// AVX2 was first released in 2013 on Haswell microarchitecture, all x86
+// processors since support it.
+// You can set it to 1 to reduce binary size if deployment platforms are
+// guaranteed to be not older than Haswell.
+#define CONFIG_X86_AVX2_IS_GUARANTEED       0
+
+
 #if RTC_BUILD
 #define CONFIG_LOG_QUIET                    1
-#define CONFIG_ENABLE_C_FUNCTIONS           0
 
 #define CONFIG_ENABLE_QUANT_MATRIX          0
 #define CONFIG_ENABLE_OBMC                  0
@@ -34,10 +49,6 @@
 
 #ifndef CONFIG_LOG_QUIET
 #define CONFIG_LOG_QUIET                    0
-#endif
-
-#ifndef CONFIG_ENABLE_C_FUNCTIONS
-#define CONFIG_ENABLE_C_FUNCTIONS           1
 #endif
 
 #ifndef CONFIG_ENABLE_QUANT_MATRIX

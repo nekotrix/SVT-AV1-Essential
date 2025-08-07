@@ -109,6 +109,7 @@ EbCpuFlags svt_aom_get_cpu_flags_to_use() {
 
 // Define hwcap values ourselves: building with an old auxv header where these
 // hwcap values are not defined should not prevent features from being enabled.
+#define AOM_AARCH64_HWCAP_NEON (1 << 1)
 #define AOM_AARCH64_HWCAP_CRC32 (1 << 7)
 #define AOM_AARCH64_HWCAP_ASIMDDP (1 << 20)
 #define AOM_AARCH64_HWCAP_SVE (1 << 22)
@@ -133,7 +134,14 @@ EbCpuFlags svt_aom_get_cpu_flags(void) {
 #endif
 #endif
 
+#if CONFIG_ARM_NEON_IS_GUARANTEED
     EbCpuFlags flags = EB_CPU_FLAGS_NEON; // Neon is mandatory in Armv8.0-A.
+#else
+    EbCpuFlags flags = 0;
+    if (hwcap & AOM_AARCH64_HWCAP_NEON)
+        flags |= EB_CPU_FLAGS_NEON;
+#endif
+
 #if HAVE_ARM_CRC32
     if (hwcap & AOM_AARCH64_HWCAP_CRC32)
         flags |= EB_CPU_FLAGS_ARM_CRC32;
@@ -173,7 +181,13 @@ static INLINE bool have_feature(const char *feature) {
 #endif
 
 EbCpuFlags svt_aom_get_cpu_flags(void) {
+#if CONFIG_ARM_NEON_IS_GUARANTEED
     EbCpuFlags flags = EB_CPU_FLAGS_NEON;
+#else
+    EbCpuFlags flags = 0;
+    if (have_feature("hw.optional.neon"))
+        flags |= EB_CPU_FLAGS_NEON;
+#endif
 #if HAVE_ARM_CRC32
     if (have_feature("hw.optional.armv8_crc32"))
         flags |= EB_CPU_FLAGS_ARM_CRC32;
@@ -194,7 +208,13 @@ EbCpuFlags svt_aom_get_cpu_flags(void) {
 // IsProcessorFeaturePresent() parameter documentation:
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-isprocessorfeaturepresent#parameters
 EbCpuFlags svt_aom_get_cpu_flags(void) {
+#if CONFIG_ARM_NEON_IS_GUARANTEED
     EbCpuFlags flags = EB_CPU_FLAGS_NEON; // Neon is mandatory in Armv8.0-A.
+#else
+    EbCpuFlags flags = 0;
+    if (IsProcessorFeaturePresent(PF_ARM_V8_INSTRUCTIONS_AVAILABLE)) {
+        flags |= EB_CPU_FLAGS_NEON;
+#endif
 #if HAVE_ARM_CRC32
     if (IsProcessorFeaturePresent(PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE)) {
         flags |= EB_CPU_FLAGS_ARM_CRC32;
@@ -220,7 +240,9 @@ EbCpuFlags svt_aom_get_cpu_flags() {
 
     // safe to call multiple times, and threadsafe
 
+#if CONFIG_ARM_NEON_IS_GUARANTEED
     flags |= EB_CPU_FLAGS_NEON;
+#endif
 
     return flags;
 }
@@ -328,28 +350,56 @@ EbCpuFlags svt_aom_get_cpu_flags_to_use() { return 0; }
     }                                                                                        \
     ptr = c;
 
-#if CONFIG_ENABLE_C_FUNCTIONS
-#define MAYBE_SET_FUNCTION_C(ptr, c) SET_FUNCTION_C(ptr, c)
-#else
-#define MAYBE_SET_FUNCTION_C(ptr, c)
-#endif
-
 #ifdef ARCH_X86_64
+// general function dispatcher
 #define SET_FUNCTIONS(ptr, c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512)  \
     do {                                                                                       \
         CHECK_PTR_IS_NOT_SET(ptr)                                                              \
-        MAYBE_SET_FUNCTION_C(ptr, c)                                                           \
+        SET_FUNCTION_C(ptr, c)                                                                 \
         SET_FUNCTIONS_X86(ptr, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512) \
         CHECK_PTR_IS_SET(ptr)                                                                  \
     } while (0)
+
+// special case when any optimization up to AVX2 is available
+#if CONFIG_X86_AVX2_IS_GUARANTEED
+// when AVX2 is guaranteed to be available - we can skip C function assignment
+// and thus allow linker to strip C code from final binary to reduce size.
+#define SET_FUNCTIONS_AVX2(ptr, c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512) \
+    do {                                                                                           \
+        CHECK_PTR_IS_NOT_SET(ptr)                                                                  \
+        SET_FUNCTIONS_X86(ptr, neon, neon_dotprod, neon_i8mm, sve, sve2)                           \
+        CHECK_PTR_IS_SET(ptr)                                                                      \
+    } while (0)
+#else
+#define SET_FUNCTIONS_AVX2(ptr, c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512) \
+    SET_FUNCTIONS(ptr, c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512)
+#endif
+
 #elif defined ARCH_AARCH64
+
+// general function dispatcher
 #define SET_FUNCTIONS(ptr, c, neon, neon_dotprod, neon_i8mm, sve, sve2)      \
     do {                                                                     \
         CHECK_PTR_IS_NOT_SET(ptr)                                            \
-        MAYBE_SET_FUNCTION_C(ptr, c)                                         \
+        SET_FUNCTION_C(ptr, c)                                               \
         SET_FUNCTIONS_AARCH64(ptr, neon, neon_dotprod, neon_i8mm, sve, sve2) \
         CHECK_PTR_IS_SET(ptr)                                                \
     } while (0)
+
+// special case when Neon optimization is available
+#if CONFIG_ARM_NEON_IS_GUARANTEED
+// when Neon is guaranteed to be available - we can skip C function assignment
+// and thus allow linker to strip C code from final binary to reduce size.
+#define SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, neon_i8mm, sve, sve2) \
+    do {                                                                     \
+        CHECK_PTR_IS_NOT_SET(ptr)                                            \
+        SET_FUNCTIONS_AARCH64(ptr, neon, neon_dotprod, neon_i8mm, sve, sve2) \
+        CHECK_PTR_IS_SET(ptr)                                                \
+    } while (0)
+#else
+#define SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, neon_i8mm, sve, sve2) \
+    SET_FUNCTIONS(ptr, c, neon, neon_dotprod, neon_i8mm, sve, sve2)
+#endif
 #endif
 
 #define SET_ONLY_C(ptr, c)        \
@@ -360,26 +410,26 @@ EbCpuFlags svt_aom_get_cpu_flags_to_use() { return 0; }
     } while (0)
 
 #ifdef ARCH_X86_64
-#define SET_SSE2(ptr, c, sse2)                                  SET_FUNCTIONS(ptr, c, 0, 0, sse2, 0, 0, 0, 0, 0, 0, 0)
-#define SET_SSE2_AVX2(ptr, c, sse2, avx2)                       SET_FUNCTIONS(ptr, c, 0, 0, sse2, 0, 0, 0, 0, 0, avx2, 0)
-#define SET_SSE2_AVX512(ptr, c, sse2, avx512)                   SET_FUNCTIONS(ptr, c, 0, 0, sse2, 0, 0, 0, 0, 0, 0, avx512)
-#define SET_SSSE3(ptr, c, ssse3)                                SET_FUNCTIONS(ptr, c, 0, 0, 0, 0, ssse3, 0, 0, 0, 0, 0)
-#define SET_SSE41(ptr, c, sse4_1)                               SET_FUNCTIONS(ptr, c, 0, 0, 0, 0, 0, sse4_1, 0, 0, 0, 0)
-#define SET_SSE41_AVX2(ptr, c, sse4_1, avx2)                    SET_FUNCTIONS(ptr, c, 0, 0, 0, 0, 0, sse4_1, 0, 0, avx2, 0)
-#define SET_SSE41_AVX2_AVX512(ptr, c, sse4_1, avx2, avx512)     SET_FUNCTIONS(ptr, c, 0, 0, 0, 0, 0, sse4_1, 0, 0, avx2, avx512)
-#define SET_AVX2(ptr, c, avx2)                                  SET_FUNCTIONS(ptr, c, 0, 0, 0, 0, 0, 0, 0, 0, avx2, 0)
-#define SET_AVX2_AVX512(ptr, c, avx2, avx512)                   SET_FUNCTIONS(ptr, c, 0, 0, 0, 0, 0, 0, 0, 0, avx2, avx512)
-#define SET_SSE2_AVX2_AVX512(ptr, c, sse2, avx2, avx512)        SET_FUNCTIONS(ptr, c, 0, 0, sse2, 0, 0, 0, 0, 0, avx2, avx512)
-#define SET_SSE2_SSSE3_AVX2_AVX512(ptr, c, sse2, ssse3, avx2, avx512) SET_FUNCTIONS(ptr, c, 0, 0, sse2, 0, ssse3, 0, 0, 0, avx2, avx512)
-#define SET_SSSE3_AVX2(ptr, c, ssse3, avx2)                     SET_FUNCTIONS(ptr, c, 0, 0, 0, 0, ssse3, 0, 0, 0, avx2, 0)
+#define SET_SSE2(ptr, c, sse2)                                  SET_FUNCTIONS_AVX2(ptr, c, 0, 0, sse2, 0, 0, 0, 0, 0, 0, 0)
+#define SET_SSE2_AVX2(ptr, c, sse2, avx2)                       SET_FUNCTIONS_AVX2(ptr, c, 0, 0, sse2, 0, 0, 0, 0, 0, avx2, 0)
+#define SET_SSE2_AVX512(ptr, c, sse2, avx512)                   SET_FUNCTIONS_AVX2(ptr, c, 0, 0, sse2, 0, 0, 0, 0, 0, 0, avx512)
+#define SET_SSSE3(ptr, c, ssse3)                                SET_FUNCTIONS_AVX2(ptr, c, 0, 0, 0, 0, ssse3, 0, 0, 0, 0, 0)
+#define SET_SSE41(ptr, c, sse4_1)                               SET_FUNCTIONS_AVX2(ptr, c, 0, 0, 0, 0, 0, sse4_1, 0, 0, 0, 0)
+#define SET_SSE41_AVX2(ptr, c, sse4_1, avx2)                    SET_FUNCTIONS_AVX2(ptr, c, 0, 0, 0, 0, 0, sse4_1, 0, 0, avx2, 0)
+#define SET_SSE41_AVX2_AVX512(ptr, c, sse4_1, avx2, avx512)     SET_FUNCTIONS_AVX2(ptr, c, 0, 0, 0, 0, 0, sse4_1, 0, 0, avx2, avx512)
+#define SET_AVX2(ptr, c, avx2)                                  SET_FUNCTIONS_AVX2(ptr, c, 0, 0, 0, 0, 0, 0, 0, 0, avx2, 0)
+#define SET_AVX2_AVX512(ptr, c, avx2, avx512)                   SET_FUNCTIONS_AVX2(ptr, c, 0, 0, 0, 0, 0, 0, 0, 0, avx2, avx512)
+#define SET_SSE2_AVX2_AVX512(ptr, c, sse2, avx2, avx512)        SET_FUNCTIONS_AVX2(ptr, c, 0, 0, sse2, 0, 0, 0, 0, 0, avx2, avx512)
+#define SET_SSE2_SSSE3_AVX2_AVX512(ptr, c, sse2, ssse3, avx2, avx512) SET_FUNCTIONS_AVX2(ptr, c, 0, 0, sse2, 0, ssse3, 0, 0, 0, avx2, avx512)
+#define SET_SSSE3_AVX2(ptr, c, ssse3, avx2)                     SET_FUNCTIONS_AVX2(ptr, c, 0, 0, 0, 0, ssse3, 0, 0, 0, avx2, 0)
 #elif defined ARCH_AARCH64
-#define SET_NEON(ptr, c, neon)                                  SET_FUNCTIONS(ptr, c, neon, 0, 0, 0, 0)
-#define SET_NEON_NEON_DOTPROD(ptr, c, neon, neon_dotprod)       SET_FUNCTIONS(ptr, c, neon, neon_dotprod, 0, 0, 0)
-#define SET_NEON_NEON_DOTPROD_NEON_I8MM(ptr, c, neon, neon_dotprod, neon_i8mm) SET_FUNCTIONS(ptr, c, neon, neon_dotprod, neon_i8mm, 0, 0)
-#define SET_NEON_NEON_I8MM(ptr, c, neon, neon_i8mm)             SET_FUNCTIONS(ptr, c, neon, 0, neon_i8mm, 0, 0)
-#define SET_NEON_NEON_I8MM_SVE(ptr, c, neon, neon_i8mm, sve)    SET_FUNCTIONS(ptr, c, neon, 0, neon_i8mm, sve, 0)
-#define SET_NEON_SVE(ptr, c, neon, sve)                         SET_FUNCTIONS(ptr, c, neon, 0, 0, sve, 0)
-#define SET_NEON_SVE2(ptr, c, neon, sve2)                       SET_FUNCTIONS(ptr, c, neon, 0, 0, 0, sve2)
+#define SET_NEON(ptr, c, neon)                                  SET_FUNCTIONS_NEON(ptr, c, neon, 0, 0, 0, 0)
+#define SET_NEON_NEON_DOTPROD(ptr, c, neon, neon_dotprod)       SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, 0, 0, 0)
+#define SET_NEON_NEON_DOTPROD_NEON_I8MM(ptr, c, neon, neon_dotprod, neon_i8mm) SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, neon_i8mm, 0, 0)
+#define SET_NEON_NEON_I8MM(ptr, c, neon, neon_i8mm)             SET_FUNCTIONS_NEON(ptr, c, neon, 0, neon_i8mm, 0, 0)
+#define SET_NEON_NEON_I8MM_SVE(ptr, c, neon, neon_i8mm, sve)    SET_FUNCTIONS_NEON(ptr, c, neon, 0, neon_i8mm, sve, 0)
+#define SET_NEON_SVE(ptr, c, neon, sve)                         SET_FUNCTIONS_NEON(ptr, c, neon, 0, 0, sve, 0)
+#define SET_NEON_SVE2(ptr, c, neon, sve2)                       SET_FUNCTIONS_NEON(ptr, c, neon, 0, 0, 0, sve2)
 #endif
 
 void svt_aom_setup_common_rtcd_internal(EbCpuFlags flags) {
