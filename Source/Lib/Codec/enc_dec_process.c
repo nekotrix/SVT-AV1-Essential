@@ -365,6 +365,8 @@ static bool assign_enc_dec_segments(EncDecSegments *segmentPtr, uint16_t *segmen
 
     return continue_processing_flag;
 }
+
+#if CONFIG_ENABLE_FILM_GRAIN
 static void svt_av1_add_film_grain(EbPictureBufferDesc *src, EbPictureBufferDesc *dst, AomFilmGrain *film_grain_ptr) {
     uint8_t *luma, *cb, *cr;
     int32_t  height, width, luma_stride, chroma_stride;
@@ -457,6 +459,8 @@ static void svt_av1_add_film_grain(EbPictureBufferDesc *src, EbPictureBufferDesc
                                chroma_subsamp_x);
     return;
 }
+#endif
+
 void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
     EncodeContext *enc_ctx = scs->enc_ctx;
     // The totalNumberOfReconFrames counter has to be write/read protected as
@@ -494,6 +498,7 @@ void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
             const uint32_t color_format = recon_ptr->color_format;
             const uint16_t ss_x         = (color_format == EB_YUV444 ? 0 : 1);
             const uint16_t ss_y         = (color_format >= EB_YUV422 ? 0 : 1);
+#if CONFIG_ENABLE_FILM_GRAIN
             // FGN: Create a buffer if needed, copy the reconstructed picture and run the film grain synthesis algorithm
             if (scs->seq_header.film_grain_params_present && pcs->ppcs->frm_hdr.film_grain_params.apply_grain) {
                 AomFilmGrain *film_grain_ptr;
@@ -531,6 +536,7 @@ void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
                 }
             }
             // End running the film grain
+#endif
 
             // set output recon frame size to original size when enable resize feature
             // easy to display in tool and analysis

@@ -3033,6 +3033,7 @@ static void write_global_motion(PictureParentControlSet *pcs, struct AomWriteBit
     }
 }
 
+#if CONFIG_ENABLE_FILM_GRAIN
 static void write_film_grain_params(PictureParentControlSet *pcs, struct AomWriteBitBuffer *wb) {
     FrameHeader  *frm_hdr = &pcs->frm_hdr;
     AomFilmGrain *pars    = &frm_hdr->film_grain_params;
@@ -3144,6 +3145,7 @@ static void write_film_grain_params(PictureParentControlSet *pcs, struct AomWrit
 
     svt_aom_wb_write_bit(wb, pars->clip_to_restricted_range);
 }
+#endif
 
 static uint32_t get_ref_order_hint(PictureParentControlSet *pcs, MvReferenceFrame ref_frame) {
     int32_t ref_idx = get_ref_frame_map_idx(pcs, ref_frame);
@@ -3538,8 +3540,10 @@ static void write_uncompressed_header_obu(SequenceControlSet *scs /*Av1Comp *cpi
         //  SVT_ERROR("Global motion not supported yet\n");
         write_global_motion(pcs, wb);
     }
+#if CONFIG_ENABLE_FILM_GRAIN
     if (scs->seq_header.film_grain_params_present && (frm_hdr->show_frame || frm_hdr->showable_frame))
         write_film_grain_params(pcs, wb);
+#endif
 }
 
 static uint32_t write_obu_header(ObuType obu_type, int32_t obuExtension, uint8_t *const dst) {
