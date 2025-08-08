@@ -64,7 +64,7 @@ TEST(AdaptiveScanTest, scan_tables_test) {
                 continue;
 
             TxClass tx_class = tx_type_to_class[tx_type];
-            const ScanOrder *scan_order = &av1_scan_orders[tx_size][tx_type];
+            const ScanOrder *scan_order = get_scan_order(tx_size, tx_type);
             const int16_t *scan = scan_order->scan;
             const int16_t *iscan = scan_order->iscan;
             const int sum_xy = txb_width + txb_height - 1;

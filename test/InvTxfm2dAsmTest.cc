@@ -78,7 +78,7 @@ class InvTxfm2dAsmTestBase : public ::testing::Test {
     // linear.
     void clear_high_freq_coeffs(const TxSize tx_size, const TxType tx_type,
                                 const int eob, const int max_eob) {
-        const ScanOrder *scan_order = &av1_scan_orders[tx_size][tx_type];
+        const ScanOrder *scan_order = get_scan_order(tx_size, tx_type);
         const int16_t *scan = scan_order->scan;
 
         for (int i = eob; i < max_eob; ++i) {

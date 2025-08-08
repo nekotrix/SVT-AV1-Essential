@@ -33,7 +33,12 @@ static const int nz_map_ctx_offset_1d[32] = {
     NZ_MAP_CTX_10, NZ_MAP_CTX_10, NZ_MAP_CTX_10, NZ_MAP_CTX_10,
 };
 
-extern const ScanOrder av1_scan_orders[TX_SIZES_ALL][TX_TYPES];
+extern const ScanOrder av1_scan_orders[TX_SIZES_ALL][3];
+extern const int       tx_type_to_scan_index[TX_TYPES];
+
+static inline const ScanOrder *get_scan_order(const int tx_size, const int tx_type) {
+    return &av1_scan_orders[tx_size][tx_type_to_scan_index[tx_type]];
+}
 
 static const int32_t tx_size_2d[TX_SIZES_ALL + 1] = {
     16, 64, 256, 1024, 4096, 32, 32, 128, 128, 512, 512, 2048, 2048, 64, 64, 256, 256, 1024, 1024,

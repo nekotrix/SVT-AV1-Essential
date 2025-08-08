@@ -195,7 +195,7 @@ class QuantizeLbdTest : public QuantizeTest<QuantizeParam, QuantizeFunc> {
         uint16_t *eob = (uint16_t *)(dqcoeff + n_coeffs);
 
         // Testing uses 2-D DCT scan order table
-        const ScanOrder *const sc = &av1_scan_orders[tx_size_][DCT_DCT];
+        const ScanOrder *const sc = get_scan_order(tx_size_, DCT_DCT);
 
         // Testing uses luminance quantization table
         const int16_t *zbin = qtab_->quant.y_zbin[q];
@@ -307,7 +307,7 @@ TEST_P(QuantizeLbdTest, DISABLED_Speed) {
     uint16_t *eob = (uint16_t *)(dqcoeff + n_coeffs);
 
     // Testing uses 2-D DCT scan order table
-    const ScanOrder *const sc = &av1_scan_orders[tx_size_][DCT_DCT];
+    const ScanOrder *const sc = get_scan_order(tx_size_, DCT_DCT);
 
     // Testing uses luminance quantization table
     const int q = 22;
@@ -399,7 +399,7 @@ class QuantizeHbdTest : public QuantizeTest<QuantizeHbdParam, QuantizeHbdFunc> {
         uint16_t *eob = (uint16_t *)(dqcoeff + n_coeffs);
 
         // Testing uses 2-D DCT scan order table
-        const ScanOrder *const sc = &av1_scan_orders[tx_size_][DCT_DCT];
+        const ScanOrder *const sc = get_scan_order(tx_size_, DCT_DCT);
 
         // Testing uses luminance quantization table
         const int16_t *zbin = qtab_->quant.y_zbin[q];
@@ -514,7 +514,7 @@ TEST_P(QuantizeHbdTest, DISABLED_Speed) {
     uint16_t *eob = (uint16_t *)(dqcoeff + n_coeffs);
 
     // Testing uses 2-D DCT scan order table
-    const ScanOrder *const sc = &av1_scan_orders[tx_size_][DCT_DCT];
+    const ScanOrder *const sc = get_scan_order(tx_size_, DCT_DCT);
 
     // Testing uses luminance quantization table
     const int q = 22;
@@ -611,7 +611,7 @@ class QuantizeQmTest : public QuantizeTest<QuantizeQmParam, QuantizeQmFunc> {
         uint16_t *eob = (uint16_t *)(dqcoeff + n_coeffs);
 
         // Testing uses 2-D DCT scan order table
-        const ScanOrder *const sc = &av1_scan_orders[tx_size_][DCT_DCT];
+        const ScanOrder *const sc = get_scan_order(tx_size_, DCT_DCT);
 
         // Testing uses luminance quantization table
         const int16_t *zbin = qtab_->quant.y_zbin[q];

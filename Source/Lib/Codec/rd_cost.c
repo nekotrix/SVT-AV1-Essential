@@ -443,10 +443,11 @@ uint64_t svt_av1_cost_coeffs_txb(struct ModeDecisionContext *ctx, uint8_t allow_
     const TxSize  txs_ctx  = (TxSize)((txsize_sqr_map[transform_size] + txsize_sqr_up_map[transform_size] + 1) >> 1);
     const TxClass tx_class = tx_type_to_class[transform_type];
     int32_t       cost;
-    const int32_t bwl                 = get_txb_bwl_tab[transform_size];
-    const int32_t width               = get_txb_wide_tab[transform_size];
-    const int32_t height              = get_txb_high_tab[transform_size];
-    const ScanOrder *const scan_order = &av1_scan_orders[transform_size][transform_type]; // get_scan(tx_size, tx_type);
+    const int32_t bwl    = get_txb_bwl_tab[transform_size];
+    const int32_t width  = get_txb_wide_tab[transform_size];
+    const int32_t height = get_txb_high_tab[transform_size];
+
+    const ScanOrder *const scan_order = get_scan_order(transform_size, transform_type);
     const int16_t *const   scan       = scan_order->scan;
     uint8_t                levels_buf[TX_PAD_2D];
     uint8_t *const         levels = set_levels(levels_buf, width);

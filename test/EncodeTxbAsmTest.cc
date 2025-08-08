@@ -80,7 +80,7 @@ class EncodeTxbTest : public ::testing::TestWithParam<GetNzMapContextParam> {
         const int height = get_txb_high((TxSize)tx_size);
         const int real_width = tx_size_wide[tx_size];
         const int real_height = tx_size_high[tx_size];
-        const int16_t *const scan = av1_scan_orders[tx_size][tx_type].scan;
+        const int16_t *const scan = get_scan_order(tx_size, tx_type)->scan;
 
         levels_ = set_levels(levels_buf_, width);
         for (int i = 0; i < num_tests; ++i) {

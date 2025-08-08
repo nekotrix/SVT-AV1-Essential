@@ -473,7 +473,7 @@ static int32_t av1_write_coeffs_txb_1d(PictureParentControlSet *ppcs, FRAME_CONT
     (void)coeff_stride;
     const TxSize txs_ctx = (TxSize)((txsize_sqr_map[tx_size] + txsize_sqr_up_map[tx_size] + 1) >> 1);
     TxType       tx_type = component_type == COMPONENT_LUMA ? blk_ptr->tx_type[txb_index] : blk_ptr->tx_type_uv;
-    const ScanOrder *const scan_order = &av1_scan_orders[tx_size][tx_type];
+    const ScanOrder *const scan_order = get_scan_order(tx_size, tx_type);
     const int16_t *const   scan       = scan_order->scan;
     int32_t                c;
     const int16_t          bwl    = (const uint16_t)get_txb_bwl_tab[tx_size];

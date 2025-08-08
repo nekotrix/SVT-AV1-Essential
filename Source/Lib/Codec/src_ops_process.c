@@ -224,7 +224,7 @@ void generate_lambda_scaling_factor(PictureParentControlSet *pcs, int64_t mc_dep
 
 static AOM_INLINE void get_quantize_error(MacroblockPlane *p, const TranLow *coeff, TranLow *qcoeff, TranLow *dqcoeff,
                                           TxSize tx_size, uint16_t *eob, int64_t *recon_error, int64_t *sse) {
-    const ScanOrder *const scan_order = &av1_scan_orders[tx_size][DCT_DCT]; //&av1_default_scan_orders[tx_size]
+    const ScanOrder *const scan_order = get_scan_order(tx_size, DCT_DCT);
     int                    pix_num    = 1 << num_pels_log2_lookup[txsize_to_bsize[tx_size]];
     const int              shift      = tx_size == TX_32X32 ? 0 : 2;
 
@@ -249,7 +249,7 @@ static AOM_INLINE void get_quantize_error(MacroblockPlane *p, const TranLow *coe
 }
 
 static int rate_estimator(TranLow *qcoeff, int eob, TxSize tx_size) {
-    const ScanOrder *const scan_order = &av1_scan_orders[tx_size][DCT_DCT]; //&av1_default_scan_orders[tx_size]
+    const ScanOrder *const scan_order = get_scan_order(tx_size, DCT_DCT);
 
     assert((1 << num_pels_log2_lookup[txsize_to_bsize[tx_size]]) >= eob);
 
