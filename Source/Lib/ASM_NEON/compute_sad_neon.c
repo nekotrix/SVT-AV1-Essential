@@ -1716,7 +1716,7 @@ uint32_t svt_nxm_sad_kernel_helper_neon(const uint8_t *src, uint32_t src_stride,
         break;
     }
     default: {
-        res = svt_fast_loop_nxm_sad_kernel(src, src_stride, ref, ref_stride, height, width);
+        res = svt_nxm_sad_kernel_helper_c(src, src_stride, ref, ref_stride, height, width);
         break;
     }
     }

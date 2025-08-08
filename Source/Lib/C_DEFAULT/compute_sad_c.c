@@ -17,12 +17,12 @@ Note: moved from picture operators.
 keep this function here for profiling
 issues.
 *******************************************/
-uint32_t svt_fast_loop_nxm_sad_kernel(const uint8_t *src, // input parameter, source samples Ptr
-                                      uint32_t       src_stride, // input parameter, source stride
-                                      const uint8_t *ref, // input parameter, reference samples Ptr
-                                      uint32_t       ref_stride, // input parameter, reference stride
-                                      uint32_t       height, // input parameter, block height (M)
-                                      uint32_t       width) // input parameter, block width (N)
+uint32_t NOINLINE svt_nxm_sad_kernel_helper_c(const uint8_t *src, // input parameter, source samples Ptr
+                                              uint32_t       src_stride, // input parameter, source stride
+                                              const uint8_t *ref, // input parameter, reference samples Ptr
+                                              uint32_t       ref_stride, // input parameter, reference stride
+                                              uint32_t       height, // input parameter, block height (M)
+                                              uint32_t       width) // input parameter, block width (N)
 {
     uint32_t x, y;
     uint32_t sad = 0;
@@ -78,13 +78,8 @@ void svt_sad_loop_kernel_c(uint8_t  *src, // input parameter, source samples Ptr
             }
         }
         for (x_search_index = 0; x_search_index < search_area_width; x_search_index++) {
-            uint32_t x, y;
-            uint32_t sad = 0;
-
-            for (y = 0; y < block_height; y++) {
-                for (x = 0; x < block_width; x++)
-                    sad += EB_ABS_DIFF(src[y * src_stride + x], ref[x_search_index + y * ref_stride + x]);
-            }
+            uint32_t sad = svt_nxm_sad_kernel_helper_c(
+                src, src_stride, ref + x_search_index, ref_stride, block_height, block_width);
 
             // Update results
             if (sad < *best_sad) {
@@ -100,23 +95,9 @@ void svt_sad_loop_kernel_c(uint8_t  *src, // input parameter, source samples Ptr
     return;
 }
 
-/* Sum the difference between every corresponding element of the buffers. */
-static INLINE uint32_t sad_inline_c(const uint8_t *a, int a_stride, const uint8_t *b, int b_stride, int width,
-                                    int height) {
-    int          y, x;
-    unsigned int sad = 0;
-
-    for (y = 0; y < height; y++) {
-        for (x = 0; x < width; x++) sad += EB_ABS_DIFF(a[x], b[x]);
-        a += a_stride;
-        b += b_stride;
-    }
-    return sad;
-}
-
 #define sadMxN(m, n)                                                                                            \
     uint32_t svt_aom_sad##m##x##n##_c(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride) { \
-        return sad_inline_c(src, src_stride, ref, ref_stride, m, n);                                            \
+        return svt_nxm_sad_kernel_helper_c(src, src_stride, ref, ref_stride, n, m);                             \
     }
 
 // Calculate sad against 4 reference locations and store each in sad_array
@@ -205,8 +186,3 @@ sadMxN(16, 64);
 sadMxNx4D(16, 64);
 sadMxN(64, 16);
 sadMxNx4D(64, 16);
-
-uint32_t svt_nxm_sad_kernel_helper_c(const uint8_t *src, uint32_t src_stride, const uint8_t *ref, uint32_t ref_stride,
-                                     uint32_t height, uint32_t width) {
-    return svt_fast_loop_nxm_sad_kernel(src, src_stride, ref, ref_stride, height, width);
-};
