@@ -602,7 +602,6 @@ typedef enum MvSubpelPrecision {
 typedef struct {
     const int16_t *scan;
     const int16_t *iscan;
-    const int16_t *neighbors;
 } ScanOrder;
 
 struct segmentation_probs {

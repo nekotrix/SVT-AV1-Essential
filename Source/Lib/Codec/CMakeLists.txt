@@ -84,6 +84,7 @@ set(all_files
         coding_loop.h
         coding_unit.c
         coding_unit.h
+        coefficients.c
         coefficients.h
         common_dsp_rtcd.c
         common_dsp_rtcd.h
