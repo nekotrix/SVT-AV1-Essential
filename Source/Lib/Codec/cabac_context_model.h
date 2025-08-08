@@ -466,24 +466,8 @@ struct FrameContexts;
 
 //**********************************************************************************************************************//
 // txb_Common.h
-static const TxClass tx_type_to_class[TX_TYPES] = {
-    TX_CLASS_2D, // DCT_DCT
-    TX_CLASS_2D, // ADST_DCT
-    TX_CLASS_2D, // DCT_ADST
-    TX_CLASS_2D, // ADST_ADST
-    TX_CLASS_2D, // FLIPADST_DCT
-    TX_CLASS_2D, // DCT_FLIPADST
-    TX_CLASS_2D, // FLIPADST_FLIPADST
-    TX_CLASS_2D, // ADST_FLIPADST
-    TX_CLASS_2D, // FLIPADST_ADST
-    TX_CLASS_2D, // IDTX
-    TX_CLASS_VERT, // V_DCT
-    TX_CLASS_HORIZ, // H_DCT
-    TX_CLASS_VERT, // V_ADST
-    TX_CLASS_HORIZ, // H_ADST
-    TX_CLASS_VERT, // V_FLIPADST
-    TX_CLASS_HORIZ, // H_FLIPADST
-};
+extern const TxClass tx_type_to_class[TX_TYPES];
+
 /**********************************************************************************************************************/
 // entropymv.h
 
@@ -690,23 +674,8 @@ typedef struct FrameContexts {
     int32_t    initialized;
 } FRAME_CONTEXT;
 
-static const int32_t av1_ext_tx_ind[EXT_TX_SET_TYPES][TX_TYPES] = {
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, 3, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, 5, 6, 4, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0},
-    {3, 4, 5, 8, 6, 7, 9, 10, 11, 0, 1, 2, 0, 0, 0, 0},
-    {7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6},
-};
-
-static const int32_t av1_ext_tx_inv[EXT_TX_SET_TYPES][TX_TYPES] = {
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {9, 0, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {9, 0, 10, 11, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {9, 10, 11, 0, 1, 2, 4, 5, 3, 6, 7, 8, 0, 0, 0, 0},
-    {9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 4, 5, 3, 6, 7, 8},
-};
+extern const int32_t av1_ext_tx_ind[EXT_TX_SET_TYPES][TX_TYPES];
+extern const int32_t av1_ext_tx_inv[EXT_TX_SET_TYPES][TX_TYPES];
 
 void av1_set_default_ref_deltas(int8_t *ref_deltas);
 void av1_set_default_mode_deltas(int8_t *mode_deltas);

@@ -19,12 +19,6 @@
 #include "transforms.h"
 #include "av1_txfm1d_sse4.h"
 
-static const int8_t *fwd_txfm_shift_ls[TX_SIZES_ALL] = {
-    fwd_shift_4x4,  fwd_shift_8x8,  fwd_shift_16x16, fwd_shift_32x32, fwd_shift_64x64, fwd_shift_4x8,   fwd_shift_8x4,
-    fwd_shift_8x16, fwd_shift_16x8, fwd_shift_16x32, fwd_shift_32x16, fwd_shift_32x64, fwd_shift_64x32, fwd_shift_4x16,
-    fwd_shift_16x4, fwd_shift_8x32, fwd_shift_32x8,  fwd_shift_16x64, fwd_shift_64x16,
-};
-
 static INLINE void load_buffer_4x4(const int16_t *input, __m128i *in, int32_t stride, int32_t flipud, int32_t fliplr,
                                    int32_t shift) {
     if (!flipud) {

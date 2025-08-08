@@ -44,12 +44,6 @@ typedef void (*fwd_transform_1d_avx512)(const __m512i *in, __m512i *out, const i
 #define btf_32_type1_avx512_new(ww0, ww1, in0, in1, out0, out1, r, bit) \
     do { btf_32_type0_avx512_new(ww1, ww0, in1, in0, out0, out1, r, bit); } while (0)
 
-static const int8_t *fwd_txfm_shift_ls[TX_SIZES_ALL] = {
-    fwd_shift_4x4,  fwd_shift_8x8,  fwd_shift_16x16, fwd_shift_32x32, fwd_shift_64x64, fwd_shift_4x8,   fwd_shift_8x4,
-    fwd_shift_8x16, fwd_shift_16x8, fwd_shift_16x32, fwd_shift_32x16, fwd_shift_32x64, fwd_shift_64x32, fwd_shift_4x16,
-    fwd_shift_16x4, fwd_shift_8x32, fwd_shift_32x8,  fwd_shift_16x64, fwd_shift_64x16,
-};
-
 static INLINE void load_buffer_16x16_avx512(const int16_t *input, __m512i *out, int32_t stride, int32_t flipud,
                                             int32_t fliplr, const int8_t shift) {
     __m256i temp[16];

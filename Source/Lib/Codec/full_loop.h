@@ -50,16 +50,15 @@ void        svt_aom_compute_depth_costs_md_skip_light_pd0(PictureParentControlSe
                                                           uint64_t *curr_depth_cost);
 uint64_t svt_aom_d1_non_square_block_decision(PictureControlSet *pcs, ModeDecisionContext *ctx, uint32_t d1_block_itr);
 
-static const int av1_get_tx_scale_tab[TX_SIZES_ALL] = {0, 0, 0, 1, 2, 0, 0, 0, 0, 1, 1, 2, 2, 0, 0, 0, 0, 1, 1};
+extern const int av1_get_tx_scale_tab[TX_SIZES_ALL];
 
-static const TxSize get_txsize_entropy_ctx_tab[TX_SIZES_ALL] = {
-    0, 1, 2, 3, 4, 1, 1, 2, 2, 3, 3, 4, 4, 1, 1, 2, 2, 3, 3};
+extern const TxSize get_txsize_entropy_ctx_tab[TX_SIZES_ALL];
 
-static const int get_txb_bwl_tab[TX_SIZES_ALL] = {2, 3, 4, 5, 5, 2, 3, 3, 4, 4, 5, 5, 5, 2, 4, 3, 5, 4, 5};
+extern const int get_txb_bwl_tab[TX_SIZES_ALL];
 
-static const int get_txb_wide_tab[TX_SIZES_ALL] = {4, 8, 16, 32, 32, 4, 8, 8, 16, 16, 32, 32, 32, 4, 16, 8, 32, 16, 32};
+extern const int get_txb_wide_tab[TX_SIZES_ALL];
 
-static const int get_txb_high_tab[TX_SIZES_ALL] = {4, 8, 16, 32, 32, 8, 4, 16, 8, 32, 16, 32, 32, 16, 4, 32, 8, 32, 16};
+extern const int get_txb_high_tab[TX_SIZES_ALL];
 #ifdef __cplusplus
 }
 #endif

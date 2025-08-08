@@ -1597,162 +1597,29 @@ static const struct
 /* clang-format on */
 
 // Width/height lookup tables in units of various block sizes
-static const uint8_t block_size_wide[BlockSizeS_ALL] = {4,  4,  8,  8,   8,   16, 16, 16, 32, 32, 32,
-                                                        64, 64, 64, 128, 128, 4,  16, 8,  32, 16, 64};
+extern const uint8_t block_size_wide[BlockSizeS_ALL];
 
-static const uint8_t block_size_high[BlockSizeS_ALL] = {4,  8,  4,   8,  16,  8,  16, 32, 16, 32, 64,
-                                                        32, 64, 128, 64, 128, 16, 4,  32, 8,  64, 16};
+extern const uint8_t block_size_high[BlockSizeS_ALL];
 
 // AOMMIN(3, AOMMIN(b_width_log2(bsize), b_height_log2(bsize)))
-static const uint8_t size_group_lookup[BlockSizeS_ALL] = {0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3,
-                                                          3, 3, 3, 3, 3, 0, 0, 1, 1, 2, 2};
+extern const uint8_t size_group_lookup[BlockSizeS_ALL];
 
-static const uint8_t num_pels_log2_lookup[BlockSizeS_ALL] = {4,  5,  5,  6,  7,  7, 8, 9, 9, 10, 11,
-                                                             11, 12, 13, 13, 14, 6, 6, 8, 8, 10, 10};
-static const TxSize  max_txsize_lookup[BlockSizeS_ALL]    = {
-    //                   4X4
-    TX_4X4,
-    // 4X8,    8X4,      8X8
-    TX_4X4,
-    TX_4X4,
-    TX_8X8,
-    // 8X16,   16X8,     16X16
-    TX_8X8,
-    TX_8X8,
-    TX_16X16,
-    // 16X32,  32X16,    32X32
-    TX_16X16,
-    TX_16X16,
-    TX_32X32,
-    // 32X64,  64X32,
-    TX_32X32,
-    TX_32X32,
-    // 64X64
-    TX_64X64,
-    // 64x128, 128x64,   128x128
-    TX_64X64,
-    TX_64X64,
-    TX_64X64,
-    // 4x16,   16x4,     8x32
-    TX_4X4,
-    TX_4X4,
-    TX_8X8,
-    // 32x8,   16x64     64x16
-    TX_8X8,
-    TX_16X16,
-    TX_16X16};
+extern const uint8_t num_pels_log2_lookup[BlockSizeS_ALL];
+extern const TxSize  max_txsize_lookup[BlockSizeS_ALL];
 
-static const TxSize max_txsize_rect_lookup[BlockSizeS_ALL] = {
-    // 4X4
-    TX_4X4,
-    // 4X8,    8X4,      8X8
-    TX_4X8,
-    TX_8X4,
-    TX_8X8,
-    // 8X16,   16X8,     16X16
-    TX_8X16,
-    TX_16X8,
-    TX_16X16,
-    // 16X32,  32X16,    32X32
-    TX_16X32,
-    TX_32X16,
-    TX_32X32,
-    // 32X64,  64X32,
-    TX_32X64,
-    TX_64X32,
-    // 64X64
-    TX_64X64,
-    // 64x128, 128x64,   128x128
-    TX_64X64,
-    TX_64X64,
-    TX_64X64,
-    // 4x16,   16x4,
-    TX_4X16,
-    TX_16X4,
-    // 8x32,   32x8
-    TX_8X32,
-    TX_32X8,
-    // 16x64,  64x16
-    TX_16X64,
-    TX_64X16};
+extern const TxSize max_txsize_rect_lookup[BlockSizeS_ALL];
 
 // Transform block width in unit
-static const int32_t tx_size_wide_unit[TX_SIZES_ALL] = {
-    1, 2, 4, 8, 16, 1, 2, 2, 4, 4, 8, 8, 16, 1, 4, 2, 8, 4, 16,
-};
+extern const int32_t tx_size_wide_unit[TX_SIZES_ALL];
 // Transform block height in unit
-static const int32_t tx_size_high_unit[TX_SIZES_ALL] = {
-    1, 2, 4, 8, 16, 2, 1, 4, 2, 8, 4, 16, 8, 4, 1, 8, 2, 16, 4,
-};
+extern const int32_t tx_size_high_unit[TX_SIZES_ALL];
 
-static const TxSize sub_tx_size_map[TX_SIZES_ALL] = {
-    TX_4X4, // TX_4X4
-    TX_4X4, // TX_8X8
-    TX_8X8, // TX_16X16
-    TX_16X16, // TX_32X32
-    TX_32X32, // TX_64X64
-    TX_4X4, // TX_4X8
-    TX_4X4, // TX_8X4
-    TX_8X8, // TX_8X16
-    TX_8X8, // TX_16X8
-    TX_16X16, // TX_16X32
-    TX_16X16, // TX_32X16
-    TX_32X32, // TX_32X64
-    TX_32X32, // TX_64X32
-    TX_4X8, // TX_4X16
-    TX_8X4, // TX_16X4
-    TX_8X16, // TX_8X32
-    TX_16X8, // TX_32X8
-    TX_16X32, // TX_16X64
-    TX_32X16, // TX_64X16
-};
-static const TxSize txsize_horz_map[TX_SIZES_ALL] = {
-    TX_4X4, // TX_4X4
-    TX_8X8, // TX_8X8
-    TX_16X16, // TX_16X16
-    TX_32X32, // TX_32X32
-    TX_64X64, // TX_64X64
-    TX_4X4, // TX_4X8
-    TX_8X8, // TX_8X4
-    TX_8X8, // TX_8X16
-    TX_16X16, // TX_16X8
-    TX_16X16, // TX_16X32
-    TX_32X32, // TX_32X16
-    TX_32X32, // TX_32X64
-    TX_64X64, // TX_64X32
-    TX_4X4, // TX_4X16
-    TX_16X16, // TX_16X4
-    TX_8X8, // TX_8X32
-    TX_32X32, // TX_32X8
-    TX_16X16, // TX_16X64
-    TX_64X64, // TX_64X16
-};
+extern const TxSize sub_tx_size_map[TX_SIZES_ALL];
+extern const TxSize txsize_horz_map[TX_SIZES_ALL];
+extern const TxSize txsize_vert_map[TX_SIZES_ALL];
 
-static const TxSize txsize_vert_map[TX_SIZES_ALL] = {
-    TX_4X4, // TX_4X4
-    TX_8X8, // TX_8X8
-    TX_16X16, // TX_16X16
-    TX_32X32, // TX_32X32
-    TX_64X64, // TX_64X64
-    TX_8X8, // TX_4X8
-    TX_4X4, // TX_8X4
-    TX_16X16, // TX_8X16
-    TX_8X8, // TX_16X8
-    TX_32X32, // TX_16X32
-    TX_16X16, // TX_32X16
-    TX_64X64, // TX_32X64
-    TX_32X32, // TX_64X32
-    TX_16X16, // TX_4X16
-    TX_4X4, // TX_16X4
-    TX_32X32, // TX_8X32
-    TX_8X8, // TX_32X8
-    TX_64X64, // TX_16X64
-    TX_16X16, // TX_64X16
-};
-static const uint8_t mi_size_wide_log2[BlockSizeS_ALL] = {0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3,
-                                                          4, 4, 4, 5, 5, 0, 2, 1, 3, 2, 4};
-static const uint8_t mi_size_high_log2[BlockSizeS_ALL] = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3, 4,
-                                                          3, 4, 5, 4, 5, 2, 0, 3, 1, 4, 2};
+extern const uint8_t mi_size_wide_log2[BlockSizeS_ALL];
+extern const uint8_t mi_size_high_log2[BlockSizeS_ALL];
 
 typedef struct SgrParamsType {
     int32_t r[2]; // radii
@@ -1773,23 +1640,9 @@ typedef int8_t MvReferenceFrame;
 
 // Number of transform types in each set type
 
-static const int32_t av1_num_ext_tx_set[EXT_TX_SET_TYPES] = {
-    1,
-    2,
-    5,
-    7,
-    12,
-    16,
-};
+extern const int32_t av1_num_ext_tx_set[EXT_TX_SET_TYPES];
 
-static const int32_t av1_ext_tx_used[EXT_TX_SET_TYPES][TX_TYPES] = {
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
-    {1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
-    {1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0},
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-};
+extern const int32_t av1_ext_tx_used[EXT_TX_SET_TYPES][TX_TYPES];
 
 static INLINE TxSetType get_ext_tx_set_type(TxSize tx_size, int32_t is_inter, int32_t use_reduced_set) {
     const TxSize tx_size_sqr_up = txsize_sqr_up_map[tx_size];
@@ -1812,22 +1665,7 @@ static INLINE int32_t get_ext_tx_types(TxSize tx_size, int32_t is_inter, int32_t
     return av1_num_ext_tx_set[set_type];
 }
 // Maps tx set types to the indices.
-static const int32_t ext_tx_set_index[2][EXT_TX_SET_TYPES] = {
-    {// Intra
-     0,
-     -1,
-     2,
-     1,
-     -1,
-     -1},
-    {// Inter
-     0,
-     3,
-     -1,
-     -1,
-     2,
-     1},
-};
+extern const int32_t ext_tx_set_index[2][EXT_TX_SET_TYPES];
 
 static INLINE int32_t get_ext_tx_set(TxSize tx_size, int32_t is_inter, int32_t use_reduced_set) {
     const TxSetType set_type = get_ext_tx_set_type(tx_size, is_inter, use_reduced_set);
@@ -2449,104 +2287,16 @@ typedef enum RasterScanCuIndex
     RASTER_SCAN_CU_INDEX_8x8_63 = 84
 } RasterScanCuIndex;
 
-static const uint32_t raster_scan_blk_x[CU_MAX_COUNT] =
-{
-    0,
-    0, 32,
-    0, 32,
-    0, 16, 32, 48,
-    0, 16, 32, 48,
-    0, 16, 32, 48,
-    0, 16, 32, 48,
-    0, 8, 16, 24, 32, 40, 48, 56,
-    0, 8, 16, 24, 32, 40, 48, 56,
-    0, 8, 16, 24, 32, 40, 48, 56,
-    0, 8, 16, 24, 32, 40, 48, 56,
-    0, 8, 16, 24, 32, 40, 48, 56,
-    0, 8, 16, 24, 32, 40, 48, 56,
-    0, 8, 16, 24, 32, 40, 48, 56,
-    0, 8, 16, 24, 32, 40, 48, 56
-};
+extern const uint32_t raster_scan_blk_x[CU_MAX_COUNT];
 
-static const uint32_t raster_scan_blk_y[CU_MAX_COUNT] =
-{
-    0,
-    0, 0,
-    32, 32,
-    0, 0, 0, 0,
-    16, 16, 16, 16,
-    32, 32, 32, 32,
-    48, 48, 48, 48,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    8, 8, 8, 8, 8, 8, 8, 8,
-    16, 16, 16, 16, 16, 16, 16, 16,
-    24, 24, 24, 24, 24, 24, 24, 24,
-    32, 32, 32, 32, 32, 32, 32, 32,
-    40, 40, 40, 40, 40, 40, 40, 40,
-    48, 48, 48, 48, 48, 48, 48, 48,
-    56, 56, 56, 56, 56, 56, 56, 56
-};
+extern const uint32_t raster_scan_blk_y[CU_MAX_COUNT];
 
-static const uint32_t raster_scan_blk_size[CU_MAX_COUNT] =
-{   64,
-    32, 32,
-    32, 32,
-    16, 16, 16, 16,
-    16, 16, 16, 16,
-    16, 16, 16, 16,
-    16, 16, 16, 16,
-    8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8,
-    8, 8, 8, 8, 8, 8, 8, 8
-};
+extern const uint32_t raster_scan_blk_size[CU_MAX_COUNT];
 
-static const uint32_t md_scan_to_raster_scan[CU_MAX_COUNT] =
-{
-    0,
-    1,
-    5, 21, 22, 29, 30,
-    6, 23, 24, 31, 32,
-    9, 37, 38, 45, 46,
-    10, 39, 40, 47, 48,
-    2,
-    7, 25, 26, 33, 34,
-    8, 27, 28, 35, 36,
-    11, 41, 42, 49, 50,
-    12, 43, 44, 51, 52,
-    3,
-    13, 53, 54, 61, 62,
-    14, 55, 56, 63, 64,
-    17, 69, 70, 77, 78,
-    18, 71, 72, 79, 80,
-    4,
-    15, 57, 58, 65, 66,
-    16, 59, 60, 67, 68,
-    19, 73, 74, 81, 82,
-    20, 75, 76, 83, 84
-};
+extern const uint32_t md_scan_to_raster_scan[CU_MAX_COUNT];
 
-static const uint32_t raster_scan_blk_parent_index[CU_MAX_COUNT] =
-{   0,
-    0, 0,
-    0, 0,
-    1, 1, 2, 2,
-    1, 1, 2, 2,
-    3, 3, 4, 4,
-    3, 3, 4, 4,
-    5, 5, 6, 6, 7, 7, 8, 8,
-    5, 5, 6, 6, 7, 7, 8, 8,
-    9, 9, 10, 10, 11, 11, 12, 12,
-    9, 9, 10, 10, 11, 11, 12, 12,
-    13, 13, 14, 14, 15, 15, 16, 16,
-    13, 13, 14, 14, 15, 15, 16, 16,
-    17, 17, 18, 18, 19, 19, 20, 20,
-    17, 17, 18, 18, 19, 19, 20, 20
-};
+extern const uint32_t raster_scan_blk_parent_index[CU_MAX_COUNT];
+
 typedef struct StatStruct
 {
     uint64_t   poc;
@@ -2555,26 +2305,10 @@ typedef struct StatStruct
     uint8_t    worst_qindex;
     uint8_t    temporal_layer_index;
 } StatStruct;
-static const uint8_t me_idx_85_8x8_to_16x16_conversion[] = {
-    5,5,      6,6,      7,7,      8,8,
-    5,5,      6,6,      7,7,      8,8,
 
-    9,9,      10,10,    11,11,    12,12,
-    9,9,      10,10,    11,11,    12,12,
+extern const uint8_t me_idx_85_8x8_to_16x16_conversion[64];
+extern const uint8_t me_idx_16x16_to_parent_32x32_conversion[16];
 
-    13,13,    14,14,    15,15,    16,16,
-    13,13,    14,14,    15,15,    16,16,
-
-    17,17,    18,18,    19,19,    20,20,
-    17,17,    18,18,    19,19,    20,20
-};
-static const uint8_t me_idx_16x16_to_parent_32x32_conversion[] = {
-    1,1,      2,2,
-    1,1,      2,2,
-
-    3,3,      4,4,
-    3,3,      4,4
-};
 typedef enum IntrabcMotionDirection
 {
     IBC_MOTION_ABOVE,

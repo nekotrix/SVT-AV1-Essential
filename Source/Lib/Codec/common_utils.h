@@ -20,8 +20,13 @@
 #define MAX_OFFSET_WIDTH 64
 #define MAX_OFFSET_HEIGHT 0
 
-static const int16_t eb_k_eob_group_start[12] = {0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513};
-static const int16_t eb_k_eob_offset_bits[12] = {0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+extern const int16_t eb_k_eob_group_start[12];
+extern const int16_t eb_k_eob_offset_bits[12];
+
+extern const TxType g_intra_mode_to_tx_type[INTRA_MODES];
+
+extern const PredictionMode g_uv2y[16];
+extern const PredictionMode fimode_to_intradir[FILTER_INTRA_MODES];
 
 static INLINE uint8_t *set_levels(uint8_t *const levels_buf, const int32_t width) {
     return levels_buf + TX_PAD_TOP * (width + TX_PAD_HOR);
@@ -43,47 +48,14 @@ static INLINE int get_txb_high(TxSize tx_size) {
 
 static INLINE PredictionMode get_uv_mode(UvPredictionMode mode) {
     assert(mode < UV_INTRA_MODES);
-    static const PredictionMode uv2y[] = {
-        DC_PRED, // UV_DC_PRED
-        V_PRED, // UV_V_PRED
-        H_PRED, // UV_H_PRED
-        D45_PRED, // UV_D45_PRED
-        D135_PRED, // UV_D135_PRED
-        D113_PRED, // UV_D113_PRED
-        D157_PRED, // UV_D157_PRED
-        D203_PRED, // UV_D203_PRED
-        D67_PRED, // UV_D67_PRED
-        SMOOTH_PRED, // UV_SMOOTH_PRED
-        SMOOTH_V_PRED, // UV_SMOOTH_V_PRED
-        SMOOTH_H_PRED, // UV_SMOOTH_H_PRED
-        PAETH_PRED, // UV_PAETH_PRED
-        DC_PRED, // UV_CFL_PRED
-        INTRA_INVALID, // UV_INTRA_MODES
-        INTRA_INVALID, // UV_MODE_INVALID
-    };
-    return uv2y[mode];
+    return g_uv2y[mode];
 }
 
 static INLINE TxType intra_mode_to_tx_type(PredictionMode pred_mode, UvPredictionMode pred_mode_uv,
                                            PlaneType plane_type) {
-    static const TxType _intra_mode_to_tx_type[INTRA_MODES] = {
-        DCT_DCT, // DC
-        ADST_DCT, // V
-        DCT_ADST, // H
-        DCT_DCT, // D45
-        ADST_ADST, // D135
-        ADST_DCT, // D117
-        DCT_ADST, // D153
-        DCT_ADST, // D207
-        ADST_DCT, // D63
-        ADST_ADST, // SMOOTH
-        ADST_DCT, // SMOOTH_V
-        DCT_ADST, // SMOOTH_H
-        ADST_ADST, // PAETH
-    };
     const PredictionMode mode = (plane_type == PLANE_TYPE_Y) ? pred_mode : get_uv_mode(pred_mode_uv);
     assert(mode < INTRA_MODES);
-    return _intra_mode_to_tx_type[mode];
+    return g_intra_mode_to_tx_type[mode];
 }
 
 static INLINE int32_t is_chroma_reference(int32_t mi_row, int32_t mi_col, BlockSize bsize, int32_t subsampling_x,
@@ -98,8 +70,6 @@ static INLINE int32_t is_chroma_reference(int32_t mi_row, int32_t mi_col, BlockS
 static INLINE int get_segdata(SegmentationParams *seg, int segment_id, SEG_LVL_FEATURES feature_id) {
     return seg->feature_data[segment_id][feature_id];
 }
-
-static const PredictionMode fimode_to_intradir[FILTER_INTRA_MODES] = {DC_PRED, V_PRED, H_PRED, D157_PRED, DC_PRED};
 
 static AOM_FORCE_INLINE int get_br_ctx(const uint8_t *const levels,
                                        const int            c, // raster order

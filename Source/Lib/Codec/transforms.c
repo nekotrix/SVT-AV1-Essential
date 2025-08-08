@@ -14,6 +14,21 @@
 #include "transforms.h"
 #include "aom_dsp_rtcd.h"
 
+static const int8_t fdct4_range_mult2[4]    = {0, 2, 3, 3};
+static const int8_t fdct8_range_mult2[6]    = {0, 2, 4, 5, 5, 5};
+static const int8_t fdct16_range_mult2[8]   = {0, 2, 4, 6, 7, 7, 7, 7};
+static const int8_t fdct32_range_mult2[10]  = {0, 2, 4, 6, 8, 9, 9, 9, 9, 9};
+static const int8_t fdct64_range_mult2[12]  = {0, 2, 4, 6, 8, 10, 11, 11, 11, 11, 11, 11};
+static const int8_t fadst4_range_mult2[7]   = {0, 2, 4, 3, 3, 3, 3};
+static const int8_t fadst8_range_mult2[8]   = {0, 0, 1, 3, 3, 5, 5, 5};
+static const int8_t fadst16_range_mult2[10] = {0, 0, 1, 3, 3, 5, 5, 7, 7, 7};
+static const int8_t fadst32_range_mult2[12] = {0, 0, 1, 3, 3, 5, 5, 7, 7, 9, 9, 9};
+static const int8_t fidtx4_range_mult2[1]   = {1};
+static const int8_t fidtx8_range_mult2[1]   = {2};
+static const int8_t fidtx16_range_mult2[1]  = {3};
+static const int8_t fidtx32_range_mult2[1]  = {4};
+static const int8_t fidtx64_range_mult2[1]  = {5};
+
 static const int8_t *fwd_txfm_range_mult2_list[TXFM_TYPES] = {fdct4_range_mult2,
                                                               fdct8_range_mult2,
                                                               fdct16_range_mult2,
@@ -29,7 +44,27 @@ static const int8_t *fwd_txfm_range_mult2_list[TXFM_TYPES] = {fdct4_range_mult2,
                                                               fidtx32_range_mult2,
                                                               fidtx64_range_mult2};
 
-static const int8_t *fwd_txfm_shift_ls[TX_SIZES_ALL] = {
+static const int8_t fwd_shift_4x4[3]   = {2, 0, 0};
+static const int8_t fwd_shift_8x8[3]   = {2, -1, 0};
+static const int8_t fwd_shift_16x16[3] = {2, -2, 0};
+static const int8_t fwd_shift_32x32[3] = {2, -4, 0};
+static const int8_t fwd_shift_64x64[3] = {0, -2, -2};
+static const int8_t fwd_shift_4x8[3]   = {2, -1, 0};
+static const int8_t fwd_shift_8x4[3]   = {2, -1, 0};
+static const int8_t fwd_shift_8x16[3]  = {2, -2, 0};
+static const int8_t fwd_shift_16x8[3]  = {2, -2, 0};
+static const int8_t fwd_shift_16x32[3] = {2, -4, 0};
+static const int8_t fwd_shift_32x16[3] = {2, -4, 0};
+static const int8_t fwd_shift_32x64[3] = {0, -2, -2};
+static const int8_t fwd_shift_64x32[3] = {2, -4, -2};
+static const int8_t fwd_shift_4x16[3]  = {2, -1, 0};
+static const int8_t fwd_shift_16x4[3]  = {2, -1, 0};
+static const int8_t fwd_shift_8x32[3]  = {2, -2, 0};
+static const int8_t fwd_shift_32x8[3]  = {2, -2, 0};
+static const int8_t fwd_shift_16x64[3] = {0, -2, 0};
+static const int8_t fwd_shift_64x16[3] = {2, -4, 0};
+
+const int8_t *fwd_txfm_shift_ls[TX_SIZES_ALL] = {
     fwd_shift_4x4,  fwd_shift_8x8,  fwd_shift_16x16, fwd_shift_32x32, fwd_shift_64x64, fwd_shift_4x8,   fwd_shift_8x4,
     fwd_shift_8x16, fwd_shift_16x8, fwd_shift_16x32, fwd_shift_32x16, fwd_shift_32x64, fwd_shift_64x32, fwd_shift_4x16,
     fwd_shift_16x4, fwd_shift_8x32, fwd_shift_32x8,  fwd_shift_16x64, fwd_shift_64x16,

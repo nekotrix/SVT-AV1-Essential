@@ -18,6 +18,16 @@
 #include "sequence_control_set.h"
 #include "utility.h"
 
+const int av1_get_tx_scale_tab[TX_SIZES_ALL] = {0, 0, 0, 1, 2, 0, 0, 0, 0, 1, 1, 2, 2, 0, 0, 0, 0, 1, 1};
+
+const TxSize get_txsize_entropy_ctx_tab[TX_SIZES_ALL] = {0, 1, 2, 3, 4, 1, 1, 2, 2, 3, 3, 4, 4, 1, 1, 2, 2, 3, 3};
+
+const int get_txb_bwl_tab[TX_SIZES_ALL] = {2, 3, 4, 5, 5, 2, 3, 3, 4, 4, 5, 5, 5, 2, 4, 3, 5, 4, 5};
+
+const int get_txb_wide_tab[TX_SIZES_ALL] = {4, 8, 16, 32, 32, 4, 8, 8, 16, 16, 32, 32, 32, 4, 16, 8, 32, 16, 32};
+
+const int get_txb_high_tab[TX_SIZES_ALL] = {4, 8, 16, 32, 32, 8, 4, 16, 8, 32, 16, 32, 32, 16, 4, 32, 8, 32, 16};
+
 void     svt_aom_residual_kernel(uint8_t *input, uint32_t input_offset, uint32_t input_stride, uint8_t *pred,
                                  uint32_t pred_offset, uint32_t pred_stride, int16_t *residual, uint32_t residual_offset,
                                  uint32_t residual_stride, bool hbd, uint32_t area_width, uint32_t area_height);

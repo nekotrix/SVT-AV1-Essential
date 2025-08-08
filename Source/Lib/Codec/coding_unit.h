@@ -37,22 +37,7 @@ extern "C" {
 #define MAX_CU_COST (0xFFFFFFFFFFFFFFFFull >> 1)
 #define MAX_MODE_COST (13754408443200 * 8) // RDCOST(6544618, 128 * 128 * 255 * 255, 128 * 128 * 255 * 255) * 8;
 
-static const uint32_t intra_luma_to_chroma[INTRA_MODES] = // EB_INTRA_PLANAR
-    {
-        UV_DC_PRED, // Average of above and left pixels
-        UV_V_PRED, // Vertical
-        UV_H_PRED, // Horizontal
-        UV_D45_PRED, // Directional 45  degree
-        UV_D135_PRED, // Directional 135 degree
-        UV_D113_PRED, // Directional 113 degree
-        UV_D157_PRED, // Directional 157 degree
-        UV_D203_PRED, // Directional 203 degree
-        UV_D67_PRED, // Directional 67  degree
-        UV_SMOOTH_PRED, // Combination of horizontal and vertical interpolation
-        UV_SMOOTH_V_PRED, // Vertical interpolation
-        UV_SMOOTH_H_PRED, // Horizontal interpolation
-        UV_PAETH_PRED, // Predict from the direction of smallest gradient
-};
+extern const uint32_t intra_luma_to_chroma[INTRA_MODES];
 
 typedef struct {
     Mv      mfmv0;

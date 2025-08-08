@@ -1209,20 +1209,13 @@ extern EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, 
 
 // Table that converts 0-63 Q-range values passed in outside to the Qindex
 // range used internally.
-static const uint8_t quantizer_to_qindex[] = {
-    0,   4,   8,   12,  16,  20,  24,  28,  32,  36,  40,  44,  48,  52,  56,  60,  64,  68,  72,  76,  80,  84,
-    88,  92,  96,  100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 148, 152, 156, 160, 164, 168, 172,
-    176, 180, 184, 188, 192, 196, 200, 204, 208, 212, 216, 220, 224, 228, 232, 236, 240, 244, 249, 255};
+extern const uint8_t quantizer_to_qindex[64];
 
 #define FIXED_QP_OFFSET_COUNT 6
-static const int percents[2][FIXED_QP_OFFSET_COUNT] = {
-    {75, 70, 60, 20, 15, 0}, {76, 60, 30, 15, 8, 4} // libaom offsets
-};
-static const uint8_t uni_psy_bias[] = {
-    85, 85, 85, 85, 85,  85,  85,  85,  85,  85,  85,  85,  85,  85,  85,  85,  95,  95,  95,  95,  95, 95,
-    95, 95, 95, 95, 95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, 95,
-    95, 95, 95, 95, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
-};
+extern const int percents[2][FIXED_QP_OFFSET_COUNT];
+
+extern const uint8_t uni_psy_bias[64];
+
 extern void svt_aom_reset_mode_decision(SequenceControlSet *scs, ModeDecisionContext *ctx, PictureControlSet *pcs,
                                         uint16_t tile_row_idx, uint32_t segment_index);
 
