@@ -17,7 +17,7 @@
 
 #define FILTER_BITS 7
 
-const int16_t av1_resize_filter_normative[(1 << RS_SUBPEL_BITS)][UPSCALE_NORMATIVE_TAPS] = {
+const int16_t svt_av1_resize_filter_normative[(1 << RS_SUBPEL_BITS)][UPSCALE_NORMATIVE_TAPS] = {
 #if UPSCALE_NORMATIVE_TAPS == 8
     {0, 0, 0, 128, 0, 0, 0, 0},        {0, 0, -1, 128, 2, -1, 0, 0},      {0, 1, -3, 127, 4, -2, 1, 0},
     {0, 1, -4, 127, 6, -3, 1, 0},      {0, 2, -6, 126, 8, -3, 1, 0},      {0, 2, -7, 125, 11, -4, 1, 0},
@@ -162,7 +162,7 @@ void upscale_normative_rect(const uint8_t *const input, int height, int width, i
                             out_stride,
                             width2,
                             height2,
-                            &av1_resize_filter_normative[0][0],
+                            &svt_av1_resize_filter_normative[0][0],
                             x0_qn,
                             x_step_qn);
 
@@ -222,7 +222,7 @@ static void highbd_upscale_normative_rect(const uint8_t *const input, int height
                                    out_stride,
                                    width2,
                                    height2,
-                                   &av1_resize_filter_normative[0][0],
+                                   &svt_av1_resize_filter_normative[0][0],
                                    x0_qn,
                                    x_step_qn,
                                    bd);

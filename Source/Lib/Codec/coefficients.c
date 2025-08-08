@@ -1194,7 +1194,7 @@ DECLARE_ALIGNED(16, static const int16_t, av1_default_iscan_32x32[1024]) = {
 
 const int tx_type_to_scan_index[TX_TYPES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 1, 2};
 
-const ScanOrder av1_scan_orders[TX_SIZES_ALL][3] = {
+const ScanOrder eb_av1_scan_orders[TX_SIZES_ALL][3] = {
     {
         // TX_4X4
         {default_scan_4x4, av1_default_iscan_4x4},

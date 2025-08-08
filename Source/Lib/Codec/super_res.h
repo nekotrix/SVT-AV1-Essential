@@ -25,7 +25,7 @@ extern "C" {
 #define RS_SCALE_EXTRA_OFF (1 << (RS_SCALE_EXTRA_BITS - 1))
 #define UPSCALE_NORMATIVE_TAPS 8
 
-extern const int16_t av1_resize_filter_normative[(1 << RS_SUBPEL_BITS)][UPSCALE_NORMATIVE_TAPS];
+extern const int16_t svt_av1_resize_filter_normative[(1 << RS_SUBPEL_BITS)][UPSCALE_NORMATIVE_TAPS];
 // Filters for interpolation (full-band) - no filtering for integer pixels
 
 void svt_av1_upscale_normative_rows(const Av1Common* cm, const uint8_t* src, int src_stride, uint8_t* dst,

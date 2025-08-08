@@ -72,7 +72,7 @@ static INLINE int coded_to_superres_mi(int mi_col, int denom) {
     return (mi_col * denom + SCALE_NUMERATOR / 2) / SCALE_NUMERATOR;
 }
 
-#define filteredinterp_filters1000 av1_resize_filter_normative
+#define filteredinterp_filters1000 svt_av1_resize_filter_normative
 
 #ifdef __cplusplus
 }
