@@ -1869,7 +1869,7 @@ unsigned int svt_av1_get_sby_perpixel_variance(const AomVarianceFnPtr *fn_ptr, c
     const unsigned int var =
         //cpi->fn_ptr[bs].vf(ref->buf, ref->stride, svt_aom_eb_av1_var_offs, 0, &sse);
         fn_ptr->vf(src, stride, svt_aom_eb_av1_var_offs, 0, &sse);
-    return ROUND_POWER_OF_TWO(var, num_pels_log2_lookup[bs]);
+    return ROUND_POWER_OF_TWO(var, eb_num_pels_log2_lookup[bs]);
 }
 
 // Check if the number of color of a block is superior to 1 and inferior

@@ -523,7 +523,7 @@ static void pick_interinter_seg(PictureControlSet *pcs, ModeDecisionContext *ctx
     uint32_t          full_lambda = hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
     const int         bw          = block_size_wide[bsize];
     const int         bh          = block_size_high[bsize];
-    const int         N           = 1 << num_pels_log2_lookup[bsize];
+    const int         N           = 1 << eb_num_pels_log2_lookup[bsize];
     int               rate;
     int64_t           dist;
     DIFFWTD_MASK_TYPE cur_mask_type;
@@ -1939,7 +1939,7 @@ void model_rd_from_sse(BlockSize bsize, int16_t quantizer, uint8_t bit_depth, ui
 
     // Fast approximate the modelling function.
     if (simple_model_rd_from_var) {
-        int64_t square_error = (uint64_t)sse;
+        int64_t square_error = sse;
         quantizer            = quantizer >> dequant_shift;
 
         if (quantizer < 120)
@@ -1949,7 +1949,7 @@ void model_rd_from_sse(BlockSize bsize, int16_t quantizer, uint8_t bit_depth, ui
         *dist = (uint64_t)(square_error * quantizer) >> 8;
     } else {
         svt_av1_model_rd_from_var_lapndz(
-            (uint64_t)sse, num_pels_log2_lookup[bsize], quantizer >> dequant_shift, (int32_t *)rate, (int64_t *)dist);
+            sse, eb_num_pels_log2_lookup[bsize], quantizer >> dequant_shift, (int32_t *)rate, (int64_t *)dist);
     }
 
     *dist <<= 4;

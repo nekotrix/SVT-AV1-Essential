@@ -640,7 +640,7 @@ uint64_t svt_aom_intra_fast_cost(PictureControlSet *pcs, struct ModeDecisionCont
         uint32_t luma_rate   = 0;
         uint32_t chroma_rate = 0;
         intra_mode_bits_num  = pcs->slice_type != I_SLICE
-             ? (uint64_t)ctx->md_rate_est_ctx->mb_mode_fac_bits[size_group_lookup[blk_geom->bsize]][intra_mode]
+             ? (uint64_t)ctx->md_rate_est_ctx->mb_mode_fac_bits[eb_size_group_lookup[blk_geom->bsize]][intra_mode]
              : ZERO_COST;
 
         skip_mode_rate = pcs->slice_type != I_SLICE && pcs->ppcs->frm_hdr.skip_mode_params.skip_mode_flag &&
@@ -1204,7 +1204,7 @@ uint64_t svt_aom_inter_fast_cost(PictureControlSet *pcs, struct ModeDecisionCont
         */
         svt_is_interintra_allowed(true, blk_geom->bsize, cand->block_mi.mode, rf)) {
         const int interintra  = cand->block_mi.is_interintra_used;
-        const int bsize_group = size_group_lookup[blk_geom->bsize];
+        const int bsize_group = eb_size_group_lookup[blk_geom->bsize];
 
         inter_mode_bits_num +=
             ctx->md_rate_est_ctx->inter_intra_fac_bits[bsize_group][cand->block_mi.is_interintra_used];
@@ -1562,7 +1562,7 @@ static INLINE int block_signals_txsize(BlockSize bsize) { return bsize > BLOCK_4
 
 static INLINE int get_vartx_max_txsize(/*const MbModeInfo *xd,*/ BlockSize bsize, int plane) {
     /* if (xd->lossless[xd->mi[0]->segment_id]) return TX_4X4;*/
-    const TxSize max_txsize = max_txsize_rect_lookup[bsize];
+    const TxSize max_txsize = eb_max_txsize_rect_lookup[bsize];
     if (plane == 0)
         return max_txsize; // luma
     return av1_get_adjusted_tx_size(max_txsize); // chroma
@@ -1662,9 +1662,9 @@ static uint64_t cost_tx_size_vartx(MacroBlockD *xd, const MbModeInfo *mbmi, TxSi
 
     } else {
         assert(tx_size < TX_SIZES_ALL);
-        const TxSize sub_txs = sub_tx_size_map[tx_size];
-        const int    bsw     = tx_size_wide_unit[sub_txs];
-        const int    bsh     = tx_size_high_unit[sub_txs];
+        const TxSize sub_txs = eb_sub_tx_size_map[tx_size];
+        const int    bsw     = eb_tx_size_wide_unit[sub_txs];
+        const int    bsh     = eb_tx_size_high_unit[sub_txs];
 
         bits += md_rate_est_ctx->txfm_partition_fac_bits[ctx][1];
 
@@ -1678,8 +1678,8 @@ static uint64_t cost_tx_size_vartx(MacroBlockD *xd, const MbModeInfo *mbmi, TxSi
         }
 
         assert(bsw > 0 && bsh > 0);
-        for (int row = 0; row < tx_size_high_unit[tx_size]; row += bsh)
-            for (int col = 0; col < tx_size_wide_unit[tx_size]; col += bsw) {
+        for (int row = 0; row < eb_tx_size_high_unit[tx_size]; row += bsh)
+            for (int col = 0; col < eb_tx_size_wide_unit[tx_size]; col += bsw) {
                 int offsetr = blk_row + row;
                 int offsetc = blk_col + col;
                 bits += cost_tx_size_vartx(
@@ -1708,11 +1708,11 @@ static INLINE void set_txfm_ctxs(TxSize tx_size, int n8_w, int n8_h, int skip, c
 }
 
 static INLINE int tx_size_to_depth(TxSize tx_size, BlockSize bsize) {
-    TxSize ctx_size = max_txsize_rect_lookup[bsize];
+    TxSize ctx_size = eb_max_txsize_rect_lookup[bsize];
     int    depth    = 0;
     while (tx_size != ctx_size) {
         depth++;
-        ctx_size = sub_tx_size_map[ctx_size];
+        ctx_size = eb_sub_tx_size_map[ctx_size];
         assert(depth <= MAX_TX_DEPTH);
     }
     return depth;
@@ -1726,7 +1726,7 @@ static INLINE int get_tx_size_context(const MacroBlockD *xd) {
     const MbModeInfo       *mbmi        = xd->mi[0];
     const MbModeInfo *const above_mbmi  = xd->above_mbmi;
     const MbModeInfo *const left_mbmi   = xd->left_mbmi;
-    const TxSize            max_tx_size = max_txsize_rect_lookup[mbmi->bsize];
+    const TxSize            max_tx_size = eb_max_txsize_rect_lookup[mbmi->bsize];
     const int               max_tx_wide = tx_size_wide[max_tx_size];
     const int               max_tx_high = tx_size_high[max_tx_size];
     const int               has_above   = xd->up_available;
@@ -1788,8 +1788,8 @@ uint64_t svt_aom_tx_size_bits(PictureControlSet *pcs, uint8_t segment_id, MdRate
         !svt_av1_is_lossless_segment(pcs, segment_id)) {
         if (is_inter_tx) { // This implies skip flag is 0.
             const TxSize max_tx_size = get_vartx_max_txsize(/*xd,*/ bsize, 0);
-            const int    txbh        = tx_size_high_unit[max_tx_size];
-            const int    txbw        = tx_size_wide_unit[max_tx_size];
+            const int    txbh        = eb_tx_size_high_unit[max_tx_size];
+            const int    txbw        = eb_tx_size_wide_unit[max_tx_size];
             const int    width       = block_size_wide[bsize] >> tx_size_wide_log2[0];
             const int    height      = block_size_high[bsize] >> tx_size_high_log2[0];
             int          idx, idy;

@@ -22,11 +22,56 @@
 #include "common_utils.h"
 //#include "svt_log.h"
 #define DLF_MAX_LVL 4
-const int32_t  inter_frame_multiplier[INPUT_SIZE_COUNT]      = {6017, 6017, 6017, 12034, 12034, 12034, 12034};
-const uint32_t disable_dlf_th[DLF_MAX_LVL][INPUT_SIZE_COUNT] = {{0, 0, 0, 0, 0, 0, 0},
-                                                                {100, 200, 500, 800, 1000, 1000, 1000},
-                                                                {900, 1000, 2000, 3000, 4000, 4000, 4000},
-                                                                {6000, 7000, 8000, 9000, 10000, 10000, 10000}};
+static const int32_t  inter_frame_multiplier[INPUT_SIZE_COUNT]      = {6017, 6017, 6017, 12034, 12034, 12034, 12034};
+static const uint32_t disable_dlf_th[DLF_MAX_LVL][INPUT_SIZE_COUNT] = {{0, 0, 0, 0, 0, 0, 0},
+                                                                       {100, 200, 500, 800, 1000, 1000, 1000},
+                                                                       {900, 1000, 2000, 3000, 4000, 4000, 4000},
+                                                                       {6000, 7000, 8000, 9000, 10000, 10000, 10000}};
+
+static const TxSize txsize_horz_map[TX_SIZES_ALL] = {
+    TX_4X4, // TX_4X4
+    TX_8X8, // TX_8X8
+    TX_16X16, // TX_16X16
+    TX_32X32, // TX_32X32
+    TX_64X64, // TX_64X64
+    TX_4X4, // TX_4X8
+    TX_8X8, // TX_8X4
+    TX_8X8, // TX_8X16
+    TX_16X16, // TX_16X8
+    TX_16X16, // TX_16X32
+    TX_32X32, // TX_32X16
+    TX_32X32, // TX_32X64
+    TX_64X64, // TX_64X32
+    TX_4X4, // TX_4X16
+    TX_16X16, // TX_16X4
+    TX_8X8, // TX_8X32
+    TX_32X32, // TX_32X8
+    TX_16X16, // TX_16X64
+    TX_64X64, // TX_64X16
+};
+
+static const TxSize txsize_vert_map[TX_SIZES_ALL] = {
+    TX_4X4, // TX_4X4
+    TX_8X8, // TX_8X8
+    TX_16X16, // TX_16X16
+    TX_32X32, // TX_32X32
+    TX_64X64, // TX_64X64
+    TX_8X8, // TX_4X8
+    TX_4X4, // TX_8X4
+    TX_16X16, // TX_8X16
+    TX_8X8, // TX_16X8
+    TX_32X32, // TX_16X32
+    TX_16X16, // TX_32X16
+    TX_64X64, // TX_32X64
+    TX_32X32, // TX_64X32
+    TX_16X16, // TX_4X16
+    TX_4X4, // TX_16X4
+    TX_32X32, // TX_8X32
+    TX_8X8, // TX_32X8
+    TX_64X64, // TX_16X64
+    TX_16X16, // TX_64X16
+};
+
 /*************************************************************************************************
  * svt_av1_loop_filter_init
  * Initialize the loop filter limits and thresholds
@@ -394,7 +439,7 @@ void svt_av1_filter_block_plane_vert(const PictureControlSet *const pcs, const i
             }
             // advance the destination pointer
             assert(tx_size < TX_SIZES_ALL);
-            advance_units = tx_size_wide_unit[tx_size];
+            advance_units = eb_tx_size_wide_unit[tx_size];
             x += advance_units;
             p += ((advance_units * MI_SIZE) << plane_ptr->is_16bit);
         }
@@ -529,7 +574,7 @@ void svt_av1_filter_block_plane_horz(const PictureControlSet *const pcs, const i
 
             // advance the destination pointer
             assert(tx_size < TX_SIZES_ALL);
-            advance_units = tx_size_high_unit[tx_size];
+            advance_units = eb_tx_size_high_unit[tx_size];
             y += advance_units;
             p += ((advance_units * dst_stride * MI_SIZE) << plane_ptr->is_16bit);
         }

@@ -2167,10 +2167,10 @@ uint32_t hadamard_path_c(Buf2D residualBuf, Buf2D coeffBuf, Buf2D inputBuf, Buf2
 
     uint32_t satd_cost = 0;
 
-    const TxSize tx_size = AOMMIN(TX_32X32, max_txsize_lookup[bsize]);
+    const TxSize tx_size = AOMMIN(TX_32X32, eb_max_txsize_lookup[bsize]);
 
-    const int stepr = tx_size_high_unit[tx_size];
-    const int stepc = tx_size_wide_unit[tx_size];
+    const int stepr = eb_tx_size_high_unit[tx_size];
+    const int stepc = eb_tx_size_wide_unit[tx_size];
     const int txbw  = tx_size_wide[tx_size];
     const int txbh  = tx_size_high[tx_size];
 

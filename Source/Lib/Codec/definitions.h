@@ -1598,25 +1598,22 @@ static const struct
 
 // Width/height lookup tables in units of various block sizes
 extern const uint8_t block_size_wide[BlockSizeS_ALL];
-
 extern const uint8_t block_size_high[BlockSizeS_ALL];
 
 // AOMMIN(3, AOMMIN(b_width_log2(bsize), b_height_log2(bsize)))
-extern const uint8_t size_group_lookup[BlockSizeS_ALL];
+extern const uint8_t eb_size_group_lookup[BlockSizeS_ALL];
 
-extern const uint8_t num_pels_log2_lookup[BlockSizeS_ALL];
-extern const TxSize  max_txsize_lookup[BlockSizeS_ALL];
+extern const uint8_t eb_num_pels_log2_lookup[BlockSizeS_ALL];
+extern const TxSize  eb_max_txsize_lookup[BlockSizeS_ALL];
 
-extern const TxSize max_txsize_rect_lookup[BlockSizeS_ALL];
+extern const TxSize eb_max_txsize_rect_lookup[BlockSizeS_ALL];
 
 // Transform block width in unit
-extern const int32_t tx_size_wide_unit[TX_SIZES_ALL];
+extern const int32_t eb_tx_size_wide_unit[TX_SIZES_ALL];
 // Transform block height in unit
-extern const int32_t tx_size_high_unit[TX_SIZES_ALL];
+extern const int32_t eb_tx_size_high_unit[TX_SIZES_ALL];
 
-extern const TxSize sub_tx_size_map[TX_SIZES_ALL];
-extern const TxSize txsize_horz_map[TX_SIZES_ALL];
-extern const TxSize txsize_vert_map[TX_SIZES_ALL];
+extern const TxSize eb_sub_tx_size_map[TX_SIZES_ALL];
 
 extern const uint8_t mi_size_wide_log2[BlockSizeS_ALL];
 extern const uint8_t mi_size_high_log2[BlockSizeS_ALL];

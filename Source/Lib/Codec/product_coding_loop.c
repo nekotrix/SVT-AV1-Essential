@@ -5713,8 +5713,8 @@ void chroma_complexity_check_pred(ModeDecisionContext *ctx, ModeDecisionCandidat
                                 &sse);
         }
 
-        int block_var_cb = ROUND_POWER_OF_TWO(var_cb, num_pels_log2_lookup[ctx->blk_geom->bsize_uv]);
-        int block_var_cr = ROUND_POWER_OF_TWO(var_cr, num_pels_log2_lookup[ctx->blk_geom->bsize_uv]);
+        int block_var_cb = ROUND_POWER_OF_TWO(var_cb, eb_num_pels_log2_lookup[ctx->blk_geom->bsize_uv]);
+        int block_var_cr = ROUND_POWER_OF_TWO(var_cr, eb_num_pels_log2_lookup[ctx->blk_geom->bsize_uv]);
 
         // th controls how safe the detector is (can be changed in the future, or made a parameter)
         uint16_t th = 150;
@@ -5904,8 +5904,8 @@ static COMPONENT_TYPE chroma_complexity_check(PictureControlSet *pcs, ModeDecisi
                                 0,
                                 &sse);
         }
-        int block_var_cb = ROUND_POWER_OF_TWO(var_cb, num_pels_log2_lookup[ctx->blk_geom->bsize_uv]);
-        int block_var_cr = ROUND_POWER_OF_TWO(var_cr, num_pels_log2_lookup[ctx->blk_geom->bsize_uv]);
+        int block_var_cb = ROUND_POWER_OF_TWO(var_cb, eb_num_pels_log2_lookup[ctx->blk_geom->bsize_uv]);
+        int block_var_cr = ROUND_POWER_OF_TWO(var_cr, eb_num_pels_log2_lookup[ctx->blk_geom->bsize_uv]);
 
         // th controls how safe the detector is
         uint16_t th = ctx->lpd1_tx_ctrls.chroma_detector_level <= 1 ? 75 : 150;

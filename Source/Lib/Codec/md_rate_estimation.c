@@ -692,7 +692,7 @@ static AOM_INLINE void sum_intra_stats(PictureControlSet *pcs, BlkStruct *blk_pt
     if (intraonly) {
         update_cdf(get_y_mode_cdf(fc, xd), y_mode, INTRA_MODES);
     } else {
-        update_cdf(fc->y_mode_cdf[size_group_lookup[bsize]], y_mode, INTRA_MODES);
+        update_cdf(fc->y_mode_cdf[eb_size_group_lookup[bsize]], y_mode, INTRA_MODES);
     }
     if (blk_ptr->block_mi.use_intrabc == 0 &&
         svt_aom_filter_intra_allowed(
@@ -836,7 +836,7 @@ void svt_aom_update_stats(PictureControlSet *pcs, BlkStruct *blk_ptr, int mi_row
                 }
             }
             if (pcs->ppcs->scs->seq_header.enable_interintra_compound && svt_aom_is_interintra_allowed(mbmi)) {
-                const int bsize_group = size_group_lookup[bsize];
+                const int bsize_group = eb_size_group_lookup[bsize];
                 if (blk_ptr->block_mi.is_interintra_used) {
                     update_cdf(fc->interintra_cdf[bsize_group], 1, 2);
                     update_cdf(

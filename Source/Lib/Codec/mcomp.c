@@ -636,8 +636,8 @@ int svt_av1_find_best_sub_pixel_tree_pruned(void *ictx, MacroBlockD *xd, const s
     const MSBuffers   *ms_buffers = &var_params->ms_buffers;
     const uint8_t     *ref        = svt_get_buf_from_mv(ms_buffers->ref, *bestmv);
     unsigned int       sse;
-    const unsigned int var       = var_params->vfp->vf(ref, ms_buffers->ref->stride, svt_aom_eb_av1_var_offs, 0, &sse);
-    int                block_var = ROUND_POWER_OF_TWO(var, num_pels_log2_lookup[bsize]);
+    const unsigned int var = var_params->vfp->vf(ref, ms_buffers->ref->stride, svt_aom_eb_av1_var_offs, 0, &sse);
+    int                block_var = ROUND_POWER_OF_TWO(var, eb_num_pels_log2_lookup[bsize]);
 
     if (block_var < ms_params->pred_variance_th)
         return besterr;
@@ -724,7 +724,7 @@ int svt_av1_find_best_sub_pixel_tree(void *ictx, MacroBlockD *xd, const struct A
     const uint8_t     *ref        = svt_get_buf_from_mv(ms_buffers->ref, *bestmv);
     unsigned int       sse;
     const unsigned int var       = var_params->vfp->vf(ref, ms_buffers->ref->stride, svt_aom_eb_av1_var_offs, 0, &sse);
-    int                block_var = ROUND_POWER_OF_TWO(var, num_pels_log2_lookup[bsize]);
+    int                block_var = ROUND_POWER_OF_TWO(var, eb_num_pels_log2_lookup[bsize]);
 
     if (block_var < ms_params->pred_variance_th)
         return besterr;

@@ -206,7 +206,7 @@ CflSubtractAverageFn svt_get_subtract_average_fn_c(TxSize tx_size);
 static INLINE int32_t av1_is_directional_mode(PredictionMode mode) { return mode >= V_PRED && mode <= D67_PRED; }
 
 static INLINE int get_palette_bsize_ctx(BlockSize bsize) {
-    return num_pels_log2_lookup[bsize] - num_pels_log2_lookup[BLOCK_8X8];
+    return eb_num_pels_log2_lookup[bsize] - eb_num_pels_log2_lookup[BLOCK_8X8];
 }
 
 static INLINE bool av1_use_angle_delta(BlockSize bsize) { return bsize >= BLOCK_8X8; }

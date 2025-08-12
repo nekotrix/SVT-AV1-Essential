@@ -318,11 +318,11 @@ void svt_aom_get_txb_ctx(PictureControlSet *pcs, const int32_t plane,
     int32_t             txb_w_unit;
     int32_t             txb_h_unit;
     if (plane) {
-        txb_w_unit = MIN(tx_size_wide_unit[tx_size], (int32_t)(pcs->ppcs->aligned_width / 2 - blk_org_x) >> 2);
-        txb_h_unit = MIN(tx_size_high_unit[tx_size], (int32_t)(pcs->ppcs->aligned_height / 2 - blk_org_y) >> 2);
+        txb_w_unit = MIN(eb_tx_size_wide_unit[tx_size], (int32_t)(pcs->ppcs->aligned_width / 2 - blk_org_x) >> 2);
+        txb_h_unit = MIN(eb_tx_size_high_unit[tx_size], (int32_t)(pcs->ppcs->aligned_height / 2 - blk_org_y) >> 2);
     } else {
-        txb_w_unit = MIN(tx_size_wide_unit[tx_size], (int32_t)(pcs->ppcs->aligned_width - blk_org_x) >> 2);
-        txb_h_unit = MIN(tx_size_high_unit[tx_size], (int32_t)(pcs->ppcs->aligned_height - blk_org_y) >> 2);
+        txb_w_unit = MIN(eb_tx_size_wide_unit[tx_size], (int32_t)(pcs->ppcs->aligned_width - blk_org_x) >> 2);
+        txb_h_unit = MIN(eb_tx_size_high_unit[tx_size], (int32_t)(pcs->ppcs->aligned_height - blk_org_y) >> 2);
     }
     int16_t  dc_sign = 0;
     uint16_t k       = 0;
@@ -420,7 +420,8 @@ void svt_aom_get_txb_ctx(PictureControlSet *pcs, const int32_t plane,
             } while (++k < txb_h_unit);
         }
         const int32_t ctx_base   = ((ctx_base_left != 0) + (ctx_base_top != 0));
-        const int32_t ctx_offset = (num_pels_log2_lookup[plane_bsize] > num_pels_log2_lookup[txsize_to_bsize[tx_size]])
+        const int32_t ctx_offset = (eb_num_pels_log2_lookup[plane_bsize] >
+                                    eb_num_pels_log2_lookup[txsize_to_bsize[tx_size]])
             ? 10
             : 7;
         *txb_skip_ctx            = (int16_t)(ctx_base + ctx_offset);
@@ -1108,7 +1109,7 @@ static void encode_intra_luma_mode_kf_av1(FRAME_CONTEXT *frame_context, AomWrite
 *********************************************************************/
 static void encode_intra_luma_mode_nonkey_av1(FRAME_CONTEXT *frame_context, AomWriter *ec_writer, MbModeInfo *mbmi,
                                               BlockSize bsize, uint32_t luma_mode) {
-    aom_write_symbol(ec_writer, luma_mode, frame_context->y_mode_cdf[size_group_lookup[bsize]], INTRA_MODES);
+    aom_write_symbol(ec_writer, luma_mode, frame_context->y_mode_cdf[eb_size_group_lookup[bsize]], INTRA_MODES);
 
     if (bsize >= BLOCK_8X8 && av1_is_directional_mode(mbmi->block_mi.mode)) {
         aom_write_symbol(ec_writer,
@@ -4114,7 +4115,7 @@ int svt_aom_allow_palette(int allow_screen_content_tools, BlockSize bsize) {
         bsize >= BLOCK_8X8;
 }
 int svt_aom_get_palette_bsize_ctx(BlockSize bsize) {
-    return num_pels_log2_lookup[bsize] - num_pels_log2_lookup[BLOCK_8X8];
+    return eb_num_pels_log2_lookup[bsize] - eb_num_pels_log2_lookup[BLOCK_8X8];
 }
 void svt_av1_tokenize_color_map(FRAME_CONTEXT *frame_context, EcBlkStruct *blk_ptr, int plane, TOKENEXTRA **t,
                                 BlockSize bsize, TxSize tx_size, COLOR_MAP_TYPE type, int allow_update_cdf);
@@ -4287,7 +4288,7 @@ static INLINE int block_signals_txsize(BlockSize bsize) { return bsize > BLOCK_4
 
 static INLINE int get_vartx_max_txsize(/*const MbModeInfo *xd,*/ BlockSize bsize, int plane) {
     /* if (xd->lossless[xd->mi[0]->segment_id]) return TX_4X4;*/
-    const TxSize max_txsize = max_txsize_rect_lookup[bsize];
+    const TxSize max_txsize = eb_max_txsize_rect_lookup[bsize];
     if (plane == 0)
         return max_txsize; // luma
     return av1_get_adjusted_tx_size(max_txsize); // chroma
@@ -4378,9 +4379,9 @@ static void write_tx_size_vartx(MacroBlockD *xd, const MbModeInfo *mbmi, TxSize 
         txfm_partition_update(xd->above_txfm_context + blk_col, xd->left_txfm_context + blk_row, tx_size, tx_size);
     } else {
         ASSERT(tx_size < TX_SIZES_ALL);
-        const TxSize sub_txs = sub_tx_size_map[tx_size];
-        const int    bsw     = tx_size_wide_unit[sub_txs];
-        const int    bsh     = tx_size_high_unit[sub_txs];
+        const TxSize sub_txs = eb_sub_tx_size_map[tx_size];
+        const int    bsw     = eb_tx_size_wide_unit[sub_txs];
+        const int    bsh     = eb_tx_size_high_unit[sub_txs];
 
         aom_write_symbol(w, 1, ec_ctx->txfm_partition_cdf[ctx], 2);
 
@@ -4390,8 +4391,8 @@ static void write_tx_size_vartx(MacroBlockD *xd, const MbModeInfo *mbmi, TxSize 
         }
 
         assert(bsw > 0 && bsh > 0);
-        for (int row = 0; row < tx_size_high_unit[tx_size]; row += bsh)
-            for (int col = 0; col < tx_size_wide_unit[tx_size]; col += bsw) {
+        for (int row = 0; row < eb_tx_size_high_unit[tx_size]; row += bsh)
+            for (int col = 0; col < eb_tx_size_wide_unit[tx_size]; col += bsw) {
                 int offsetr = blk_row + row;
                 int offsetc = blk_col + col;
                 write_tx_size_vartx(xd, mbmi, sub_txs, depth + 1, offsetr, offsetc, ec_ctx, w);
@@ -4417,11 +4418,11 @@ static INLINE void set_txfm_ctxs(TxSize tx_size, int n8_w, int n8_h, int skip, c
     set_txfm_ctx(xd->left_txfm_context, bh, n8_h);
 }
 static INLINE int tx_size_to_depth(TxSize tx_size, BlockSize bsize) {
-    TxSize ctx_size = max_txsize_rect_lookup[bsize];
+    TxSize ctx_size = eb_max_txsize_rect_lookup[bsize];
     int    depth    = 0;
     while (tx_size != ctx_size) {
         depth++;
-        ctx_size = sub_tx_size_map[ctx_size];
+        ctx_size = eb_sub_tx_size_map[ctx_size];
         assert(depth <= MAX_TX_DEPTH);
     }
     return depth;
@@ -4435,7 +4436,7 @@ static INLINE int get_tx_size_context(const MacroBlockD *xd) {
     const MbModeInfo       *mbmi        = xd->mi[0];
     const MbModeInfo *const above_mbmi  = xd->above_mbmi;
     const MbModeInfo *const left_mbmi   = xd->left_mbmi;
-    const TxSize            max_tx_size = max_txsize_rect_lookup[mbmi->bsize];
+    const TxSize            max_tx_size = eb_max_txsize_rect_lookup[mbmi->bsize];
     const int               max_tx_wide = tx_size_wide[max_tx_size];
     const int               max_tx_high = tx_size_high[max_tx_size];
     const int               has_above   = xd->up_available;
@@ -4490,8 +4491,8 @@ static EbErrorType av1_code_tx_size(PictureControlSet *pcs, int segment_id, FRAM
         !svt_av1_is_lossless_segment(pcs, segment_id)) {
         if (is_inter_tx) { // This implies skip flag is 0.
             const TxSize max_tx_size = get_vartx_max_txsize(/*xd,*/ bsize, 0);
-            const int    txbh        = tx_size_high_unit[max_tx_size];
-            const int    txbw        = tx_size_wide_unit[max_tx_size];
+            const int    txbh        = eb_tx_size_high_unit[max_tx_size];
+            const int    txbw        = eb_tx_size_wide_unit[max_tx_size];
             const int    width       = block_size_wide[bsize] >> tx_size_wide_log2[0];
             const int    height      = block_size_high[bsize] >> tx_size_high_log2[0];
             int          idx, idy;
@@ -5068,7 +5069,7 @@ static EbErrorType write_modes_b(PictureControlSet *pcs, EntropyCodingContext *e
                     }
 
                     const int interintra  = mbmi->block_mi.is_interintra_used;
-                    const int bsize_group = size_group_lookup[bsize];
+                    const int bsize_group = eb_size_group_lookup[bsize];
                     aom_write_symbol(
                         ec_writer, mbmi->block_mi.is_interintra_used, frame_context->interintra_cdf[bsize_group], 2);
                     if (interintra) {

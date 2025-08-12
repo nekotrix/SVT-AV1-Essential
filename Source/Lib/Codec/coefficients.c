@@ -1811,12 +1811,13 @@ const uint8_t block_size_high[BlockSizeS_ALL] = {4,  8,  4,   8,  16,  8,  16, 3
                                                  32, 64, 128, 64, 128, 16, 4,  32, 8,  64, 16};
 
 // AOMMIN(3, AOMMIN(b_width_log2(bsize), b_height_log2(bsize)))
-const uint8_t size_group_lookup[BlockSizeS_ALL] = {0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3,
-                                                   3, 3, 3, 3, 3, 0, 0, 1, 1, 2, 2};
+const uint8_t eb_size_group_lookup[BlockSizeS_ALL] = {0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3,
+                                                      3, 3, 3, 3, 3, 0, 0, 1, 1, 2, 2};
 
-const uint8_t num_pels_log2_lookup[BlockSizeS_ALL] = {4,  5,  5,  6,  7,  7, 8, 9, 9, 10, 11,
-                                                      11, 12, 13, 13, 14, 6, 6, 8, 8, 10, 10};
-const TxSize  max_txsize_lookup[BlockSizeS_ALL]    = {
+const uint8_t eb_num_pels_log2_lookup[BlockSizeS_ALL] = {4,  5,  5,  6,  7,  7, 8, 9, 9, 10, 11,
+                                                         11, 12, 13, 13, 14, 6, 6, 8, 8, 10, 10};
+
+const TxSize  eb_max_txsize_lookup[BlockSizeS_ALL] = {
     //                   4X4
     TX_4X4,
     // 4X8,    8X4,      8X8
@@ -1849,7 +1850,7 @@ const TxSize  max_txsize_lookup[BlockSizeS_ALL]    = {
     TX_16X16,
     TX_16X16};
 
-const TxSize max_txsize_rect_lookup[BlockSizeS_ALL] = {
+const TxSize eb_max_txsize_rect_lookup[BlockSizeS_ALL] = {
     // 4X4
     TX_4X4,
     // 4X8,    8X4,      8X8
@@ -1884,15 +1885,15 @@ const TxSize max_txsize_rect_lookup[BlockSizeS_ALL] = {
     TX_64X16};
 
 // Transform block width in unit
-const int32_t tx_size_wide_unit[TX_SIZES_ALL] = {
+const int32_t eb_tx_size_wide_unit[TX_SIZES_ALL] = {
     1, 2, 4, 8, 16, 1, 2, 2, 4, 4, 8, 8, 16, 1, 4, 2, 8, 4, 16,
 };
 // Transform block height in unit
-const int32_t tx_size_high_unit[TX_SIZES_ALL] = {
+const int32_t eb_tx_size_high_unit[TX_SIZES_ALL] = {
     1, 2, 4, 8, 16, 2, 1, 4, 2, 8, 4, 16, 8, 4, 1, 8, 2, 16, 4,
 };
 
-const TxSize sub_tx_size_map[TX_SIZES_ALL] = {
+const TxSize eb_sub_tx_size_map[TX_SIZES_ALL] = {
     TX_4X4, // TX_4X4
     TX_4X4, // TX_8X8
     TX_8X8, // TX_16X16
@@ -1913,49 +1914,7 @@ const TxSize sub_tx_size_map[TX_SIZES_ALL] = {
     TX_16X32, // TX_16X64
     TX_32X16, // TX_64X16
 };
-const TxSize txsize_horz_map[TX_SIZES_ALL] = {
-    TX_4X4, // TX_4X4
-    TX_8X8, // TX_8X8
-    TX_16X16, // TX_16X16
-    TX_32X32, // TX_32X32
-    TX_64X64, // TX_64X64
-    TX_4X4, // TX_4X8
-    TX_8X8, // TX_8X4
-    TX_8X8, // TX_8X16
-    TX_16X16, // TX_16X8
-    TX_16X16, // TX_16X32
-    TX_32X32, // TX_32X16
-    TX_32X32, // TX_32X64
-    TX_64X64, // TX_64X32
-    TX_4X4, // TX_4X16
-    TX_16X16, // TX_16X4
-    TX_8X8, // TX_8X32
-    TX_32X32, // TX_32X8
-    TX_16X16, // TX_16X64
-    TX_64X64, // TX_64X16
-};
 
-const TxSize txsize_vert_map[TX_SIZES_ALL] = {
-    TX_4X4, // TX_4X4
-    TX_8X8, // TX_8X8
-    TX_16X16, // TX_16X16
-    TX_32X32, // TX_32X32
-    TX_64X64, // TX_64X64
-    TX_8X8, // TX_4X8
-    TX_4X4, // TX_8X4
-    TX_16X16, // TX_8X16
-    TX_8X8, // TX_16X8
-    TX_32X32, // TX_16X32
-    TX_16X16, // TX_32X16
-    TX_64X64, // TX_32X64
-    TX_32X32, // TX_64X32
-    TX_16X16, // TX_4X16
-    TX_4X4, // TX_16X4
-    TX_32X32, // TX_8X32
-    TX_8X8, // TX_32X8
-    TX_64X64, // TX_16X64
-    TX_16X16, // TX_64X16
-};
 const uint8_t mi_size_wide_log2[BlockSizeS_ALL] = {0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3,
                                                    4, 4, 4, 5, 5, 0, 2, 1, 3, 2, 4};
 const uint8_t mi_size_high_log2[BlockSizeS_ALL] = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3, 4,

@@ -699,7 +699,7 @@ int32_t svt_aom_intra_has_top_right(BlockSize sb_size, BlockSize bsize, int32_t 
 
     const int32_t bw_unit              = block_size_wide[bsize] >> tx_size_wide_log2[0];
     const int32_t plane_bw_unit        = AOMMAX(bw_unit >> ss_x, 1);
-    const int32_t top_right_count_unit = tx_size_wide_unit[txsz];
+    const int32_t top_right_count_unit = eb_tx_size_wide_unit[txsz];
 
     if (row_off > 0) { // Just need to check if enough pixels on the right.
         if (block_size_wide[bsize] > block_size_wide[BLOCK_64X64]) {
@@ -965,7 +965,7 @@ int32_t svt_aom_intra_has_bottom_left(BlockSize sb_size, BlockSize bsize, int32_
             const int32_t plane_bh_unit    = AOMMIN(mi_size_high[bsize] >> ss_y, plane_bh_unit_64);
             // Check if all bottom-left pixels are in the left 64x* block (which is
             // already coded).
-            return row_off_64 + tx_size_high_unit[txsz] < plane_bh_unit;
+            return row_off_64 + eb_tx_size_high_unit[txsz] < plane_bh_unit;
         }
     }
 
@@ -975,7 +975,7 @@ int32_t svt_aom_intra_has_bottom_left(BlockSize sb_size, BlockSize bsize, int32_
     } else {
         const int32_t bh_unit                = block_size_high[bsize] >> tx_size_high_log2[0];
         const int32_t plane_bh_unit          = AOMMAX(bh_unit >> ss_y, 1);
-        const int32_t bottom_left_count_unit = tx_size_high_unit[txsz];
+        const int32_t bottom_left_count_unit = eb_tx_size_high_unit[txsz];
 
         // All bottom-left pixels are in the left block, which is already available.
         if (row_off + bottom_left_count_unit < plane_bh_unit)
