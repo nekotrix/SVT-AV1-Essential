@@ -1115,6 +1115,9 @@ typedef struct PictureParentControlSet {
     uint32_t ahd_error;
 
     bool sframe_ref_pruned;
+#if FTR_SFRAME_QP
+    int8_t sframe_qp_offset;
+#endif // FTR_SFRAME_QP
 } PictureParentControlSet;
 
 typedef struct TplDispResults {

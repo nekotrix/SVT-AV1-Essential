@@ -4565,6 +4565,17 @@ static void copy_api_from_app(
     }
     scs->static_config.sframe_posi.sframe_num = config_struct->sframe_posi.sframe_num;
 #endif // FTR_SFRAME_POSI
+#if FTR_SFRAME_QP
+    if (config_struct->sframe_posi.sframe_qps) {
+        EB_NO_THROW_MALLOC(scs->static_config.sframe_posi.sframe_qps, sizeof(uint32_t) * config_struct->sframe_posi.sframe_qp_num);
+        memcpy(scs->static_config.sframe_posi.sframe_qps, config_struct->sframe_posi.sframe_qps, sizeof(uint32_t) * config_struct->sframe_posi.sframe_qp_num);
+    }
+    if (config_struct->sframe_posi.sframe_qp_offsets) {
+        EB_NO_THROW_MALLOC(scs->static_config.sframe_posi.sframe_qp_offsets, sizeof(int32_t) * config_struct->sframe_posi.sframe_qp_num);
+        memcpy(scs->static_config.sframe_posi.sframe_qp_offsets, config_struct->sframe_posi.sframe_qp_offsets, sizeof(int32_t) * config_struct->sframe_posi.sframe_qp_num);
+    }
+    scs->static_config.sframe_posi.sframe_qp_num = config_struct->sframe_posi.sframe_qp_num;
+#endif // FTR_SFRAME_QP
 
     // Color description
     scs->static_config.color_primaries = config_struct->color_primaries;
@@ -4578,6 +4589,10 @@ static void copy_api_from_app(
     // switch frame
     scs->static_config.sframe_dist = config_struct->sframe_dist;
     scs->static_config.sframe_mode = config_struct->sframe_mode;
+#if FTR_SFRAME_QP
+    scs->static_config.sframe_qp = config_struct->sframe_qp;
+    scs->static_config.sframe_qp_offset = config_struct->sframe_qp_offset;
+#endif // FTR_SFRAME_QP
 #if FTR_SFRAME_POSI
     scs->seq_header.max_frame_width = config_struct->forced_max_frame_width > 0 ? config_struct->forced_max_frame_width
         : scs->static_config.sframe_dist > 0 || scs->static_config.sframe_posi.sframe_posis ? 16384 : scs->max_input_luma_width;
@@ -4684,6 +4699,10 @@ EB_API EbErrorType svt_av1_enc_set_parameter(
     memset(&config_struct->frame_scale_evts, 0, sizeof(SvtAv1FrameScaleEvts));
 
     // free sframe position list
+#if FTR_SFRAME_QP
+    if (config_struct->sframe_posi.sframe_qps) EB_FREE(config_struct->sframe_posi.sframe_qps);
+    if (config_struct->sframe_posi.sframe_qp_offsets) EB_FREE(config_struct->sframe_posi.sframe_qp_offsets);
+#endif // FTR_SFRAME_QP
 #if FTR_SFRAME_POSI
     if (config_struct->sframe_posi.sframe_posis) EB_FREE(config_struct->sframe_posi.sframe_posis);
     memset(&config_struct->sframe_posi, 0, sizeof(SvtAv1SFramePositions));

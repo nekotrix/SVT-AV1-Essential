@@ -718,6 +718,18 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 #endif // FTR_SFRAME_POSI
+#if FTR_SFRAME_QP
+    if (config->sframe_posi.sframe_qp_num && config->rate_control_mode != SVT_AV1_RC_MODE_CQP_OR_CRF) {
+        SVT_ERROR("Instance %u: S-Frame QP feature only supports CRF/CQP rate control mode\n", channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
+    if ((config->sframe_posi.sframe_qps && config->sframe_posi.sframe_qp_offsets) ||
+        (config->sframe_qp > 0 && config->sframe_qp_offset != 0)) {
+        SVT_ERROR("Instance %u: S-Frame QP feature cannot support QP value and QP offset at same time\n",
+                  channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
+#endif // FTR_SFRAME_QP
 
     /* Warnings about the use of features that are incomplete */
     if (config->enable_adaptive_quantization == 1) {
@@ -1057,6 +1069,13 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->sframe_posi.sframe_num   = 0;
     config_ptr->sframe_posi.sframe_posis = NULL;
 #endif // FTR_SFRAME_POSI
+#if FTR_SFRAME_QP
+    config_ptr->sframe_posi.sframe_qp_num     = 0;
+    config_ptr->sframe_posi.sframe_qps        = NULL;
+    config_ptr->sframe_posi.sframe_qp_offsets = NULL;
+    config_ptr->sframe_qp                     = 0;
+    config_ptr->sframe_qp_offset              = 0;
+#endif // FTR_SFRAME_QP
     return return_error;
 }
 
@@ -1877,6 +1896,61 @@ static EbErrorType str_to_sframe_posi(const char *nptr, SvtAv1SFramePositions *p
 }
 #endif // FTR_SFRAME_POSI
 
+#if FTR_SFRAME_QP
+static EbErrorType str_to_sframe_qp(const char *nptr, SvtAv1SFramePositions *posis, uint32_t *qp) {
+    const uint32_t param_count = count_params(nptr);
+    if ((posis->sframe_num != 0 && posis->sframe_num != param_count && param_count != 1) || param_count == 0) {
+        SVT_ERROR("Error: Size for the list passed to %s doesn't match %u\n", "sframe-qp", posis->sframe_num);
+        return EB_ErrorBadParameter;
+    }
+    if (posis->sframe_qps)
+        EB_FREE(posis->sframe_qps);
+    EB_MALLOC(posis->sframe_qps, param_count * sizeof(uint32_t));
+    posis->sframe_qp_num = param_count;
+    EbErrorType err      = parse_list_u32(nptr, posis->sframe_qps, param_count);
+    // check if the QP values are valid
+    for (uint32_t i = 0; i < posis->sframe_qp_num; ++i) {
+        if (posis->sframe_qps[i] < 1 || posis->sframe_qps[i] > 63) {
+            SVT_ERROR("Error: Invalid S-Frame QP value. QPs must be [1 - 63]\n");
+            EB_FREE(posis->sframe_qps);
+            posis->sframe_qp_num = 0;
+            err                  = EB_ErrorBadParameter;
+        }
+    }
+    // If sframe-qp parameter contains only one value, apply it to all S-frames
+    if (err == EB_ErrorNone && param_count == 1) {
+        *qp = posis->sframe_qps[0];
+    }
+    return err;
+}
+static EbErrorType str_to_sframe_qp_offset(const char *nptr, SvtAv1SFramePositions *posis, int32_t *qp_offset) {
+    const uint32_t param_count = count_params(nptr);
+    if ((posis->sframe_num != 0 && posis->sframe_num != param_count && param_count != 1) || param_count == 0) {
+        SVT_ERROR("Error: Size for the list passed to %s doesn't match %u\n", "sframe-qp-offset", posis->sframe_num);
+        return EB_ErrorBadParameter;
+    }
+    if (posis->sframe_qp_offsets)
+        EB_FREE(posis->sframe_qp_offsets);
+    EB_MALLOC(posis->sframe_qp_offsets, param_count * sizeof(int32_t));
+    posis->sframe_qp_num = param_count;
+    EbErrorType err      = parse_list_s32(nptr, posis->sframe_qp_offsets, param_count);
+    // check if the QP offset values are valid
+    for (uint32_t i = 0; i < posis->sframe_qp_num; ++i) {
+        if (posis->sframe_qp_offsets[i] < -63 || posis->sframe_qp_offsets[i] > 63) {
+            SVT_ERROR("Error: Invalid S-Frame QP offset value. QP offsets must be [-63 - 63]\n");
+            EB_FREE(posis->sframe_qp_offsets);
+            posis->sframe_qp_num = 0;
+            err                  = EB_ErrorBadParameter;
+        }
+    }
+    // If sframe-qp-offset parameter contains only one value, apply it to all S-frames
+    if (err == EB_ErrorNone && param_count == 1) {
+        *qp_offset = posis->sframe_qp_offsets[0];
+    }
+    return err;
+}
+#endif // FTR_SFRAME_QP
+
 #define COLOR_OPT(par, opt)                                          \
     do {                                                             \
         if (!strcmp(name, par)) {                                    \
@@ -1977,6 +2051,14 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
     if (!strcmp(name, "sframe-posi"))
         return str_to_sframe_posi(value, &config_struct->sframe_posi);
 #endif // FTR_SFRAME_POSI
+
+#if FTR_SFRAME_QP
+    if (!strcmp(name, "sframe-qp"))
+        return str_to_sframe_qp(value, &config_struct->sframe_posi, &config_struct->sframe_qp);
+
+    if (!strcmp(name, "sframe-qp-offset"))
+        return str_to_sframe_qp_offset(value, &config_struct->sframe_posi, &config_struct->sframe_qp_offset);
+#endif // FTR_SFRAME_QP
 
     // uint32_t fields
     const struct {

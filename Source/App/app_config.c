@@ -183,6 +183,10 @@
 #if FTR_SFRAME_POSI
 #define SFRAME_POSI_TOKEN "--sframe-posi"
 #endif // FTR_SFRAME_POSI
+#if FTR_SFRAME_QP
+#define SFRAME_QP_TOKEN "--sframe-qp"
+#define SFRAME_QP_OFFSET_TOKEN "--sframe-qp-offset"
+#endif // FTR_SFRAME_QP
 
 #define ENABLE_QM_TOKEN "--enable-qm"
 #define MIN_QM_LEVEL_TOKEN "--qm-min"
@@ -912,6 +916,11 @@ ConfigDescription config_entry_specific[] = {
      "S-Frame insertion positions, a list separated by ',', S-Frame process inserts by "
      "the specified frame numbers (0 based), only applicable for mode 3"},
 #endif // FTR_SFRAME_POSI
+#if FTR_SFRAME_QP
+    {SFRAME_QP_TOKEN, "S-Frame setup qp, a list separated by ',', QP value(s) set with S-Frame insertion"},
+    {SFRAME_QP_OFFSET_TOKEN,
+     "S-Frame setup qp offset, a list separated by ',', QP offset value(s) set with S-Frame insertion"},
+#endif // FTR_SFRAME_QP
     // --- end: SWITCH_FRAME SUPPORT
     // --- start: REFERENCE SCALING SUPPORT
     {RESIZE_MODE_INPUT,
@@ -1113,6 +1122,10 @@ ConfigEntry config_entry[] = {
 #if FTR_SFRAME_POSI
     {SFRAME_POSI_TOKEN, "SframePositions", set_cfg_generic_token},
 #endif //FTR_SFRAME_POSI
+#if FTR_SFRAME_QP
+    {SFRAME_QP_TOKEN, "SframeQPs", set_cfg_generic_token},
+    {SFRAME_QP_OFFSET_TOKEN, "SframeQPOffsets", set_cfg_generic_token},
+#endif //FTR_SFRAME_QP
 
     // Reference Scaling support
     {RESIZE_MODE_INPUT, "ResizeMode", set_cfg_generic_token},
@@ -2072,6 +2085,15 @@ static bool is_negative_number(const char *string) {
     return strtol(string, &end, 10) < 0 && *end == '\0';
 }
 
+#if FTR_SFRAME_QP
+// this function is to check if the parameter value is a list starting with
+// a negative number, for example: "--sframe-qp-offset -10,5,-15"
+static bool is_negative_number_in_list(const char *string) {
+    char *end;
+    return strtol(string, &end, 10) < 0 && *end == ',';
+}
+#endif // FTR_SFRAME_QP
+
 // Computes the number of frames in the input file
 int32_t compute_frames_to_be_encoded(EbConfig *app_cfg) {
     uint64_t file_size   = 0;
@@ -2297,7 +2319,11 @@ EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *chan
 
     // Copy tokens into a temp token buffer hosting all tokens that are passed through the command line
     for (int32_t token_index = 0; token_index < argc; ++token_index) {
+#if FTR_SFRAME_QP
+        if (!is_negative_number(argv[token_index]) && !is_negative_number_in_list(argv[token_index])) {
+#else
         if (!is_negative_number(argv[token_index])) {
+#endif // FTR_SFRAME_QP
             if (argv[token_index][0] == '-' && argv[token_index][1] != '\0')
                 cmd_copy[token_index] = argv[token_index];
             else if (token_index)

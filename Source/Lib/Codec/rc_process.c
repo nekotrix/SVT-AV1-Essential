@@ -3705,6 +3705,14 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                             frm_hdr->quantization_params.base_q_idx = qindex;
                         }
 
+#if FTR_SFRAME_QP
+                        if (pcs->ppcs->sframe_qp_offset) {
+                            uint8_t new_qp = clamp_qp(
+                                scs,
+                                ((frm_hdr->quantization_params.base_q_idx + 2) >> 2) + pcs->ppcs->sframe_qp_offset);
+                            frm_hdr->quantization_params.base_q_idx = quantizer_to_qindex[new_qp];
+                        }
+#endif // FTR_SFRAME_QP
                         pcs->picture_qp = clamp_qp(scs, (frm_hdr->quantization_params.base_q_idx + 2) >> 2);
                     }
                     int32_t chroma_qindex = frm_hdr->quantization_params.base_q_idx;

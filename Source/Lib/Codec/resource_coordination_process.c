@@ -1177,6 +1177,10 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 pcs->qp_on_the_fly = false;
                 pcs->picture_qp    = (uint8_t)scs->static_config.qp;
             }
+#if FTR_SFRAME_QP
+            pcs->sframe_qp_offset = 0;
+#endif //FTR_SFRAME_QP
+
             // Initialize variables for calculating the average QP
             pcs->tot_qindex               = 0;
             pcs->valid_qindex_area        = 0;
