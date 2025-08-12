@@ -906,6 +906,9 @@ static void inj_non_simple_modes(PictureControlSet *pcs, struct ModeDecisionCont
         if (motion_mode_valid)
             INC_MD_CAND_CNT(cand_count, pcs->ppcs->max_can_count);
     }
+#else
+    UNUSED(enable_wm);
+    UNUSED(enable_obmc);
 #endif // CONFIG_ENABLE_OBMC
 
     *total_cand_count = cand_count;

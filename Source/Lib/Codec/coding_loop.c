@@ -717,9 +717,8 @@ void svt_aom_store16bit_input_src(EbPictureBufferDesc *input_sample16bit_buffer,
 void        svt_aom_update_mi_map_enc_dec(BlkStruct *blk_ptr, ModeDecisionContext *ctx, PictureControlSet *pcs);
 static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr, uint32_t sb_addr, BlkStruct *blk_ptr,
                                       EncDecContext *ed_ctx) {
-    bool                 is_16bit  = ed_ctx->is_16bit;
-    uint32_t             bit_depth = ed_ctx->bit_depth;
-    uint8_t              is_inter  = 0; // set to 0 b/c this is the intra path
+    bool                 is_16bit = ed_ctx->is_16bit;
+    uint8_t              is_inter = 0; // set to 0 b/c this is the intra path
     EbPictureBufferDesc *recon_buffer;
     EbPictureBufferDesc *coeff_buffer_sb  = pcs->ppcs->enc_dec_ptr->quantized_coeff[sb_addr];
     uint16_t             tile_idx         = ed_ctx->tile_index;
@@ -763,6 +762,7 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
 
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (is_16bit) {
+            uint32_t       bit_depth = ed_ctx->bit_depth;
             uint16_t       top_neigh_array[64 * 2 + 1];
             uint16_t       left_neigh_array[64 * 2 + 1];
             PredictionMode mode;
@@ -958,6 +958,7 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
 
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (is_16bit) {
+            uint32_t       bit_depth = ed_ctx->bit_depth;
             uint16_t       top_neigh_array[64 * 2 + 1];
             uint16_t       left_neigh_array[64 * 2 + 1];
             PredictionMode mode;

@@ -301,7 +301,12 @@ static int64_t get_pixel_proj_error(const uint8_t *src8, int32_t width, int32_t 
                                     const SgrParamsType *params) {
     int32_t xq[2];
     svt_decode_xq(xqd, xq, params);
-    if (!use_highbitdepth) {
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+    if (!use_highbitdepth)
+#else
+    UNUSED(use_highbitdepth);
+#endif
+    {
         return svt_av1_lowbd_pixel_proj_error(
             src8, width, height, src_stride, dat8, dat_stride, flt0, flt0_stride, flt1, flt1_stride, xq, params);
     }

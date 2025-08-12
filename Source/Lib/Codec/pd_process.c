@@ -3321,8 +3321,6 @@ static EbErrorType derive_tf_window_params(
 
     PictureParentControlSet * centre_pcs = pcs;
     EbPictureBufferDesc * central_picture_ptr = centre_pcs->enhanced_pic;
-    uint32_t encoder_bit_depth = centre_pcs->scs->static_config.encoder_bit_depth;
-    bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)false : (uint8_t)true;
 
     // chroma subsampling
     uint32_t ss_x = centre_pcs->scs->subsampling_x;
@@ -3336,6 +3334,8 @@ static EbErrorType derive_tf_window_params(
         do_noise_est = 1;
     // allocate 16 bit buffer
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
+    uint32_t encoder_bit_depth = centre_pcs->scs->static_config.encoder_bit_depth;
+    bool is_highbd = (encoder_bit_depth == 8) ? (uint8_t)false : (uint8_t)true;
     if (is_highbd) {
         EB_MALLOC_ARRAY(centre_pcs->altref_buffer_highbd[C_Y],
             central_picture_ptr->luma_size);

@@ -843,6 +843,10 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
         else
             pack_highbd_pic_2d(src, src_buffer_highbd, ss_x, ss_y);
     } else
+#else
+    UNUSED(bd);
+    UNUSED(is_packed);
+    UNUSED(is_2bcompress);
 #endif
     {
         src_buffer_highbd[0] = (uint16_t *)src->buffer_y;

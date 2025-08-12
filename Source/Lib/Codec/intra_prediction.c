@@ -1765,9 +1765,12 @@ intra_pred_highbd_sized(paeth, 64, 16);
 intra_pred_highbd_sized(paeth, 64, 32);
 #endif
 
-static IntraPredFnC       dc_pred_c[2][2];
+static IntraPredFnC dc_pred_c[2][2];
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static IntraHighBdPredFnC highbd_dc_pred_c[2][2];
-void                      svt_aom_init_intra_dc_predictors_c_internal(void) {
+#endif
+
+void svt_aom_init_intra_dc_predictors_c_internal(void) {
     dc_pred_c[0][0] = dc_128_predictor;
     dc_pred_c[0][1] = dc_top_predictor;
     dc_pred_c[1][0] = dc_left_predictor;

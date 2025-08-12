@@ -1397,6 +1397,8 @@ void svt_aom_quantize_inv_quantize_light(PictureControlSet *pcs, int32_t *coeff,
                                       iq_matrix,
                                       av1_get_tx_scale_tab[txsize]);
         } else
+#else
+        UNUSED(bit_depth);
 #endif
         {
             svt_aom_quantize_b((TranLow *)coeff,

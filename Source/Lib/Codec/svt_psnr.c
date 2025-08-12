@@ -29,24 +29,6 @@ static int32_t encoder_variance(const uint8_t *a, int32_t a_stride, const uint8_
     return sse;
 }
 
-static int64_t encoder_highbd_variance64(const uint8_t *a8, int32_t a_stride, const uint8_t *b8, int32_t b_stride,
-                                         int32_t w, int32_t h) {
-    const uint16_t *a   = CONVERT_TO_SHORTPTR(a8);
-    const uint16_t *b   = CONVERT_TO_SHORTPTR(b8);
-    int64_t         sse = 0;
-    for (int32_t i = 0; i < h; ++i) {
-        for (int32_t j = 0; j < w; ++j) { sse += (uint32_t)(SQR(a[j] - b[j])); }
-        a += a_stride;
-        b += b_stride;
-    }
-    return sse;
-}
-
-static void encoder_highbd_8_variance(const uint8_t *a8, int32_t a_stride, const uint8_t *b8, int32_t b_stride,
-                                      int32_t w, int32_t h, uint32_t *sse) {
-    *sse = (uint32_t)encoder_highbd_variance64(a8, a_stride, b8, b_stride, w, h);
-}
-
 static void variance(const uint8_t *a, int32_t a_stride, const uint8_t *b, int b_stride, int w, int h, uint32_t *sse) {
     int i, j;
 
@@ -105,6 +87,24 @@ static int64_t get_sse(const uint8_t *a, int32_t a_stride, const uint8_t *b, int
 }
 
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
+static int64_t encoder_highbd_variance64(const uint8_t *a8, int32_t a_stride, const uint8_t *b8, int32_t b_stride,
+                                         int32_t w, int32_t h) {
+    const uint16_t *a   = CONVERT_TO_SHORTPTR(a8);
+    const uint16_t *b   = CONVERT_TO_SHORTPTR(b8);
+    int64_t         sse = 0;
+    for (int32_t i = 0; i < h; ++i) {
+        for (int32_t j = 0; j < w; ++j) { sse += (uint32_t)(SQR(a[j] - b[j])); }
+        a += a_stride;
+        b += b_stride;
+    }
+    return sse;
+}
+
+static void encoder_highbd_8_variance(const uint8_t *a8, int32_t a_stride, const uint8_t *b8, int32_t b_stride,
+                                      int32_t w, int32_t h, uint32_t *sse) {
+    *sse = (uint32_t)encoder_highbd_variance64(a8, a_stride, b8, b_stride, w, h);
+}
+
 static int64_t highbd_get_sse(const uint8_t *a, int32_t a_stride, const uint8_t *b, int32_t b_stride, int32_t width,
                               int32_t height) {
     int64_t       total_sse = 0;
