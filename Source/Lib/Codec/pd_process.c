@@ -1163,31 +1163,31 @@ static int32_t get_dist_to_s(SvtAv1SFramePositions const *sframe_posi, uint64_t 
 }
 #endif // FTR_SFRAME_POSI
 #if FTR_SFRAME_QP
-static uint32_t get_sframe_qp(SvtAv1SFramePositions const *sframe_posi, uint64_t picture_num) {
+static uint8_t get_sframe_qp(SvtAv1SFramePositions const *sframe_posi, uint64_t picture_num) {
     if (sframe_posi->sframe_qps == NULL)
         return 0;
     if (sframe_posi->sframe_posis == NULL) {
         // always return first QP if not use flexible S-Frame position list
-        return sframe_posi->sframe_qps[0];
+        return (uint8_t)sframe_posi->sframe_qps[0];
     }
     for (uint32_t i = 0; i < sframe_posi->sframe_num; i++) {
         if (sframe_posi->sframe_posis[i] == picture_num) {
-            return sframe_posi->sframe_qps[i];
+            return (uint8_t)sframe_posi->sframe_qps[i];
         }
     }
     return 0; // not find the picture
 }
 
-static int32_t get_sframe_qp_offset(SvtAv1SFramePositions const *sframe_posi, uint64_t picture_num) {
+static int8_t get_sframe_qp_offset(SvtAv1SFramePositions const *sframe_posi, uint64_t picture_num) {
     if (sframe_posi->sframe_qp_offsets == NULL)
         return 0;
     if (sframe_posi->sframe_posis == NULL) {
         // always return first QP offset if not use flexible S-Frame position list
-        return sframe_posi->sframe_qp_offsets[0];
+        return (int8_t)sframe_posi->sframe_qp_offsets[0];
     }
     for (uint32_t i = 0; i < sframe_posi->sframe_num; i++) {
         if (sframe_posi->sframe_posis[i] == picture_num) {
-            return sframe_posi->sframe_qp_offsets[i];
+            return (int8_t)sframe_posi->sframe_qp_offsets[i];
         }
     }
     return 0; // not find the picture
@@ -1195,16 +1195,16 @@ static int32_t get_sframe_qp_offset(SvtAv1SFramePositions const *sframe_posi, ui
 
 static void setup_sframe_qp(PictureParentControlSet *ppcs) {
     SequenceControlSet *scs = ppcs->scs;
-    uint32_t sframe_qp = scs->static_config.sframe_qp > 0 ? scs->static_config.sframe_qp : get_sframe_qp(&scs->static_config.sframe_posi, ppcs->picture_number);
+    uint8_t sframe_qp = scs->static_config.sframe_qp > 0 ? scs->static_config.sframe_qp : get_sframe_qp(&scs->static_config.sframe_posi, ppcs->picture_number);
     if (sframe_qp > 0) {
         ppcs->picture_qp = (uint8_t)CLIP3((int8_t)scs->static_config.min_qp_allowed,
                                           (int8_t)scs->static_config.max_qp_allowed,
                                           (int8_t)sframe_qp);
         ppcs->qp_on_the_fly = true;
     }
-    int32_t sframe_qp_offset = scs->static_config.sframe_qp_offset != 0 ? scs->static_config.sframe_qp_offset : get_sframe_qp_offset(&scs->static_config.sframe_posi, ppcs->picture_number);
+    int8_t sframe_qp_offset = scs->static_config.sframe_qp_offset != 0 ? scs->static_config.sframe_qp_offset : get_sframe_qp_offset(&scs->static_config.sframe_posi, ppcs->picture_number);
     if (sframe_qp_offset != 0) {
-        ppcs->sframe_qp_offset = (int8_t)sframe_qp_offset;
+        ppcs->sframe_qp_offset = sframe_qp_offset;
     }
 }
 #endif // FTR_SFRAME_QP

@@ -1897,7 +1897,7 @@ static EbErrorType str_to_sframe_posi(const char *nptr, SvtAv1SFramePositions *p
 #endif // FTR_SFRAME_POSI
 
 #if FTR_SFRAME_QP
-static EbErrorType str_to_sframe_qp(const char *nptr, SvtAv1SFramePositions *posis, uint32_t *qp) {
+static EbErrorType str_to_sframe_qp(const char *nptr, SvtAv1SFramePositions *posis, uint8_t *qp) {
     const uint32_t param_count = count_params(nptr);
     if ((posis->sframe_num != 0 && posis->sframe_num != param_count && param_count != 1) || param_count == 0) {
         SVT_ERROR("Error: Size for the list passed to %s doesn't match %u\n", "sframe-qp", posis->sframe_num);
@@ -1919,11 +1919,11 @@ static EbErrorType str_to_sframe_qp(const char *nptr, SvtAv1SFramePositions *pos
     }
     // If sframe-qp parameter contains only one value, apply it to all S-frames
     if (err == EB_ErrorNone && param_count == 1) {
-        *qp = posis->sframe_qps[0];
+        *qp = (uint8_t)posis->sframe_qps[0];
     }
     return err;
 }
-static EbErrorType str_to_sframe_qp_offset(const char *nptr, SvtAv1SFramePositions *posis, int32_t *qp_offset) {
+static EbErrorType str_to_sframe_qp_offset(const char *nptr, SvtAv1SFramePositions *posis, int8_t *qp_offset) {
     const uint32_t param_count = count_params(nptr);
     if ((posis->sframe_num != 0 && posis->sframe_num != param_count && param_count != 1) || param_count == 0) {
         SVT_ERROR("Error: Size for the list passed to %s doesn't match %u\n", "sframe-qp-offset", posis->sframe_num);
@@ -1945,7 +1945,7 @@ static EbErrorType str_to_sframe_qp_offset(const char *nptr, SvtAv1SFramePositio
     }
     // If sframe-qp-offset parameter contains only one value, apply it to all S-frames
     if (err == EB_ErrorNone && param_count == 1) {
-        *qp_offset = posis->sframe_qp_offsets[0];
+        *qp_offset = (int8_t)posis->sframe_qp_offsets[0];
     }
     return err;
 }

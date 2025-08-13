@@ -974,9 +974,9 @@ typedef struct EbSvtAv1EncConfiguration {
 
 #if FTR_SFRAME_QP
     /* @brief Indicates QP of S-Frame(s) */
-    uint32_t sframe_qp;
+    uint8_t sframe_qp;
     /* @brief Indicates QP offset of S-Frame(s) */
-    int32_t sframe_qp_offset;
+    int8_t sframe_qp_offset;
 #endif // FTR_SFRAME_QP
 
     // clang-format off
@@ -987,8 +987,8 @@ typedef struct EbSvtAv1EncConfiguration {
         - sizeof(SvtAv1SFramePositions)
 #endif // FTR_SFRAME_POSI
 #if FTR_SFRAME_QP
-        - sizeof(uint32_t)
-        - sizeof(int32_t)
+        - sizeof(uint8_t)
+        - sizeof(int8_t)
 #endif // FTR_SFRAME_QP
     ];
     // clang-format on
