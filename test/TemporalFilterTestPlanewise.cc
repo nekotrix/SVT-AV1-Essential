@@ -1731,6 +1731,12 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     NEON, TemporalFilterTestGetFinalFilteredPixels,
     ::testing::Values(svt_aom_get_final_filtered_pixels_neon));
+
+#if HAVE_SVE
+INSTANTIATE_TEST_SUITE_P(
+    SVE, TemporalFilterTestGetFinalFilteredPixels,
+    ::testing::Values(svt_aom_get_final_filtered_pixels_sve));
+#endif  // HAVE_SVE
 #endif  // ARCH_AARCH64
 
 template <typename SrcType, typename FuncType>

@@ -47,4 +47,9 @@ static inline int16x8_t svt_tbl_s16(int16x8_t s, uint16x8_t tbl) {
     return svget_neonq_s16(svtbl_s16(svset_neonq_s16(svundef_s16(), s), svset_neonq_u16(svundef_u16(), tbl)));
 }
 
+static inline uint32x4_t svt_div_u32(uint32x4_t a, uint32x4_t b) {
+    return svget_neonq_u32(
+        svdiv_u32_x(svptrue_b8(), svset_neonq_u32(svundef_u32(), a), svset_neonq_u32(svundef_u32(), b)));
+}
+
 #endif // NEON_SVE_BRIDGE_H

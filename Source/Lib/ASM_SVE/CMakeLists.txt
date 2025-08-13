@@ -32,6 +32,7 @@ target_sources(
   PUBLIC highbd_warp_plane_sve.c
   PUBLIC pickrst_sve.c
   PUBLIC sad_sve.c
+  PUBLIC temporal_filtering_sve.c
   PUBLIC warp_plane_sve.c
   PUBLIC wedge_utils_sve.c)
 
