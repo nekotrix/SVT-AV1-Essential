@@ -1024,18 +1024,25 @@ INSTANTIATE_TEST_SUITE_P(
  * Test coverage:
  * Test cases:
  * nb_strength: [0 8)
- * end_gi: TOTAL_STRENGTHS
+ * end_gi: [2, 3, 4, 6, 48, TOTAL_STRENGTHS]
  *
  */
 
-using SearchOneDualFunc = uint64_t (*)(int *lev0, int *lev1, int nb_strengths,
-                                       uint64_t **mse[2], int sb_count,
-                                       int start_gi, int end_gi);
+const int end_gi_sizes[6] = {2, 3, 4, 6, 48, TOTAL_STRENGTHS};
+const int sb_count_v[2] = {100, 101};
+
+typedef uint64_t (*SearchOneDualFunc)(int *lev0, int *lev1, int nb_strengths,
+                                      uint64_t **mse[2], int sb_count,
+                                      int start_gi, int end_gi);
+typedef ::testing::tuple<SearchOneDualFunc, int, int> SearchOneDualParam;
 
 class CDEFSearchOneDualTest
-    : public ::testing::TestWithParam<SearchOneDualFunc> {
+    : public ::testing::TestWithParam<SearchOneDualParam> {
   public:
-    CDEFSearchOneDualTest() : test_func_(GetParam()), sb_count_(100) {
+    CDEFSearchOneDualTest()
+        : test_func_(TEST_GET_PARAM(0)),
+          sb_count_(TEST_GET_PARAM(1)),
+          end_gi_(TEST_GET_PARAM(2)) {
     }
 
     void SetUp() override {
@@ -1063,7 +1070,6 @@ class CDEFSearchOneDualTest
     void RunTest(int num_loop) {
         // setup enviroment
         const int start_gi = 0;
-        const int end_gi = TOTAL_STRENGTHS;
         const int nb_strengths = 8;
         int lvl_luma_ref[CDEF_MAX_STRENGTHS],
             lvl_chroma_ref[CDEF_MAX_STRENGTHS];
@@ -1098,7 +1104,7 @@ class CDEFSearchOneDualTest
                                                      mse_,
                                                      sb_count_,
                                                      start_gi,
-                                                     end_gi);
+                                                     end_gi_);
             }
 
             svt_av1_get_time(&middle_time_seconds, &middle_time_useconds);
@@ -1110,7 +1116,7 @@ class CDEFSearchOneDualTest
                                           mse_,
                                           sb_count_,
                                           start_gi,
-                                          end_gi);
+                                          end_gi_);
             }
 
             svt_av1_get_time(&finish_time_seconds, &finish_time_useconds);
@@ -1139,15 +1145,20 @@ class CDEFSearchOneDualTest
                     time_c / time_o);
             } else {
                 ASSERT_EQ(best_mse_tst, best_mse_ref)
-                    << "svt_search_one_dual_opt return different best mse "
-                    << " nb_strength: " << nb_strengths;
+                    << "svt_search_one_dual_opt return different best mse"
+                    << std::endl
+                    << "nb_strength: " << j << ", end_gi: " << end_gi_
+                    << ", sb_count: " << sb_count_;
                 for (int h = 0; h < CDEF_MAX_STRENGTHS; ++h) {
                     ASSERT_EQ(lvl_luma_ref[h], lvl_luma_tst[h])
-                        << "best strength for luma does not match "
-                        << " nb_strength: " << nb_strengths << " pos " << h;
+                        << "best strength for luma does not match" << std::endl
+                        << "nb_strength: " << j << ", end_gi: " << end_gi_
+                        << ", sb_count: " << sb_count_ << ", pos " << h;
                     ASSERT_EQ(lvl_chroma_ref[h], lvl_chroma_tst[h])
-                        << "best strength for chroma does not match "
-                        << " nb_strength: " << nb_strengths << " pos " << h;
+                        << "best strength for chroma does not match"
+                        << std::endl
+                        << "nb_strength: " << j << ", end_gi: " << end_gi_
+                        << ", sb_count: " << sb_count_ << ", pos " << h;
                 }
             }
         }
@@ -1155,7 +1166,7 @@ class CDEFSearchOneDualTest
 
   private:
     SearchOneDualFunc test_func_;
-    int sb_count_;
+    int sb_count_, end_gi_;
     uint64_t **mse_[2];
 };
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CDEFSearchOneDualTest);
@@ -1169,17 +1180,26 @@ TEST_P(CDEFSearchOneDualTest, DISABLED_test_speed) {
 }
 
 #ifdef ARCH_X86_64
-INSTANTIATE_TEST_SUITE_P(AVX2, CDEFSearchOneDualTest,
-                         ::testing::Values(svt_search_one_dual_avx2));
+INSTANTIATE_TEST_SUITE_P(
+    AVX2, CDEFSearchOneDualTest,
+    ::testing::Combine(::testing::Values(svt_search_one_dual_avx2),
+                       ::testing::ValuesIn(sb_count_v),
+                       ::testing::ValuesIn(end_gi_sizes)));
 
 #if EN_AVX512_SUPPORT
-INSTANTIATE_TEST_SUITE_P(AVX512, CDEFSearchOneDualTest,
-                         ::testing::Values(svt_search_one_dual_avx512));
+INSTANTIATE_TEST_SUITE_P(
+    AVX512, CDEFSearchOneDualTest,
+    ::testing::Combine(::testing::Values(svt_search_one_dual_avx512),
+                       ::testing::ValuesIn(sb_count_v),
+                       ::testing::ValuesIn(end_gi_sizes)));
 #endif
 
 #endif  // ARCH_X86_64
 
 #ifdef ARCH_AARCH64
-INSTANTIATE_TEST_SUITE_P(NEON, CDEFSearchOneDualTest,
-                         ::testing::Values(svt_search_one_dual_neon));
+INSTANTIATE_TEST_SUITE_P(
+    NEON, CDEFSearchOneDualTest,
+    ::testing::Combine(::testing::Values(svt_search_one_dual_neon),
+                       ::testing::ValuesIn(sb_count_v),
+                       ::testing::ValuesIn(end_gi_sizes)));
 #endif  // ARCH_AARCH64
