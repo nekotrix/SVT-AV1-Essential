@@ -4023,30 +4023,51 @@ static void tx_reset_neighbor_arrays(PictureControlSet *pcs, ModeDecisionContext
                                NEIGHBOR_ARRAY_UNIT_TOP_AND_LEFT_ONLY_MASK);
     }
 }
+#if FIX_TUNE_SSIM
+static void copy_txt_data(ModeDecisionCandidateBuffer *cand_bf, ModeDecisionContext *ctx, uint32_t txb_origin_index,
+                          TxType best_tx_type) {
+#else
 static void copy_txt_data(ModeDecisionCandidateBuffer *cand_bf, ModeDecisionContext *ctx, uint32_t txb_origin_index) {
+#endif
     uint8_t  tx_depth      = ctx->tx_depth;
     uint32_t txb_1d_offset = ctx->txb_1d_offset;
     uint8_t  tx_width      = ctx->blk_geom->tx_width[tx_depth];
     uint8_t  tx_height     = ctx->blk_geom->tx_height[tx_depth];
     // copy recon_coeff_ptr
     memcpy(((int32_t *)cand_bf->rec_coeff->buffer_y) + txb_1d_offset,
+#if FIX_TUNE_SSIM
+           ((int32_t *)ctx->recon_coeff_ptr[best_tx_type]->buffer_y) + txb_1d_offset,
+#else
            ((int32_t *)ctx->tx_search_recon_coeff_ptr->buffer_y) + txb_1d_offset,
+#endif
            (tx_width * tx_height * sizeof(uint32_t)));
     // copy quant_coeff_ptr
     memcpy(((int32_t *)cand_bf->quant->buffer_y) + txb_1d_offset,
+#if FIX_TUNE_SSIM
+           ((int32_t *)ctx->quant_coeff_ptr[best_tx_type]->buffer_y) + txb_1d_offset,
+#else
            ((int32_t *)ctx->tx_search_quant_coeff_ptr->buffer_y) + txb_1d_offset,
+#endif
            (tx_width * tx_height * sizeof(uint32_t)));
     // copy recon_ptr
     EbPictureBufferDesc *recon_ptr = cand_bf->recon;
     if (ctx->hbd_md) {
         for (uint32_t j = 0; j < tx_height; ++j)
             memcpy(((uint16_t *)recon_ptr->buffer_y) + txb_origin_index + j * recon_ptr->stride_y,
+#if FIX_TUNE_SSIM
+                   ((uint16_t *)ctx->recon_ptr[best_tx_type]->buffer_y) + txb_origin_index + j * recon_ptr->stride_y,
+#else
                    ((uint16_t *)ctx->tx_search_recon_ptr->buffer_y) + txb_origin_index + j * recon_ptr->stride_y,
+#endif
                    tx_width * sizeof(uint16_t));
     } else {
         for (uint32_t j = 0; j < tx_height; ++j)
             memcpy(recon_ptr->buffer_y + txb_origin_index + j * recon_ptr->stride_y,
+#if FIX_TUNE_SSIM
+                   ctx->recon_ptr[best_tx_type]->buffer_y + txb_origin_index + j * recon_ptr->stride_y,
+#else
                    ctx->tx_search_recon_ptr->buffer_y + txb_origin_index + j * recon_ptr->stride_y,
+#endif
                    ctx->blk_geom->tx_width[tx_depth]);
     }
 }
@@ -4313,11 +4334,13 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
                             &ctx->luma_txb_skip_context,
                             &ctx->luma_dc_sign_context);
     TxType best_tx_type = DCT_DCT;
+#if !FIX_TUNE_SSIM
     // buffer is 0 or 1 to alternate between using cand_bf buffers and temporary buffers.
     // Data is stored for the best-so-far-TX data and the currently-being-searched TX type data. After the
     // search, the cand_bf data will be updated with the best.
     uint8_t txt_buffer      = 0;
     uint8_t best_txt_buffer = 0;
+#endif
     // local variables for all TX types
     uint16_t        eob_txt[TX_TYPES]                                              = {0};
     uint8_t         quantized_dc_txt[TX_TYPES]                                     = {0};
@@ -4359,11 +4382,19 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
                 }
             }
             // Do not use temporary buffers when TXT is OFF
+#if FIX_TUNE_SSIM
+            EbPictureBufferDesc *recon_coeff_ptr = (tx_type == DCT_DCT) ? cand_bf->rec_coeff
+                                                                        : ctx->recon_coeff_ptr[tx_type];
+            EbPictureBufferDesc *recon_ptr       = (tx_type == DCT_DCT) ? cand_bf->recon : ctx->recon_ptr[tx_type];
+            EbPictureBufferDesc *quant_coeff_ptr = (tx_type == DCT_DCT) ? cand_bf->quant
+                                                                        : ctx->quant_coeff_ptr[tx_type];
+#else
             assert(IMPLIES(tx_type == DCT_DCT, txt_buffer == 0));
             EbPictureBufferDesc *recon_coeff_ptr = txt_buffer ? ctx->tx_search_recon_coeff_ptr : cand_bf->rec_coeff;
             EbPictureBufferDesc *recon_ptr       = txt_buffer ? ctx->tx_search_recon_ptr : cand_bf->recon;
             EbPictureBufferDesc *quant_coeff_ptr = txt_buffer ? ctx->tx_search_quant_coeff_ptr : cand_bf->quant;
-            ctx->three_quad_energy               = 0;
+#endif
+            ctx->three_quad_energy = 0;
             if (!tx_search_skip_flag) {
                 // Y: T Q i_q
                 svt_aom_estimate_transform(pcs,
@@ -4546,8 +4577,10 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
                 best_cost_tx_search = cost;
                 best_tx_type        = tx_type;
                 best_tx_non_coeff   = eob_txt[tx_type];
-                best_txt_buffer     = txt_buffer;
-                txt_buffer          = !txt_buffer;
+#if !FIX_TUNE_SSIM
+                best_txt_buffer = txt_buffer;
+                txt_buffer      = !txt_buffer;
+#endif
                 if (tx_type == DCT_DCT)
                     dct_dct_cost = cost;
             }
@@ -4581,8 +4614,11 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
             if (ssd_cost > ssd_cost_threshold) {
                 continue;
             }
-
+#if FIX_TUNE_SSIM
+            EbPictureBufferDesc *recon_ptr = (tx_type == DCT_DCT) ? cand_bf->recon : ctx->recon_ptr[tx_type];
+#else
             EbPictureBufferDesc *recon_ptr = best_txt_buffer ? ctx->tx_search_recon_ptr : cand_bf->recon;
+#endif
 
             txb_full_distortion_txt[DIST_SSIM][tx_type][DIST_CALC_RESIDUAL] = svt_spatial_full_distortion_ssim_kernel(
                 input_pic->buffer_y,
@@ -4625,8 +4661,12 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
     // update with best_tx_type data
     (*y_coeff_bits) += y_txb_coeff_bits_txt[best_tx_type];
     if (ssim_level == SSIM_LVL_1) {
-        EbPictureBufferDesc *recon_ptr          = best_txt_buffer ? ctx->tx_search_recon_ptr : cand_bf->recon;
-        uint64_t             ssim_pred_dist     = svt_spatial_full_distortion_ssim_kernel(input_pic->buffer_y,
+#if FIX_TUNE_SSIM
+        EbPictureBufferDesc *recon_ptr = (best_tx_type == DCT_DCT) ? cand_bf->recon : ctx->recon_ptr[best_tx_type];
+#else
+        EbPictureBufferDesc *recon_ptr = best_txt_buffer ? ctx->tx_search_recon_ptr : cand_bf->recon;
+#endif
+        uint64_t ssim_pred_dist     = svt_spatial_full_distortion_ssim_kernel(input_pic->buffer_y,
                                                                           input_txb_origin_index,
                                                                           input_pic->stride_y,
                                                                           cand_bf->pred->buffer_y,
@@ -4677,12 +4717,19 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
     cand_bf->quant_dc.y[ctx->txb_itr] = quantized_dc_txt[best_tx_type];
     cand_bf->eob.y[ctx->txb_itr]      = eob_txt[best_tx_type];
     // Do not copy when the best TXT data is already in cand_bf
+#if FIX_TUNE_SSIM
+    if (best_tx_type != DCT_DCT) {
+        // copy best_tx_type data
+        copy_txt_data(cand_bf, ctx, txb_origin_index, best_tx_type);
+    }
+#else
     if (best_txt_buffer) {
         // txt_buffer is the buffer to be used for searching the next TX type (if applicable),
         // so its value should not be the same as the best. This check is a sanity check.
         assert(txt_buffer == 0);
         copy_txt_data(cand_bf, ctx, txb_origin_index);
     }
+#endif
     ctx->txb_1d_offset += ctx->blk_geom->tx_width[ctx->tx_depth] *
         (ctx->blk_geom->tx_height[ctx->tx_depth] >> ctx->mds_subres_step);
     // For Inter blocks, transform type of chroma follows luma transfrom type

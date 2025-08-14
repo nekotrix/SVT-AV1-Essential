@@ -34,6 +34,7 @@
 extern "C" {
 #endif // __cplusplus
 
+#define FIX_TUNE_SSIM               1 // Fix SSIM mode
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one
