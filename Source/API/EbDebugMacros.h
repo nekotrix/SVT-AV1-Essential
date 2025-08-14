@@ -40,7 +40,7 @@ extern "C" {
 #if FTR_SFRAME_FLEX
 #define FTR_SFRAME_POSI             1 // Add parameter to allow user insert S-Frames by picture number
 #endif // FTR_SFRAME_FLEX
-
+#define FIX_TUNE_SSIM               1 // Fix SSIM mode
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one

@@ -1069,10 +1069,16 @@ typedef struct ModeDecisionContext {
     uint8_t             params_status; // specifies the status of MD parameters; 0: default, 1: modified
     NsqPsqTxsCtrls      nsq_psq_txs_ctrls;
     uint8_t             sb_size;
+#if FIX_TUNE_SSIM
+    EbPictureBufferDesc *recon_coeff_ptr[TX_TYPES];
+    EbPictureBufferDesc *recon_ptr[TX_TYPES];
+    EbPictureBufferDesc *quant_coeff_ptr[TX_TYPES];
+#else
     // Temp buffers to store results during TXT search
     EbPictureBufferDesc *tx_search_recon_coeff_ptr;
     EbPictureBufferDesc *tx_search_recon_ptr;
     EbPictureBufferDesc *tx_search_quant_coeff_ptr;
+#endif
     // buffer used to store transformed coeffs during TX/Q/IQ. TX'd coeffs are only needed
     // temporarily, so no need to save for each TX type.
     EbPictureBufferDesc *tx_coeffs;

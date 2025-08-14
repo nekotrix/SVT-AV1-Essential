@@ -103,9 +103,17 @@ static void mode_decision_context_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->mdc_sb_array.split_flag);
     EB_FREE_ARRAY(obj->mdc_sb_array.refined_split_flag);
     EB_FREE_ARRAY(obj->mdc_sb_array.consider_block);
+#if FIX_TUNE_SSIM
+    for (uint32_t txt_itr = 0; txt_itr < TX_TYPES; ++txt_itr) {
+        EB_DELETE(obj->recon_coeff_ptr[txt_itr]);
+        EB_DELETE(obj->recon_ptr[txt_itr]);
+        EB_DELETE(obj->quant_coeff_ptr[txt_itr]);
+    }
+#else
     EB_DELETE(obj->tx_search_recon_coeff_ptr);
     EB_DELETE(obj->tx_search_recon_ptr);
     EB_DELETE(obj->tx_search_quant_coeff_ptr);
+#endif
     EB_DELETE(obj->tx_coeffs);
     EB_DELETE(obj->scratch_prediction_ptr);
     EB_DELETE(obj->temp_residual);
@@ -415,7 +423,17 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     thirty_two_width_picture_buffer_desc_init_data.top_padding        = 0;
     thirty_two_width_picture_buffer_desc_init_data.bot_padding        = 0;
     thirty_two_width_picture_buffer_desc_init_data.split_mode         = false;
-
+#if FIX_TUNE_SSIM
+    for (uint32_t txt_itr = 0; txt_itr < TX_TYPES; ++txt_itr) {
+        EB_NEW(ctx->recon_coeff_ptr[txt_itr],
+               svt_picture_buffer_desc_ctor,
+               (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
+        EB_NEW(ctx->recon_ptr[txt_itr], svt_picture_buffer_desc_ctor, (EbPtr)&picture_buffer_desc_init_data);
+        EB_NEW(ctx->quant_coeff_ptr[txt_itr],
+               svt_picture_buffer_desc_ctor,
+               (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
+    }
+#else
     // Allocate temporary buffers used in TXT search
     EB_NEW(ctx->tx_search_recon_coeff_ptr,
            svt_picture_buffer_desc_ctor,
@@ -424,6 +442,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     EB_NEW(ctx->tx_search_quant_coeff_ptr,
            svt_picture_buffer_desc_ctor,
            (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
+#endif
     EB_NEW(ctx->tx_coeffs, svt_picture_buffer_desc_ctor, (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
     EB_NEW(ctx->scratch_prediction_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&picture_buffer_desc_init_data);
     EbPictureBufferDescInitData double_width_picture_buffer_desc_init_data;
