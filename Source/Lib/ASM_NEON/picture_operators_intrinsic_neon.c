@@ -338,41 +338,113 @@ void svt_unpack_and_2bcompress_neon(uint16_t *in16b_buffer, uint32_t in16b_strid
     }
 }
 
-static inline void compressed_packmsb_32x2h(uint8_t *in8_bit_buffer, uint32_t in8_stride, uint8_t *inn_bit_buffer,
-                                            uint32_t inn_stride, uint16_t *out16_bit_buffer, uint32_t out_stride,
-                                            uint32_t height) {
-    const uint8x16_t msk0 = vdupq_n_u8(0xC0); //1100.000
+static const uint8_t unpack_tbl[64] = {0,  0,  0,  0,  1,  1,  1,  1,  2,  2,  2,  2,  3,  3,  3,  3,
+                                       4,  4,  4,  4,  5,  5,  5,  5,  6,  6,  6,  6,  7,  7,  7,  7,
+                                       8,  8,  8,  8,  9,  9,  9,  9,  10, 10, 10, 10, 11, 11, 11, 11,
+                                       12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 15, 15};
 
-    // processing 2 lines for chroma
-    for (uint32_t y = 0; y < height; y += 2) {
+static const int8_t shift[4] = {0, 2, 4, 6};
+
+static inline void compressed_packmsb_8x2h(const uint8_t *in8_bit_buffer, uint32_t in8_stride,
+                                           const uint8_t *inn_bit_buffer, uint32_t inn_stride,
+                                           uint16_t *out16_bit_buffer, uint32_t out_stride, uint32_t height) {
+    const uint8x8_t idx0_1   = vld1_u8(unpack_tbl + 0 * 8);
+    const uint8x8_t idx2_3   = vld1_u8(unpack_tbl + 1 * 8);
+    const int8x8_t  shift_s8 = vreinterpret_s8_s32(vld1_dup_s32((const int32_t *)shift));
+
+    do {
+        const uint8x8_t in_2_bit = load_u8_2x2(inn_bit_buffer, inn_stride);
+
+        uint8x8_t ext0_7  = vtbl1_u8(in_2_bit, idx0_1);
+        uint8x8_t ext8_15 = vtbl1_u8(in_2_bit, idx2_3);
+        ext0_7            = vshl_u8(ext0_7, shift_s8);
+        ext8_15           = vshl_u8(ext8_15, shift_s8);
+
+        const uint8x16_t ext0_7q  = vcombine_u8(ext0_7, vdup_n_u8(0));
+        const uint8x16_t ext8_15q = vcombine_u8(ext8_15, vdup_n_u8(0));
+
+        const uint8x16_t in_8_bit0 = vcombine_u8(vld1_u8(in8_bit_buffer + 0 * in8_stride), vdup_n_u8(0));
+        const uint8x16_t in_8_bit2 = vcombine_u8(vld1_u8(in8_bit_buffer + 1 * in8_stride), vdup_n_u8(0));
+
+        const uint16x8_t concat0 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext0_7q, in_8_bit0)), 6);
+        const uint16x8_t concat1 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext8_15q, in_8_bit2)), 6);
+
+        vst1q_u16(out16_bit_buffer + 0 * out_stride, concat0);
+        vst1q_u16(out16_bit_buffer + 1 * out_stride, concat1);
+
+        in8_bit_buffer += 2 * in8_stride;
+        inn_bit_buffer += 2 * inn_stride;
+        out16_bit_buffer += 2 * out_stride;
+        height -= 2;
+    } while (height != 0);
+}
+
+static inline void compressed_packmsb_16x2h(const uint8_t *in8_bit_buffer, uint32_t in8_stride,
+                                            const uint8_t *inn_bit_buffer, uint32_t inn_stride,
+                                            uint16_t *out16_bit_buffer, uint32_t out_stride, uint32_t height) {
+    const uint8x16_t idx0_3   = vld1q_u8(unpack_tbl + 0 * 16);
+    const uint8x16_t idx4_7   = vld1q_u8(unpack_tbl + 1 * 16);
+    const int8x16_t  shift_s8 = vreinterpretq_s8_s32(vld1q_dup_s32((const int32_t *)shift));
+
+    do {
+        const uint8x8_t  in_2_bit_lo = load_u8_4x2(inn_bit_buffer, inn_stride);
+        const uint8x16_t in_2_bit    = vcombine_u8(in_2_bit_lo, vdup_n_u8(0));
+
+        uint8x16_t ext0_15  = vqtbl1q_u8(in_2_bit, idx0_3);
+        uint8x16_t ext16_31 = vqtbl1q_u8(in_2_bit, idx4_7);
+
+        ext0_15  = vshlq_u8(ext0_15, shift_s8);
+        ext16_31 = vshlq_u8(ext16_31, shift_s8);
+
+        const uint8x16_t in_8_bit0 = vld1q_u8(in8_bit_buffer + 0 * in8_stride);
+        const uint8x16_t in_8_bit2 = vld1q_u8(in8_bit_buffer + 1 * in8_stride);
+
+        const uint16x8_t concat0 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext0_15, in_8_bit0)), 6);
+        const uint16x8_t concat1 = vshrq_n_u16(vreinterpretq_u16_u8(vzip2q_u8(ext0_15, in_8_bit0)), 6);
+
+        vst1q_u16(out16_bit_buffer + 0, concat0);
+        vst1q_u16(out16_bit_buffer + 8, concat1);
+
+        const uint16x8_t concat2 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext16_31, in_8_bit2)), 6);
+        const uint16x8_t concat3 = vshrq_n_u16(vreinterpretq_u16_u8(vzip2q_u8(ext16_31, in_8_bit2)), 6);
+
+        vst1q_u16(out16_bit_buffer + out_stride + 0, concat2);
+        vst1q_u16(out16_bit_buffer + out_stride + 8, concat3);
+
+        in8_bit_buffer += 2 * in8_stride;
+        inn_bit_buffer += 2 * inn_stride;
+        out16_bit_buffer += 2 * out_stride;
+        height -= 2;
+    } while (height != 0);
+}
+
+static inline void compressed_packmsb_32x2h(const uint8_t *in8_bit_buffer, uint32_t in8_stride,
+                                            const uint8_t *inn_bit_buffer, uint32_t inn_stride,
+                                            uint16_t *out16_bit_buffer, uint32_t out_stride, uint32_t height) {
+    const uint8x16_t idx0_3   = vld1q_u8(unpack_tbl + 0 * 16);
+    const uint8x16_t idx4_7   = vld1q_u8(unpack_tbl + 1 * 16);
+    const uint8x16_t idx8_11  = vld1q_u8(unpack_tbl + 2 * 16);
+    const uint8x16_t idx12_15 = vld1q_u8(unpack_tbl + 3 * 16);
+    const int8x16_t  shift_s8 = vreinterpretq_s8_s32(vld1q_dup_s32((const int32_t *)shift));
+
+    do {
         const uint8x16_t in_2_bit = load_u8_8x2(inn_bit_buffer, inn_stride);
 
-        const uint8x16_t ext0 = vandq_u8(in_2_bit, msk0);
-        const uint8x16_t ext1 = vandq_u8(vreinterpretq_u8_u16(vshlq_n_u16(vreinterpretq_u16_u8(in_2_bit), 2)), msk0);
-        const uint8x16_t ext2 = vandq_u8(vreinterpretq_u8_u16(vshlq_n_u16(vreinterpretq_u16_u8(in_2_bit), 4)), msk0);
-        const uint8x16_t ext3 = vandq_u8(vreinterpretq_u8_u16(vshlq_n_u16(vreinterpretq_u16_u8(in_2_bit), 6)), msk0);
+        uint8x16_t ext0_15  = vqtbl1q_u8(in_2_bit, idx0_3);
+        uint8x16_t ext16_31 = vqtbl1q_u8(in_2_bit, idx4_7);
+        uint8x16_t ext32_47 = vqtbl1q_u8(in_2_bit, idx8_11);
+        uint8x16_t ext48_63 = vqtbl1q_u8(in_2_bit, idx12_15);
 
-        const uint8x16_t ext01   = vzip1q_u8(ext0, ext1);
-        const uint8x16_t ext23   = vzip1q_u8(ext2, ext3);
-        const uint8x16_t ext0_15 = vreinterpretq_u8_u16(
-            vzip1q_u16(vreinterpretq_u16_u8(ext01), vreinterpretq_u16_u8(ext23)));
-        const uint8x16_t ext16_31 = vreinterpretq_u8_u16(
-            vzip2q_u16(vreinterpretq_u16_u8(ext01), vreinterpretq_u16_u8(ext23)));
-
-        const uint8x16_t ext01h = vzip2q_u8(ext0, ext1);
-        const uint8x16_t ext23h = vzip2q_u8(ext2, ext3);
-
-        const uint8x16_t ext32_47 = vreinterpretq_u8_u16(
-            vzip1q_u16(vreinterpretq_u16_u8(ext01h), vreinterpretq_u16_u8(ext23h)));
-        const uint8x16_t ext48_63 = vreinterpretq_u8_u16(
-            vzip2q_u16(vreinterpretq_u16_u8(ext01h), vreinterpretq_u16_u8(ext23h)));
+        ext0_15  = vshlq_u8(ext0_15, shift_s8);
+        ext16_31 = vshlq_u8(ext16_31, shift_s8);
+        ext32_47 = vshlq_u8(ext32_47, shift_s8);
+        ext48_63 = vshlq_u8(ext48_63, shift_s8);
 
         const uint8x16_t in_8_bit0 = vld1q_u8(in8_bit_buffer + 0);
         const uint8x16_t in_8_bit1 = vld1q_u8(in8_bit_buffer + 16);
         const uint8x16_t in_8_bit2 = vld1q_u8(in8_bit_buffer + in8_stride);
         const uint8x16_t in_8_bit3 = vld1q_u8(in8_bit_buffer + in8_stride + 16);
 
-        // (out_pixel | n_bit_pixel) concatenation is done with unpacklo_epi8 and unpackhi_epi8
         const uint16x8_t concat00 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext0_15, in_8_bit0)), 6);
         const uint16x8_t concat01 = vshrq_n_u16(vreinterpretq_u16_u8(vzip2q_u8(ext0_15, in_8_bit0)), 6);
         const uint16x8_t concat02 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext16_31, in_8_bit1)), 6);
@@ -383,7 +455,6 @@ static inline void compressed_packmsb_32x2h(uint8_t *in8_bit_buffer, uint32_t in
         vst1q_u16(out16_bit_buffer + 16, concat02);
         vst1q_u16(out16_bit_buffer + 24, concat03);
 
-        // (out_pixel | n_bit_pixel) concatenation is done with unpacklo_epi8 and unpackhi_epi8
         const uint16x8_t concat10 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext32_47, in_8_bit2)), 6);
         const uint16x8_t concat11 = vshrq_n_u16(vreinterpretq_u16_u8(vzip2q_u8(ext32_47, in_8_bit2)), 6);
         const uint16x8_t concat12 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext48_63, in_8_bit3)), 6);
@@ -394,41 +465,35 @@ static inline void compressed_packmsb_32x2h(uint8_t *in8_bit_buffer, uint32_t in
         vst1q_u16(out16_bit_buffer + out_stride + 16, concat12);
         vst1q_u16(out16_bit_buffer + out_stride + 24, concat13);
 
-        in8_bit_buffer += in8_stride << 1;
-        inn_bit_buffer += inn_stride << 1;
-        out16_bit_buffer += out_stride << 1;
-    }
+        in8_bit_buffer += 2 * in8_stride;
+        inn_bit_buffer += 2 * inn_stride;
+        out16_bit_buffer += 2 * out_stride;
+        height -= 2;
+    } while (height != 0);
 }
 
-static inline void compressed_packmsb_64xh(uint8_t *in8_bit_buffer, uint32_t in8_stride, uint8_t *inn_bit_buffer,
-                                           uint32_t inn_stride, uint16_t *out16_bit_buffer, uint32_t out_stride,
-                                           uint32_t height) {
-    const uint8x16_t msk0 = vdupq_n_u8(0xC0); //1100.000
+static inline void compressed_packmsb_64xh(const uint8_t *in8_bit_buffer, uint32_t in8_stride,
+                                           const uint8_t *inn_bit_buffer, uint32_t inn_stride,
+                                           uint16_t *out16_bit_buffer, uint32_t out_stride, uint32_t height) {
+    const uint8x16_t idx0_3   = vld1q_u8(unpack_tbl + 0 * 16);
+    const uint8x16_t idx4_7   = vld1q_u8(unpack_tbl + 1 * 16);
+    const uint8x16_t idx8_11  = vld1q_u8(unpack_tbl + 2 * 16);
+    const uint8x16_t idx12_15 = vld1q_u8(unpack_tbl + 3 * 16);
+    const int8x16_t  shift_s8 = vreinterpretq_s8_s32(vld1q_dup_s32((const int32_t *)shift));
 
     // one row per iteration
-    for (uint32_t y = 0; y < height; y++) {
+    do {
         const uint8x16_t in_2_bit = vld1q_u8(inn_bit_buffer);
 
-        const uint8x16_t ext0 = vandq_u8(in_2_bit, msk0);
-        const uint8x16_t ext1 = vandq_u8(vreinterpretq_u8_u16(vshlq_n_u16(vreinterpretq_u16_u8(in_2_bit), 2)), msk0);
-        const uint8x16_t ext2 = vandq_u8(vreinterpretq_u8_u16(vshlq_n_u16(vreinterpretq_u16_u8(in_2_bit), 4)), msk0);
-        const uint8x16_t ext3 = vandq_u8(vreinterpretq_u8_u16(vshlq_n_u16(vreinterpretq_u16_u8(in_2_bit), 6)), msk0);
+        uint8x16_t ext0_15  = vqtbl1q_u8(in_2_bit, idx0_3);
+        uint8x16_t ext16_31 = vqtbl1q_u8(in_2_bit, idx4_7);
+        uint8x16_t ext32_47 = vqtbl1q_u8(in_2_bit, idx8_11);
+        uint8x16_t ext48_63 = vqtbl1q_u8(in_2_bit, idx12_15);
 
-        const uint8x16_t ext01 = vzip1q_u8(ext0, ext1);
-        const uint8x16_t ext23 = vzip1q_u8(ext2, ext3);
-
-        const uint8x16_t ext0_15 = vreinterpretq_u8_u16(
-            vzip1q_u16(vreinterpretq_u16_u8(ext01), vreinterpretq_u16_u8(ext23)));
-        const uint8x16_t ext16_31 = vreinterpretq_u8_u16(
-            vzip2q_u16(vreinterpretq_u16_u8(ext01), vreinterpretq_u16_u8(ext23)));
-
-        const uint8x16_t ext01h = vzip2q_u8(ext0, ext1);
-        const uint8x16_t ext23h = vzip2q_u8(ext2, ext3);
-
-        const uint8x16_t ext32_47 = vreinterpretq_u8_u16(
-            vzip1q_u16(vreinterpretq_u16_u8(ext01h), vreinterpretq_u16_u8(ext23h)));
-        const uint8x16_t ext48_63 = vreinterpretq_u8_u16(
-            vzip2q_u16(vreinterpretq_u16_u8(ext01h), vreinterpretq_u16_u8(ext23h)));
+        ext0_15  = vshlq_u8(ext0_15, shift_s8);
+        ext16_31 = vshlq_u8(ext16_31, shift_s8);
+        ext32_47 = vshlq_u8(ext32_47, shift_s8);
+        ext48_63 = vshlq_u8(ext48_63, shift_s8);
 
         const uint8x16_t in_8_bit0 = vld1q_u8(in8_bit_buffer + 0);
         const uint8x16_t in_8_bit1 = vld1q_u8(in8_bit_buffer + 16);
@@ -460,69 +525,7 @@ static inline void compressed_packmsb_64xh(uint8_t *in8_bit_buffer, uint32_t in8
         in8_bit_buffer += in8_stride;
         inn_bit_buffer += inn_stride;
         out16_bit_buffer += out_stride;
-    }
-}
-
-static inline void compressed_packmsb_64(uint8_t *in8_bit_buffer, uint8_t *inn_bit_buffer, uint16_t *out16_bit_buffer,
-                                         uint32_t width_rep) {
-    const uint8x16_t msk0 = vdupq_n_u8(0xC0); //1100.000
-
-    // one row per iteration
-    for (uint32_t w = 0; w < width_rep; w++) {
-        const uint8x16_t in_2_bit = vld1q_u8(inn_bit_buffer);
-
-        const uint8x16_t ext0 = vandq_u8(in_2_bit, msk0);
-        const uint8x16_t ext1 = vandq_u8(vreinterpretq_u8_u16(vshlq_n_u16(vreinterpretq_u16_u8(in_2_bit), 2)), msk0);
-        const uint8x16_t ext2 = vandq_u8(vreinterpretq_u8_u16(vshlq_n_u16(vreinterpretq_u16_u8(in_2_bit), 4)), msk0);
-        const uint8x16_t ext3 = vandq_u8(vreinterpretq_u8_u16(vshlq_n_u16(vreinterpretq_u16_u8(in_2_bit), 6)), msk0);
-
-        const uint8x16_t ext01 = vzip1q_u8(ext0, ext1);
-        const uint8x16_t ext23 = vzip1q_u8(ext2, ext3);
-
-        const uint8x16_t ext0_15 = vreinterpretq_u8_u16(
-            vzip1q_u16(vreinterpretq_u16_u8(ext01), vreinterpretq_u16_u8(ext23)));
-        const uint8x16_t ext16_31 = vreinterpretq_u8_u16(
-            vzip2q_u16(vreinterpretq_u16_u8(ext01), vreinterpretq_u16_u8(ext23)));
-
-        const uint8x16_t ext01h = vzip2q_u8(ext0, ext1);
-        const uint8x16_t ext23h = vzip2q_u8(ext2, ext3);
-
-        const uint8x16_t ext32_47 = vreinterpretq_u8_u16(
-            vzip1q_u16(vreinterpretq_u16_u8(ext01h), vreinterpretq_u16_u8(ext23h)));
-        const uint8x16_t ext48_63 = vreinterpretq_u8_u16(
-            vzip2q_u16(vreinterpretq_u16_u8(ext01h), vreinterpretq_u16_u8(ext23h)));
-
-        const uint8x16_t in_8_bit0 = vld1q_u8(in8_bit_buffer + 0);
-        const uint8x16_t in_8_bit1 = vld1q_u8(in8_bit_buffer + 16);
-        const uint8x16_t in_8_bit2 = vld1q_u8(in8_bit_buffer + 32);
-        const uint8x16_t in_8_bit3 = vld1q_u8(in8_bit_buffer + 48);
-
-        // (out_pixel | n_bit_pixel) concatenation
-        const uint16x8_t concat00 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext0_15, in_8_bit0)), 6);
-        const uint16x8_t concat01 = vshrq_n_u16(vreinterpretq_u16_u8(vzip2q_u8(ext0_15, in_8_bit0)), 6);
-        const uint16x8_t concat02 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext16_31, in_8_bit1)), 6);
-        const uint16x8_t concat03 = vshrq_n_u16(vreinterpretq_u16_u8(vzip2q_u8(ext16_31, in_8_bit1)), 6);
-
-        vst1q_u16(out16_bit_buffer + 0, concat00);
-        vst1q_u16(out16_bit_buffer + 8, concat01);
-        vst1q_u16(out16_bit_buffer + 16, concat02);
-        vst1q_u16(out16_bit_buffer + 24, concat03);
-
-        // (out_pixel | n_bit_pixel) concatenation
-        const uint16x8_t concat10 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext32_47, in_8_bit2)), 6);
-        const uint16x8_t concat11 = vshrq_n_u16(vreinterpretq_u16_u8(vzip2q_u8(ext32_47, in_8_bit2)), 6);
-        const uint16x8_t concat12 = vshrq_n_u16(vreinterpretq_u16_u8(vzip1q_u8(ext48_63, in_8_bit3)), 6);
-        const uint16x8_t concat13 = vshrq_n_u16(vreinterpretq_u16_u8(vzip2q_u8(ext48_63, in_8_bit3)), 6);
-
-        vst1q_u16(out16_bit_buffer + 32, concat10);
-        vst1q_u16(out16_bit_buffer + 40, concat11);
-        vst1q_u16(out16_bit_buffer + 48, concat12);
-        vst1q_u16(out16_bit_buffer + 56, concat13);
-
-        in8_bit_buffer += 64;
-        inn_bit_buffer += 16;
-        out16_bit_buffer += 64;
-    }
+    } while (--height != 0);
 }
 
 void svt_compressed_packmsb_neon(uint8_t *in8_bit_buffer, uint32_t in8_stride, uint8_t *inn_bit_buffer,
@@ -535,42 +538,45 @@ void svt_compressed_packmsb_neon(uint8_t *in8_bit_buffer, uint32_t in8_stride, u
         compressed_packmsb_64xh(
             in8_bit_buffer, in8_stride, inn_bit_buffer, inn_stride, out16_bit_buffer, out_stride, height);
     } else {
-        int32_t  leftover     = width;
-        uint32_t offset8b_16b = 0;
-        uint32_t offset2b     = 0;
-        if (leftover >= 64) {
-            uint32_t offset = width & 0xffffff40;
-            for (uint32_t y = 0; y < height; y++) {
-                compressed_packmsb_64(in8_bit_buffer + y * in8_stride,
-                                      inn_bit_buffer + y * inn_stride,
-                                      out16_bit_buffer + y * out_stride,
-                                      width >> 6);
-            }
-            offset8b_16b += offset;
-            offset2b += offset >> 2;
-            leftover -= offset;
+        while (width >= 64) {
+            compressed_packmsb_64xh(
+                in8_bit_buffer, in8_stride, inn_bit_buffer, inn_stride, out16_bit_buffer, out_stride, height);
+
+            inn_bit_buffer += 16; // 4 elements per byte.
+            in8_bit_buffer += 64;
+            out16_bit_buffer += 64;
+            width -= 64;
         }
-        if (leftover >= 32) {
-            compressed_packmsb_32x2h(in8_bit_buffer + offset8b_16b,
-                                     in8_stride,
-                                     inn_bit_buffer + offset2b,
-                                     inn_stride,
-                                     out16_bit_buffer + offset8b_16b,
-                                     out_stride,
-                                     height);
-            offset8b_16b += 32;
-            offset2b += 8;
-            leftover -= 32;
+        if (width >= 32) {
+            compressed_packmsb_32x2h(
+                in8_bit_buffer, in8_stride, inn_bit_buffer, inn_stride, out16_bit_buffer, out_stride, height);
+
+            inn_bit_buffer += 8; // 4 elements per byte.
+            in8_bit_buffer += 32;
+            out16_bit_buffer += 32;
+            width -= 32;
         }
-        if (leftover) {
-            svt_compressed_packmsb_c(in8_bit_buffer + offset8b_16b,
-                                     in8_stride,
-                                     inn_bit_buffer + offset2b,
-                                     inn_stride,
-                                     out16_bit_buffer + offset8b_16b,
-                                     out_stride,
-                                     leftover,
-                                     height);
+        if (width >= 16) {
+            compressed_packmsb_16x2h(
+                in8_bit_buffer, in8_stride, inn_bit_buffer, inn_stride, out16_bit_buffer, out_stride, height);
+
+            inn_bit_buffer += 4; // 4 elements per byte.
+            in8_bit_buffer += 16;
+            out16_bit_buffer += 16;
+            width -= 16;
+        }
+        if (width >= 8) {
+            compressed_packmsb_8x2h(
+                in8_bit_buffer, in8_stride, inn_bit_buffer, inn_stride, out16_bit_buffer, out_stride, height);
+
+            inn_bit_buffer += 2; // 4 elements per byte.
+            in8_bit_buffer += 8;
+            out16_bit_buffer += 8;
+            width -= 8;
+        }
+        if (width) {
+            svt_compressed_packmsb_c(
+                in8_bit_buffer, in8_stride, inn_bit_buffer, inn_stride, out16_bit_buffer, out_stride, width, height);
         }
     }
 }
