@@ -345,10 +345,7 @@ static inline void compressed_packmsb_32x2h(uint8_t *in8_bit_buffer, uint32_t in
 
     // processing 2 lines for chroma
     for (uint32_t y = 0; y < height; y += 2) {
-        // 2 Lines Stored in 1D format-Could be replaced by 2 _mm_loadl_epi64
-        const uint8x16_t in_2_bit = vreinterpretq_u8_u64(
-            vzip1q_u64(vreinterpretq_u64_u8(vld1q_u8(inn_bit_buffer)),
-                       vreinterpretq_u64_u8(vld1q_u8(inn_bit_buffer + inn_stride))));
+        const uint8x16_t in_2_bit = load_u8_8x2(inn_bit_buffer, inn_stride);
 
         const uint8x16_t ext0 = vandq_u8(in_2_bit, msk0);
         const uint8x16_t ext1 = vandq_u8(vreinterpretq_u8_u16(vshlq_n_u16(vreinterpretq_u16_u8(in_2_bit), 2)), msk0);
