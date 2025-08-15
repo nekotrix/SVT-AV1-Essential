@@ -7886,7 +7886,7 @@ set lpd0_level
         if (pcs->scs->static_config.enable_dlf_flag == 2) {
             // trade off more accurate deblocking for longer encode time
             // use dlf_mode as if were being set for 3 presets lower
-            dlf_enc_mode = AOMMAX(ENC_MRS, enc_mode - 3);
+            dlf_enc_mode = AOMMAX(ENC_MR, enc_mode - 3);
         }
 
         dlf_level = get_dlf_level(pcs,
