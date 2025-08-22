@@ -7870,13 +7870,22 @@ set lpd0_level
     }
 
     pcs->lambda_weight = 0;
-    if (!rtc_tune && !(enc_mode <= ENC_MR)) {
-        if (pcs->picture_qp >= 62) {
-            pcs->lambda_weight = 300;
-        } else if (pcs->picture_qp >= 56) {
-            pcs->lambda_weight = 175;
-        } else if (pcs->picture_qp >= 16) {
-            pcs->lambda_weight = 150;
+
+    if (pcs->scs->static_config.tune == 3) {
+        // Adjust lambda weight towards more favorable still-picture performance (from 128 to 200),
+        // with gradual ramp-down for the lowest and highest QPs
+        // Lower QP cutoff: QP 18 = (QP) * 4
+        // Upper QP cutoff: QP 39 = (63 - QP) * 3
+        pcs->lambda_weight = CLIP3(0, 72, MIN(pcs->picture_qp * 4, (63 - pcs->picture_qp) * 3)) + 128;
+    } else { // Tune 0 to 2
+        if (!rtc_tune && !(enc_mode <= ENC_MR)) {
+            if (pcs->picture_qp >= 62) {
+                pcs->lambda_weight = 300;
+            } else if (pcs->picture_qp >= 56) {
+                pcs->lambda_weight = 175;
+            } else if (pcs->picture_qp >= 16) {
+                pcs->lambda_weight = 150;
+            }
         }
     }
     uint8_t dlf_level = 0;

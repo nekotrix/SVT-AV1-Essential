@@ -1619,7 +1619,7 @@ static int av1_get_deltaq_sb_variance_boost(uint8_t base_q_idx, uint16_t *varian
 
     switch (curve) {
     case 2: /* still picture boost, tuned for SSIMULACRA2 performance on CID22 */
-        boost = (int32_t)((base_q_idx + 496) * -svt_av1_compute_qdelta_fp(base_q, target_q, bit_depth) / (255 + 1024));
+        boost = (int32_t)((base_q_idx + 544) * -svt_av1_compute_qdelta_fp(base_q, target_q, bit_depth) / (255 + 1024));
         break;
     default: /* curve 0 & 1 boost (default) */
         boost = (int32_t)((base_q_idx + 40) * -svt_av1_compute_qdelta_fp(base_q, target_q, bit_depth) / (255 + 40));
@@ -3722,11 +3722,21 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                         chroma_qindex += scs->static_config.chroma_qindex_offsets[pcs->temporal_layer_index];
                     }
 
+                    if (scs->static_config.tune == 3) {
+                        // Constant chroma boost with gradual ramp-down for very high qindex levels
+                        chroma_qindex -= CLIP3(0, 16, (frm_hdr->quantization_params.base_q_idx / 2) - 14);
+                    }
+
                     chroma_qindex = clamp_qindex(scs, chroma_qindex);
 
-                    frm_hdr->quantization_params.delta_q_dc[1]     = frm_hdr->quantization_params.delta_q_dc[2] =
-                        frm_hdr->quantization_params.delta_q_ac[1] = frm_hdr->quantization_params.delta_q_ac[2] =
-                            chroma_qindex - frm_hdr->quantization_params.base_q_idx;
+                    // Calculate chroma delta q for Cb, and clip it to a valid range
+                    frm_hdr->quantization_params.delta_q_dc[1] = frm_hdr->quantization_params.delta_q_ac[1] = CLIP3(
+                        -64, 63, chroma_qindex - frm_hdr->quantization_params.base_q_idx);
+
+                    // Calculate chroma delta q for Cr, and clip it to a valid range
+                    frm_hdr->quantization_params.delta_q_dc[2] = frm_hdr->quantization_params.delta_q_ac[2] = CLIP3(
+                        -64, 63, chroma_qindex - frm_hdr->quantization_params.base_q_idx);
+
                     if (scs->enable_qp_scaling_flag && pcs->ppcs->qp_on_the_fly == false) {
                         // max bit rate is only active for 1 pass CRF
                         if (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF &&

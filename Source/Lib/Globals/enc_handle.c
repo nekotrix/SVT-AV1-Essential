@@ -4655,6 +4655,20 @@ static void copy_api_from_app(
     // Adaptive film grain
     scs->static_config.adaptive_film_grain = config_struct->adaptive_film_grain;
 
+    // Override settings for Still IQ tune
+    if (scs->static_config.tune == 3) {
+        SVT_WARN("Tune 3: IQ overrides: sharpness, enable Variance Boost (strength and curve), and enable-qm and min/max level\n");
+        scs->static_config.enable_qm = 1;
+        scs->static_config.min_qm_level = 4;
+        scs->static_config.max_qm_level = 10;
+        scs->static_config.min_chroma_qm_level = 4;
+        scs->static_config.max_chroma_qm_level = 10;
+        scs->static_config.sharpness = 7;
+        scs->static_config.enable_variance_boost = 1;
+        scs->static_config.variance_boost_strength = 3;
+        scs->static_config.variance_boost_curve = 2;
+    }
+
     return;
 }
 

@@ -191,6 +191,33 @@ static INLINE int aom_get_qmlevel(int qindex, int first, int last) {
     return first + (qindex * (last + 1 - first)) / QINDEX_RANGE;
 }
 
+// Polynomial to determine QM levels tuned for still images
+static INLINE int svt_av1_still_get_qmlevel(int qindex, int min, int max) {
+    // Polynomial coefficients
+    static const double coeffs[] = {1.10464272e-14,
+                                    -9.78597634e-12,
+                                    3.46261763e-09,
+                                    -6.26759877e-07,
+                                    6.10876647e-05,
+                                    -3.04942759e-03,
+                                    4.79930113e-02,
+                                    9.86922373e+00};
+    // Degree of the polynomial
+    const int degree = 7;
+
+    double result  = 0.0;
+    double q_power = 1.0;
+    for (int coeff_idx = degree; coeff_idx >= 0; coeff_idx--) {
+        result += coeffs[coeff_idx] * q_power;
+        q_power *= qindex;
+    }
+
+    const int qm_level = (int)round(result);
+
+    // Clamp the result to the (min, max)
+    return CLIP3(min, max, qm_level);
+}
+
 static void svt_av1_qm_init(PictureParentControlSet *pcs) {
     const uint8_t num_planes = 3; // MAX_MB_PLANE;// NM- No monochroma
     uint8_t       q, c, t;
@@ -235,15 +262,31 @@ static void svt_av1_qm_init(PictureParentControlSet *pcs) {
         const int32_t max_chroma_qmlevel = pcs->scs->static_config.max_chroma_qm_level;
         const int32_t base_qindex        = pcs->frm_hdr.quantization_params.base_q_idx;
 
-        pcs->frm_hdr.quantization_params.qm[AOM_PLANE_Y] = aom_get_qmlevel(base_qindex, min_qmlevel, max_qmlevel);
-        pcs->frm_hdr.quantization_params.qm[AOM_PLANE_U] = aom_get_qmlevel(
-            base_qindex + pcs->frm_hdr.quantization_params.delta_q_ac[AOM_PLANE_U],
-            min_chroma_qmlevel,
-            max_chroma_qmlevel);
-        pcs->frm_hdr.quantization_params.qm[AOM_PLANE_V] = aom_get_qmlevel(
-            base_qindex + pcs->frm_hdr.quantization_params.delta_q_ac[AOM_PLANE_V],
-            min_chroma_qmlevel,
-            max_chroma_qmlevel);
+        switch (pcs->scs->static_config.tune) {
+        case 3:
+            pcs->frm_hdr.quantization_params.qm[AOM_PLANE_Y] = svt_av1_still_get_qmlevel(
+                base_qindex, min_qmlevel, max_qmlevel);
+            pcs->frm_hdr.quantization_params.qm[AOM_PLANE_U] = svt_av1_still_get_qmlevel(
+                base_qindex + pcs->frm_hdr.quantization_params.delta_q_ac[AOM_PLANE_U],
+                min_chroma_qmlevel,
+                max_chroma_qmlevel);
+            pcs->frm_hdr.quantization_params.qm[AOM_PLANE_V] = svt_av1_still_get_qmlevel(
+                base_qindex + pcs->frm_hdr.quantization_params.delta_q_ac[AOM_PLANE_V],
+                min_chroma_qmlevel,
+                max_chroma_qmlevel);
+            break;
+        default:
+            pcs->frm_hdr.quantization_params.qm[AOM_PLANE_Y] = aom_get_qmlevel(base_qindex, min_qmlevel, max_qmlevel);
+            pcs->frm_hdr.quantization_params.qm[AOM_PLANE_U] = aom_get_qmlevel(
+                base_qindex + pcs->frm_hdr.quantization_params.delta_q_ac[AOM_PLANE_U],
+                min_chroma_qmlevel,
+                min_chroma_qmlevel);
+            pcs->frm_hdr.quantization_params.qm[AOM_PLANE_V] = aom_get_qmlevel(
+                base_qindex + pcs->frm_hdr.quantization_params.delta_q_ac[AOM_PLANE_V],
+                min_chroma_qmlevel,
+                max_chroma_qmlevel);
+            break;
+        }
 #if DEBUG_QM_LEVEL
         SVT_LOG("\n[svt_av1_qm_init] Frame %d - qindex %d, qmlevel %d %d %d\n",
                 (int)pcs->picture_number,

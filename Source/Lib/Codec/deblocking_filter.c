@@ -1182,7 +1182,21 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
     lf->sharpness_level                    = sharpness_val;
     if (frm_hdr->frame_type == KEY_FRAME && pcs->scs->static_config.tune == 0)
         lf->sharpness_level = MIN(7, sharpness_val + 2);
+    else if (pcs->scs->static_config.tune == 3) {
+        // Loop filter sharpness levels are highly nonlinear. Visually, lf sharpness 1 is closer to 7 than
+        // it is to 0, so in practice let's choose between levels 0, 1 and 7 to keep it simple
+        int32_t max_lf_sharpness;
 
+        if (frm_hdr->quantization_params.base_q_idx <= 120) {
+            max_lf_sharpness = 7;
+        } else if (frm_hdr->quantization_params.base_q_idx <= 160) {
+            max_lf_sharpness = 1;
+        } else {
+            max_lf_sharpness = 0;
+        }
+
+        lf->sharpness_level = MIN(lf->sharpness_level, max_lf_sharpness);
+    }
     if (method == LPF_PICK_MINIMAL_LPF)
         lf->filter_level[0] = lf->filter_level[1] = 0;
     else if (method >= LPF_PICK_FROM_Q) {

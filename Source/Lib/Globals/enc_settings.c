@@ -532,10 +532,9 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             config->fast_decode);
         return_error = EB_ErrorBadParameter;
     }
-    if (config->tune > 2) {
+    if (config->tune > 3) {
         SVT_ERROR(
-            "Instance %u: Invalid tune flag [0 - 2, 0 for VQ, 1 for PSNR and 2 for SSIM], your "
-            "input: %d\n",
+            "Instance %u: Invalid tune flag [0 - 3, 0 for VQ, 1 for PSNR, 2 for SSIM and 3 for IQ], your input: %d\n",
             channel_number + 1,
             config->tune);
         return_error = EB_ErrorBadParameter;
@@ -1130,7 +1129,8 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                  config->enc_mode,
                  config->tune == 0       ? "VQ"
                      : config->tune == 1 ? "PSNR"
-                                         : "SSIM",
+                     : config->tune == 2 ? "SSIM"
+                                         : "IQ",
                  config->pred_structure == LOW_DELAY           ? "low delay"
                      : config->pred_structure == RANDOM_ACCESS ? "random access"
                                                                : "Unknown pred structure");
