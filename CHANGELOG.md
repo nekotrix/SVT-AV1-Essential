@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.1.1] - 2025-8-22
+
+Bug Fixes
+
+- Fixed range checks and error message for min-qp and max-qp (!2469, !2470)
+- Fixed 10bit lossless encoding (!2470)
+- Fixed value range in unit tests (!2473)
+- Fixed --tune ssim (#2293, !2480)
+- Fixed an overflow bug within a neon function (!2487)
+
 ## [3.1.0] - 2025-7-24
 
 API updates
