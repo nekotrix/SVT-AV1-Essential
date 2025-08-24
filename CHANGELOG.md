@@ -1,5 +1,9 @@
 # Changelog
 
+## [3.1.2] - 2025-8-24
+
+Fix missing version bump
+
 ## [3.1.1] - 2025-8-22
 
 Bug Fixes
