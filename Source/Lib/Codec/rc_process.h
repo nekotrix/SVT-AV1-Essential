@@ -227,6 +227,7 @@ typedef struct PicMgrPorts {
 int32_t svt_av1_convert_qindex_to_q_fp8(int32_t qindex, EbBitDepth bit_depth);
 double  svt_av1_convert_qindex_to_q(int32_t qindex, EbBitDepth bit_depth);
 double  svt_av1_get_gfu_boost_projection_factor(double min_factor, double max_factor, int frame_count);
+void    svt_av1_normalize_sb_delta_q(struct PictureControlSet *pcs);
 
 EbErrorType svt_aom_rate_control_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
                                               int me_port_index);

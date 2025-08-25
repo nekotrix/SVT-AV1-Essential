@@ -308,6 +308,31 @@ static void assign_film_grain_random_seed(PictureParentControlSet *pcs) {
     if (!(*fgn_random_seed_ptr)) // Random seed should not be zero
         *fgn_random_seed_ptr += 7391;
 }
+
+static uint8_t get_delta_q_res(uint8_t qp, bool enable_variance_boost) {
+    uint8_t res = DEFAULT_DELTA_Q_RES;
+
+    if (enable_variance_boost) {
+        // use the (sequence) qp value to determine delta_q_res
+        uint8_t qindex = quantizer_to_qindex[qp];
+
+        // determine delta_q_res based on qindex
+        // delta q overhead becomes proportionally bigger the higher the qindex,
+        // and qstep jumps between qindexes become bigger the lower the qindex
+        // so dynamically increase delta_q_res granularity as qindex decreases
+        if (qindex >= 160)
+            res = 8;
+        else if (qindex >= 120)
+            res = 4;
+        else if (qindex >= 80)
+            res = 2;
+        else
+            res = DEFAULT_DELTA_Q_RES;
+    }
+
+    return res;
+}
+
 static EbErrorType reset_pcs_av1(PictureParentControlSet *pcs) {
     FrameHeader *frm_hdr     = &pcs->frm_hdr;
     Av1Common   *cm          = pcs->av1_cm;
@@ -407,7 +432,10 @@ static EbErrorType reset_pcs_av1(PictureParentControlSet *pcs) {
     frm_hdr->cdef_params.cdef_bits            = 0;
     frm_hdr->delta_q_params.delta_q_present   = 1;
     frm_hdr->delta_lf_params.delta_lf_present = 0;
-    frm_hdr->delta_q_params.delta_q_res       = DEFAULT_DELTA_Q_RES;
+
+    frm_hdr->delta_q_params.delta_q_res = get_delta_q_res((uint8_t)pcs->scs->static_config.qp,
+                                                          pcs->scs->static_config.enable_variance_boost);
+
     frm_hdr->delta_lf_params.delta_lf_present = 0;
     frm_hdr->delta_lf_params.delta_lf_res     = 0;
     frm_hdr->delta_lf_params.delta_lf_multi   = 0;
