@@ -1226,9 +1226,6 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
         // SFRAME_STRICT_ARF: insert sframe if it matches altref frame.
         if (is_arf && (frames_since_key % sframe_dist) == 0) {
             frm_hdr->frame_type = S_FRAME;
-#if FTR_SFRAME_QP
-            setup_sframe_qp(ppcs);
-#endif // FTR_SFRAME_QP
         }
     }
 #if FTR_SFRAME_FLEX
@@ -1242,9 +1239,6 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
             // the ARF should be the next S-Frame
             if (is_arf && (frames_since_key % sframe_dist) < pd_ctx->mg_size) {
                 frm_hdr->frame_type = S_FRAME;
-#if FTR_SFRAME_QP
-                setup_sframe_qp(ppcs);
-#endif // FTR_SFRAME_QP
             }
         }
         else {
@@ -1254,9 +1248,6 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
             if (pd_ctx->sframe_due && is_arf) {
                 frm_hdr->frame_type = S_FRAME;
                 pd_ctx->sframe_due = 0;
-#if FTR_SFRAME_QP
-                setup_sframe_qp(ppcs);
-#endif // FTR_SFRAME_QP
             }
         }
     }
@@ -1273,9 +1264,7 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
                 int32_t dist_to_s = get_dist_to_s(&ppcs->scs->static_config.sframe_posi, ppcs->picture_number, &dist_to_next_s);
                 if (dist_to_s == 0) {
                     frm_hdr->frame_type = S_FRAME;
-#if FTR_SFRAME_QP
-                    setup_sframe_qp(ppcs);
-#endif // FTR_SFRAME_QP
+
                     // After inserting a new S-Frame, reset sframe_hier_lvls and use it for the next mini-GOP evaluation.
                     pd_ctx->sframe_hier_lvls = ppcs->scs->static_config.hierarchical_levels;
                     next_mg_size = 1 << pd_ctx->sframe_hier_lvls;
@@ -1296,9 +1285,6 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
             {
                 if ((frames_since_key % sframe_dist) == 0) {
                     frm_hdr->frame_type = S_FRAME;
-#if FTR_SFRAME_QP
-                    setup_sframe_qp(ppcs);
-#endif // FTR_SFRAME_QP
 
                     // After inserting a new S-Frame, reset sframe_hier_lvls and use it for the next mini-GOP evaluation.
                     pd_ctx->sframe_hier_lvls = ppcs->scs->static_config.hierarchical_levels;
@@ -1324,6 +1310,12 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
         }
     }
 #endif // FTR_SFRAME_FLEX
+
+#if FTR_SFRAME_QP
+    if (frm_hdr->frame_type == S_FRAME) {
+        setup_sframe_qp(ppcs);
+    }
+#endif // FTR_SFRAME_QP
 
     ppcs->sframe_ref_pruned = false;
 #if DEBUG_SFRAME

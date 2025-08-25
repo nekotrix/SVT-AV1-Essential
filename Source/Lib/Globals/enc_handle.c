@@ -4567,12 +4567,12 @@ static void copy_api_from_app(
 #endif // FTR_SFRAME_POSI
 #if FTR_SFRAME_QP
     if (config_struct->sframe_posi.sframe_qps) {
-        EB_NO_THROW_MALLOC(scs->static_config.sframe_posi.sframe_qps, sizeof(uint32_t) * config_struct->sframe_posi.sframe_qp_num);
-        memcpy(scs->static_config.sframe_posi.sframe_qps, config_struct->sframe_posi.sframe_qps, sizeof(uint32_t) * config_struct->sframe_posi.sframe_qp_num);
+        EB_NO_THROW_MALLOC(scs->static_config.sframe_posi.sframe_qps, sizeof(config_struct->sframe_posi.sframe_qps[0]) * config_struct->sframe_posi.sframe_qp_num);
+        memcpy(scs->static_config.sframe_posi.sframe_qps, config_struct->sframe_posi.sframe_qps, sizeof(config_struct->sframe_posi.sframe_qps[0]) * config_struct->sframe_posi.sframe_qp_num);
     }
     if (config_struct->sframe_posi.sframe_qp_offsets) {
-        EB_NO_THROW_MALLOC(scs->static_config.sframe_posi.sframe_qp_offsets, sizeof(int32_t) * config_struct->sframe_posi.sframe_qp_num);
-        memcpy(scs->static_config.sframe_posi.sframe_qp_offsets, config_struct->sframe_posi.sframe_qp_offsets, sizeof(int32_t) * config_struct->sframe_posi.sframe_qp_num);
+        EB_NO_THROW_MALLOC(scs->static_config.sframe_posi.sframe_qp_offsets, sizeof(config_struct->sframe_posi.sframe_qp_offsets[0]) * config_struct->sframe_posi.sframe_qp_num);
+        memcpy(scs->static_config.sframe_posi.sframe_qp_offsets, config_struct->sframe_posi.sframe_qp_offsets, sizeof(config_struct->sframe_posi.sframe_qp_offsets[0]) * config_struct->sframe_posi.sframe_qp_num);
     }
     scs->static_config.sframe_posi.sframe_qp_num = config_struct->sframe_posi.sframe_qp_num;
 #endif // FTR_SFRAME_QP

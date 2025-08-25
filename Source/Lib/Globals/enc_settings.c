@@ -1923,6 +1923,7 @@ static EbErrorType str_to_sframe_qp(const char *nptr, SvtAv1SFramePositions *pos
     }
     return err;
 }
+
 static EbErrorType str_to_sframe_qp_offset(const char *nptr, SvtAv1SFramePositions *posis, int8_t *qp_offset) {
     const uint32_t param_count = count_params(nptr);
     if ((posis->sframe_num != 0 && posis->sframe_num != param_count && param_count != 1) || param_count == 0) {

@@ -341,17 +341,19 @@ EbErrorType copy_sequence_control_set(SequenceControlSet *dst, SequenceControlSe
 #if FTR_SFRAME_QP
     if (src->static_config.sframe_posi.sframe_qps) {
         EB_MALLOC(dst->static_config.sframe_posi.sframe_qps,
-                  sizeof(int32_t) * src->static_config.sframe_posi.sframe_qp_num);
+                  sizeof(src->static_config.sframe_posi.sframe_qps[0]) * src->static_config.sframe_posi.sframe_qp_num);
         memcpy(dst->static_config.sframe_posi.sframe_qps,
                src->static_config.sframe_posi.sframe_qps,
-               sizeof(int32_t) * src->static_config.sframe_posi.sframe_qp_num);
+               sizeof(src->static_config.sframe_posi.sframe_qps[0]) * src->static_config.sframe_posi.sframe_qp_num);
     }
     if (src->static_config.sframe_posi.sframe_qp_offsets) {
-        EB_MALLOC(dst->static_config.sframe_posi.sframe_qp_offsets,
-                  sizeof(int32_t) * src->static_config.sframe_posi.sframe_qp_num);
-        memcpy(dst->static_config.sframe_posi.sframe_qp_offsets,
-               src->static_config.sframe_posi.sframe_qp_offsets,
-               sizeof(int32_t) * src->static_config.sframe_posi.sframe_qp_num);
+        EB_MALLOC(
+            dst->static_config.sframe_posi.sframe_qp_offsets,
+            sizeof(src->static_config.sframe_posi.sframe_qp_offsets[0]) * src->static_config.sframe_posi.sframe_qp_num);
+        memcpy(
+            dst->static_config.sframe_posi.sframe_qp_offsets,
+            src->static_config.sframe_posi.sframe_qp_offsets,
+            sizeof(src->static_config.sframe_posi.sframe_qp_offsets[0]) * src->static_config.sframe_posi.sframe_qp_num);
     }
 #endif // FTR_SFRAME_QP
 
