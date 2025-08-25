@@ -926,10 +926,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                 svt_aom_rtime_alloc_svt_av1_hash_table_create(&pcs->hash_table);
                 Yv12BufferConfig cpi_source;
                 svt_aom_link_eb_to_aom_buffer_desc_8bit(pcs->ppcs->enhanced_pic, &cpi_source);
-
-                svt_av1_crc_calculator_init(&pcs->crc_calculator1, 24, 0x5D6DCB);
-                svt_av1_crc_calculator_init(&pcs->crc_calculator2, 24, 0x864CFB);
-
+                svt_av1_crc32c_calculator_init(&pcs->crc_calculator);
                 svt_av1_generate_block_2x2_hash_value(&cpi_source, block_hash_values[0], is_block_same[0], pcs);
                 uint8_t       src_idx     = 0;
                 const uint8_t max_sb_size = pcs->ppcs->intraBC_ctrls.max_block_size_hash;

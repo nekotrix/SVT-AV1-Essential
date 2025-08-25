@@ -190,6 +190,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     SET_AVX2(svt_aom_highbd_sse, svt_aom_highbd_sse_c, svt_aom_highbd_sse_avx2);
 #endif
+    SET_ONLY_C(svt_av1_get_crc32c_value, svt_av1_get_crc32c_value_c);
     SET_AVX2(svt_av1_wedge_compute_delta_squares, svt_av1_wedge_compute_delta_squares_c, svt_av1_wedge_compute_delta_squares_avx2);
     SET_SSE2_AVX2(svt_av1_wedge_sign_from_residuals, svt_av1_wedge_sign_from_residuals_c, svt_av1_wedge_sign_from_residuals_sse2, svt_av1_wedge_sign_from_residuals_avx2);
     SET_SSE41_AVX2(svt_compute_cdef_dist_16bit, svt_aom_compute_cdef_dist_16bit_c, svt_aom_compute_cdef_dist_16bit_sse4_1, svt_aom_compute_cdef_dist_16bit_avx2);
@@ -569,6 +570,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     SET_NEON_SVE(svt_aom_highbd_sse, svt_aom_highbd_sse_c, svt_aom_highbd_sse_neon, svt_aom_highbd_sse_sve);
 #endif
+    SET_ONLY_C(svt_av1_get_crc32c_value, svt_av1_get_crc32c_value_c);
     SET_NEON(svt_av1_wedge_compute_delta_squares, svt_av1_wedge_compute_delta_squares_c, svt_av1_wedge_compute_delta_squares_neon);
     SET_NEON_SVE(svt_av1_wedge_sign_from_residuals, svt_av1_wedge_sign_from_residuals_c, svt_av1_wedge_sign_from_residuals_neon, svt_av1_wedge_sign_from_residuals_sve);
     SET_NEON_SVE(svt_compute_cdef_dist_16bit, svt_aom_compute_cdef_dist_16bit_c, svt_aom_compute_cdef_dist_16bit_neon, svt_aom_compute_cdef_dist_16bit_sve);
@@ -950,6 +952,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     SET_ONLY_C(svt_aom_highbd_sse, svt_aom_highbd_sse_c);
 #endif
+    SET_ONLY_C(svt_av1_get_crc32c_value, svt_av1_get_crc32c_value_c);
     SET_ONLY_C(svt_av1_wedge_compute_delta_squares, svt_av1_wedge_compute_delta_squares_c);
     SET_ONLY_C(svt_av1_wedge_sign_from_residuals, svt_av1_wedge_sign_from_residuals_c);
     SET_ONLY_C(svt_compute_cdef_dist_16bit, svt_aom_compute_cdef_dist_16bit_c);

@@ -56,6 +56,8 @@ extern "C" {
     int64_t svt_aom_highbd_sse_c(const uint8_t *a8, int a_stride, const uint8_t *b8, int b_stride, int width, int height);
     RTCD_EXTERN int64_t(*svt_aom_highbd_sse)(const uint8_t *a8, int a_stride, const uint8_t *b8, int b_stride, int width, int height);
 #endif
+    uint32_t svt_av1_get_crc32c_value_c(void *c, const uint8_t *buf, size_t len);
+    RTCD_EXTERN uint32_t(*svt_av1_get_crc32c_value)(void *c, const uint8_t *buf, size_t len);
     void svt_av1_wedge_compute_delta_squares_c(int16_t *d, const int16_t *a, const int16_t *b, int N);
     RTCD_EXTERN void(*svt_av1_wedge_compute_delta_squares)(int16_t *d, const int16_t *a, const int16_t *b, int N);
     int8_t svt_av1_wedge_sign_from_residuals_c(const int16_t *ds, const uint8_t *m, int N, int64_t limit);

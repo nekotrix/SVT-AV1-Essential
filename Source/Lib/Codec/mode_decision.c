@@ -2835,8 +2835,7 @@ static void intra_bc_search(PictureControlSet *pcs, ModeDecisionContext *ctx, co
     uint32_t        full_lambda = ctx->hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
     //fill x with what needed.
     x->is_exhaustive_allowed = ctx->blk_geom->bwidth == 4 || ctx->blk_geom->bheight == 4 ? 1 : 0;
-    svt_memcpy(&x->crc_calculator1, &pcs->crc_calculator1, sizeof(pcs->crc_calculator1));
-    svt_memcpy(&x->crc_calculator2, &pcs->crc_calculator2, sizeof(pcs->crc_calculator2));
+    svt_memcpy(&x->crc_calculator, &pcs->crc_calculator, sizeof(pcs->crc_calculator));
     x->approx_inter_rate = ctx->approx_inter_rate;
     x->xd                = blk_ptr->av1xd;
     x->nmv_vec_cost      = ctx->md_rate_est_ctx->nmv_vec_cost;
