@@ -14,8 +14,8 @@
 #include "pcs.h"
 
 void             svt_aom_free(void *memblk);
-static const int crc_bits        = 16;
-static const int block_size_bits = 3;
+static const int crc_bits                       = 16;
+static const int block_size_bits                = 3;
 static const int max_candidates_per_hash_bucket = 256;
 
 static void hash_table_clear_all(HashTable *p_hash_table) {

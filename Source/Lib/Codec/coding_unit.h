@@ -140,9 +140,9 @@ typedef struct IntraBcContext {
     // buffer for hash value calculation of a block
     // used only in svt_av1_get_block_hash_value()
     // [two buffers used ping-pong]
-    uint32_t      *hash_value_buffer[2];
-    uint8_t        is_exhaustive_allowed;
-    CRC32C         crc_calculator;
+    uint32_t *hash_value_buffer[2];
+    uint8_t   is_exhaustive_allowed;
+    CRC32C    crc_calculator;
     // use approximate rate for inter cost (set at pic-level b/c some pic-level initializations will
     // be removed)
     uint8_t approx_inter_rate;
