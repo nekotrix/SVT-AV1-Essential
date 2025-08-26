@@ -16,6 +16,7 @@
 void             svt_aom_free(void *memblk);
 static const int crc_bits        = 16;
 static const int block_size_bits = 3;
+static const int max_candidates_per_hash_bucket = 256;
 
 static void hash_table_clear_all(HashTable *p_hash_table) {
     if (p_hash_table->p_lookup_table == NULL)
@@ -108,14 +109,25 @@ EbErrorType svt_aom_rtime_alloc_svt_av1_hash_table_create(HashTable *p_hash_tabl
     return err_code;
 }
 
-static void hash_table_add_to_table(HashTable *p_hash_table, uint32_t hash_value, BlockHash *curr_block_hash) {
+static bool hash_table_add_to_table(HashTable *p_hash_table, uint32_t hash_value, const BlockHash *curr_block_hash) {
     if (p_hash_table->p_lookup_table[hash_value] == NULL) {
-        p_hash_table->p_lookup_table[hash_value] = malloc(sizeof(p_hash_table->p_lookup_table[0][0]));
-        svt_aom_vector_setup(p_hash_table->p_lookup_table[hash_value], 10, sizeof(curr_block_hash[0]));
-        svt_aom_vector_push_back(p_hash_table->p_lookup_table[hash_value], curr_block_hash);
-    } else {
-        svt_aom_vector_push_back(p_hash_table->p_lookup_table[hash_value], curr_block_hash);
+        p_hash_table->p_lookup_table[hash_value] = malloc(sizeof(*p_hash_table->p_lookup_table[hash_value]));
+        if (p_hash_table->p_lookup_table[hash_value] == NULL) {
+            return false;
+        }
+        if (svt_aom_vector_setup(p_hash_table->p_lookup_table[hash_value], 10, sizeof(*curr_block_hash)) ==
+            VECTOR_ERROR)
+            return false;
     }
+    // Place an upper bound each hash table bucket to up to 256 intrabc
+    // block candidates, and ignore subsequent ones. Considering more can
+    // unnecessarily slow down encoding for virtually no efficiency gain.
+    if (svt_aom_vector_byte_size(p_hash_table->p_lookup_table[hash_value]) <
+        max_candidates_per_hash_bucket * sizeof(*curr_block_hash)) {
+        if (svt_aom_vector_push_back(p_hash_table->p_lookup_table[hash_value], (void *)curr_block_hash) == VECTOR_ERROR)
+            return false;
+    }
+    return true;
 }
 
 int32_t svt_av1_hash_table_count(const HashTable *p_hash_table, uint32_t hash_value) {
