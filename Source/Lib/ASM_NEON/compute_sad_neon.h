@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * Copyright (c) 2025, Alliance for Open Media. All rights reserved
  *
  * This source code is subject to the terms of the BSD 2 Clause License and
@@ -137,11 +138,15 @@ static inline uint32x4_t sad8xhx4d_neon(const uint8_t *src, uint32_t src_stride,
     sum[3] = vdupq_n_u16(0);
 
     do {
-        uint8x8_t s = vld1_u8(src);
-        sum[0]      = vabal_u8(sum[0], s, vld1_u8(ref + 0));
-        sum[1]      = vabal_u8(sum[1], s, vld1_u8(ref + 1));
-        sum[2]      = vabal_u8(sum[2], s, vld1_u8(ref + 2));
-        sum[3]      = vabal_u8(sum[3], s, vld1_u8(ref + 3));
+        uint8x8_t        s   = vld1_u8(src);
+        const uint8x16_t r   = vld1q_u8(ref);
+        const uint8x8_t  r_l = vget_low_u8(r);
+        const uint8x8_t  r_h = vget_high_u8(r);
+
+        sum[0] = vabal_u8(sum[0], s, r_l);
+        sum[1] = vabal_u8(sum[1], s, vext_u8(r_l, r_h, 1));
+        sum[2] = vabal_u8(sum[2], s, vext_u8(r_l, r_h, 2));
+        sum[3] = vabal_u8(sum[3], s, vext_u8(r_l, r_h, 3));
 
         src += src_stride;
         ref += ref_stride;
