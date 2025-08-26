@@ -64,6 +64,23 @@ static int hash_block_size_to_index(int block_size) {
     }
 }
 
+static uint32_t get_identity_hash_value(const uint8_t a, const uint8_t b, const uint8_t c, const uint8_t d) {
+    // The four input values add up to 32 bits, which is the size of the output.
+    // Just pack those values as is.
+    return ((uint32_t)a << 24) + ((uint32_t)b << 16) + ((uint32_t)c << 8) + ((uint32_t)d);
+}
+
+static uint32_t get_xor_hash_value_hbd(const uint16_t a, const uint16_t b, const uint16_t c, const uint16_t d) {
+    uint32_t result;
+    // Pack the lower 8 bits of each input value to the 32 bit output, then xor
+    // with the upper 8 bits of each input value.
+    result = ((uint32_t)(a & 0x00ff) << 24) + ((uint32_t)(b & 0x00ff) << 16) + ((uint32_t)(c & 0x00ff) << 8) +
+        ((uint32_t)(d & 0x00ff));
+    result ^= ((uint32_t)(a & 0xff00) << 16) + ((uint32_t)(b & 0xff00) << 8) + ((uint32_t)(c & 0xff00)) +
+        ((uint32_t)(d & 0xff00) >> 8);
+    return result;
+}
+
 void svt_av1_hash_table_destroy(HashTable *p_hash_table) {
     hash_table_clear_all(p_hash_table);
     EB_FREE_ARRAY(p_hash_table->p_lookup_table);
@@ -124,8 +141,7 @@ void svt_av1_generate_block_2x2_hash_value(const Yv12BufferConfig *picture, uint
     const int height = 2;
     const int x_end  = picture->y_crop_width - width + 1;
     const int y_end  = picture->y_crop_height - height + 1;
-
-    const int length = width * 2;
+    (void)pcs;
     if (picture->flags & YV12_FLAG_HIGHBITDEPTH) {
         uint16_t p[4];
         int      pos = 0;
@@ -133,9 +149,10 @@ void svt_av1_generate_block_2x2_hash_value(const Yv12BufferConfig *picture, uint
             for (int x_pos = 0; x_pos < x_end; x_pos++) {
                 get_pixels_in_1d_short_array_by_block_2x2(
                     CONVERT_TO_SHORTPTR(picture->y_buffer) + y_pos * picture->y_stride + x_pos, picture->y_stride, p);
-
-                pic_block_hash[pos] = svt_av1_get_crc32c_value(
-                    &pcs->crc_calculator, (uint8_t *)p, length * sizeof(p[0]));
+                // For HBD, we either have 40 or 48 bits of input data that the xor hash
+                // reduce to 32 bits. We intentionally don't want to "discard" bits to
+                // avoid any kind of biasing.
+                pic_block_hash[pos] = get_xor_hash_value_hbd(p[0], p[1], p[2], p[3]);
                 pos++;
             }
             pos += width - 1;
@@ -147,8 +164,11 @@ void svt_av1_generate_block_2x2_hash_value(const Yv12BufferConfig *picture, uint
             for (int x_pos = 0; x_pos < x_end; x_pos++) {
                 get_pixels_in_1d_char_array_by_block_2x2(
                     picture->y_buffer + y_pos * picture->y_stride + x_pos, picture->y_stride, p);
-
-                pic_block_hash[pos] = svt_av1_get_crc32c_value(&pcs->crc_calculator, p, length * sizeof(p[0]));
+                // This 2x2 hash isn't used directly as a "key" for the hash table, so
+                // we can afford to just copy the 4 8-bit pixel values as a single
+                // 32-bit value directly. (i.e. there are no concerns of a lack of
+                // uniform distribution)
+                pic_block_hash[pos] = get_identity_hash_value(p[0], p[1], p[2], p[3]);
                 pos++;
             }
             pos += width - 1;
@@ -227,8 +247,11 @@ void svt_av1_get_block_hash_value(uint8_t *y_src, int stride, int block_size, ui
                 int pos = (y_pos >> 1) * sub_block_in_width + (x_pos >> 1);
                 get_pixels_in_1d_short_array_by_block_2x2(y16_src + y_pos * stride + x_pos, stride, pixel_to_hash);
                 assert(pos < AOM_BUFFER_SIZE_FOR_BLOCK_HASH);
-                x->hash_value_buffer[0][pos] = svt_av1_get_crc32c_value(
-                    &x->crc_calculator, (uint8_t *)pixel_to_hash, sizeof(pixel_to_hash));
+                // For HBD, we either have 40 or 48 bits of input data that the xor hash
+                // reduce to 32 bits. We intentionally don't want to "discard" bits to
+                // avoid any kind of biasing.
+                x->hash_value_buffer[0][pos] = get_xor_hash_value_hbd(
+                    pixel_to_hash[0], pixel_to_hash[1], pixel_to_hash[2], pixel_to_hash[3]);
             }
         }
     } else {
@@ -238,8 +261,12 @@ void svt_av1_get_block_hash_value(uint8_t *y_src, int stride, int block_size, ui
                 int pos = (y_pos >> 1) * sub_block_in_width + (x_pos >> 1);
                 get_pixels_in_1d_char_array_by_block_2x2(y_src + y_pos * stride + x_pos, stride, pixel_to_hash);
                 assert(pos < AOM_BUFFER_SIZE_FOR_BLOCK_HASH);
-                x->hash_value_buffer[0][pos] = svt_av1_get_crc32c_value(
-                    &x->crc_calculator, pixel_to_hash, sizeof(pixel_to_hash));
+                // This 2x2 hash isn't used directly as a "key" for the hash table, so
+                // we can afford to just copy the 4 8-bit pixel values as a single
+                // 32-bit value directly. (i.e. there are no concerns of a lack of
+                // uniform distribution)
+                x->hash_value_buffer[0][pos] = get_identity_hash_value(
+                    pixel_to_hash[0], pixel_to_hash[1], pixel_to_hash[2], pixel_to_hash[3]);
             }
         }
     }
