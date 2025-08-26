@@ -208,8 +208,8 @@ typedef struct SvtAv1SFramePositions {
     uint32_t  sframe_num;
     uint64_t *sframe_posis;
     uint32_t  sframe_qp_num;
-    uint32_t *sframe_qps;
-    int32_t  *sframe_qp_offsets;
+    uint8_t  *sframe_qps;
+    int8_t   *sframe_qp_offsets;
 } SvtAv1SFramePositions;
 
 // Will contain the EbEncApi which will live in the EncHandle class

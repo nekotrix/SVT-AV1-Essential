@@ -1168,11 +1168,11 @@ static uint8_t get_sframe_qp(SvtAv1SFramePositions const *sframe_posi, uint64_t 
         return 0;
     if (sframe_posi->sframe_posis == NULL) {
         // always return first QP if not use flexible S-Frame position list
-        return (uint8_t)sframe_posi->sframe_qps[0];
+        return sframe_posi->sframe_qps[0];
     }
     for (uint32_t i = 0; i < sframe_posi->sframe_num; i++) {
         if (sframe_posi->sframe_posis[i] == picture_num) {
-            return (uint8_t)sframe_posi->sframe_qps[i];
+            return sframe_posi->sframe_qps[i];
         }
     }
     return 0; // not find the picture
@@ -1183,11 +1183,11 @@ static int8_t get_sframe_qp_offset(SvtAv1SFramePositions const *sframe_posi, uin
         return 0;
     if (sframe_posi->sframe_posis == NULL) {
         // always return first QP offset if not use flexible S-Frame position list
-        return (int8_t)sframe_posi->sframe_qp_offsets[0];
+        return sframe_posi->sframe_qp_offsets[0];
     }
     for (uint32_t i = 0; i < sframe_posi->sframe_num; i++) {
         if (sframe_posi->sframe_posis[i] == picture_num) {
-            return (int8_t)sframe_posi->sframe_qp_offsets[i];
+            return sframe_posi->sframe_qp_offsets[i];
         }
     }
     return 0; // not find the picture
