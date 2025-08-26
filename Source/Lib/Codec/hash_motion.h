@@ -37,12 +37,12 @@ void        svt_av1_hash_table_destroy(HashTable *p_hash_table);
 EbErrorType svt_aom_rtime_alloc_svt_av1_hash_table_create(HashTable *p_hash_table);
 int32_t     svt_av1_hash_table_count(const HashTable *p_hash_table, uint32_t hash_value);
 Iterator    svt_av1_hash_get_first_iterator(HashTable *p_hash_table, uint32_t hash_value);
-void        svt_av1_generate_block_2x2_hash_value(const Yv12BufferConfig *picture, uint32_t *pic_block_hash[2],
+void        svt_av1_generate_block_2x2_hash_value(const Yv12BufferConfig *picture, uint32_t *pic_block_hash,
                                                   struct PictureControlSet *pcs);
 
-void svt_av1_generate_block_hash_value(const Yv12BufferConfig *picture, int block_size, uint32_t *src_pic_block_hash[2],
-                                       uint32_t *dst_pic_block_hash[2], struct PictureControlSet *pcs);
-void svt_aom_rtime_alloc_svt_av1_add_to_hash_map_by_row_with_precal_data(HashTable *p_hash_table, uint32_t *pic_hash[2],
+void svt_av1_generate_block_hash_value(const Yv12BufferConfig *picture, int block_size, uint32_t *src_pic_block_hash,
+                                       uint32_t *dst_pic_block_hash, struct PictureControlSet *pcs);
+void svt_aom_rtime_alloc_svt_av1_add_to_hash_map_by_row_with_precal_data(HashTable *p_hash_table, uint32_t *pic_hash,
                                                                          int pic_width, int pic_height, int block_size);
 
 // check whether the block starts from (x_start, y_start) with the size of

@@ -911,13 +911,12 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                 const int pic_width  = pcs->ppcs->aligned_width;
                 const int pic_height = pcs->ppcs->aligned_height;
 
-                uint32_t *block_hash_values[2][2];
-                int       k, j;
+                uint32_t *block_hash_values[2];
+                int       j;
 
-                for (k = 0; k < 2; k++) {
-                    for (j = 0; j < 2; j++)
-                        block_hash_values[k][j] = rtime_alloc_block_hash_block_is_same(sizeof(uint32_t) * pic_width *
-                                                                                       pic_height);
+                for (j = 0; j < 2; j++) {
+                    block_hash_values[j] = rtime_alloc_block_hash_block_is_same(sizeof(uint32_t) * pic_width *
+                                                                                pic_height);
                 }
                 svt_aom_rtime_alloc_svt_av1_hash_table_create(&pcs->hash_table);
                 Yv12BufferConfig cpi_source;
@@ -934,9 +933,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                         svt_aom_rtime_alloc_svt_av1_add_to_hash_map_by_row_with_precal_data(
                             &pcs->hash_table, block_hash_values[dst_idx], pic_width, pic_height, size);
                 }
-                for (k = 0; k < 2; k++) {
-                    for (j = 0; j < 2; j++) free(block_hash_values[k][j]);
-                }
+                for (j = 0; j < 2; j++) { free(block_hash_values[j]); }
             }
 
             svt_av1_init3smotion_compensation(&pcs->ss_cfg, pcs->ppcs->enhanced_pic->stride_y);
