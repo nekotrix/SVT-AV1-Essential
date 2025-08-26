@@ -202,7 +202,7 @@ void svt_av1_generate_block_hash_value(const Yv12BufferConfig *picture, int bloc
     }
 }
 
-void svt_aom_rtime_alloc_svt_av1_add_to_hash_map_by_row_with_precal_data(HashTable *p_hash_table, uint32_t *pic_hash,
+bool svt_aom_rtime_alloc_svt_av1_add_to_hash_map_by_row_with_precal_data(HashTable *p_hash_table, uint32_t *pic_hash,
                                                                          int pic_width, int pic_height,
                                                                          int block_size) {
     const int x_end = pic_width - block_size + 1;
@@ -212,21 +212,86 @@ void svt_aom_rtime_alloc_svt_av1_add_to_hash_map_by_row_with_precal_data(HashTab
     assert(add_value >= 0);
     add_value <<= crc_bits;
     const int crc_mask = (1 << crc_bits) - 1;
+    int       step     = block_size;
+    int       x_offset = 0;
+    int       y_offset = 0;
 
-    for (int x_pos = 0; x_pos < x_end; x_pos++) {
-        for (int y_pos = 0; y_pos < y_end; y_pos++) {
-            const int pos = y_pos * pic_width + x_pos;
+    // Explore the entire frame hierarchically to add intrabc candidate blocks to
+    // the hash table, by starting with coarser steps (the block size), towards
+    // finer-grained steps until every candidate block has been considered.
+    // The nested for loop goes through the pic_hash array column by column.
 
-            BlockHash curr_block_hash;
-            curr_block_hash.x = x_pos;
-            curr_block_hash.y = y_pos;
+    // Doing a hierarchical block exploration helps maximize spatial dispersion
+    // of the first and foremost candidate blocks while minimizing overlap between
+    // them. This is helpful because we only keep up to 256 entries of the
+    // same candidate block (located in different places), so we want those
+    // entries to cover the biggest area of the image to encode to maximize coding
+    // efficiency.
 
-            const uint32_t hash_value1  = (pic_hash[pos] & crc_mask) + add_value;
-            curr_block_hash.hash_value2 = pic_hash[pos];
+    // This is the coordinate exploration order example for an 8x8 region, with
+    // block_size = 4. The top-left corner (x, y) coordinates of each candidate
+    // block are shown below. There are 5 * 5 (25) candidate blocks.
+    //    x  0  1  2  3  4  5  6  7
+    //  y +------------------------
+    //  0 |  1 10  5 13  3
+    //  1 | 16 22 18 24 20
+    //  2 |  7 11  9 14  8
+    //  3 | 17 23 19 25 21
+    //  4 |  2 12  6 15  4--------+
+    //  5 |              | 4 x 4  |
+    //  6 |              | block  |
+    //  7 |              +--------+
 
-            hash_table_add_to_table(p_hash_table, hash_value1, &curr_block_hash);
+    // Please note that due to the way block exploration works, the smallest step
+    // used is 2 (i.e. no two adjacent blocks will be explored consecutively).
+    // Also, the exploration is designed to visit each block candidate only once.
+    while (step > 1) {
+        for (int x_pos = x_offset; x_pos < x_end; x_pos += step) {
+            for (int y_pos = y_offset; y_pos < y_end; y_pos += step) {
+                const int pos = y_pos * pic_width + x_pos;
+                BlockHash curr_block_hash;
+
+                curr_block_hash.x = x_pos;
+                curr_block_hash.y = y_pos;
+
+                const uint32_t hash_value1  = (pic_hash[pos] & crc_mask) + add_value;
+                curr_block_hash.hash_value2 = pic_hash[pos];
+
+                if (!hash_table_add_to_table(p_hash_table, hash_value1, &curr_block_hash)) {
+                    return false;
+                }
+            }
+        }
+
+        // Adjust offsets and step sizes with this state machine.
+        // State 0 is needed because no blocks in pic_hash have been explored,
+        // so exploration requires a way to account for blocks with both zero
+        // x_offset and zero y_offset.
+        // State 0 is always meant to be executed first, but the relative order of
+        // states 1, 2 and 3 can be arbitrary, as long as no two adjacent blocks
+        // are explored consecutively.
+        if (x_offset == 0 && y_offset == 0) {
+            // State 0 -> State 1: special case
+            // This state transition will only execute when step == block_size
+            x_offset = step / 2;
+        } else if (x_offset == step / 2 && y_offset == 0) {
+            // State 1 -> State 2
+            x_offset = 0;
+            y_offset = step / 2;
+        } else if (x_offset == 0 && y_offset == step / 2) {
+            // State 2 -> State 3
+            x_offset = step / 2;
+        } else {
+            assert(x_offset == step / 2 && y_offset == step / 2);
+            // State 3 -> State 1: We've fully explored all the coordinates for the
+            // current step size, continue by halving the step size
+            step /= 2;
+            x_offset = step / 2;
+            y_offset = 0;
         }
     }
+
+    return true;
 }
 
 void svt_av1_get_block_hash_value(uint8_t *y_src, int stride, int block_size, uint32_t *hash_value1,
