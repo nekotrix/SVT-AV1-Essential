@@ -221,7 +221,7 @@ class ComputeMeanFour8x8Test
         uint64_t output_squared_tst[num_block];
 
         for (size_t vi = 0; vi < 2; vi++) {
-            for (int i = 0; i < test_times; i++) {
+            for (int k = 0; k < test_times; k++) {
                 prepare_data_8x8(input_, &rnd[vi]);
 
                 svt_compute_interm_var_four8x8_c(
