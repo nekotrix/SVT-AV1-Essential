@@ -912,44 +912,30 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                 const int pic_height = pcs->ppcs->aligned_height;
 
                 uint32_t *block_hash_values[2][2];
-                int8_t   *is_block_same[2][3];
                 int       k, j;
 
                 for (k = 0; k < 2; k++) {
                     for (j = 0; j < 2; j++)
                         block_hash_values[k][j] = rtime_alloc_block_hash_block_is_same(sizeof(uint32_t) * pic_width *
                                                                                        pic_height);
-                    for (j = 0; j < 3; j++)
-                        is_block_same[k][j] = rtime_alloc_block_hash_block_is_same(sizeof(int8_t) * pic_width *
-                                                                                   pic_height);
                 }
                 svt_aom_rtime_alloc_svt_av1_hash_table_create(&pcs->hash_table);
                 Yv12BufferConfig cpi_source;
                 svt_aom_link_eb_to_aom_buffer_desc_8bit(pcs->ppcs->enhanced_pic, &cpi_source);
                 svt_av1_crc32c_calculator_init(&pcs->crc_calculator);
-                svt_av1_generate_block_2x2_hash_value(&cpi_source, block_hash_values[0], is_block_same[0], pcs);
+                svt_av1_generate_block_2x2_hash_value(&cpi_source, block_hash_values[0], pcs);
                 uint8_t       src_idx     = 0;
                 const uint8_t max_sb_size = pcs->ppcs->intraBC_ctrls.max_block_size_hash;
                 for (int size = 4; size <= max_sb_size; size <<= 1, src_idx = !src_idx) {
                     const uint8_t dst_idx = !src_idx;
-                    svt_av1_generate_block_hash_value(&cpi_source,
-                                                      size,
-                                                      block_hash_values[src_idx],
-                                                      block_hash_values[dst_idx],
-                                                      is_block_same[src_idx],
-                                                      is_block_same[dst_idx],
-                                                      pcs);
+                    svt_av1_generate_block_hash_value(
+                        &cpi_source, size, block_hash_values[src_idx], block_hash_values[dst_idx], pcs);
                     if (size != 4 || pcs->ppcs->intraBC_ctrls.hash_4x4_blocks)
-                        svt_aom_rtime_alloc_svt_av1_add_to_hash_map_by_row_with_precal_data(&pcs->hash_table,
-                                                                                            block_hash_values[dst_idx],
-                                                                                            is_block_same[dst_idx][2],
-                                                                                            pic_width,
-                                                                                            pic_height,
-                                                                                            size);
+                        svt_aom_rtime_alloc_svt_av1_add_to_hash_map_by_row_with_precal_data(
+                            &pcs->hash_table, block_hash_values[dst_idx], pic_width, pic_height, size);
                 }
                 for (k = 0; k < 2; k++) {
                     for (j = 0; j < 2; j++) free(block_hash_values[k][j]);
-                    for (j = 0; j < 3; j++) free(is_block_same[k][j]);
                 }
             }
 
