@@ -1395,7 +1395,7 @@ PARSE_LIST(uint32)
 PARSE_LIST(uint64)
 #else
 //assume the input list of values are in the format of "[v1,v2,v3,...]"
-static EbErrorType parse_list_s32(const char *nptr, int32_t *list, size_t n) {
+static EbErrorType parse_list_int32(const char *nptr, int32_t *list, size_t n) {
     const char *ptr = nptr;
     char       *endptr;
     size_t      i = 0;
@@ -1423,7 +1423,7 @@ static EbErrorType parse_list_s32(const char *nptr, int32_t *list, size_t n) {
     return EB_ErrorNone;
 }
 
-static EbErrorType parse_list_u32(const char *nptr, uint32_t *list, size_t n) {
+static EbErrorType parse_list_uint32(const char *nptr, uint32_t *list, size_t n) {
     const char *ptr = nptr;
     char       *endptr;
     size_t      i = 0;
@@ -1451,7 +1451,7 @@ static EbErrorType parse_list_u32(const char *nptr, uint32_t *list, size_t n) {
     return EB_ErrorNone;
 }
 
-static EbErrorType parse_list_u64(const char *nptr, uint64_t *list, size_t n) {
+static EbErrorType parse_list_uint64(const char *nptr, uint64_t *list, size_t n) {
     const char *ptr = nptr;
     char       *endptr;
     size_t      i = 0;
@@ -1933,11 +1933,7 @@ static EbErrorType str_to_frm_resz_evts(const char *nptr, SvtAv1FrameScaleEvts *
         EB_FREE(evts->start_frame_nums);
     EB_MALLOC(evts->start_frame_nums, param_count * sizeof(uint64_t));
     evts->evt_num = param_count;
-#if RFCTR_PARSE_LIST
     return parse_list_uint64(nptr, evts->start_frame_nums, param_count);
-#else
-    return parse_list_u64(nptr, evts->start_frame_nums, param_count);
-#endif // RFCTR_PARSE_LIST
 }
 
 static EbErrorType str_to_resz_kf_denoms(const char *nptr, SvtAv1FrameScaleEvts *evts) {
@@ -1950,11 +1946,7 @@ static EbErrorType str_to_resz_kf_denoms(const char *nptr, SvtAv1FrameScaleEvts 
         EB_FREE(evts->resize_kf_denoms);
     EB_MALLOC(evts->resize_kf_denoms, param_count * sizeof(uint32_t));
     evts->evt_num = param_count;
-#if RFCTR_PARSE_LIST
     return parse_list_uint32(nptr, evts->resize_kf_denoms, param_count);
-#else
-    return parse_list_u32(nptr, evts->resize_kf_denoms, param_count);
-#endif // RFCTR_PARSE_LIST
 }
 
 static EbErrorType str_to_resz_denoms(const char *nptr, SvtAv1FrameScaleEvts *evts) {
@@ -1967,11 +1959,7 @@ static EbErrorType str_to_resz_denoms(const char *nptr, SvtAv1FrameScaleEvts *ev
         EB_FREE(evts->resize_denoms);
     EB_MALLOC(evts->resize_denoms, param_count * sizeof(uint32_t));
     evts->evt_num = param_count;
-#if RFCTR_PARSE_LIST
     return parse_list_uint32(nptr, evts->resize_denoms, param_count);
-#else
-    return parse_list_u32(nptr, evts->resize_denoms, param_count);
-#endif // RFCTR_PARSE_LIST
 }
 
 #if FTR_SFRAME_POSI
@@ -1985,11 +1973,7 @@ static EbErrorType str_to_sframe_posi(const char *nptr, SvtAv1SFramePositions *p
         EB_FREE(posis->sframe_posis);
     EB_MALLOC(posis->sframe_posis, param_count * sizeof(uint64_t));
     posis->sframe_num = param_count;
-#if RFCTR_PARSE_LIST
     return parse_list_uint64(nptr, posis->sframe_posis, param_count);
-#else
-    return parse_list_u64(nptr, posis->sframe_posis, param_count);
-#endif // RFCTR_PARSE_LIST
 }
 #endif // FTR_SFRAME_POSI
 
@@ -2128,25 +2112,13 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
 
     // arrays
     if (!strcmp(name, "qindex-offsets"))
-#if RFCTR_PARSE_LIST
         return parse_list_int32(value, config_struct->qindex_offsets, EB_MAX_TEMPORAL_LAYERS);
-#else
-        return parse_list_s32(value, config_struct->qindex_offsets, EB_MAX_TEMPORAL_LAYERS);
-#endif // RFCTR_PARSE_LIST
 
     if (!strcmp(name, "chroma-qindex-offsets"))
-#if RFCTR_PARSE_LIST
         return parse_list_int32(value, config_struct->chroma_qindex_offsets, EB_MAX_TEMPORAL_LAYERS);
-#else
-        return parse_list_s32(value, config_struct->chroma_qindex_offsets, EB_MAX_TEMPORAL_LAYERS);
-#endif // RFCTR_PARSE_LIST
 
     if (!strcmp(name, "lambda-scale-factors"))
-#if RFCTR_PARSE_LIST
         return parse_list_int32(value, config_struct->lambda_scale_factors, SVT_AV1_FRAME_UPDATE_TYPES);
-#else
-        return parse_list_s32(value, config_struct->lambda_scale_factors, SVT_AV1_FRAME_UPDATE_TYPES);
-#endif // RFCTR_PARSE_LIST
 
     if (!strcmp(name, "frame-resz-events"))
         return str_to_frm_resz_evts(value, &config_struct->frame_scale_evts);
