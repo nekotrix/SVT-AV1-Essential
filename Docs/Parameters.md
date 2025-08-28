@@ -32,6 +32,23 @@ The encoder parameters are listed in this table below along with their
 | **SvtAv1Params**                   | --svtav1-params      | any string   | None          | Colon-separated list of `key=value` pairs of parameters with keys based on command line options without `--`      |
 |                                    | --nch                | [1-6]        | 1             | Number of channels (library instance) that will be instantiated                                                   |
 
+### **Speed**
+
+The `--speed` presets overrides `--preset` and the default adjusts to the input resolution.
+In fact, `--speed` default to `slow` at <=1080p and `medium` at >1080p.
+
+For reference purposes, the corresponding presets are:
+
+| **Speed**  | **Preset** |
+|------------|------------|
+| **slower** | 2          |
+| **slow**   | 4          |
+| **medium** | 5          |
+| **fast**   | 6          |
+| **faster** | 8          |
+
+Setting `--preset` will override the default `--speed`.
+
 #### Usage of **SvtAv1Params**
 
 To use the `--svtav1-params` option, the syntax is `--svtav1-params option1=value1:option2=value2...`.
@@ -121,7 +138,7 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **MinSectionPct**                | --minsection-pct                 | [0-100]    | 0           | GOP min bitrate (expressed as a percentage of the target rate)                                                                                       |
 | **MaxSectionPct**                | --maxsection-pct                 | [0-10000]  | 2000        | GOP max bitrate (expressed as a percentage of the target rate)                                                                                       |
 | **GopConstraintRc**              | --gop-constraint-rc              | [0-1]      | 0           | Constrains the rate control to match the target rate for each GoP [0 = OFF, 1 = ON]                                                                  |
-| **EnableQM**                     | --enable-qm                      | [0-1]      | 0           | Enable quantisation matrices                                                                                                                         |
+| **EnableQM**                     | --enable-qm                      | [0-1]      | 1           | Enable quantisation matrices                                                                                                                         |
 | **MinQmLevel**                   | --qm-min                         | [0-15]     | 0           | Min quant matrix flatness                                                                                                                            |
 | **MaxQmLevel**                   | --qm-max                         | [0-15]     | 15          | Max quant matrix flatness                                                                                                                            |
 | **MinChromaQmLevel**             | --chroma-qm-min                  | [0-15]     | 0           | Min chroma quant matrix flatness                                                                                                                     |
@@ -132,6 +149,22 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **LuminanceQpBias**              | --luminance-qp-bias              | [0-100]    | 10          | Adjusts a frame's QP based on its average luma value                                                                                                 |
 | **Sharpness**                    | --sharpness                      | [-7-7]     | 1           | Bias towards decreased/increased sharpness                                                                                                           |
 | **Zones**                        | --zones                          | any string | Null        | Zones adjust CRF/CQP for given frame ranges. Format: start,end,quality;start,end,quality;... Default is none                                         |
+
+### **Quality**
+
+The `--quality` presets overrides `--crf` and adjusts to the input resolution.
+
+For reference purposes, the corresponding CRF are:
+
+| **Quality**  | **CRF <=1080p** | **CRF >1080p** |
+|--------------|-----------------|--------------- |
+| **higher**   | 20              | 25             |
+| **high**     | 25              | 30             |
+| **medium**   | 30              | 35             |
+| **low**      | 35              | 40             |
+| **lower**    | 40              | 45             |
+
+Setting `--crf` will override the default `--quality` of `medium`
 
 ### **UseFixedQIndexOffsets** and more information
 
@@ -258,11 +291,11 @@ SvtAv1EncApp -i in.y4m -b out.ivf --roi-map-file roi_map.txt
 | **MinKeyint**                    | --min-keyint          | [-1-`(2^31)-1`] | -1                | Min GOP size (frames), use `s` suffix for seconds (SvtAv1EncApp only) [-1: multiple of the mini-gop length (automatic), 0: no minimum]                       |
 | **IntraRefreshType**             | --irefresh-type       | [1-2]           | 2                 | Intra refresh type [1: FWD Frame (Open GOP), 2: KEY Frame (Closed GOP)]                                                                                      |
 | **SceneChangeDetection**         | --scd                 | [0-1]           | 1                 | Scene change detection control                                                                                                                               |
-| **Lookahead**                    | --lookahead           | [-1,0-120]      | -1                | Number of frames in the future to look ahead, beyond minigop, temporal filtering, and rate control [-1: auto]                                                |
+| **Lookahead**                    | --lookahead           | [-1,0-32]       | -1                | Number of frames in the future to look ahead, beyond minigop, temporal filtering, and rate control [-1: auto]                                                |
 | **HierarchicalLevels**           | --hierarchical-levels | [2-5]           | <=M12:5 , else: 4 | Set hierarchical levels beyond the base layer [2: 3 temporal layers, 3: 4 temporal layers, 5: 6 temporal layers]                                             |
 | **PredStructure**                | --pred-struct         | [1-2]           | 2                 | Set prediction structure [1: low delay, 2: random access]                                                                                                    |
 | **ForceKeyFrames**               | --force-key-frames    | any string      | None              | Force key frames at the comma separated specifiers. `#f` for frames, `#.#s` for seconds                                                                      |
-| **EnableDg**                     | --enable-dg           | [0-1]           | 1                 | Enable Dynamic GoP. The algorithm changes the hierarchical structure based on the content                                                                    |
+| **EnableDg**                     | --enable-dg           | [0-1]           | 0                 | Enable Dynamic GoP. The algorithm changes the hierarchical structure based on the content                                                                    |
 | **StartupMgSize**                | --startup-mg-size     | [0, 2, 3, 4]    | 0                 | Specify another mini-gop configuration for the first mini-gop after the key-frame [0: OFF, 2: 3 temporal layers, 3: 4 temporal layers, 4: 5 temporal layers] |
 | **RealTime**                     | --rtc                 | [0-1]           | 0                 | Enables fast settings for real-time communication when using low-delay mode. Forces low-delay pred struct to be used.                                        |
 
