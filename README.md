@@ -71,6 +71,12 @@ It's typically not advised to go higher than 3.
 **2** enables a more accurate loop filter that prevents blocking, for a modest increase in compute time (most noticeable at presets 7+).  
 **3** forces the most accurate loop filter for every encoding scenario, with important consequences in compute time at faster presets.
 
+- **`--low-memory`**
+
+This new parameter sets options that reduce RAM usage of the encoding instance significantly.  
+Enabling low-memory can have some impact on encoding speeds and perceptual quality.  
+It is most effective in CRF/CQP Random Access mode.
+
 ### Modified Defaults
 
 SVT-AV1-Essential sports different defaults from mainline SVT-AV1 in order to provide a better out-of-the-box experience. They include:
@@ -86,21 +92,26 @@ SVT-AV1-Essential sports different defaults from mainline SVT-AV1 in order to pr
 - `--luminance-qp-bias` set to `10` by default.
 - `--sharpness` set to `1` by default.
 - `--qp-scale-compress-strength` set to `1` by default.
+- `--enable-qm` set to `1` by default.
+- `--qm-min` set to `0` by default.
+- `--chroma-qm-min` set to `0` by default.
+- `--enable-dg` (dynamic gop) set to `0` by default.
 
 It is expected for these provided defaults to be much slower than the default mainline SVT-AV1 configuration.  
 The user can leverage a faster `--speed` to compensate for that while still getting better visuals in return.
 
-Benchmarks:
+Benchmarks *(new)*:
 |                    Metrics                    |                    Speed                    |
 |-----------------------------------------------|---------------------------------------------|
-| ![Metrics](https://i.kek.sh/bBjHvHvx92M.webp) | ![Speed](https://i.kek.sh/daNxcYEle5e.webp) |
-| ![Metrics](https://i.kek.sh/Iqk0P80uRN1.webp) | ![Speed](https://i.kek.sh/OKVjXxS2Ex3.webp) |
-| ![Metrics](https://i.kek.sh/0nvb460FQ9s.webp) | ![Speed](https://i.kek.sh/o28hj7bMhha.webp) |
-| ![Metrics](https://i.kek.sh/cIRCR2eM0vP.webp) | ![Speed](https://i.kek.sh/BHE8eLjQFCH.webp) |
-| ![Metrics](https://i.kek.sh/PyUQ1ihYEqP.webp) | ![Speed](https://i.kek.sh/pDVprtvcgUP.webp) |
-| ![Metrics](https://i.kek.sh/Zn4S9eLPiKC.webp) | ![Speed](https://i.kek.sh/e19o8Jf6NTU.webp) |
-| ![Metrics](https://i.kek.sh/wTI5yp6VPJd.webp) | ![Speed](https://i.kek.sh/VtuItkRAkv7.webp) |  
+| ![Metrics](https://i.kek.sh/kLLhd6hjY1o.webp) | ![Speed](https://i.kek.sh/tb7N3jIYbZG.webp) |
+| ![Metrics](https://i.kek.sh/rpbbB3jF72Y.webp) | ![Speed](https://i.kek.sh/pWUiQk1y0TE.webp) |
+| ![Metrics](https://i.kek.sh/1vuD8R9cXLn.webp) | ![Speed](https://i.kek.sh/u461T2mSsya.webp) |
+| ![Metrics](https://i.kek.sh/9P5DC3RC87x.webp) | ![Speed](https://i.kek.sh/hNkfc0ge9UH.webp) |
+| ![Metrics](https://i.kek.sh/snJFqRoDPae.webp) | ![Speed](https://i.kek.sh/slHhOyOZrf1.webp) |
+| ![Metrics](https://i.kek.sh/y2MDCy1gpDl.webp) | ![Speed](https://i.kek.sh/0rsqNtgLf8B.webp) |
+| ![Metrics](https://i.kek.sh/jKidZ0smxsT.webp) | ![Speed](https://i.kek.sh/EFoxJvmZJnK.webp) |  
 
+*Pay particular attention to the x and y axes.*  
 *Speed may vary depending on your hardware configuration and source resolution.*
 
 ### Other Changes
@@ -109,9 +120,13 @@ Benchmarks:
 
 Prints the full help information of the encoder. The regular help has been cleaned to only provides the basic, important commands.
 
-- **`--progress 2`**
+- **`--progress 3`**
 
-Progress mode 2 now provides more detailed information about the encoding process.
+A new progress mode 3 provides more detailed information about the encoding process.
+
+- **Temporal filtering on keyframes**
+
+Temporal filtering is always disabled on keyframes to eliminate blurring issues and losses of detail.
 
 - **Cleaner CLI**
 
@@ -127,7 +142,7 @@ Restores back the original, default SVT-AV1 behavior. Once enabled, the output f
 
 - **`--zones-params`** *(WIP)*
 
-A parameter that would let you control the verbosity of `--zones`, and let you choose if you want to force each *start* and *end+1* frames as keyframes.
+A parameter that would let you control the verbosity of `--zones`, and let you choose if you want to force each *start* and *end+1* frames as keyframes *([Patch available](https://github.com/nekotrix/SVT-AV1-Essential/discussions/6))*.
 
 - **Zones target bitrate / bitrate multiplier support**
 
@@ -137,7 +152,7 @@ For use of `--zones` in VBR/CBR mode.
 
 Inspired by Julio Barba's `--enable-qm 2` experiments
 
-- **Built-in FFMS2 support** *(WIP)*
+- **Built-in FFMS2 support** *([Patch available](https://github.com/nekotrix/SVT-AV1-Essential/discussions/7))*
 
 For a future without piping...
 
@@ -163,7 +178,7 @@ Auto-Boost-Essential can also be considered a helper script, as all you need to 
 python Auto-Boost-Essential.py "my_video_file.mp4"
 ```
 
-Result:
+Result *(v3.1.0, Auto-Boost-Essential v1.0)*:
 |                    Metrics                    |                    Speed                    |
 |-----------------------------------------------|---------------------------------------------|
 | ![Metrics](https://i.kek.sh/2Ulmd7e7zIJ.webp) | ![Speed](https://i.kek.sh/0fehFRVGuhT.webp) |
@@ -280,15 +295,15 @@ MSYS2 is the most convenient option for building in Windows, as it provides a Un
 
 0. Make sure you have downloaded & installed MSYS2 from [the MSYS2 website](https://www.msys2.org/) before beginning the build process.
 
-1. Start the UCRT64 console & install the required dependencies:
+1. Start the Clang64 console & install the required dependencies:
 ```bash
-pacman -Syu --needed git mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-yasm
+pacman -Syu --needed git mingw-w64-clang-x86_64-toolchain mingw-w64-clang-x86_64-cmake mingw-w64-clang-x86_64-ninja mingw-w64-clang-x86_64-nasm
 ```
 
 2. \[Optional\] Clang is the recommended compiler for SVT-AV1 & SVT-AV1-Essential, so you may download that with the following command:
 
 ```bash
-pacman -Syu --needed mingw-w64-ucrt-x86_64-clang
+pacman -Syu --needed mingw-w64-clang-x86_64-clang
 ```
 
 3. Follow the instructions in [Linux & macOS](#linux--macos) from step 1 & 2 and find the compiled binary in `C:\msys64\home\{user}\SVT-AV1-Essential\Bin\Release\`:
