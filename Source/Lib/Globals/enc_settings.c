@@ -920,7 +920,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->cdef_level                   = DEFAULT;
     config_ptr->enable_restoration_filtering = DEFAULT;
     config_ptr->enable_mfmv                  = DEFAULT;
-    config_ptr->enable_dg                    = 1;
+    config_ptr->enable_dg                    = 0;
     config_ptr->fast_decode                  = 0;
     config_ptr->encoder_color_format         = EB_YUV420;
     config_ptr->rtc                          = 0;
@@ -988,7 +988,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->force_key_frames = 0;
 
     // Quant Matrices (QM)
-    config_ptr->enable_qm           = 0;
+    config_ptr->enable_qm           = 1;
     config_ptr->min_qm_level        = 0;
     config_ptr->max_qm_level        = 15;
     config_ptr->min_chroma_qm_level = 0;
