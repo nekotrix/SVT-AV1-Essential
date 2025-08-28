@@ -1007,10 +1007,16 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is None
      */
     QualityPreset quality;
+
+    /* @brief use settings which reduce memory usage
+     *
+     * Default is false.
+     */
+    bool low_memory;
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128
-        - sizeof(bool)
+        - (sizeof(bool) * 2)
         - sizeof(SpeedPreset)
         - sizeof(QualityPreset)
     ];

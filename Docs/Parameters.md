@@ -94,6 +94,7 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **Tune**                         | --tune                      | [0-4]                          | 1           | Optimize the encoding process for different desired outcomes [0 = VQ, 1 = PSNR, 2 = SSIM, 3 = IQ (Image Quality), 4 = MS_SSIM]  |
 | **AdaptiveFilmGrain**            | --adaptive-film-grain       | [0,1]                          | 1           | Allows film grain synthesis to be sourced from different block sizes depending on resolution                  |
 | **MaxTxSize**                    | --max-tx-size               | [32,64]                        | 64          | Restricts use of block transform sizes to the specified value                                                 |
+| **LowMemory**                    | --low-memory                | [0-1]                          | 0           | Specifies whether to use params which reduce RAM consumption with potential efficiency and speed trade-offs   |
 
 ## Rate Control Options
 
