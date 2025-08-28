@@ -2,11 +2,9 @@ name: auto build
 
 on:
   workflow_dispatch:
-    branches: [ "master", "Essential-v3.1.0" ]
+    branches: [ "master", "Essential-v3.1.2" ]
   push:
-    branches: [ "master", "Essential-v3.1.0" ]
-  pull_request:
-    branches: [ "master", "Essential-v3.1.0" ]
+    branches: [ "master", "Essential-v3.1.2" ]
 
 permissions:
   contents: write
@@ -100,7 +98,7 @@ jobs:
         retention-days: 90
 
     - name: Get latest release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v3.1.0'
+      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v3.1.2'
       id: latest_release
       uses: actions/github-script@v7
       with:
@@ -114,7 +112,7 @@ jobs:
           return release.data.tag_name;
 
     - name: Upload binaries to existing release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v3.1.0'
+      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v3.1.2'
       uses: actions/github-script@v7
       with:
         script: |
