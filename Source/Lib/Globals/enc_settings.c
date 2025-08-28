@@ -1067,6 +1067,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->num_zones                         = 0;
     config_ptr->speed                             = SPEED_UNKNOWN;
     config_ptr->quality                           = QUALITY_UNKNOWN;
+    config_ptr->low_memory                        = false;
     return return_error;
 }
 
@@ -2389,6 +2390,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"avif", &config_struct->avif},
         {"rtc", &config_struct->rtc},
         {"auto-tiling", &config_struct->auto_tiling},
+        {"low-memory", &config_struct->low_memory},
     };
     const size_t bool_opts_size = sizeof(bool_opts) / sizeof(bool_opts[0]);
 

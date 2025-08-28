@@ -99,6 +99,7 @@
 #define ENABLE_OVERLAYS "--enable-overlays"
 #define TUNE_TOKEN "--tune"
 // --- end: ALTREF_FILTERING_SUPPORT
+#define LOW_MEMORY_TOKEN "--low-memory"
 // --- start: SUPER-RESOLUTION SUPPORT
 #define SUPERRES_MODE_INPUT "--superres-mode"
 #define SUPERRES_DENOM "--superres-denom"
@@ -723,7 +724,7 @@ ConfigDescription config_entry_rc[] = {
      "Only for Capped CRF, allowable datarate overshoot (max) target (percentage), default is 0, "
      "but can change based on rate control [0-100]"},
 #if CONFIG_ENABLE_QUANT_MATRIX
-    {ENABLE_QM_TOKEN, "Enable quantisation matrices, default is 0 [0-1]"},
+    {ENABLE_QM_TOKEN, "Enable quantisation matrices, default is 1 [0-1]"},
     {MIN_QM_LEVEL_TOKEN, "Min quant matrix flatness, default is 0 [0-15]"},
     {MAX_QM_LEVEL_TOKEN, "Max quant matrix flatness, default is 15 [0-15]"},
     {MIN_CHROMA_QM_LEVEL_TOKEN, "Min chroma quant matrix flatness, default is 0 [0-15]"},
@@ -803,6 +804,11 @@ ConfigDescription config_entry_specific[] = {
      "Specifies whether to use PSNR or VQ as the tuning metric [0 = VQ, 1 = PSNR, 2 = SSIM], "
      "default is 1 "
      "[0-2]"},
+    {LOW_MEMORY_TOKEN,
+     "Specifies whether to use params which reduce RAM usage with potential efficiency and speed trade-offs, "
+     "most effective in CRF/CQP RA mode, "
+     "default is 0 "
+     "[0-1]"},
     // MD Parameters
     {SCREEN_CONTENT_TOKEN,
      "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive]"},
@@ -1010,7 +1016,7 @@ ConfigDescription fconfig_entry_rc[] = {
     {VBR_MAX_SECTION_PCT_TOKEN,
      "GOP max bitrate (expressed as a percentage of the target rate), default is 2000 [0-10000]"},
 #if CONFIG_ENABLE_QUANT_MATRIX
-    {ENABLE_QM_TOKEN, "Enable quantisation matrices, default is 0 [0-1]"},
+    {ENABLE_QM_TOKEN, "Enable quantisation matrices, default is 1 [0-1]"},
     {MIN_QM_LEVEL_TOKEN, "Min quant matrix flatness, default is 0 [0-15]"},
     {MAX_QM_LEVEL_TOKEN, "Max quant matrix flatness, default is 15 [0-15]"},
     {MIN_CHROMA_QM_LEVEL_TOKEN, "Min chroma quant matrix flatness, default is 0 [0-15]"},
@@ -1085,7 +1091,7 @@ ConfigDescription fconfig_entry_specific[] = {
      "Temporal Dependency model control, currently forced on library side, only applicable for "
      "CRF/CQP, default is 1 [0-1]"},
     {MFMV_ENABLE_NEW_TOKEN, "Motion Field Motion Vector control, default is -1 [-1: auto, 0-1]"},
-    {DG_ENABLE_NEW_TOKEN, "Dynamic GoP control, default is 1 [0-1]"},
+    {DG_ENABLE_NEW_TOKEN, "Dynamic GoP control, default is 0 [0-1]"},
     {FAST_DECODE_TOKEN, "Fast Decoder levels, default is 0 [0-2]"},
     // --- start: ALTREF_FILTERING_SUPPORT
     {ENABLE_TF_TOKEN, "Enable ALT-REF (temporally filtered) frames, default is 1 [0-2]"},
@@ -1097,6 +1103,11 @@ ConfigDescription fconfig_entry_specific[] = {
     {TUNE_TOKEN,
      "Specifies whether to use PSNR or VQ as the tuning metric [0 = VQ, 1 = PSNR, 2 = SSIM], "
      "default is 1 [0-2]"},
+    {LOW_MEMORY_TOKEN,
+     "Specifies whether to use params which reduce RAM usage with potential efficiency and speed trade-offs, "
+     "most effective in CRF/CQP RA mode, "
+     "default is 0 "
+     "[0-1]"},
     // MD Parameters
     {SCREEN_CONTENT_TOKEN, "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive]"},
 #if CONFIG_ENABLE_FILM_GRAIN
@@ -1146,8 +1157,6 @@ ConfigDescription fconfig_entry_specific[] = {
     // --- end: REFERENCE SCALING SUPPORT
     {LOSSLESS_TOKEN, "Enable lossless coding, default is 0 [0-1]"},
     {AVIF_TOKEN, "Enable still-picture coding, default is 0 [0-1]"},
-    {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 1 [0-8]"},
-    {AUTO_TILING_TOKEN, "Auto tiling, default is 1 [0-1]"},
     // Termination
     {NULL, NULL}};
 
@@ -1306,6 +1315,7 @@ ConfigEntry config_entry[] = {
     {DG_ENABLE_NEW_TOKEN, "EnableDg", set_cfg_generic_token},
     {FAST_DECODE_TOKEN, "FastDecode", set_cfg_generic_token},
     {TUNE_TOKEN, "Tune", set_cfg_generic_token},
+    {LOW_MEMORY_TOKEN, "LowMemory", set_cfg_generic_token},
     //   ALT-REF filtering support
     {ENABLE_TF_TOKEN, "EnableTf", set_cfg_generic_token},
     {ENABLE_OVERLAYS, "EnableOverlays", set_cfg_generic_token},

@@ -1530,6 +1530,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         input_data.auto_tiling = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.auto_tiling;
         input_data.zones = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.parsed_zones;
         input_data.num_zones = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.num_zones;
+        input_data.low_memory = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.low_memory;
         input_data.static_config = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config;
         EB_NEW(
             enc_handle_ptr->picture_parent_control_set_pool_ptr_array[instance_index],
@@ -4461,6 +4462,8 @@ static void copy_api_from_app(
     scs->static_config.parsed_zones = config_struct->parsed_zones;
     scs->static_config.num_zones = config_struct->num_zones;
 
+    scs->static_config.low_memory = config_struct->low_memory;
+
     // Rate Control
     scs->static_config.scene_change_detection = ((EbSvtAv1EncConfiguration*)config_struct)->scene_change_detection;
     if (((EbSvtAv1EncConfiguration*)config_struct)->lossless && ((EbSvtAv1EncConfiguration*)config_struct)->rate_control_mode) {
@@ -4488,7 +4491,17 @@ static void copy_api_from_app(
             SVT_WARN("Flat structure for rtc is supported only with presets M11 or M12, use default hierarchical_levels\n");
         }
     }
-    // Set the default hierarchical levels
+    // Set hierarchical_levels to 2 to reduce memory allocation; 2 is the minimum currently supported
+    if (scs->allintra) {
+        scs->static_config.hierarchical_levels = 2;
+    } else if (scs->static_config.low_memory) {
+        scs->lad_mg = 0;
+        if (scs->static_config.hierarchical_levels == HIERARCHICAL_LEVELS_AUTO) {
+            scs->static_config.hierarchical_levels = 4;
+        }
+        SVT_WARN("Low memory mode active. Reducing --lp can decrease memory usage further at the cost of speed.\n");
+    }
+    // Set the default hierarchical levels otherwise
     if (scs->static_config.hierarchical_levels == HIERARCHICAL_LEVELS_AUTO) {
         scs->static_config.hierarchical_levels = scs->static_config.pred_structure == LOW_DELAY &&
             (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR || !(scs->static_config.enc_mode <= ENC_M9)) ?
@@ -4507,10 +4520,6 @@ static void copy_api_from_app(
             scs->static_config.hierarchical_levels = 2;
             SVT_WARN("Forced Low delay CBR mode to use HierarchicalLevels = 2\n");
         }
-    }
-    // Set hierarchical_levels to 2 to reduce memory allocation; 2 is the minimum currently supported
-    if (scs->allintra) {
-        scs->static_config.hierarchical_levels = 2;
     }
     scs->max_temporal_layers = scs->static_config.hierarchical_levels;
     scs->static_config.look_ahead_distance = ((EbSvtAv1EncConfiguration*)config_struct)->look_ahead_distance;
