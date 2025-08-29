@@ -692,9 +692,9 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
 
                             // Edge filter
                             if (av1_is_directional_mode((PredictionMode)ois_intra_mode)) {
-                                EB_MEMCPY(
+                                svt_memcpy(
                                     left_data, left0_data, sizeof(uint8_t) * (MAX_TX_SIZE * 2 + MAX_TPL_SIZE * 2));
-                                EB_MEMCPY(
+                                svt_memcpy(
                                     above_data, above0_data, sizeof(uint8_t) * (MAX_TX_SIZE * 2 + MAX_TPL_SIZE * 2));
                                 above_row = above_data + MAX_TPL_SIZE;
                                 left_col  = left_data + MAX_TPL_SIZE;
@@ -875,7 +875,7 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
 
                 if (inter_cost < best_inter_cost) {
                     if (!pcs->tpl_ctrls.use_sad_in_src_search)
-                        EB_MEMCPY(best_coeff, coeff, sizeof(best_coeff));
+                        svt_memcpy(best_coeff, coeff, sizeof(best_coeff));
 
                     best_ref_poc    = pcs->tpl_data.tpl_ref_ds_ptr_array[list_index][ref_pic_index].picture_number;
                     best_rf_idx     = rf_idx;
@@ -1039,9 +1039,9 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                     NULL); // wm_params
             } else {
                 for (int i = 0; i < (int)size; ++i)
-                    EB_MEMCPY(dst_buffer + i * dst_buffer_stride,
-                              ref_pic_ptr->buffer_y + ref_origin_index + i * ref_pic_ptr->stride_y,
-                              sizeof(uint8_t) * (size));
+                    svt_memcpy(dst_buffer + i * dst_buffer_stride,
+                               ref_pic_ptr->buffer_y + ref_origin_index + i * ref_pic_ptr->stride_y,
+                               sizeof(uint8_t) * (size));
             }
         } else {
             // intra recon
@@ -1165,21 +1165,21 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                 // If subsampling is used for the TX, need to populate the missing rows in recon with a copy of the neighbouring rows
                 if (tpl_ctrls->subsample_tx == 2) {
                     for (int i = 0; i < (int)size; i += 4) {
-                        EB_MEMCPY(dst_buffer + (i + 1) * dst_buffer_stride,
-                                  dst_buffer + i * dst_buffer_stride,
-                                  sizeof(uint8_t) * (size));
-                        EB_MEMCPY(dst_buffer + (i + 2) * dst_buffer_stride,
-                                  dst_buffer + i * dst_buffer_stride,
-                                  sizeof(uint8_t) * (size));
-                        EB_MEMCPY(dst_buffer + (i + 3) * dst_buffer_stride,
-                                  dst_buffer + i * dst_buffer_stride,
-                                  sizeof(uint8_t) * (size));
+                        svt_memcpy(dst_buffer + (i + 1) * dst_buffer_stride,
+                                   dst_buffer + i * dst_buffer_stride,
+                                   sizeof(uint8_t) * (size));
+                        svt_memcpy(dst_buffer + (i + 2) * dst_buffer_stride,
+                                   dst_buffer + i * dst_buffer_stride,
+                                   sizeof(uint8_t) * (size));
+                        svt_memcpy(dst_buffer + (i + 3) * dst_buffer_stride,
+                                   dst_buffer + i * dst_buffer_stride,
+                                   sizeof(uint8_t) * (size));
                     }
                 } else if (tpl_ctrls->subsample_tx == 1) {
                     for (int i = 0; i < (int)size; i += 2) {
-                        EB_MEMCPY(dst_buffer + (i + 1) * dst_buffer_stride,
-                                  dst_buffer + i * dst_buffer_stride,
-                                  sizeof(uint8_t) * (size));
+                        svt_memcpy(dst_buffer + (i + 1) * dst_buffer_stride,
+                                   dst_buffer + i * dst_buffer_stride,
+                                   sizeof(uint8_t) * (size));
                     }
                 }
             }

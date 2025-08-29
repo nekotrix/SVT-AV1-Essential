@@ -155,7 +155,7 @@ static const char* mem_type_name(EbPtrType type) {
 
 static bool add_mem_entry(MemoryEntry* e, void* param) {
     if (!e->ptr) {
-        EB_MEMCPY(e, param, sizeof(*e));
+        svt_memcpy(e, param, sizeof(*e));
         return true;
     }
     return false;

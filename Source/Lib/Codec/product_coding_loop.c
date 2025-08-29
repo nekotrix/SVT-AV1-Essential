@@ -819,41 +819,41 @@ static void av1_perform_inverse_transform_recon(PictureControlSet *pcs, ModeDeci
             if (ctx->mds_subres_step == 2) {
                 for (uint32_t i = 0; i < (txb_height * 4); i += 4) {
                     if (ctx->hbd_md) {
-                        EB_MEMCPY(
+                        svt_memcpy(
                             ((uint16_t *)recon_buffer->buffer_y) + rec_luma_offset + (i + 1) * recon_buffer->stride_y,
                             ((uint16_t *)recon_buffer->buffer_y) + rec_luma_offset + i * recon_buffer->stride_y,
                             txb_width * sizeof(uint16_t));
-                        EB_MEMCPY(
+                        svt_memcpy(
                             ((uint16_t *)recon_buffer->buffer_y) + rec_luma_offset + (i + 2) * recon_buffer->stride_y,
                             ((uint16_t *)recon_buffer->buffer_y) + rec_luma_offset + i * recon_buffer->stride_y,
                             txb_width * sizeof(uint16_t));
-                        EB_MEMCPY(
+                        svt_memcpy(
                             ((uint16_t *)recon_buffer->buffer_y) + rec_luma_offset + (i + 3) * recon_buffer->stride_y,
                             ((uint16_t *)recon_buffer->buffer_y) + rec_luma_offset + i * recon_buffer->stride_y,
                             txb_width * sizeof(uint16_t));
                     } else {
-                        EB_MEMCPY(recon_buffer->buffer_y + rec_luma_offset + (i + 1) * recon_buffer->stride_y,
-                                  recon_buffer->buffer_y + rec_luma_offset + i * recon_buffer->stride_y,
-                                  txb_width);
-                        EB_MEMCPY(recon_buffer->buffer_y + rec_luma_offset + (i + 2) * recon_buffer->stride_y,
-                                  recon_buffer->buffer_y + rec_luma_offset + i * recon_buffer->stride_y,
-                                  txb_width);
-                        EB_MEMCPY(recon_buffer->buffer_y + rec_luma_offset + (i + 3) * recon_buffer->stride_y,
-                                  recon_buffer->buffer_y + rec_luma_offset + i * recon_buffer->stride_y,
-                                  txb_width);
+                        svt_memcpy(recon_buffer->buffer_y + rec_luma_offset + (i + 1) * recon_buffer->stride_y,
+                                   recon_buffer->buffer_y + rec_luma_offset + i * recon_buffer->stride_y,
+                                   txb_width);
+                        svt_memcpy(recon_buffer->buffer_y + rec_luma_offset + (i + 2) * recon_buffer->stride_y,
+                                   recon_buffer->buffer_y + rec_luma_offset + i * recon_buffer->stride_y,
+                                   txb_width);
+                        svt_memcpy(recon_buffer->buffer_y + rec_luma_offset + (i + 3) * recon_buffer->stride_y,
+                                   recon_buffer->buffer_y + rec_luma_offset + i * recon_buffer->stride_y,
+                                   txb_width);
                     }
                 }
             } else if (ctx->mds_subres_step) {
                 for (uint32_t i = 0; i < (txb_height * 2); i += 2) {
                     if (ctx->hbd_md)
-                        EB_MEMCPY(
+                        svt_memcpy(
                             ((uint16_t *)recon_buffer->buffer_y) + rec_luma_offset + (i + 1) * recon_buffer->stride_y,
                             ((uint16_t *)recon_buffer->buffer_y) + rec_luma_offset + i * recon_buffer->stride_y,
                             txb_width * sizeof(uint16_t));
                     else
-                        EB_MEMCPY(recon_buffer->buffer_y + rec_luma_offset + (i + 1) * recon_buffer->stride_y,
-                                  recon_buffer->buffer_y + rec_luma_offset + i * recon_buffer->stride_y,
-                                  txb_width);
+                        svt_memcpy(recon_buffer->buffer_y + rec_luma_offset + (i + 1) * recon_buffer->stride_y,
+                                   recon_buffer->buffer_y + rec_luma_offset + i * recon_buffer->stride_y,
+                                   txb_width);
                 }
             }
         } else

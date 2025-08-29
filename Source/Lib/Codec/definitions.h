@@ -2088,16 +2088,6 @@ typedef struct EbMemoryMapEntry
     } while (0)
 
 
-extern void
-svt_memcpy_intrin_sse(void* dst_ptr, const void* src_ptr, size_t size);
-#ifdef ARCH_X86_64
-#define EB_MEMCPY(dst, src, size) \
-    svt_memcpy_intrin_sse(dst, src, size)
-#else
-#define EB_MEMCPY(dst, src, size) \
-    memcpy(dst, src, size)
-#endif
-
 #define EB_MEMSET(dst, val, count) \
 memset(dst, val, count)
 

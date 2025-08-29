@@ -1610,9 +1610,9 @@ static void scale_input_references(PictureParentControlSet *pcs, superres_params
         EbPictureBufferDesc *input_pic = pcs->enhanced_pic;
 
         for (uint32_t row = 0; row < (uint32_t)(input_pic->height + 2 * input_pic->org_y); row++)
-            EB_MEMCPY(padded_pic_ptr->buffer_y + row * padded_pic_ptr->stride_y,
-                      input_pic->buffer_y + row * input_pic->stride_y,
-                      sizeof(uint8_t) * input_pic->stride_y);
+            svt_memcpy(padded_pic_ptr->buffer_y + row * padded_pic_ptr->stride_y,
+                       input_pic->buffer_y + row * input_pic->stride_y,
+                       sizeof(uint8_t) * input_pic->stride_y);
 
         // 1/4 & 1/16 downsampled input picture
         svt_aom_downsample_filtering_input_picture(

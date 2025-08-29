@@ -297,9 +297,9 @@ static EbErrorType encode_tu(EncodeContext *enc_ctx, int frames, uint32_t total_
             SVT_ERROR("failed to allocate more memory in encode_tu");
             return EB_ErrorInsufficientResources;
         }
-        EB_MEMCPY(pbuff,
-                  output_stream_ptr->p_buffer,
-                  output_stream_ptr->n_alloc_len > total_bytes ? total_bytes : output_stream_ptr->n_alloc_len);
+        svt_memcpy(pbuff,
+                   output_stream_ptr->p_buffer,
+                   output_stream_ptr->n_alloc_len > total_bytes ? total_bytes : output_stream_ptr->n_alloc_len);
         EB_FREE(output_stream_ptr->p_buffer);
         output_stream_ptr->p_buffer    = pbuff;
         output_stream_ptr->n_alloc_len = total_bytes;

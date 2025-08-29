@@ -1205,7 +1205,7 @@ EbErrorType svt_aom_update_neighbor_samples_array_open_loop_mb(
         if (update_top_neighbor){
         read_ptr = src_ptr - stride;
         count = ((src_origin_x + count) > width) ? count - ((src_origin_x + count) - width) : count;
-        EB_MEMCPY(above_ref, read_ptr, count);
+        svt_memcpy(above_ref, read_ptr, count);
         }
         // pading unknown top right pixels with value at(15, -1)
         if (use_top_righ_bottom_left)
@@ -1287,7 +1287,7 @@ EbErrorType svt_aom_update_neighbor_samples_array_open_loop_mb_recon(
         if (update_top_neighbor){
         read_ptr = src_ptr - stride;
         count = ((src_origin_x + count) > width) ? count - ((src_origin_x + count) - width) : count;
-        EB_MEMCPY(above_ref, read_ptr, count);
+        svt_memcpy(above_ref, read_ptr, count);
         }
         // pading unknown top right pixels with value at(15, -1)
         if (use_top_righ_bottom_left)

@@ -3239,8 +3239,8 @@ EbErrorType svt_aom_open_loop_intra_search_mb(PictureParentControlSet *pcs, uint
                 // Edge filter
                 if (av1_is_directional_mode((PredictionMode)ois_intra_mode) &&
                     1 /*scs->seq_header.enable_intra_edge_filter*/) {
-                    EB_MEMCPY(left_data, left0_data, sizeof(uint8_t) * (MAX_TX_SIZE * 2 + 32));
-                    EB_MEMCPY(above_data, above0_data, sizeof(uint8_t) * (MAX_TX_SIZE * 2 + 32));
+                    svt_memcpy(left_data, left0_data, sizeof(uint8_t) * (MAX_TX_SIZE * 2 + 32));
+                    svt_memcpy(above_data, above0_data, sizeof(uint8_t) * (MAX_TX_SIZE * 2 + 32));
                     above_row = above_data + 16;
                     left_col  = left_data + 16;
                     filter_intra_edge(ois_mb_results_ptr,

@@ -4007,13 +4007,13 @@ void store_gf_group(
     if (pcs->slice_type == I_SLICE || (!svt_aom_is_delayed_intra(pcs) && pcs->temporal_layer_index == 0) || svt_aom_is_incomp_mg_frame(pcs)) {
         if (svt_aom_is_delayed_intra(pcs)) {
             pcs->gf_group[0] = (void*)pcs;
-            EB_MEMCPY(&pcs->gf_group[1], ctx->mg_pictures_array, mg_size * sizeof(PictureParentControlSet*));
+            svt_memcpy(&pcs->gf_group[1], ctx->mg_pictures_array, mg_size * sizeof(PictureParentControlSet*));
             pcs->gf_interval = 1 + mg_size;
         }
         else {
             if (svt_aom_is_incomp_mg_frame(pcs) && mg_size > 0 && ctx->mg_pictures_array[mg_size - 1]->idr_flag)
                 mg_size = MAX(0, (int)mg_size - 1);
-            EB_MEMCPY(&pcs->gf_group[0], ctx->mg_pictures_array, mg_size * sizeof(PictureParentControlSet*));
+            svt_memcpy(&pcs->gf_group[0], ctx->mg_pictures_array, mg_size * sizeof(PictureParentControlSet*));
             pcs->gf_interval = mg_size;
         }
 
@@ -4032,7 +4032,7 @@ void store_gf_group(
             // For P picture that come after I, we need to set the gf_group pictures. It is used later in RC
             if (pcs->slice_type == I_SLICE && svt_aom_is_incomp_mg_frame(pcs->gf_group[pic_i]) && pcs->picture_number < pcs->gf_group[pic_i]->picture_number) {
                 pcs->gf_group[pic_i]->gf_interval = pcs->gf_interval - 1;
-                EB_MEMCPY(&pcs->gf_group[pic_i]->gf_group[0], &ctx->mg_pictures_array[1], pcs->gf_group[pic_i]->gf_interval * sizeof(PictureParentControlSet*));
+                svt_memcpy(&pcs->gf_group[pic_i]->gf_group[0], &ctx->mg_pictures_array[1], pcs->gf_group[pic_i]->gf_interval * sizeof(PictureParentControlSet*));
                 pcs->gf_group[pic_i]->gf_update_due = 0;
             }
         }
@@ -4594,7 +4594,7 @@ static void store_mg_picture_arrays(PictureDecisionContext* ctx) {
     const unsigned int mg_size = ctx->mg_size;
 
     // mg_pictures_array arrives in display order, so copy into display order array
-    EB_MEMCPY(ctx->mg_pictures_array_disp_order, ctx->mg_pictures_array, mg_size * sizeof(PictureParentControlSet*));
+    svt_memcpy(ctx->mg_pictures_array_disp_order, ctx->mg_pictures_array, mg_size * sizeof(PictureParentControlSet*));
 
     // Sort MG pics into decode order
     PictureParentControlSet** mg_pics = &ctx->mg_pictures_array[0];
