@@ -32,11 +32,11 @@
 #endif
 
 #ifndef TEST_GET_PARAM
-#define TEST_GET_PARAM(k) std::get<k>(GetParam())
+#define TEST_GET_PARAM(k) std::get<k>(this->GetParam())
 #endif
 
 #define ALIGNED_ADDR(T, alignment, buffer) \
-    (T*)(((uintptr_t)buffer + (alignment - 1)) & ~(alignment - 1))
+    (T *)(((uintptr_t)buffer + (alignment - 1)) & ~(alignment - 1))
 
 #define ALIGNMENT (64)
 

@@ -93,6 +93,7 @@ set(multi_arch_files
     FwdTxfm2dAsmTest.cc
     HbdVarianceTest.cc
     InvTxfm2dAsmTest.cc
+    MemTest.cc
     OBMCSadTest.cc
     OBMCVarianceTest.cc
     PackUnPackTest.cc
