@@ -9,7 +9,7 @@
 # PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 #
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.16...4.1)
 
 if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_CURRENT_BINARY_DIR}")
     message(WARNING "Building in-source is highly not recommended\n"
@@ -20,19 +20,6 @@ project(svt-av1 VERSION 3.1.2
     LANGUAGES C CXX)
 
 set(VERSION_TAG "")
-
-if(POLICY CMP0063)
-  cmake_policy(SET CMP0063 NEW)
-endif()
-if(POLICY CMP0069)
-    cmake_policy(SET CMP0069 NEW)
-endif()
-if(POLICY CMP0077)
-    cmake_policy(SET CMP0077 NEW)
-endif()
-if(POLICY CMP0174)
-    cmake_policy(SET CMP0174 NEW)
-endif()
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 # Default build type to release if the generator does not has its own set of build types
