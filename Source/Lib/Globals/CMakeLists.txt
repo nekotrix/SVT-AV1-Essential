@@ -12,7 +12,7 @@
 # Globals Directory CMakeLists.txt
 
 # Include Encoder Subdirectories
-include_directories(../../../API
+include_directories(${PROJECT_SOURCE_DIR}/Source/Lib/API
         ${PROJECT_BINARY_DIR}/Source/Lib/Codec/
         ${PROJECT_SOURCE_DIR}/Source/Lib/C_DEFAULT/
         ${PROJECT_SOURCE_DIR}/third_party/fastfeat/
