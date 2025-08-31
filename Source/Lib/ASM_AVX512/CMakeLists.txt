@@ -20,7 +20,6 @@ include_directories(${PROJECT_SOURCE_DIR}/Source/API/
     ${PROJECT_SOURCE_DIR}/Source/Lib/ASM_SSE4_1/
     ${PROJECT_SOURCE_DIR}/Source/Lib/ASM_AVX2/
     ${PROJECT_SOURCE_DIR}/Source/Lib/ASM_AVX512/)
-link_directories(${PROJECT_SOURCE_DIR}/Source/Lib/ASM_SSSE3/)
 
 check_both_flags_add(
     -mavx2
