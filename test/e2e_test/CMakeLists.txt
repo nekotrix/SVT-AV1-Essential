@@ -77,8 +77,7 @@ endif()
 
 target_include_directories(
   SvtAv1E2ETests
-  PRIVATE ${CMAKE_OUTPUT_DIRECTORY}
-          ${PROJECT_SOURCE_DIR}/Source/API
+  PRIVATE ${PROJECT_SOURCE_DIR}/Source/API
           ${PROJECT_SOURCE_DIR}/test
           ${PROJECT_SOURCE_DIR}/third_party/aom/inc
           ${PROJECT_SOURCE_DIR}/third_party/googletest/include
@@ -86,7 +85,7 @@ target_include_directories(
 
 install(TARGETS SvtAv1E2ETests RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-add_test(SvtAv1E2ETests ${CMAKE_OUTPUT_DIRECTORY}/SvtAv1E2ETests)
+add_test(NAME SvtAv1E2ETests COMMAND SvtAv1E2ETests)
 add_dependencies(SvtAv1E2ETests DepLibAom)
 
 # testdata download targets.

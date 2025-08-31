@@ -49,4 +49,4 @@ endif()
 
 install(TARGETS SvtAv1ApiTests RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-add_test(SvtAv1ApiTests ${CMAKE_OUTPUT_DIRECTORY}/SvtAv1ApiTests)
+add_test(NAME SvtAv1ApiTests COMMAND SvtAv1ApiTests)

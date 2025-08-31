@@ -200,7 +200,7 @@ add_dependencies(SvtAv1UnitTests SvtAv1Enc)
 
 install(TARGETS SvtAv1UnitTests RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-add_test(SvtAv1UnitTests ${CMAKE_OUTPUT_DIRECTORY}/SvtAv1UnitTests)
+add_test(NAME SvtAv1UnitTests COMMAND SvtAv1UnitTests)
 
 add_subdirectory(api_test)
 add_subdirectory(e2e_test)
