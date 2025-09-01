@@ -19,28 +19,11 @@ set(ENC_VERSION ${ENC_VERSION_MAJOR}.${ENC_VERSION_MINOR}.${ENC_VERSION_PATCH})
 
 add_library(common_lib INTERFACE)
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-    find_library(M_LIB NAMES m)
-    if(M_LIB)
-        list(APPEND PLATFORM_LIBS m)
-    endif()
-    list(APPEND PLATFORM_LIBS Threads::Threads)
-elseif(UNIX)
-    if(NOT APPLE)
-        find_library(M_LIB NAMES m)
-        if(M_LIB)
-            list(APPEND PLATFORM_LIBS m)
-        endif()
-        list(APPEND PLATFORM_LIBS Threads::Threads)
-    endif()
-    set(LIBS_PRIVATE "-lpthread -lm")
-endif()
-
 if(COVERAGE)
     if(CMAKE_C_COMPILER_ID MATCHES "GNU")
-        set(LIBS_PRIVATE "-lgcov ${LIBS_PRIVATE}")
+        list(APPEND PC_LIBS_PRIVATE -lgcov)
     else(CMAKE_C_COMPILER_ID MATCHES "Clang")
-        set(LIBS_PRIVATE "--coverage ${LIBS_PRIVATE}")
+        list(APPEND PC_LIBS_PRIVATE --coverage)
     endif()
 endif()
 
@@ -150,5 +133,7 @@ install(TARGETS SvtAv1Enc
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
         RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
+list(JOIN PC_LIBS_PRIVATE " " LIBS_PRIVATE)
+list(JOIN PC_REQUIRES_PRIVATE " " REQUIRES_PRIVATE)
 configure_file(pkg-config.pc.in ${CMAKE_BINARY_DIR}/SvtAv1Enc.pc @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/SvtAv1Enc.pc DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")

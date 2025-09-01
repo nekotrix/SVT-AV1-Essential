@@ -46,14 +46,6 @@ endif()
 
 #********** SET COMPILE FLAGS************
 # Link the Encoder App
-target_link_libraries(SvtAv1EncApp
-        SvtAv1Enc)
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-    target_link_libraries(SvtAv1EncApp ${PLATFORM_LIBS})
-elseif(UNIX)
-    target_link_libraries(SvtAv1EncApp
-        pthread
-        m)
-endif()
+target_link_libraries(SvtAv1EncApp PRIVATE SvtAv1Enc)
 
 install(TARGETS SvtAv1EncApp RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR})

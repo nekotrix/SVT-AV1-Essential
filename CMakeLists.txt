@@ -187,7 +187,8 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_OUTPUT_DIRECTORY})
 endif()
 
-set(REQUIRES_PRIVATE "")
+set(PC_LIBS_PRIVATE)
+set(PC_REQUIRES_PRIVATE)
 
 #Clang support, required to build static with LTO
 if(CMAKE_C_COMPILER_ID MATCHES "Clang" AND UNIX AND NOT APPLE)
@@ -574,7 +575,6 @@ endif()
 include_directories(.)
 
 # Find out if we have threading available
-set(CMAKE_THREAD_PREFER_PTHREADS ON)
 find_package(Threads)
 
 check_symbol_exists(elf_aux_info "sys/auxv.h" HAVE_ELF_AUX_INFO)
@@ -624,6 +624,11 @@ if(NOT IS_ABSOLUTE "${SVT_AV1_INCLUDEDIR}")
 endif()
 if(NOT IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
     string(PREPEND SVT_AV1_LIBDIR "\${exec_prefix}/")
+endif()
+
+if(UNIX AND NOT APPLE)
+    list(APPEND PLATFORM_LIBS Threads::Threads m)
+    list(APPEND PC_LIBS_PRIVATE ${CMAKE_THREAD_LIBS_INIT} -lm)
 endif()
 
 # Add Subdirectories
