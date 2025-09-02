@@ -8899,7 +8899,7 @@ uint8_t svt_aom_get_nsq_search_level(PictureControlSet *pcs, EncMode enc_mode, I
         nsq_search_level = 12;
     } else if (enc_mode <= ENC_M6) {
         nsq_search_level = 15;
-    } else if ((!rtc_tune && enc_mode <= ENC_M7) || (rtc_tune && enc_mode <= ENC_M6)) {
+    } else if (!rtc_tune && enc_mode <= ENC_M7) {
         nsq_search_level = 18;
     } else {
         nsq_search_level = 19;
