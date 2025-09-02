@@ -9650,15 +9650,15 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
             if (enc_mode <= ENC_M5) {
                 mfmv_level = 1;
             } else if (enc_mode <= ENC_M7) {
-                mfmv_level = (input_resolution <= INPUT_SIZE_360p_RANGE) ? 1 : 2;
+                mfmv_level = 2;
             } else {
-                mfmv_level = (input_resolution <= INPUT_SIZE_360p_RANGE) ? 1 : 4;
+                mfmv_level = 4;
             }
         } else {
             if (enc_mode <= ENC_M5) {
-                mfmv_level = (input_resolution <= INPUT_SIZE_360p_RANGE) ? 1 : 3;
+                mfmv_level = 3;
             } else {
-                mfmv_level = (input_resolution <= INPUT_SIZE_360p_RANGE) ? 1 : 4;
+                mfmv_level = 4;
             }
         }
 #endif
