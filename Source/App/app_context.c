@@ -242,7 +242,7 @@ static EbErrorType parse_rio_map_file(EbConfig *app_cfg) {
                 // no new value parsed
                 break;
             }
-            if (picture_number == ULLONG_MAX || end == NULL) {
+            if (picture_number == ULLONG_MAX) {
                 ret = EB_ErrorBadParameter;
                 break;
             }
