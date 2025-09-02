@@ -5709,7 +5709,7 @@ static EbErrorType validate_on_the_fly_settings(EbBufferHeaderType *input_ptr, S
                 return EB_ErrorBadParameter;
             }
             else if (input_ptr->pic_type == EB_AV1_KEY_PICTURE) {
-                svt_aom_assert_err(node->size == sizeof(SvtAv1InputPicDef) && node->data,
+                svt_aom_assert_err(node->size == sizeof(SvtAv1InputPicDef),
                     "invalide private data of type RES_CHANGE_EVENT");
                 SvtAv1InputPicDef  *input_pic_def = (SvtAv1InputPicDef *)node->data;
                 svt_block_on_mutex(config_mutex);
