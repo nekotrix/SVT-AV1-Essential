@@ -18,6 +18,7 @@
 
 namespace {
 using svt_av1_test_tool::SVTRandom;
+#if CONFIG_ENABLE_FILM_GRAIN
 const int32_t MAX_SIZE = 300;
 const int32_t test_time = 20;
 
@@ -397,5 +398,5 @@ TEST(fg_flat_block_finder_extract_block, hbd_AVX2) {
     delete[] block_finder->A;
     delete block_finder;
 }
-
+#endif  // CONFIG_ENABLE_FILM_GRAIN
 }  // namespace

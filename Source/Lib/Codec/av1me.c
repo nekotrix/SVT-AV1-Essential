@@ -604,6 +604,7 @@ static int full_pixel_exhaustive(PictureControlSet *pcs, IntraBcContext *x, cons
     return bestsme;
 }
 
+#if CONFIG_ENABLE_OBMC
 static int get_obmc_mvpred_var(const IntraBcContext *x, const int32_t *wsrc, const int32_t *mask, const Mv *best_mv,
                                const Mv *center_mv, const AomVarianceFnPtr *vfp, int use_mvcost, int is_second) {
     const struct Buf2D *in_what = (const struct Buf2D *)(&x->xdplane[0].pre[is_second]);
@@ -655,7 +656,7 @@ static int obmc_refining_search_sad(const IntraBcContext *x, const int32_t *wsrc
     return best_sad;
 }
 
-int svt_av1_obmc_full_pixel_search(ModeDecisionContext *ctx, IntraBcContext *x, Mv *mvp_full, int sadpb,
+int svt_av1_obmc_full_pixel_search(struct ModeDecisionContext *ctx, IntraBcContext *x, const Mv *mvp_full, int sadpb,
                                    const AomVarianceFnPtr *fn_ptr, const Mv *ref_mv, Mv *dst_mv, int is_second) {
     // obmc_full_pixel_diamond does not provide BDR gain on 360p
     const int32_t *wsrc         = ctx->wsrc_buf;
@@ -672,6 +673,7 @@ int svt_av1_obmc_full_pixel_search(ModeDecisionContext *ctx, IntraBcContext *x, 
 
     return thissme;
 }
+#endif
 
 static INLINE void set_subpel_mv_search_range(const MvLimits *mv_limits, int *col_min, int *col_max, int *row_min,
                                               int *row_max, const Mv *ref_mv) {

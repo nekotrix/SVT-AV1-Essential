@@ -916,8 +916,10 @@ extern "C" {
     void svt_av1_apply_window_function_to_plane_c(int32_t y_size, int32_t x_size, float *result_ptr, uint32_t result_stride, float *block, float *plane, const float *window_function);
     RTCD_EXTERN void (*svt_aom_noise_tx_filter)(int32_t block_size, float *block_ptr, const float psd);
     void svt_aom_noise_tx_filter_c(int32_t block_size, float *block_ptr, const float psd);
+#if CONFIG_ENABLE_FILM_GRAIN
     RTCD_EXTERN void (*svt_aom_flat_block_finder_extract_block)(const AomFlatBlockFinder *block_finder, const uint8_t *const data, int32_t w, int32_t h, int32_t stride, int32_t offsx, int32_t offsy, double *plane, double *block);
     void svt_aom_flat_block_finder_extract_block_c(const AomFlatBlockFinder *block_finder, const uint8_t *const data, int32_t w, int32_t h, int32_t stride, int32_t offsx, int32_t offsy, double *plane, double *block);
+#endif
     RTCD_EXTERN void(*svt_av1_interpolate_core)(const uint8_t *const input, int in_length, uint8_t *output, int out_length, const int16_t *interp_filters);
     void svt_av1_interpolate_core_c(const uint8_t *const input, int in_length, uint8_t *output, int out_length, const int16_t *interp_filters);
     RTCD_EXTERN void(*svt_av1_down2_symeven)(const uint8_t *const input, int length, uint8_t *output);
@@ -2274,7 +2276,9 @@ void svt_aom_ifft16x16_float_avx2(const float *input, float *temp, float *output
     void svt_av1_pointwise_multiply_avx2(const float *a, float *b, float *c, double *b_d, double *c_d, int32_t n);
     void svt_av1_apply_window_function_to_plane_avx2(int32_t y_size, int32_t x_size, float *result_ptr, uint32_t result_stride, float *block, float *plane, const float *window_function);
     void svt_aom_noise_tx_filter_avx2(int32_t block_size, float *block_ptr, const float psd);
+#if CONFIG_ENABLE_FILM_GRAIN
     void svt_aom_flat_block_finder_extract_block_avx2(const AomFlatBlockFinder *block_finder, const uint8_t *const data, int32_t w, int32_t h, int32_t stride, int32_t offsx, int32_t offsy, double *plane, double *block);
+#endif
     void svt_av1_interpolate_core_avx2(const uint8_t *const input, int in_length, uint8_t *output, int out_length, const int16_t *interp_filters);
     void svt_av1_down2_symeven_avx2(const uint8_t *const input, int length, uint8_t *output);
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH

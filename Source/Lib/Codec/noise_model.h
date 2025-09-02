@@ -12,6 +12,10 @@
 #ifndef AOM_AOM_DSP_NOISE_MODEL_H_
 #define AOM_AOM_DSP_NOISE_MODEL_H_
 
+#include "EbConfigMacros.h"
+
+#if CONFIG_ENABLE_FILM_GRAIN
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
@@ -389,4 +393,7 @@ static INLINE void multiply_mat_n_3_1(const double *m1, const double *m2, double
 #ifdef __cplusplus
 } // extern "C"
 #endif // __cplusplus
+
+#endif // CONFIG_ENABLE_FILM_GRAIN
+
 #endif // AOM_AOM_DSP_NOISE_MODEL_H_

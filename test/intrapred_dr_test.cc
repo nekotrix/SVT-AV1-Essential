@@ -408,6 +408,8 @@ INSTANTIATE_TEST_SUITE_P(NEON, LowbdZ3PredTest,
                          ::testing::Values(svt_av1_dr_prediction_z3_neon));
 #endif  // ARCH_AARCH64
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+
 class HighbdZ1PredTest : public DrPredTest<uint16_t, Z1_HBD>,
                          public ::testing::TestWithParam<Z1_HBD> {
   public:
@@ -571,4 +573,6 @@ INSTANTIATE_TEST_SUITE_P(
     NEON, HighbdZ3PredTest,
     ::testing::Values(svt_av1_highbd_dr_prediction_z3_neon));
 #endif  // ARCH_AARCH64
+
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 }  // namespace

@@ -163,6 +163,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif  // ARCH_AARCH64
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 class MseTestHighbd : public ::testing::TestWithParam<TestMseParamHighbd> {
   public:
     MseTestHighbd()
@@ -269,6 +270,8 @@ INSTANTIATE_TEST_SUITE_P(NEON_DOTPROD, MseTestHighbd,
 #endif  // HAVE_NEON_DOTPROD
 
 #endif  // ARCH_AARCH64
+
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 
 // sum of squares test
 static uint32_t mb_ss_ref(const int16_t *src) {

@@ -176,14 +176,17 @@ class LowbdIntraPredTest
     }
 };
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 TEST_P(HighbdIntraPredTest, match_test) {
     RunTest();
 }
+#endif
 
 TEST_P(LowbdIntraPredTest, match_test) {
     RunTest();
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 // -----------------------------------------------------------------------------
 // High Bit Depth Tests
 #define hbd_entry(type, width, height, opt)                                   \
@@ -412,6 +415,8 @@ INSTANTIATE_TEST_SUITE_P(NEON, HighbdIntraPredTest,
                          ::testing::ValuesIn(HighbdIntraPredTestVectorAsmNEON));
 
 #endif  // ARCH_AARCH64
+
+#endif
 
 // ---------------------------------------------------------------------------
 // Low Bit Depth Tests

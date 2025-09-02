@@ -376,7 +376,7 @@ TEST_P(QuantizeLbdTest, DISABLED_Speed) {
                (time_c / time_o));
     }
 }
-
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 class QuantizeHbdTest : public QuantizeTest<QuantizeHbdParam, QuantizeHbdFunc> {
   protected:
     QuantizeHbdTest() {
@@ -586,6 +586,8 @@ TEST_P(QuantizeHbdTest, DISABLED_Speed) {
     }
 }
 
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
+
 class QuantizeQmTest : public QuantizeTest<QuantizeQmParam, QuantizeQmFunc> {
   protected:
     QuantizeQmTest() {
@@ -698,6 +700,7 @@ class QuantizeQmTest : public QuantizeTest<QuantizeQmParam, QuantizeQmFunc> {
     void init_qm() {
         const uint8_t num_planes = 1;
         uint8_t q, c, t;
+#if CONFIG_ENABLE_QUANT_MATRIX
         int32_t current;
         for (q = 0; q < NUM_QM_LEVELS; ++q) {
             for (c = 0; c < num_planes; ++c) {
@@ -723,6 +726,16 @@ class QuantizeQmTest : public QuantizeTest<QuantizeQmParam, QuantizeQmFunc> {
                 }
             }
         }
+#else
+        for (q = 0; q < NUM_QM_LEVELS; ++q) {
+            for (c = 0; c < num_planes; ++c) {
+                for (t = 0; t < TX_SIZES_ALL; ++t) {
+                    qmatrix_[q][c][t] = NULL;
+                    iqmatrix_[q][c][t] = NULL;
+                }
+            }
+        }
+#endif  // CONFIG_ENABLE_QUANT_MATRIX
     }
 
     const QmVal *iqmatrix_[NUM_QM_LEVELS][3][TX_SIZES_ALL];
@@ -840,6 +853,7 @@ const QuantizeParam kQParamArrayAvx2[] = {
     make_tuple(&svt_av1_quantize_fp_64x64_c, &svt_av1_quantize_fp_64x64_sse4_1,
                static_cast<TxSize>(TX_64X64), TYPE_FP, EB_EIGHT_BIT)};
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 const QuantizeHbdParam kQHbdParamArraySse41[] = {
     make_tuple(&svt_av1_highbd_quantize_fp_c,
                &svt_av1_highbd_quantize_fp_sse4_1,
@@ -933,6 +947,7 @@ const QuantizeHbdParam kQHbdParamArrayAvx2[] = {
                static_cast<TxSize>(TX_8X32), TYPE_FP, EB_TWELVE_BIT),
     make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_avx2,
                static_cast<TxSize>(TX_64X64), TYPE_FP, EB_TWELVE_BIT)};
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 
 const QuantizeQmParam kQmParamArrayAvx2[] = {
     make_tuple(&svt_av1_quantize_fp_qm_c, &svt_av1_quantize_fp_qm_avx2,
@@ -946,6 +961,7 @@ const QuantizeQmParam kQmParamArrayAvx2[] = {
     make_tuple(&svt_av1_quantize_fp_qm_c, &svt_av1_quantize_fp_qm_avx2,
                static_cast<TxSize>(TX_8X32), TYPE_FP, EB_EIGHT_BIT)};
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 const QuantizeQmParam kQmParamHbdArrayAvx2[] = {
     make_tuple(&svt_av1_highbd_quantize_fp_qm_c,
                &svt_av1_highbd_quantize_fp_qm_avx2,
@@ -962,17 +978,22 @@ const QuantizeQmParam kQmParamHbdArrayAvx2[] = {
     make_tuple(&svt_av1_highbd_quantize_fp_qm_c,
                &svt_av1_highbd_quantize_fp_qm_avx2,
                static_cast<TxSize>(TX_8X32), TYPE_FP, EB_TEN_BIT)};
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 
 INSTANTIATE_TEST_SUITE_P(AVX2, QuantizeLbdTest,
                          ::testing::ValuesIn(kQParamArrayAvx2));
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 INSTANTIATE_TEST_SUITE_P(SSE4_1, QuantizeHbdTest,
                          ::testing::ValuesIn(kQHbdParamArraySse41));
 INSTANTIATE_TEST_SUITE_P(AVX2, QuantizeHbdTest,
                          ::testing::ValuesIn(kQHbdParamArrayAvx2));
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 INSTANTIATE_TEST_SUITE_P(AVX2, QuantizeQmTest,
                          ::testing::ValuesIn(kQmParamArrayAvx2));
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 INSTANTIATE_TEST_SUITE_P(AVX2, QuantizeQmHbdTest,
                          ::testing::ValuesIn(kQmParamHbdArrayAvx2));
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 #endif  // ARCH_X86_64
 
 #ifdef ARCH_AARCH64
@@ -999,6 +1020,7 @@ const QuantizeParam kQParamArrayNeon[] = {
 INSTANTIATE_TEST_SUITE_P(NEON, QuantizeLbdTest,
                          ::testing::ValuesIn(kQParamArrayNeon));
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 const QuantizeHbdParam kQHbdParamArrayNeon[] = {
     make_tuple(&svt_av1_highbd_quantize_fp_c, &svt_av1_highbd_quantize_fp_neon,
                static_cast<TxSize>(TX_16X16), TYPE_FP, EB_EIGHT_BIT),
@@ -1039,6 +1061,7 @@ const QuantizeHbdParam kQHbdParamArrayNeon[] = {
 
 INSTANTIATE_TEST_SUITE_P(NEON, QuantizeHbdTest,
                          ::testing::ValuesIn(kQHbdParamArrayNeon));
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 #endif  // ARCH_AARCH64
 
 using ComputeCulLevelFunc = uint8_t (*)(const int16_t *const scan,

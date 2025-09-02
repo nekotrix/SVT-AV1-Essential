@@ -9,6 +9,10 @@
 * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
+#include "EbConfigMacros.h"
+
+#if CONFIG_ENABLE_FILM_GRAIN
+
 #include <immintrin.h>
 #include "definitions.h"
 #include "common_dsp_rtcd.h"
@@ -242,3 +246,5 @@ void svt_aom_flat_block_finder_extract_block_avx2(const AomFlatBlockFinder *bloc
     }
     for (; i < n; ++i) block[i] -= plane[i];
 }
+
+#endif

@@ -362,6 +362,8 @@ INSTANTIATE_TEST_SUITE_P(
 #endif  // HAVE_SVE
 #endif  // ARCH_AARCH64
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+
 class PixelProjErrorHbdTest : public PixelProjErrorTest<uint16_t> {
   protected:
     PixelProjErrorHbdTest() : rnd12_(12, false) {
@@ -424,6 +426,8 @@ INSTANTIATE_TEST_SUITE_P(
                                  svt_av1_highbd_pixel_proj_error_c)));
 #endif  // HAVE_SVE
 #endif  // ARCH_AARCH64
+
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 
 typedef void (*GetProjSubspaceFunc)(const uint8_t *src8, int32_t width,
                                     int32_t height, int32_t src_stride,

@@ -380,6 +380,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Combine(::testing::ValuesIn(pic_size_vector),
                        ::testing::Range(8, 16), ::testing::Values(8)));
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 class ResizePlaneHbdTest : public ResizePlaneTest<uint16_t> {
   protected:
     void run_test(bool width_only) override {
@@ -530,4 +531,5 @@ INSTANTIATE_TEST_SUITE_P(
     Resize, ResizePlaneHbdTest,
     ::testing::Combine(::testing::ValuesIn(pic_size_vector),
                        ::testing::Range(8, 16), ::testing::Values(10, 12)));
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 }  // namespace

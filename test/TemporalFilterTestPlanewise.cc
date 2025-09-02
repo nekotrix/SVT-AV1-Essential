@@ -1884,6 +1884,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(svt_aom_apply_filtering_central_neon));
 #endif  // ARCH_AARCH64
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 typedef void (*apply_filtering_central_highbd_fn)(
     struct MeContext *me_ctx, EbPictureBufferDesc *input_picture_ptr_central,
     uint16_t **src_16bit, uint32_t **accum, uint16_t **count,
@@ -1920,6 +1921,8 @@ INSTANTIATE_TEST_SUITE_P(
     NEON, TemporalFilterTestApplyFilteringCentralHbd,
     ::testing::Values(svt_aom_apply_filtering_central_highbd_neon));
 #endif  // ARCH_AARCH64
+
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 
 #ifdef ARCH_X86_64
 
@@ -1964,7 +1967,7 @@ typedef std::tuple<EstimateNoiseFuncFP, EstimateNoiseFuncFP, int, int, int>
 class EstimateNoiseTestFP
     : public ::testing::TestWithParam<EstimateNoiseParamFP> {
   public:
-    EstimateNoiseTestFP() : rnd_(0, (1 << TEST_GET_PARAM(4)) - 1){};
+    EstimateNoiseTestFP() : rnd_(0, (1 << TEST_GET_PARAM(4)) - 1) {};
     ~EstimateNoiseTestFP() {
     }
 
@@ -2018,11 +2021,13 @@ TEST_P(EstimateNoiseTestFP, fixed_point) {
     RunTest();
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 using EstimateNoiseTestFPHbd = EstimateNoiseTestFP;
 
 TEST_P(EstimateNoiseTestFPHbd, fixed_point) {
     RunTest();
 }
+#endif
 
 #ifdef ARCH_X86_64
 
@@ -2034,6 +2039,7 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(2160, 1080, 720, 600, 480, 240, 237),
                        ::testing::Values(8)));
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 INSTANTIATE_TEST_SUITE_P(
     AVX2, EstimateNoiseTestFPHbd,
     ::testing::Combine(::testing::Values(svt_estimate_noise_highbd_fp16_c),
@@ -2041,6 +2047,7 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(3840, 1920, 1280, 800, 640, 360, 357),
                        ::testing::Values(2160, 1080, 720, 600, 480, 240, 237),
                        ::testing::Values(10)));
+#endif
 
 #endif
 
@@ -2054,6 +2061,7 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(2160, 1080, 720, 600, 480, 240, 237),
                        ::testing::Values(8)));
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 INSTANTIATE_TEST_SUITE_P(
     NEON, EstimateNoiseTestFPHbd,
     ::testing::Combine(::testing::Values(svt_estimate_noise_highbd_fp16_c),
@@ -2061,6 +2069,8 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(3840, 1920, 1280, 800, 640, 360, 357),
                        ::testing::Values(2160, 1080, 720, 600, 480, 240, 237),
                        ::testing::Values(10)));
+#endif
+
 #endif
 
 typedef double (*EstimateNoiseFuncDbl)(const uint16_t *src, int width,
@@ -2071,7 +2081,7 @@ typedef std::tuple<EstimateNoiseFuncDbl, EstimateNoiseFuncDbl, int, int, int>
 class EstimateNoiseTestDbl
     : public ::testing::TestWithParam<EstimateNoiseParamDbl> {
   public:
-    EstimateNoiseTestDbl() : rnd_(0, (1 << TEST_GET_PARAM(4)) - 1){};
+    EstimateNoiseTestDbl() : rnd_(0, (1 << TEST_GET_PARAM(4)) - 1) {};
     ~EstimateNoiseTestDbl() {
     }
 

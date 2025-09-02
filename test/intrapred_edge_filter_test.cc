@@ -254,6 +254,7 @@ INSTANTIATE_TEST_SUITE_P(NEON, LowbdFilterEdgeTest,
                          ::testing::Values(svt_av1_filter_intra_edge_neon));
 #endif  // ARCH_AARCH64
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 class HighbdFilterEdgeTest : public FilterEdgeTest<uint16_t, FILTER_EDGE_HBD> {
   public:
     HighbdFilterEdgeTest() {
@@ -278,4 +279,5 @@ INSTANTIATE_TEST_SUITE_P(
     NEON, HighbdFilterEdgeTest,
     ::testing::Values(svt_av1_filter_intra_edge_high_neon));
 #endif  // ARCH_AARCH64
+#endif
 }  // namespace

@@ -8,6 +8,11 @@
  * Media Patent License 1.0 was not distributed with this source code in the
  * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
+
+#include "EbConfigMacros.h"
+
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+
 #include "definitions.h"
 #include "common_dsp_rtcd.h"
 #include <emmintrin.h>
@@ -282,3 +287,5 @@ void svt_aom_highbd_subtract_block_sse2(int rows, int cols, int16_t *diff, ptrdi
     func = get_subtract_func(rows, cols);
     func(diff, diff_stride, src, src_stride, pred, pred_stride);
 }
+
+#endif

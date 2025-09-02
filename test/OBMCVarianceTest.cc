@@ -33,6 +33,7 @@ using std::tuple;
 using svt_av1_test_tool::SVTRandom;  // to generate the random
 
 namespace {
+#if CONFIG_ENABLE_OBMC
 static const int MaskMax = 64;
 
 using ObmcVarFunc = unsigned int (*)(const uint8_t *pre, int pre_stride,
@@ -100,20 +101,19 @@ TEST_P(OBMCVarianceTest, RunCheckOutput) {
 #define OBMC_VAR_FUNC(W, H, opt) svt_aom_obmc_variance##W##x##H##_##opt
 #define GEN_OBMC_VAR_TEST_PARAM(W, H, opt) \
     ObmcVarParam(OBMC_VAR_FUNC(W, H, c), OBMC_VAR_FUNC(W, H, opt))
-#define GEN_TEST_PARAMS(GEN_PARAM, opt)                                       \
-    {                                                                         \
-        GEN_PARAM(128, 128, opt), GEN_PARAM(128, 64, opt),                    \
-            GEN_PARAM(64, 128, opt), GEN_PARAM(64, 64, opt),                  \
-            GEN_PARAM(64, 32, opt), GEN_PARAM(32, 64, opt),                   \
-            GEN_PARAM(32, 32, opt), GEN_PARAM(32, 16, opt),                   \
-            GEN_PARAM(16, 32, opt), GEN_PARAM(16, 16, opt),                   \
-            GEN_PARAM(16, 8, opt), GEN_PARAM(8, 16, opt),                     \
-            GEN_PARAM(8, 8, opt), GEN_PARAM(8, 4, opt), GEN_PARAM(4, 8, opt), \
-            GEN_PARAM(4, 4, opt), GEN_PARAM(4, 16, opt),                      \
-            GEN_PARAM(16, 4, opt), GEN_PARAM(8, 32, opt),                     \
-            GEN_PARAM(32, 8, opt), GEN_PARAM(16, 64, opt),                    \
-            GEN_PARAM(64, 16, opt)                                            \
-    }
+#define GEN_TEST_PARAMS(GEN_PARAM, opt)                    \
+    {                                                      \
+        GEN_PARAM(128, 128, opt), GEN_PARAM(128, 64, opt), \
+        GEN_PARAM(64, 128, opt),  GEN_PARAM(64, 64, opt),  \
+        GEN_PARAM(64, 32, opt),   GEN_PARAM(32, 64, opt),  \
+        GEN_PARAM(32, 32, opt),   GEN_PARAM(32, 16, opt),  \
+        GEN_PARAM(16, 32, opt),   GEN_PARAM(16, 16, opt),  \
+        GEN_PARAM(16, 8, opt),    GEN_PARAM(8, 16, opt),   \
+        GEN_PARAM(8, 8, opt),     GEN_PARAM(8, 4, opt),    \
+        GEN_PARAM(4, 8, opt),     GEN_PARAM(4, 4, opt),    \
+        GEN_PARAM(4, 16, opt),    GEN_PARAM(16, 4, opt),   \
+        GEN_PARAM(8, 32, opt),    GEN_PARAM(32, 8, opt),   \
+        GEN_PARAM(16, 64, opt),   GEN_PARAM(64, 16, opt)}
 
 #ifdef ARCH_X86_64
 INSTANTIATE_TEST_SUITE_P(
@@ -372,5 +372,7 @@ INSTANTIATE_TEST_SUITE_P(
         ::testing::Values(svt_av1_calc_target_weighted_pred_left_c),
         ::testing::Values(svt_av1_calc_target_weighted_pred_left_neon)));
 #endif  // ARCH_AARCH64
+
+#endif  // CONFIG_ENABLE_OBMC
 
 }  // namespace

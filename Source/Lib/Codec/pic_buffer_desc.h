@@ -227,6 +227,10 @@ extern EbErrorType svt_picture_buffer_desc_noy8b_update(EbPictureBufferDesc *obj
 extern EbErrorType svt_picture_buffer_desc_update(EbPictureBufferDesc *pictureBufferDescPtr,
                                                   const EbPtr          object_init_data_ptr);
 extern EbErrorType svt_recon_picture_buffer_desc_update(EbPictureBufferDesc *object_ptr, EbPtr object_init_data_ptr);
+
+int32_t svt_aom_realloc_frame_buffer(Yv12BufferConfig *ybf, int32_t width, int32_t height, int32_t ss_x, int32_t ss_y,
+                                     int32_t use_highbitdepth, int32_t border, int32_t byte_alignment,
+                                     AomCodecFrameBuffer *fb, AomGetFrameBufferCbFn cb, void *cb_priv);
 #ifdef __cplusplus
 }
 #endif

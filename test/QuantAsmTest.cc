@@ -127,11 +127,12 @@ class QuantizeBTest : public ::testing::TestWithParam<QuantizeParam> {
     virtual void setup_func_ptrs() {
         if (bd_ == EB_EIGHT_BIT) {
             quant_ref_ = svt_aom_quantize_b_c;
-            quant_test_ = TEST_GET_PARAM(2);
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         } else {
             quant_ref_ = svt_aom_highbd_quantize_b_c;
-            quant_test_ = TEST_GET_PARAM(2);
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
         }
+        quant_test_ = TEST_GET_PARAM(2);
         if (tx_size_ == TX_32X32) {
             log_scale = 1;
         } else if (tx_size_ == TX_64X64) {
@@ -322,7 +323,7 @@ INSTANTIATE_TEST_SUITE_P(
                                          static_cast<int>(TX_64X64)),
                        ::testing::Values(static_cast<int>(EB_EIGHT_BIT)),
                        ::testing::Values(svt_aom_quantize_b_avx2)));
-
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 INSTANTIATE_TEST_SUITE_P(
     HBD_SSE4_1, QuantizeBTest,
     ::testing::Combine(::testing::Values(static_cast<int>(TX_16X16),
@@ -338,6 +339,7 @@ INSTANTIATE_TEST_SUITE_P(
                                          static_cast<int>(TX_64X64)),
                        ::testing::Values(static_cast<int>(EB_TEN_BIT)),
                        ::testing::Values(svt_aom_highbd_quantize_b_avx2)));
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 #endif  // ARCH_X86_64
 
 #ifdef ARCH_AARCH64
@@ -348,7 +350,7 @@ INSTANTIATE_TEST_SUITE_P(
                                          static_cast<int>(TX_64X64)),
                        ::testing::Values(static_cast<int>(EB_EIGHT_BIT)),
                        ::testing::Values(svt_aom_quantize_b_neon)));
-
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 INSTANTIATE_TEST_SUITE_P(
     HBD_NEON, QuantizeBTest,
     ::testing::Combine(::testing::Values(static_cast<int>(TX_16X16),
@@ -356,8 +358,10 @@ INSTANTIATE_TEST_SUITE_P(
                                          static_cast<int>(TX_64X64)),
                        ::testing::Values(static_cast<int>(EB_TEN_BIT)),
                        ::testing::Values(svt_aom_highbd_quantize_b_neon)));
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 #endif  // ARCH_AARCH64
 
+#if CONFIG_ENABLE_QUANT_MATRIX
 class QuantizeBQmTest : public QuantizeBTest {
   protected:
     QuantizeBQmTest() : QuantizeBTest() {
@@ -563,5 +567,7 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(static_cast<int>(EB_TEN_BIT)),
                        ::testing::Values(svt_av1_highbd_quantize_b_qm_avx2)));
 #endif  // ARCH_X86_64
+
+#endif  // CONFIG_ENABLE_QUANT_MATRIX
 
 }  // namespace QuantizeAsmTest

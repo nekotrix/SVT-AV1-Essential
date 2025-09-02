@@ -12,6 +12,7 @@
 #include "av1_common.h"
 #include "common_dsp_rtcd.h"
 #include "restoration.h"
+#include "pic_buffer_desc.h"
 #include "utility.h"
 #include "svt_log.h"
 #include "intra_prediction.h"
@@ -19,10 +20,6 @@
 #include "super_res.h"
 #include "pic_operators.h"
 #include "convolve.h"
-
-int32_t svt_aom_realloc_frame_buffer(Yv12BufferConfig *ybf, int32_t width, int32_t height, int32_t ss_x, int32_t ss_y,
-                                     int32_t use_highbitdepth, int32_t border, int32_t byte_alignment,
-                                     AomCodecFrameBuffer *fb, AomGetFrameBufferCbFn cb, void *cb_priv);
 
 // The 's' values are calculated based on original 'r' and 'e' values in the
 // spec using GenSgrprojVtable().

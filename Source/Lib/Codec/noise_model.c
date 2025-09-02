@@ -9,6 +9,9 @@
  * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
  */
 
+#include "EbConfigMacros.h"
+
+#if CONFIG_ENABLE_FILM_GRAIN
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +24,6 @@
 #include "aom_dsp_rtcd.h"
 #include "pic_operators.h"
 
-#if CONFIG_ENABLE_FILM_GRAIN
 static const int32_t k_max_lag = 4;
 
 void svt_aom_un_pack2d(uint16_t *in16_bit_buffer, uint32_t in_stride, uint8_t *out8_bit_buffer, uint32_t out8_stride,

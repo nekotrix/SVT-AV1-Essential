@@ -73,6 +73,8 @@ typedef struct aom_variance_vtable {
 
 } AomVarianceFnPtr;
 
+struct ModeDecisionContext;
+
 extern AomVarianceFnPtr svt_aom_mefn_ptr[BlockSizeS_ALL];
 
 void av1_init_dsmotion_compensation(SearchSiteConfig *cfg, int stride);
@@ -84,6 +86,10 @@ int svt_av1_full_pixel_search(struct PictureControlSet *pcs, IntraBcContext /*MA
                               int *cost_list, const Mv *ref_mv, int var_max, int rd, int x_pos, int y_pos, int intra);
 int svt_aom_mv_err_cost(const Mv *mv, const Mv *ref, const int *mvjcost, int *mvcost[2], int error_per_bit);
 int svt_aom_mv_err_cost_light(const Mv *mv, const Mv *ref);
+#if CONFIG_ENABLE_OBMC
+int svt_av1_obmc_full_pixel_search(struct ModeDecisionContext *ctx, IntraBcContext *x, const Mv *mvp_full, int sadpb,
+                                   const AomVarianceFnPtr *fn_ptr, const Mv *ref_mv, Mv *dst_mv, int is_second);
+#endif
 #ifdef __cplusplus
 } // extern "C"
 #endif

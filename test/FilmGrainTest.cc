@@ -21,6 +21,8 @@
 #include "noise_model.h"
 #include "aom_dsp_rtcd.h"
 
+#if CONFIG_ENABLE_FILM_GRAIN
+
 static AomFilmGrain film_grain_test_vectors[3] = {
     /* Test 1 */
     {
@@ -461,3 +463,5 @@ TEST_F(DenoiseModelRunTest, OutputFilmGrainCheck) {
     check_filmgrain();
     EXPECT_FALSE(HasFailure());
 }
+
+#endif

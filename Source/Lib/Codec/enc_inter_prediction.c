@@ -417,6 +417,7 @@ static void pick_wedge(PictureControlSet *pcs, ModeDecisionContext *ctx, const B
     int8_t    wedge_types = (1 << svt_aom_get_wedge_bits_lookup(bsize));
     const int bd_round    = 0;
     DECLARE_ALIGNED(32, int16_t, residual0[MAX_SB_SQUARE]); // src - pred0
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (hbd_md) {
         uint16_t *src_buf_hbd = (uint16_t *)src_pic->buffer_y + (ctx->blk_org_x + src_pic->org_x) +
             (ctx->blk_org_y + src_pic->org_y) * src_pic->stride_y;
@@ -429,7 +430,9 @@ static void pick_wedge(PictureControlSet *pcs, ModeDecisionContext *ctx, const B
                                       (uint8_t *)p0,
                                       bw,
                                       EB_TEN_BIT);
-    } else {
+    } else
+#endif
+    {
         uint8_t *src_buf = src_pic->buffer_y + (ctx->blk_org_x + src_pic->org_x) +
             (ctx->blk_org_y + src_pic->org_y) * src_pic->stride_y;
         svt_aom_subtract_block(bh, bw, residual0, bw, src_buf /*src->buf*/, src_pic->stride_y /*src->stride*/, p0, bw);
@@ -3705,6 +3708,7 @@ bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionConte
         return exit_compound_prep;
     }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (hbd_md) {
         uint16_t *src_buf_hbd = (uint16_t *)src_pic->buffer_y + (ctx->blk_org_x + src_pic->org_x) +
             (ctx->blk_org_y + src_pic->org_y) * src_pic->stride_y;
@@ -3726,7 +3730,9 @@ bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionConte
                                       (uint8_t *)ctx->pred0,
                                       bwidth,
                                       EB_TEN_BIT);
-    } else {
+    } else
+#endif
+    {
         uint8_t *src_buf = src_pic->buffer_y + (ctx->blk_org_x + src_pic->org_x) +
             (ctx->blk_org_y + src_pic->org_y) * src_pic->stride_y;
         svt_aom_subtract_block(bheight, bwidth, ctx->residual1, bwidth, src_buf, src_pic->stride_y, ctx->pred1, bwidth);

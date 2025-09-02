@@ -262,11 +262,14 @@ static int64_t pick_interintra_wedge(PictureControlSet *pcs, ModeDecisionContext
     const int bh = block_size_high[bsize];
     DECLARE_ALIGNED(32, int16_t, residual1[MAX_INTERINTRA_SB_SQUARE]); // src - pred1
     DECLARE_ALIGNED(32, int16_t, diff10[MAX_INTERINTRA_SB_SQUARE]); // pred1 - pred0
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (ctx->hbd_md) {
         svt_aom_highbd_subtract_block(bh, bw, residual1, bw, src_buf, src_stride, p1, bw, EB_TEN_BIT);
         svt_aom_highbd_subtract_block(bh, bw, diff10, bw, p1, bw, p0, bw, EB_TEN_BIT);
 
-    } else {
+    } else
+#endif
+    {
         svt_aom_subtract_block(bh, bw, residual1, bw, src_buf, src_stride, p1, bw);
         svt_aom_subtract_block(bh, bw, diff10, bw, p1, bw, p0, bw);
     }
@@ -1973,8 +1976,6 @@ int svt_av1_find_best_obmc_sub_pixel_tree_up(ModeDecisionContext *ctx, IntraBcCo
                                              int error_per_bit, const AomVarianceFnPtr *vfp, int forced_stop,
                                              int iters_per_step, int *mvjcost, int *mvcost[2], int *distortion,
                                              unsigned int *sse1, int is_second, int use_accurate_subpel_search);
-int svt_av1_obmc_full_pixel_search(ModeDecisionContext *ctx, IntraBcContext *x, Mv *mvp_full, int sadpb,
-                                   const AomVarianceFnPtr *fn_ptr, const Mv *ref_mv, Mv *dst_mv, int is_second);
 
 static void single_motion_search(PictureControlSet *pcs, ModeDecisionContext *ctx, ModeDecisionCandidate *cand,
                                  Mv best_pred_mv, IntraBcContext *x, BlockSize bsize, Mv *ref_mv, int *rate_mv,

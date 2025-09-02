@@ -301,6 +301,8 @@ INSTANTIATE_TEST_SUITE_P(
 #endif  // HAVE_SVE
 #endif  // ARCH_AARCH64
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
+
 typedef ::testing::tuple<BlockSize, av1_compute_stats_highbd_func, int, int,
                          EbBitDepth>
     av1_compute_stats_hbd_params;
@@ -618,3 +620,5 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif  // HAVE_SVE
 #endif  // ARCH_AARCH64
+
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH

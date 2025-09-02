@@ -97,12 +97,14 @@ static INLINE void add_32_to_64_sse4_1(const __m128i src, __m128i *const sum) {
     *sum             = _mm_add_epi64(*sum, s1);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static INLINE void add_u16_to_u32_sse4_1(const __m128i src, __m128i *const sum) {
     const __m128i s0 = _mm_unpacklo_epi16(src, _mm_setzero_si128());
     const __m128i s1 = _mm_unpackhi_epi16(src, _mm_setzero_si128());
     *sum             = _mm_add_epi32(*sum, s0);
     *sum             = _mm_add_epi32(*sum, s1);
 }
+#endif
 
 static uint8_t find_average_sse4_1(const uint8_t *src, int32_t h_start, int32_t h_end, int32_t v_start, int32_t v_end,
                                    int32_t stride) {
@@ -152,6 +154,7 @@ static uint8_t find_average_sse4_1(const uint8_t *src, int32_t h_start, int32_t 
     return (uint8_t)avg;
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static uint16_t find_average_highbd_sse4_1(const uint16_t *src, int32_t h_start, int32_t h_end, int32_t v_start,
                                            int32_t v_end, int32_t stride, EbBitDepth bit_depth) {
     UNUSED(bit_depth);
@@ -265,6 +268,7 @@ static uint16_t find_average_highbd_sse4_1(const uint16_t *src, int32_t h_start,
     const uint32_t avg = sum / (width * height);
     return (uint16_t)avg;
 }
+#endif
 
 static void sub_avg_block_sse4_1(const uint8_t *src, const int32_t src_stride, const uint8_t avg, const int32_t width,
                                  const int32_t height, int16_t *dst, const int32_t dst_stride) {
@@ -291,6 +295,7 @@ static void sub_avg_block_sse4_1(const uint8_t *src, const int32_t src_stride, c
     } while (--i);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static void sub_avg_block_highbd_sse4_1(const uint16_t *src, const int32_t src_stride, const uint16_t avg,
                                         const int32_t width, const int32_t height, int16_t *dst,
                                         const int32_t dst_stride) {
@@ -310,6 +315,7 @@ static void sub_avg_block_highbd_sse4_1(const uint16_t *src, const int32_t src_s
         dst += dst_stride;
     } while (--i);
 }
+#endif
 
 static void diagonal_copy_stats_sse4_1(const int32_t wiener_win2, int64_t *const H) {
     for (int32_t i = 0; i < wiener_win2 - 1; i += 4) {
@@ -357,6 +363,7 @@ static void diagonal_copy_stats_sse4_1(const int32_t wiener_win2, int64_t *const
     }
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static INLINE __m128i div4_sse4_1(const __m128i src) {
     __m128i sign, dst;
 
@@ -434,6 +441,7 @@ static void div4_diagonal_copy_stats_sse4_1(const int32_t wiener_win2, int64_t *
         }
     }
 }
+#endif
 
 static INLINE void load_win7_sse4_1(const int16_t *const d, const int32_t width, __m128i out[2]) {
     const __m128i ds = _mm_loadu_si128((__m128i *)d);
@@ -3380,6 +3388,7 @@ void svt_av1_compute_stats_sse4_1(int32_t wiener_win, const uint8_t *dgd, const 
     svt_aom_free(d);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_compute_stats_highbd_sse4_1(int32_t wiener_win, const uint8_t *dgd8, const uint8_t *src8, int32_t h_start,
                                          int32_t h_end, int32_t v_start, int32_t v_end, int32_t dgd_stride,
                                          int32_t src_stride, int64_t *M, int64_t *H, EbBitDepth bit_depth) {
@@ -3451,6 +3460,7 @@ void svt_av1_compute_stats_highbd_sse4_1(int32_t wiener_win, const uint8_t *dgd8
 
     svt_aom_free(d);
 }
+#endif
 
 static INLINE __m128i pair_set_epi16(int a, int b) {
     return _mm_set1_epi32((int32_t)(((uint16_t)(a)) | (((uint32_t)(b)) << 16)));
