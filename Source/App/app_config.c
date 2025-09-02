@@ -1730,14 +1730,15 @@ static void print_options(const char *title, const ConfigDescription *options) {
 
 int get_version(int argc, char *argv[]) {
 #ifdef NDEBUG
-    static int debug_build = 1;
+#define BUILD_TYPE_STRING "release"
 #else
-    static int debug_build = 0;
+#define BUILD_TYPE_STRING "debug"
 #endif
     if (find_token(argc, argv, VERSION_TOKEN, NULL))
         return 0;
-    printf("SVT-AV1 %s (%s)\n", svt_av1_get_version(), debug_build ? "release" : "debug");
+    printf("SVT-AV1 %s (" BUILD_TYPE_STRING ")\n", svt_av1_get_version());
     return 1;
+#undef BUILD_TYPE_STRING
 }
 
 uint32_t get_help(int32_t argc, char *const argv[]) {
