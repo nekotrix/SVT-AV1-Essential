@@ -100,3 +100,27 @@ void svt_av1_copy_wxh_16bit_neon(uint16_t *src, uint32_t src_stride, uint16_t *d
         for (uint32_t j = 0; j < height; j++) { svt_memcpy_c(dst8 + j * dst_stride8, src8 + j * src_stride8, width8); }
     }
 }
+
+void svt_memcpy_neon(void *dst_ptr, void const *src_ptr, size_t size) {
+    const uint8_t *src = src_ptr;
+    uint8_t       *dst = dst_ptr;
+    size_t         i   = 0;
+
+    while (i + 32 <= size) {
+        vst1q_u8(dst + i, vld1q_u8(src + i));
+        vst1q_u8(dst + i + 16, vld1q_u8(src + i + 16));
+        i += 32;
+    }
+
+    if (i + 16 <= size) {
+        vst1q_u8(dst + i, vld1q_u8(src + i));
+        i += 16;
+    }
+
+    if (i + 8 <= size) {
+        vst1_u8(dst + i, vld1_u8(src + i));
+        i += 8;
+    }
+
+    for (; i < size; ++i) dst[i] = src[i];
+}
