@@ -207,6 +207,21 @@ int32_t svt_sb_compute_cdef_list(PictureControlSet *pcs, const Av1Common *const 
     return count;
 }
 
+static inline void svt_aom_fill_rect(uint16_t *dst, int32_t dstride, int32_t v, int32_t h, uint16_t x) {
+    for (int32_t i = 0; i < v; i++) {
+        for (int32_t j = 0; j < h; j++) dst[i * dstride + j] = x;
+    }
+}
+
+static inline void svt_aom_copy_rect(uint16_t *dst, int32_t dstride, const uint16_t *src, int32_t sstride, int32_t v,
+                                     int32_t h) {
+    for (int32_t i = 0; i < v; i++) {
+        svt_memcpy(dst, src, sizeof(dst[0]) * h);
+        dst += dstride;
+        src += sstride;
+    }
+}
+
 /*
 Loop over all 64x64 filter blocks and perform the CDEF filtering for each block, using
 the filter strength pairs chosen in finish_cdef_search().

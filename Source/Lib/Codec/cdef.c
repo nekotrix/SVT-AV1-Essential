@@ -237,11 +237,6 @@ void svt_cdef_filter_block_c(uint8_t *dst8, uint16_t *dst16, int32_t dstride, co
         }
     }
 }
-void svt_aom_fill_rect(uint16_t *dst, int32_t dstride, int32_t v, int32_t h, uint16_t x) {
-    for (int32_t i = 0; i < v; i++) {
-        for (int32_t j = 0; j < h; j++) dst[i * dstride + j] = x;
-    }
-}
 
 void svt_aom_copy_sb8_16(uint16_t *dst, int32_t dstride, const uint8_t *src, int32_t src_voffset, int32_t src_hoffset,
                          int32_t sstride, int32_t vsize, int32_t hsize, bool is_16bit) {
@@ -258,13 +253,6 @@ void svt_aom_copy_sb8_16(uint16_t *dst, int32_t dstride, const uint8_t *src, int
     }
 }
 
-void svt_aom_copy_rect(uint16_t *dst, int32_t dstride, const uint16_t *src, int32_t sstride, int32_t v, int32_t h) {
-    for (int32_t i = 0; i < v; i++) {
-        svt_memcpy(dst, src, sizeof(dst[0]) * h);
-        dst += dstride;
-        src += sstride;
-    }
-}
 /*
  * Loop over the non-skip 8x8 blocks.  For each block, find the CDEF direction, then apply the specified filter.
 */
@@ -274,25 +262,23 @@ void svt_cdef_filter_fb(uint8_t *dst8, uint16_t *dst16, int32_t dstride, uint16_
                         int32_t level, int32_t sec_strength, int32_t pri_damping, int32_t sec_damping,
                         int32_t coeff_shift, uint8_t subsampling_factor) {
     int32_t bi;
-    int32_t bx;
-    int32_t by;
-    int32_t bsize, bsizex, bsizey;
-
     int32_t pri_strength = level << coeff_shift;
     sec_strength <<= coeff_shift;
     sec_damping += coeff_shift - (pli != AOM_PLANE_Y);
     pri_damping += coeff_shift - (pli != AOM_PLANE_Y);
-    bsize  = ydec ? (xdec ? BLOCK_4X4 : BLOCK_8X4) : (xdec ? BLOCK_4X8 : BLOCK_8X8);
-    bsizex = 3 - xdec;
-    bsizey = 3 - ydec;
+
+    int32_t bsize  = ydec ? (xdec ? BLOCK_4X4 : BLOCK_8X4) : (xdec ? BLOCK_4X8 : BLOCK_8X8);
+    int32_t bsizex = 3 - xdec;
+    int32_t bsizey = 3 - ydec;
+
     if (!dstride && pri_strength == 0 && sec_strength == 0) {
         // If we're here, both primary and secondary strengths are 0, and
         // we still haven't written anything to y[] yet, so we just copy
         // the input to y[]. This is necessary only for svt_av1_cdef_search()
         // and only svt_av1_cdef_search() sets dirinit.
         for (bi = 0; bi < cdef_count; bi++) {
-            by = dlist[bi].by << bsizey;
-            bx = dlist[bi].bx << bsizex;
+            int32_t   by = dlist[bi].by << bsizey;
+            int32_t   bx = dlist[bi].bx << bsizex;
             int32_t   iy;
             uint16_t *src_16 = in + (by * CDEF_BSTRIDE + bx);
             if (dst8) {
@@ -320,43 +306,31 @@ void svt_cdef_filter_fb(uint8_t *dst8, uint16_t *dst16, int32_t dstride, uint16_
         }
     } else if (pli == 1 && xdec != ydec) {
         for (bi = 0; bi < cdef_count; bi++) {
-            const uint8_t conv422[8] = {7, 0, 2, 4, 5, 6, 6, 6};
-            const uint8_t conv440[8] = {1, 2, 2, 2, 3, 4, 6, 0};
-            by                       = dlist[bi].by;
-            bx                       = dlist[bi].bx;
-            dir[by][bx]              = (xdec ? conv422 : conv440)[dir[by][bx]];
+            static const uint8_t conv422[8] = {7, 0, 2, 4, 5, 6, 6, 6};
+            static const uint8_t conv440[8] = {1, 2, 2, 2, 3, 4, 6, 0};
+
+            int32_t by  = dlist[bi].by;
+            int32_t bx  = dlist[bi].bx;
+            dir[by][bx] = (xdec ? conv422 : conv440)[dir[by][bx]];
         }
     }
 
     for (bi = 0; bi < cdef_count; bi++) {
-        by              = dlist[bi].by;
-        bx              = dlist[bi].bx;
-        const int32_t t = pli ? pri_strength : adjust_strength(pri_strength, var[by][bx]);
-        if (dst8)
-            svt_cdef_filter_block(&dst8[dstride ? (by << bsizey) * dstride + (bx << bsizex) : bi << (bsizex + bsizey)],
-                                  NULL,
-                                  dstride ? dstride : 1 << bsizex,
-                                  &in[(by * CDEF_BSTRIDE << bsizey) + (bx << bsizex)],
-                                  t,
-                                  sec_strength,
-                                  pri_strength ? dir[by][bx] : 0,
-                                  pri_damping,
-                                  sec_damping,
-                                  bsize,
-                                  coeff_shift,
-                                  subsampling_factor);
-        else
-            svt_cdef_filter_block(NULL,
-                                  &dst16[dstride ? (by << bsizey) * dstride + (bx << bsizex) : bi << (bsizex + bsizey)],
-                                  dstride ? dstride : 1 << bsizex,
-                                  &in[(by * CDEF_BSTRIDE << bsizey) + (bx << bsizex)],
-                                  t,
-                                  sec_strength,
-                                  pri_strength ? dir[by][bx] : 0,
-                                  pri_damping,
-                                  sec_damping,
-                                  bsize,
-                                  coeff_shift,
-                                  subsampling_factor);
+        int32_t by = dlist[bi].by;
+        int32_t bx = dlist[bi].bx;
+        int32_t t  = pli ? pri_strength : adjust_strength(pri_strength, var[by][bx]);
+        int32_t k  = dstride ? (by << bsizey) * dstride + (bx << bsizex) : bi << (bsizex + bsizey);
+        svt_cdef_filter_block(dst8 ? &dst8[k] : NULL,
+                              dst8 ? NULL : &dst16[k],
+                              dstride ? dstride : 1 << bsizex,
+                              &in[(by * CDEF_BSTRIDE << bsizey) + (bx << bsizex)],
+                              t,
+                              sec_strength,
+                              pri_strength ? dir[by][bx] : 0,
+                              pri_damping,
+                              sec_damping,
+                              bsize,
+                              coeff_shift,
+                              subsampling_factor);
     }
 }
