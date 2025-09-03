@@ -209,6 +209,7 @@
 #define AVIF_TOKEN "--avif"
 #define RTC_TOKEN "--rtc"
 #define QP_SCALE_COMPRESS_STRENGTH_TOKEN "--qp-scale-compress-strength"
+#define ADAPTIVE_FILM_GRAIN_TOKEN "--adaptive-film-grain"
 
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
@@ -970,6 +971,8 @@ ConfigDescription config_entry_variance_boost[] = {
     {VARIANCE_BOOST_CURVE_TOKEN, "Curve for variance boost, default is 0 [0-2]"},
     // QP scale compress
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 1 [0-3]"},
+    // Adaptive film grain
+    {ADAPTIVE_FILM_GRAIN_TOKEN, "Adapts film grain blocksize based on video resolution, default is 1 [0-1]"},
     // Termination
     {NULL, NULL}};
 
@@ -1178,6 +1181,10 @@ ConfigEntry config_entry[] = {
 
     // QP scale compression
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QpScaleCompressStrength", set_cfg_generic_token},
+
+    // Adaptive film grain
+    {ADAPTIVE_FILM_GRAIN_TOKEN, "AdaptiveFilmGrain", set_cfg_generic_token},
+
     // Termination
     {NULL, NULL, NULL}};
 

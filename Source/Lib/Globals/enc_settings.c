@@ -1076,6 +1076,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->sframe_qp                     = 0;
     config_ptr->sframe_qp_offset              = 0;
 #endif // FTR_SFRAME_QP
+    config_ptr->adaptive_film_grain = true;
     return return_error;
 }
 
@@ -1188,10 +1189,20 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
         }
 
         if (config->film_grain_denoise_strength != 0) {
-            SVT_INFO("SVT [config]: film grain synth / denoising / level \t\t\t\t: %d / %d / %d\n",
-                     1,
-                     config->film_grain_denoise_apply,
-                     config->film_grain_denoise_strength);
+            if (config->adaptive_film_grain) {
+                SVT_INFO(
+                    "SVT [config]: film grain synth / denoising / level / adaptive blocksize \t: %d / %d / %d / True\n",
+                    1,
+                    config->film_grain_denoise_apply,
+                    config->film_grain_denoise_strength);
+            } else {
+                SVT_INFO(
+                    "SVT [config]: film grain synth / denoising / level / adaptive blocksize \t: %d / %d / %d / "
+                    "False\n",
+                    1,
+                    config->film_grain_denoise_apply,
+                    config->film_grain_denoise_strength);
+            }
         }
         SVT_INFO("SVT [config]: sharpness / luminance-based QP bias \t\t\t\t: %d / %d\n",
                  config->sharpness,
@@ -2324,6 +2335,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"lossless", &config_struct->lossless},
         {"avif", &config_struct->avif},
         {"rtc", &config_struct->rtc},
+        {"adaptive-film-grain", &config_struct->adaptive_film_grain},
     };
     const size_t bool_opts_size = sizeof(bool_opts) / sizeof(bool_opts[0]);
 

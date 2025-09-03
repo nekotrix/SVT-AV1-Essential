@@ -380,6 +380,7 @@ class DenoiseModelRunTest : public ::testing::Test {
 
         // create the denoise and noise model
         DenoiseAndModelInitData fg_init_data;
+        fg_init_data.adaptive_film_grain = true;
         fg_init_data.encoder_bit_depth = EB_EIGHT_BIT;
         fg_init_data.encoder_color_format = EB_YUV420;
         fg_init_data.noise_level = 4;  // TODO: check the range;

@@ -1526,6 +1526,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         input_data.variance_octile = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.variance_octile;
         input_data.tf_strength = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.tf_strength;
         input_data.qp_scale_compress_strength = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.qp_scale_compress_strength;
+        input_data.adaptive_film_grain = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.adaptive_film_grain;
         input_data.static_config = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config;
         input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
         EB_NEW(
@@ -4647,6 +4648,10 @@ static void copy_api_from_app(
 
     // QP scaling compression
     scs->static_config.qp_scale_compress_strength = config_struct->qp_scale_compress_strength;
+
+    // Adaptive film grain
+    scs->static_config.adaptive_film_grain = config_struct->adaptive_film_grain;
+
     return;
 }
 

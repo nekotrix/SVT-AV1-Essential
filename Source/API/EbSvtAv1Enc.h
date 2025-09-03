@@ -979,10 +979,20 @@ typedef struct EbSvtAv1EncConfiguration {
     int8_t sframe_qp_offset;
 #endif // FTR_SFRAME_QP
 
+    /**
+     * @brief Toggle default film grain blocksize behavior
+     * 0: use default blocksize behavior (32x32)
+     * 1: use adaptive blocksize based on resolution
+     *  - 8x8 for <4k
+     *  - 16x16 for 4k
+     * Default is 1
+     */
+    bool adaptive_film_grain;
+
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128 - (sizeof(uint8_t) * 3)
-        - sizeof(bool)
+        - (sizeof(bool) * 2)
 #if FTR_SFRAME_POSI
         - sizeof(SvtAv1SFramePositions)
 #endif // FTR_SFRAME_POSI

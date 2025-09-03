@@ -78,6 +78,7 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **TargetSocket**                 | --ss                        | [-1,1]                         | -1          | Specifies which socket to run on, assumes a max of two equally-sized sockets. Refer to Appendix A.1           |
 | **FastDecode**                   | --fast-decode               | [0,2]                          | 0           | Tune settings to output bitstreams that can be decoded faster, [0 = OFF, 1,2 = levels for decode-targeted optimization (2 yields faster decoder speed)]. Defaults to 5 temporal layers structure but may override with --hierarchical-levels|
 | **Tune**                         | --tune                      | [0-2]                          | 1           | Specifies whether to use PSNR or VQ as the tuning metric [0 = VQ, 1 = PSNR, 2 = SSIM]                         |
+| **AdaptiveFilmGrain**            | --adaptive-film-grain       | [0,1]                          | 1           | Allows film grain synthesis to be sourced from different block sizes depending on resolution                  |
 
 ## Rate Control Options
 
