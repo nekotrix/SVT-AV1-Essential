@@ -857,18 +857,13 @@ static void av1_perform_inverse_transform_recon(PictureControlSet *pcs, ModeDeci
                 }
             }
         } else
-            svt_av1_picture_copy(cand_bf->pred,
-                                 txb_origin_index,
-                                 0, //txb_chroma_origin_index,
-                                 recon_buffer,
-                                 rec_luma_offset,
-                                 0, //txb_chroma_origin_index,
-                                 txb_width,
-                                 txb_height << ctx->mds_subres_step,
-                                 0, //chromaTuSize,
-                                 0, //chromaTuSize,
-                                 PICTURE_BUFFER_DESC_Y_FLAG,
-                                 ctx->hbd_md);
+            svt_av1_picture_copy_y(cand_bf->pred,
+                                   txb_origin_index,
+                                   recon_buffer,
+                                   rec_luma_offset,
+                                   txb_width,
+                                   txb_height << ctx->mds_subres_step,
+                                   ctx->hbd_md);
 
         //CHROMA
         if (ctx->blk_geom->has_uv && (tx_depth == 0 || txb_itr == 0)) {
@@ -897,18 +892,13 @@ static void av1_perform_inverse_transform_recon(PictureControlSet *pcs, ModeDeci
                                                         PLANE_TYPE_UV,
                                                         (uint32_t)cand_bf->eob.u[txb_itr]);
                 else
-                    svt_av1_picture_copy(cand_bf->pred,
-                                         0,
-                                         cb_tu_chroma_origin_index,
-                                         recon_buffer,
-                                         0,
-                                         rec_cb_offset,
-                                         0,
-                                         0,
-                                         chroma_txb_width,
-                                         chroma_txb_height,
-                                         PICTURE_BUFFER_DESC_Cb_FLAG,
-                                         ctx->hbd_md);
+                    svt_av1_picture_copy_cb(cand_bf->pred,
+                                            cb_tu_chroma_origin_index,
+                                            recon_buffer,
+                                            rec_cb_offset,
+                                            chroma_txb_width,
+                                            chroma_txb_height,
+                                            ctx->hbd_md);
 
                 if (ctx->blk_ptr->v_has_coeff & (1 << txb_itr))
                     svt_aom_inv_transform_recon_wrapper(pcs,
@@ -927,18 +917,13 @@ static void av1_perform_inverse_transform_recon(PictureControlSet *pcs, ModeDeci
                                                         PLANE_TYPE_UV,
                                                         (uint32_t)cand_bf->eob.v[txb_itr]);
                 else
-                    svt_av1_picture_copy(cand_bf->pred,
-                                         0,
-                                         cr_tu_chroma_origin_index,
-                                         recon_buffer,
-                                         0,
-                                         rec_cr_offset,
-                                         0,
-                                         0,
-                                         chroma_txb_width,
-                                         chroma_txb_height,
-                                         PICTURE_BUFFER_DESC_Cr_FLAG,
-                                         ctx->hbd_md);
+                    svt_av1_picture_copy_cr(cand_bf->pred,
+                                            cr_tu_chroma_origin_index,
+                                            recon_buffer,
+                                            rec_cr_offset,
+                                            chroma_txb_width,
+                                            chroma_txb_height,
+                                            ctx->hbd_md);
 
                 txb_1d_offset_uv += ctx->blk_geom->tx_width_uv[tx_depth] * ctx->blk_geom->tx_height_uv[tx_depth];
             }
@@ -4468,18 +4453,13 @@ static void tx_type_search(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
                                                         PLANE_TYPE_Y,
                                                         (uint32_t)eob_txt[tx_type]);
                 else
-                    svt_av1_picture_copy(cand_bf->pred,
-                                         txb_origin_index,
-                                         0,
-                                         recon_ptr,
-                                         txb_origin_index,
-                                         0,
-                                         ctx->blk_geom->tx_width[ctx->tx_depth],
-                                         ctx->blk_geom->tx_height[ctx->tx_depth],
-                                         0,
-                                         0,
-                                         PICTURE_BUFFER_DESC_Y_FLAG,
-                                         ctx->hbd_md);
+                    svt_av1_picture_copy_y(cand_bf->pred,
+                                           txb_origin_index,
+                                           recon_ptr,
+                                           txb_origin_index,
+                                           ctx->blk_geom->tx_width[ctx->tx_depth],
+                                           ctx->blk_geom->tx_height[ctx->tx_depth],
+                                           ctx->hbd_md);
 
                 EbSpatialFullDistType spatial_full_dist_type_fun = ctx->hbd_md ? svt_full_distortion_kernel16_bits
                                                                                : svt_spatial_full_distortion_kernel;
@@ -5364,18 +5344,13 @@ static void perform_dct_dct_tx(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                                 PLANE_TYPE_Y,
                                                 (uint32_t)cand_bf->eob.y[txb_itr]);
         else
-            svt_av1_picture_copy(cand_bf->pred,
-                                 txb_origin_index,
-                                 0,
-                                 recon_ptr,
-                                 txb_origin_index,
-                                 0,
-                                 ctx->blk_geom->tx_width[tx_depth],
-                                 ctx->blk_geom->tx_height[tx_depth],
-                                 0,
-                                 0,
-                                 PICTURE_BUFFER_DESC_Y_FLAG,
-                                 ctx->hbd_md);
+            svt_av1_picture_copy_y(cand_bf->pred,
+                                   txb_origin_index,
+                                   recon_ptr,
+                                   txb_origin_index,
+                                   ctx->blk_geom->tx_width[tx_depth],
+                                   ctx->blk_geom->tx_height[tx_depth],
+                                   ctx->hbd_md);
 
         const int32_t cropped_tx_width  = MIN(ctx->blk_geom->tx_width[tx_depth],
                                              pcs->ppcs->aligned_width - (ctx->sb_origin_x + tx_org_x));

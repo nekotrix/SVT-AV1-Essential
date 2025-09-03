@@ -2016,18 +2016,13 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                                                         PLANE_TYPE_UV,
                                                         (uint32_t)cand_bf->eob.u[txb_itr]);
                 else
-                    svt_av1_picture_copy(cand_bf->pred,
-                                         0,
-                                         tu_cb_origin_index,
-                                         cand_bf->recon,
-                                         0,
-                                         tu_cb_origin_index,
-                                         0,
-                                         0,
-                                         ctx->blk_geom->tx_width_uv[tx_depth],
-                                         ctx->blk_geom->tx_height_uv[tx_depth],
-                                         PICTURE_BUFFER_DESC_Cb_FLAG,
-                                         ctx->hbd_md);
+                    svt_av1_picture_copy_cb(cand_bf->pred,
+                                            tu_cb_origin_index,
+                                            cand_bf->recon,
+                                            tu_cb_origin_index,
+                                            ctx->blk_geom->tx_width_uv[tx_depth],
+                                            ctx->blk_geom->tx_height_uv[tx_depth],
+                                            ctx->hbd_md);
 
                 uint32_t input_chroma_txb_origin_index = (((ctx->sb_origin_y + ((txb_origin_y >> 3) << 3)) >> 1) +
                                                           (input_pic->org_y >> 1)) *
@@ -2198,18 +2193,13 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
                                                         PLANE_TYPE_UV,
                                                         (uint32_t)cand_bf->eob.v[txb_itr]);
                 else
-                    svt_av1_picture_copy(cand_bf->pred,
-                                         0,
-                                         tu_cb_origin_index,
-                                         cand_bf->recon,
-                                         0,
-                                         tu_cb_origin_index,
-                                         0,
-                                         0,
-                                         ctx->blk_geom->tx_width_uv[tx_depth],
-                                         ctx->blk_geom->tx_height_uv[tx_depth],
-                                         PICTURE_BUFFER_DESC_Cr_FLAG,
-                                         ctx->hbd_md);
+                    svt_av1_picture_copy_cr(cand_bf->pred,
+                                            tu_cb_origin_index,
+                                            cand_bf->recon,
+                                            tu_cb_origin_index,
+                                            ctx->blk_geom->tx_width_uv[tx_depth],
+                                            ctx->blk_geom->tx_height_uv[tx_depth],
+                                            ctx->hbd_md);
                 uint32_t input_chroma_txb_origin_index = (((ctx->sb_origin_y + ((txb_origin_y >> 3) << 3)) >> 1) +
                                                           (input_pic->org_y >> 1)) *
                         input_pic->stride_cb +

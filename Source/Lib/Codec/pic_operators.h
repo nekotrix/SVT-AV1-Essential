@@ -70,12 +70,6 @@ void svt_aom_pic_copy_kernel_8bit(EbByte src, uint32_t src_stride, EbByte dst, u
 void svt_aom_pic_copy_kernel_16bit(uint16_t *src, uint32_t src_stride, uint16_t *dst, uint32_t dst_stride,
                                    uint32_t width, uint32_t height);
 
-EbErrorType svt_av1_picture_copy(EbPictureBufferDesc *src, uint32_t src_luma_origin_index,
-                                 uint32_t src_chroma_origin_index, EbPictureBufferDesc *dst,
-                                 uint32_t dst_luma_origin_index, uint32_t dst_chroma_origin_index, uint32_t area_width,
-                                 uint32_t area_height, uint32_t chroma_area_width, uint32_t chroma_area_height,
-                                 uint32_t component_mask, bool hbd);
-
 void svt_aom_generate_padding(EbByte src_pic, uint32_t src_stride, uint32_t original_src_width,
                               uint32_t original_src_height, uint32_t padding_width, uint32_t padding_height);
 
@@ -107,6 +101,67 @@ void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffe
                              uint32_t ss_y, bool include_padding);
 void svt_aom_unpack_highbd_pic(uint16_t *buffer_highbd[3], EbPictureBufferDesc *pic_ptr, uint32_t ss_x, uint32_t ss_y,
                                bool include_padding);
+
+static inline void svt_av1_picture_copy_y(EbPictureBufferDesc *src, uint32_t src_origin_index,
+                                          EbPictureBufferDesc *dst, uint32_t dst_origin_index, uint32_t area_width,
+                                          uint32_t area_height, bool hbd) {
+    if (hbd) {
+        svt_av1_copy_wxh_16bit((uint16_t *)src->buffer_y + src_origin_index,
+                               src->stride_y,
+                               (uint16_t *)dst->buffer_y + dst_origin_index,
+                               dst->stride_y,
+                               area_height,
+                               area_width);
+    } else {
+        svt_av1_copy_wxh_8bit(src->buffer_y + src_origin_index,
+                              src->stride_y,
+                              dst->buffer_y + dst_origin_index,
+                              dst->stride_y,
+                              area_height,
+                              area_width);
+    }
+}
+
+static inline void svt_av1_picture_copy_cb(EbPictureBufferDesc *src, uint32_t src_origin_index,
+                                           EbPictureBufferDesc *dst, uint32_t dst_origin_index, uint32_t area_width,
+                                           uint32_t area_height, bool hbd) {
+    if (hbd) {
+        svt_av1_copy_wxh_16bit((uint16_t *)src->buffer_cb + src_origin_index,
+                               src->stride_cb,
+                               (uint16_t *)dst->buffer_cb + dst_origin_index,
+                               dst->stride_cb,
+                               area_height,
+                               area_width);
+    } else {
+        svt_av1_copy_wxh_8bit(src->buffer_cb + src_origin_index,
+                              src->stride_cb,
+                              dst->buffer_cb + dst_origin_index,
+                              dst->stride_cb,
+                              area_height,
+                              area_width);
+    }
+}
+
+static inline void svt_av1_picture_copy_cr(EbPictureBufferDesc *src, uint32_t src_origin_index,
+                                           EbPictureBufferDesc *dst, uint32_t dst_origin_index, uint32_t area_width,
+                                           uint32_t area_height, bool hbd) {
+    if (hbd) {
+        svt_av1_copy_wxh_16bit((uint16_t *)src->buffer_cr + src_origin_index,
+                               src->stride_cr,
+                               (uint16_t *)dst->buffer_cr + dst_origin_index,
+                               dst->stride_cr,
+                               area_height,
+                               area_width);
+    } else {
+        svt_av1_copy_wxh_8bit(src->buffer_cr + src_origin_index,
+                              src->stride_cr,
+                              dst->buffer_cr + dst_origin_index,
+                              dst->stride_cr,
+                              area_height,
+                              area_width);
+    }
+}
+
 #ifdef __cplusplus
 }
 #endif

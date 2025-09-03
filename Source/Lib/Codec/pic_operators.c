@@ -14,12 +14,12 @@
  * Includes
  *********************************/
 
-#include "pic_operators.h"
 #include "pack_unpack_c.h"
 #include "common_dsp_rtcd.h"
 #include "utility.h"
 #include "intra_prediction.h"
 #include "aom_dsp_rtcd.h"
+#include "pic_operators.h"
 
 /*********************************
  * Picture Copy
@@ -33,66 +33,6 @@ void svt_aom_pic_copy_kernel_16bit(uint16_t *src, uint32_t src_stride, uint16_t 
                                    uint32_t width, uint32_t height) {
     for (uint32_t j = 0; j < height; j++)
         svt_memcpy(dst + j * dst_stride, src + j * src_stride, sizeof(uint16_t) * width);
-}
-
-EbErrorType svt_av1_picture_copy(EbPictureBufferDesc *src, uint32_t src_luma_origin_index,
-                                 uint32_t src_chroma_origin_index, EbPictureBufferDesc *dst,
-                                 uint32_t dst_luma_origin_index, uint32_t dst_chroma_origin_index, uint32_t area_width,
-                                 uint32_t area_height, uint32_t chroma_area_width, uint32_t chroma_area_height,
-                                 uint32_t component_mask, bool hbd) {
-    EbErrorType return_error = EB_ErrorNone;
-
-    if (hbd) {
-        if (component_mask & PICTURE_BUFFER_DESC_Y_FLAG)
-            svt_aom_pic_copy_kernel_16bit(((uint16_t *)src->buffer_y) + src_luma_origin_index,
-                                          src->stride_y,
-                                          ((uint16_t *)dst->buffer_y) + dst_luma_origin_index,
-                                          dst->stride_y,
-                                          area_width,
-                                          area_height);
-
-        if (component_mask & PICTURE_BUFFER_DESC_Cb_FLAG)
-            svt_aom_pic_copy_kernel_16bit(((uint16_t *)src->buffer_cb) + src_chroma_origin_index,
-                                          src->stride_cb,
-                                          ((uint16_t *)dst->buffer_cb) + dst_chroma_origin_index,
-                                          dst->stride_cb,
-                                          chroma_area_width,
-                                          chroma_area_height);
-
-        if (component_mask & PICTURE_BUFFER_DESC_Cr_FLAG)
-            svt_aom_pic_copy_kernel_16bit(((uint16_t *)src->buffer_cr) + src_chroma_origin_index,
-                                          src->stride_cr,
-                                          ((uint16_t *)dst->buffer_cr) + dst_chroma_origin_index,
-                                          dst->stride_cr,
-                                          chroma_area_width,
-                                          chroma_area_height);
-    } else {
-        if (component_mask & PICTURE_BUFFER_DESC_Y_FLAG)
-            svt_aom_pic_copy_kernel_8bit(&(src->buffer_y[src_luma_origin_index]),
-                                         src->stride_y,
-                                         &(dst->buffer_y[dst_luma_origin_index]),
-                                         dst->stride_y,
-                                         area_width,
-                                         area_height);
-
-        if (component_mask & PICTURE_BUFFER_DESC_Cb_FLAG)
-            svt_aom_pic_copy_kernel_8bit(&(src->buffer_cb[src_chroma_origin_index]),
-                                         src->stride_cb,
-                                         &(dst->buffer_cb[dst_chroma_origin_index]),
-                                         dst->stride_cb,
-                                         chroma_area_width,
-                                         chroma_area_height);
-
-        if (component_mask & PICTURE_BUFFER_DESC_Cr_FLAG)
-            svt_aom_pic_copy_kernel_8bit(&(src->buffer_cr[src_chroma_origin_index]),
-                                         src->stride_cr,
-                                         &(dst->buffer_cr[dst_chroma_origin_index]),
-                                         dst->stride_cr,
-                                         chroma_area_width,
-                                         chroma_area_height);
-    }
-
-    return return_error;
 }
 
 /*******************************************
