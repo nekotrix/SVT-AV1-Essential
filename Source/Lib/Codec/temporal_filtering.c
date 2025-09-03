@@ -3902,26 +3902,26 @@ static EbErrorType save_src_pic_buffers(PictureParentControlSet *centre_pcs,
     assert(height_uv * src_pic_ptr->stride_cb == src_pic_ptr->chroma_size);
     assert(height_uv * src_pic_ptr->stride_cr == src_pic_ptr->chroma_size);
 
-    svt_aom_pic_copy_kernel_8bit(src_pic_ptr->buffer_y,
+    svt_av1_copy_wxh_8bit(src_pic_ptr->buffer_y,
                          src_pic_ptr->stride_y,
                          centre_pcs->save_source_picture_ptr[C_Y],
                          src_pic_ptr->stride_y,
-                         src_pic_ptr->stride_y,
-                         height_y);
+                         height_y,
+                         src_pic_ptr->stride_y);
 
-    svt_aom_pic_copy_kernel_8bit(src_pic_ptr->buffer_cb,
+    svt_av1_copy_wxh_8bit(src_pic_ptr->buffer_cb,
                          src_pic_ptr->stride_cb,
                          centre_pcs->save_source_picture_ptr[C_U],
                          src_pic_ptr->stride_cb,
-                         src_pic_ptr->stride_cb,
-                         height_uv);
+                         height_uv,
+                         src_pic_ptr->stride_cb);
 
-    svt_aom_pic_copy_kernel_8bit(src_pic_ptr->buffer_cr,
+    svt_av1_copy_wxh_8bit(src_pic_ptr->buffer_cr,
                          src_pic_ptr->stride_cr,
                          centre_pcs->save_source_picture_ptr[C_V],
                          src_pic_ptr->stride_cr,
-                         src_pic_ptr->stride_cr,
-                         height_uv);
+                         height_uv,
+                         src_pic_ptr->stride_cr);
 
     if (is_highbd) {
         // if highbd, copy bit inc buffers
@@ -3974,12 +3974,12 @@ static EbErrorType save_y_src_pic_buffers(PictureParentControlSet* centre_pcs, b
 
     assert(height_y * src_pic_ptr->stride_y == src_pic_ptr->luma_size);
 
-    svt_aom_pic_copy_kernel_8bit(src_pic_ptr->buffer_y,
+    svt_av1_copy_wxh_8bit(src_pic_ptr->buffer_y,
         src_pic_ptr->stride_y,
         centre_pcs->save_source_picture_ptr[C_Y],
         src_pic_ptr->stride_y,
-        src_pic_ptr->stride_y,
-        height_y);
+        height_y,
+        src_pic_ptr->stride_y);
 
     if (is_highbd) {
         // if highbd, copy bit inc buffers

@@ -705,19 +705,19 @@ void av1_perform_inverse_transform_recon_luma(PictureControlSet *pcs, ModeDecisi
                 (uint32_t)cand_bf->eob.y[txb_itr]);
         else {
             if (ctx->hbd_md) {
-                svt_aom_pic_copy_kernel_16bit(((uint16_t *)cand_bf->pred->buffer_y) + txb_origin_index,
-                                              cand_bf->pred->stride_y,
-                                              ctx->cfl_temp_luma_recon16bit + rec_luma_offset,
-                                              cand_bf->recon->stride_y,
-                                              txb_width,
-                                              txb_height);
+                svt_av1_copy_wxh_16bit((uint16_t *)cand_bf->pred->buffer_y + txb_origin_index,
+                                       cand_bf->pred->stride_y,
+                                       ctx->cfl_temp_luma_recon16bit + rec_luma_offset,
+                                       cand_bf->recon->stride_y,
+                                       txb_height,
+                                       txb_width);
             } else {
-                svt_aom_pic_copy_kernel_8bit(&(cand_bf->pred->buffer_y[txb_origin_index]),
-                                             cand_bf->pred->stride_y,
-                                             &(ctx->cfl_temp_luma_recon[rec_luma_offset]),
-                                             cand_bf->recon->stride_y,
-                                             txb_width,
-                                             txb_height);
+                svt_av1_copy_wxh_8bit(cand_bf->pred->buffer_y + txb_origin_index,
+                                      cand_bf->pred->stride_y,
+                                      ctx->cfl_temp_luma_recon + rec_luma_offset,
+                                      cand_bf->recon->stride_y,
+                                      txb_height,
+                                      txb_width);
             }
         }
         txb_1d_offset += ctx->blk_geom->tx_width[tx_depth] * ctx->blk_geom->tx_height[tx_depth];
@@ -5352,12 +5352,14 @@ static void perform_dct_dct_tx(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                    ctx->blk_geom->tx_height[tx_depth],
                                    ctx->hbd_md);
 
+        // clang-format off
         const int32_t cropped_tx_width  = MIN(ctx->blk_geom->tx_width[tx_depth],
                                              pcs->ppcs->aligned_width - (ctx->sb_origin_x + tx_org_x));
         const int32_t cropped_tx_height = MIN((uint8_t)(ctx->blk_geom->tx_height[tx_depth] >> ctx->mds_subres_step),
                                               pcs->ppcs->aligned_height - (ctx->sb_origin_y + tx_org_y));
         EbSpatialFullDistType spatial_full_dist_type_fun = ctx->hbd_md ? svt_full_distortion_kernel16_bits
                                                                        : svt_spatial_full_distortion_kernel;
+        // clang-format on
         if (ssim_level == SSIM_LVL_1 || ssim_level == SSIM_LVL_3) {
             y_full_distortion[DIST_SSIM][DIST_CALC_PREDICTION] = svt_spatial_full_distortion_ssim_kernel(
                 input_pic->buffer_y,

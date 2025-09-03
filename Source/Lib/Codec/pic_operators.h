@@ -64,11 +64,6 @@ void svt_residual_kernel16bit_c(uint16_t *input, uint32_t input_stride, uint16_t
 
 void svt_residual_kernel8bit_c(uint8_t *input, uint32_t input_stride, uint8_t *pred, uint32_t pred_stride,
                                int16_t *residual, uint32_t residual_stride, uint32_t area_width, uint32_t area_height);
-void svt_aom_pic_copy_kernel_8bit(EbByte src, uint32_t src_stride, EbByte dst, uint32_t dst_stride, uint32_t area_width,
-                                  uint32_t area_height);
-
-void svt_aom_pic_copy_kernel_16bit(uint16_t *src, uint32_t src_stride, uint16_t *dst, uint32_t dst_stride,
-                                   uint32_t width, uint32_t height);
 
 void svt_aom_generate_padding(EbByte src_pic, uint32_t src_stride, uint32_t original_src_width,
                               uint32_t original_src_height, uint32_t padding_width, uint32_t padding_height);
@@ -102,9 +97,9 @@ void svt_aom_pack_highbd_pic(const EbPictureBufferDesc *pic_ptr, uint16_t *buffe
 void svt_aom_unpack_highbd_pic(uint16_t *buffer_highbd[3], EbPictureBufferDesc *pic_ptr, uint32_t ss_x, uint32_t ss_y,
                                bool include_padding);
 
-static inline void svt_av1_picture_copy_y(EbPictureBufferDesc *src, uint32_t src_origin_index,
-                                          EbPictureBufferDesc *dst, uint32_t dst_origin_index, uint32_t area_width,
-                                          uint32_t area_height, bool hbd) {
+static inline void svt_av1_picture_copy_y(EbPictureBufferDesc *src, uint32_t src_origin_index, EbPictureBufferDesc *dst,
+                                          uint32_t dst_origin_index, uint32_t area_width, uint32_t area_height,
+                                          bool hbd) {
     if (hbd) {
         svt_av1_copy_wxh_16bit((uint16_t *)src->buffer_y + src_origin_index,
                                src->stride_y,

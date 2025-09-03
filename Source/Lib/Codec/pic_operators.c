@@ -21,20 +21,6 @@
 #include "aom_dsp_rtcd.h"
 #include "pic_operators.h"
 
-/*********************************
- * Picture Copy
- *********************************/
-
-void svt_aom_pic_copy_kernel_8bit(EbByte src, uint32_t src_stride, EbByte dst, uint32_t dst_stride, uint32_t area_width,
-                                  uint32_t area_height) {
-    for (uint32_t j = 0; j < area_height; j++) svt_memcpy(dst + j * dst_stride, src + j * src_stride, area_width);
-}
-void svt_aom_pic_copy_kernel_16bit(uint16_t *src, uint32_t src_stride, uint16_t *dst, uint32_t dst_stride,
-                                   uint32_t width, uint32_t height) {
-    for (uint32_t j = 0; j < height; j++)
-        svt_memcpy(dst + j * dst_stride, src + j * src_stride, sizeof(uint16_t) * width);
-}
-
 /*******************************************
 * Residual Kernel 16bit
 Computes the residual data
