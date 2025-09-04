@@ -12,7 +12,6 @@
 # ASM_NEON_I8MM Directory CMakeLists.txt
 
 # Include Encoder Subdirectories
-enable_language(ASM) # needed for .S files
 
 check_both_flags_add(-march=armv8.2-a+dotprod+i8mm)
 

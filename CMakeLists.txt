@@ -90,6 +90,7 @@ if(NOT COMPILE_C_ONLY AND HAVE_X86_PLATFORM)
     enable_language(ASM_NASM)
     add_definitions(-DARCH_X86_64=1)
 elseif(NOT COMPILE_C_ONLY AND HAVE_ARM_PLATFORM)
+    enable_language(ASM) # needed for .S files
     set(ARM64_FLAVORS "NEON;ARM_CRC32;NEON_DOTPROD;NEON_I8MM;SVE;SVE2")
     set(ARM_CRC32_DEFAULT_FLAG "-march=armv8-a+crc")
     set(NEON_DOTPROD_DEFAULT_FLAG "-march=armv8.2-a+dotprod")

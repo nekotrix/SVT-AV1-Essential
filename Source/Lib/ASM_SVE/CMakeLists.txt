@@ -12,7 +12,6 @@
 # ASM_SVE Directory CMakeLists.txt
 
 # Include Encoder Subdirectories
-enable_language(ASM) # needed for .S files
 add_library(ASM_SVE OBJECT)
 
 check_both_flags_add(-march=armv8.2-a+dotprod+i8mm+sve)

@@ -12,7 +12,6 @@
 # ASM_NEON Directory CMakeLists.txt
 
 # Include Encoder Subdirectories
-enable_language(ASM) # needed for .S files
 add_library(ASM_NEON OBJECT)
 target_sources(
   ASM_NEON
