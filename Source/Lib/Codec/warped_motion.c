@@ -43,9 +43,10 @@
 
 // by setting LS_STEP = 8, the least 2 bits of every elements in A, bx, by are
 // 0. So, we can reduce LS_MAT_RANGE_BITS(2) bits here.
-#define LS_SQUARE(a) (((a) * (a)*4 + (a)*4 * LS_STEP + LS_STEP * LS_STEP * 2) >> (2 + LS_MAT_DOWN_BITS))
-#define LS_PRODUCT1(a, b) (((a) * (b)*4 + ((a) + (b)) * 2 * LS_STEP + LS_STEP * LS_STEP) >> (2 + LS_MAT_DOWN_BITS))
-#define LS_PRODUCT2(a, b) (((a) * (b)*4 + ((a) + (b)) * 2 * LS_STEP + LS_STEP * LS_STEP * 2) >> (2 + LS_MAT_DOWN_BITS))
+#define LS_SQUARE(a) (((a) * (a) * 4 + (a) * 4 * LS_STEP + LS_STEP * LS_STEP * 2) >> (2 + LS_MAT_DOWN_BITS))
+#define LS_PRODUCT1(a, b) (((a) * (b) * 4 + ((a) + (b)) * 2 * LS_STEP + LS_STEP * LS_STEP) >> (2 + LS_MAT_DOWN_BITS))
+#define LS_PRODUCT2(a, b) \
+    (((a) * (b) * 4 + ((a) + (b)) * 2 * LS_STEP + LS_STEP * LS_STEP * 2) >> (2 + LS_MAT_DOWN_BITS))
 
 // For warping, we really use a 6-tap filter, but we do blocks of 8 pixels
 // at a time. The zoom/rotation/shear in the model are applied to the
@@ -818,10 +819,10 @@ void svt_av1_highbd_warp_affine_c(const int32_t *mat, const uint8_t *ref8b, cons
     }
 }
 
-void svt_highbd_warp_plane(WarpedMotionParams *wm, const uint8_t *const ref8, const uint8_t *const ref_2b, int width,
-                           int height, int stride, const uint8_t *const pred8, int p_col, int p_row, int p_width,
-                           int p_height, int p_stride, int subsampling_x, int subsampling_y, int bd,
-                           ConvolveParams *conv_params) {
+static void highbd_warp_plane(WarpedMotionParams *wm, const uint8_t *const ref8, const uint8_t *const ref_2b, int width,
+                              int height, int stride, const uint8_t *const pred8, int p_col, int p_row, int p_width,
+                              int p_height, int p_stride, int subsampling_x, int subsampling_y, int bd,
+                              ConvolveParams *conv_params) {
     assert(wm->wmtype <= AFFINE);
     if (wm->wmtype == ROTZOOM) {
         wm->wmmat[5] = wm->wmmat[2];
@@ -861,22 +862,22 @@ void svt_av1_warp_plane(WarpedMotionParams *wm, int use_hbd, int bd, const uint8
                         int width, int height, int stride, uint8_t *pred, int p_col, int p_row, int p_width,
                         int p_height, int p_stride, int subsampling_x, int subsampling_y, ConvolveParams *conv_params) {
     if (use_hbd)
-        svt_highbd_warp_plane(wm,
-                              ref,
-                              ref_2b,
-                              width,
-                              height,
-                              stride,
-                              pred,
-                              p_col,
-                              p_row,
-                              p_width,
-                              p_height,
-                              p_stride,
-                              subsampling_x,
-                              subsampling_y,
-                              bd,
-                              conv_params);
+        highbd_warp_plane(wm,
+                          ref,
+                          ref_2b,
+                          width,
+                          height,
+                          stride,
+                          pred,
+                          p_col,
+                          p_row,
+                          p_width,
+                          p_height,
+                          p_stride,
+                          subsampling_x,
+                          subsampling_y,
+                          bd,
+                          conv_params);
     else
         svt_warp_plane(wm,
                        ref,

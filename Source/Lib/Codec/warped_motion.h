@@ -83,11 +83,6 @@ bool svt_find_projection(int np, int *pts1, int *pts2, BlockSize bsize, const Mv
 
 int svt_get_shear_params(WarpedMotionParams *wm);
 
-void svt_highbd_warp_plane(WarpedMotionParams *wm, const uint8_t *const ref8, const uint8_t *const ref_2b, int width,
-                           int height, int stride, const uint8_t *const pred8, int p_col, int p_row, int p_width,
-                           int p_height, int p_stride, int subsampling_x, int subsampling_y, int bd,
-                           ConvolveParams *conv_params);
-
 void svt_warp_plane(WarpedMotionParams *wm, const uint8_t *const ref, int width, int height, int stride, uint8_t *pred,
                     int p_col, int p_row, int p_width, int p_height, int p_stride, int subsampling_x, int subsampling_y,
                     ConvolveParams *conv_params);
