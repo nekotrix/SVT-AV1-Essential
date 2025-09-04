@@ -29,7 +29,7 @@ void svt_apply_selfguided_restoration_c(const uint8_t *dat8, int32_t width, int3
 #define AOM_RESTORATION_FRAME_BORDER 32
 
 #define CLIP(x, lo, hi) ((x) < (lo) ? (lo) : (x) > (hi) ? (hi) : (x))
-#define RINT(x) ((x) < 0 ? (int32_t)((x)-0.5) : (int32_t)((x) + 0.5))
+#define RINT(x) ((x) < 0 ? (int32_t)((x) - 0.5) : (int32_t)((x) + 0.5))
 
 #define REAL_PTR(hbd, d) ((hbd) ? (uint8_t *)CONVERT_TO_SHORTPTR(d) : (d))
 
@@ -262,7 +262,6 @@ typedef struct RestorationTileLimits {
 } RestorationTileLimits;
 
 extern const SgrParamsType svt_aom_eb_sgr_params[SGRPROJ_PARAMS];
-extern int32_t             sgrproj_mtable[SGRPROJ_PARAMS][2];
 extern const int32_t       svt_aom_eb_x_by_xplus1[256];
 extern const int32_t       svt_aom_eb_one_by_x[MAX_NELEM];
 
@@ -298,8 +297,10 @@ void svt_av1_loop_restoration_filter_unit(uint8_t need_bounadaries, const Restor
                                           int32_t bit_depth, uint8_t *data8, int32_t stride, uint8_t *dst8,
                                           int32_t dst_stride, int32_t *tmpbuf, int32_t optimized_lr);
 
-void svt_aom_extend_lines(uint8_t *buf, int32_t width, int32_t height, int32_t stride, int32_t extend,
-                          int32_t use_highbitdepth);
+// Returns 1 if a superres upscaled frame is unscaled and 0 otherwise.
+static INLINE int32_t av1_superres_unscaled(const FrameSize *frm_size) {
+    return (frm_size->frame_width == frm_size->superres_upscaled_width);
+}
 
 //void svt_av1_loop_restoration_filter_frame(Yv12BufferConfig *frame,
 //                                           Av1Common *cm, int32_t optimized_lr);
@@ -338,13 +339,6 @@ void svt_aom_foreach_rest_unit_in_frame_seg(struct Av1Common *cm, int32_t plane,
                                             uint8_t rest_segments_column_count, uint8_t rest_segments_row_count,
                                             uint32_t segment_index);
 
-// Returns 1 if a superres upscaled frame is unscaled and 0 otherwise.
-static INLINE int32_t av1_superres_unscaled(const FrameSize *frm_size) {
-    return (frm_size->frame_width == frm_size->superres_upscaled_width);
-}
-
-Av1PixelRect svt_aom_whole_frame_rect(FrameSize *frm_size, int32_t sub_x, int32_t sub_y, int32_t is_uv);
-
 #define RDDIV_BITS 7
 #define RD_EPB_SHIFT 6
 
@@ -364,38 +358,6 @@ typedef struct RestUnitSearchInfo {
     RestorationType best_rtype[RESTORE_TYPES - 1];
 } RestUnitSearchInfo;
 
-#define NUM_STRIPE_FILTERS 4
-
-void svt_aom_wiener_filter_stripe(const RestorationUnitInfo *rui, int32_t stripe_width, int32_t stripe_height,
-                                  int32_t procunit_width, const uint8_t *src, int32_t src_stride, uint8_t *dst,
-                                  int32_t dst_stride, int32_t *tmpbuf, int32_t bit_depth);
-void svt_aom_sgrproj_filter_stripe(const RestorationUnitInfo *rui, int32_t stripe_width, int32_t stripe_height,
-                                   int32_t procunit_width, const uint8_t *src, int32_t src_stride, uint8_t *dst,
-                                   int32_t dst_stride, int32_t *tmpbuf, int32_t bit_depth);
-void svt_aom_wiener_filter_stripe_highbd(const RestorationUnitInfo *rui, int32_t stripe_width, int32_t stripe_height,
-                                         int32_t procunit_width, const uint8_t *src8, int32_t src_stride, uint8_t *dst8,
-                                         int32_t dst_stride, int32_t *tmpbuf, int32_t bit_depth);
-void svt_aom_sgrproj_filter_stripe_highbd(const RestorationUnitInfo *rui, int32_t stripe_width, int32_t stripe_height,
-                                          int32_t procunit_width, const uint8_t *src8, int32_t src_stride,
-                                          uint8_t *dst8, int32_t dst_stride, int32_t *tmpbuf, int32_t bit_depth);
-
-void svt_aom_get_stripe_boundary_info(const RestorationTileLimits *limits, const Av1PixelRect *tile_rect, int32_t ss_y,
-                                      int32_t *copy_above, int32_t *copy_below);
-void svt_aom_setup_processing_stripe_boundary(const RestorationTileLimits       *limits,
-                                              const RestorationStripeBoundaries *rsb, int32_t rsb_row,
-                                              int32_t use_highbd, int32_t h, uint8_t *data8, int32_t data_stride,
-                                              RestorationLineBuffers *rlbs, int32_t copy_above, int32_t copy_below,
-                                              int32_t opt);
-void svt_aom_restore_processing_stripe_boundary(const RestorationTileLimits *limits, const RestorationLineBuffers *rlbs,
-                                                int32_t use_highbd, int32_t h, uint8_t *data8, int32_t data_stride,
-                                                int32_t copy_above, int32_t copy_below, int32_t opt);
-
-typedef void (*StripeFilterFun)(const RestorationUnitInfo *rui, int32_t stripe_width, int32_t stripe_height,
-                                int32_t procunit_width, const uint8_t *src, int32_t src_stride, uint8_t *dst,
-                                int32_t dst_stride, int32_t *tmpbuf, int32_t bit_depth);
-
-void svt_aom_copy_tile(int32_t width, int32_t height, const uint8_t *src, int32_t src_stride, uint8_t *dst,
-                       int32_t dst_stride, int32_t highbd);
 #ifdef __cplusplus
 } // extern "C"
 #endif
