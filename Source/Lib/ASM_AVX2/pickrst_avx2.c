@@ -77,12 +77,14 @@ static INLINE uint8_t find_average_avx2(const uint8_t *src, int32_t h_start, int
     return (uint8_t)avg;
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static INLINE void add_u16_to_u32_avx2(const __m256i src, __m256i *const sum) {
     const __m256i s0 = _mm256_unpacklo_epi16(src, _mm256_setzero_si256());
     const __m256i s1 = _mm256_unpackhi_epi16(src, _mm256_setzero_si256());
     *sum             = _mm256_add_epi32(*sum, s0);
     *sum             = _mm256_add_epi32(*sum, s1);
 }
+#endif
 
 static INLINE void add_32_to_64_avx2(const __m256i src, __m256i *const sum) {
     const __m256i s0 = _mm256_cvtepi32_epi64(_mm256_castsi256_si128(src));
@@ -90,7 +92,7 @@ static INLINE void add_32_to_64_avx2(const __m256i src, __m256i *const sum) {
     *sum             = _mm256_add_epi64(*sum, s0);
     *sum             = _mm256_add_epi64(*sum, s1);
 }
-
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static INLINE uint16_t find_average_highbd_avx2(const uint16_t *src, int32_t h_start, int32_t h_end, int32_t v_start,
                                                 int32_t v_end, int32_t stride, EbBitDepth bit_depth) {
     const int32_t   width    = h_end - h_start;
@@ -193,6 +195,7 @@ static INLINE uint16_t find_average_highbd_avx2(const uint16_t *src, int32_t h_s
     const uint32_t avg = sum / (width * height);
     return (uint16_t)avg;
 }
+#endif
 
 // Note: when n = (width % 16) is not 0, it writes (16 - n) more data than
 // required.
@@ -217,6 +220,7 @@ static INLINE void sub_avg_block_avx2(const uint8_t *src, const int32_t src_stri
     } while (--i);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 // Note: when n = (width % 16) is not 0, it writes (16 - n) more data than
 // required.
 static INLINE void sub_avg_block_highbd_avx2(const uint16_t *src, const int32_t src_stride, const uint16_t avg,
@@ -238,6 +242,7 @@ static INLINE void sub_avg_block_highbd_avx2(const uint16_t *src, const int32_t 
         dst += dst_stride;
     } while (--i);
 }
+#endif
 
 static INLINE void stats_top_win3_avx2(const __m256i src, const __m256i dgd, const int16_t *const d,
                                        const int32_t d_stride, __m256i sum_m[WIENER_WIN_3TAP],
@@ -682,6 +687,7 @@ static INLINE void derive_triangle_win7_avx2(const __m256i d_is[WIENER_WIN - 1],
     madd_avx2(d_ie[5], d_ie[5], &deltas[20]);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static INLINE __m256i div4_avx2(const __m256i src) {
     __m256i sign, dst;
 
@@ -753,6 +759,7 @@ static INLINE void div16_4x4_avx2(const int32_t wiener_win2, int64_t *const H, _
     _mm256_storeu_si256((__m256i *)(H + 2 * wiener_win2), out[2]);
     _mm256_storeu_si256((__m256i *)(H + 3 * wiener_win2), out[3]);
 }
+#endif
 
 // Transpose each 4x4 block starting from the second column, and save the needed
 // points only.
@@ -788,6 +795,7 @@ static INLINE void diagonal_copy_stats_avx2(const int32_t wiener_win2, int64_t *
     }
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 // Transpose each 4x4 block starting from the second column, and save the needed
 // points only.
 // H[4 * k * wiener_win2 + 4 * k] on the diagonal is omitted, and must be
@@ -843,6 +851,7 @@ static INLINE void div16_diagonal_copy_stats_avx2(const int32_t wiener_win2, int
         }
     }
 }
+#endif
 
 static INLINE void compute_stats_win3_avx2(const int16_t *const d, const int32_t d_stride, const int16_t *const s,
                                            const int32_t s_stride, const int32_t width, const int32_t height,
@@ -3033,6 +3042,7 @@ void svt_av1_compute_stats_avx2(int32_t wiener_win, const uint8_t *dgd, const ui
     svt_aom_free(d);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_compute_stats_highbd_avx2(int32_t wiener_win, const uint8_t *dgd8, const uint8_t *src8, int32_t h_start,
                                        int32_t h_end, int32_t v_start, int32_t v_end, int32_t dgd_stride,
                                        int32_t src_stride, int64_t *M, int64_t *H, EbBitDepth bit_depth) {
@@ -3113,6 +3123,7 @@ void svt_av1_compute_stats_highbd_avx2(int32_t wiener_win, const uint8_t *dgd8, 
 
     svt_aom_free(d);
 }
+#endif
 
 static INLINE __m256i pair_set_epi16(int32_t a, int32_t b) {
     return _mm256_set1_epi32((int32_t)(((uint16_t)(a)) | (((uint32_t)(b)) << 16)));

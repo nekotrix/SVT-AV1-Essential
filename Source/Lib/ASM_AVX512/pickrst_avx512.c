@@ -122,12 +122,14 @@ static INLINE __m512i mask16_avx512(const int32_t leftover) {
     return _mm512_inserti64x4(_mm512_castsi256_si512(mask_l), mask_h, 1);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static INLINE void add_u16_to_u32_avx512(const __m512i src, __m512i *const sum) {
     const __m512i s0 = _mm512_unpacklo_epi16(src, _mm512_setzero_si512());
     const __m512i s1 = _mm512_unpackhi_epi16(src, _mm512_setzero_si512());
     *sum             = _mm512_add_epi32(*sum, s0);
     *sum             = _mm512_add_epi32(*sum, s1);
 }
+#endif
 
 static INLINE void add_32_to_64_avx512(const __m512i src, __m512i *const sum) {
     const __m512i s0 = _mm512_cvtepi32_epi64(_mm512_castsi512_si256(src));
@@ -136,6 +138,7 @@ static INLINE void add_32_to_64_avx512(const __m512i src, __m512i *const sum) {
     *sum             = _mm512_add_epi64(*sum, s1);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static INLINE uint16_t find_average_highbd_avx512(const uint16_t *src, int32_t h_start, int32_t h_end, int32_t v_start,
                                                   int32_t v_end, int32_t stride, EbBitDepth bit_depth) {
     const int32_t   width        = h_end - h_start;
@@ -205,6 +208,7 @@ static INLINE uint16_t find_average_highbd_avx512(const uint16_t *src, int32_t h
     const uint32_t avg = sum / (width * height);
     return (uint16_t)avg;
 }
+#endif
 
 // Note: when n = (width % 32) is not 0, it writes (32 - n) more data than required.
 static INLINE void sub_avg_block_avx512(const uint8_t *src, const int32_t src_stride, const uint8_t avg,
@@ -228,6 +232,7 @@ static INLINE void sub_avg_block_avx512(const uint8_t *src, const int32_t src_st
     } while (--i);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 // Note: when n = (width % 32) is not 0, it writes (32 - n) more data than required.
 static INLINE void sub_avg_block_highbd_avx512(const uint16_t *src, const int32_t src_stride, const uint16_t avg,
                                                const int32_t width, const int32_t height, int16_t *dst,
@@ -248,6 +253,7 @@ static INLINE void sub_avg_block_highbd_avx512(const uint16_t *src, const int32_
         dst += dst_stride;
     } while (--i);
 }
+#endif
 
 static INLINE __m256i add_hi_lo_32_avx512(const __m512i src) {
     const __m256i s0 = _mm512_castsi512_si256(src);
@@ -837,6 +843,7 @@ static INLINE void derive_triangle_win7_avx512(const __m512i d_is[WIENER_WIN - 1
     madd_avx512(d_ie[5], d_ie[5], &deltas[20]);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static INLINE __m256i div4_avx2(const __m256i src) {
     __m256i sign, dst;
 
@@ -908,6 +915,7 @@ static INLINE void div16_4x4_avx2(const int32_t wiener_win2, int64_t *const H, _
     _mm256_storeu_si256((__m256i *)(H + 2 * wiener_win2), out[2]);
     _mm256_storeu_si256((__m256i *)(H + 3 * wiener_win2), out[3]);
 }
+#endif
 
 // Transpose each 4x4 block starting from the second column, and save the needed
 // points only.
@@ -943,6 +951,7 @@ static INLINE void diagonal_copy_stats_avx2(const int32_t wiener_win2, int64_t *
     }
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 // Transpose each 4x4 block starting from the second column, and save the needed
 // points only.
 // H[4 * k * wiener_win2 + 4 * k] on the diagonal is omitted, and must be
@@ -998,6 +1007,7 @@ static INLINE void div16_diagonal_copy_stats_avx2(const int32_t wiener_win2, int
         }
     }
 }
+#endif
 
 static INLINE void compute_stats_win3_avx512(const int16_t *const d, const int32_t d_stride, const int16_t *const s,
                                              const int32_t s_stride, const int32_t width, const int32_t height,
@@ -3154,6 +3164,7 @@ void svt_av1_compute_stats_avx512(int32_t wiener_win, const uint8_t *dgd, const 
     svt_aom_free(d);
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_compute_stats_highbd_avx512(int32_t wiener_win, const uint8_t *dgd8, const uint8_t *src8, int32_t h_start,
                                          int32_t h_end, int32_t v_start, int32_t v_end, int32_t dgd_stride,
                                          int32_t src_stride, int64_t *M, int64_t *H, EbBitDepth bit_depth) {
@@ -3234,6 +3245,7 @@ void svt_av1_compute_stats_highbd_avx512(int32_t wiener_win, const uint8_t *dgd8
 
     svt_aom_free(d);
 }
+#endif
 
 static INLINE __m512i pair_set_epi16_avx512(int32_t a, int32_t b) {
     return _mm512_set1_epi32((int32_t)(((uint16_t)(a)) | (((uint32_t)(b)) << 16)));
