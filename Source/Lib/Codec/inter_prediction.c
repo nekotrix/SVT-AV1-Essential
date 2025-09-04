@@ -2311,6 +2311,7 @@ void svt_aom_find_ref_dv(Mv *ref_dv, const TileInfo *const tile, int mib_size, i
     ref_dv->y *= 8;
     ref_dv->x *= 8;
 }
+#if CONFIG_ENABLE_OBMC
 int svt_av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, int subsampling_y) {
     assert(is_motion_variation_allowed_bsize(bsize));
 
@@ -2328,6 +2329,7 @@ int svt_av1_skip_u4x4_pred_in_obmc(BlockSize bsize, int dir, int subsampling_x, 
     default: return 0;
     }
 }
+#endif
 
 #define MAX_MASK_VALUE (1 << WEDGE_WEIGHT_BITS)
 
