@@ -988,6 +988,7 @@ void svt_av1_apply_temporal_filter_planewise_medium_hbd_neon(
     }
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 int32_t svt_estimate_noise_highbd_fp16_neon(const uint16_t *src, int width, int height, int stride, int bd) {
     //  A | B | C
     //  D | E | F
@@ -1162,6 +1163,7 @@ int32_t svt_estimate_noise_highbd_fp16_neon(const uint16_t *src, int width, int 
     FP_ASSERT((((int64_t)final_acc * SQRT_PI_BY_2_FP16) / (6 * final_count)) < ((int64_t)1 << 31));
     return (int32_t)((final_acc * SQRT_PI_BY_2_FP16) / (6 * final_count));
 }
+#endif
 
 static void svt_av1_apply_zz_based_temporal_filter_planewise_medium_partial_neon(
     struct MeContext *me_ctx, const uint8_t *y_pre, int y_pre_stride, unsigned int block_width,

@@ -3787,6 +3787,7 @@ int32_t svt_estimate_noise_fp16_c(const uint8_t *src, uint16_t width, uint16_t h
     return (int32_t)((sum * SQRT_PI_BY_2_FP16) / (6 * num));
 }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 // Noise estimation for highbd
 int32_t svt_estimate_noise_highbd_fp16_c(const uint16_t *src, int width, int height, int stride, int bd) {
     int64_t sum = 0;
@@ -3822,6 +3823,8 @@ int32_t svt_estimate_noise_highbd_fp16_c(const uint16_t *src, int width, int hei
     FP_ASSERT((((int64_t)sum * SQRT_PI_BY_2_FP16) / (6 * num)) < ((int64_t)1 << 31));
     return (int32_t)((sum * SQRT_PI_BY_2_FP16) / (6 * num));
 }
+#endif
+
 void pad_and_decimate_filtered_pic(PictureParentControlSet *centre_pcs) {
     // reference structures (padded pictures + downsampled versions)
     SequenceControlSet *scs = centre_pcs->scs;
