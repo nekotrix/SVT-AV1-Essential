@@ -15,7 +15,6 @@
  *********************************/
 
 #include "pack_unpack_c.h"
-#include "common_dsp_rtcd.h"
 #include "utility.h"
 #include "intra_prediction.h"
 #include "aom_dsp_rtcd.h"

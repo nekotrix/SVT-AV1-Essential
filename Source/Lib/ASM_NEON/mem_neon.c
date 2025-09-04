@@ -66,8 +66,6 @@ static inline void copy_16Xxh(uint8_t *src, uint32_t src_stride, uint8_t *dst, u
 
 void svt_av1_copy_wxh_8bit_neon(uint8_t *src, uint32_t src_stride, uint8_t *dst, uint32_t dst_stride, uint32_t height,
                                 uint32_t width) {
-    assert(width % 4 == 0);
-
     switch (width) {
     case 4: copy_4xh(src, src_stride, dst, dst_stride, height); break;
     case 8: copy_8xh(src, src_stride, dst, dst_stride, height); break;
@@ -81,8 +79,6 @@ void svt_av1_copy_wxh_8bit_neon(uint8_t *src, uint32_t src_stride, uint8_t *dst,
 
 void svt_av1_copy_wxh_16bit_neon(uint16_t *src, uint32_t src_stride, uint16_t *dst, uint32_t dst_stride,
                                  uint32_t height, uint32_t width) {
-    assert(width % 4 == 0);
-
     // 2x pixel size, so all byte functions are 2x too
     uint8_t *src8        = (uint8_t *)src;
     uint8_t *dst8        = (uint8_t *)dst;

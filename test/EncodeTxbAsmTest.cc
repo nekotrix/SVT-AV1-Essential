@@ -36,6 +36,11 @@
 #include "encode_txb_ref_c.h"
 
 using svt_av1_test_tool::SVTRandom;  // to generate the random
+
+/** setup_test_env and reset_test_env are implemented in test/TestEnv.c */
+extern "C" void setup_test_env();
+extern "C" void reset_test_env();
+
 namespace {
 
 static INLINE uint8_t *set_levels(uint8_t *const levels_buf,
@@ -207,6 +212,10 @@ class EncodeTxbInitLevelTest
 
     virtual ~EncodeTxbInitLevelTest() {
         delete rnd_;
+    }
+
+    void SetUp() {
+        reset_test_env();
     }
 
     void run_test(const TxbInitLevelsFunc test_func, const int tx_size,

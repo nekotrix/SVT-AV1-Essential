@@ -234,14 +234,10 @@ void svt_aom_hadamard_32x32_c(const int16_t* src_diff, ptrdiff_t src_stride, int
 
 void svt_av1_copy_wxh_8bit_c(uint8_t* src, uint32_t src_stride, uint8_t* dst, uint32_t dst_stride, uint32_t height,
                              uint32_t width) {
-    assert(width % 4 == 0);
-
     for (uint32_t j = 0; j < height; j++) { svt_memcpy_c(dst + j * dst_stride, src + j * src_stride, width); }
 }
 
 void svt_av1_copy_wxh_16bit_c(uint16_t* src, uint32_t src_stride, uint16_t* dst, uint32_t dst_stride, uint32_t height,
                               uint32_t width) {
-    assert(width % 4 == 0);
-
     for (uint32_t j = 0; j < height; j++) { svt_memcpy_c(dst + j * dst_stride, src + j * src_stride, width * 2); }
 }

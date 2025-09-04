@@ -17,6 +17,7 @@
 #include "definitions.h"
 #include "pic_buffer_desc.h"
 #include "svt_log.h"
+#include "common_dsp_rtcd.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
