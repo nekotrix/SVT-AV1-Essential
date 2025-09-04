@@ -1051,6 +1051,8 @@ extern "C" {
     RTCD_EXTERN uint32_t(*svt_log2f)(uint32_t x);
     void svt_memcpy_c(void  *dst_ptr, void  const*src_ptr, size_t size);
     RTCD_EXTERN void (*svt_memcpy)(void  *dst_ptr, void  const*src_ptr, size_t size);
+    void svt_memset_c(void *dst_ptr, int c, size_t size);
+    RTCD_EXTERN void (*svt_memset)(void *dst_ptr, int c, size_t size);
 
     void svt_aom_hadamard_16x16_c(const int16_t* src_diff, ptrdiff_t src_stride, int32_t* coeff);
     void svt_aom_hadamard_16x16_avx2(const int16_t* src_diff, ptrdiff_t src_stride, int32_t* coeff);
@@ -1072,6 +1074,7 @@ extern "C" {
     void svt_av1_copy_wxh_8bit_neon(uint8_t *src, uint32_t src_stride, uint8_t *dst, uint32_t dst_stride, uint32_t height, uint32_t width);
     void svt_av1_copy_wxh_16bit_neon(uint16_t *src, uint32_t src_stride, uint16_t *dst, uint32_t dst_stride, uint32_t height, uint32_t width);
     void svt_memcpy_neon(void *dst_ptr, void const *src_ptr, size_t size);
+    void svt_memset_neon(void *dst_ptr, int c, size_t size);
 
     void svt_av1_build_compound_diffwtd_mask_neon(uint8_t *mask, DIFFWTD_MASK_TYPE mask_type, const uint8_t *src0, int src0_stride, const uint8_t *src1, int src1_stride, int h, int w);
     void svt_av1_build_compound_diffwtd_mask_d16_neon(uint8_t *mask, DIFFWTD_MASK_TYPE mask_type, const CONV_BUF_TYPE *src0, int src0_stride, const CONV_BUF_TYPE *src1, int src1_stride, int h, int w, ConvolveParams *conv_params, int bd);

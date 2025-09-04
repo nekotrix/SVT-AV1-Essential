@@ -211,7 +211,7 @@ uint64_t svt_search_one_dual_neon(int *lev0, int *lev1, int nb_strengths, uint64
     int32_t       best_id0        = 0;
     int32_t       best_id1        = 0;
     const int32_t total_strengths = end_gi;
-    memset(tot_mse, 0, sizeof(tot_mse));
+    svt_memset(tot_mse, 0, sizeof(tot_mse));
     /* Loop over the filter blocks in the frame */
     for (i = 0; i < sb_count; i++) {
         int32_t  gi;

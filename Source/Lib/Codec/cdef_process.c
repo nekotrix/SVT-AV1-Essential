@@ -114,17 +114,17 @@ static EbErrorType copy_recon_enc(SequenceControlSet *scs, EbPictureBufferDesc *
     // Allocate the Picture Buffers (luma & chroma)
     if (recon_picture_dst->buffer_enable_mask & PICTURE_BUFFER_DESC_Y_FLAG) {
         EB_MALLOC_ALIGNED(recon_picture_dst->buffer_y, recon_picture_dst->luma_size * bytesPerPixel);
-        memset(recon_picture_dst->buffer_y, 0, recon_picture_dst->luma_size * bytesPerPixel);
+        svt_memset(recon_picture_dst->buffer_y, 0, recon_picture_dst->luma_size * bytesPerPixel);
     } else
         recon_picture_dst->buffer_y = 0;
     if (recon_picture_dst->buffer_enable_mask & PICTURE_BUFFER_DESC_Cb_FLAG) {
         EB_MALLOC_ALIGNED(recon_picture_dst->buffer_cb, recon_picture_dst->chroma_size * bytesPerPixel);
-        memset(recon_picture_dst->buffer_cb, 0, recon_picture_dst->chroma_size * bytesPerPixel);
+        svt_memset(recon_picture_dst->buffer_cb, 0, recon_picture_dst->chroma_size * bytesPerPixel);
     } else
         recon_picture_dst->buffer_cb = 0;
     if (recon_picture_dst->buffer_enable_mask & PICTURE_BUFFER_DESC_Cr_FLAG) {
         EB_MALLOC_ALIGNED(recon_picture_dst->buffer_cr, recon_picture_dst->chroma_size * bytesPerPixel);
-        memset(recon_picture_dst->buffer_cr, 0, recon_picture_dst->chroma_size * bytesPerPixel);
+        svt_memset(recon_picture_dst->buffer_cr, 0, recon_picture_dst->chroma_size * bytesPerPixel);
     } else
         recon_picture_dst->buffer_cr = 0;
 
@@ -392,7 +392,7 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
                 if (need_to_reset) {
                     uint16_t *p = &in[(-toff_prev * CDEF_BSTRIDE - loff_prev)];
                     for (int r = 0; r < ysize_prev; r++) {
-                        memset(p, (uint8_t)CDEF_VERY_LARGE, sizeof(p[0]) * xsize_prev);
+                        svt_memset(p, (uint8_t)CDEF_VERY_LARGE, sizeof(p[0]) * xsize_prev);
                         p += CDEF_BSTRIDE;
                     }
                 }

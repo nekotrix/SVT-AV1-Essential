@@ -26,8 +26,8 @@ void svt_av1_txb_init_levels_neon(const TranLow *const coeff, const int32_t widt
     uint8_t        *ls     = levels;
     const TranLow  *cf     = coeff;
 
-    memset(levels - TX_PAD_TOP * stride, 0, sizeof(*levels) * TX_PAD_TOP * stride);
-    memset(levels + stride * height, 0, sizeof(*levels) * (TX_PAD_BOTTOM * stride + TX_PAD_END));
+    svt_memset(levels - TX_PAD_TOP * stride, 0, sizeof(*levels) * TX_PAD_TOP * stride);
+    svt_memset(levels + stride * height, 0, sizeof(*levels) * (TX_PAD_BOTTOM * stride + TX_PAD_END));
 
     if (width == 4) {
         do {

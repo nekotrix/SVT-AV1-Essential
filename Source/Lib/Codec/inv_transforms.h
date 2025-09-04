@@ -34,8 +34,6 @@ extern "C" {
 
 #define IS_2D_TRANSFORM(tx_type) (tx_type < IDTX)
 
-#define av1_zero(dest) memset(&(dest), 0, sizeof(dest))
-
 static const int8_t inv_cos_bit_col[MAX_TXWH_IDX][MAX_TXWH_IDX] = {
     {INV_COS_BIT, INV_COS_BIT, INV_COS_BIT, 0, 0},
     {INV_COS_BIT, INV_COS_BIT, INV_COS_BIT, INV_COS_BIT, 0},

@@ -1087,7 +1087,7 @@ void svt_aom_generate_av1_mvp_table(ModeDecisionContext *ctx, BlkStruct *blk_ptr
         av1_set_ref_frame(rf, ref_frame);
 
         xd->ref_mv_count[ref_frame] = 0;
-        memset(ctx->ref_mv_stack[ref_frame], 0, sizeof(CandidateMv) * MAX_REF_MV_STACK_SIZE);
+        svt_memset(ctx->ref_mv_stack[ref_frame], 0, sizeof(CandidateMv) * MAX_REF_MV_STACK_SIZE);
 
         Mv gm_mv[2];
 

@@ -2871,7 +2871,7 @@ static void perform_gm_detection(
     uint64_t            per_sig_cnt[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH][NUM_MV_COMPONENTS]
                         [NUM_MV_HIST];
     uint64_t tot_cnt = 0;
-    memset(per_sig_cnt, 0, sizeof(uint64_t) * MAX_MV_HIST_SIZE);
+    svt_memset(per_sig_cnt, 0, sizeof(per_sig_cnt));
 
     if (scs->input_resolution <= INPUT_SIZE_480p_RANGE) {
         for (unsigned i = 0; i < 64; i++) {
@@ -3009,46 +3009,19 @@ static void compute_distortion(
 static INLINE void init_me_hme_data(MeContext *me_ctx) {
     // Initialize HME search centres to 0
     if (me_ctx->enable_hme_flag) {
-        memset(me_ctx->x_hme_level0_search_center,
-               0,
-               sizeof(me_ctx->x_hme_level0_search_center[0][0][0][0]) *
-                   MAX_NUM_OF_REF_PIC_LIST * MAX_REF_IDX * EB_HME_SEARCH_AREA_COLUMN_MAX_COUNT *
-                   EB_HME_SEARCH_AREA_ROW_MAX_COUNT);
-        memset(me_ctx->y_hme_level0_search_center,
-               0,
-               sizeof(me_ctx->y_hme_level0_search_center[0][0][0][0]) *
-                   MAX_NUM_OF_REF_PIC_LIST * MAX_REF_IDX * EB_HME_SEARCH_AREA_COLUMN_MAX_COUNT *
-                   EB_HME_SEARCH_AREA_ROW_MAX_COUNT);
+        svt_memset(me_ctx->x_hme_level0_search_center, 0, sizeof(me_ctx->x_hme_level0_search_center));
+        svt_memset(me_ctx->y_hme_level0_search_center, 0, sizeof(me_ctx->y_hme_level0_search_center));
 
-        memset(me_ctx->x_hme_level1_search_center,
-               0,
-               sizeof(me_ctx->x_hme_level1_search_center[0][0][0][0]) *
-                   MAX_NUM_OF_REF_PIC_LIST * MAX_REF_IDX * EB_HME_SEARCH_AREA_COLUMN_MAX_COUNT *
-                   EB_HME_SEARCH_AREA_ROW_MAX_COUNT);
-        memset(me_ctx->y_hme_level1_search_center,
-               0,
-               sizeof(me_ctx->y_hme_level1_search_center[0][0][0][0]) *
-                   MAX_NUM_OF_REF_PIC_LIST * MAX_REF_IDX * EB_HME_SEARCH_AREA_COLUMN_MAX_COUNT *
-                   EB_HME_SEARCH_AREA_ROW_MAX_COUNT);
+        svt_memset(me_ctx->x_hme_level1_search_center, 0, sizeof(me_ctx->x_hme_level1_search_center));
+        svt_memset(me_ctx->y_hme_level1_search_center, 0, sizeof(me_ctx->y_hme_level1_search_center));
 
-        memset(me_ctx->x_hme_level2_search_center,
-               0,
-               sizeof(me_ctx->x_hme_level2_search_center[0][0][0][0]) *
-                   MAX_NUM_OF_REF_PIC_LIST * MAX_REF_IDX * EB_HME_SEARCH_AREA_COLUMN_MAX_COUNT *
-                   EB_HME_SEARCH_AREA_ROW_MAX_COUNT);
-        memset(me_ctx->y_hme_level2_search_center,
-               0,
-               sizeof(me_ctx->y_hme_level2_search_center[0][0][0][0]) *
-                   MAX_NUM_OF_REF_PIC_LIST * MAX_REF_IDX * EB_HME_SEARCH_AREA_COLUMN_MAX_COUNT *
-                   EB_HME_SEARCH_AREA_ROW_MAX_COUNT);
+        svt_memset(me_ctx->x_hme_level2_search_center, 0, sizeof(me_ctx->x_hme_level2_search_center));
+        svt_memset(me_ctx->y_hme_level2_search_center, 0, sizeof(me_ctx->y_hme_level2_search_center));
     }
 
     // R2R FIX: no winner integer MV is set in special case like initial p_sb_best_mv for overlay case,
     // then it sends dirty p_sb_best_mv to MD, initializing it is necessary
-    memset(me_ctx->p_sb_best_mv,
-           0,
-           sizeof(me_ctx->p_sb_best_mv[0][0][0]) * MAX_NUM_OF_REF_PIC_LIST *
-               REF_LIST_MAX_DEPTH * SQUARE_PU_COUNT);
+    svt_memset(me_ctx->p_sb_best_mv, 0, sizeof(me_ctx->p_sb_best_mv));
 
     //init hme results buffer
     for (uint32_t li = 0; li < MAX_NUM_OF_REF_PIC_LIST; li++) {
@@ -3064,8 +3037,7 @@ static INLINE void init_me_hme_data(MeContext *me_ctx) {
             me_ctx->prehme_data[li][ri][1].valid = 0;
         }
     }
-    memset(me_ctx->performed_phme,0,
-        sizeof(uint8_t)*MAX_NUM_OF_REF_PIC_LIST*REF_LIST_MAX_DEPTH*SEARCH_REGION_COUNT);
+    svt_memset(me_ctx->performed_phme, 0, sizeof(me_ctx->performed_phme));
 }
 /*******************************************
 * motion_estimation

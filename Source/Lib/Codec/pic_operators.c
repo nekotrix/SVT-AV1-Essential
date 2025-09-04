@@ -284,8 +284,8 @@ void svt_aom_generate_padding(
     temp_src_pic0 = src_pic + padding_width + padding_height * src_stride;
     while (vertical_idx) {
         // horizontal padding
-        EB_MEMSET(temp_src_pic0 - padding_width, *temp_src_pic0, padding_width);
-        EB_MEMSET(temp_src_pic0 + original_src_width, *(temp_src_pic0 + original_src_width - 1), padding_width);
+        svt_memset(temp_src_pic0 - padding_width, *temp_src_pic0, padding_width);
+        svt_memset(temp_src_pic0 + original_src_width, *(temp_src_pic0 + original_src_width - 1), padding_width);
 
         temp_src_pic0 += src_stride;
         --vertical_idx;
@@ -437,7 +437,7 @@ void pad_input_picture(
         temp_src_pic0 = src_pic;
 
         while (vertical_idx) {
-            EB_MEMSET(temp_src_pic0 + original_src_width, *(temp_src_pic0 + original_src_width - 1), pad_right);
+            svt_memset(temp_src_pic0 + original_src_width, *(temp_src_pic0 + original_src_width - 1), pad_right);
             temp_src_pic0 += src_stride;
             --vertical_idx;
         }

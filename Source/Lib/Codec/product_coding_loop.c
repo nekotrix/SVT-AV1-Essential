@@ -2705,13 +2705,9 @@ static bool get_sb_tpl_inter_stats(PictureControlSet *pcs, ModeDecisionContext *
 }
 static void perform_md_reference_pruning(PictureControlSet *pcs, ModeDecisionContext *ctx) {
     uint32_t early_inter_distortion_array[MAX_NUM_OF_REF_PIC_LIST * REF_LIST_MAX_DEPTH];
-    memset(early_inter_distortion_array,
-           0xFE,
-           sizeof(early_inter_distortion_array[0]) * MAX_NUM_OF_REF_PIC_LIST * REF_LIST_MAX_DEPTH);
+    svt_memset(early_inter_distortion_array, 0xFE, sizeof(early_inter_distortion_array));
     uint32_t offset_tab[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH] = {{0}};
-    memset(ctx->ref_filtering_res,
-           0,
-           sizeof(ctx->ref_filtering_res[0][0][0]) * TOT_INTER_GROUP * MAX_NUM_OF_REF_PIC_LIST * REF_LIST_MAX_DEPTH);
+    svt_memset(ctx->ref_filtering_res, 0, sizeof(ctx->ref_filtering_res));
     uint32_t min_dist     = (uint32_t)~0;
     int      use_tpl_info = 0;
     uint8_t  sb_max_list0_ref_idx;
@@ -3616,8 +3612,8 @@ static void check_best_indepedant_cfl(PictureControlSet *pcs, EbPictureBufferDes
         cand_bf->cand->transform_type_uv = svt_aom_get_intra_uv_tx_type(
             ctx->best_uv_mode[cand_bf->cand->block_mi.mode], ctx->blk_geom->txsize_uv[0], frm_hdr->reduced_tx_set);
         ctx->uv_intra_comp_only = true;
-        memset(cand_bf->eob.u, 0, MAX_TXB_COUNT_UV * sizeof(cand_bf->eob.u[0]));
-        memset(cand_bf->eob.v, 0, MAX_TXB_COUNT_UV * sizeof(cand_bf->eob.v[0]));
+        memset(cand_bf->eob.u, 0, sizeof(cand_bf->eob.u));
+        memset(cand_bf->eob.v, 0, sizeof(cand_bf->eob.v));
         cand_bf->u_has_coeff                               = 0;
         cand_bf->v_has_coeff                               = 0;
         cb_full_distortion[DIST_SSD][DIST_CALC_RESIDUAL]   = 0;
@@ -6233,9 +6229,9 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
     uint64_t y_full_distortion[DIST_TOTAL][DIST_CALC_TOTAL];
     uint64_t cb_full_distortion[DIST_TOTAL][DIST_CALC_TOTAL];
     uint64_t cr_full_distortion[DIST_TOTAL][DIST_CALC_TOTAL];
-    memset(y_full_distortion, 0, sizeof(y_full_distortion[0][0]) * DIST_TOTAL * DIST_CALC_TOTAL);
-    memset(cb_full_distortion, 0, sizeof(cb_full_distortion[0][0]) * DIST_TOTAL * DIST_CALC_TOTAL);
-    memset(cr_full_distortion, 0, sizeof(cr_full_distortion[0][0]) * DIST_TOTAL * DIST_CALC_TOTAL);
+    memset(y_full_distortion, 0, sizeof(y_full_distortion));
+    memset(cb_full_distortion, 0, sizeof(cb_full_distortion));
+    memset(cr_full_distortion, 0, sizeof(cr_full_distortion));
 
     uint64_t      y_coeff_bits  = 0;
     uint64_t      cb_coeff_bits = 0;
@@ -8304,7 +8300,7 @@ static void md_encode_block_light_pd1(PictureControlSet *pcs, ModeDecisionContex
     product_coding_loop_init_fast_loop(pcs, ctx);
     ctx->is_intra_bordered = ctx->cand_reduction_ctrls.use_neighbouring_mode_ctrls.enabled ? is_intra_bordered(ctx) : 0;
     //mvp array is not constructed in LPD1. reset to zero.
-    memset(ctx->mvp_count, 0, MAX_NUM_OF_REF_PIC_LIST * REF_LIST_MAX_DEPTH);
+    memset(ctx->mvp_count, 0, sizeof(ctx->mvp_count));
     // Read and (if needed) perform 1/8 Pel ME MVs refinement
     if (pcs->slice_type != I_SLICE)
         read_refine_me_mvs_light_pd1(pcs, input_pic, ctx);

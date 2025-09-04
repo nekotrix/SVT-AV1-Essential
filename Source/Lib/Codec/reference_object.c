@@ -26,11 +26,11 @@ void initialize_samples_neighboring_reference_picture_8bit(EbByte recon_samples_
 
     // 1. zero out the top row
     recon_samples_ptr = recon_samples_buffer_ptr + (top_padding - 1) * stride + left_padding - 1;
-    EB_MEMSET(recon_samples_ptr, 0, sizeof(uint8_t) * (1 + recon_width + 1));
+    svt_memset(recon_samples_ptr, 0, sizeof(uint8_t) * (1 + recon_width + 1));
 
     // 2. zero out the bottom row
     recon_samples_ptr = recon_samples_buffer_ptr + (top_padding + recon_height) * stride + left_padding - 1;
-    EB_MEMSET(recon_samples_ptr, 0, sizeof(uint8_t) * (1 + recon_width + 1));
+    svt_memset(recon_samples_ptr, 0, sizeof(uint8_t) * (1 + recon_width + 1));
 
     // 3. zero out the left column
     recon_samples_ptr = recon_samples_buffer_ptr + top_padding * stride + left_padding - 1;
@@ -179,7 +179,7 @@ EbErrorType svt_reference_object_ctor(EbReferenceObject *ref_object, EbPtr objec
         const int mem_size = ((mi_rows + 1) >> 1) * ((mi_cols + 1) >> 1);
         EB_CALLOC_ALIGNED_ARRAY(ref_object->mvs, mem_size);
     }
-    memset(&ref_object->film_grain_params, 0, sizeof(ref_object->film_grain_params));
+    svt_memset(&ref_object->film_grain_params, 0, sizeof(ref_object->film_grain_params));
     // set all supplemental downscaled reference picture pointers to NULL
     for (uint8_t sr_denom_idx = 0; sr_denom_idx < NUM_SR_SCALES + 1; sr_denom_idx++) {
         for (uint8_t resize_denom_idx = 0; resize_denom_idx < NUM_RESIZE_SCALES + 1; resize_denom_idx++) {

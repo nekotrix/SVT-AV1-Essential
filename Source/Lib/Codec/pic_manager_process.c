@@ -740,14 +740,10 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
             }
             cm->mi_stride = child_pcs->mi_stride;
             // Reset the Reference Lists
-            EB_MEMSET(child_pcs->ref_pic_ptr_array[REF_LIST_0], 0, REF_LIST_MAX_DEPTH * sizeof(EbObjectWrapper *));
-            EB_MEMSET(child_pcs->ref_pic_ptr_array[REF_LIST_1], 0, REF_LIST_MAX_DEPTH * sizeof(EbObjectWrapper *));
-            EB_MEMSET(child_pcs->ref_pic_qp_array[REF_LIST_0], 0, REF_LIST_MAX_DEPTH * sizeof(uint8_t));
-            EB_MEMSET(child_pcs->ref_pic_qp_array[REF_LIST_1], 0, REF_LIST_MAX_DEPTH * sizeof(uint8_t));
-            EB_MEMSET(child_pcs->ref_slice_type_array[REF_LIST_0], 0, REF_LIST_MAX_DEPTH * sizeof(SliceType));
-            EB_MEMSET(child_pcs->ref_slice_type_array[REF_LIST_1], 0, REF_LIST_MAX_DEPTH * sizeof(SliceType));
-            EB_MEMSET(child_pcs->ref_pic_r0[REF_LIST_0], 0, REF_LIST_MAX_DEPTH * sizeof(double));
-            EB_MEMSET(child_pcs->ref_pic_r0[REF_LIST_1], 0, REF_LIST_MAX_DEPTH * sizeof(double));
+            svt_memset(child_pcs->ref_pic_ptr_array, 0, sizeof(child_pcs->ref_pic_ptr_array));
+            svt_memset(child_pcs->ref_pic_qp_array, 0, sizeof(child_pcs->ref_pic_qp_array));
+            svt_memset(child_pcs->ref_slice_type_array, 0, sizeof(child_pcs->ref_slice_type_array));
+            svt_memset(child_pcs->ref_pic_r0, 0, sizeof(child_pcs->ref_pic_r0));
             int8_t ref_index = 0;
             if (entry_ppcs->slice_type == B_SLICE) {
                 int8_t max_temporal_index = -1;

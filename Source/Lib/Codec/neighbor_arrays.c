@@ -111,30 +111,30 @@ EbErrorType svt_aom_neighbor_array_unit_ctor(NeighborArrayUnit *na_unit_ptr, uin
 
 void svt_aom_neighbor_array_unit_reset32(NeighborArrayUnit32 *na_unit_ptr) {
     if (na_unit_ptr->left_array) {
-        EB_MEMSET(na_unit_ptr->left_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->left_array_size);
+        svt_memset(na_unit_ptr->left_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->left_array_size);
     }
 
     if (na_unit_ptr->top_array) {
-        EB_MEMSET(na_unit_ptr->top_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->top_array_size);
+        svt_memset(na_unit_ptr->top_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->top_array_size);
     }
 
     if (na_unit_ptr->top_left_array) {
-        EB_MEMSET(na_unit_ptr->top_left_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->top_left_array_size);
+        svt_memset(na_unit_ptr->top_left_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->top_left_array_size);
     }
 
     return;
 }
 void svt_aom_neighbor_array_unit_reset(NeighborArrayUnit *na_unit_ptr) {
     if (na_unit_ptr->left_array) {
-        EB_MEMSET(na_unit_ptr->left_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->left_array_size);
+        svt_memset(na_unit_ptr->left_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->left_array_size);
     }
 
     if (na_unit_ptr->top_array) {
-        EB_MEMSET(na_unit_ptr->top_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->top_array_size);
+        svt_memset(na_unit_ptr->top_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->top_array_size);
     }
 
     if (na_unit_ptr->top_left_array) {
-        EB_MEMSET(na_unit_ptr->top_left_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->top_left_array_size);
+        svt_memset(na_unit_ptr->top_left_array, ~0, na_unit_ptr->unit_size * na_unit_ptr->top_left_array_size);
     }
 
     return;

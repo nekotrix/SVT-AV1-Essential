@@ -124,3 +124,28 @@ void svt_memcpy_neon(void *dst_ptr, void const *src_ptr, size_t size) {
 
     for (; i < size; ++i) dst[i] = src[i];
 }
+
+void svt_memset_neon(void *dst_ptr, int c, size_t size) {
+    uint8_t *dst = dst_ptr;
+    size_t   i   = 0;
+
+    uint8x16_t vec = vdupq_n_u8(c);
+
+    while (i + 32 <= size) {
+        vst1q_u8(dst + i, vec);
+        vst1q_u8(dst + i + 16, vec);
+        i += 32;
+    }
+
+    if (i + 16 <= size) {
+        vst1q_u8(dst + i, vec);
+        i += 16;
+    }
+
+    if (i + 8 <= size) {
+        vst1_u8(dst + i, vget_low_u8(vec));
+        i += 8;
+    }
+
+    for (; i < size; ++i) dst[i] = c;
+}
