@@ -675,6 +675,7 @@ int svt_av1_obmc_full_pixel_search(struct ModeDecisionContext *ctx, IntraBcConte
 }
 #endif
 
+#if CONFIG_ENABLE_OBMC
 static INLINE void set_subpel_mv_search_range(const MvLimits *mv_limits, int *col_min, int *col_max, int *row_min,
                                               int *row_max, const Mv *ref_mv) {
     const int max_mv = MAX_FULL_PEL_VAL * 8;
@@ -1022,6 +1023,7 @@ int svt_av1_find_best_obmc_sub_pixel_tree_up(ModeDecisionContext *ctx, IntraBcCo
 
     return besterr;
 }
+#endif
 
 int svt_av1_full_pixel_search(PictureControlSet *pcs, IntraBcContext *x, BlockSize bsize, Mv *mvp_full, int step_param,
                               int method, int run_mesh_search, int error_per_bit, int *cost_list, const Mv *ref_mv,

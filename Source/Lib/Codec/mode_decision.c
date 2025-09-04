@@ -1971,12 +1971,6 @@ void svt_av1_init_me_luts(void) {
 }
 
 #if CONFIG_ENABLE_OBMC
-int svt_av1_find_best_obmc_sub_pixel_tree_up(ModeDecisionContext *ctx, IntraBcContext *x, const AV1_COMMON *const cm,
-                                             int mi_row, int mi_col, Mv *bestmv, const Mv *ref_mv, int allow_hp,
-                                             int error_per_bit, const AomVarianceFnPtr *vfp, int forced_stop,
-                                             int iters_per_step, int *mvjcost, int *mvcost[2], int *distortion,
-                                             unsigned int *sse1, int is_second, int use_accurate_subpel_search);
-
 static void single_motion_search(PictureControlSet *pcs, ModeDecisionContext *ctx, ModeDecisionCandidate *cand,
                                  Mv best_pred_mv, IntraBcContext *x, BlockSize bsize, Mv *ref_mv, int *rate_mv,
                                  int refine_level) {
