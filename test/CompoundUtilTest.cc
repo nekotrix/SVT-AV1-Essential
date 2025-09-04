@@ -579,6 +579,7 @@ INSTANTIATE_TEST_SUITE_P(
                                     svt_aom_highbd_blend_a64_d16_mask_neon)}));
 #endif  // ARCH_AARCH64
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 using HbdBlendA64HMaskFunc = void (*)(uint16_t *, uint32_t, const uint16_t *,
                                       uint32_t, const uint16_t *, uint32_t,
                                       const uint8_t *, int, int, int);
@@ -730,6 +731,8 @@ INSTANTIATE_TEST_SUITE_P(NEON, HbdCompBlendVMaskTest,
                              svt_aom_highbd_blend_a64_vmask_16bit_c,
                              svt_aom_highbd_blend_a64_vmask_16bit_neon)}));
 #endif  // ARCH_AARCH64
+
+#endif  // CONFIG_ENABLE_HIGH_BIT_DEPTH
 
 typedef void (*BuildCompDiffwtdMaskedFunc)(uint8_t *mask,
                                            DIFFWTD_MASK_TYPE mask_type,

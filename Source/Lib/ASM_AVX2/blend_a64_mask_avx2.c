@@ -1387,6 +1387,7 @@ void svt_av1_blend_a64_vmask_avx2(uint8_t *dst, uint32_t dst_stride, const uint8
     }
 };
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_highbd_blend_a64_hmask_16bit_avx2(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
                                                uint32_t src0_stride, const uint16_t *src1, uint32_t src1_stride,
                                                const uint8_t *mask, int w, int h, int bd) {
@@ -1416,3 +1417,4 @@ void svt_av1_highbd_blend_a64_vmask_16bit_avx2(uint16_t *dst, uint32_t dst_strid
         svt_dav1d_blend_h_16bpc_avx2(dst, dst_stride * sizeof(uint16_t), src1, src1_stride * sizeof(uint16_t), w, h);
     }
 };
+#endif
