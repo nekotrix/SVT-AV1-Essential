@@ -1915,7 +1915,7 @@ int get_version(int argc, char *argv[]) {
 #endif
     if (find_token(argc, argv, VERSION_TOKEN, NULL))
         return 0;
-    printf("SVT-AV1 %s (%s)\n", svt_av1_get_version(), debug_build ? "release" : "debug");
+    printf("SVT-AV1-Essential %s (%s)\n", svt_av1_get_version(), debug_build ? "release" : "debug");
     return 1;
 }
 
