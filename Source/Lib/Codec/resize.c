@@ -827,10 +827,9 @@ typedef EbErrorType (*Av1ResizePlane)(const uint8_t *const input, int height, in
 EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBufferDesc *dst, int bd, const int num_planes,
                                  const uint32_t ss_x, const uint32_t ss_y, uint8_t is_packed,
                                  uint32_t buffer_enable_mask, uint8_t is_2bcompress) {
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     uint16_t *src_buffer_highbd[MAX_MB_PLANE];
     uint16_t *dst_buffer_highbd[MAX_MB_PLANE];
-
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (bd > 8 && !is_packed) {
         EB_MALLOC_ARRAY(src_buffer_highbd[0], src->luma_size);
         EB_MALLOC_ARRAY(src_buffer_highbd[1], src->chroma_size);
@@ -842,13 +841,7 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
             svt_aom_pack_highbd_pic(src, src_buffer_highbd, ss_x, ss_y, true);
         else
             pack_highbd_pic_2d(src, src_buffer_highbd, ss_x, ss_y);
-    } else
-#else
-    UNUSED(bd);
-    UNUSED(is_packed);
-    UNUSED(is_2bcompress);
-#endif
-    {
+    } else {
         src_buffer_highbd[0] = (uint16_t *)src->buffer_y;
         src_buffer_highbd[1] = (uint16_t *)src->buffer_cb;
         src_buffer_highbd[2] = (uint16_t *)src->buffer_cr;
@@ -885,6 +878,11 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
                          0,
                          1,
                          1);
+#endif
+#else
+    UNUSED(bd);
+    UNUSED(is_packed);
+    UNUSED(is_2bcompress);
 #endif
 
     for (int plane = 0; plane <= AOMMIN(num_planes, MAX_MB_PLANE - 1); ++plane) {
@@ -1019,6 +1017,7 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
                                      (dst->org_y + ss_y) >> ss_y);
     }
 
+#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 #if DEBUG_SCALING
     if (bd > 8)
         save_YUV_to_file_highbd("scaled_pic_highbd.yuv",
@@ -1049,7 +1048,6 @@ EbErrorType svt_aom_resize_frame(const EbPictureBufferDesc *src, EbPictureBuffer
                          1,
                          1);
 #endif
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (bd > 8 && !is_packed) {
         if (is_2bcompress)
             svt_aom_unpack_highbd_pic(dst_buffer_highbd, dst, ss_x, ss_y, true);
