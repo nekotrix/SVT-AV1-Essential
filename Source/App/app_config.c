@@ -1860,7 +1860,7 @@ int get_version(int argc, char *const argv[]) {
 #endif
     if (find_token(argc, argv, VERSION_TOKEN, NULL))
         return 0;
-    printf("SVT-AV1 %s (" BUILD_TYPE_STRING ")\n", svt_av1_get_version());
+    printf("SVT-AV1-Essential %s (" BUILD_TYPE_STRING ")\n", svt_av1_get_version());
     return 1;
 #undef BUILD_TYPE_STRING
 }

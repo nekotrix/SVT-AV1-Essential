@@ -215,8 +215,9 @@ On that note, feel free to discuss the encoder in the [**Discussions**](https://
 
 - [Auto-Boost-Essential](https://github.com/nekotrix/auto-boost-algorithm/tree/main/Auto-Boost-Essential) ~ an encoding script maintained by @nekotrix
 - [SVT-AV1-Essential on the AUR](https://aur.archlinux.org/packages/svt-av1-essential-git) ~ maintained by @nekotrix
-- [Handbrake Builds](https://github.com/nekotrix/HandBrake-SVT-AV1-Essential) ~ maintained by @nekotrix
-- [FFmpeg Builds](https://github.com/nekotrix/FFmpeg-Builds-SVT-AV1-Essential) ~ maintained by @nekotrix
+- [Handbrake Builds (Windows/Linux/macOS/Flatpak)](https://github.com/nekotrix/HandBrake-SVT-AV1-Essential) ~ maintained by @nekotrix
+- [FFmpeg Builds (Windows/Linux)](https://github.com/nekotrix/FFmpeg-Builds-SVT-AV1-Essential) ~ maintained by @nekotrix
+- [Homebrew tap (including FFmpeg) (Linux/macOS)](https://github.com/fraluc06/homebrew-ffmpeg-svt-av1-essential) ~ by @fraluc06
 
 *Join the list of projects and creators who trust SVT-AV1-Essential for their encoding needs.*
 
