@@ -2112,10 +2112,7 @@ void(*error_handler)(
 
 //***Encoding Parameters***
 
-#define BLOCK_SIZE_64                                64u
-#define LOG2F_MAX_SB_SIZE                          6u
-#define LOG2_64_SIZE                                6 // log2(BLOCK_SIZE_64)
-#define MAX_LEVEL_COUNT                             5 // log2(BLOCK_SIZE_64) - log2(MIN_BLOCK_SIZE)
+#define BLOCK_SIZE_64                               64u
 #define LOG_MIN_BLOCK_SIZE                          3
 #define MIN_BLOCK_SIZE                              (1 << LOG_MIN_BLOCK_SIZE)
 #define MAX_NUM_OF_REF_PIC_LIST                     2
@@ -2137,26 +2134,14 @@ void(*error_handler)(
 
 #define MAX_INTRA_REFERENCE_SAMPLES                 (BLOCK_SIZE_64 << 2) + 1
 
-#define _MVXT(mv) ( (int16_t)((mv) &  0xFFFF) )
-#define _MVYT(mv) ( (int16_t)((mv) >> 16    ) )
+#define _MVXT(mv)                                   ( (int16_t)((mv) &  0xFFFF) )
+#define _MVYT(mv)                                   ( (int16_t)((mv) >> 16    ) )
 
-#define MIN_QP_VALUE                     0
-#define MAX_QP_VALUE                    63
-// Noise detection
-#define  NOISE_VARIANCE_TH                390
-// Picture split into regions for analysis (SCD, Dynamic GOP)
-#define CLASS_SUB_0_REGION_SPLIT_PER_WIDTH    1
-#define CLASS_SUB_0_REGION_SPLIT_PER_HEIGHT    1
+#define MIN_QP_VALUE                                0
+#define MAX_QP_VALUE                                63
 
-#define CLASS_1_REGION_SPLIT_PER_WIDTH        2
-#define CLASS_1_REGION_SPLIT_PER_HEIGHT        2
-
-#define HIGHER_THAN_CLASS_1_REGION_SPLIT_PER_WIDTH        4
-#define HIGHER_THAN_CLASS_1_REGION_SPLIT_PER_HEIGHT        4
-#define EbScdMode uint8_t
-#define SCD_MODE_0  0     // SCD OFF
-#define SCD_MODE_1   1     // Light SCD (histograms generation on the 1/16 decimated input)
-#define SCD_MODE_2   2     // Full SCD
+#define HIGHER_THAN_CLASS_1_REGION_SPLIT_PER_WIDTH  4
+#define HIGHER_THAN_CLASS_1_REGION_SPLIT_PER_HEIGHT 4
 
 #define EbBlockMeanPrec uint8_t
 #define BLOCK_MEAN_PREC_FULL 0
