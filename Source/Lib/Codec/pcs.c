@@ -1570,62 +1570,46 @@ EbErrorType sb_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *p
     EB_MALLOC_ARRAY(pcs->sb_geom, picture_sb_width * picture_sb_height);
 
     for (sb_index = 0; sb_index < picture_sb_width * picture_sb_height; ++sb_index) {
-        pcs->sb_geom[sb_index].horizontal_index = sb_index % picture_sb_width;
-        pcs->sb_geom[sb_index].vertical_index   = sb_index / picture_sb_width;
-        pcs->sb_geom[sb_index].org_x            = pcs->sb_geom[sb_index].horizontal_index * scs->sb_size;
-        pcs->sb_geom[sb_index].org_y            = pcs->sb_geom[sb_index].vertical_index * scs->sb_size;
-
-        pcs->sb_geom[sb_index].width = (uint8_t)(((encoding_width - pcs->sb_geom[sb_index].org_x) < scs->sb_size)
-                                                     ? encoding_width - pcs->sb_geom[sb_index].org_x
-                                                     : scs->sb_size);
-
-        pcs->sb_geom[sb_index].height = (uint8_t)(((encoding_height - pcs->sb_geom[sb_index].org_y) < scs->sb_size)
-                                                      ? encoding_height - pcs->sb_geom[sb_index].org_y
-                                                      : scs->sb_size);
-
-        pcs->sb_geom[sb_index].is_complete_sb = (uint8_t)(((pcs->sb_geom[sb_index].width == scs->sb_size) &&
-                                                           (pcs->sb_geom[sb_index].height == scs->sb_size))
-                                                              ? 1
-                                                              : 0);
+        SbGeom *sb_geom           = &pcs->sb_geom[sb_index];
+        sb_geom->horizontal_index = sb_index % picture_sb_width;
+        sb_geom->vertical_index   = sb_index / picture_sb_width;
+        sb_geom->org_x            = sb_geom->horizontal_index * scs->sb_size;
+        sb_geom->org_y            = sb_geom->vertical_index * scs->sb_size;
+        sb_geom->width            = (uint8_t)MIN(encoding_width - sb_geom->org_x, scs->sb_size);
+        sb_geom->height           = (uint8_t)MIN(encoding_height - sb_geom->org_y, scs->sb_size);
+        sb_geom->is_complete_sb   = (sb_geom->width == scs->sb_size && sb_geom->height == scs->sb_size) ? 1 : 0;
 
         uint16_t max_block_count = scs->max_block_cnt;
 
         for (md_scan_block_index = 0; md_scan_block_index < max_block_count; md_scan_block_index++) {
-            const BlockGeom *blk_geom = get_blk_geom_mds(md_scan_block_index);
+            const BlockGeom *blk_geom    = get_blk_geom_mds(md_scan_block_index);
+            const BlockGeom *sq_blk_geom = get_blk_geom_mds(blk_geom->sqi_mds);
             if (scs->over_boundary_block_mode == 1) {
-                const BlockGeom *sq_blk_geom = get_blk_geom_mds(blk_geom->sqi_mds);
-                uint8_t has_rows = (pcs->sb_geom[sb_index].org_y + sq_blk_geom->org_y + sq_blk_geom->bheight / 2 <
-                                    encoding_height);
-                uint8_t has_cols = (pcs->sb_geom[sb_index].org_x + sq_blk_geom->org_x + sq_blk_geom->bwidth / 2 <
-                                    encoding_width);
+                uint8_t has_rows = (sb_geom->org_y + sq_blk_geom->org_y + sq_blk_geom->bheight / 2 < encoding_height);
+                uint8_t has_cols = (sb_geom->org_x + sq_blk_geom->org_x + sq_blk_geom->bwidth / 2 < encoding_width);
 
                 // See AV1 spec section 5.11.4 for allowable blocks
-                if (has_rows && has_cols && (pcs->sb_geom[sb_index].org_y + blk_geom->org_y < encoding_height) &&
-                    (pcs->sb_geom[sb_index].org_x + blk_geom->org_x < encoding_width)) {
-                    pcs->sb_geom[sb_index].block_is_allowed[md_scan_block_index] = 1;
-                } else if (blk_geom->shape == PART_H && has_cols &&
-                           (pcs->sb_geom[sb_index].org_y + blk_geom->org_y < encoding_height)) {
-                    pcs->sb_geom[sb_index].block_is_allowed[md_scan_block_index] = 1;
-                } else if (blk_geom->shape == PART_V && has_rows &&
-                           (pcs->sb_geom[sb_index].org_x + blk_geom->org_x < encoding_width)) {
-                    pcs->sb_geom[sb_index].block_is_allowed[md_scan_block_index] = 1;
-                } else {
-                    pcs->sb_geom[sb_index].block_is_allowed[md_scan_block_index] = 0;
+                sb_geom->block_is_allowed[md_scan_block_index] = false;
+                if (sb_geom->org_x + blk_geom->org_x < encoding_width &&
+                    sb_geom->org_y + blk_geom->org_y < encoding_height) {
+                    if ((has_rows || blk_geom->shape == PART_H) && (has_cols || blk_geom->shape == PART_V)) {
+                        sb_geom->block_is_allowed[md_scan_block_index] = true;
+                    }
                 }
             } else {
                 if (blk_geom->shape != PART_N)
-                    blk_geom = get_blk_geom_mds(blk_geom->sqi_mds);
+                    blk_geom = sq_blk_geom;
 
-                pcs->sb_geom[sb_index].block_is_allowed[md_scan_block_index] =
-                    ((pcs->sb_geom[sb_index].org_x + blk_geom->org_x + blk_geom->bwidth > encoding_width) ||
-                     (pcs->sb_geom[sb_index].org_y + blk_geom->org_y + blk_geom->bheight > encoding_height))
+                sb_geom->block_is_allowed[md_scan_block_index] =
+                    ((sb_geom->org_x + blk_geom->org_x + blk_geom->bwidth > encoding_width) ||
+                     (sb_geom->org_y + blk_geom->org_y + blk_geom->bheight > encoding_height))
                     ? false
                     : true;
             }
         }
     }
 
-    return 0;
+    return EB_ErrorNone;
 }
 
 EbErrorType svt_aom_picture_parent_control_set_creator(EbPtr *object_dbl_ptr, EbPtr object_init_data_ptr) {
