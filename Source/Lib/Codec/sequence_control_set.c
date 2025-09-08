@@ -117,7 +117,7 @@ EbErrorType svt_aom_scs_set_creator(EbPtr *object_dbl_ptr, EbPtr object_init_dat
 
     return EB_ErrorNone;
 }
-extern EbErrorType svt_aom_derive_input_resolution(EbInputResolution *input_resolution, uint32_t inputSize) {
+EbErrorType svt_aom_derive_input_resolution(EbInputResolution *input_resolution, uint32_t inputSize) {
     EbErrorType return_error = EB_ErrorNone;
     if (inputSize < INPUT_SIZE_240p_TH)
         *input_resolution = INPUT_SIZE_240p_RANGE;
@@ -156,45 +156,34 @@ EbErrorType svt_sequence_control_set_instance_ctor(EbSequenceControlSetInstance 
     return EB_ErrorNone;
 }
 
-extern EbErrorType svt_aom_b64_geom_init(SequenceControlSet *scs) {
+EbErrorType svt_aom_b64_geom_init(SequenceControlSet *scs) {
     EbErrorType return_error = EB_ErrorNone;
     uint16_t    b64_idx;
-    uint16_t    raster_scan_blk_index;
-    uint8_t     b64_size = scs->b64_size;
+    uint16_t    i;
+    uint16_t    encoding_width  = scs->max_input_luma_width;
+    uint16_t    encoding_height = scs->max_input_luma_height;
+    uint8_t     b64_size        = scs->b64_size;
 
-    uint16_t picture_b64_width  = (scs->max_input_luma_width + b64_size - 1) / b64_size;
-    uint16_t picture_b64_height = (scs->max_input_luma_height + b64_size - 1) / b64_size;
+    uint16_t picture_b64_width  = (encoding_width + b64_size - 1) / b64_size;
+    uint16_t picture_b64_height = (encoding_height + b64_size - 1) / b64_size;
     //free old one;
     EB_FREE_ARRAY(scs->b64_geom);
     EB_MALLOC_ARRAY(scs->b64_geom, picture_b64_width * picture_b64_height);
 
     for (b64_idx = 0; b64_idx < picture_b64_width * picture_b64_height; ++b64_idx) {
         B64Geom *b64_geom         = &scs->b64_geom[b64_idx];
-        uint8_t  horizontal_index = (uint8_t)(b64_idx % picture_b64_width);
-        uint8_t  vertical_index   = (uint8_t)(b64_idx / picture_b64_width);
+        uint16_t horizontal_index = (uint16_t)(b64_idx % picture_b64_width);
+        uint16_t vertical_index   = (uint16_t)(b64_idx / picture_b64_width);
         b64_geom->org_x           = horizontal_index * b64_size;
         b64_geom->org_y           = vertical_index * b64_size;
+        b64_geom->width           = (uint8_t)MIN(encoding_width - b64_geom->org_x, b64_size);
+        b64_geom->height          = (uint8_t)MIN(encoding_height - b64_geom->org_y, b64_size);
+        b64_geom->is_complete_b64 = (b64_geom->width == b64_size && b64_geom->height == b64_size) ? 1 : 0;
 
-        b64_geom->width = (uint8_t)(((scs->max_input_luma_width - b64_geom->org_x) < b64_size)
-                                        ? scs->max_input_luma_width - b64_geom->org_x
-                                        : b64_size);
-
-        b64_geom->height = (uint8_t)(((scs->max_input_luma_height - b64_geom->org_y) < b64_size)
-                                         ? scs->max_input_luma_height - b64_geom->org_y
-                                         : b64_size);
-
-        b64_geom->is_complete_b64 = (uint8_t)(((b64_geom->width == b64_size) && (b64_geom->height == b64_size)) ? 1
-                                                                                                                : 0);
-
-        for (raster_scan_blk_index = RASTER_SCAN_CU_INDEX_64x64; raster_scan_blk_index <= RASTER_SCAN_CU_INDEX_8x8_63;
-             raster_scan_blk_index++) {
-            b64_geom->raster_scan_blk_validity[raster_scan_blk_index] =
-                ((b64_geom->org_x + raster_scan_blk_x[raster_scan_blk_index] +
-                      raster_scan_blk_size[raster_scan_blk_index] >
-                  scs->max_input_luma_width) ||
-                 (b64_geom->org_y + raster_scan_blk_y[raster_scan_blk_index] +
-                      raster_scan_blk_size[raster_scan_blk_index] >
-                  scs->max_input_luma_height))
+        for (i = RASTER_SCAN_CU_INDEX_64x64; i <= RASTER_SCAN_CU_INDEX_8x8_63; i++) {
+            b64_geom->raster_scan_blk_validity[i] =
+                ((b64_geom->org_x + raster_scan_blk_x[i] + raster_scan_blk_size[i] > encoding_width) ||
+                 (b64_geom->org_y + raster_scan_blk_y[i] + raster_scan_blk_size[i] > encoding_height))
                 ? false
                 : true;
         }
