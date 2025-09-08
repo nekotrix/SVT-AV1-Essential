@@ -1204,6 +1204,10 @@ EbErrorType me_update_param(MotionEstimationData *me_data, struct SequenceContro
 EbErrorType recon_coef_update_param(EncDecSet *recon_coef, struct SequenceControlSet *scs);
 extern bool svt_aom_is_pic_skipped(PictureParentControlSet *pcs);
 void svt_aom_get_gm_needed_resolutions(uint8_t ds_lvl, bool *gm_need_full, bool *gm_need_quart, bool *gm_need_sixteen);
+
+EbErrorType b64_geom_init(struct SequenceControlSet *scs, uint16_t width, uint16_t height, B64Geom **b64_geoms);
+EbErrorType sb_geom_init(struct SequenceControlSet *scs, uint16_t width, uint16_t height, SbGeom **sb_geoms);
+
 #ifdef __cplusplus
 }
 #endif

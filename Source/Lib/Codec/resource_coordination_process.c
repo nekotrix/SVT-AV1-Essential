@@ -951,8 +951,16 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             const uint32_t input_size = scs->max_input_luma_width * scs->max_input_luma_height;
             svt_aom_derive_input_resolution(&scs->input_resolution, input_size);
 
-            svt_aom_b64_geom_init(scs);
-            svt_aom_sb_geom_init(scs);
+            scs->pic_width_in_b64  = DIVIDE_AND_CEIL(scs->max_input_luma_width, scs->b64_size);
+            scs->pic_height_in_b64 = DIVIDE_AND_CEIL(scs->max_input_luma_height, scs->b64_size);
+            scs->b64_total_count   = scs->pic_width_in_b64 * scs->pic_height_in_b64;
+
+            scs->picture_width_in_sb  = DIVIDE_AND_CEIL(scs->max_input_luma_width, scs->sb_size);
+            scs->picture_height_in_sb = DIVIDE_AND_CEIL(scs->max_input_luma_height, scs->sb_size);
+            scs->sb_total_count       = scs->picture_width_in_sb * scs->picture_height_in_sb;
+
+            b64_geom_init(scs, scs->max_input_luma_width, scs->max_input_luma_height, &scs->b64_geom);
+            sb_geom_init(scs, scs->max_input_luma_width, scs->max_input_luma_height, &scs->sb_geom);
 
             // sf_identity
             svt_av1_setup_scale_factors_for_frame(&scs->sf_identity,

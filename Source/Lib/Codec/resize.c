@@ -1315,10 +1315,6 @@ EbErrorType svt_aom_downscaled_source_buffer_desc_ctor(EbPictureBufferDesc **pic
     return EB_ErrorNone;
 }
 
-EbErrorType sb_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *pcs);
-
-EbErrorType b64_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *pcs);
-
 /*
  * Get the index of downscaled input pictures or reference pictures in 2D array
  * from super-res or resize denominator, the index starts from 0 (denom 8, unscaled)
@@ -1385,8 +1381,8 @@ void scale_pcs_params(SequenceControlSet *scs, PictureParentControlSet *pcs, sup
     svt_aom_derive_input_resolution(&pcs->input_resolution, spr_params.encoding_width * spr_params.encoding_height);
 
     // create new picture level sb_params and sb_geom
-    b64_geom_init_pcs(scs, pcs);
-    sb_geom_init_pcs(scs, pcs);
+    b64_geom_init(scs, pcs->aligned_width, pcs->aligned_height, &pcs->b64_geom);
+    sb_geom_init(scs, pcs->aligned_width, pcs->aligned_height, &pcs->sb_geom);
 
     if (pcs->frame_superres_enabled == true || pcs->frame_resize_enabled == true) {
         pcs->frm_hdr.use_ref_frame_mvs = 0;

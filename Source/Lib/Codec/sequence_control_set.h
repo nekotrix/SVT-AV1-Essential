@@ -149,6 +149,8 @@ typedef struct SequenceControlSet {
     uint16_t pic_height_in_b64;
     uint16_t b64_total_count;
     uint16_t sb_size;
+    uint16_t picture_width_in_sb;
+    uint16_t picture_height_in_sb;
     uint16_t sb_total_count;
     uint16_t max_block_cnt;
     /*!< Restoration Unit parameters set for the stream */
@@ -320,13 +322,9 @@ typedef struct EbSequenceControlSetInstance {
      **************************************/
 extern EbErrorType svt_sequence_control_set_instance_ctor(EbSequenceControlSetInstance *object_ptr);
 
-extern EbErrorType svt_aom_b64_geom_init(SequenceControlSet *scs);
-
 extern EbErrorType svt_aom_derive_input_resolution(EbInputResolution *input_resolution, uint32_t input_size);
 extern EbErrorType copy_sequence_control_set(SequenceControlSet *dst, SequenceControlSet *src);
 extern EbErrorType svt_aom_scs_set_creator(EbPtr *object_dbl_ptr, EbPtr object_init_data_ptr);
-
-EbErrorType svt_aom_sb_geom_init(SequenceControlSet *scs);
 
 #ifdef __cplusplus
 }
