@@ -279,15 +279,8 @@ static EbErrorType recon_coef_ctor(EncDecSet *object_ptr, EbPtr object_init_data
 
     EbPictureBufferDescInitData input_pic_buf_desc_init_data;
 
-    // Max/Min CU Sizes
-
-    // SBs
-    const uint16_t picture_sb_width  = (uint16_t)((init_data_ptr->picture_width + init_data_ptr->b64_size - 1) /
-                                                 init_data_ptr->b64_size);
-    const uint16_t picture_sb_height = (uint16_t)((init_data_ptr->picture_height + init_data_ptr->b64_size - 1) /
-                                                  init_data_ptr->b64_size);
-    uint16_t       sb_index;
-    bool           is_16bit = init_data_ptr->bit_depth > 8 ? true : false;
+    uint16_t sb_index;
+    bool     is_16bit = init_data_ptr->bit_depth > 8 ? true : false;
 
     //object_ptr->tile_row_count  = init_data_ptr->tile_row_count;
     //object_ptr->tile_column_count = init_data_ptr->tile_column_count;
@@ -332,9 +325,11 @@ static EbErrorType recon_coef_ctor(EncDecSet *object_ptr, EbPtr object_init_data
     }
 
     // SB Array
-    // object_ptr->sb_total_count          = picture_sb_width * picture_sb_height;
-    object_ptr->b64_total_count      = picture_sb_width * picture_sb_height;
-    object_ptr->init_b64_total_count = object_ptr->b64_total_count;
+    const uint16_t picture_b64_width = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_width, init_data_ptr->b64_size);
+    const uint16_t picture_b64_height = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_height,
+                                                                  init_data_ptr->b64_size);
+    object_ptr->b64_total_count       = picture_b64_width * picture_b64_height;
+    object_ptr->init_b64_total_count  = object_ptr->b64_total_count;
     EB_ALLOC_PTR_ARRAY(object_ptr->quantized_coeff, object_ptr->init_b64_total_count);
 
     //object_ptr->sb_total_count_pix = all_sb;
@@ -415,8 +410,8 @@ EbErrorType pcs_update_param(PictureControlSet *pcs) {
     sb_origin_x          = 0;
     sb_origin_y          = 0;
 
-    const uint16_t picture_sb_w = (uint16_t)((scs->max_input_luma_width + scs->sb_size - 1) / scs->sb_size);
-    const uint16_t picture_sb_h = (uint16_t)((scs->max_input_luma_height + scs->sb_size - 1) / scs->sb_size);
+    const uint16_t picture_sb_w = (uint16_t)DIVIDE_AND_CEIL(scs->max_input_luma_width, scs->sb_size);
+    const uint16_t picture_sb_h = (uint16_t)DIVIDE_AND_CEIL(scs->max_input_luma_height, scs->sb_size);
     const uint16_t all_sb       = picture_sb_w * picture_sb_h;
     pcs->sb_total_count         = scs->sb_total_count;
 
@@ -451,11 +446,6 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
 
     // Max/Min CU Sizes
     const uint32_t max_blk_size = init_data_ptr->sb_size;
-    // SBs
-    const uint16_t picture_sb_width  = (uint16_t)((init_data_ptr->picture_width + init_data_ptr->b64_size - 1) /
-                                                 init_data_ptr->b64_size);
-    const uint16_t picture_sb_height = (uint16_t)((init_data_ptr->picture_height + init_data_ptr->b64_size - 1) /
-                                                  init_data_ptr->b64_size);
     uint16_t       sb_index;
     uint16_t       sb_origin_x;
     uint16_t       sb_origin_y;
@@ -536,8 +526,11 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     object_ptr->temporal_layer_index = 0;
 
     // SB Array
-    object_ptr->b64_total_count      = picture_sb_width * picture_sb_height;
-    object_ptr->init_b64_total_count = object_ptr->b64_total_count;
+    const uint16_t picture_b64_width = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_width, init_data_ptr->b64_size);
+    const uint16_t picture_b64_height = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_height,
+                                                                  init_data_ptr->b64_size);
+    object_ptr->b64_total_count       = picture_b64_width * picture_b64_height;
+    object_ptr->init_b64_total_count  = object_ptr->b64_total_count;
     EB_MALLOC_ARRAY(object_ptr->sb_intra, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->sb_skip, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->sb_64x64_mvp, object_ptr->init_b64_total_count);
@@ -547,10 +540,8 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     sb_origin_x = 0;
     sb_origin_y = 0;
 
-    const uint16_t picture_sb_w = (uint16_t)((init_data_ptr->picture_width + init_data_ptr->sb_size - 1) /
-                                             init_data_ptr->sb_size);
-    const uint16_t picture_sb_h = (uint16_t)((init_data_ptr->picture_height + init_data_ptr->sb_size - 1) /
-                                             init_data_ptr->sb_size);
+    const uint16_t picture_sb_w = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_width, init_data_ptr->sb_size);
+    const uint16_t picture_sb_h = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_height, init_data_ptr->sb_size);
     const uint16_t all_sb       = picture_sb_w * picture_sb_h;
 
     object_ptr->sb_total_count          = all_sb;
@@ -1041,12 +1032,10 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
 
     EB_CREATE_MUTEX(object_ptr->cdef_search_mutex);
 
-    //object_ptr->mse_seg[0] = (uint64_t(*)[64])svt_aom_malloc(sizeof(**object_ptr->mse_seg) *  picture_sb_width * picture_sb_height);
-    // object_ptr->mse_seg[1] = (uint64_t(*)[64])svt_aom_malloc(sizeof(**object_ptr->mse_seg) *  picture_sb_width * picture_sb_height);
-    EB_MALLOC_ARRAY(object_ptr->mse_seg[0], picture_sb_width * picture_sb_height);
-    EB_MALLOC_ARRAY(object_ptr->mse_seg[1], picture_sb_width * picture_sb_height);
-    EB_MALLOC_ARRAY(object_ptr->skip_cdef_seg, picture_sb_width * picture_sb_height);
-    EB_MALLOC_ARRAY(object_ptr->cdef_dir_data, picture_sb_width * picture_sb_height);
+    EB_MALLOC_ARRAY(object_ptr->mse_seg[0], object_ptr->b64_total_count);
+    EB_MALLOC_ARRAY(object_ptr->mse_seg[1], object_ptr->b64_total_count);
+    EB_MALLOC_ARRAY(object_ptr->skip_cdef_seg, object_ptr->b64_total_count);
+    EB_MALLOC_ARRAY(object_ptr->cdef_dir_data, object_ptr->b64_total_count);
     EB_CREATE_MUTEX(object_ptr->rest_search_mutex);
 
     //the granularity is 4x4
@@ -1238,13 +1227,10 @@ EbErrorType ppcs_update_param(PictureParentControlSet *ppcs) {
 }
 static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *object_ptr, EbPtr object_init_data_ptr) {
     PictureControlSetInitData *init_data_ptr = (PictureControlSetInitData *)object_init_data_ptr;
-    EbErrorType                return_error  = EB_ErrorNone;
-    const uint16_t picture_sb_width          = (uint16_t)((init_data_ptr->picture_width + init_data_ptr->b64_size - 1) /
-                                                 init_data_ptr->b64_size);
-    const uint16_t picture_sb_height = (uint16_t)((init_data_ptr->picture_height + init_data_ptr->b64_size - 1) /
-                                                  init_data_ptr->b64_size);
-    const uint16_t subsampling_x     = (init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
-    const uint16_t subsampling_y     = (init_data_ptr->color_format >= EB_YUV422 ? 0 : 1);
+
+    EbErrorType    return_error  = EB_ErrorNone;
+    const uint16_t subsampling_x = (init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
+    const uint16_t subsampling_y = (init_data_ptr->color_format >= EB_YUV422 ? 0 : 1);
 
     object_ptr->dctor = picture_parent_control_set_dctor;
 
@@ -1279,8 +1265,12 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
     object_ptr->temporal_layer_index = 0;
     object_ptr->total_num_bits       = 0;
     object_ptr->last_idr_picture     = 0;
-    object_ptr->b64_total_count      = picture_sb_width * picture_sb_height;
     object_ptr->is_pcs_sb_params     = false;
+
+    const uint16_t picture_b64_width = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_width, init_data_ptr->b64_size);
+    const uint16_t picture_b64_height = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_height,
+                                                                  init_data_ptr->b64_size);
+    object_ptr->b64_total_count       = picture_b64_width * picture_b64_height;
 
     if (init_data_ptr->calculate_variance) {
         uint8_t block_count;
@@ -1336,7 +1326,7 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
                init_data_ptr->enc_dec_segment_col,
                init_data_ptr->enc_dec_segment_row);
     }
-    object_ptr->av1_cm->mi_stride = picture_sb_width * (BLOCK_SIZE_64 / 4);
+    object_ptr->av1_cm->mi_stride = picture_b64_width * (BLOCK_SIZE_64 / 4);
 
     EB_MALLOC_ARRAY(object_ptr->av1_cm->frame_to_show, 1);
 
@@ -1433,17 +1423,17 @@ EbErrorType me_update_param(MotionEstimationData *me_data, SequenceControlSet *s
 }
 static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_data_ptr) {
     PictureControlSetInitData *init_data_ptr = (PictureControlSetInitData *)object_init_data_ptr;
-    EbErrorType                return_error  = EB_ErrorNone;
-    const uint16_t picture_sb_width          = (uint16_t)((init_data_ptr->picture_width + init_data_ptr->b64_size - 1) /
-                                                 init_data_ptr->b64_size);
-    const uint16_t picture_sb_height = (uint16_t)((init_data_ptr->picture_height + init_data_ptr->b64_size - 1) /
-                                                  init_data_ptr->b64_size);
 
-    uint16_t sb_index;
-    object_ptr->dctor                = me_dctor;
-    uint32_t sb_total_count          = picture_sb_width * picture_sb_height;
-    object_ptr->b64_total_count      = sb_total_count;
-    object_ptr->init_b64_total_count = sb_total_count;
+    EbErrorType return_error = EB_ErrorNone;
+    uint16_t    sb_index;
+    object_ptr->dctor = me_dctor;
+
+    const uint16_t picture_b64_width = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_width, init_data_ptr->b64_size);
+    const uint16_t picture_b64_height = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_height,
+                                                                  init_data_ptr->b64_size);
+    uint32_t       sb_total_count     = picture_b64_width * picture_b64_height;
+    object_ptr->b64_total_count       = sb_total_count;
+    object_ptr->init_b64_total_count  = sb_total_count;
 
     EB_ALLOC_PTR_ARRAY(object_ptr->me_results, sb_total_count);
 
@@ -1505,8 +1495,8 @@ EbErrorType b64_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *
     uint16_t    encoding_height = pcs->aligned_height;
     uint8_t     b64_size        = scs->b64_size;
 
-    uint16_t picture_b64_width  = (encoding_width + b64_size - 1) / b64_size;
-    uint16_t picture_b64_height = (encoding_height + b64_size - 1) / b64_size;
+    uint16_t picture_b64_width  = DIVIDE_AND_CEIL(encoding_width, b64_size);
+    uint16_t picture_b64_height = DIVIDE_AND_CEIL(encoding_height, b64_size);
 
     EB_FREE_ARRAY(pcs->b64_geom);
     EB_MALLOC_ARRAY(pcs->b64_geom, picture_b64_width * picture_b64_height);
@@ -1540,8 +1530,8 @@ EbErrorType sb_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *p
     uint16_t encoding_width  = pcs->aligned_width;
     uint16_t encoding_height = pcs->aligned_height;
 
-    uint16_t picture_sb_width  = (encoding_width + scs->sb_size - 1) / scs->sb_size;
-    uint16_t picture_sb_height = (encoding_height + scs->sb_size - 1) / scs->sb_size;
+    uint16_t picture_sb_width  = DIVIDE_AND_CEIL(encoding_width, scs->sb_size);
+    uint16_t picture_sb_height = DIVIDE_AND_CEIL(encoding_height, scs->sb_size);
 
     EB_FREE_ARRAY(pcs->sb_geom);
     EB_MALLOC_ARRAY(pcs->sb_geom, picture_sb_width * picture_sb_height);
