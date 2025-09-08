@@ -2091,16 +2091,15 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
         int mi_row = ctx->blk_org_y >> 2;
         int mi_col = ctx->blk_org_x >> 2;
 
-        DECLARE_ALIGNED(16, uint8_t, junk_2b[6 * MAX_MB_PLANE * MAX_SB_SQUARE]);
+        DECLARE_ALIGNED(16, uint8_t, dst_buf1_8b[4 * MAX_MB_PLANE * MAX_SB_SQUARE]);
 
-        uint8_t *dst_buf1_8b = junk_2b + 2 * MAX_MB_PLANE * MAX_SB_SQUARE,
-                *dst_buf2_8b = junk_2b + 4 * MAX_MB_PLANE * MAX_SB_SQUARE;
+        uint8_t *dst_buf2_8b = dst_buf1_8b + 2 * MAX_MB_PLANE * MAX_SB_SQUARE;
         if (ctx->obmc_is_luma_neigh_10bit) {
             svt_aom_un_pack2d((uint16_t *)ctx->obmc_buff_0,
                               ctx->blk_geom->bwidth,
                               dst_buf1_8b,
                               ctx->blk_geom->bwidth,
-                              junk_2b,
+                              NULL,
                               ctx->blk_geom->bwidth,
                               ctx->blk_geom->bwidth,
                               ctx->blk_geom->bheight);
@@ -2109,7 +2108,7 @@ uint8_t svt_aom_obmc_motion_refinement(PictureControlSet *pcs, struct ModeDecisi
                               ctx->blk_geom->bwidth,
                               dst_buf2_8b,
                               ctx->blk_geom->bwidth,
-                              junk_2b,
+                              NULL,
                               ctx->blk_geom->bwidth,
                               ctx->blk_geom->bwidth,
                               ctx->blk_geom->bheight);
