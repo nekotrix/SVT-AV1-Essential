@@ -1512,11 +1512,11 @@ EbErrorType b64_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *
     EB_MALLOC_ARRAY(pcs->b64_geom, picture_b64_width * picture_b64_height);
 
     for (b64_idx = 0; b64_idx < picture_b64_width * picture_b64_height; ++b64_idx) {
-        B64Geom *b64_geom          = &pcs->b64_geom[b64_idx];
-        b64_geom->horizontal_index = (uint8_t)(b64_idx % picture_b64_width);
-        b64_geom->vertical_index   = (uint8_t)(b64_idx / picture_b64_width);
-        b64_geom->org_x            = b64_geom->horizontal_index * b64_size;
-        b64_geom->org_y            = b64_geom->vertical_index * b64_size;
+        B64Geom *b64_geom         = &pcs->b64_geom[b64_idx];
+        uint8_t  horizontal_index = (uint8_t)(b64_idx % picture_b64_width);
+        uint8_t  vertical_index   = (uint8_t)(b64_idx / picture_b64_width);
+        b64_geom->org_x           = horizontal_index * b64_size;
+        b64_geom->org_y           = vertical_index * b64_size;
 
         b64_geom->width = (uint8_t)(((encoding_width - b64_geom->org_x) < b64_size) ? encoding_width - b64_geom->org_x
                                                                                     : b64_size);
@@ -1527,11 +1527,6 @@ EbErrorType b64_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *
 
         b64_geom->is_complete_b64 = (uint8_t)(((b64_geom->width == b64_size) && (b64_geom->height == b64_size)) ? 1
                                                                                                                 : 0);
-
-        b64_geom->is_edge_sb = (b64_geom->org_x < b64_size) || (b64_geom->org_y < b64_size) ||
-                (b64_geom->org_x > encoding_width - b64_size) || (b64_geom->org_y > encoding_height - b64_size)
-            ? 1
-            : 0;
 
         for (raster_scan_blk_index = RASTER_SCAN_CU_INDEX_64x64; raster_scan_blk_index <= RASTER_SCAN_CU_INDEX_8x8_63;
              raster_scan_blk_index++) {
@@ -1545,12 +1540,6 @@ EbErrorType b64_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *
                 ? false
                 : true;
         }
-
-        // super-res can not work with multi-tiles, just set up it for no tiling
-        b64_geom->tile_start_x = 0;
-        b64_geom->tile_start_y = 0;
-        b64_geom->tile_end_x   = encoding_width;
-        b64_geom->tile_end_y   = encoding_height;
     }
 
     return return_error;
@@ -1570,11 +1559,11 @@ EbErrorType sb_geom_init_pcs(SequenceControlSet *scs, PictureParentControlSet *p
     EB_MALLOC_ARRAY(pcs->sb_geom, picture_sb_width * picture_sb_height);
 
     for (sb_index = 0; sb_index < picture_sb_width * picture_sb_height; ++sb_index) {
-        SbGeom *sb_geom           = &pcs->sb_geom[sb_index];
-        sb_geom->horizontal_index = sb_index % picture_sb_width;
-        sb_geom->vertical_index   = sb_index / picture_sb_width;
-        sb_geom->org_x            = sb_geom->horizontal_index * scs->sb_size;
-        sb_geom->org_y            = sb_geom->vertical_index * scs->sb_size;
+        SbGeom  *sb_geom          = &pcs->sb_geom[sb_index];
+        uint16_t horizontal_index = sb_index % picture_sb_width;
+        uint16_t vertical_index   = sb_index / picture_sb_width;
+        sb_geom->org_x            = horizontal_index * scs->sb_size;
+        sb_geom->org_y            = vertical_index * scs->sb_size;
         sb_geom->width            = (uint8_t)MIN(encoding_width - sb_geom->org_x, scs->sb_size);
         sb_geom->height           = (uint8_t)MIN(encoding_height - sb_geom->org_y, scs->sb_size);
         sb_geom->is_complete_sb   = (sb_geom->width == scs->sb_size && sb_geom->height == scs->sb_size) ? 1 : 0;

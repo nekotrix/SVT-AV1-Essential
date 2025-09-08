@@ -378,24 +378,15 @@ typedef struct PictureControlSet {
 // To optimize based on the max input size
 // To study speed-memory trade-offs
 typedef struct B64Geom {
-    uint8_t  horizontal_index;
-    uint8_t  vertical_index;
     uint16_t org_x;
     uint16_t org_y;
     uint8_t  width;
     uint8_t  height;
     uint8_t  is_complete_b64;
     bool     raster_scan_blk_validity[CU_MAX_COUNT];
-    uint8_t  is_edge_sb;
-    uint32_t tile_start_x;
-    uint32_t tile_start_y;
-    uint32_t tile_end_x;
-    uint32_t tile_end_y;
 } B64Geom;
 
 typedef struct SbGeom {
-    uint16_t horizontal_index;
-    uint16_t vertical_index;
     uint16_t org_x;
     uint16_t org_y;
     uint8_t  width;

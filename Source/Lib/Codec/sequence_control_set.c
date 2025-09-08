@@ -169,11 +169,11 @@ extern EbErrorType svt_aom_b64_geom_init(SequenceControlSet *scs) {
     EB_MALLOC_ARRAY(scs->b64_geom, picture_b64_width * picture_b64_height);
 
     for (b64_idx = 0; b64_idx < picture_b64_width * picture_b64_height; ++b64_idx) {
-        B64Geom *b64_geom          = &scs->b64_geom[b64_idx];
-        b64_geom->horizontal_index = (uint8_t)(b64_idx % picture_b64_width);
-        b64_geom->vertical_index   = (uint8_t)(b64_idx / picture_b64_width);
-        b64_geom->org_x            = b64_geom->horizontal_index * b64_size;
-        b64_geom->org_y            = b64_geom->vertical_index * b64_size;
+        B64Geom *b64_geom         = &scs->b64_geom[b64_idx];
+        uint8_t  horizontal_index = (uint8_t)(b64_idx % picture_b64_width);
+        uint8_t  vertical_index   = (uint8_t)(b64_idx / picture_b64_width);
+        b64_geom->org_x           = horizontal_index * b64_size;
+        b64_geom->org_y           = vertical_index * b64_size;
 
         b64_geom->width = (uint8_t)(((scs->max_input_luma_width - b64_geom->org_x) < b64_size)
                                         ? scs->max_input_luma_width - b64_geom->org_x
@@ -185,12 +185,6 @@ extern EbErrorType svt_aom_b64_geom_init(SequenceControlSet *scs) {
 
         b64_geom->is_complete_b64 = (uint8_t)(((b64_geom->width == b64_size) && (b64_geom->height == b64_size)) ? 1
                                                                                                                 : 0);
-
-        b64_geom->is_edge_sb = (b64_geom->org_x < b64_size) || (b64_geom->org_y < b64_size) ||
-                (b64_geom->org_x > scs->max_input_luma_width - b64_size) ||
-                (b64_geom->org_y > scs->max_input_luma_height - b64_size)
-            ? 1
-            : 0;
 
         for (raster_scan_blk_index = RASTER_SCAN_CU_INDEX_64x64; raster_scan_blk_index <= RASTER_SCAN_CU_INDEX_8x8_63;
              raster_scan_blk_index++) {
@@ -231,11 +225,11 @@ EbErrorType svt_aom_sb_geom_init(SequenceControlSet *scs) {
     rtime_alloc_sb_geom(scs, picture_sb_width * picture_sb_height);
 
     for (sb_index = 0; sb_index < picture_sb_width * picture_sb_height; ++sb_index) {
-        SbGeom *sb_geom           = &scs->sb_geom[sb_index];
-        sb_geom->horizontal_index = sb_index % picture_sb_width;
-        sb_geom->vertical_index   = sb_index / picture_sb_width;
-        sb_geom->org_x            = sb_geom->horizontal_index * scs->sb_size;
-        sb_geom->org_y            = sb_geom->vertical_index * scs->sb_size;
+        SbGeom  *sb_geom          = &scs->sb_geom[sb_index];
+        uint16_t horizontal_index = sb_index % picture_sb_width;
+        uint16_t vertical_index   = sb_index / picture_sb_width;
+        sb_geom->org_x            = horizontal_index * scs->sb_size;
+        sb_geom->org_y            = vertical_index * scs->sb_size;
         sb_geom->width            = (uint8_t)MIN(encoding_width - sb_geom->org_x, scs->sb_size);
         sb_geom->height           = (uint8_t)MIN(encoding_height - sb_geom->org_y, scs->sb_size);
         sb_geom->is_complete_sb   = (sb_geom->width == scs->sb_size && sb_geom->height == scs->sb_size) ? 1 : 0;
