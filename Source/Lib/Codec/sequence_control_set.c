@@ -171,7 +171,7 @@ EbErrorType copy_sequence_control_set(SequenceControlSet *dst, SequenceControlSe
     memcpy(dst->b64_geom, src->b64_geom, sizeof(B64Geom) * dst->b64_total_count);
 
     // allocate buffers and copy data preserving dst pointers
-    alloc_sb_geoms(&dst->sb_geom, dst->sb_total_count, dst->max_block_cnt);
+    alloc_sb_geoms(&dst->sb_geom, dst->picture_width_in_sb, dst->picture_height_in_sb, dst->max_block_cnt);
     memcpy(dst->sb_geom[0].block_is_allowed,
            src->sb_geom[0].block_is_allowed,
            sizeof(dst->sb_geom[0].block_is_allowed[0]) * dst->sb_total_count * dst->max_block_cnt);

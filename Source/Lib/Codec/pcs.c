@@ -1507,6 +1507,9 @@ EbErrorType b64_geom_init(SequenceControlSet *scs, uint16_t width, uint16_t heig
         b64_geom->height          = (uint8_t)MIN(height - b64_geom->org_y, b64_size);
         b64_geom->is_complete_b64 = (b64_geom->width == b64_size && b64_geom->height == b64_size) ? 1 : 0;
 
+        // b64_geom->raster_scan_blk_validity is only used when this condition is true:
+        // if (scs->in_loop_ois == 0 && pcs->tpl_ctrls.enable)
+        // while today scs->in_loop_ois is always set to 1 in set_param_based_on_input()
         for (int i = RASTER_SCAN_CU_INDEX_64x64; i <= RASTER_SCAN_CU_INDEX_8x8_63; i++) {
             b64_geom->raster_scan_blk_validity[i] =
                 ((b64_geom->org_x + raster_scan_blk_x[i] + raster_scan_blk_size[i] > width) ||
@@ -1519,13 +1522,30 @@ EbErrorType b64_geom_init(SequenceControlSet *scs, uint16_t width, uint16_t heig
     return return_error;
 }
 
-EbErrorType alloc_sb_geoms(SbGeom **geom, int count, int num_blocks) {
+EbErrorType alloc_sb_geoms(SbGeom **geom, int width, int height, int num_blocks) {
     SbGeom *tmp;
-    EB_MALLOC_ARRAY(tmp, count);
-    EB_MALLOC_ARRAY(tmp[0].block_is_allowed, count * num_blocks);
+    EB_MALLOC_ARRAY(tmp, width * height);
+    // allocate 1 for complete blocks and (width + height - 1) for edges
+    EB_MALLOC_ARRAY(tmp[0].block_is_allowed, (width + height - 1 + 1) * num_blocks);
 
     // buffer is allocated on first entry, other SBs are pointing into that buffer
-    for (int i = 1; i < count; i++) { tmp[i].block_is_allowed = &tmp[0].block_is_allowed[i * num_blocks]; }
+    // [ complete_block, right_edge[0], ..., right_edge[N], bottom_edge[0], ..., bottom_edge[M-1]]
+    int right_edge_idx  = 1;
+    int bottom_edge_idx = right_edge_idx + height;
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < width; i++) {
+            if (i == 0 && j == 0) {
+                // first block must point to buffer start, so we don't leak
+            } else if (i == width - 1) {
+                tmp[width * j + i].block_is_allowed = tmp[0].block_is_allowed + num_blocks * (j + right_edge_idx);
+            } else if (j == height - 1) {
+                tmp[width * j + i].block_is_allowed = tmp[0].block_is_allowed + num_blocks * (i + bottom_edge_idx);
+            } else {
+                // complete blocks all point to same buffer
+                tmp[width * j + i].block_is_allowed = tmp[0].block_is_allowed;
+            }
+        }
+    }
 
     *geom = tmp;
 
@@ -1545,17 +1565,24 @@ EbErrorType sb_geom_init(SequenceControlSet *scs, uint16_t width, uint16_t heigh
     uint16_t max_block_count   = scs->max_block_cnt;
 
     free_sb_geoms(*sb_geoms);
-    alloc_sb_geoms(sb_geoms, picture_sb_width * picture_sb_height, max_block_count);
+    alloc_sb_geoms(sb_geoms, picture_sb_width, picture_sb_height, max_block_count);
 
     for (int sb_index = 0; sb_index < picture_sb_width * picture_sb_height; ++sb_index) {
-        SbGeom  *sb_geom          = &(*sb_geoms)[sb_index];
-        uint16_t horizontal_index = sb_index % picture_sb_width;
-        uint16_t vertical_index   = sb_index / picture_sb_width;
-        sb_geom->org_x            = horizontal_index * scs->sb_size;
-        sb_geom->org_y            = vertical_index * scs->sb_size;
-        sb_geom->width            = (uint8_t)MIN(width - sb_geom->org_x, scs->sb_size);
-        sb_geom->height           = (uint8_t)MIN(height - sb_geom->org_y, scs->sb_size);
-        sb_geom->is_complete_sb   = (sb_geom->width == scs->sb_size && sb_geom->height == scs->sb_size) ? 1 : 0;
+        SbGeom  *sb_geom        = &(*sb_geoms)[sb_index];
+        uint16_t hor_index      = sb_index % picture_sb_width;
+        uint16_t ver_index      = sb_index / picture_sb_width;
+        sb_geom->org_x          = hor_index * scs->sb_size;
+        sb_geom->org_y          = ver_index * scs->sb_size;
+        sb_geom->width          = (uint8_t)MIN(width - sb_geom->org_x, scs->sb_size);
+        sb_geom->height         = (uint8_t)MIN(height - sb_geom->org_y, scs->sb_size);
+        sb_geom->is_complete_sb = (sb_geom->width == scs->sb_size && sb_geom->height == scs->sb_size) ? 1 : 0;
+
+        if (sb_index == 0 || hor_index == picture_sb_width - 1 || ver_index == picture_sb_height - 1) {
+            // we only should process these blocks
+        } else {
+            // rest of blocks must be complete and hence have same availability as (0,0) block
+            assert(sb_geom->is_complete_sb);
+        }
 
         for (int md_scan_block_index = 0; md_scan_block_index < max_block_count; md_scan_block_index++) {
             const BlockGeom *blk_geom    = get_blk_geom_mds(md_scan_block_index);

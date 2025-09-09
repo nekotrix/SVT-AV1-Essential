@@ -1207,7 +1207,7 @@ void svt_aom_get_gm_needed_resolutions(uint8_t ds_lvl, bool *gm_need_full, bool 
 
 EbErrorType b64_geom_init(struct SequenceControlSet *scs, uint16_t width, uint16_t height, B64Geom **b64_geoms);
 EbErrorType sb_geom_init(struct SequenceControlSet *scs, uint16_t width, uint16_t height, SbGeom **sb_geoms);
-EbErrorType alloc_sb_geoms(SbGeom **geom, int count, int num_blocks);
+EbErrorType alloc_sb_geoms(SbGeom **geom, int width, int height, int num_blocks);
 void        free_sb_geoms(SbGeom *geom);
 
 #ifdef __cplusplus
