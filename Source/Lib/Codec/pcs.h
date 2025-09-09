@@ -392,7 +392,7 @@ typedef struct SbGeom {
     uint8_t  width;
     uint8_t  height;
     uint8_t  is_complete_sb;
-    bool     block_is_allowed[BLOCK_MAX_COUNT_SB_128];
+    bool    *block_is_allowed;
 } SbGeom;
 
 typedef struct TileGroupInfo {
@@ -1207,6 +1207,8 @@ void svt_aom_get_gm_needed_resolutions(uint8_t ds_lvl, bool *gm_need_full, bool 
 
 EbErrorType b64_geom_init(struct SequenceControlSet *scs, uint16_t width, uint16_t height, B64Geom **b64_geoms);
 EbErrorType sb_geom_init(struct SequenceControlSet *scs, uint16_t width, uint16_t height, SbGeom **sb_geoms);
+EbErrorType alloc_sb_geoms(SbGeom **geom, int count, int num_blocks);
+void        free_sb_geoms(SbGeom *geom);
 
 #ifdef __cplusplus
 }

@@ -26,7 +26,7 @@ static void svt_sequence_control_set_dctor(EbPtr p) {
     if (!obj)
         return;
     EB_FREE_ARRAY(obj->b64_geom);
-    EB_FREE_ARRAY(obj->sb_geom);
+    free_sb_geoms(obj->sb_geom);
     free_scale_evts(&obj->static_config.frame_scale_evts);
 #if FTR_SFRAME_QP
     EB_FREE_ARRAY(obj->static_config.sframe_posi.sframe_qps);
@@ -161,7 +161,7 @@ EbErrorType svt_sequence_control_set_instance_ctor(EbSequenceControlSetInstance 
  ************************************************/
 EbErrorType copy_sequence_control_set(SequenceControlSet *dst, SequenceControlSet *src) {
     if (dst->sb_geom != NULL)
-        EB_FREE_ARRAY(dst->sb_geom);
+        free_sb_geoms(dst->sb_geom);
     if (dst->b64_geom != NULL)
         EB_FREE_ARRAY(dst->b64_geom);
     // Copy the non-pointer members
@@ -169,8 +169,18 @@ EbErrorType copy_sequence_control_set(SequenceControlSet *dst, SequenceControlSe
 
     EB_MALLOC_ARRAY(dst->b64_geom, dst->b64_total_count);
     memcpy(dst->b64_geom, src->b64_geom, sizeof(B64Geom) * dst->b64_total_count);
-    EB_MALLOC_ARRAY(dst->sb_geom, dst->sb_total_count);
-    memcpy(dst->sb_geom, src->sb_geom, sizeof(SbGeom) * dst->sb_total_count);
+
+    // allocate buffers and copy data preserving dst pointers
+    alloc_sb_geoms(&dst->sb_geom, dst->sb_total_count, dst->max_block_cnt);
+    memcpy(dst->sb_geom[0].block_is_allowed,
+           src->sb_geom[0].block_is_allowed,
+           sizeof(dst->sb_geom[0].block_is_allowed[0]) * dst->sb_total_count * dst->max_block_cnt);
+    for (int i = 0; i < dst->sb_total_count; i++) {
+        // preserve dynamic pointer
+        bool *block_is_allowed           = dst->sb_geom[i].block_is_allowed;
+        dst->sb_geom[i]                  = src->sb_geom[i];
+        dst->sb_geom[i].block_is_allowed = block_is_allowed;
+    }
 
     if (src->static_config.frame_scale_evts.start_frame_nums) {
         EB_NO_THROW_MALLOC(dst->static_config.frame_scale_evts.start_frame_nums,

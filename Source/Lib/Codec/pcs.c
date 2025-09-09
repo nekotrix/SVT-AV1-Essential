@@ -62,7 +62,7 @@ static void segmentation_map_dctor(EbPtr p) {
 static void svt_pcs_sb_structs_dctor(EbPtr p) {
     PictureParentControlSet *obj = (PictureParentControlSet *)p;
     EB_FREE_ARRAY(obj->b64_geom);
-    EB_FREE_ARRAY(obj->sb_geom);
+    free_sb_geoms(obj->sb_geom);
 }
 
 EbErrorType segmentation_map_ctor(SegmentationNeighborMap *seg_neighbor_map, uint16_t pic_width, uint16_t pic_height) {
@@ -1519,12 +1519,33 @@ EbErrorType b64_geom_init(SequenceControlSet *scs, uint16_t width, uint16_t heig
     return return_error;
 }
 
+EbErrorType alloc_sb_geoms(SbGeom **geom, int count, int num_blocks) {
+    SbGeom *tmp;
+    EB_MALLOC_ARRAY(tmp, count);
+    EB_MALLOC_ARRAY(tmp[0].block_is_allowed, count * num_blocks);
+
+    // buffer is allocated on first entry, other SBs are pointing into that buffer
+    for (int i = 1; i < count; i++) { tmp[i].block_is_allowed = &tmp[0].block_is_allowed[i * num_blocks]; }
+
+    *geom = tmp;
+
+    return EB_ErrorNone;
+}
+
+void free_sb_geoms(SbGeom *geom) {
+    if (geom) {
+        EB_FREE_ARRAY(geom[0].block_is_allowed);
+        EB_FREE_ARRAY(geom);
+    }
+}
+
 EbErrorType sb_geom_init(SequenceControlSet *scs, uint16_t width, uint16_t height, SbGeom **sb_geoms) {
     uint16_t picture_sb_width  = DIVIDE_AND_CEIL(width, scs->sb_size);
     uint16_t picture_sb_height = DIVIDE_AND_CEIL(height, scs->sb_size);
+    uint16_t max_block_count   = scs->max_block_cnt;
 
-    EB_FREE_ARRAY(*sb_geoms);
-    EB_MALLOC_ARRAY(*sb_geoms, picture_sb_width * picture_sb_height);
+    free_sb_geoms(*sb_geoms);
+    alloc_sb_geoms(sb_geoms, picture_sb_width * picture_sb_height, max_block_count);
 
     for (int sb_index = 0; sb_index < picture_sb_width * picture_sb_height; ++sb_index) {
         SbGeom  *sb_geom          = &(*sb_geoms)[sb_index];
@@ -1535,8 +1556,6 @@ EbErrorType sb_geom_init(SequenceControlSet *scs, uint16_t width, uint16_t heigh
         sb_geom->width            = (uint8_t)MIN(width - sb_geom->org_x, scs->sb_size);
         sb_geom->height           = (uint8_t)MIN(height - sb_geom->org_y, scs->sb_size);
         sb_geom->is_complete_sb   = (sb_geom->width == scs->sb_size && sb_geom->height == scs->sb_size) ? 1 : 0;
-
-        uint16_t max_block_count = scs->max_block_cnt;
 
         for (int md_scan_block_index = 0; md_scan_block_index < max_block_count; md_scan_block_index++) {
             const BlockGeom *blk_geom    = get_blk_geom_mds(md_scan_block_index);
