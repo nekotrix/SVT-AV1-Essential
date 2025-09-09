@@ -1799,8 +1799,10 @@ void svt_av1_normalize_sb_delta_q(PictureControlSet *pcs) {
 
     assert(delta_q_res == 2 || delta_q_res == 4 || delta_q_res == 8);
 
-    uint8_t mask              = ~(delta_q_res - 1);
-    uint8_t delta_q_remainder = ppcs_ptr->frm_hdr.quantization_params.base_q_idx & ~mask;
+    const uint8_t mask              = ~(delta_q_res - 1);
+    const uint8_t delta_q_remainder = (ppcs_ptr->frm_hdr.quantization_params.base_q_idx) & ~mask;
+    // Adjustment to push sb qindex toward the nearest multiple of delta_q_res, relative to base_q_idx
+    const int8_t delta_q_adjustment = (delta_q_res - delta_q_remainder) - (delta_q_res / 2);
 
     // super res pictures scaled with different sb count, should use sb_total_count for each picture
     uint16_t sb_cnt = scs->sb_total_count;
@@ -1814,8 +1816,9 @@ void svt_av1_normalize_sb_delta_q(PictureControlSet *pcs) {
 #endif
     for (uint32_t sb_addr = 0; sb_addr < sb_cnt; ++sb_addr) {
         SuperBlock *sb_ptr = pcs->sb_ptr_array[sb_addr];
-
-        uint8_t normalized_q_index = (sb_ptr->qindex & mask) + delta_q_remainder;
+        // Adjust sb_qindex to minimize the difference between its pre- and post-normalization value
+        const uint8_t adjusted_q_index   = CLIP3(1, MAX_Q_INDEX, sb_ptr->qindex + delta_q_adjustment);
+        const uint8_t normalized_q_index = (adjusted_q_index & mask) + delta_q_remainder;
 
         // q_index 0 is lossless, so do not use it when encoding in lossy mode
         sb_ptr->qindex = normalized_q_index == 0 ? delta_q_res : normalized_q_index;
