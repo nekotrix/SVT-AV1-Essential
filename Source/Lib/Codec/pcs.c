@@ -1042,20 +1042,25 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     EB_MALLOC_ARRAY(object_ptr->mi_grid_base,
                     all_sb * (init_data_ptr->sb_size >> MI_SIZE_LOG2) * (init_data_ptr->sb_size >> MI_SIZE_LOG2));
 
-    // If NSQ is allowed, then need a 4x4 MI grid because 8x8 NSQ shapes will require 4x4 granularity
+    // If NSQ is allowed, then may need a 4x4 MI grid because 8x8 NSQ shapes will require 4x4 granularity
     bool disallow_4x4 = true;
+    bool disallow_8x8 = true;
     for (uint8_t is_base = 0; is_base <= 1; is_base++) {
         for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
             for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
-                if (!disallow_4x4)
+                if (!disallow_4x4 && !disallow_8x8)
                     break;
                 const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(
                     init_data_ptr->enc_mode, is_base, coeff_lvl, init_data_ptr->static_config.rtc);
-                //disallow_4x4 = MIN(disallow_4x4, (nsq_geom_lvl == 0 ? 1 : 0));
-                uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
-                svt_aom_set_nsq_geom_ctrls(NULL, nsq_geom_lvl, &allow_HVA_HVB, &allow_HV4, &min_nsq_bsize);
-                if (min_nsq_bsize < 8 || (min_nsq_bsize < 16 && allow_HV4))
-                    disallow_4x4 = false;
+                // nsq_geom_lvl level 0 means NSQ shapes are disallowed so don't adjust based on the level
+                if (nsq_geom_lvl) {
+                    uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
+                    svt_aom_set_nsq_geom_ctrls(NULL, nsq_geom_lvl, &allow_HVA_HVB, &allow_HV4, &min_nsq_bsize);
+                    if (min_nsq_bsize < 8 || (min_nsq_bsize < 16 && allow_HV4))
+                        disallow_4x4 = false;
+                    if (min_nsq_bsize < 16 || (min_nsq_bsize < 32 && allow_HV4))
+                        disallow_8x8 = false;
+                }
             }
         }
     }
@@ -1068,8 +1073,8 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     }
 
     object_ptr->disallow_4x4_all_frames = disallow_4x4;
-    bool disallow_8x8                   = svt_aom_get_disallow_8x8(
-        init_data_ptr->enc_mode, init_data_ptr->static_config.rtc, init_data_ptr->static_config.screen_content_mode);
+    disallow_8x8 = MIN(disallow_8x8, svt_aom_get_disallow_8x8(
+        init_data_ptr->enc_mode, init_data_ptr->static_config.rtc, init_data_ptr->static_config.screen_content_mode));
     object_ptr->disallow_8x8_all_frames = disallow_8x8;
     /* If 4x4 blocks are disallowed for all frames, the the MI blocks only need to be allocated for
     8x8 blocks.  The mi_grid will still be 4x4 so that the data can be accessed the same way throughout

@@ -51,33 +51,21 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
     larget_coding_unit_ptr->org_y = sb_origin_y;
 
     larget_coding_unit_ptr->index = sb_index;
-    bool disallow_8x4_4x8         = true;
+    bool disallow_sub_8x8_nsq   = true;
+    bool disallow_sub_16x16_nsq = true;
     for (uint8_t is_base = 0; is_base <= 1; is_base++) {
         for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
             for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
-                if (!disallow_8x4_4x8)
-                    break;
                 const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(enc_mode, is_base, coeff_lvl, rtc);
-                //disallow_4x4 = MIN(disallow_4x4, (nsq_geom_lvl == 0 ? 1 : 0));
-                uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
-                svt_aom_set_nsq_geom_ctrls(NULL, nsq_geom_lvl, &allow_HVA_HVB, &allow_HV4, &min_nsq_bsize);
-                if (min_nsq_bsize < 8 /*|| (min_nsq_bsize < 16 && allow_HV4)*/)
-                    disallow_8x4_4x8 = false;
-            }
-        }
-    }
-    bool disallow_16x8_8x16 = true;
-    for (uint8_t is_base = 0; is_base <= 1; is_base++) {
-        for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
-            for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
-                if (!disallow_16x8_8x16)
-                    break;
-                const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(enc_mode, is_base, coeff_lvl, rtc);
-                //disallow_4x4 = MIN(disallow_4x4, (nsq_geom_lvl == 0 ? 1 : 0));
-                uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
-                svt_aom_set_nsq_geom_ctrls(NULL, nsq_geom_lvl, &allow_HVA_HVB, &allow_HV4, &min_nsq_bsize);
-                if (min_nsq_bsize < 16 /*|| (min_nsq_bsize < 16 && allow_HV4)*/)
-                    disallow_16x8_8x16 = false;
+                // nsq_geom_lvl level 0 means NSQ shapes are disallowed so don't adjust based on the level
+                if (nsq_geom_lvl) {
+                    uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
+                    svt_aom_set_nsq_geom_ctrls(NULL, nsq_geom_lvl, &allow_HVA_HVB, &allow_HV4, &min_nsq_bsize);
+                    if (min_nsq_bsize < 8)
+                        disallow_sub_8x8_nsq = false;
+                    if (min_nsq_bsize < 16)
+                        disallow_sub_16x16_nsq = false;
+                }
             }
         }
     }
@@ -90,17 +78,17 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
     bool     disallow_8x8 = svt_aom_get_disallow_8x8(enc_mode, rtc, screen_content_mode);
     uint32_t tot_blk_num;
     if (sb_size_pix == 128)
-        if (disallow_8x8 && disallow_16x8_8x16)
+        if (disallow_8x8 && disallow_sub_16x16_nsq)
             tot_blk_num = 64;
-        else if (disallow_8x8 || (disallow_4x4 && disallow_8x4_4x8))
+        else if (disallow_8x8 || (disallow_4x4 && disallow_sub_8x8_nsq))
             tot_blk_num = 256;
         else if (disallow_4x4)
             tot_blk_num = 512;
         else
             tot_blk_num = 1024;
-    else if (disallow_8x8 && disallow_16x8_8x16)
+    else if (disallow_8x8 && disallow_sub_16x16_nsq)
         tot_blk_num = 16;
-    else if (disallow_8x8 || (disallow_4x4 && disallow_8x4_4x8))
+    else if (disallow_8x8 || (disallow_4x4 && disallow_sub_8x8_nsq))
         tot_blk_num = 64;
     else if (disallow_4x4)
         tot_blk_num = 128;
