@@ -39,9 +39,9 @@
 #endif
 
 #if EXCLUDE_HASH
-#define EB_LINE_NUM __LINE__
-#else
 #define EB_LINE_NUM 0
+#else
+#define EB_LINE_NUM __LINE__
 #endif
 
 #ifdef __cplusplus
