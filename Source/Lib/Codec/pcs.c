@@ -359,7 +359,7 @@ uint32_t svt_aom_get_out_buffer_size(uint32_t picture_width, uint32_t picture_he
     if (frame_size > INPUT_SIZE_4K_TH)
         return frame_size;
     else
-        return (uint32_t)(EB_OUTPUTSTREAMBUFFERSIZE_MACRO(picture_width * picture_height));
+        return BITSTREAM_BUFFER_SIZE(picture_width * picture_height);
 }
 /*
 pcs_update_param: update the parameters in PictureParentControlSet for changing the resolution on the fly

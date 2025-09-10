@@ -1880,7 +1880,10 @@ static const WarpedMotionParams default_warp_params = {
 #define INPUT_SIZE_1080p_TH                 0x535200     // 5.46 Million
 #define INPUT_SIZE_4K_TH                    0x140A000    // 21 Million
 #define INPUT_SIZE_8K_TH                    0X5028000    // 84 Million
-#define EB_OUTPUTSTREAMBUFFERSIZE_MACRO(ResolutionSize)                ((ResolutionSize) < (INPUT_SIZE_720p_TH) ? 0x1E8480 : 0x2DC6C0)
+
+// There must absolutely be no reason to use more than 2x of original bytes, assuming 4:2:0
+#define BITSTREAM_BUFFER_SIZE(pixels)       ((pixels) * 3 / 2 * 2)
+
 /** Redefine ASSERT() to avoid warnings
 */
 #if defined _DEBUG || _DEBUG_

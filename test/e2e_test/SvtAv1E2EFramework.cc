@@ -214,12 +214,12 @@ void SvtAv1E2ETestFramework::init_test(TestVideoVector &test_vector) {
     ASSERT_NE(av1enc_ctx_.output_stream_buffer, nullptr)
         << "Malloc memory for output_stream_buffer failed.";
     av1enc_ctx_.output_stream_buffer->p_buffer =
-        new uint8_t[EB_OUTPUTSTREAMBUFFERSIZE_MACRO(width * height)];
+        new uint8_t[BITSTREAM_BUFFER_SIZE(width * height)];
     ASSERT_NE(av1enc_ctx_.output_stream_buffer->p_buffer, nullptr)
         << "Malloc memory for output_stream_buffer->p_buffer failed.";
     av1enc_ctx_.output_stream_buffer->size = sizeof(EbBufferHeaderType);
     av1enc_ctx_.output_stream_buffer->n_alloc_len =
-        EB_OUTPUTSTREAMBUFFERSIZE_MACRO(width * height);
+        BITSTREAM_BUFFER_SIZE(width * height);
     av1enc_ctx_.output_stream_buffer->p_app_private = nullptr;
     av1enc_ctx_.output_stream_buffer->pic_type = EB_AV1_INVALID_PICTURE;
     av1enc_ctx_.output_stream_buffer->metadata = nullptr;
