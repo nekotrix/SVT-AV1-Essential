@@ -172,15 +172,7 @@ EbErrorType copy_sequence_control_set(SequenceControlSet *dst, SequenceControlSe
 
     // allocate buffers and copy data preserving dst pointers
     alloc_sb_geoms(&dst->sb_geom, dst->picture_width_in_sb, dst->picture_height_in_sb, dst->max_block_cnt);
-    memcpy(dst->sb_geom[0].block_is_allowed,
-           src->sb_geom[0].block_is_allowed,
-           sizeof(dst->sb_geom[0].block_is_allowed[0]) * dst->sb_total_count * dst->max_block_cnt);
-    for (int i = 0; i < dst->sb_total_count; i++) {
-        // preserve dynamic pointer
-        bool *block_is_allowed           = dst->sb_geom[i].block_is_allowed;
-        dst->sb_geom[i]                  = src->sb_geom[i];
-        dst->sb_geom[i].block_is_allowed = block_is_allowed;
-    }
+    copy_sb_geoms(dst->sb_geom, src->sb_geom, dst->picture_width_in_sb, dst->picture_height_in_sb, dst->max_block_cnt);
 
     if (src->static_config.frame_scale_evts.start_frame_nums) {
         EB_NO_THROW_MALLOC(dst->static_config.frame_scale_evts.start_frame_nums,

@@ -1209,6 +1209,7 @@ EbErrorType b64_geom_init(struct SequenceControlSet *scs, uint16_t width, uint16
 EbErrorType sb_geom_init(struct SequenceControlSet *scs, uint16_t width, uint16_t height, SbGeom **sb_geoms);
 EbErrorType alloc_sb_geoms(SbGeom **geom, int width, int height, int num_blocks);
 void        free_sb_geoms(SbGeom *geom);
+void        copy_sb_geoms(SbGeom *dst_geom, SbGeom *src_geom, uint16_t width, uint16_t height, int num_blocks);
 
 #ifdef __cplusplus
 }

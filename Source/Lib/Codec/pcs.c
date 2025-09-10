@@ -1522,11 +1522,13 @@ EbErrorType b64_geom_init(SequenceControlSet *scs, uint16_t width, uint16_t heig
     return return_error;
 }
 
+#define NUM_BLOCK_IS_ALLOWED(w, h) ((w) + (h) - 1 + 1)
+
 EbErrorType alloc_sb_geoms(SbGeom **geom, int width, int height, int num_blocks) {
     SbGeom *tmp;
     EB_MALLOC_ARRAY(tmp, width * height);
     // allocate 1 for complete blocks and (width + height - 1) for edges
-    EB_MALLOC_ARRAY(tmp[0].block_is_allowed, (width + height - 1 + 1) * num_blocks);
+    EB_MALLOC_ARRAY(tmp[0].block_is_allowed, NUM_BLOCK_IS_ALLOWED(width, height) * num_blocks);
 
     // buffer is allocated on first entry, other SBs are pointing into that buffer
     // [ complete_block, right_edge[0], ..., right_edge[N], bottom_edge[0], ..., bottom_edge[M-1]]
@@ -1559,13 +1561,28 @@ void free_sb_geoms(SbGeom *geom) {
     }
 }
 
+void copy_sb_geoms(SbGeom *dst_geom, SbGeom *src_geom, uint16_t width, uint16_t height, int num_blocks) {
+    memcpy(dst_geom[0].block_is_allowed,
+           src_geom[0].block_is_allowed,
+           sizeof(dst_geom[0].block_is_allowed[0]) * NUM_BLOCK_IS_ALLOWED(width, height) * num_blocks);
+    for (int i = 0; i < width * height; i++) {
+        // preserve dynamic pointer
+        bool *block_is_allowed       = dst_geom[i].block_is_allowed;
+        dst_geom[i]                  = src_geom[i];
+        dst_geom[i].block_is_allowed = block_is_allowed;
+    }
+}
+
 EbErrorType sb_geom_init(SequenceControlSet *scs, uint16_t width, uint16_t height, SbGeom **sb_geoms) {
     uint16_t picture_sb_width  = DIVIDE_AND_CEIL(width, scs->sb_size);
     uint16_t picture_sb_height = DIVIDE_AND_CEIL(height, scs->sb_size);
     uint16_t max_block_count   = scs->max_block_cnt;
 
     free_sb_geoms(*sb_geoms);
-    alloc_sb_geoms(sb_geoms, picture_sb_width, picture_sb_height, max_block_count);
+    EbErrorType ret = alloc_sb_geoms(sb_geoms, picture_sb_width, picture_sb_height, max_block_count);
+    if (ret != EB_ErrorNone) {
+        return ret;
+    }
 
     for (int sb_index = 0; sb_index < picture_sb_width * picture_sb_height; ++sb_index) {
         SbGeom  *sb_geom        = &(*sb_geoms)[sb_index];
