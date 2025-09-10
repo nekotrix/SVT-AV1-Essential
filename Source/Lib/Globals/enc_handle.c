@@ -1436,7 +1436,9 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
     svt_aom_init_intra_predictors_internal();
 #ifdef MINIMAL_BUILD
     if (svt_aom_blk_geom_mds == NULL) {
-        svt_aom_blk_geom_mds = svt_aom_malloc(MAX_NUM_BLOCKS_ALLOC * sizeof(svt_aom_blk_geom_mds[0]));
+        // NOTE: this must be re-allocated if configuration changes!
+        int max_block_count = enc_handle_ptr->scs_instance_array[0]->scs->max_block_cnt;
+        svt_aom_blk_geom_mds = svt_aom_malloc(max_block_count * sizeof(svt_aom_blk_geom_mds[0]));
         svt_aom_build_blk_geom(enc_handle_ptr->scs_instance_array[0]->scs->svt_aom_geom_idx);
     }
 #else
