@@ -27,6 +27,7 @@
  * @author Cidana-Ryan, Cidana-Wenyao, Cidana-Ivy
  *
  ******************************************************************************/
+#include <array>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -330,7 +331,7 @@ class SADTestBase : public ::testing::Test {
     uint8_t *ref2_aligned_;
     uint16_t sad16x16_16b[16][8];
     uint32_t sad8x8[64][8];
-    uint32_t sad16x16_32b[16][8];
+    std::array<uint32_t[8], 16> sad16x16_32b;
     uint32_t sad32x32[4][8];
 };
 
@@ -920,7 +921,7 @@ class Allsad32x32_CalculationTest
 
             prepare_sad_data_32b();
 
-            svt_ext_eight_sad_calculation_32x32_64x64_c(sad16x16_32b,
+            svt_ext_eight_sad_calculation_32x32_64x64_c(sad16x16_32b.data(),
                                                         best_sad32x32[0],
                                                         &best_sad64x64[0],
                                                         best_mv32x32[0],
@@ -928,7 +929,7 @@ class Allsad32x32_CalculationTest
                                                         mv,
                                                         sad_32x32[0]);
 
-            test_func_(sad16x16_32b,
+            test_func_(sad16x16_32b.data(),
                        best_sad32x32[1],
                        &best_sad64x64[1],
                        best_mv32x32[1],
@@ -1196,7 +1197,7 @@ class Extsad32x32_CalculationTest
 
             prepare_sad_data_32b();
 
-            svt_ext_sad_calculation_32x32_64x64_c(*sad16x16_32b,
+            svt_ext_sad_calculation_32x32_64x64_c(*sad16x16_32b.data(),
                                                   best_sad32x32[0],
                                                   &best_sad64x64[0],
                                                   best_mv32x32[0],
@@ -1204,7 +1205,7 @@ class Extsad32x32_CalculationTest
                                                   mv,
                                                   sad_32x32[0]);
 
-            test_func_(*sad16x16_32b,
+            test_func_(*sad16x16_32b.data(),
                        best_sad32x32[1],
                        &best_sad64x64[1],
                        best_mv32x32[1],
