@@ -3231,7 +3231,7 @@ void tf_controls(SequenceControlSet* scs, uint8_t tf_level) {
 static void derive_vq_params(SequenceControlSet* scs) {
     VqCtrls* vq_ctrl = &scs->vq_ctrls;
 
-    if (scs->static_config.tune == 0) {
+    if (scs->static_config.tune == TUNE_VQ) {
 
         // Sharpness
         vq_ctrl->sharpness_ctrls.scene_transition = 1;
@@ -4664,7 +4664,7 @@ static void copy_api_from_app(
     scs->static_config.max_tx_size = config_struct->max_tx_size;
 
     // Override settings for Still IQ tune
-    if (scs->static_config.tune == 3) {
+    if (scs->static_config.tune == TUNE_IQ) {
         SVT_WARN("Tune 3: IQ overrides: sharpness, Variance Boost strength and curve, enable-qm and min/max level, and max TX size\n");
         scs->static_config.enable_qm = 1;
         scs->static_config.min_qm_level = 4;

@@ -7876,7 +7876,7 @@ set lpd0_level
 
     pcs->lambda_weight = 0;
 
-    if (pcs->scs->static_config.tune == 3) {
+    if (pcs->scs->static_config.tune == TUNE_IQ) {
         // Adjust lambda weight towards more favorable still-picture performance (from 128 to 200),
         // with gradual ramp-down for the lowest and highest QPs
         // Lower QP cutoff: QP 18 = (QP) * 4

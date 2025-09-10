@@ -1960,6 +1960,14 @@ typedef enum PredStructure {
     PRED_TOTAL_COUNT = 3,
     PRED_INVALID = 0xFF
 } PredStructure;
+
+typedef enum Tune {
+    TUNE_VQ   = 0, // Visual Quality (video)
+    TUNE_PSNR = 1, // Average of (PSNR, SSIM, VMAF)
+    TUNE_SSIM = 2, // SSIM-optimized
+    TUNE_IQ   = 3 // Image Quality
+} Tune;
+
 /*
  * The SliceType type is used to describe the slice prediction type.
  */

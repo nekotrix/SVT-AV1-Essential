@@ -532,14 +532,14 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             config->fast_decode);
         return_error = EB_ErrorBadParameter;
     }
-    if (config->tune > 3) {
+    if (config->tune > TUNE_IQ) {
         SVT_ERROR(
             "Instance %u: Invalid tune flag [0 - 3, 0 for VQ, 1 for PSNR, 2 for SSIM and 3 for IQ], your input: %d\n",
             channel_number + 1,
             config->tune);
         return_error = EB_ErrorBadParameter;
     }
-    if (config->tune == 2) {
+    if (config->tune == TUNE_SSIM) {
         if (config->rate_control_mode != 0 || config->pred_structure != RANDOM_ACCESS) {
             SVT_ERROR("Instance %u: tune SSIM only supports CRF rate control mode currently\n",
                       channel_number + 1,
@@ -812,10 +812,10 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     }
 
     if (config->pred_structure == LOW_DELAY) {
-        if (config->tune == 0) {
+        if (config->tune == TUNE_VQ) {
             SVT_WARN("Instance %u: Tune 0 is not applicable for low-delay, tune will be forced to 1.\n",
                      channel_number + 1);
-            config->tune = 1;
+            config->tune = TUNE_PSNR;
         }
 
         if (config->superres_mode != 0) {
@@ -841,7 +841,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             "consider using --fast-decode 1 or 2, especially if the intended decoder is running with "
             "limited multi-threading capabilities.\n");
     }
-    if (config->tune == 0 && config->fast_decode > 0) {
+    if (config->tune == TUNE_VQ && config->fast_decode > 0) {
         SVT_WARN(
             "--fast - decode has been developed and optimized with --tune 1. "
             "Please use it with caution when encoding with --tune 0. You can also consider using "
@@ -1133,10 +1133,10 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
 
         SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t\t: %d / %s / %s\n",
                  config->enc_mode,
-                 config->tune == 0       ? "VQ"
-                     : config->tune == 1 ? "PSNR"
-                     : config->tune == 2 ? "SSIM"
-                                         : "IQ",
+                 config->tune == TUNE_VQ         ? "VQ"
+                     : config->tune == TUNE_PSNR ? "PSNR"
+                     : config->tune == TUNE_SSIM ? "SSIM"
+                                                 : "IQ",
                  config->pred_structure == LOW_DELAY           ? "low delay"
                      : config->pred_structure == RANDOM_ACCESS ? "random access"
                                                                : "Unknown pred structure");
