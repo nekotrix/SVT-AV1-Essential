@@ -331,6 +331,9 @@ class SADTestBase : public ::testing::Test {
     uint8_t *ref2_aligned_;
     uint16_t sad16x16_16b[16][8];
     uint32_t sad8x8[64][8];
+    // std::array is used here to silence GCC's stringop-overflow warning
+    // since it gets confused by the function signature of
+    // svt_ext_eight_sad_calculation_32x32_64x64_c
     std::array<uint32_t[8], 16> sad16x16_32b;
     uint32_t sad32x32[4][8];
 };
