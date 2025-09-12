@@ -554,11 +554,14 @@ void svt_aom_quantize_b_neon(const TranLow *coeff_ptr, intptr_t n_coeffs, const 
 uint8_t svt_av1_compute_cul_level_neon(const int16_t *const scan, const int32_t *const quant_coeff, uint16_t *eob) {
     if (*eob == 1) {
         if (quant_coeff[0] > 0) {
-            return (AOMMIN(COEFF_CONTEXT_MASK, quant_coeff[0]) + (2 << COEFF_CONTEXT_BITS));
+            return AOMMIN(COEFF_CONTEXT_MASK, quant_coeff[0]) | (2 << COEFF_CONTEXT_BITS);
         }
         if (quant_coeff[0] < 0) {
-            return (AOMMIN(COEFF_CONTEXT_MASK, ABS(quant_coeff[0])) | (1 << COEFF_CONTEXT_BITS));
+            return AOMMIN(COEFF_CONTEXT_MASK, -quant_coeff[0]) | (1 << COEFF_CONTEXT_BITS);
         }
+        return 0;
+    }
+    if (*eob == 0) {
         return 0;
     }
 
