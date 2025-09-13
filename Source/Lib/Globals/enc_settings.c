@@ -1246,10 +1246,10 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
              scs->pa_reference_picture_buffer_init_count,
              scs->reference_picture_buffer_init_count,
              scs->me_pool_init_count);
-    SVT_INFO("SVT [config]: ME_SEG_W / ME_SEG_H \t\t\t: %d / %d / %d / %d\n",
+    SVT_INFO("SVT [config]: ME_SEG_W / ME_SEG_H \t\t\t: %d / %d\n",
              scs->me_segment_col_count_array,
              scs->me_segment_row_count_array);
-    SVT_INFO("SVT [config]: ENC_DEC_SEG_W / ENC_DEC_SEG_H \t\t\t: %d / %d / %d / %d\n",
+    SVT_INFO("SVT [config]: ENC_DEC_SEG_W / ENC_DEC_SEG_H \t\t\t: %d / %d\n",
              scs->enc_dec_segment_col_count_array,
              scs->enc_dec_segment_row_count_array);
     SVT_INFO(
