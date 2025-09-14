@@ -121,6 +121,9 @@ set_target_properties(SvtAv1Enc PROPERTIES SOVERSION ${ENC_VERSION_MAJOR})
 set_target_properties(SvtAv1Enc PROPERTIES C_VISIBILITY_PRESET hidden)
 target_link_libraries(SvtAv1Enc PUBLIC ${PLATFORM_LIBS})
 
+file(GLOB API_HEADERS ${PROJECT_SOURCE_DIR}/Source/API/*.h)
+set_target_properties(SvtAv1Enc PROPERTIES PUBLIC_HEADER "${API_HEADERS}")
+
 set(ENC_PKG_CONFIG_EXTRA_CFLAGS "")
 if (BUILD_SHARED_LIBS)
     target_compile_definitions(SvtAv1Enc
@@ -136,6 +139,8 @@ install(TARGETS SvtAv1Enc
                 NAMELINK_COMPONENT Development
         RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
                 COMPONENT Runtime
+        PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/svt-av1"
+                COMPONENT Development
 )
 
 # pkg-config .pc file
