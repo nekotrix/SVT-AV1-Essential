@@ -130,11 +130,16 @@ if (BUILD_SHARED_LIBS)
 endif()
 install(TARGETS SvtAv1Enc
         ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+                COMPONENT Development
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+                COMPONENT Runtime
+                NAMELINK_COMPONENT Development
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+                COMPONENT Runtime
+)
 
 # pkg-config .pc file
 list(JOIN PC_LIBS_PRIVATE " " LIBS_PRIVATE)
 list(JOIN PC_REQUIRES_PRIVATE " " REQUIRES_PRIVATE)
 configure_file(pkg-config.pc.in ${CMAKE_BINARY_DIR}/SvtAv1Enc.pc @ONLY)
-install(FILES ${CMAKE_BINARY_DIR}/SvtAv1Enc.pc DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+install(FILES ${CMAKE_BINARY_DIR}/SvtAv1Enc.pc COMPONENT Development DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
