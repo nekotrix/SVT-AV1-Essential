@@ -53,8 +53,8 @@ static inline void msub_neon(int32x4_t *sum, const int16x8_t src, const int16x8_
     *sum = vmlsl_s16(*sum, vget_high_s16(src), vget_high_s16(dgd));
 }
 
-static inline void compute_delta_step3(int32x4_t *sum, const int16x8_t src0, const int16x8_t src1, const int16x8_t dgd0,
-                                       const int16x8_t dgd1) {
+static inline void compute_delta_step3_win7(int32x4_t *sum, const int16x8_t src0, const int16x8_t src1,
+                                            const int16x8_t dgd0, const int16x8_t dgd1) {
     sum[0] = vmlsl_s16(sum[0], vget_low_s16(src0), vget_low_s16(dgd0));
     sum[0] = vmlal_s16(sum[0], vget_low_s16(src1), vget_low_s16(dgd1));
     sum[1] = vmlsl_s16(sum[1], vget_high_s16(src0), vget_high_s16(dgd0));
@@ -251,7 +251,7 @@ static inline void update_5_stats_neon(const int64_t *const src, const int32x4_t
     dst[4] = src[4] + delta4;
 }
 
-static inline void compute_delta_step3_two_lines(int32x4_t *sum, const int16x8_t src, const int16x8_t dgd) {
+static inline void compute_delta_step3_win5(int32x4_t *sum, const int16x8_t src, const int16x8_t dgd) {
     *sum = vmlsl_s16(*sum, vget_low_s16(src), vget_low_s16(dgd));
     *sum = vmlal_s16(*sum, vget_high_s16(src), vget_high_s16(dgd));
 }
@@ -263,16 +263,17 @@ static inline void step3_win5_neon(const int16_t *d, const int32_t d_stride, con
         ds[4] = load_s16_4x2(d + 0 * d_stride, width);
         ds[5] = load_s16_4x2(d + 1 * d_stride, width);
 
-        compute_delta_step3_two_lines(&deltas[0], ds[0], ds[0]);
-        compute_delta_step3_two_lines(&deltas[1], ds[0], ds[1]);
-        compute_delta_step3_two_lines(&deltas[2], ds[0], ds[2]);
-        compute_delta_step3_two_lines(&deltas[3], ds[0], ds[3]);
-        compute_delta_step3_two_lines(&deltas[4], ds[0], ds[4]);
-        compute_delta_step3_two_lines(&deltas[0], ds[1], ds[1]);
-        compute_delta_step3_two_lines(&deltas[1], ds[1], ds[2]);
-        compute_delta_step3_two_lines(&deltas[2], ds[1], ds[3]);
-        compute_delta_step3_two_lines(&deltas[3], ds[1], ds[4]);
-        compute_delta_step3_two_lines(&deltas[4], ds[1], ds[5]);
+        compute_delta_step3_win5(&deltas[0], ds[0], ds[0]);
+        compute_delta_step3_win5(&deltas[1], ds[0], ds[1]);
+        compute_delta_step3_win5(&deltas[2], ds[0], ds[2]);
+        compute_delta_step3_win5(&deltas[3], ds[0], ds[3]);
+        compute_delta_step3_win5(&deltas[4], ds[0], ds[4]);
+
+        compute_delta_step3_win5(&deltas[0], ds[1], ds[1]);
+        compute_delta_step3_win5(&deltas[1], ds[1], ds[2]);
+        compute_delta_step3_win5(&deltas[2], ds[1], ds[3]);
+        compute_delta_step3_win5(&deltas[3], ds[1], ds[4]);
+        compute_delta_step3_win5(&deltas[4], ds[1], ds[5]);
 
         ds[0] = ds[2];
         ds[1] = ds[3];
@@ -281,33 +282,17 @@ static inline void step3_win5_neon(const int16_t *d, const int32_t d_stride, con
 
         d += 2 * d_stride;
         y -= 2;
-    } while (y);
-}
+    } while (y > 1);
 
-static inline void step3_win5_oneline_neon(const int16_t **const d, const int32_t d_stride, const int32_t width,
-                                           const int32_t height, int16x8_t *ds, int32x4_t *deltas) {
-    int32_t y = height;
-    do {
-        ds[8] = vld1q_s16(*d);
-        ds[9] = vld1q_s16(*d + width);
+    if (y) {
+        ds[4] = load_s16_4x2(d + 0 * d_stride, width);
 
-        compute_delta_step3(&deltas[0], ds[0], ds[1], ds[0], ds[1]);
-        compute_delta_step3(&deltas[2], ds[0], ds[1], ds[2], ds[3]);
-        compute_delta_step3(&deltas[4], ds[0], ds[1], ds[4], ds[5]);
-        compute_delta_step3(&deltas[6], ds[0], ds[1], ds[6], ds[7]);
-        compute_delta_step3(&deltas[8], ds[0], ds[1], ds[8], ds[9]);
-
-        ds[0] = ds[2];
-        ds[1] = ds[3];
-        ds[2] = ds[4];
-        ds[3] = ds[5];
-        ds[4] = ds[6];
-        ds[5] = ds[7];
-        ds[6] = ds[8];
-        ds[7] = ds[9];
-
-        *d += d_stride;
-    } while (--y);
+        compute_delta_step3_win5(&deltas[0], ds[0], ds[0]);
+        compute_delta_step3_win5(&deltas[1], ds[0], ds[1]);
+        compute_delta_step3_win5(&deltas[2], ds[0], ds[2]);
+        compute_delta_step3_win5(&deltas[3], ds[0], ds[3]);
+        compute_delta_step3_win5(&deltas[4], ds[0], ds[4]);
+    }
 }
 
 static inline void derive_triangle_win5_neon(const int16x8_t *d_is, const int16x8_t *d_ie, int32x4_t *deltas) {
@@ -671,13 +656,13 @@ static inline void step3_win7_neon(const int16_t *d, const int32_t d_stride, con
         ds[12] = vld1q_s16(d);
         ds[13] = vld1q_s16(d + width);
 
-        compute_delta_step3(&deltas[0], ds[0], ds[1], ds[0], ds[1]);
-        compute_delta_step3(&deltas[2], ds[0], ds[1], ds[2], ds[3]);
-        compute_delta_step3(&deltas[4], ds[0], ds[1], ds[4], ds[5]);
-        compute_delta_step3(&deltas[6], ds[0], ds[1], ds[6], ds[7]);
-        compute_delta_step3(&deltas[8], ds[0], ds[1], ds[8], ds[9]);
-        compute_delta_step3(&deltas[10], ds[0], ds[1], ds[10], ds[11]);
-        compute_delta_step3(&deltas[12], ds[0], ds[1], ds[12], ds[13]);
+        compute_delta_step3_win7(&deltas[0], ds[0], ds[1], ds[0], ds[1]);
+        compute_delta_step3_win7(&deltas[2], ds[0], ds[1], ds[2], ds[3]);
+        compute_delta_step3_win7(&deltas[4], ds[0], ds[1], ds[4], ds[5]);
+        compute_delta_step3_win7(&deltas[6], ds[0], ds[1], ds[6], ds[7]);
+        compute_delta_step3_win7(&deltas[8], ds[0], ds[1], ds[8], ds[9]);
+        compute_delta_step3_win7(&deltas[10], ds[0], ds[1], ds[10], ds[11]);
+        compute_delta_step3_win7(&deltas[12], ds[0], ds[1], ds[12], ds[13]);
 
         ds[0]  = ds[2];
         ds[1]  = ds[3];
