@@ -897,7 +897,7 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
             return;
         } else if (stream_status != EB_NoErrorEmptyQueue) {
             uint32_t flags = header_ptr->flags;
-#if OPT_LD_LATENCY2
+
             if (flags & EB_BUFFERFLAG_EOS) {
                 // Update Output Port Activity State
                 *port_state  = APP_PortInactive;
@@ -964,68 +964,7 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
 
                 ++*frame_count;
             }
-#else
-            is_alt_ref = (flags & EB_BUFFERFLAG_IS_ALT_REF);
-            if (!(flags & EB_BUFFERFLAG_IS_ALT_REF))
-                ++(app_cfg->performance_context.frame_count);
-            *total_latency += (uint64_t)header_ptr->n_tick_count;
-            *max_latency = (header_ptr->n_tick_count > *max_latency) ? header_ptr->n_tick_count : *max_latency;
-            app_svt_av1_get_time(&finish_s_time, &finish_u_time);
 
-            // total execution time, inc init time
-            app_cfg->performance_context.total_execution_time = app_svt_av1_compute_overall_elapsed_time(
-                app_cfg->performance_context.lib_start_time[0],
-                app_cfg->performance_context.lib_start_time[1],
-                finish_s_time,
-                finish_u_time);
-
-            // total encode time
-            app_cfg->performance_context.total_encode_time = app_svt_av1_compute_overall_elapsed_time(
-                app_cfg->performance_context.encode_start_time[0],
-                app_cfg->performance_context.encode_start_time[1],
-                finish_s_time,
-                finish_u_time);
-
-            // Write Stream Data to file
-            if (stream_file) {
-                if (app_cfg->performance_context.frame_count == 1 && !(flags & EB_BUFFERFLAG_IS_ALT_REF)) {
-                    write_ivf_stream_header(
-                        app_cfg, app_cfg->frames_to_be_encoded == -1 ? 0 : (int32_t)app_cfg->frames_to_be_encoded);
-                }
-                write_ivf_frame_header(app_cfg, header_ptr->n_filled_len);
-                fwrite(header_ptr->p_buffer, 1, header_ptr->n_filled_len, stream_file);
-            }
-
-            app_cfg->performance_context.byte_count += header_ptr->n_filled_len;
-
-            if (app_cfg->config.stat_report && !(flags & EB_BUFFERFLAG_IS_ALT_REF))
-                process_output_statistics_buffer(header_ptr, app_cfg);
-
-            // Update Output Port Activity State
-            *port_state  = (flags & EB_BUFFERFLAG_EOS) ? APP_PortInactive : *port_state;
-            return_value = (flags & EB_BUFFERFLAG_EOS) ? APP_ExitConditionFinished : APP_ExitConditionNone;
-            // Release the output buffer
-            svt_av1_enc_release_out_buffer(&header_ptr);
-
-            if (flags & EB_BUFFERFLAG_EOS) {
-                if (app_cfg->config.pass == ENC_FIRST_PASS) {
-                    SvtAv1FixedBuf first_pass_stat;
-                    EbErrorType    ret = svt_av1_enc_get_stream_info(
-                        component_handle, SVT_AV1_STREAM_INFO_FIRST_PASS_STATS_OUT, &first_pass_stat);
-                    if (ret == EB_ErrorNone) {
-                        if (app_cfg->output_stat_file) {
-                            fwrite(first_pass_stat.buf, 1, first_pass_stat.sz, app_cfg->output_stat_file);
-                        }
-                        enc_app->rc_twopasses_stats.buf = realloc(enc_app->rc_twopasses_stats.buf, first_pass_stat.sz);
-                        if (enc_app->rc_twopasses_stats.buf) {
-                            memcpy(enc_app->rc_twopasses_stats.buf, first_pass_stat.buf, first_pass_stat.sz);
-                            enc_app->rc_twopasses_stats.sz = first_pass_stat.sz;
-                        }
-                    }
-                }
-            }
-            ++*frame_count;
-#endif
             const double fps        = (double)*frame_count / app_cfg->performance_context.total_encode_time;
             const double frame_rate = (double)app_cfg->config.frame_rate_numerator /
                 (double)app_cfg->config.frame_rate_denominator;

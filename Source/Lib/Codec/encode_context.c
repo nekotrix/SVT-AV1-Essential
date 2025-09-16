@@ -54,9 +54,7 @@ static void destroy_stats_buffer(STATS_BUFFER_CTX *stats_buf_context, FIRSTPASS_
 static void encode_context_dctor(EbPtr p) {
     EncodeContext *obj = (EncodeContext *)p;
     EB_DESTROY_MUTEX(obj->total_number_of_recon_frame_mutex);
-#if OPT_LD_LATENCY2
     EB_DESTROY_MUTEX(obj->total_number_of_shown_frames_mutex);
-#endif
     EB_DESTROY_MUTEX(obj->sc_buffer_mutex);
     EB_DESTROY_MUTEX(obj->stat_file_mutex);
     EB_DESTROY_MUTEX(obj->frame_updated_mutex);
@@ -67,13 +65,9 @@ static void encode_context_dctor(EbPtr p) {
     EB_DELETE_PTR_ARRAY(obj->pic_mgr_input_pic_list, obj->pic_mgr_input_pic_list_size);
     obj->pic_mgr_input_pic_list_size = 0;
     EB_DELETE_PTR_ARRAY(obj->ref_pic_list, obj->ref_pic_list_length);
-#if OPT_LD_LATENCY2
     EB_DESTROY_MUTEX(obj->ref_pic_list_mutex);
-#endif
     EB_DELETE_PTR_ARRAY(obj->pd_dpb, REF_FRAMES);
-#if OPT_LD_LATENCY2
     EB_DESTROY_MUTEX(obj->pd_dpb_mutex);
-#endif
     EB_DELETE_PTR_ARRAY(obj->packetization_reorder_queue, obj->packetization_reorder_queue_size);
     obj->packetization_reorder_queue_size = 0;
     EB_FREE(obj->stats_out.stat);
@@ -106,14 +100,9 @@ EbErrorType svt_aom_encode_context_ctor(EncodeContext *enc_ctx, EbPtr object_ini
     for (picture_index = 0; picture_index < REF_FRAMES; ++picture_index) {
         EB_NEW(enc_ctx->pd_dpb[picture_index], svt_aom_pa_reference_queue_entry_ctor);
     }
-#if OPT_LD_LATENCY2
     EB_CREATE_MUTEX(enc_ctx->pd_dpb_mutex);
-#endif
-
-#if OPT_LD_LATENCY2
     EB_CREATE_MUTEX(enc_ctx->total_number_of_shown_frames_mutex);
     EB_CREATE_MUTEX(enc_ctx->ref_pic_list_mutex);
-#endif
 
     enc_ctx->initial_picture = true;
 

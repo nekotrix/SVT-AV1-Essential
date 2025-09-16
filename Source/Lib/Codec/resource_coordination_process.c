@@ -827,7 +827,6 @@ static void update_frame_event(PictureParentControlSet *pcs, uint64_t pic_num) {
     }
 }
 
-#if OPT_LD_LATENCY2
 // When the end of sequence recieved, there is no need to inject a new PCS.
 // terminating_picture_number and terminating_sequence_flag_received are set. When all
 // the pictures in the packetiztion queue are processed, EOS is signalled to the application.
@@ -853,7 +852,6 @@ static void set_eos_terminating_signals(PictureParentControlSet *pcs) {
 
     svt_release_mutex(enc_ctx->total_number_of_shown_frames_mutex);
 }
-#endif
 
 /* Resource Coordination Kernel */
 /*********************************************************************************
@@ -1214,7 +1212,6 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 // y8b follows longest life cycle of pa ref and input. so it needs to build on top of live count of pa ref
                 svt_object_inc_live_count(pcs->y8b_wrapper, 1);
             }
-#if OPT_LD_LATENCY2
             // Get Empty Output Results Object
             // For the low delay mode, buffering for receiving EOS does not happen
             if (scs->static_config.pred_structure == LOW_DELAY) {
@@ -1280,35 +1277,6 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 }
             }
             prev_pcs_wrapper_ptr = pcs_wrapper;
-
-#else
-            // Get Empty Output Results Object
-            if (pcs->picture_number > 0 && (prev_pcs_wrapper_ptr != NULL)) {
-                PictureParentControlSet *ppcs_out = (PictureParentControlSet *)prev_pcs_wrapper_ptr->object_ptr;
-
-                ppcs_out->end_of_sequence_flag = end_of_sequence_flag;
-                // since overlay frame has the end of sequence set properly, set the end of sequence to true in the alt ref picture
-                if (ppcs_out->is_overlay && end_of_sequence_flag)
-                    ppcs_out->alt_ref_ppcs_ptr->end_of_sequence_flag = true;
-
-                reset_pcs_av1(ppcs_out);
-
-                svt_get_empty_object(context_ptr->resource_coordination_results_output_fifo_ptr, &output_wrapper_ptr);
-                out_results = (ResourceCoordinationResults *)output_wrapper_ptr->object_ptr;
-
-                if (scs->static_config.enable_overlays == true) {
-                    // ppcs live_count + 1 for PictureAnalysis & PictureDecision, will svt_release_object(ppcs) at the end of svt_aom_picture_decision_kernel.
-                    svt_object_inc_live_count(prev_pcs_wrapper_ptr, 1);
-                    svt_object_inc_live_count(
-                        ((PictureParentControlSet *)prev_pcs_wrapper_ptr->object_ptr)->scs_wrapper, 1);
-                }
-
-                out_results->pcs_wrapper = prev_pcs_wrapper_ptr;
-                // Post the finished Results Object
-                svt_post_full_object(output_wrapper_ptr);
-            }
-            prev_pcs_wrapper_ptr = pcs_wrapper;
-#endif
         }
         // Release the Input Command
         svt_release_object(eb_input_cmd_wrapper);

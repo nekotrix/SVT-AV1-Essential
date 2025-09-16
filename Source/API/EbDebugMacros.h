@@ -47,7 +47,6 @@ extern "C" {
 #define RFCTR_PARSE_LIST            1 // Refactor parameter parsing list and support the range of int8 and uint8
 
 //FOR DEBUGGING - Do not remove
-#define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL
 #define DETAILED_FRAME_OUTPUT   0 // Prints detailed frame output from the library for debugging
