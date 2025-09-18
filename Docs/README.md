@@ -38,3 +38,4 @@
 - [Transform Search Appendix](Appendix-TX-Search.md)
 - [Reference Scaling Appendix](Appendix-Reference-Scaling.md)
 - [Variance Boost Appendix](Appendix-Variance-Boost.md)
+- [Anti-Aliasing Aware Screen Content Detection Mode Appendix](Appendix-Antialiasing-Aware-Screen-Content-Detection-Mode.md)

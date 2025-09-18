@@ -309,6 +309,8 @@ typedef struct SequenceControlSet {
     bool allintra;
     // If true, use a flat IPP pred structure, where each pic uses only the previous frame as ref
     bool use_flat_ipp;
+    // If true, enables fast anti-alias aware screen detection
+    bool fast_aa_aware_screen_detection_mode;
 } SequenceControlSet;
 typedef struct EbSequenceControlSetInstance {
     EbDctor             dctor;

@@ -4232,6 +4232,8 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->static_config.enc_mode <= ENC_M7)
         ? 1
         : 0;
+
+    scs->fast_aa_aware_screen_detection_mode = (scs->static_config.enc_mode >= ENC_M3) ? 1 : 0;
 }
 static void copy_api_from_app(
     SequenceControlSet       *scs,

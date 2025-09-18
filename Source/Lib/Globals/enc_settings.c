@@ -431,8 +431,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Instance %u : Invalid StatReport. StatReport must be [0 - 1]\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-    if (config->screen_content_mode > 2) {
-        SVT_ERROR("Instance %u : Invalid screen_content_mode. screen_content_mode must be [0 - 2]\n",
+    if (config->screen_content_mode > 3) {
+        SVT_ERROR("Instance %u : Invalid screen_content_mode. screen_content_mode must be [0 - 3]\n",
                   channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }

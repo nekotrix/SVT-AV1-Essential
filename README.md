@@ -90,6 +90,7 @@ License 1.0. See [LICENSE](LICENSE.md) and [PATENTS](PATENTS.md) for details.
 - [Transform Search Appendix](Docs/Appendix-TX-Search.md)
 - [Reference Scaling Appendix](Docs/Appendix-Reference-Scaling.md)
 - [Variance Boost Appendix](Docs/Appendix-Variance-Boost.md)
+- [Anti-Aliasing Aware Screen Content Detection Mode Appendix](Docs/Appendix-Antialiasing-Aware-Screen-Content-Detection-Mode.md)
 
 **How Can I Contribute?**
 - [SVT-AV1 Contribution Guide](Docs/Contribute.md)

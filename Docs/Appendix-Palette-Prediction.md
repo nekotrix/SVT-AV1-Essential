@@ -71,7 +71,7 @@ The feature is currently active only when screen content encoding is active, eit
 
 | **Flag**      | **Level (Sequence/Picture)** | **Description**                                                                                                                        |
 | ---           | ---                          | ---                                                                                                                                    |
-| --scm         | Sequence                     | Command line token. 0: No SC, 1: SC ON 2: Auto mode (detector based)                                                                   |
+| --scm         | Sequence                     | Command line token. 0: None, 1: Block Copy + Palette, 2: Auto mode (detector based), 3: Auto mode (anti-alias aware)                   |
 | palette_level | Picture based                | Set based on the configuration palette mode.                                                                                           |
 
 

@@ -83,6 +83,9 @@ extern "C" {
 #define DEBUG_VAR_BOOST_QP      0
 #define DEBUG_VAR_BOOST_STATS   0
 
+// Anti-alias aware screen content mode debugging code
+#define DEBUG_AA_SCM            0
+
 // QP scaling debugging code
 #define DEBUG_QP_SCALING        0
 

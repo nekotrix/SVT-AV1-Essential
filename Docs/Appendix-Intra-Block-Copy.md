@@ -124,7 +124,7 @@ The control tokens and flags associated with the IBC feature are listed in Table
 
 | **Flag**      | **Level(Sequence/Picture)** | **Description**                                                                                                         |
 | ---           | ---                         | ---                                                                                                                     |
-| -scm          | Sequence                    | Command line token. 0: No IBC, 1: IBC ON 2:Auto mode (detector based)                                                   |
+| --scm         | Sequence                    | Command line token. 0: None, 1: Block Copy + Palette, 2: Auto mode (detector based), 3: Auto mode (anti-alias aware)    |
 | -intrabc-mode | Configuration               | Command line token to specify IBC mode. 0: OFF, 1-3: IBC ON with intrabc levels mentioned below.,  -1: Default behavior |
 | intrabc_level | Picture                     | Controls the complexity-quality trade-offs of the feature. 0: OFF, 1-6 ON                                               |
 | allow_intrabc | Picture                     | For intra pictures, set to 1 when IBC is allowed, else set to 0.                                                        |

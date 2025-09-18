@@ -896,8 +896,8 @@ static const vector<int32_t> invalid_tile_rows = {
  *
  * Default is 2. */
 static const vector<uint32_t> default_screen_content_mode = {2};
-static const vector<uint32_t> valid_screen_content_mode = {0, 1, 2};
-static const vector<uint32_t> invalid_screen_content_mode = {3};
+static const vector<uint32_t> valid_screen_content_mode = {0, 1, 2, 3};
+static const vector<uint32_t> invalid_screen_content_mode = {4};
 
 /* Variables to control the use of ALT-REF (temporally filtered frames)
  */

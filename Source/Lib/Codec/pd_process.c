@@ -4115,6 +4115,7 @@ static void copy_tf_params(SequenceControlSet *scs, PictureParentControlSet *pcs
         pcs->tf_ctrls.enabled = 0;
 }
 void svt_aom_is_screen_content(PictureParentControlSet *pcs);
+void svt_aom_is_screen_content_antialiasing_aware(PictureParentControlSet *pcs);
 /*
 * Update the list0 count try and the list1 count try based on the Enc-Mode, whether BASE or not, whether SC or not
 */
@@ -4407,16 +4408,22 @@ static void perform_sc_detection(SequenceControlSet* scs, PictureParentControlSe
     if (pcs->slice_type == I_SLICE) {
         // If running multi-threaded mode, perform SC detection in svt_aom_picture_analysis_kernel, else in svt_aom_picture_decision_kernel
         if (scs->static_config.level_of_parallelism == 1) {
-                if (scs->static_config.screen_content_mode == 2) // auto detect
-            {
-                // SC Detection is OFF for 4K and higher
-                if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE)
-                    svt_aom_is_screen_content(pcs);
-                else
+            switch (scs->static_config.screen_content_mode) {
+                case 0:
                     pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = pcs->sc_class4 = 0;
+                    break;
+                case 1:
+                    pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = pcs->sc_class4 = 1;
+                    break;
+                case 2:
+                    // SC Detection is OFF for 4K and higher
+                    if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE)
+                        svt_aom_is_screen_content(pcs);
+                    break;
+                case 3:
+                    svt_aom_is_screen_content_antialiasing_aware(pcs);
+                    break;
             }
-            else
-                    pcs->sc_class0 = pcs->sc_class1 = pcs->sc_class2 = pcs->sc_class3 = pcs->sc_class4 = scs->static_config.screen_content_mode;
         }
         ctx->last_i_picture_sc_class0 = pcs->sc_class0;
         ctx->last_i_picture_sc_class1 = pcs->sc_class1;
