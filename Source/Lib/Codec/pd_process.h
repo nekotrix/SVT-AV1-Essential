@@ -133,6 +133,9 @@ typedef struct PictureDecisionContext {
     int32_t  sframe_hier_lvls;
     uint64_t sframe_last_arf;
 #endif // FTR_SFRAME_FLEX
+#if FTR_SFRAME_DEC_POSI
+    bool next_arf_is_s;
+#endif // FTR_SFRAME_DEC_POSI
 } PictureDecisionContext;
 
 #endif // EbPictureDecision_h

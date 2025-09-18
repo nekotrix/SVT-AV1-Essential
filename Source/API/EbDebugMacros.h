@@ -42,6 +42,7 @@ extern "C" {
 #define FTR_SFRAME_POSI             1 // Add parameter to allow user insert S-Frames by picture number
 #if FTR_SFRAME_POSI
 #define FTR_SFRAME_QP               1 // Add parameter to allow user set QP of S-Frame
+#define FTR_SFRAME_DEC_POSI         1 // New S-Frame mode to insert S-Frames at specific position in decode order
 #endif // FTR_SFRAME_POSI
 #endif // FTR_SFRAME_FLEX
 #define FIX_TUNE_SSIM               1 // Fix SSIM mode

@@ -698,6 +698,17 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Error instance %u: switch frame feature does not support flat IPPP\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#if FTR_SFRAME_DEC_POSI
+    if (config->sframe_dist > 0 &&
+        (config->sframe_mode < SFRAME_STRICT_BASE || config->sframe_mode > SFRAME_DEC_POSI_BASE)) {
+        SVT_ERROR("Error instance %u: invalid switch frame mode %d, should be in the range [%d - %d]\n",
+                  channel_number + 1,
+                  config->sframe_mode,
+                  SFRAME_STRICT_BASE,
+                  SFRAME_DEC_POSI_BASE);
+        return_error = EB_ErrorBadParameter;
+    }
+#else
     if (config->sframe_dist > 0 && config->sframe_mode != SFRAME_STRICT_BASE &&
 #if FTR_SFRAME_FLEX
         config->sframe_mode != SFRAME_NEAREST_BASE && config->sframe_mode != SFRAME_FLEXIBLE_BASE) {
@@ -716,8 +727,13 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
 #endif // FTR_SFRAME_FLEX
         return_error = EB_ErrorBadParameter;
     }
+#endif // FTR_SFRAME_DEC_POSI
 #if FTR_SFRAME_POSI
+#if FTR_SFRAME_DEC_POSI
+    if (config->sframe_posi.sframe_posis && config->sframe_mode < SFRAME_FLEXIBLE_BASE) {
+#else
     if (config->sframe_posi.sframe_posis && config->sframe_mode != SFRAME_FLEXIBLE_BASE) {
+#endif // FTR_SFRAME_DEC_POSI
         SVT_ERROR("Error instance %u: S-Frame positions are only supported in S-Frame Flexible ARF mode\n",
                   channel_number + 1);
         return_error = EB_ErrorBadParameter;
@@ -1913,6 +1929,9 @@ static EbErrorType str_to_sframe_mode(const char *nptr, EbSFrameMode *out) {
 #if FTR_SFRAME_FLEX
         {"flexible", SFRAME_FLEXIBLE_BASE},
 #endif // FTR_SFRAME_FLEX
+#if FTR_SFRAME_DEC_POSI
+        {"decposi", SFRAME_DEC_POSI_BASE},
+#endif // FTR_SFRAME_DEC_POSI
     };
     const size_t sframe_mode_size = sizeof(sframe_mode) / sizeof(sframe_mode[0]);
 

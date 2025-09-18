@@ -909,7 +909,12 @@ ConfigDescription config_entry_specific[] = {
 #if FTR_SFRAME_FLEX
      "S-Frame insertion mode ([1-3], 1: the considered frame will be made into an S-Frame only if "
      "it is an altref frame, 2: the next altref frame will be made into an S-Frame[default], "
+#if FTR_SFRAME_DEC_POSI
+     "3: adjust minigop size to make an S-Frame at specific position, 4: adjust minigop size to make "
+     "an S-Frame inserting at specific position in decode order)"},
+#else
      "3: adjust minigop size to make an S-Frame at specific position)"},
+#endif // FTR_SFRAME_DEC_POSI
 #else
      "S-Frame insertion mode ([1-2], 1: the considered frame will be made into an S-Frame only if "
      "it is an altref frame, 2: the next altref frame will be made into an S-Frame[default])"},
