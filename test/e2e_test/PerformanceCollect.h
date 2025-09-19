@@ -22,6 +22,7 @@
 #ifndef _PERFORMANCE_COLLECT_H_
 #define _PERFORMANCE_COLLECT_H_
 
+#include <algorithm>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -89,25 +90,24 @@ class PerformanceCollect {
      * nullptr -- can not create a collector
      */
     CollectHandle start_count(const std::string &item_name) {
+        auto collector_handle =
+            std::find_if(collect_vec_.begin(),
+                         collect_vec_.end(),
+                         [&item_name](CollectHandle p) {
+                             return p->name.compare(item_name) == 0;
+                         });
+
         CollectHandle collector = nullptr;
-        for (CollectHandle p : collect_vec_) {
-            if (p->name.compare(item_name) == 0) {
-                collector = p;
-                break;
-            }
-        }
-        if (collector == nullptr) {
+        if (collector_handle == collect_vec_.end()) {
             collector = new Collector(item_name, init_tick_);
-            if (collector) {
-                collect_vec_.push_back(collector);
-            }
+            collect_vec_.push_back(collector);
+        } else {
+            collector = *collector_handle;
         }
-        if (collector) {
-            if (collector->last_start_tick) {
-                printf("last counting is not stopped, skip this attampt!!\n");
-            } else
-                collector->last_start_tick = get_time_tick();
-        }
+        if (collector->last_start_tick) {
+            printf("last counting is not stopped, skip this attampt!!\n");
+        } else
+            collector->last_start_tick = get_time_tick();
         return collector;
     }
     /** Stop counting time
@@ -124,12 +124,12 @@ class PerformanceCollect {
      * the perid of time in counting
      */
     uint64_t read_count(const std::string &item_name) {
-        for (CollectHandle p : collect_vec_) {
-            if (p->name.compare(item_name) == 0) {
-                return p->count_ticks;
-            }
-        }
-        return 0;
+        auto ret = std::find_if(collect_vec_.begin(),
+                                collect_vec_.end(),
+                                [&item_name](CollectHandle p) {
+                                    return p->name.compare(item_name) == 0;
+                                });
+        return ret != collect_vec_.end() ? (*ret)->count_ticks : 0;
     }
 
   private:

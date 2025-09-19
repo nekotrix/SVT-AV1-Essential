@@ -186,11 +186,12 @@ class FrameQueueBuffer : public FrameQueue {
             delete frame;
     }
     VideoFrame *take_frame(const uint64_t time_stamp) override {
-        for (VideoFrame *frame : frame_list_) {
-            if (frame->timestamp == time_stamp)
-                return frame;
-        }
-        return nullptr;
+        auto ret = std::find_if(frame_list_.begin(),
+                                frame_list_.end(),
+                                [time_stamp](VideoFrame *frame) {
+                                    return frame->timestamp == time_stamp;
+                                });
+        return (ret != frame_list_.end()) ? *ret : nullptr;
     }
     VideoFrame *take_frame_inorder(const uint32_t index) override {
         if (index < frame_list_.size())
