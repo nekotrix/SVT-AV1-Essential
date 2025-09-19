@@ -96,12 +96,13 @@ class QuantizeTest : public ::testing::TestWithParam<ParamType> {
 
     void InitQuantizer() {
         PictureParentControlSet pcs;
-        pcs.scs = (SequenceControlSet *)malloc(sizeof(SequenceControlSet));
+        pcs.scs = new SequenceControlSet;
         pcs.frm_hdr.quantization_params.base_q_idx = 0;
         pcs.scs->static_config.sharpness = 0;
         PictureParentControlSet *pcs_ptr = &pcs;
         svt_av1_build_quantizer(
             pcs_ptr, bd_, 0, 0, 0, 0, 0, &qtab_->quant, &qtab_->dequant);
+        delete pcs.scs;
     }
 
     virtual void QuantizeRun(bool is_loop, int q = 0, int test_num = 1) = 0;

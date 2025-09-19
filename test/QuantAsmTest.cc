@@ -85,7 +85,7 @@ class QuantizeBTest : public ::testing::TestWithParam<QuantizeParam> {
         coeff_max_ = (1 << (7 + bd_)) - 1;
         rnd_ = new SVTRandom(coeff_min_, coeff_max_);
         PictureParentControlSet pcs;
-        pcs.scs = (SequenceControlSet *)malloc(sizeof(SequenceControlSet));
+        pcs.scs = new SequenceControlSet;
         pcs.frm_hdr.quantization_params.base_q_idx = 0;
         pcs.scs->static_config.sharpness = 0;
         PictureParentControlSet *pcs_ptr = &pcs;
@@ -93,6 +93,7 @@ class QuantizeBTest : public ::testing::TestWithParam<QuantizeParam> {
         svt_av1_build_quantizer(
             pcs_ptr, bd_, 0, 0, 0, 0, 0, &qtab_quants_, &qtab_deq_);
         setup_func_ptrs();
+        delete pcs.scs;
     }
 
     virtual ~QuantizeBTest() {
