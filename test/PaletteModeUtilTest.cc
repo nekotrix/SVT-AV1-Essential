@@ -360,74 +360,61 @@ template <typename FuncType>
 using Av1KMeansDimParam =
     std::tuple<TestPattern, BlockSize, std::tuple<FuncType, FuncType>>;
 
+// Additional *2 to account possibility of write into extra memory
+constexpr auto centroids_size = 2 * PALETTE_MAX_SIZE * 2;
+constexpr auto indices_size = MAX_SB_SQUARE * 2;
+
 template <typename FuncType>
 class Av1KMeansDim
     : public ::testing::WithParamInterface<Av1KMeansDimParam<FuncType>>,
       public ::testing::Test {
   public:
-    Av1KMeansDim() {
-        rnd8_ = new SVTRandom(0, ((1 << 8) - 1));
-        rnd32_ = new SVTRandom(-((1 << 14) - 1), ((1 << 14) - 1));
-
-        // Additonal *2 to account possibility of write into extra memory
-        centroids_size_ = 2 * PALETTE_MAX_SIZE * 2;
-        indices_size_ = MAX_SB_SQUARE * 2;
-
-        centroids_ref_ = new int[centroids_size_];
-        centroids_tst_ = new int[centroids_size_];
-        indices_ref_ = new uint8_t[indices_size_];
-        indices_tst_ = new uint8_t[indices_size_];
+    Av1KMeansDim()
+        : rnd32_(-((1 << 14) - 1), ((1 << 14) - 1)),
+          rnd8_(0, ((1 << 8) - 1)),
+          data_(nullptr),
+          centroids_ref_(centroids_size),
+          centroids_tst_(centroids_size),
+          indices_ref_(indices_size),
+          indices_tst_(indices_size) {
+        ;
     }
 
     void TearDown() override {
-        if (rnd32_)
-            delete rnd32_;
-        if (rnd8_)
-            delete rnd8_;
-        if (data_)
+        if (data_) {
             delete[] data_;
-        if (centroids_ref_)
-            delete[] centroids_ref_;
-        if (centroids_tst_)
-            delete[] centroids_tst_;
-        if (indices_ref_)
-            delete[] indices_ref_;
-        if (indices_tst_)
-            delete[] indices_tst_;
+            data_ = nullptr;
+        }
     }
 
   protected:
     void prepare_data() {
         if (pattern_ == MIN) {
             memset(data_, 0, n_ * sizeof(int) * 2);
-            memset(centroids_ref_, 0, centroids_size_ * sizeof(int));
-            memset(centroids_tst_, 0, centroids_size_ * sizeof(int));
-            memset(indices_ref_, 0, indices_size_ * sizeof(uint8_t));
-            memset(indices_tst_, 0, indices_size_ * sizeof(uint8_t));
+            std::fill(centroids_tst_.begin(), centroids_tst_.end(), 0);
+            std::fill(centroids_ref_.begin(), centroids_ref_.end(), 0);
+            std::fill(indices_ref_.begin(), indices_ref_.end(), 0);
+            std::fill(indices_tst_.begin(), indices_tst_.end(), 0);
         } else if (pattern_ == MAX) {
             memset(data_, 0xff, n_ * sizeof(int) * 2);
-            memset(centroids_ref_, 0xff, centroids_size_ * sizeof(int));
-            memset(centroids_tst_, 0xff, centroids_size_ * sizeof(int));
-            memset(indices_ref_, 0xff, indices_size_ * sizeof(uint8_t));
-            memset(indices_tst_, 0xff, indices_size_ * sizeof(uint8_t));
+            std::fill(centroids_ref_.begin(), centroids_ref_.end(), 0xff);
+            std::fill(centroids_tst_.begin(), centroids_tst_.end(), 0xff);
+            std::fill(indices_ref_.begin(), indices_ref_.end(), 0xff);
+            std::fill(indices_tst_.begin(), indices_tst_.end(), 0xff);
         } else {  // pattern_ == RANDOM
             for (int i = 0; i < n_ * 2; i++)
-                data_[i] = rnd32_->random();
-            for (size_t i = 0; i < centroids_size_; i++)
-                centroids_ref_[i] = centroids_tst_[i] = rnd32_->random();
-            for (size_t i = 0; i < indices_size_; i++)
-                indices_ref_[i] = indices_tst_[i] = rnd8_->random();
+                data_[i] = rnd32_.random();
+            for (size_t i = 0; i < centroids_size; i++)
+                centroids_ref_[i] = centroids_tst_[i] = rnd32_.random();
+            for (size_t i = 0; i < indices_size; i++)
+                indices_ref_[i] = indices_tst_[i] = rnd8_.random();
         }
     }
 
     void check_output() {
-        int res = memcmp(
-            centroids_ref_, centroids_tst_, centroids_size_ * sizeof(int));
-        ASSERT_EQ(res, 0) << "Compare Centroids array error";
-
-        res =
-            memcmp(indices_ref_, indices_tst_, indices_size_ * sizeof(uint8_t));
-        ASSERT_EQ(res, 0) << "Compare indices array error";
+        ASSERT_EQ(centroids_ref_, centroids_tst_)
+            << "Compare Centroids array error";
+        ASSERT_EQ(indices_ref_, indices_tst_) << "Compare indices array error";
     }
 
     void run_test() {
@@ -440,15 +427,15 @@ class Av1KMeansDim
                 prepare_data();
                 av1_k_means_wrapper(func_ref_,
                                     data_,
-                                    centroids_ref_,
-                                    indices_ref_,
+                                    centroids_ref_.data(),
+                                    indices_ref_.data(),
                                     n_,
                                     k,
                                     MaxItr);
                 av1_k_means_wrapper(func_tst_,
                                     data_,
-                                    centroids_tst_,
-                                    indices_tst_,
+                                    centroids_tst_.data(),
+                                    indices_tst_.data(),
                                     n_,
                                     k,
                                     MaxItr);
@@ -472,8 +459,8 @@ class Av1KMeansDim
             for (int k = PALETTE_MIN_SIZE; k <= PALETTE_MAX_SIZE; k++) {
                 av1_k_means_wrapper(func_ref_,
                                     data_,
-                                    centroids_ref_,
-                                    indices_ref_,
+                                    centroids_ref_.data(),
+                                    indices_ref_.data(),
                                     n_,
                                     k,
                                     MaxItr);
@@ -486,8 +473,8 @@ class Av1KMeansDim
             for (int k = PALETTE_MIN_SIZE; k <= PALETTE_MAX_SIZE; k++) {
                 av1_k_means_wrapper(func_tst_,
                                     data_,
-                                    centroids_tst_,
-                                    indices_tst_,
+                                    centroids_tst_.data(),
+                                    indices_tst_.data(),
                                     n_,
                                     k,
                                     MaxItr);
@@ -511,18 +498,16 @@ class Av1KMeansDim
     }
 
   protected:
-    SVTRandom *rnd32_;
-    SVTRandom *rnd8_;
+    SVTRandom rnd32_;
+    SVTRandom rnd8_;
     FuncType func_ref_;
     FuncType func_tst_;
     int *data_;
-    int *centroids_ref_;
-    int *centroids_tst_;
-    uint8_t *indices_ref_;
-    uint8_t *indices_tst_;
+    std::vector<int> centroids_ref_;
+    std::vector<int> centroids_tst_;
+    std::vector<uint8_t> indices_ref_;
+    std::vector<uint8_t> indices_tst_;
 
-    uint32_t centroids_size_;
-    uint32_t indices_size_;
     TestPattern pattern_;
     BlockSize block_;
     int n_;
