@@ -4670,7 +4670,7 @@ static void copy_api_from_app(
 
     // Override settings for Still IQ tune
     if (scs->static_config.tune == TUNE_IQ) {
-        SVT_WARN("Tune 3: IQ overrides: sharpness, Variance Boost strength and curve, enable-qm and min/max level, and max TX size\n");
+        SVT_WARN("Tune IQ overrides: sharpness, Var. Boost strength/curve, enable-qm and min/max level, max TX size and SCM\n");
         scs->static_config.enable_qm = 1;
         scs->static_config.min_qm_level = 4;
         scs->static_config.max_qm_level = 10;
@@ -4681,6 +4681,7 @@ static void copy_api_from_app(
         scs->static_config.variance_boost_strength = 3;
         scs->static_config.variance_boost_curve = 2;
         scs->static_config.max_tx_size = scs->static_config.qp <= 45 ? 32 : 64;
+        scs->static_config.screen_content_mode = 3;
     }
 
     return;
