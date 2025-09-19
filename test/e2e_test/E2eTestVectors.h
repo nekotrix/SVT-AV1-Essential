@@ -276,7 +276,7 @@ static inline const std::vector<EncTestSetting> generate_vector_from_config(
             uint32_t frame_count;
 
             sscanf(line,
-                   "%s %d %s %d %d %d %d %d %d",
+                   "%1023s %u %9s %u %u %u %u %u %u",
                    vector_fn,
                    &y4m,
                    color_fmt,
