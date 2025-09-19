@@ -366,7 +366,7 @@ void SvtAv1E2ETestFramework::output_stat() {
     }
 }
 
-void SvtAv1E2ETestFramework::gen_frame_event(EncTestSetting &setting,
+void SvtAv1E2ETestFramework::gen_frame_event(const EncTestSetting &setting,
                                              uint32_t frame_count,
                                              void **head) {
     EbPrivDataNode *node = nullptr;

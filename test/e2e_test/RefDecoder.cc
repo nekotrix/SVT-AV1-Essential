@@ -44,7 +44,7 @@ typedef enum {
 } FRAME_TYPE;
 
 /** count intra period length from the frame serialization */
-static int get_max_intra_period_length(std::vector<int>& frame_type_vec) {
+static int get_max_intra_period_length(const std::vector<int>& frame_type_vec) {
     int period_max = 0;
     int period = 0;
     for (int frame_type : frame_type_vec) {
