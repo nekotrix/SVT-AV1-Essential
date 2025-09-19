@@ -219,6 +219,8 @@ class LoopFilterTest : public ::testing::TestWithParam<TestParamType> {
             << "Error: Loop8Test6Param, C output doesn't match SIMD "
                "loopfilter output. "
             << "First failed at test case " << first_failure;
+        start_tst_ = nullptr;
+        start_ref_ = nullptr;
     }
 
   protected:
