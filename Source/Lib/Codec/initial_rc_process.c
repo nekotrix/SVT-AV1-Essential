@@ -523,12 +523,13 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
 
                         svt_aom_assert_err(tmp_pcs->ext_mg_id >= head_pcs->ext_mg_id, "err in mg id");
                         //adjust the lad if we hit an EOS
-                        if (tmp_pcs->end_of_sequence_flag)
+                        if (tmp_pcs->end_of_sequence_flag) {
                             target_mgs = MIN(target_mgs,
                                              (uint8_t)(tmp_pcs->ext_mg_id - head_pcs->ext_mg_id +
                                                        1)); //+1: to include the MG where the head belongs
-                        if (tmp_pcs->end_of_sequence_flag)
+
                             head_pcs->end_of_sequence_region = true;
+                        }
                         if (tmp_pcs->ext_mg_id >= cur_mg) {
                             if (tmp_pcs->ext_mg_id > cur_mg)
                                 svt_aom_assert_err(tmp_pcs->ext_mg_id == cur_mg + 1, "err continuity in mg id");

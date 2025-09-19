@@ -2131,11 +2131,10 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
 
                     ctx->coded_area_sb += blk_geom->tx_width[tx_depth] * blk_geom->tx_height[tx_depth];
 
-                    if (ctx->blk_geom->has_uv && uv_pass)
+                    if (ctx->blk_geom->has_uv && uv_pass) {
                         txb_1d_offset_uv += blk_geom->tx_width_uv[tx_depth] * blk_geom->tx_height_uv[tx_depth];
-
-                    if (ctx->blk_geom->has_uv && uv_pass)
                         ctx->coded_area_sb_uv += blk_geom->tx_width_uv[tx_depth] * blk_geom->tx_height_uv[tx_depth];
+                    }
                 }
             }
             if (!md_ctx->bypass_encdec) {

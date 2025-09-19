@@ -1379,8 +1379,6 @@ static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
                         (me_ctx->is_ref && me_ctx->search_results[list_index][ref_pic_index].hme_sad < (24 * 24))) {
                         search_area_height = search_area_height / 2;
                     }
-                }
-                if (me_ctx->me_sr_adjustment_ctrls.enable_me_sr_adjustment == 2) {
                     if (list_index || ref_pic_index) {
                         if (me_ctx->p_sb_best_sad[0][0][0] < 5000)
                             if (search_area_height == search_area_height_before_sr_reduction &&

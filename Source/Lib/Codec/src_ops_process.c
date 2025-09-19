@@ -2228,9 +2228,6 @@ static void aom_av1_set_mb_ssim_rdmult_scaling(PictureParentControlSet *pcs) {
     log_sum = exp(log_sum / (double)(num_rows * num_cols));
     if (do_print) {
         fprintf(stdout, "\nlog_sum %.4f\n", log_sum);
-    }
-
-    if (do_print) {
         fprintf(stdout, "16x16 block rdmult scaling factors");
     }
 #if !FIX_TUNE_SSIM_LAMBDA
