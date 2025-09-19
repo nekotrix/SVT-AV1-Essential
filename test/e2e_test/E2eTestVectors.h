@@ -222,7 +222,7 @@ typedef struct EncTestSetting {
         return str;
     }
 
-    std::string get_setting_name() const {
+    const std::string& get_setting_name() const {
         return name;
     }
 
