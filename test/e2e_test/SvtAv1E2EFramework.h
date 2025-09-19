@@ -64,11 +64,13 @@ typedef struct {
  * encoding progress, decoding progress, data collection and data comparision */
 class SvtAv1E2ETestFramework : public ::testing::TestWithParam<EncTestSetting> {
   public:
-    typedef struct IvfFile {
+    struct IvfFile {
         FILE *file;
         uint64_t byte_count_since_ivf;
         uint64_t ivf_count;
         IvfFile(std::string path);
+        IvfFile(const IvfFile &) = delete;
+        IvfFile &operator=(const IvfFile &) = delete;
         ~IvfFile() {
             if (file) {
                 fclose(file);
@@ -77,7 +79,7 @@ class SvtAv1E2ETestFramework : public ::testing::TestWithParam<EncTestSetting> {
             byte_count_since_ivf = 0;
             ivf_count = 0;
         }
-    } IvfFile;
+    };
 
   protected:
     SvtAv1E2ETestFramework();

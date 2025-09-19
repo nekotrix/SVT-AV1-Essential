@@ -148,6 +148,8 @@ class RefDecoder {
      * @param enable_analyzer the flag to create analyzer with decoder
      */
     RefDecoder(RefDecoderErr &ret, bool enable_analyzer);
+    RefDecoder(const RefDecoder &) = delete;
+    RefDecoder &operator=(const RefDecoder &) = delete;
     /** Destructor of RefDecoder      */
     virtual ~RefDecoder();
 

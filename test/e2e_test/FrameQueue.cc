@@ -69,6 +69,9 @@ class FrameQueueFile : public FrameQueue {
         FOPEN(recon_file_, file_path, "wb");
         record_list_.clear();
     }
+    FrameQueueFile(const FrameQueueFile &) = delete;
+    FrameQueueFile &operator=(const FrameQueueFile &) = delete;
+
     virtual ~FrameQueueFile() {
         if (recon_file_) {
             fflush(recon_file_);

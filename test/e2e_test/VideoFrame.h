@@ -129,7 +129,25 @@ typedef struct VideoFrame : public VideoFrameParam {
         } else
             printf("video frame buffer is out of memory!!\n");
     }
-    VideoFrame &operator=(const VideoFrame &) = default;
+    VideoFrame &operator=(const VideoFrame &other) {
+        if (this != &other) {
+            // copy information from other
+            *static_cast<VideoFrameParam *>(this) =
+                *static_cast<const VideoFrameParam *>(&other);
+            disp_width = other.disp_width;
+            disp_height = other.disp_height;
+            memcpy(stride, other.stride, sizeof(stride));
+            memcpy(planes, other.planes, sizeof(planes));
+            context = other.context;
+            timestamp = other.timestamp;
+            buffer = other.buffer;
+            buf_size = other.buf_size;
+            qp = other.qp;
+            compress_10bit = other.compress_10bit;
+            memcpy(ext_planes, other.ext_planes, sizeof(ext_planes));
+        }
+        return *this;
+    };
     VideoFrame(const VideoFrame &origin) {
         // copy information from origin
         *this = origin;
