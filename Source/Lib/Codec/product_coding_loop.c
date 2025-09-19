@@ -8646,8 +8646,8 @@ static void lpd1_tx_shortcut_detector(PictureControlSet *pcs, ModeDecisionContex
                 int              num_ref_frame_pair_match = match_ref_frame_pair(left_mi, rf);
                 num_ref_frame_pair_match += match_ref_frame_pair(above_mi, rf);
 
-                uint16_t use_tx_shortcuts_mds3_mult  = 2 * ctx->lpd1_tx_ctrls.use_neighbour_info; // is halved below
-                uint16_t lpd1_allow_skipping_tx_mult = 2 * ctx->lpd1_tx_ctrls.use_neighbour_info; // is halved below
+                uint16_t use_tx_shortcuts_mds3_mult  = 2 * ctx->lpd1_tx_ctrls.use_neighbour_info,
+                         lpd1_allow_skipping_tx_mult = use_tx_shortcuts_mds3_mult; // is halved below
 
                 if (num_ref_frame_pair_match == 2) {
                     if (left_mi->mode == cand->block_mi.mode && above_mi->mode == cand->block_mi.mode) {
