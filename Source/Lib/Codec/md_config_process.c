@@ -716,7 +716,7 @@ static void set_frame_coeff_lvl(PictureControlSet *pcs) {
     uint64_t coeff_vlow_level_th = COEFF_LVL_TH_0;
     uint64_t coeff_low_level_th  = COEFF_LVL_TH_1;
     uint64_t coeff_high_level_th = COEFF_LVL_TH_2;
-    if (pcs->ppcs->input_resolution <= INPUT_SIZE_240p_RANGE) {
+    if (pcs->ppcs->input_resolution == INPUT_SIZE_240p_RANGE) {
         coeff_vlow_level_th = (uint64_t)((double)coeff_vlow_level_th * 1.7);
         coeff_low_level_th  = (uint64_t)((double)coeff_low_level_th * 1.7);
         coeff_high_level_th = (uint64_t)((double)coeff_high_level_th * 1.7);
@@ -786,7 +786,7 @@ static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
             cdef_ctrls->pred_uv_f = 0;
 #else
             if (rtc_tune) {
-                int8_t mid_filter     = MIN(63, MAX(0, MAX(lowest_sg, highest_sg)));
+                int8_t mid_filter     = MIN(63, MAX(lowest_sg, highest_sg));
                 cdef_ctrls->pred_y_f  = mid_filter;
                 cdef_ctrls->pred_uv_f = 0;
             } else {
