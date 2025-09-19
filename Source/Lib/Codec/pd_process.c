@@ -4793,9 +4793,6 @@ static void assign_and_release_pa_refs(EncodeContext* enc_ctx, PictureParentCont
                 svt_block_on_mutex(enc_ctx->pd_dpb_mutex);
                 PaReferenceEntry* pa_ref_entry = search_ref_in_ref_queue_pa(enc_ctx, ref_poc);
                 assert(pa_ref_entry != NULL);
-                CHECK_REPORT_ERROR((pa_ref_entry),
-                    enc_ctx->app_callback_ptr,
-                    EB_ENC_PM_ERROR10);
                 // Set the Reference Object
                 pcs->ref_pa_pic_ptr_array[list_idx][ref_idx] = pa_ref_entry->input_object_ptr;
                 pcs->ref_pic_poc_array[list_idx][ref_idx] = ref_poc;

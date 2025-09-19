@@ -5827,49 +5827,48 @@ EB_API EbErrorType svt_av1_enc_send_picture(
      //this would also allow low delay TF to retain pictures
      svt_object_inc_live_count(eb_wrapper_ptr, 1);
 
-    if (p_buffer != NULL) {
-        enc_handle_ptr->eos_received += p_buffer->flags & EB_BUFFERFLAG_EOS;
+    enc_handle_ptr->eos_received += p_buffer->flags & EB_BUFFERFLAG_EOS;
 
-        // copy the Luma 8bit part into y8b buffer and the rest of samples into the regular buffer
-        EbBufferHeaderType *lib_y8b_hdr = (EbBufferHeaderType*)y8b_wrapper->object_ptr;
-        EbBufferHeaderType *lib_reg_hdr = (EbBufferHeaderType*)eb_wrapper_ptr->object_ptr;
+    // copy the Luma 8bit part into y8b buffer and the rest of samples into the regular buffer
+    EbBufferHeaderType *lib_y8b_hdr = (EbBufferHeaderType*)y8b_wrapper->object_ptr;
+    EbBufferHeaderType *lib_reg_hdr = (EbBufferHeaderType*)eb_wrapper_ptr->object_ptr;
 
-        // check whether the n_filled_len has enough samples to be processed
-        EbPictureBufferDesc* input_pic = (EbPictureBufferDesc*)lib_y8b_hdr->p_buffer;
-        SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[0]->scs;
-        EbSvtAv1EncConfiguration* config = &scs->static_config;
-        bool is_16bit_input = (bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
+    // check whether the n_filled_len has enough samples to be processed
+    EbPictureBufferDesc* input_pic = (EbPictureBufferDesc*)lib_y8b_hdr->p_buffer;
+    SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[0]->scs;
+    EbSvtAv1EncConfiguration* config = &scs->static_config;
+    bool is_16bit_input = (bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
 
-        const uint8_t subsampling_x = (config->encoder_color_format == EB_YUV444 ? 0 : 1);
-        const uint8_t subsampling_y = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 0 : 1);
-        const size_t luma_width = input_pic->width - scs->max_input_pad_right;
-        const size_t luma_height = input_pic->height - scs->max_input_pad_bottom;
-        const size_t chroma_width = (luma_width + subsampling_x) >> subsampling_x;
-        const size_t chroma_height = (luma_height + subsampling_y) >> subsampling_y;
-        const size_t read_size = (luma_width * luma_height + 2 * chroma_width * chroma_height) << is_16bit_input;
+    const uint8_t subsampling_x = (config->encoder_color_format == EB_YUV444 ? 0 : 1);
+    const uint8_t subsampling_y = ((config->encoder_color_format == EB_YUV444 || config->encoder_color_format == EB_YUV422) ? 0 : 1);
+    const size_t luma_width = input_pic->width - scs->max_input_pad_right;
+    const size_t luma_height = input_pic->height - scs->max_input_pad_bottom;
+    const size_t chroma_width = (luma_width + subsampling_x) >> subsampling_x;
+    const size_t chroma_height = (luma_height + subsampling_y) >> subsampling_y;
+    const size_t read_size = (luma_width * luma_height + 2 * chroma_width * chroma_height) << is_16bit_input;
 
-        if (app_hdr->p_buffer != NULL && read_size > app_hdr->n_filled_len) {
+    if (app_hdr->p_buffer != NULL && read_size > app_hdr->n_filled_len) {
 
-            // memset the library input buffer(s) if the API input buffer is not large enough
-            // this operation is necessary to avoid a potential crash when processing an invalid input
-            // the library will still process the current input and then exit
-            memset_input_buffer(
-                enc_handle_ptr->scs_instance_array[0]->scs,
-                lib_reg_hdr,
-                lib_y8b_hdr,
-                app_hdr,
-                0);
-            enc_handle_ptr->is_prev_valid = false;
-        }
-        else {
-            copy_input_buffer(
-                enc_handle_ptr->scs_instance_array[0]->scs,
-                lib_reg_hdr,
-                lib_y8b_hdr,
-                app_hdr,
-                0);
-        }
+        // memset the library input buffer(s) if the API input buffer is not large enough
+        // this operation is necessary to avoid a potential crash when processing an invalid input
+        // the library will still process the current input and then exit
+        memset_input_buffer(
+            enc_handle_ptr->scs_instance_array[0]->scs,
+            lib_reg_hdr,
+            lib_y8b_hdr,
+            app_hdr,
+            0);
+        enc_handle_ptr->is_prev_valid = false;
     }
+    else {
+        copy_input_buffer(
+            enc_handle_ptr->scs_instance_array[0]->scs,
+            lib_reg_hdr,
+            lib_y8b_hdr,
+            app_hdr,
+            0);
+    }
+
 
     //Take a new App-RessCoord command
     EbObjectWrapper *input_cmd_wrp;

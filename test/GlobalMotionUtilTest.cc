@@ -133,29 +133,22 @@ class RansacTest : public ::testing::TestWithParam<TransformationType> {
 
     void do_ransac_check() {
         const int npoints = (int)data_.size();
-        Sample *points = new Sample[npoints * 4];
-        ASSERT_NE(points, nullptr);
-        prepare_input(points, npoints);
+        std::vector<Sample> points(npoints * 4);
+        prepare_input(points.data(), npoints);
 
         const int num_motions = RANSAC_NUM_MOTIONS;
-        int *num_inliers_by_motion = new int[num_motions];
-        ASSERT_NE(num_inliers_by_motion, nullptr);
-        memset(num_inliers_by_motion, 0, sizeof(*num_inliers_by_motion));
-
-        MotionModel *motions = new MotionModel[num_motions];
-        ASSERT_NE(motions, nullptr);
+        std::vector<std::vector<int>> inliers_storage(
+            num_motions, std::vector<int>(2 * MAX_CORNERS, 0));
+        std::vector<MotionModel> motions(num_motions, MotionModel());
         for (int i = 0; i < num_motions; i++) {
-            memset(&motions[i], 0, sizeof(MotionModel));
-            motions[i].inliers = new int[2 * MAX_CORNERS];
-            ASSERT_NE(motions[i].inliers, nullptr);
-            memset(motions[i].inliers, 0, sizeof(int) * 2 * npoints);
+            motions[i].inliers = inliers_storage[i].data();
         }
 
         bool mem_alloc_failed = false;
-        bool ret = svt_aom_ransac((Correspondence *)points,
+        bool ret = svt_aom_ransac((Correspondence *)points.data(),
                                   npoints,
                                   GetParam(),
-                                  motions,
+                                  motions.data(),
                                   num_motions,
                                   &mem_alloc_failed);
         ASSERT_EQ(ret, true);
@@ -165,16 +158,6 @@ class RansacTest : public ::testing::TestWithParam<TransformationType> {
 
         /** check for the transform matrix of motion */
         check_transform_matrix(mat_, motions[0].params);
-
-        if (points)
-            delete[] points;
-        if (num_inliers_by_motion)
-            delete[] num_inliers_by_motion;
-        for (int i = 0; i < num_motions; i++) {
-            if (motions[i].inliers)
-                delete[] motions[i].inliers;
-        }
-        delete[] motions;
     }
 
     /* clang-format off */
