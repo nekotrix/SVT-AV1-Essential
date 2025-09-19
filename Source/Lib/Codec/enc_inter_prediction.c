@@ -1699,6 +1699,7 @@ static void av1_make_masked_warp_inter_predictor(uint8_t *src_ptr, uint8_t *src_
                                            conv_params,
                                            bitdepth,
                                            is16bit);
+    conv_params->dst = NULL; // null out the pointer to avoid misuse
 }
 
 // This function has a structure similar to av1_build_obmc_inter_prediction
