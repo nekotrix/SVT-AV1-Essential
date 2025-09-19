@@ -209,13 +209,6 @@ static INLINE __m256i _mm256_addl_epi16(__m256i a) {
                 _mm_storel_epi64(dst, _mm_sub_epi16(_mm_loadl_epi64(src), avg_epi16));
             else {
                 _mm_storeu_si128(dst, _mm_sub_epi16(_mm_loadu_si128(src), avg_epi16));
-                if (width > 8) {
-                    _mm_storeu_si128(dst + 1, _mm_sub_epi16(_mm_loadu_si128(src + 1), avg_epi16));
-                    if (width == 32) {
-                        _mm_storeu_si128(dst + 2, _mm_sub_epi16(_mm_loadu_si128(src + 2), avg_epi16));
-                        _mm_storeu_si128(dst + 3, _mm_sub_epi16(_mm_loadu_si128(src + 3), avg_epi16));
-                    }
-                }
             }
             src += CFL_BUF_LINE_I128;
             dst += CFL_BUF_LINE_I128;
