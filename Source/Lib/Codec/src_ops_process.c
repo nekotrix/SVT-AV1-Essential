@@ -2180,7 +2180,7 @@ static void aom_av1_set_mb_ssim_rdmult_scaling(PictureParentControlSet *pcs) {
 #endif
     const bool do_print = false;
     if (do_print) {
-        fprintf(stdout, "16x16 block variance");
+        fprintf(stderr, "16x16 block variance");
     }
 
     // Loop through each 16x16 block.
@@ -2219,16 +2219,16 @@ static void aom_av1_set_mb_ssim_rdmult_scaling(PictureParentControlSet *pcs) {
             log_sum += log(var);
             if (do_print) {
                 if (col == 0) {
-                    fprintf(stdout, "\n");
+                    fprintf(stderr, "\n");
                 }
-                fprintf(stdout, "%.4f\t", var_backup);
+                fprintf(stderr, "%.4f\t", var_backup);
             }
         }
     }
     log_sum = exp(log_sum / (double)(num_rows * num_cols));
     if (do_print) {
-        fprintf(stdout, "\nlog_sum %.4f\n", log_sum);
-        fprintf(stdout, "16x16 block rdmult scaling factors");
+        fprintf(stderr, "\nlog_sum %.4f\n", log_sum);
+        fprintf(stderr, "16x16 block rdmult scaling factors");
     }
 #if !FIX_TUNE_SSIM_LAMBDA
     double min = 0xfffffff;
@@ -2248,9 +2248,9 @@ static void aom_av1_set_mb_ssim_rdmult_scaling(PictureParentControlSet *pcs) {
 #endif
             if (do_print) {
                 if (col == 0) {
-                    fprintf(stdout, "\n");
+                    fprintf(stderr, "\n");
                 }
-                fprintf(stdout, "%.4f\t", pcs->pa_me_data->ssim_rdmult_scaling_factors[index]);
+                fprintf(stderr, "%.4f\t", pcs->pa_me_data->ssim_rdmult_scaling_factors[index]);
             }
         }
     }
