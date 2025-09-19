@@ -227,7 +227,7 @@ size_t read_y4m_frame_delimiter(FILE *input_file, FILE *error_log_file) {
     char buffer_y4m_header[YFM_HEADER_MAX] = {0};
 
     if (!fgets(buffer_y4m_header, sizeof(buffer_y4m_header), input_file)) {
-        assert(feof(input_file));
+        fprintf(error_log_file, "Failed to read y4m frame delimeter. Read broken. EOF: %i\n", feof(input_file));
         return 0;
     }
     if (strncmp(buffer_y4m_header, "FRAME", sizeof("FRAME") - 1)) {
