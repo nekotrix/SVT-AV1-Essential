@@ -43,7 +43,6 @@ namespace {
 using Point = struct {
     double x;
     double y;
-    bool is_inlier;
 };
 using AffineMat = struct {
     /* clang-format off */
@@ -98,8 +97,7 @@ class RansacTest : public ::testing::TestWithParam<TransformationType> {
         inliers = rnd_.random() % count;
         inliers = inliers < 10 ? 10 : inliers;
         for (int i = 0; i < inliers; i++)
-            data_.push_back(
-                {(double)rnd_.random(), (double)rnd_.random(), true});
+            data_.push_back({(double)rnd_.random(), (double)rnd_.random()});
 
         TransDataFunc trans_func = get_trans_data_func(GetParam());
         ASSERT_NE(trans_func, nullptr);
@@ -112,9 +110,9 @@ class RansacTest : public ::testing::TestWithParam<TransformationType> {
         for (int i = 0; i < noise_count; i++) {
             size_t insert_pos = rnd_.random() % data_.size();
             data_.insert(data_.begin() + insert_pos,
-                         {(double)rnd_.random(), (double)rnd_.random(), false});
+                         {(double)rnd_.random(), (double)rnd_.random()});
             ref_.insert(ref_.begin() + insert_pos,
-                        {(double)rnd_.random(), (double)rnd_.random(), false});
+                        {(double)rnd_.random(), (double)rnd_.random()});
         }
     }
 
