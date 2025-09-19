@@ -271,7 +271,7 @@ void SvtAv1E2ETestFramework::init_test(TestVideoVector &test_vector) {
     // create IvfFile if required.
     if (enable_save_bitstream) {
         std::string fn = std::get<0>(test_vector) + ".ivf";
-        output_file_ = new IvfFile(fn.c_str());
+        output_file_ = new IvfFile(fn);
     }
 
     ASSERT_NE(psnr_src_, nullptr) << "PSNR source create failed!";
