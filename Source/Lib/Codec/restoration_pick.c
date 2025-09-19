@@ -1355,8 +1355,8 @@ static void search_wiener_seg(const RestorationTileLimits *limits, const Av1Pixe
 
         if (!wiener_decompose_sep_sym(wiener_win, M, H, vfilterd, hfilterd)) {
             SVT_LOG("CHKN never get here\n");
-            rusi->best_rtype[RESTORE_WIENER - 1] = RESTORE_NONE;
-            rusi->sse[RESTORE_WIENER]            = INT64_MAX;
+            rusi->best_rtype[RESTORE_NONE] = RESTORE_NONE;
+            rusi->sse[RESTORE_WIENER]      = INT64_MAX;
             return;
         }
         finalize_sym_filter(wiener_win, vfilterd, rui.wiener_info.vfilter);
@@ -1406,8 +1406,8 @@ static void search_wiener_finish(const RestorationTileLimits *limits, const Av1P
     if (rusi->sse[RESTORE_WIENER] == INT64_MAX) {
         rsc->bits += bits_none;
         rsc->sse += rusi->sse[RESTORE_NONE];
-        rusi->best_rtype[RESTORE_WIENER - 1] = RESTORE_NONE;
-        rusi->sse[RESTORE_WIENER]            = INT64_MAX;
+        rusi->best_rtype[RESTORE_NONE] = RESTORE_NONE;
+        rusi->sse[RESTORE_WIENER]      = INT64_MAX;
         return;
     }
 
@@ -1419,8 +1419,8 @@ static void search_wiener_finish(const RestorationTileLimits *limits, const Av1P
     double cost_none   = RDCOST_DBL(x->rdmult, bits_none >> 4, rusi->sse[RESTORE_NONE]);
     double cost_wiener = RDCOST_DBL(x->rdmult, bits_wiener >> 4, rusi->sse[RESTORE_WIENER]);
 
-    RestorationType rtype                = (cost_wiener < cost_none) ? RESTORE_WIENER : RESTORE_NONE;
-    rusi->best_rtype[RESTORE_WIENER - 1] = rtype;
+    RestorationType rtype          = (cost_wiener < cost_none) ? RESTORE_WIENER : RESTORE_NONE;
+    rusi->best_rtype[RESTORE_NONE] = rtype;
 
     rsc->sse += rusi->sse[rtype];
     rsc->bits += (cost_wiener < cost_none) ? bits_wiener : bits_none;

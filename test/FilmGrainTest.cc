@@ -420,11 +420,10 @@ class DenoiseModelRunTest : public ::testing::Test {
     }
 
     void init_data() {
-        const int shift = EB_EIGHT_BIT - 8;
         for (int y = 0; y < height_; ++y) {
             for (int x = 0; x < width_; ++x) {
                 data_ptr_[0][y * width_ + x] =
-                    int(64 + y + randn(&this->random_, 1)) << shift;
+                    int(64 + y + randn(&this->random_, 1));
                 // Make the chroma planes completely correlated with the Y plane
                 for (int c = 1; c < 3; ++c) {
                     data_ptr_[c][(y >> 1) * (width_ >> 1) + (x >> 1)] =
