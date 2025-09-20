@@ -294,11 +294,11 @@ class RansacTest : public ::testing::TestWithParam<TransformationType> {
      * | 1 |   |  0   0   1 |   |         1        |
      */
     /* clang-format on */
-    static Point affine(const Point &pt, AffineMat mat) {
-        Point dst;
-        dst.x = (pt.x * mat.m0) + (pt.y * mat.m1) + mat.m2;
-        dst.y = (pt.x * mat.m3) + (pt.y * mat.m4) + mat.m5;
-        return dst;
+    static Point affine(const Point &pt, const AffineMat &mat) {
+        return {
+            (pt.x * mat.m0) + (pt.y * mat.m1) + mat.m2,
+            (pt.x * mat.m3) + (pt.y * mat.m4) + mat.m5,
+        };
     }
 
   protected:

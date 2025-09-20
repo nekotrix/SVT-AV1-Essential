@@ -721,8 +721,8 @@ TEST_P(FeaturePresetConformanceTest, DISABLED_FeaturePresetConformanceTest) {
 }
 
 static const std::vector<EncTestSetting> generate_testcase_with_preset_settings(
-    const std::string test_case_name, const std::string feature_name,
-    const std::vector<std::string> values) {
+    const std::string &test_case_name, const std::string &feature_name,
+    const std::vector<std::string> &values) {
     static const std::string test_prefix = test_case_name;
     std::vector<EncTestSetting> settings;
 
