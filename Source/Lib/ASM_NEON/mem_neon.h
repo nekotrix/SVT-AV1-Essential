@@ -37,9 +37,7 @@ static inline int get_filter_tap(const InterpFilterParams *const filter_params, 
 
 static inline void store_u8_8x2(uint8_t *s, ptrdiff_t p, const uint8x8_t s0, const uint8x8_t s1) {
     vst1_u8(s, s0);
-    s += p;
-    vst1_u8(s, s1);
-    s += p;
+    vst1_u8(s + p, s1);
 }
 
 static inline uint8x16_t load_u8_8x2(const uint8_t *s, ptrdiff_t p) { return vcombine_u8(vld1_u8(s), vld1_u8(s + p)); }
@@ -134,7 +132,6 @@ static inline void load_u16_4x4(const uint16_t *s, const ptrdiff_t p, uint16x4_t
     *s2 = vld1_u16(s);
     s += p;
     *s3 = vld1_u16(s);
-    s += p;
 }
 
 static inline void load_u16_4x6(const uint16_t *s, ptrdiff_t p, uint16x4_t *const s0, uint16x4_t *const s1,
@@ -246,7 +243,6 @@ static inline void load_u16_8x4(const uint16_t *s, const ptrdiff_t p, uint16x8_t
     *s2 = vld1q_u16(s);
     s += p;
     *s3 = vld1q_u16(s);
-    s += p;
 }
 
 static inline void load_s16_4x12(const int16_t *s, ptrdiff_t p, int16x4_t *const s0, int16x4_t *const s1,
@@ -418,7 +414,6 @@ static inline void load_u16_4x5(const uint16_t *s, const ptrdiff_t p, uint16x4_t
     *s3 = vld1_u16(s);
     s += p;
     *s4 = vld1_u16(s);
-    s += p;
 }
 
 static inline void load_u8_8x5(const uint8_t *s, ptrdiff_t p, uint8x8_t *const s0, uint8x8_t *const s1,
@@ -445,7 +440,6 @@ static inline void load_u16_8x5(const uint16_t *s, const ptrdiff_t p, uint16x8_t
     *s3 = vld1q_u16(s);
     s += p;
     *s4 = vld1q_u16(s);
-    s += p;
 }
 
 static inline void load_s16_4x4(const int16_t *s, ptrdiff_t p, int16x4_t *const s0, int16x4_t *const s1,
@@ -1143,7 +1137,6 @@ static inline uint16x8_t load_u16_4x2(const uint16_t *buf, ptrdiff_t stride) {
     a_u64 = vdupq_n_u64(0);
     a_u64 = vsetq_lane_u64(a, a_u64, 0);
     memcpy(&a, buf, 8);
-    buf += stride;
     a_u64 = vsetq_lane_u64(a, a_u64, 1);
     return vreinterpretq_u16_u64(a_u64);
 }
@@ -1157,7 +1150,6 @@ static inline int16x8_t load_s16_4x2(const int16_t *buf, ptrdiff_t stride) {
     a_s64 = vdupq_n_s64(0);
     a_s64 = vsetq_lane_s64(a, a_s64, 0);
     memcpy(&a, buf, 8);
-    buf += stride;
     a_s64 = vsetq_lane_s64(a, a_s64, 1);
     return vreinterpretq_s16_s64(a_s64);
 }
