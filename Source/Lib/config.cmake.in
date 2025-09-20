@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+if(UNIX AND NOT APPLE)
+    include(CMakeFindDependencyMacro)
+    find_dependency(Threads)
+endif()
+
+include(${CMAKE_CURRENT_LIST_DIR}/SVT-AV1Targets.cmake)
+
+set_and_check(SVT-AV1_INCLUDE_DIR "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
+set_and_check(SVT-AV1_LIB_DIR "@PACKAGE_CMAKE_INSTALL_LIBDIR@")
+
+check_required_components(SVT-AV1)
