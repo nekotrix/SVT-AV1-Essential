@@ -97,7 +97,7 @@ void svt_av1_highbd_convolve_2d_sr_ssse3(const uint16_t *src, int32_t src_stride
     const int     bits             = FILTER_BITS * 2 - conv_params->round_0 - conv_params->round_1;
     const __m128i round_shift_bits = _mm_cvtsi32_si128(bits);
     const __m128i round_const_bits = _mm_set1_epi32((1 << bits) >> 1);
-    const __m128i clip_pixel       = _mm_set1_epi16(bd == 10 ? 1023 : (bd == 12 ? 4095 : 255));
+    const __m128i clp_pxl          = _mm_set1_epi16(bd == 10 ? 1023 : (bd == 12 ? 4095 : 255));
     const __m128i zero             = _mm_setzero_si128();
 
     if (filter_params_x->taps == 12) {
@@ -211,33 +211,33 @@ void svt_av1_highbd_convolve_2d_sr_ssse3(const uint16_t *src, int32_t src_stride
                         res_b_round1 = _mm_sra_epi32(_mm_add_epi32(res_b_round1, round_const_bits), round_shift_bits);
 
                         __m128i res_16bit0 = _mm_packs_epi32(res_a_round0, res_b_round0);
-                        res_16bit0         = _mm_min_epi16(res_16bit0, clip_pixel);
+                        res_16bit0         = _mm_min_epi16(res_16bit0, clp_pxl);
                         res_16bit0         = _mm_max_epi16(res_16bit0, zero);
 
                         __m128i res_16bit1 = _mm_packs_epi32(res_a_round1, res_b_round1);
-                        res_16bit1         = _mm_min_epi16(res_16bit1, clip_pixel);
+                        res_16bit1         = _mm_min_epi16(res_16bit1, clp_pxl);
                         res_16bit1         = _mm_max_epi16(res_16bit1, zero);
 
                         _mm_storeu_si128((__m128i *)&dst[i * dst_stride + j], res_16bit0);
                         _mm_storeu_si128((__m128i *)&dst[i * dst_stride + j + dst_stride], res_16bit1);
                     } else if (w == 4) {
                         res_a_round0 = _mm_packs_epi32(res_a_round0, res_a_round0);
-                        res_a_round0 = _mm_min_epi16(res_a_round0, clip_pixel);
+                        res_a_round0 = _mm_min_epi16(res_a_round0, clp_pxl);
                         res_a_round0 = _mm_max_epi16(res_a_round0, zero);
 
                         res_a_round1 = _mm_packs_epi32(res_a_round1, res_a_round1);
-                        res_a_round1 = _mm_min_epi16(res_a_round1, clip_pixel);
+                        res_a_round1 = _mm_min_epi16(res_a_round1, clp_pxl);
                         res_a_round1 = _mm_max_epi16(res_a_round1, zero);
 
                         _mm_storel_epi64((__m128i *)&dst[i * dst_stride + j], res_a_round0);
                         _mm_storel_epi64((__m128i *)&dst[i * dst_stride + j + dst_stride], res_a_round1);
                     } else {
                         res_a_round0 = _mm_packs_epi32(res_a_round0, res_a_round0);
-                        res_a_round0 = _mm_min_epi16(res_a_round0, clip_pixel);
+                        res_a_round0 = _mm_min_epi16(res_a_round0, clp_pxl);
                         res_a_round0 = _mm_max_epi16(res_a_round0, zero);
 
                         res_a_round1 = _mm_packs_epi32(res_a_round1, res_a_round1);
-                        res_a_round1 = _mm_min_epi16(res_a_round1, clip_pixel);
+                        res_a_round1 = _mm_min_epi16(res_a_round1, clp_pxl);
                         res_a_round1 = _mm_max_epi16(res_a_round1, zero);
 
                         *((uint32_t *)(&dst[i * dst_stride + j])) = _mm_cvtsi128_si32(res_a_round0);
@@ -366,33 +366,33 @@ void svt_av1_highbd_convolve_2d_sr_ssse3(const uint16_t *src, int32_t src_stride
                         res_b_round1 = _mm_sra_epi32(_mm_add_epi32(res_b_round1, round_const_bits), round_shift_bits);
 
                         __m128i res_16bit0 = _mm_packs_epi32(res_a_round0, res_b_round0);
-                        res_16bit0         = _mm_min_epi16(res_16bit0, clip_pixel);
+                        res_16bit0         = _mm_min_epi16(res_16bit0, clp_pxl);
                         res_16bit0         = _mm_max_epi16(res_16bit0, zero);
 
                         __m128i res_16bit1 = _mm_packs_epi32(res_a_round1, res_b_round1);
-                        res_16bit1         = _mm_min_epi16(res_16bit1, clip_pixel);
+                        res_16bit1         = _mm_min_epi16(res_16bit1, clp_pxl);
                         res_16bit1         = _mm_max_epi16(res_16bit1, zero);
 
                         _mm_storeu_si128((__m128i *)&dst[i * dst_stride + j], res_16bit0);
                         _mm_storeu_si128((__m128i *)&dst[i * dst_stride + j + dst_stride], res_16bit1);
                     } else if (w == 4) {
                         res_a_round0 = _mm_packs_epi32(res_a_round0, res_a_round0);
-                        res_a_round0 = _mm_min_epi16(res_a_round0, clip_pixel);
+                        res_a_round0 = _mm_min_epi16(res_a_round0, clp_pxl);
                         res_a_round0 = _mm_max_epi16(res_a_round0, zero);
 
                         res_a_round1 = _mm_packs_epi32(res_a_round1, res_a_round1);
-                        res_a_round1 = _mm_min_epi16(res_a_round1, clip_pixel);
+                        res_a_round1 = _mm_min_epi16(res_a_round1, clp_pxl);
                         res_a_round1 = _mm_max_epi16(res_a_round1, zero);
 
                         _mm_storel_epi64((__m128i *)&dst[i * dst_stride + j], res_a_round0);
                         _mm_storel_epi64((__m128i *)&dst[i * dst_stride + j + dst_stride], res_a_round1);
                     } else {
                         res_a_round0 = _mm_packs_epi32(res_a_round0, res_a_round0);
-                        res_a_round0 = _mm_min_epi16(res_a_round0, clip_pixel);
+                        res_a_round0 = _mm_min_epi16(res_a_round0, clp_pxl);
                         res_a_round0 = _mm_max_epi16(res_a_round0, zero);
 
                         res_a_round1 = _mm_packs_epi32(res_a_round1, res_a_round1);
-                        res_a_round1 = _mm_min_epi16(res_a_round1, clip_pixel);
+                        res_a_round1 = _mm_min_epi16(res_a_round1, clp_pxl);
                         res_a_round1 = _mm_max_epi16(res_a_round1, zero);
 
                         *((uint32_t *)(&dst[i * dst_stride + j])) = _mm_cvtsi128_si32(res_a_round0);

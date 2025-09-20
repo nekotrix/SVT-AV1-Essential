@@ -41,7 +41,7 @@ void svt_av1_highbd_warp_affine_avx2(const int32_t *mat, const uint8_t *ref8b, c
     (void)max_bits_horiz;
     assert(IMPLIES(conv_params->is_compound, conv_params->dst != NULL));
 
-    const __m256i clip_pixel             = _mm256_set1_epi16(bd == 10 ? 1023 : (bd == 12 ? 4095 : 255));
+    const __m256i clp_pxl                = _mm256_set1_epi16(bd == 10 ? 1023 : (bd == 12 ? 4095 : 255));
     const __m128i reduce_bits_vert_shift = _mm_cvtsi32_si128(reduce_bits_vert);
     const __m256i reduce_bits_vert_const = _mm256_set1_epi32(((1 << reduce_bits_vert) >> 1));
     const __m256i res_add_const          = _mm256_set1_epi32(1 << offset_bits_vert);
@@ -496,7 +496,7 @@ void svt_av1_highbd_warp_affine_avx2(const int32_t *mat, const uint8_t *ref8b, c
 
                         __m256i v_sum16 = _mm256_packus_epi32(v_sum1, v_sum1);
                         v_sum16         = _mm256_permute4x64_epi64(v_sum16, 0xD8);
-                        v_sum16         = _mm256_min_epi16(v_sum16, clip_pixel);
+                        v_sum16         = _mm256_min_epi16(v_sum16, clp_pxl);
                         _mm_storeu_si128(dst16, _mm256_castsi256_si128(v_sum16));
                     } else {
                         v_sum           = _mm256_packus_epi32(v_sum, v_sum);
