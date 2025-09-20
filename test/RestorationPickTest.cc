@@ -100,6 +100,7 @@ class av1_compute_stats_test
     }
 
   public:
+    av1_compute_stats_test() = default;
     void match_test() {
         const int block_size = TEST_GET_PARAM(0);
         int width;
@@ -388,6 +389,7 @@ class av1_compute_stats_test_hbd
     }
 
   public:
+    av1_compute_stats_test_hbd() = default;
     void highbd_match_test() {
         const int block_size = TEST_GET_PARAM(0);
         int width;

@@ -368,8 +368,8 @@ class LowBDConvolveScaleTest
     : public ConvolveScaleTestBase<uint8_t>,
       public ::testing::WithParamInterface<LowBDParams> {
   public:
-    virtual ~LowBDConvolveScaleTest() {
-    }
+    LowBDConvolveScaleTest() = default;
+    ~LowBDConvolveScaleTest() = default;
 
     void SetUp() {
         tst_fun_ = TEST_GET_PARAM(0);
@@ -495,6 +495,7 @@ class HighBDConvolveScaleTest
     : public ConvolveScaleTestBase<uint16_t>,
       public ::testing::WithParamInterface<HighBDParams> {
   public:
+    HighBDConvolveScaleTest() = default;
     virtual ~HighBDConvolveScaleTest() {
     }
 

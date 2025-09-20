@@ -441,6 +441,7 @@ template <typename Sample>
 class GetProjSubspaceTest
     : public ::testing::TestWithParam<GetProjSubspaceFunc> {
   public:
+    GetProjSubspaceTest() = default;
     void SetUp() override {
         test_impl_ = GetParam();
         input_ = (Sample *)svt_aom_memalign(
