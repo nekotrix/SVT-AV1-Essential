@@ -1493,29 +1493,28 @@ void svt_av1_selfguided_restoration_neon(const uint8_t *dat8, int32_t width, int
 
 typedef struct {
     int r[2]; // radii
-    int s[2]; // sgr parameters for r[0] and r[1], based on GenSgrprojVtable()
 } sgr_params_type;
 
 // The 's' values are calculated based on original 'r' and 'e' values in the
 // spec using GenSgrprojVtable().
 // Note: Setting r = 0 skips the filter; with corresponding s = -1 (invalid).
 static const sgr_params_type av1_sgr_params[SGRPROJ_PARAMS] = {
-    {{2, 1}, {140, 3236}},
-    {{2, 1}, {112, 2158}},
-    {{2, 1}, {93, 1618}},
-    {{2, 1}, {80, 1438}},
-    {{2, 1}, {70, 1295}},
-    {{2, 1}, {58, 1177}},
-    {{2, 1}, {47, 1079}},
-    {{2, 1}, {37, 996}},
-    {{2, 1}, {30, 925}},
-    {{2, 1}, {25, 863}},
-    {{0, 1}, {-1, 2589}},
-    {{0, 1}, {-1, 1618}},
-    {{0, 1}, {-1, 1177}},
-    {{0, 1}, {-1, 925}},
-    {{2, 0}, {56, -1}},
-    {{2, 0}, {22, -1}},
+    {{2, 1}},
+    {{2, 1}},
+    {{2, 1}},
+    {{2, 1}},
+    {{2, 1}},
+    {{2, 1}},
+    {{2, 1}},
+    {{2, 1}},
+    {{2, 1}},
+    {{2, 1}},
+    {{0, 1}},
+    {{0, 1}},
+    {{0, 1}},
+    {{0, 1}},
+    {{2, 0}},
+    {{2, 0}},
 };
 
 static inline void av1_decode_xq(const int *xqd, int *xq, const sgr_params_type *params) {
