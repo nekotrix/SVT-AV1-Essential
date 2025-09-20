@@ -2471,7 +2471,7 @@ static INLINE __m256i pair_set_epi16(int32_t a, int32_t b) {
 
 int64_t svt_av1_lowbd_pixel_proj_error_avx2(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride,
                                             const uint8_t *dat8, int32_t dat_stride, int32_t *flt0, int32_t flt0_stride,
-                                            int32_t *flt1, int32_t flt1_stride, int32_t xq[2],
+                                            int32_t *flt1, int32_t flt1_stride, const int32_t xq[2],
                                             const SgrParamsType *params) {
     const int32_t  shift = SGRPROJ_RST_BITS + SGRPROJ_PRJ_BITS;
     const uint8_t *src   = src8;
@@ -2592,8 +2592,8 @@ int64_t svt_av1_lowbd_pixel_proj_error_avx2(const uint8_t *src8, int32_t width, 
 
 int64_t svt_av1_highbd_pixel_proj_error_avx2(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride,
                                              const uint8_t *dat8, int32_t dat_stride, int32_t *flt0,
-                                             int32_t flt0_stride, int32_t *flt1, int32_t flt1_stride, int32_t xq[2],
-                                             const SgrParamsType *params) {
+                                             int32_t flt0_stride, int32_t *flt1, int32_t flt1_stride,
+                                             const int32_t xq[2], const SgrParamsType *params) {
     int32_t         i, j, k;
     const int32_t   shift    = SGRPROJ_RST_BITS + SGRPROJ_PRJ_BITS;
     const __m256i   rounding = _mm256_set1_epi32(1 << (shift - 1));

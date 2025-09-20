@@ -712,7 +712,7 @@ void svt_aom_noise_model_free(AomNoiseModel *model) {
                                           const INT_TYPE *const data,                    \
                                           const INT_TYPE *const denoised,                \
                                           int32_t               stride,                  \
-                                          int32_t               sub_log2[2],             \
+                                          const int32_t         sub_log2[2],             \
                                           const INT_TYPE *const alt_data,                \
                                           const INT_TYPE *const alt_denoised,            \
                                           int32_t               alt_stride,              \
@@ -878,7 +878,7 @@ static int32_t add_block_observations(AomNoiseModel *noise_model, int32_t c, con
 
 static void add_noise_std_observations(AomNoiseModel *noise_model, int32_t c, const double *coeffs,
                                        const uint8_t *const data, const uint8_t *const denoised, int32_t w, int32_t h,
-                                       int32_t stride, int32_t sub_log2[2], const uint8_t *const alt_data,
+                                       int32_t stride, const int32_t sub_log2[2], const uint8_t *const alt_data,
                                        int32_t alt_stride, const uint8_t *const flat_blocks, int32_t block_size,
                                        int32_t num_blocks_w, int32_t num_blocks_h) {
     const int32_t           num_coords            = noise_model->n;
@@ -999,9 +999,9 @@ static int32_t ar_equation_system_solve(AomNoiseState *state, int32_t is_chroma)
  * \param[in]     block_size      The size of blocks.
  */
 static AomNoiseStatus noise_model_update(AomNoiseModel *const noise_model, const uint8_t *const data[3],
-                                         const uint8_t *const denoised[3], int32_t w, int32_t h, int32_t stride[3],
-                                         int32_t chroma_sub_log2[2], const uint8_t *const flat_blocks,
-                                         int32_t block_size) {
+                                         const uint8_t *const denoised[3], int32_t w, int32_t h,
+                                         const int32_t stride[3], int32_t chroma_sub_log2[2],
+                                         const uint8_t *const flat_blocks, int32_t block_size) {
     const int32_t num_blocks_w = (w + block_size - 1) / block_size;
     const int32_t num_blocks_h = (h + block_size - 1) / block_size;
     //  int32_t y_model_different = 0;

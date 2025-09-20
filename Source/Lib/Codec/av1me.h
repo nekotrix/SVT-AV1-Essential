@@ -82,7 +82,7 @@ void svt_av1_set_mv_search_range(MvLimits *mv_limits, const Mv *mv);
 int svt_av1_full_pixel_search(struct PictureControlSet *pcs, IntraBcContext /*MACROBLOCK*/ *x, BlockSize bsize,
                               Mv *mvp_full, int step_param, int method, int run_mesh_search, int error_per_bit,
                               int *cost_list, const Mv *ref_mv, int var_max, int rd, int x_pos, int y_pos, int intra);
-int svt_aom_mv_err_cost(const Mv *mv, const Mv *ref, const int *mvjcost, int *mvcost[2], int error_per_bit);
+int svt_aom_mv_err_cost(const Mv *mv, const Mv *ref, const int *mvjcost, const int *mvcost[2], int error_per_bit);
 int svt_aom_mv_err_cost_light(const Mv *mv, const Mv *ref);
 #if CONFIG_ENABLE_OBMC
 struct ModeDecisionContext;
@@ -93,7 +93,7 @@ int svt_av1_find_best_obmc_sub_pixel_tree_up(struct ModeDecisionContext *ctx, In
                                              const struct Av1Common *const cm, int mi_row, int mi_col, Mv *bestmv,
                                              const Mv *ref_mv, int allow_hp, int error_per_bit,
                                              const AomVarianceFnPtr *vfp, int forced_stop, int iters_per_step,
-                                             int *mvjcost, int *mvcost[2], int *distortion, unsigned int *sse1,
+                                             int *mvjcost, const int *mvcost[2], int *distortion, unsigned int *sse1,
                                              int is_second, int use_accurate_subpel_search);
 #endif
 #ifdef __cplusplus

@@ -1674,7 +1674,7 @@ static void md_stage_0_light_pd1(PictureControlSet *pcs, ModeDecisionContext *ct
 // Function will only be applicate to classes which use multiple iterations
 static bool process_cand_itr(ModeDecisionContext *ctx, ModeDecisionCandidate *cand, uint8_t itr,
                              PredictionMode best_reg_intra_mode, uint64_t best_reg_intra_cost,
-                             uint64_t regular_intra_cost[PAETH_PRED + 1]) {
+                             const uint64_t regular_intra_cost[PAETH_PRED + 1]) {
     if (itr == 0) {
         if (ctx->cand_reduction_ctrls.reduce_filter_intra &&
             (ctx->intra_ctrls.skip_angular_delta1_th != -1 || ctx->intra_ctrls.skip_angular_delta2_th != -1 ||

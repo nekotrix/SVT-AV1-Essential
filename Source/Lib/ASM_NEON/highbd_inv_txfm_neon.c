@@ -210,7 +210,7 @@ static inline void write_buffer_64x64(int32x4_t in[], uint16_t *output_r, int32_
     }
 }
 
-static inline void idct32_x4_neon(int32x4_t in[], int32x4_t out[], int32_t bit) {
+static inline void idct32_x4_neon(const int32x4_t in[], int32x4_t out[], int32_t bit) {
     const int32_t *cospi = cospi_arr(bit);
 
     int32x4_t bf1[32], bf0[32];
@@ -570,7 +570,7 @@ static inline void addsub_neon(const int32x4_t in0, const int32x4_t in1, int32x4
     *out1 = vsubq_s32(in0, in1);
 }
 
-static void idct64_x4_neon(int32x4_t in[], int32x4_t out[], int32_t bit) {
+static void idct64_x4_neon(const int32x4_t in[], int32x4_t out[], int32_t bit) {
     const int32_t *cospi = cospi_arr(bit);
 
     int32x4_t u[64], v[64];

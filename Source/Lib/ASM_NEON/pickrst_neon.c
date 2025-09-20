@@ -1240,7 +1240,7 @@ void svt_av1_compute_stats_neon(int32_t wiener_win, const uint8_t *dgd, const ui
 
 int64_t svt_av1_lowbd_pixel_proj_error_neon(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride,
                                             const uint8_t *dat8, int32_t dat_stride, int32_t *flt0, int32_t flt0_stride,
-                                            int32_t *flt1, int32_t flt1_stride, int32_t xq[2],
+                                            int32_t *flt1, int32_t flt1_stride, const int32_t xq[2],
                                             const SgrParamsType *params) {
     if (width % 16 != 0) {
         return svt_av1_lowbd_pixel_proj_error_c(
@@ -1370,8 +1370,8 @@ int64_t svt_av1_lowbd_pixel_proj_error_neon(const uint8_t *src8, int32_t width, 
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
 int64_t svt_av1_highbd_pixel_proj_error_neon(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride,
                                              const uint8_t *dat8, int32_t dat_stride, int32_t *flt0,
-                                             int32_t flt0_stride, int32_t *flt1, int32_t flt1_stride, int32_t xq[2],
-                                             const SgrParamsType *params) {
+                                             int32_t flt0_stride, int32_t *flt1, int32_t flt1_stride,
+                                             const int32_t xq[2], const SgrParamsType *params) {
     if (width % 8 != 0) {
         return svt_av1_highbd_pixel_proj_error_c(
             src8, width, height, src_stride, dat8, dat_stride, flt0, flt0_stride, flt1, flt1_stride, xq, params);

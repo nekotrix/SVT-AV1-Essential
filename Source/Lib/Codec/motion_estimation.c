@@ -366,7 +366,7 @@ Calculate SAD for 32x32,64x64 from 16x16
 and check if there is improvment, if yes keep
 the best SAD+MV
 *******************************************/
-void svt_ext_eight_sad_calculation_32x32_64x64_c(uint32_t  p_sad16x16[16][8],
+void svt_ext_eight_sad_calculation_32x32_64x64_c(const uint32_t  p_sad16x16[16][8],
                                                  uint32_t *p_best_sad_32x32,
                                                  uint32_t *p_best_sad_64x64,
                                                  uint32_t *p_best_mv32x32, uint32_t *p_best_mv64x64,

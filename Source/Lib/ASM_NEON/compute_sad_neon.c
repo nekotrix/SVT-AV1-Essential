@@ -1272,7 +1272,7 @@ uint32_t svt_nxm_sad_kernel_helper_neon(const uint8_t *src, uint32_t src_stride,
     return res;
 }
 
-static inline void compute_4sad_neon(uint32_t p_sad16x16[4][8], uint32_t *p_sad32x32, uint32x4_t *sad0,
+static inline void compute_4sad_neon(const uint32_t p_sad16x16[4][8], uint32_t *p_sad32x32, uint32x4_t *sad0,
                                      uint32x4_t *sad1) {
     uint32x4_t tmp0 = vaddq_u32(vld1q_u32(p_sad16x16[0]), vld1q_u32(p_sad16x16[1]));
     uint32x4_t tmp1 = vaddq_u32(vld1q_u32(p_sad16x16[2]), vld1q_u32(p_sad16x16[3]));
@@ -1285,7 +1285,7 @@ static inline void compute_4sad_neon(uint32_t p_sad16x16[4][8], uint32_t *p_sad3
     store_u32_4x2(p_sad32x32, 4, *sad0, *sad1);
 }
 
-void svt_ext_eight_sad_calculation_32x32_64x64_neon(uint32_t p_sad16x16[16][8], uint32_t *p_best_sad_32x32,
+void svt_ext_eight_sad_calculation_32x32_64x64_neon(const uint32_t p_sad16x16[16][8], uint32_t *p_best_sad_32x32,
                                                     uint32_t *p_best_sad_64x64, uint32_t *p_best_mv32x32,
                                                     uint32_t *p_best_mv64x64, uint32_t mv, uint32_t p_sad32x32[4][8]) {
     uint32x4_t sad32_a1, sad32_a2, sad32_b1, sad32_b2, sad32_c1, sad32_c2, sad32_d1, sad32_d2;

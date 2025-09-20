@@ -3777,7 +3777,7 @@ uint32_t svt_nxm_sad_kernel_helper_sse4_1(const uint8_t *src, uint32_t src_strid
     return nxm_sad;
 }
 
-void svt_ext_eight_sad_calculation_32x32_64x64_sse4_1(uint32_t p_sad16x16[16][8], uint32_t *p_best_sad_32x32,
+void svt_ext_eight_sad_calculation_32x32_64x64_sse4_1(const uint32_t p_sad16x16[16][8], uint32_t *p_best_sad_32x32,
                                                       uint32_t *p_best_sad_64x64, uint32_t *p_best_mv32x32,
                                                       uint32_t *p_best_mv64x64, uint32_t mv,
                                                       uint32_t p_sad32x32[4][8]) {

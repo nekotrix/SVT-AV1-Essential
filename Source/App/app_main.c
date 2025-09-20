@@ -152,7 +152,7 @@ static int compar_uint64(const void* a, const void* b) {
     return (x < y) ? -1 : (x > y) ? 1 : 0;
 }
 
-static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, int32_t argc, char* argv[],
+static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, int32_t argc, char* const argv[],
                                     EncPass enc_pass, int32_t passes) {
 #if LOG_ENC_DONE
     tot_frames_done = 0;
@@ -493,7 +493,7 @@ void enc_app_dctor(EncApp* enc_app) { free(enc_app->rc_twopasses_stats.buf); }
 /***************************************
  * Encoder App Main
  ***************************************/
-int32_t main(int32_t argc, char* argv[]) {
+int main(int argc, char* argv[]) {
 #ifdef _WIN32
     _setmode(_fileno(stdin), _O_BINARY);
     _setmode(_fileno(stdout), _O_BINARY);

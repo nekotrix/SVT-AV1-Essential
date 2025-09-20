@@ -133,11 +133,11 @@ static int mvsad_err_cost_light(const Mv *mv, const Mv *ref) {
     const uint32_t mv_rate    = 1296 + (factor * (absmvdiffx + absmvdiffy));
     return mv_rate;
 }
-int svt_aom_mv_err_cost(const Mv *mv, const Mv *ref, const int *mvjcost, int *mvcost[2], int error_per_bit) {
+int svt_aom_mv_err_cost(const Mv *mv, const Mv *ref, const int *mvjcost, const int *mvcost[2], int error_per_bit) {
     if (mvcost) {
         const Mv diff = (Mv){{mv->x - ref->x, mv->y - ref->y}};
         return (int)ROUND_POWER_OF_TWO_64(
-            (int64_t)svt_mv_cost(&diff, mvjcost, (const int *const *)mvcost) * error_per_bit,
+            (int64_t)svt_mv_cost(&diff, mvjcost, mvcost) * error_per_bit,
             RDDIV_BITS + AV1_PROB_COST_SHIFT - RD_EPB_SHIFT + PIXEL_TRANSFORM_ERROR_SCALE);
     }
     return 0;
@@ -708,7 +708,7 @@ static const Mv search_step_table[12] = {
 static unsigned int setup_obmc_center_error(const int32_t *mask, const Mv *bestmv, const Mv *ref_mv, int error_per_bit,
                                             const AomVarianceFnPtr *vfp, const int32_t *const wsrc,
                                             const uint8_t *const y, int y_stride, int offset, int *mvjcost,
-                                            int *mvcost[2], unsigned int *sse1,
+                                            const int *mvcost[2], unsigned int *sse1,
                                             uint8_t use_low_precision_cost_estimation, int *distortion) {
     unsigned int besterr;
     besterr     = vfp->ovf(y + offset, y_stride, wsrc, mask, sse1);
@@ -833,7 +833,7 @@ static unsigned int upsampled_setup_obmc_center_error(MacroBlockD *xd, const Av1
                                                       int mi_col, const int32_t *mask, const Mv *bestmv,
                                                       const Mv *ref_mv, int error_per_bit, const AomVarianceFnPtr *vfp,
                                                       const int32_t *const wsrc, const uint8_t *const y, int y_stride,
-                                                      int w, int h, int offset, int *mvjcost, int *mvcost[2],
+                                                      int w, int h, int offset, int *mvjcost, const int *mvcost[2],
                                                       unsigned int *sse1, int *distortion,
                                                       uint8_t use_low_precision_cost_estimation, int subpel_search) {
     unsigned int besterr = upsampled_obmc_pref_error(
@@ -853,11 +853,12 @@ static INLINE const uint8_t *pre(const uint8_t *buf, int stride, int r, int c) {
     return buf + offset;
 }
 
-int svt_av1_find_best_obmc_sub_pixel_tree_up(ModeDecisionContext *ctx, IntraBcContext *x, const AV1_COMMON *const cm,
-                                             int mi_row, int mi_col, Mv *bestmv, const Mv *ref_mv, int allow_hp,
-                                             int error_per_bit, const AomVarianceFnPtr *vfp, int forced_stop,
-                                             int iters_per_step, int *mvjcost, int *mvcost[2], int *distortion,
-                                             unsigned int *sse1, int is_second, int use_accurate_subpel_search) {
+int svt_av1_find_best_obmc_sub_pixel_tree_up(struct ModeDecisionContext *ctx, IntraBcContext *x,
+                                             const struct Av1Common *const cm, int mi_row, int mi_col, Mv *bestmv,
+                                             const Mv *ref_mv, int allow_hp, int error_per_bit,
+                                             const AomVarianceFnPtr *vfp, int forced_stop, int iters_per_step,
+                                             int *mvjcost, const int *mvcost[2], int *distortion, unsigned int *sse1,
+                                             int is_second, int use_accurate_subpel_search) {
     const int32_t                 *wsrc        = ctx->wsrc_buf;
     const int32_t                 *mask        = ctx->mask_buf;
     const int *const               z           = wsrc;

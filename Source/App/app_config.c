@@ -1331,6 +1331,9 @@ void enc_channel_dctor(EncChannel *c, uint32_t inst_cnt) {
  *       element to terminate it, so that
  *       argv[argc] == NULL.
  */
+// cppcheck warns about argv being able to be const, but doing so would require consting everying going up it looks like
+// as this file is also included in a C++ file, so we can't easily actually const qualify it.
+// cppcheck-suppress constParameter
 static int32_t find_token(int32_t argc, char *const argv[], char const *token, char *configStr) {
     assert(argv[argc] == NULL);
 
@@ -1381,8 +1384,7 @@ static char *read_word(FILE *fp) {
     while ((c = fgetc(fp)) != EOF) {
         if (c == '#') {
             // skip to end of line
-            while ((c = fgetc(fp)) != EOF && c != '\n')
-                ;
+            while ((c = fgetc(fp)) != EOF && c != '\n');
             if (c == '\n')
                 continue;
             if (c == EOF)
@@ -1662,6 +1664,7 @@ static const char *TOKEN_ERROR_MARKER = "THIS_TOKEN_HAS_ERROR";
  * @return true token was found and configStr was populated
  * @return false token was not found and configStr was not populated
  */
+// cppcheck-suppress constParameter
 static bool find_token_multiple_inputs(unsigned nch, int argc, char *const argv[], const char *token,
                                        char *configStr[MAX_CHANNEL_NUMBER], const char *cmd_copy[MAX_NUM_TOKENS],
                                        const char *arg_copy[MAX_NUM_TOKENS]) {
@@ -1728,7 +1731,7 @@ static void print_options(const char *title, const ConfigDescription *options) {
     }
 }
 
-int get_version(int argc, char *argv[]) {
+int get_version(int argc, char *const argv[]) {
 #ifdef NDEBUG
 #define BUILD_TYPE_STRING "release"
 #else

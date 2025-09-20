@@ -58,7 +58,7 @@ MvJointType svt_av1_get_mv_joint(const Mv *mv) {
     else
         return mv->x == 0 ? MV_JOINT_HZVNZ : MV_JOINT_HNZVNZ;
 }
-static int32_t mv_cost(const Mv *mv, const int32_t *joint_cost, int32_t *const comp_cost[2]) {
+static int32_t mv_cost(const Mv *mv, const int32_t *joint_cost, const int32_t *const comp_cost[2]) {
     int32_t jn_c = svt_av1_get_mv_joint(mv);
     int32_t res  = joint_cost[jn_c] + comp_cost[0][CLIP3(MV_LOW, MV_UPP, mv->y)] +
         comp_cost[1][CLIP3(MV_LOW, MV_UPP, mv->x)];
@@ -71,7 +71,8 @@ int32_t svt_av1_mv_bit_cost_light(const Mv *mv, const Mv *ref) {
     const uint32_t mv_rate    = 1296 + (factor * (absmvdiffx + absmvdiffy));
     return mv_rate;
 }
-int32_t svt_av1_mv_bit_cost(const Mv *mv, const Mv *ref, const int32_t *mvjcost, int32_t *mvcost[2], int32_t weight) {
+int32_t svt_av1_mv_bit_cost(const Mv *mv, const Mv *ref, const int32_t *mvjcost, const int32_t *const mvcost[2],
+                            int32_t weight) {
     // Restrict the size of the MV diff to be within the max AV1 range.  If the MV diff
     // is outside this range, the diff will index beyond the cost array, causing a seg fault.
     // Both the MVs and the MV diffs should be within the allowable range for accessing the MV cost
@@ -670,11 +671,11 @@ uint64_t svt_aom_intra_fast_cost(PictureControlSet *pcs, struct ModeDecisionCont
     if (svt_aom_allow_intrabc(&pcs->ppcs->frm_hdr, pcs->ppcs->slice_type) && cand->block_mi.use_intrabc) {
         uint64_t rate = 0;
 
-        Mv      mv        = {.as_int = cand->block_mi.mv[0].as_int};
-        Mv      ref_mv    = {.as_int = cand->pred_mv[0].as_int};
-        int    *dvcost[2] = {(int *)&ctx->md_rate_est_ctx->dv_cost[0][MV_MAX],
-                             (int *)&ctx->md_rate_est_ctx->dv_cost[1][MV_MAX]};
-        int32_t mv_rate   = svt_av1_mv_bit_cost(
+        Mv         mv        = {.as_int = cand->block_mi.mv[0].as_int};
+        Mv         ref_mv    = {.as_int = cand->pred_mv[0].as_int};
+        const int *dvcost[2] = {(int *)&ctx->md_rate_est_ctx->dv_cost[0][MV_MAX],
+                                (int *)&ctx->md_rate_est_ctx->dv_cost[1][MV_MAX]};
+        int32_t    mv_rate   = svt_av1_mv_bit_cost(
             &mv, &ref_mv, ctx->md_rate_est_ctx->dv_joint_cost, dvcost, MV_COST_WEIGHT_SUB);
 
         rate                      = mv_rate + ctx->md_rate_est_ctx->intrabc_fac_bits[cand->block_mi.use_intrabc];

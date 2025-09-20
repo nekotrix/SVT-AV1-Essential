@@ -214,7 +214,7 @@ void      svt_config_dtor(EbConfig *app_cfg);
 EbErrorType     enc_channel_ctor(EncChannel *c);
 void            enc_channel_dctor(EncChannel *c, uint32_t inst_cnt);
 EbErrorType     read_command_line(int32_t argc, char *const argv[], EncChannel *channels, uint32_t num_channels);
-int             get_version(int argc, char *argv[]);
+int             get_version(int argc, char *const argv[]);
 extern uint32_t get_help(int32_t argc, char *const argv[]);
 extern uint32_t get_color_help(int32_t argc, char *const argv[]);
 extern uint32_t get_number_of_channels(int32_t argc, char *const argv[]);

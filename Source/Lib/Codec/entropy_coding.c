@@ -1588,11 +1588,15 @@ static void encode_mv_component(AomWriter *w, int32_t comp, NmvComponent *mvcomp
         aom_write_symbol(w, hp, mv_class == MV_CLASS_0 ? mvcomp->class0_hp_cdf : mvcomp->hp_cdf, 2);
 }
 
-static MvJointType av1_get_mv_joint_diff(int32_t diff[2]) {
+// can't mark the parameter as const due to MSVC not supporting c99 fully.
+#ifdef _MSC_VER
+static MvJointType av1_get_mv_joint_diff(const int32_t diff[2]) {
+#else
+static MvJointType av1_get_mv_joint_diff(const int32_t diff[const 2]) {
+#endif
     if (diff[0] == 0)
         return diff[1] == 0 ? MV_JOINT_ZERO : MV_JOINT_HNZVZ;
-    else
-        return diff[1] == 0 ? MV_JOINT_HZVNZ : MV_JOINT_HNZVNZ;
+    return diff[1] == 0 ? MV_JOINT_HZVNZ : MV_JOINT_HNZVNZ;
 }
 
 void svt_av1_encode_mv(PictureParentControlSet *pcs, AomWriter *ec_writer, const Mv *mv, const Mv *ref,

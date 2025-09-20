@@ -2604,8 +2604,8 @@ static INLINE __m512i pair_set_epi16_avx512(int32_t a, int32_t b) {
 
 int64_t svt_av1_lowbd_pixel_proj_error_avx512(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride,
                                               const uint8_t *dat8, int32_t dat_stride, int32_t *flt0,
-                                              int32_t flt0_stride, int32_t *flt1, int32_t flt1_stride, int32_t xq[2],
-                                              const SgrParamsType *params) {
+                                              int32_t flt0_stride, int32_t *flt1, int32_t flt1_stride,
+                                              const int32_t xq[2], const SgrParamsType *params) {
     const int32_t  shift = SGRPROJ_RST_BITS + SGRPROJ_PRJ_BITS;
     const uint8_t *src   = src8;
     const uint8_t *dat   = dat8;

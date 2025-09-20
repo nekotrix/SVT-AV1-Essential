@@ -4329,7 +4329,7 @@ void svt_ext_all_sad_calculation_8x8_16x16_avx2(uint8_t *src, uint32_t src_strid
         best_id = _mm256_extract_epi16(m, 0) & 0x07;                                \
     }
 
-void svt_ext_eight_sad_calculation_32x32_64x64_avx2(uint32_t p_sad16x16[16][8], uint32_t *p_best_sad_32x32,
+void svt_ext_eight_sad_calculation_32x32_64x64_avx2(const uint32_t p_sad16x16[16][8], uint32_t *p_best_sad_32x32,
                                                     uint32_t *p_best_sad_64x64, uint32_t *p_best_mv32x32,
                                                     uint32_t *p_best_mv64x64, uint32_t mv, uint32_t p_sad32x32[4][8]) {
     avx2_find_min_pos_init();

@@ -69,7 +69,7 @@ extern "C" {
         int32_t nmv_vec_cost[MV_JOINTS];
         int32_t nmv_costs[2][MV_VALS];
         int32_t nmv_costs_hp[2][MV_VALS];
-        int32_t* nmvcoststack[2];
+        const int32_t* nmvcoststack[2];
         int32_t dv_cost[2][MV_VALS];
         int32_t dv_joint_cost[MV_JOINTS];
 

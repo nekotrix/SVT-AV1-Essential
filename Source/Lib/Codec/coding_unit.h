@@ -136,7 +136,7 @@ typedef struct IntraBcContext {
     Mv           second_best_mv;
     MacroBlockD *xd;
     int         *nmv_vec_cost;
-    int        **mv_cost_stack;
+    const int  **mv_cost_stack;
     // buffer for hash value calculation of a block
     // used only in svt_av1_get_block_hash_value()
     // [two buffers used ping-pong]

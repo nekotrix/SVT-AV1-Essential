@@ -45,7 +45,8 @@ typedef int64_t (*PixelProjFunc)(const uint8_t *src8, int32_t width,
                                  const uint8_t *dat8, int32_t dat_stride,
                                  int32_t *flt0, int32_t flt0_stride,
                                  int32_t *flt1, int32_t flt1_stride,
-                                 int32_t xq[2], const SgrParamsType *params);
+                                 const int32_t xq[2],
+                                 const SgrParamsType *params);
 
 typedef std::tuple<const PixelProjFunc, const PixelProjFunc>
     PixelProjErrorTestParam;

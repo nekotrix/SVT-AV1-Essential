@@ -159,7 +159,7 @@ class FrameQueueFile : public FrameQueue {
 
 class FrameQueueBufferSort_ASC {
   public:
-    bool operator()(VideoFrame *a, VideoFrame *b) const {
+    bool operator()(const VideoFrame *a, const VideoFrame *b) const {
         return a->timestamp < b->timestamp;
     }
 };
