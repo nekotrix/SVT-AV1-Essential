@@ -92,25 +92,25 @@ void svt_unpack_and_2bcompress_c(uint16_t *in16b_buffer, uint32_t in16b_stride, 
             in_pixel                                   = in16b_buffer[col + 0 + row * in16b_stride];
             out8b_buffer[col + 0 + row * out8b_stride] = (uint8_t)(in_pixel >> 2);
             tmp_pixel                                  = (uint8_t)(in_pixel << 6);
-            compressed_unpacked_pixel = compressed_unpacked_pixel | ((tmp_pixel >> 0) & 0xC0); //1100.0000
+            compressed_unpacked_pixel |= ((tmp_pixel >> 0) & 0xC0); //1100.0000
 
             //+1
             in_pixel                                   = in16b_buffer[col + 1 + row * in16b_stride];
             out8b_buffer[col + 1 + row * out8b_stride] = (uint8_t)(in_pixel >> 2);
             tmp_pixel                                  = (uint8_t)(in_pixel << 6);
-            compressed_unpacked_pixel = compressed_unpacked_pixel | ((tmp_pixel >> 2) & 0x30); //0011.0000
+            compressed_unpacked_pixel |= ((tmp_pixel >> 2) & 0x30); //0011.0000
 
             //+2
             in_pixel                                   = in16b_buffer[col + 2 + row * in16b_stride];
             out8b_buffer[col + 2 + row * out8b_stride] = (uint8_t)(in_pixel >> 2);
             tmp_pixel                                  = (uint8_t)(in_pixel << 6);
-            compressed_unpacked_pixel = compressed_unpacked_pixel | ((tmp_pixel >> 4) & 0x0C); //0000.1100
+            compressed_unpacked_pixel |= ((tmp_pixel >> 4) & 0x0C); //0000.1100
 
             //+3
             in_pixel                                   = in16b_buffer[col + 3 + row * in16b_stride];
             out8b_buffer[col + 3 + row * out8b_stride] = (uint8_t)(in_pixel >> 2);
             tmp_pixel                                  = (uint8_t)(in_pixel << 6);
-            compressed_unpacked_pixel = compressed_unpacked_pixel | ((tmp_pixel >> 6) & 0x03); //0000.0011
+            compressed_unpacked_pixel |= ((tmp_pixel >> 6) & 0x03); //0000.0011
 
             out2b_buffer[col / 4 + row * out2b_stride] = compressed_unpacked_pixel;
         }
@@ -122,21 +122,21 @@ void svt_unpack_and_2bcompress_c(uint16_t *in16b_buffer, uint32_t in16b_stride, 
             in_pixel                                   = in16b_buffer[col + 0 + row * in16b_stride];
             out8b_buffer[col + 0 + row * out8b_stride] = (uint8_t)(in_pixel >> 2);
             tmp_pixel                                  = (uint8_t)(in_pixel << 6);
-            compressed_unpacked_pixel = compressed_unpacked_pixel | ((tmp_pixel >> 0) & 0xC0); //1100.0000
+            compressed_unpacked_pixel |= ((tmp_pixel >> 0) & 0xC0); //1100.0000
 
             if (w_rem > 1) {
                 //+1
                 in_pixel                                   = in16b_buffer[col + 1 + row * in16b_stride];
                 out8b_buffer[col + 1 + row * out8b_stride] = (uint8_t)(in_pixel >> 2);
                 tmp_pixel                                  = (uint8_t)(in_pixel << 6);
-                compressed_unpacked_pixel = compressed_unpacked_pixel | ((tmp_pixel >> 2) & 0x30); //0011.0000
+                compressed_unpacked_pixel |= ((tmp_pixel >> 2) & 0x30); //0011.0000
             }
             if (w_rem > 2) {
                 //+2
                 in_pixel                                   = in16b_buffer[col + 2 + row * in16b_stride];
                 out8b_buffer[col + 2 + row * out8b_stride] = (uint8_t)(in_pixel >> 2);
                 tmp_pixel                                  = (uint8_t)(in_pixel << 6);
-                compressed_unpacked_pixel = compressed_unpacked_pixel | ((tmp_pixel >> 4) & 0x0C); //0000.1100
+                compressed_unpacked_pixel |= ((tmp_pixel >> 4) & 0x0C); //0000.1100
             }
 
             out2b_buffer[col / 4 + row * out2b_stride] = compressed_unpacked_pixel;
@@ -157,11 +157,10 @@ void svt_c_pack_c(const uint8_t *inn_bit_buffer, uint32_t inn_stride, uint8_t *i
         for (col_index = 0; col_index < width; col_index += 4) {
             uint32_t i = col_index + row_index * inn_stride;
 
-            uint8_t compressed_unpacked_pixel = 0;
-            compressed_unpacked_pixel = compressed_unpacked_pixel | ((inn_bit_buffer[i + 0] >> 0) & 0xC0); //1100.0000
-            compressed_unpacked_pixel = compressed_unpacked_pixel | ((inn_bit_buffer[i + 1] >> 2) & 0x30); //0011.0000
-            compressed_unpacked_pixel = compressed_unpacked_pixel | ((inn_bit_buffer[i + 2] >> 4) & 0x0C); //0000.1100
-            compressed_unpacked_pixel = compressed_unpacked_pixel | ((inn_bit_buffer[i + 3] >> 6) & 0x03); //0000.0011
+            uint8_t compressed_unpacked_pixel = ((inn_bit_buffer[i + 0] >> 0) & 0xC0) //1100.0000
+                | ((inn_bit_buffer[i + 1] >> 2) & 0x30) //0011.0000
+                | ((inn_bit_buffer[i + 2] >> 4) & 0x0C) //0000.1100
+                | ((inn_bit_buffer[i + 3] >> 6) & 0x03); //0000.0011
 
             uint32_t j             = col_index / 4 + row_index * out_stride;
             in_compn_bit_buffer[j] = compressed_unpacked_pixel;

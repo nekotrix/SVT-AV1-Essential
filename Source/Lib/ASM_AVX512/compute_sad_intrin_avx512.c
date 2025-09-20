@@ -598,7 +598,7 @@ static INLINE void sad_loop_kernel_8_avx2(const uint8_t *const src, const uint32
         _mm256_castsi128_si256(_mm_loadl_epi64((__m128i *)src)), _mm_loadl_epi64((__m128i *)(src + 1 * src_stride)), 1);
     const __m256i rr0 = _mm256_insertf128_si256(
         _mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)ref)), _mm_lddqu_si128((__m128i *)(ref + 1 * ref_stride)), 1);
-    *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
 }
 
@@ -614,7 +614,7 @@ static INLINE void sad_loop_kernel_8_oneline_avx2(const uint8_t *const src, cons
         _mm256_castsi128_si256(_mm_loadl_epi64((__m128i *)src)), _mm_setzero_si128(), 1);
     const __m256i rr0 = _mm256_insertf128_si256(
         _mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)ref)), _mm_setzero_si128(), 1);
-    *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
 }
 
@@ -834,7 +834,7 @@ static INLINE void sad_loop_kernel_12_avx2(const uint8_t *const src, const uint3
     const __m256i rr1 = _mm256_insertf128_si256(_mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)(ref + 8))),
                                                 _mm_lddqu_si128((__m128i *)(ref + ref_stride + 8)),
                                                 1);
-    *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
 }
@@ -853,7 +853,7 @@ static INLINE void sad_loop_kernel_12_oneline_avx2(const uint8_t *const src, con
         _mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)ref)), _mm_setzero_si128(), 1);
     const __m256i rr1 = _mm256_insertf128_si256(
         _mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)(ref + 8))), _mm_setzero_si128(), 1);
-    *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
 }
@@ -867,7 +867,7 @@ static INLINE void sad_loop_kernel_16_avx2(const uint8_t *const src, const uint3
     const __m256i rr1 = _mm256_insertf128_si256(_mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)(ref + 8))),
                                                 _mm_lddqu_si128((__m128i *)(ref + ref_stride + 8)),
                                                 1);
-    *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
     *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr1, ss0, (7 << 3) | 7)); // 111 111
@@ -887,7 +887,7 @@ static INLINE void sad_loop_kernel_16_oneline_avx2(const uint8_t *const src, con
         _mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)ref)), _mm_setzero_si128(), 1);
     const __m256i rr1 = _mm256_insertf128_si256(
         _mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)(ref + 8))), _mm_setzero_si128(), 1);
-    *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
     *sum = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr1, ss0, (7 << 3) | 7)); // 111 111
@@ -907,7 +907,7 @@ static INLINE void sad_loop_kernel_12_2sum_avx2(const uint8_t *const src, const 
     const __m256i rr1 = _mm256_insertf128_si256(_mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)(ref + 8))),
                                                 _mm_lddqu_si128((__m128i *)(ref + ref_stride + 8)),
                                                 1);
-    sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     sums[1]           = _mm256_adds_epu16(sums[1], _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
 }
@@ -926,7 +926,7 @@ static INLINE void sad_loop_kernel_12_2sum_oneline_avx2(const uint8_t *const src
         _mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)ref)), _mm_setzero_si128(), 1);
     const __m256i rr1 = _mm256_insertf128_si256(
         _mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)(ref + 8))), _mm_setzero_si128(), 1);
-    sums[0] = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    sums[0] = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     sums[1] = _mm256_adds_epu16(sums[1], _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     sums[0] = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
 }
@@ -940,7 +940,7 @@ static INLINE void sad_loop_kernel_16_2sum_avx2(const uint8_t *const src, const 
     const __m256i rr1 = _mm256_insertf128_si256(_mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)(ref + 8))),
                                                 _mm_lddqu_si128((__m128i *)(ref + ref_stride + 8)),
                                                 1);
-    sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     sums[1]           = _mm256_adds_epu16(sums[1], _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
     sums[1]           = _mm256_adds_epu16(sums[1], _mm256_mpsadbw_epu8(rr1, ss0, (7 << 3) | 7)); // 111 111
@@ -960,7 +960,7 @@ static INLINE void sad_loop_kernel_16_2sum_oneline_avx2(const uint8_t *const src
         _mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)ref)), _mm_setzero_si128(), 1);
     const __m256i rr1 = _mm256_insertf128_si256(
         _mm256_castsi128_si256(_mm_lddqu_si128((__m128i *)(ref + 8))), _mm_setzero_si128(), 1);
-    sums[0] = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    sums[0] = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     sums[1] = _mm256_adds_epu16(sums[1], _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     sums[0] = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
     sums[1] = _mm256_adds_epu16(sums[1], _mm256_mpsadbw_epu8(rr1, ss0, (7 << 3) | 7)); // 111 111
@@ -1024,7 +1024,7 @@ static INLINE void sad_loop_kernel_32_avx2(const uint8_t *const src, const uint8
     const __m256i ss0 = _mm256_loadu_si256((__m256i *)src);
     const __m256i rr0 = _mm256_loadu_si256((__m256i *)ref);
     const __m256i rr1 = _mm256_loadu_si256((__m256i *)(ref + 8));
-    *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
     *sum              = _mm256_adds_epu16(*sum, _mm256_mpsadbw_epu8(rr1, ss0, (7 << 3) | 7)); // 111 111
@@ -1034,7 +1034,7 @@ static INLINE void sad_loop_kernel_32_2sum_avx2(const uint8_t *const src, const 
     const __m256i ss0 = _mm256_loadu_si256((__m256i *)src);
     const __m256i rr0 = _mm256_loadu_si256((__m256i *)ref);
     const __m256i rr1 = _mm256_loadu_si256((__m256i *)(ref + 8));
-    sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     sums[1]           = _mm256_adds_epu16(sums[1], _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
     sums[1]           = _mm256_adds_epu16(sums[1], _mm256_mpsadbw_epu8(rr1, ss0, (7 << 3) | 7)); // 111 111
@@ -1044,7 +1044,7 @@ SIMD_INLINE void sad_loop_kernel_32_4sum_avx2(const uint8_t *const src, const ui
     const __m256i ss0 = _mm256_loadu_si256((__m256i *)src);
     const __m256i rr0 = _mm256_loadu_si256((__m256i *)ref);
     const __m256i rr1 = _mm256_loadu_si256((__m256i *)(ref + 8));
-    sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    sums[0]           = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     sums[1]           = _mm256_adds_epu16(sums[1], _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     sums[2]           = _mm256_adds_epu16(sums[2], _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
     sums[3]           = _mm256_adds_epu16(sums[3], _mm256_mpsadbw_epu8(rr1, ss0, (7 << 3) | 7)); // 111 111
@@ -1070,11 +1070,11 @@ static INLINE void sad_loop_kernel_64_8sum_avx2(const uint8_t *const src, const 
     const __m256i rr2 = _mm256_loadu_si256((__m256i *)(ref + 32));
     const __m256i rr3 = _mm256_loadu_si256((__m256i *)(ref + 40));
 
-    sums[0] = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3) | 0)); // 000 000
+    sums[0] = _mm256_adds_epu16(sums[0], _mm256_mpsadbw_epu8(rr0, ss0, (0 << 3))); // 000 000
     sums[1] = _mm256_adds_epu16(sums[1], _mm256_mpsadbw_epu8(rr0, ss0, (5 << 3) | 5)); // 101 101
     sums[2] = _mm256_adds_epu16(sums[2], _mm256_mpsadbw_epu8(rr1, ss0, (2 << 3) | 2)); // 010 010
     sums[3] = _mm256_adds_epu16(sums[3], _mm256_mpsadbw_epu8(rr1, ss0, (7 << 3) | 7)); // 111 111
-    sums[4] = _mm256_adds_epu16(sums[4], _mm256_mpsadbw_epu8(rr2, ss1, (0 << 3) | 0)); // 000 000
+    sums[4] = _mm256_adds_epu16(sums[4], _mm256_mpsadbw_epu8(rr2, ss1, (0 << 3))); // 000 000
     sums[5] = _mm256_adds_epu16(sums[5], _mm256_mpsadbw_epu8(rr2, ss1, (5 << 3) | 5)); // 101 101
     sums[6] = _mm256_adds_epu16(sums[6], _mm256_mpsadbw_epu8(rr3, ss1, (2 << 3) | 2)); // 010 010
     sums[7] = _mm256_adds_epu16(sums[7], _mm256_mpsadbw_epu8(rr3, ss1, (7 << 3) | 7)); // 111 111
