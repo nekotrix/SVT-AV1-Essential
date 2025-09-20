@@ -306,16 +306,15 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
 }
 
 static void write_golomb(AomWriter *w, int32_t level) {
-    int32_t x = level + 1;
-    int32_t i = x;
+    const int32_t x = level + 1;
     // while (i) { i >>= 1; ++length; }
-    const int32_t length = svt_log2f(x) + 1;
+    const uint32_t length = svt_log2f(x) + 1;
 
     assert(length > 0);
 
-    for (i = 0; i < length - 1; ++i) aom_write_bit(w, 0);
+    for (uint32_t i = 0; i < length - 1; ++i) aom_write_bit(w, 0);
 
-    for (i = length - 1; i >= 0; --i) aom_write_bit(w, (x >> i) & 0x01);
+    for (int32_t i = length - 1; i >= 0; --i) aom_write_bit(w, (x >> i) & 0x01);
 }
 #if !FIX_EOB_COEF_CTX
 static const uint8_t eob_to_pos_small[33] = {

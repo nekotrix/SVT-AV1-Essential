@@ -2892,14 +2892,9 @@ void svt_aom_h_predictor_64x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_
 /* ---------------------PAETH PREDICTOR--------------------------- */
 static inline void paeth_4or8_x_h_neon(uint8_t *dest, ptrdiff_t stride, const uint8_t *const top_row,
                                        const uint8_t *const left_column, int width, int height) {
-    uint8x8_t        top         = vdup_n_u8(0);
+    const uint8x8_t  top         = width == 4 ? load_u8_4x1(top_row) : vld1_u8(top_row);
     const uint8x8_t  top_left    = vdup_n_u8(top_row[-1]);
     const uint16x8_t top_left_x2 = vdupq_n_u16(top_row[-1] + top_row[-1]);
-    if (width == 4) {
-        top = load_u8_4x1(top_row);
-    } else {
-        top = vld1_u8(top_row);
-    }
 
     assert(height > 0);
     int y = 0;

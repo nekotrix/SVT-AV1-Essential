@@ -97,7 +97,7 @@ static void av1_make_masked_scaled_inter_predictor(
         // for reference scaling, it might be 4x since both width and height is scaled 2x
         // should pack enough buffer for scaled reference
         DECLARE_ALIGNED(16, uint16_t, src16[PACKED_BUFFER_SIZE * 4]);
-        uint16_t *src_ptr_10b = src16;
+        uint16_t *src_ptr_10b;
         int32_t   src_stride16;
         if (src_ptr_2b) {
             // pack the reference into temp 16bit buffer
@@ -460,8 +460,6 @@ static void pick_wedge(PictureControlSet *pcs, ModeDecisionContext *ctx, const B
             model_rd_with_curvfit(pcs, bsize, sse, N, &rate, &dist, ctx, full_lambda);
 
             rd = RDCOST(full_lambda, rate, dist);
-        } else {
-            rd = sse;
         }
         if (rd < best_rd) {
             *best_wedge_index = wedge_index;
@@ -2676,7 +2674,7 @@ void svt_aom_enc_make_inter_predictor(SequenceControlSet *scs, uint8_t *src_ptr,
             // for reference scaling, it might be 4x since both width and height is scaled 2x
             // should pack enough buffer for scaled reference
             DECLARE_ALIGNED(16, uint16_t, src16[PACKED_BUFFER_SIZE * 4]);
-            uint16_t *src16_ptr = src16;
+            uint16_t *src16_ptr;
             int32_t   src_stride16;
             if (src_ptr_2b) {
                 // pack the reference into temp 16bit buffer

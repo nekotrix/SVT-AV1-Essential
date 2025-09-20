@@ -3104,8 +3104,12 @@ static void build_single_ref_mvp_array(PictureControlSet *pcs, ModeDecisionConte
 
             for (int drli = 0; drli < max_drl_index; drli++) {
                 Mv nearmv = ctx->ref_mv_stack[frame_type][1 + drli].this_mv;
-                nearmv.x  = (nearmv.x + 4) & ~0x07;
-                nearmv.y  = (nearmv.y + 4) & ~0x07;
+                // cppcheck doesn't work well when the rhs and lhs have the same union
+                // store temp values before reassigning
+                const int16_t x = (nearmv.x + 4) & ~0x07;
+                const int16_t y = (nearmv.y + 4) & ~0x07;
+                nearmv.x        = x;
+                nearmv.y        = y;
                 clip_mv_on_pic_boundary(
                     ctx->blk_org_x, ctx->blk_org_y, blk_geom->bwidth, blk_geom->bheight, ref_pic, &nearmv.x, &nearmv.y);
 

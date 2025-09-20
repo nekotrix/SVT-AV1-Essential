@@ -76,14 +76,13 @@ int32_t svt_av1_mv_bit_cost(const Mv *mv, const Mv *ref, const int32_t *mvjcost,
     // is outside this range, the diff will index beyond the cost array, causing a seg fault.
     // Both the MVs and the MV diffs should be within the allowable range for accessing the MV cost
     // infrastructure.
-    Mv temp_diff = {{mv->x - ref->x, mv->y - ref->y}};
-    temp_diff.y  = MAX(temp_diff.y, MV_LOW);
-    temp_diff.y  = MIN(temp_diff.y, MV_UPP);
-    temp_diff.x  = MAX(temp_diff.x, MV_LOW);
-    temp_diff.x  = MIN(temp_diff.x, MV_UPP);
+    Mv            temp_diff = {{mv->x - ref->x, mv->y - ref->y}};
+    const int16_t y         = MIN(MAX(temp_diff.y, MV_LOW), MV_UPP);
+    const int16_t x         = MIN(MAX(temp_diff.x, MV_LOW), MV_UPP);
 
-    const Mv diff = temp_diff;
-    return ROUND_POWER_OF_TWO(mv_cost(&diff, mvjcost, mvcost) * weight, 7);
+    temp_diff.y = y;
+    temp_diff.x = x;
+    return ROUND_POWER_OF_TWO(mv_cost(&temp_diff, mvjcost, mvcost) * weight, 7);
 }
 
 /////////////////////////////COEFFICIENT CALCULATION //////////////////////////////////////////////
