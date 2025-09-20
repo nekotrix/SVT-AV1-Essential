@@ -157,7 +157,7 @@ class PsnrCalcTest : public ::testing::TestWithParam<ParamType> {
     }
 
     /**< copy the content from video frame to other video frame */
-    void copy_buffer(Yv12BufferConfig* src, Yv12BufferConfig* dst) {
+    virtual void copy_buffer(Yv12BufferConfig* src, Yv12BufferConfig* dst) {
         for (size_t i = 0; i < 3; i++) {
             if (src->flags & YV12_FLAG_HIGHBITDEPTH) {
                 memcpy(CONVERT_TO_SHORTPTR(dst->buffers[i]),
@@ -330,7 +330,8 @@ class PsnrCalcHbdTest : public PsnrCalcTest<uint16_t, PsnrCalcHbdParam> {
     }
 
     /**< copy the content from a HBD video frame to a LBD video frame */
-    void copy_buffer(Yv12BufferConfig* src, Yv12BufferConfig* dst) {
+    virtual void copy_buffer(Yv12BufferConfig* src,
+                             Yv12BufferConfig* dst) override {
         for (int32_t i = 0; i < 3; i++) {
             for (int32_t h = 0; h < src->heights[i]; h++) {
                 for (int32_t w = 0; w < src->strides[i]; w++) {

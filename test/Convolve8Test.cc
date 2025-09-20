@@ -201,6 +201,7 @@ class Convolve8Test : public ::testing::TestWithParam<ConvolveParam> {
           test_funcs_(TEST_GET_PARAM(2)) {
     }
 
+    /* cppcheck-suppress duplInheritedMember */
     static void SetUpTestSuite() {
         // Force input_ to be unaligned, output to be 16 byte aligned.
         input_ = reinterpret_cast<uint8_t *>(
@@ -218,6 +219,7 @@ class Convolve8Test : public ::testing::TestWithParam<ConvolveParam> {
         ASSERT_NE(output_ref_, nullptr);
     }
 
+    /* cppcheck-suppress duplInheritedMember */
     static void TearDownTestSuite() {
         svt_aom_free(input_ - 1);
         input_ = nullptr;

@@ -56,7 +56,7 @@ class SpatialFullDistortionFuncTestBase : public ::testing::Test {
     virtual void RunCheckOutput(TestPattern pattern) = 0;
     virtual void RunSpeedTest() = 0;
 
-    void init_data(TestPattern pattern) {
+    virtual void init_data(TestPattern pattern) {
         const uint8_t mask = (1 << 8) - 1;
         switch (pattern) {
         case VAL_MIN: {
@@ -299,7 +299,7 @@ class FullDistortionKernel16BitsFuncTest
             malloc(sizeof(*recon_) * recon_test_size_));
     }
 
-    void init_data(TestPattern pattern) {
+    virtual void init_data(TestPattern pattern) override {
         /// Support up to 10 bit depth
         const uint16_t mask = (1 << 10) - 1;
         uint16_t *input_16bit = (uint16_t *)input_;
