@@ -273,7 +273,7 @@ class ConvolveScaleTestBase : public ::testing::Test {
                     filter_x_ = av1_get_interp_filter_params_with_block_size(
                         filter_x, width_);
 
-                    for (const auto c : conv_params) {
+                    for (const auto &c : conv_params) {
                         convolve_params_ = c;
                         Prep(&rnd);
                         RunOne(true);

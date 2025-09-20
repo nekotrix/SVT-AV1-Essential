@@ -682,7 +682,7 @@ generate_ref_scaling_random_access_settings() {
                             param_event));
         frame_count += 10;
     }
-    for (EncSetting param : param_vecs) {
+    for (const EncSetting &param : param_vecs) {
         string idx = std::to_string(count);
         string name = test_prefix + idx;
         EncTestSetting setting{name, param, default_test_vectors, event_vec};
@@ -799,7 +799,7 @@ static const std::vector<EncTestSetting> generate_aq_mode_1_settings() {
         {{"AdaptiveQuantization", "1"}, {"QP", "1"}, {"EncoderMode", "10"}},
         {{"AdaptiveQuantization", "1"}, {"QP", "63"}, {"EncoderMode", "10"}}};
     // segment
-    for (EncSetting param : param_vecs) {
+    for (const EncSetting &param : param_vecs) {
         string name = test_prefix + std::to_string(count);
         EncTestSetting setting{name, param, segment_test_vectors};
         settings.push_back(setting);

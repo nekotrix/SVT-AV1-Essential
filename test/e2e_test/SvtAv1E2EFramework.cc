@@ -370,10 +370,10 @@ void SvtAv1E2ETestFramework::gen_frame_event(const EncTestSetting &setting,
                                              uint32_t frame_count,
                                              void **head) {
     EbPrivDataNode *node = nullptr;
-    for (TestFrameEvent event : setting.event_vector) {
+    for (const TestFrameEvent &event : setting.event_vector) {
         if (std::get<1>(event) == frame_count) {
             printf("%s param list:\t", std::get<0>(event).c_str());
-            for (std::string str : std::get<3>(event))
+            for (const std::string &str : std::get<3>(event))
                 printf("%s\t", str.c_str());
             printf("\n");
             EbPrivDataNode *new_node =
