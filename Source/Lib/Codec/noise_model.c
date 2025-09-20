@@ -216,7 +216,7 @@ static void set_chroma_coefficient_fallback_soln(AomEquationSystem *eqns) {
 int32_t svt_aom_noise_strength_lut_init(AomNoiseStrengthLut *lut, int32_t num_points) {
     if (!lut)
         return 0;
-    lut->points = (double(*)[2])malloc(num_points * sizeof(*lut->points));
+    lut->points = (double (*)[2])malloc(num_points * sizeof(*lut->points));
     if (!lut->points)
         return 0;
     lut->num_points = num_points;
@@ -654,7 +654,7 @@ int32_t svt_aom_noise_model_init(AomNoiseModel *model, const AomNoiseModelParams
         }
     }
     model->n      = n;
-    model->coords = (int32_t(*)[2])malloc(sizeof(*model->coords) * n);
+    model->coords = (int32_t (*)[2])malloc(sizeof(*model->coords) * n);
     if (!model->coords) {
         SVT_ERROR("Failed to allocate memory for coords\n");
         svt_aom_noise_model_free(model);
@@ -707,7 +707,7 @@ void svt_aom_noise_model_free(AomNoiseModel *model) {
 // the difference between the data and denoised images. Also extracts the
 // entry (possibly downsampled) for (x, y) in the alt_data (e.g., luma).
 #define EXTRACT_AR_ROW(INT_TYPE, suffix)                                                 \
-    static double extract_ar_row_##suffix(int32_t(*coords)[2],                           \
+    static double extract_ar_row_##suffix(int32_t (*coords)[2],                          \
                                           int32_t               num_coords,              \
                                           const INT_TYPE *const data,                    \
                                           const INT_TYPE *const denoised,                \
@@ -977,10 +977,31 @@ static int32_t ar_equation_system_solve(AomNoiseState *state, int32_t is_chroma)
     return ret;
 }
 
-AomNoiseStatus svt_aom_noise_model_update(AomNoiseModel *const noise_model, const uint8_t *const data[3],
-                                          const uint8_t *const denoised[3], int32_t w, int32_t h, int32_t stride[3],
-                                          int32_t chroma_sub_log2[2], const uint8_t *const flat_blocks,
-                                          int32_t block_size) {
+/*!\brief Updates the noise model with a new frame observation.
+ *
+ * Updates the noise model with measurements from the given input frame and a
+ * denoised variant of it. Noise is sampled from flat blocks using the flat
+ * block map.
+ *
+ * Returns a noise_status indicating if the update was successful. If the
+ * Update was successful, the combined_state is updated with measurements from
+ * the provided frame. If status is OK or DIFFERENT_NOISE_TYPE, the latest noise
+ * state will be updated with measurements from the provided frame.
+ *
+ * \param[in,out] noise_model     The noise model to be updated
+ * \param[in]     data            Raw frame data
+ * \param[in]     denoised        Denoised frame data.
+ * \param[in]     w               Frame width
+ * \param[in]     h               Frame height
+ * \param[in]     strides         Stride of the planes
+ * \param[in]     chroma_sub_log2 Chroma subsampling for planes != 0.
+ * \param[in]     flat_blocks     A map to blocks that have been determined flat
+ * \param[in]     block_size      The size of blocks.
+ */
+static AomNoiseStatus noise_model_update(AomNoiseModel *const noise_model, const uint8_t *const data[3],
+                                         const uint8_t *const denoised[3], int32_t w, int32_t h, int32_t stride[3],
+                                         int32_t chroma_sub_log2[2], const uint8_t *const flat_blocks,
+                                         int32_t block_size) {
     const int32_t num_blocks_w = (w + block_size - 1) / block_size;
     const int32_t num_blocks_h = (h + block_size - 1) / block_size;
     //  int32_t y_model_different = 0;
@@ -1161,7 +1182,7 @@ int32_t svt_aom_noise_model_get_grain_parameters(AomNoiseModel *const noise_mode
     film_grain->num_cb_points = scaling_points[1].num_points;
     film_grain->num_cr_points = scaling_points[2].num_points;
 
-    int32_t(*film_grain_scaling[3])[2] = {
+    int32_t (*film_grain_scaling[3])[2] = {
         film_grain->scaling_points_y,
         film_grain->scaling_points_cb,
         film_grain->scaling_points_cr,
@@ -2283,15 +2304,15 @@ int32_t svt_aom_denoise_and_model_run(struct AomDenoiseAndModel *ctx, EbPictureB
         return 0;
     }
 
-    const AomNoiseStatus status = svt_aom_noise_model_update(&ctx->noise_model,
-                                                             data,
-                                                             (const uint8_t *const *)ctx->denoised,
-                                                             sd->width,
-                                                             sd->height,
-                                                             strides,
-                                                             chroma_sub_log2,
-                                                             ctx->flat_blocks,
-                                                             block_size);
+    const AomNoiseStatus status = noise_model_update(&ctx->noise_model,
+                                                     data,
+                                                     (const uint8_t *const *)ctx->denoised,
+                                                     sd->width,
+                                                     sd->height,
+                                                     strides,
+                                                     chroma_sub_log2,
+                                                     ctx->flat_blocks,
+                                                     block_size);
 
     int32_t have_noise_estimate = 0;
     if (status == AOM_NOISE_STATUS_OK || status == AOM_NOISE_STATUS_DIFFERENT_NOISE_TYPE) {

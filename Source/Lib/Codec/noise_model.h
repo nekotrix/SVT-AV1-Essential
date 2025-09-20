@@ -253,32 +253,6 @@ EbErrorType svt_aom_denoise_and_model_ctor(AomDenoiseAndModel *object_ptr, EbPtr
 int32_t svt_aom_noise_model_init(AomNoiseModel *model, const AomNoiseModelParams params);
 void    svt_aom_noise_model_free(AomNoiseModel *model);
 
-/*!\brief Updates the noise model with a new frame observation.
-     *
-     * Updates the noise model with measurements from the given input frame and a
-     * denoised variant of it. Noise is sampled from flat blocks using the flat
-     * block map.
-     *
-     * Returns a noise_status indicating if the update was successful. If the
-     * Update was successful, the combined_state is updated with measurements from
-     * the provided frame. If status is OK or DIFFERENT_NOISE_TYPE, the latest noise
-     * state will be updated with measurements from the provided frame.
-     *
-     * \param[in,out] noise_model     The noise model to be updated
-     * \param[in]     data            Raw frame data
-     * \param[in]     denoised        Denoised frame data.
-     * \param[in]     w               Frame width
-     * \param[in]     h               Frame height
-     * \param[in]     strides         Stride of the planes
-     * \param[in]     chroma_sub_log2 Chroma subsampling for planes != 0.
-     * \param[in]     flat_blocks     A map to blocks that have been determined flat
-     * \param[in]     block_size      The size of blocks.
-     */
-AomNoiseStatus svt_aom_noise_model_update(AomNoiseModel *const noise_model, const uint8_t *const data[3],
-                                          const uint8_t *const denoised[3], int32_t w, int32_t h, int32_t strides[3],
-                                          int32_t chroma_sub_log2[2], const uint8_t *const flat_blocks,
-                                          int32_t block_size);
-
 /*\brief Save the "latest" estimate into the "combined" estimate.
      *
      * This is meant to be called when the noise modeling detected a change
