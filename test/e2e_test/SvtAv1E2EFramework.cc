@@ -742,8 +742,7 @@ void SvtAv1E2ETestFramework::get_recon_frame(const SvtAv1Context &ctxt,
         ASSERT_NE(new_frame->buffer, nullptr)
             << "can not get new buffer of recon frame!!";
 
-        EbBufferHeaderType recon_frame;
-        memset(&recon_frame, 0, sizeof(recon_frame));
+        EbBufferHeaderType recon_frame{};
         recon_frame.size = sizeof(EbBufferHeaderType);
         recon_frame.p_buffer = new_frame->buffer;
         recon_frame.n_alloc_len = new_frame->buf_size;

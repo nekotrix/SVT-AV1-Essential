@@ -85,10 +85,7 @@ static const int PointCountMin = 15; /**< 3*MINPTS_MULTIPLIER */
 template <typename Sample>
 class RansacTest : public ::testing::TestWithParam<TransformationType> {
   protected:
-    RansacTest() : rnd_(0, CoordinateMax) {
-        data_.clear();
-        ref_.clear();
-        memset(&mat_, 0, sizeof(mat_));
+    RansacTest() : rnd_(0, CoordinateMax), data_(), ref_(), mat_() {
     }
 
     void generate_data(int count, int &inliers) {
@@ -209,9 +206,7 @@ class RansacTest : public ::testing::TestWithParam<TransformationType> {
         const double zoom_scale =
             (double)(rnd.random() % 1000) / 1000.0f + 0.5f;
         const double theta = PI * (rnd.random() % 360) / 360;
-        AffineMat mat_zoom, mat_rotate;
-        memset(&mat_zoom, 0, sizeof(mat_zoom));
-        memset(&mat_rotate, 0, sizeof(mat_rotate));
+        AffineMat mat_zoom{}, mat_rotate{};
         for (vector<Point>::iterator it = data.begin(); it != data.end();
              ++it) {
             Point point = zoom(*it, zoom_scale, mat_zoom);

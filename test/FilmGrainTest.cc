@@ -393,7 +393,7 @@ class DenoiseModelRunTest : public ::testing::Test {
         fg_init_data.stride_cb = fg_init_data.stride_cr =
             fg_init_data.stride_y >> subsampling_x_;
 
-        memset(&noise_model, 0, sizeof(noise_model));
+        noise_model = {};
         err = svt_aom_denoise_and_model_ctor(&noise_model, &fg_init_data);
         EXPECT_EQ(err, 0) << "svt_aom_denoise_and_model_ctor fail";
     }

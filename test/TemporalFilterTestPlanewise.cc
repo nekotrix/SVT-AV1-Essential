@@ -1660,7 +1660,7 @@ class TemporalFilterTestGetFinalFilteredPixels
             me_ctx->tf_decay_factor[color_channel] = 1;
         }
 
-        memset(me_ctx, 0, sizeof(*me_ctx));
+        *me_ctx = {};
         me_ctx->tf_chroma = rand() % 2;
     }
 
@@ -1800,10 +1800,10 @@ class TemporalFilterTestApplyFilteringCentral
             me_ctx->tf_decay_factor[color_channel] = 1;
         }
 
-        memset(me_ctx, 0, sizeof(*me_ctx));
+        *me_ctx = {};
         me_ctx->tf_chroma = rand() % 2;
 
-        memset(&input_picture_central, 0, sizeof(input_picture_central));
+        input_picture_central = {};
         input_picture_central.stride_y = BW + 5;
     }
 
