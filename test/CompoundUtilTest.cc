@@ -47,11 +47,11 @@ template <typename SrcSample, typename DstSample, typename BlendFunc,
           typename BlendTestParam>
 class CompBlendTest : public ::testing::TestWithParam<BlendTestParam> {
   public:
-    CompBlendTest() {
-        func_ref_ = nullptr;
-        func_tst_ = nullptr;
-        no_sub_ = false;
-        is_d16_ = false;
+    CompBlendTest()
+        : func_ref_(nullptr),
+          func_tst_(nullptr),
+          no_sub_(false),
+          is_d16_(false) {
     }
 
     void SetUp() override {

@@ -307,23 +307,16 @@ static VideoColorFormat trans_video_format(aom_img_fmt_t fmt) {
     return IMG_FMT_422;
 }
 
-RefDecoder::RefDecoder(RefDecoder::RefDecoderErr& ret, bool enable_analyzer) {
-    dec_frame_cnt_ = 0;
-    init_timestamp_ = 0;
-    frame_interval_ = 1;
-    insp_frame_data_ = nullptr;
-    parser_ = nullptr;
-    enc_bytes_ = 0;
-    burst_bytes_ = 0;
-    video_param_ = VideoFrameParam();
-
-    codec_handle_ = new aom_codec_ctx_t();
-    if (codec_handle_ == nullptr) {
-        ret = REF_CODEC_MEM_ERROR;
-        return;
-    }
-    memset(codec_handle_, 0, sizeof(aom_codec_ctx_t));
-
+RefDecoder::RefDecoder(RefDecoder::RefDecoderErr& ret, bool enable_analyzer)
+    : codec_handle_(new aom_codec_ctx_t()),
+      dec_frame_cnt_(0),
+      init_timestamp_(0),
+      frame_interval_(1),
+      insp_frame_data_(nullptr),
+      video_param_(VideoFrameParam()),
+      parser_(nullptr),
+      enc_bytes_(0),
+      burst_bytes_(0) {
     aom_codec_ctx_t* codec_ = (aom_codec_ctx_t*)codec_handle_;
     aom_codec_err_t err =
         aom_codec_dec_init(codec_, aom_codec_av1_dx(), nullptr, 0);

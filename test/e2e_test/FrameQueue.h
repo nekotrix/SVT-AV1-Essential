@@ -41,11 +41,11 @@ class FrameQueue {
     /** Constructor of FrameQueue
      * @param param the parameters of the video frame
      */
-    explicit FrameQueue(const VideoFrameParam& param) {
-        queue_type_ = FRAME_QUEUE_BUFFER;
-        video_param_ = param;
-        frame_size_ = VideoFrame::calculate_max_frame_size(param);
-        frame_count_ = 0;
+    explicit FrameQueue(const VideoFrameParam& param)
+        : queue_type_(FRAME_QUEUE_BUFFER),
+          video_param_(param),
+          frame_size_(VideoFrame::calculate_max_frame_size(param)),
+          frame_count_(0) {
     }
     /** Destructor of FrameQueue      */
     virtual ~FrameQueue() {

@@ -132,19 +132,17 @@ typedef struct EncTestSetting {
     std::vector<TestFrameEvent> event_vector;
 
     EncTestSetting(const std::string& name_str, const EncSetting& settings,
-                   const std::vector<TestVideoVector>& videos) {
-        name = name_str;
-        setting = settings;
-        test_vectors = videos;
+                   const std::vector<TestVideoVector>& videos)
+        : name(name_str), setting(settings), test_vectors(videos) {
     }
 
     EncTestSetting(const std::string& name_str, const EncSetting& settings,
                    const std::vector<TestVideoVector>& videos,
-                   const std::vector<TestFrameEvent>& events) {
-        name = name_str;
-        setting = settings;
-        test_vectors = videos;
-        event_vector = events;
+                   const std::vector<TestFrameEvent>& events)
+        : name(name_str),
+          setting(settings),
+          test_vectors(videos),
+          event_vector(events) {
     }
 
     std::string to_string(const std::string& fn) const {

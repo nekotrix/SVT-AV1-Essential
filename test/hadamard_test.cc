@@ -193,11 +193,10 @@ template <typename OutputType, typename HadamardFuncType>
 class HadamardTestBase
     : public ::testing::TestWithParam<FuncWithSize<HadamardFuncType>> {
   public:
-    explicit HadamardTestBase(
-        const FuncWithSize<HadamardFuncType> &func_param) {
-        h_func_ = func_param.func;
-        bwh_ = func_param.block_size;
-        block_size_ = bwh_ * bwh_;
+    explicit HadamardTestBase(const FuncWithSize<HadamardFuncType> &func_param)
+        : bwh_(func_param.block_size),
+          block_size_(bwh_ * bwh_),
+          h_func_(func_param.func) {
     }
 
     virtual void SetUp() {
