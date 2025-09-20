@@ -68,7 +68,7 @@ class SvtAv1E2ETestFramework : public ::testing::TestWithParam<EncTestSetting> {
         FILE *file;
         uint64_t byte_count_since_ivf;
         uint64_t ivf_count;
-        IvfFile(std::string path);
+        explicit IvfFile(const std::string &path);
         IvfFile(const IvfFile &) = delete;
         IvfFile &operator=(const IvfFile &) = delete;
         ~IvfFile() {

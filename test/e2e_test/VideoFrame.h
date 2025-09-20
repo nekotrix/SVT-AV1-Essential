@@ -94,7 +94,7 @@ typedef struct VideoFrame : public VideoFrameParam {
         qp = INVALID_QP;
         compress_10bit = false;
     }
-    VideoFrame(const VideoFrameParam &param) {
+    explicit VideoFrame(const VideoFrameParam &param) {
         // copy basic info from param
         *(VideoFrameParam *)this = param;
         disp_width = param.width;

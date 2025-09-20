@@ -166,7 +166,7 @@ class FrameQueueBufferSort_ASC {
 
 class FrameQueueBuffer : public FrameQueue {
   public:
-    FrameQueueBuffer(VideoFrameParam fmt) : FrameQueue(fmt) {
+    explicit FrameQueueBuffer(const VideoFrameParam &fmt) : FrameQueue(fmt) {
         queue_type_ = FRAME_QUEUE_BUFFER;
         frame_list_.clear();
     }

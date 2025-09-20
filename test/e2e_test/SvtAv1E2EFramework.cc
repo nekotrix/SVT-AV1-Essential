@@ -794,7 +794,7 @@ void SvtAv1E2ETestFramework::get_recon_frame(const SvtAv1Context &ctxt,
     } while (true);
 }
 
-SvtAv1E2ETestFramework::IvfFile::IvfFile(std::string path) {
+SvtAv1E2ETestFramework::IvfFile::IvfFile(const std::string &path) {
     FOPEN(file, path.c_str(), "wb");
     byte_count_since_ivf = 0;
     ivf_count = 0;

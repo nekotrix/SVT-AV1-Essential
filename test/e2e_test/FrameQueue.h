@@ -41,7 +41,7 @@ class FrameQueue {
     /** Constructor of FrameQueue
      * @param param the parameters of the video frame
      */
-    FrameQueue(const VideoFrameParam& param) {
+    explicit FrameQueue(const VideoFrameParam& param) {
         queue_type_ = FRAME_QUEUE_BUFFER;
         video_param_ = param;
         frame_size_ = VideoFrame::calculate_max_frame_size(param);
@@ -129,7 +129,7 @@ class FrameQueue {
 
 class ICompareQueue {
   public:
-    virtual ~ICompareQueue(){};
+    virtual ~ICompareQueue() {};
     virtual bool compare_video(VideoFrame& frame) = 0;
     virtual bool flush_video() = 0;
 };

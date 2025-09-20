@@ -70,7 +70,7 @@ class PerformanceCollect {
     /** Constructor of PerformanceCollect
      * @param test_name the name of test case
      */
-    PerformanceCollect(const std::string &test_name) {
+    explicit PerformanceCollect(const std::string &test_name) {
         init_tick_ = get_time_tick();
         test_name_ = test_name;
         collect_vec_.clear();
