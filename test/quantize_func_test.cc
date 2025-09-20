@@ -742,6 +742,10 @@ class QuantizeQmTest : public QuantizeTest<QuantizeQmParam, QuantizeQmFunc> {
     const QmVal *qmatrix_[NUM_QM_LEVELS][3][TX_SIZES_ALL];
     int qm_level_;
 };
+
+using std::make_tuple;
+
+#ifdef ARCH_X86_64
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(QuantizeQmTest);
 
 TEST_P(QuantizeQmTest, ZeroInput) {
@@ -810,10 +814,6 @@ TEST_P(QuantizeQmHbdTest, CoeffHalfDequant) {
     FillCoeff(16);
     QuantizeRun(false, 25, 1);
 }
-
-using std::make_tuple;
-
-#ifdef ARCH_X86_64
 
 const QuantizeParam kQParamArrayAvx2[] = {
     make_tuple(&svt_av1_quantize_fp_c, &svt_av1_quantize_fp_sse4_1,

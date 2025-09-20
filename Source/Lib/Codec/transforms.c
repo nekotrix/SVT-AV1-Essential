@@ -2362,16 +2362,17 @@ static INLINE void set_fwd_txfm_non_scale_range(Txfm2dFlipCfg *cfg) {
     av1_zero(cfg->stage_range_col);
     av1_zero(cfg->stage_range_row);
 
+    if (cfg->txfm_type_col == TXFM_TYPE_INVALID)
+        return;
+
     const int8_t *range_mult2_col = fwd_txfm_range_mult2_list[cfg->txfm_type_col];
-    if (cfg->txfm_type_col != TXFM_TYPE_INVALID) {
-        int stage_num_col = cfg->stage_num_col;
-        for (int i = 0; i < stage_num_col; ++i) cfg->stage_range_col[i] = (range_mult2_col[i] + 1) >> 1;
-    }
+    const int32_t stage_num_col   = MIN(cfg->stage_num_col, MAX_TXFM_STAGE_NUM);
+    for (int32_t i = 0; i < stage_num_col; ++i) cfg->stage_range_col[i] = (range_mult2_col[i] + 1) >> 1;
 
     if (cfg->txfm_type_row != TXFM_TYPE_INVALID) {
-        int           stage_num_row   = cfg->stage_num_row;
         const int8_t *range_mult2_row = fwd_txfm_range_mult2_list[cfg->txfm_type_row];
-        for (int i = 0; i < stage_num_row; ++i) {
+        const int32_t stage_num_row   = MIN(cfg->stage_num_row, MAX_TXFM_STAGE_NUM);
+        for (int32_t i = 0; i < stage_num_row; ++i) {
             cfg->stage_range_row[i] = (range_mult2_col[cfg->stage_num_col - 1] + range_mult2_row[i] + 1) >> 1;
         }
     }

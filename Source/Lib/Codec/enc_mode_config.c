@@ -4203,8 +4203,8 @@ uint8_t svt_aom_set_nic_controls(ModeDecisionContext *ctx, uint8_t nic_level) {
 }
 void svt_aom_set_nsq_geom_ctrls(ModeDecisionContext *ctx, uint8_t nsq_geom_level, uint8_t *allow_HVA_HVB,
                                 uint8_t *allow_HV4, uint8_t *min_nsq_bsize) {
-    NsqGeomCtrls  nsq_geom_ctrls_struct;
-    NsqGeomCtrls *nsq_geom_ctrls = &nsq_geom_ctrls_struct;
+    NsqGeomCtrls  nsq_geom_ctrls_struct = {0};
+    NsqGeomCtrls *nsq_geom_ctrls        = &nsq_geom_ctrls_struct;
     switch (nsq_geom_level) {
     case 0:
         nsq_geom_ctrls->enabled            = 0;

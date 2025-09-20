@@ -206,13 +206,13 @@ class PictureOperatorTest : public ::testing::Test,
     uint8_t *tst1_aligned_, *tst2_aligned_;
     uint8_t *dst1_aligned_, *dst2_aligned_;
 };
+
+#if defined(ARCH_X86_64)
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(PictureOperatorTest);
 
 TEST_P(PictureOperatorTest, AvgTest) {
     run_avg_test();
 };
-
-#if defined(ARCH_X86_64)
 INSTANTIATE_TEST_SUITE_P(
     SSE2, PictureOperatorTest,
     ::testing::Combine(
