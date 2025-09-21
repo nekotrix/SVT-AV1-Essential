@@ -116,10 +116,16 @@ if(common_lib_source)
     target_sources(SvtAv1Enc PRIVATE ${common_lib_source})
 endif()
 
+if(BUILD_SHARED_LIBS)
+    set(SVT_AV1_TARGET SVT-AV1-shared)
+else()
+    set(SVT_AV1_TARGET SVT-AV1-static)
+endif()
+
 set_target_properties(SvtAv1Enc PROPERTIES VERSION ${ENC_VERSION})
 set_target_properties(SvtAv1Enc PROPERTIES SOVERSION ${ENC_VERSION_MAJOR})
 set_target_properties(SvtAv1Enc PROPERTIES C_VISIBILITY_PRESET hidden)
-set_target_properties(SvtAv1Enc PROPERTIES EXPORT_NAME SVT-AV1)
+set_target_properties(SvtAv1Enc PROPERTIES EXPORT_NAME ${SVT_AV1_TARGET})
 
 target_link_libraries(SvtAv1Enc PUBLIC  $<BUILD_INTERFACE:${PLATFORM_LIBS}>
                                 PRIVATE $<INSTALL_INTERFACE:${PLATFORM_LIBS}>)
@@ -128,7 +134,8 @@ file(GLOB API_HEADERS ${PROJECT_SOURCE_DIR}/Source/API/*.h)
 set_target_properties(SvtAv1Enc PROPERTIES PUBLIC_HEADER "${API_HEADERS}")
 
 # Alias for the exported library target for use in subproject
-add_library(SVT-AV1::SvtAv1Enc ALIAS SvtAv1Enc)
+add_library(SVT-AV1::SVT-AV1 ALIAS SvtAv1Enc)
+add_library(SVT-AV1::${SVT_AV1_TARGET} ALIAS SvtAv1Enc)
 
 set(ENC_PKG_CONFIG_EXTRA_CFLAGS "")
 if (BUILD_SHARED_LIBS)
@@ -138,7 +145,7 @@ if (BUILD_SHARED_LIBS)
     set(ENC_PKG_CONFIG_EXTRA_CFLAGS " -DEB_DLL")
 endif()
 install(TARGETS SvtAv1Enc
-        EXPORT SVT-AV1Targets
+        EXPORT ${SVT_AV1_TARGET}Targets
         ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
                 COMPONENT Development
         LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -171,7 +178,7 @@ write_basic_package_version_file(SVT-AV1ConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion)
 
-install(EXPORT SVT-AV1Targets
+install(EXPORT ${SVT_AV1_TARGET}Targets
         NAMESPACE SVT-AV1::
         COMPONENT Development
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/SVT-AV1)
