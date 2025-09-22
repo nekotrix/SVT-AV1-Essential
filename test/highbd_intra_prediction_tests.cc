@@ -46,8 +46,8 @@ static void init_coeff(uint16_t **coeff, uint16_t **coeff_opt,
         uint16_t *, *coeff, sizeof(uint16_t) * MAX_SB_SIZE * *stride);
     TEST_ALLIGN_MALLOC(
         uint16_t *, *coeff_opt, sizeof(uint16_t) * MAX_SB_SIZE * *stride);
-    memset(*coeff, 0, MAX_SB_SIZE * *stride);
-    memset(*coeff_opt, 0, MAX_SB_SIZE * *stride);
+    memset(*coeff, 0, sizeof(uint16_t) * MAX_SB_SIZE * *stride);
+    memset(*coeff_opt, 0, sizeof(uint16_t) * MAX_SB_SIZE * *stride);
 }
 
 static void uninit_coeff(uint16_t *coeff, uint16_t *coeff_opt) {
