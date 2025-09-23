@@ -975,17 +975,8 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
                 if (!(flags & EB_BUFFERFLAG_IS_ALT_REF))
                     fprintf(stderr, "\b\b\b\b\b\b\b\b\b%9d", *frame_count);
                 break;
-            case 2:
-                fprintf(stderr,
-                        "\rEncoding frame %4d %.2f kbps %.2f fp%c  ",
-                        *frame_count,
-                        ((double)(app_cfg->performance_context.byte_count << 3) * frame_rate /
-                         (app_cfg->frames_encoded * 1000)),
-                        fps >= 1.0 ? fps : fps * 60,
-                        fps >= 1.0 ? 's' : 'm');
-                break;
-            case 3: {
-                // Patman's progress variables
+            case 2: {
+                // Detailed progress variables
                 const double ete         = app_cfg->performance_context.total_encode_time;
                 const int    ete_r       = round(ete);
                 const int    ete_hours   = ete_r / 3600;

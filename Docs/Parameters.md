@@ -25,7 +25,7 @@ The encoder parameters are listed in this table below along with their
 | **ReconFile**                      | -o                   | any string   | None          | Reconstructed yuv file path                                                                                       |
 | **StatFile**                       | --stat-file          | any string   | None          | PSNR / SSIM per picture stat output file path, requires `--enable-stat-report 1`                                  |
 | **PredStructFile**                 | --pred-struct-file   | any string   | None          | Manual prediction structure file path                                                                             |
-| **Progress**                       | --progress           | [0-2]        | 1             | Verbosity of the output [0: no progress is printed, 2: aomenc style output]                                       |
+| **Progress**                       | --progress           | [0-2]        | 1             | Verbosity of the output [0: no progress is printed, 1: default output, 2: detailed output]                        |
 | **NoProgress**                     | --no-progress        | [0-1]        | 0             | Do not print out progress [1: `--progress 0`, 0: `--progress 1`]                                                  |
 | **EncoderMode**                    | --preset             | [-1-13]      | 10            | Encoder preset, presets < 0 are for debugging. Higher presets means faster encodes, but with a quality tradeoff   |
 | **SvtAv1Params**                   | --svtav1-params      | any string   | None          | Colon-separated list of `key=value` pairs of parameters with keys based on command line options without `--`      |

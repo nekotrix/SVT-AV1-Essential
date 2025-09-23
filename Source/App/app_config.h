@@ -134,7 +134,7 @@ typedef struct EbConfig {
     bool        y4m_input;
     char        y4m_buf[9];
 
-    uint8_t progress; // 0 = no progress output, 1 = normal, 2 = aomenc style verbose progress
+    uint8_t progress; // 0 = no progress output, 1 = normal, 2 = detailed progress
     /****************************************
      * Computational Performance Data
      ****************************************/
