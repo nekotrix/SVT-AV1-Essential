@@ -383,7 +383,7 @@ EbErrorType release_prev_picture_from_reorder_queue(
         // Reset the Picture Decision Reordering Queue Entry
         // P.S. The reset of the Picture Decision Reordering Queue Entry could not be done before running the Scene Change Detector
         queue_previous_entry_ptr->picture_number += enc_ctx->picture_decision_reorder_queue_size;
-        queue_previous_entry_ptr->ppcs_wrapper = (EbObjectWrapper *)NULL;
+        queue_previous_entry_ptr->ppcs_wrapper = NULL;
     }
 
     return return_error;
@@ -594,7 +594,7 @@ static void early_hme(
     PictureParentControlSet* ref_pcs) {
 
     // store the ref pic so it can be used by dg detector when the src picture is sent to the motion estimation kernel
-    src_pcs->dg_detector->ref_pic = (PictureParentControlSet*)ref_pcs;
+    src_pcs->dg_detector->ref_pic = ref_pcs;
 
     uint16_t dg_detector_seg_total_count = (uint16_t)(src_pcs->me_segments_column_count)  * (uint16_t)(src_pcs->me_segments_row_count);
     // reset all metrics for the frame, must be performed here since the frame can be used again in a future comparison
@@ -4006,7 +4006,7 @@ void store_gf_group(
     uint32_t                 mg_size) {
     if (pcs->slice_type == I_SLICE || (!svt_aom_is_delayed_intra(pcs) && pcs->temporal_layer_index == 0) || svt_aom_is_incomp_mg_frame(pcs)) {
         if (svt_aom_is_delayed_intra(pcs)) {
-            pcs->gf_group[0] = (void*)pcs;
+            pcs->gf_group[0] = pcs;
             svt_memcpy(&pcs->gf_group[1], ctx->mg_pictures_array, mg_size * sizeof(PictureParentControlSet*));
             pcs->gf_interval = 1 + mg_size;
         }
@@ -4019,7 +4019,7 @@ void store_gf_group(
 
         if (pcs->slice_type == I_SLICE && pcs->end_of_sequence_flag) {
             pcs->gf_interval = 1;
-            pcs->gf_group[0] = (void*)pcs;
+            pcs->gf_group[0] = pcs;
         }
 
         for (int pic_i = 0; pic_i < pcs->gf_interval; ++pic_i) {
@@ -4626,7 +4626,7 @@ static void assign_and_release_pa_refs(EncodeContext* enc_ctx, PictureParentCont
     const unsigned int mg_size = ctx->mg_size;
     for (uint32_t pic_i = 0; pic_i < mg_size; ++pic_i) {
 
-        pcs = (PictureParentControlSet*)ctx->mg_pictures_array[pic_i];
+        pcs = ctx->mg_pictures_array[pic_i];
         if (pcs->slice_type == B_SLICE) {
             for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
                 // hardcode the reference for the overlay frame
@@ -4979,7 +4979,7 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
         in_results_ptr = (PictureAnalysisResults*)in_results_wrapper_ptr->object_ptr;
         pcs = (PictureParentControlSet*)in_results_ptr->pcs_wrapper->object_ptr;
         scs = pcs->scs;
-        enc_ctx = (EncodeContext*)scs->enc_ctx;
+        enc_ctx = scs->enc_ctx;
 
         // Input Picture Analysis Results into the Picture Decision Reordering Queue
         // Since the prior Picture Analysis processes stage is multithreaded, inputs to the Picture Decision Process
@@ -5300,7 +5300,7 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
                     for (uint32_t pic_i = 0; pic_i < mg_size; ++pic_i) {
 
                         // Loop over pics in decode order
-                        pcs = (PictureParentControlSet*)ctx->mg_pictures_array[pic_i];
+                        pcs = ctx->mg_pictures_array[pic_i];
                         av1_generate_rps_info(
                             pcs,
                             enc_ctx,

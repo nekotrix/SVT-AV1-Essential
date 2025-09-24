@@ -135,11 +135,9 @@ void *svt_aom_motion_estimation_kernel(void *input_ptr) {
             pa_ref_obj_ = (EbPaReferenceObject *)
                               pcs->pa_ref_pic_wrapper->object_ptr;
             // Set 1/4 and 1/16 ME input buffer(s); filtered or decimated
-            quarter_picture_ptr = (EbPictureBufferDesc *)
-                                      pa_ref_obj_->quarter_downsampled_picture_ptr;
-            sixteenth_picture_ptr = (EbPictureBufferDesc *)
-                                        pa_ref_obj_->sixteenth_downsampled_picture_ptr;
-            input_padded_pic = (EbPictureBufferDesc *)pa_ref_obj_->input_padded_pic;
+            quarter_picture_ptr = pa_ref_obj_->quarter_downsampled_picture_ptr;
+            sixteenth_picture_ptr = pa_ref_obj_->sixteenth_downsampled_picture_ptr;
+            input_padded_pic = pa_ref_obj_->input_padded_pic;
 
             input_pic = pcs->enhanced_pic;
 

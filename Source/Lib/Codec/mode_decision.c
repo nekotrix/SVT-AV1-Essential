@@ -622,7 +622,7 @@ EbErrorType svt_aom_mode_decision_cand_bf_ctor(ModeDecisionCandidateBuffer *buff
     thirty_two_width_picture_buffer_desc_init_data.is_16bit_pipeline  = true;
 
     // Candidate Ptr
-    buffer_ptr->cand = (ModeDecisionCandidate *)NULL;
+    buffer_ptr->cand = NULL;
 
     // Video Buffers
     EB_NEW(buffer_ptr->pred, svt_picture_buffer_desc_ctor, (EbPtr)&picture_buffer_desc_init_data);
@@ -683,7 +683,7 @@ EbErrorType svt_aom_mode_decision_scratch_cand_bf_ctor(ModeDecisionCandidateBuff
     thirty_two_width_picture_buffer_desc_init_data.is_16bit_pipeline  = true;
 
     // Candidate Ptr
-    buffer_ptr->cand = (ModeDecisionCandidate *)NULL;
+    buffer_ptr->cand = NULL;
 
     // Video Buffers
     EB_NEW(buffer_ptr->pred, svt_picture_buffer_desc_ctor, (EbPtr)&picture_buffer_desc_init_data);
@@ -1848,8 +1848,7 @@ uint8_t svt_aom_wm_motion_refinement(PictureControlSet *pcs, ModeDecisionContext
                 continue;
             assert(cand->block_mi.ref_frame[1] == NONE_FRAME);
             EbPictureBufferDesc *ref_pic_0 = svt_aom_get_ref_pic_buffer(pcs, cand->block_mi.ref_frame[0]);
-            EbPictureBufferDesc *ref_pic_1 = (EbPictureBufferDesc *)
-                NULL; // will stay NULL b/c this is unipred candidate
+            EbPictureBufferDesc *ref_pic_1 = NULL; // will stay NULL b/c this is unipred candidate
 
             // update MV to be testing MV before calling prediction function
             cand->block_mi.mv[0].as_int = test_mv.as_int;

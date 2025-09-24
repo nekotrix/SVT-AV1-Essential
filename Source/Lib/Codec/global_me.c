@@ -135,11 +135,9 @@ void svt_aom_gm_pre_processor(PictureParentControlSet *pcs, PictureParentControl
 }
 void svt_aom_global_motion_estimation(PictureParentControlSet *pcs, EbPictureBufferDesc *input_pic) {
     // Get downsampled pictures with a downsampling factor of 2 in each dimension
-    EbPaReferenceObject *pa_reference_object = (EbPaReferenceObject *)pcs->pa_ref_pic_wrapper->object_ptr;
-    EbPictureBufferDesc *quarter_picture_ptr = (EbPictureBufferDesc *)
-                                                   pa_reference_object->quarter_downsampled_picture_ptr;
-    EbPictureBufferDesc *sixteenth_picture_ptr = (EbPictureBufferDesc *)
-                                                     pa_reference_object->sixteenth_downsampled_picture_ptr;
+    EbPaReferenceObject *pa_reference_object   = (EbPaReferenceObject *)pcs->pa_ref_pic_wrapper->object_ptr;
+    EbPictureBufferDesc *quarter_picture_ptr   = pa_reference_object->quarter_downsampled_picture_ptr;
+    EbPictureBufferDesc *sixteenth_picture_ptr = pa_reference_object->sixteenth_downsampled_picture_ptr;
     // Initilize global motion to be OFF for all references frames.
     memset(pcs->is_global_motion, false, MAX_NUM_OF_REF_PIC_LIST * REF_LIST_MAX_DEPTH);
     // Initilize wmtype to be IDENTITY for all references frames

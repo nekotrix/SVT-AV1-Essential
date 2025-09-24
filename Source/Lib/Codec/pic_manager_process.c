@@ -337,8 +337,8 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
             // Post the Full Results Object
             svt_post_full_object(out_results_wrapper);
 
-            pcs     = (PictureParentControlSet *)NULL;
-            enc_ctx = (EncodeContext *)NULL;
+            pcs     = NULL;
+            enc_ctx = NULL;
             break;
         }
         case EB_PIC_INPUT:
@@ -371,7 +371,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                         i != enc_ctx->ref_pic_list_length - 1, enc_ctx->app_callback_ptr, EB_ENC_PM_ERROR5);
                 }
                 ref_entry->picture_number                = pcs->picture_number;
-                ref_entry->reference_object_ptr          = (EbObjectWrapper *)NULL;
+                ref_entry->reference_object_ptr          = NULL;
                 ref_entry->release_enable                = true;
                 ref_entry->reference_available           = false;
                 ref_entry->slice_type                    = pcs->slice_type;
@@ -444,8 +444,8 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
 
             CHECK_REPORT_ERROR_NC(enc_ctx->app_callback_ptr, EB_ENC_PM_ERROR9);
 
-            pcs     = (PictureParentControlSet *)NULL;
-            enc_ctx = (EncodeContext *)NULL;
+            pcs     = NULL;
+            enc_ctx = NULL;
 
             break;
         }
@@ -453,7 +453,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
         // ***********************************
         //  Common Code
         // *************************************
-        if (enc_ctx == (EncodeContext *)NULL) {
+        if (enc_ctx == NULL) {
             // If no enc_ctx, release the Input Picture Demux Results and exit
             svt_release_object(input_pic_demux_wrapper);
             continue;
@@ -818,7 +818,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
             // Post the Full Results Object
             svt_post_full_object(out_results_wrapper);
             // Remove the Input Entry from the Input Queue
-            input_entry->input_object_ptr = (EbObjectWrapper *)NULL;
+            input_entry->input_object_ptr = NULL;
             svt_block_on_mutex(enc_ctx->ref_pic_list_mutex);
             for (uint32_t i = 0; i < enc_ctx->ref_pic_list_length; i++) {
                 ref_entry = enc_ctx->ref_pic_list[i];
@@ -843,7 +843,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                     (!ref_entry->frame_end_cdf_update_required || ref_entry->frame_context_updated)) {
                     // Release the nominal live_count value
                     svt_release_object(ref_entry->reference_object_ptr);
-                    ref_entry->reference_object_ptr  = (EbObjectWrapper *)NULL;
+                    ref_entry->reference_object_ptr  = NULL;
                     ref_entry->reference_available   = false;
                     ref_entry->is_ref                = false;
                     ref_entry->is_valid              = false;

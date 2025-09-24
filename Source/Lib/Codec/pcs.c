@@ -303,8 +303,8 @@ static EbErrorType recon_coef_ctor(EncDecSet *object_ptr, EbPtr object_init_data
     input_pic_buf_desc_init_data.bot_padding   = padding;
     input_pic_buf_desc_init_data.split_mode    = false;
 
-    object_ptr->recon_pic_16bit = (EbPictureBufferDesc *)NULL;
-    object_ptr->recon_pic       = (EbPictureBufferDesc *)NULL; // OMK
+    object_ptr->recon_pic_16bit = NULL;
+    object_ptr->recon_pic       = NULL; // OMK
     // object_ptr->color_format           = init_data_ptr->color_format;
     //  Reconstructed Picture Buffer
     if (is_16bit) {
@@ -485,9 +485,9 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     coeff_buffer_desc_init_data.split_mode        = false;
     coeff_buffer_desc_init_data.is_16bit_pipeline = init_data_ptr->is_16bit_pipeline;
     object_ptr->color_format                      = init_data_ptr->color_format;
-    object_ptr->temp_lf_recon_pic_16bit           = (EbPictureBufferDesc *)NULL;
-    object_ptr->temp_lf_recon_pic                 = (EbPictureBufferDesc *)NULL;
-    object_ptr->scaled_input_pic                  = (EbPictureBufferDesc *)NULL;
+    object_ptr->temp_lf_recon_pic_16bit           = NULL;
+    object_ptr->temp_lf_recon_pic                 = NULL;
+    object_ptr->scaled_input_pic                  = NULL;
     if (svt_aom_get_enable_restoration(init_data_ptr->enc_mode,
                                        init_data_ptr->static_config.enable_restoration_filtering,
                                        init_data_ptr->input_resolution,
@@ -1234,11 +1234,11 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
 
     object_ptr->dctor = picture_parent_control_set_dctor;
 
-    object_ptr->input_pic_wrapper       = (EbObjectWrapper *)NULL;
-    object_ptr->ref_pic_wrapper         = (EbObjectWrapper *)NULL;
-    object_ptr->enhanced_pic            = (EbPictureBufferDesc *)NULL;
-    object_ptr->enhanced_downscaled_pic = (EbPictureBufferDesc *)NULL;
-    object_ptr->enhanced_unscaled_pic   = (EbPictureBufferDesc *)NULL;
+    object_ptr->input_pic_wrapper       = NULL;
+    object_ptr->ref_pic_wrapper         = NULL;
+    object_ptr->enhanced_pic            = NULL;
+    object_ptr->enhanced_downscaled_pic = NULL;
+    object_ptr->enhanced_unscaled_pic   = NULL;
 
     if (init_data_ptr->color_format >= EB_YUV422) {
         EbPictureBufferDescInitData input_pic_buf_desc_init_data;

@@ -53,7 +53,7 @@ static EbErrorType svt_fifo_push_back(EbFifo *fifoPtr, EbObjectWrapper *wrapper_
     EbErrorType return_error = EB_ErrorNone;
 
     // If FIFO is empty
-    if (fifoPtr->first_ptr == (EbObjectWrapper *)NULL) {
+    if (fifoPtr->first_ptr == NULL) {
         fifoPtr->first_ptr = wrapper_ptr;
         fifoPtr->last_ptr  = wrapper_ptr;
     } else {
@@ -61,7 +61,7 @@ static EbErrorType svt_fifo_push_back(EbFifo *fifoPtr, EbObjectWrapper *wrapper_
         fifoPtr->last_ptr           = wrapper_ptr;
     }
 
-    fifoPtr->last_ptr->next_ptr = (EbObjectWrapper *)NULL;
+    fifoPtr->last_ptr->next_ptr = NULL;
 
     return return_error;
 }
@@ -76,7 +76,7 @@ static EbErrorType svt_fifo_pop_front(EbFifo *fifoPtr, EbObjectWrapper **wrapper
     *wrapper_ptr = fifoPtr->first_ptr;
 
     // Update tail of BufferPool if the BufferPool is now empty
-    fifoPtr->last_ptr = (fifoPtr->first_ptr == fifoPtr->last_ptr) ? (EbObjectWrapper *)NULL : fifoPtr->last_ptr;
+    fifoPtr->last_ptr = (fifoPtr->first_ptr == fifoPtr->last_ptr) ? NULL : fifoPtr->last_ptr;
 
     // Update head of BufferPool
     fifoPtr->first_ptr = fifoPtr->first_ptr->next_ptr;
@@ -217,8 +217,8 @@ static EbErrorType svt_muxing_queue_ctor(EbMuxingQueue *queue_ptr, uint32_t obje
                svt_fifo_ctor,
                0,
                object_total_count,
-               (EbObjectWrapper *)NULL,
-               (EbObjectWrapper *)NULL,
+               NULL,
+               NULL,
                queue_ptr);
     }
 
@@ -482,7 +482,7 @@ EbErrorType svt_system_resource_ctor(EbSystemResource *resource_ptr, uint32_t ob
                resource_ptr->object_total_count,
                consumer_process_total_count);
     } else {
-        resource_ptr->full_queue = (EbMuxingQueue *)NULL;
+        resource_ptr->full_queue = NULL;
     }
 
     return return_error;
@@ -743,7 +743,7 @@ EbErrorType svt_get_full_object(EbFifo *full_fifo_ptr, EbObjectWrapper **wrapper
 **************************************/
 static bool svt_fifo_peak_front(EbFifo *fifoPtr) {
     // Set wrapper_ptr to head of BufferPool
-    if (fifoPtr->first_ptr == (EbObjectWrapper *)NULL)
+    if (fifoPtr->first_ptr == NULL)
         return true;
     else
         return false;
@@ -770,7 +770,7 @@ EbErrorType svt_get_full_object_non_blocking(EbFifo *full_fifo_ptr, EbObjectWrap
     if (fifo_empty == false)
         svt_get_full_object(full_fifo_ptr, wrapper_dbl_ptr);
     else
-        *wrapper_dbl_ptr = (EbObjectWrapper *)NULL;
+        *wrapper_dbl_ptr = NULL;
 
     return return_error;
 }

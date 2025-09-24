@@ -2494,14 +2494,13 @@ void *svt_aom_picture_analysis_kernel(void *input_ptr) {
                 // Get PA ref, copy 8bit luma to pa_ref->input_padded_pic
                 pa_ref_obj_                 = (EbPaReferenceObject *)pcs->pa_ref_pic_wrapper->object_ptr;
                 pa_ref_obj_->picture_number = pcs->picture_number;
-                input_padded_pic            = (EbPictureBufferDesc *)pa_ref_obj_->input_padded_pic;
+                input_padded_pic            = pa_ref_obj_->input_padded_pic;
 
                 // 1/4 & 1/16 input picture downsampling through filtering
-                svt_aom_downsample_filtering_input_picture(
-                    pcs,
-                    input_padded_pic,
-                    (EbPictureBufferDesc *)pa_ref_obj_->quarter_downsampled_picture_ptr,
-                    (EbPictureBufferDesc *)pa_ref_obj_->sixteenth_downsampled_picture_ptr);
+                svt_aom_downsample_filtering_input_picture(pcs,
+                                                           input_padded_pic,
+                                                           pa_ref_obj_->quarter_downsampled_picture_ptr,
+                                                           pa_ref_obj_->sixteenth_downsampled_picture_ptr);
 
                 pcs->ds_pics.quarter_picture_ptr   = pa_ref_obj_->quarter_downsampled_picture_ptr;
                 pcs->ds_pics.sixteenth_picture_ptr = pa_ref_obj_->sixteenth_downsampled_picture_ptr;
@@ -2509,7 +2508,7 @@ void *svt_aom_picture_analysis_kernel(void *input_ptr) {
             // Gathering statistics of input picture, including Variance Calculation, Histogram Bins
             {
                 svt_aom_gathering_picture_statistics(
-                    scs, pcs, input_padded_pic, (EbPictureBufferDesc *)pa_ref_obj_->sixteenth_downsampled_picture_ptr);
+                    scs, pcs, input_padded_pic, pa_ref_obj_->sixteenth_downsampled_picture_ptr);
 
                 pa_ref_obj_->avg_luma = pcs->avg_luma;
             }

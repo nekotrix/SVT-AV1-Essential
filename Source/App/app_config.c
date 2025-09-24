@@ -1222,44 +1222,44 @@ void svt_config_dtor(EbConfig *app_cfg) {
     if (app_cfg->input_file) {
         if (!app_cfg->input_file_is_fifo)
             fclose(app_cfg->input_file);
-        app_cfg->input_file = (FILE *)NULL;
+        app_cfg->input_file = NULL;
     }
 
     if (app_cfg->bitstream_file) {
         if (!fseek(app_cfg->bitstream_file, 0, SEEK_SET))
             write_ivf_stream_header(app_cfg, app_cfg->frames_encoded);
         fclose(app_cfg->bitstream_file);
-        app_cfg->bitstream_file = (FILE *)NULL;
+        app_cfg->bitstream_file = NULL;
     }
 
     if (app_cfg->recon_file) {
         fclose(app_cfg->recon_file);
-        app_cfg->recon_file = (FILE *)NULL;
+        app_cfg->recon_file = NULL;
     }
 
     if (app_cfg->error_log_file && app_cfg->error_log_file != stderr) {
         fclose(app_cfg->error_log_file);
-        app_cfg->error_log_file = (FILE *)NULL;
+        app_cfg->error_log_file = NULL;
     }
 
     if (app_cfg->qp_file) {
         fclose(app_cfg->qp_file);
-        app_cfg->qp_file = (FILE *)NULL;
+        app_cfg->qp_file = NULL;
     }
 
     if (app_cfg->stat_file) {
         fclose(app_cfg->stat_file);
-        app_cfg->stat_file = (FILE *)NULL;
+        app_cfg->stat_file = NULL;
     }
 
     if (app_cfg->output_stat_file) {
         fclose(app_cfg->output_stat_file);
-        app_cfg->output_stat_file = (FILE *)NULL;
+        app_cfg->output_stat_file = NULL;
     }
 
     if (app_cfg->roi_map_file) {
         fclose(app_cfg->roi_map_file);
-        app_cfg->roi_map_file = (FILE *)NULL;
+        app_cfg->roi_map_file = NULL;
     }
 
     if (app_cfg->fgs_table_path) {
@@ -1545,7 +1545,7 @@ static EbErrorType app_verify_config(EbConfig *app_cfg, uint32_t channel_number)
     EbErrorType return_error = EB_ErrorNone;
 
     // Check Input File
-    if (app_cfg->input_file == (FILE *)NULL) {
+    if (app_cfg->input_file == NULL) {
         fprintf(app_cfg->error_log_file, "Error instance %u: Invalid Input File\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
