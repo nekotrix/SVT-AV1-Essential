@@ -160,8 +160,8 @@ static inline uint8x8_t convolve8_8_x(uint8x16_t samples, const int8x8_t filter,
 }
 
 void svt_av1_convolve_x_sr_neon_dotprod(const uint8_t *src, int32_t src_stride, uint8_t *dst, int32_t dst_stride,
-                                        int32_t w, int32_t h, InterpFilterParams *filter_params_x,
-                                        InterpFilterParams *filter_params_y, const int32_t subpel_x_qn,
+                                        int32_t w, int32_t h, const InterpFilterParams *filter_params_x,
+                                        const InterpFilterParams *filter_params_y, const int32_t subpel_x_qn,
                                         const int32_t subpel_y_qn, ConvolveParams *conv_params) {
     if (w == 2 || h == 2) {
         svt_av1_convolve_x_sr_c(src,
@@ -446,8 +446,9 @@ static inline void convolve_y_sr_8tap_neon_dotprod(const uint8_t *src_ptr, int s
 }
 
 void svt_av1_convolve_y_sr_neon_dotprod(const uint8_t *src, int src_stride, uint8_t *dst, int dst_stride, int w, int h,
-                                        InterpFilterParams *filter_params_x, InterpFilterParams *filter_params_y,
-                                        const int subpel_x_qn, const int subpel_y_qn, ConvolveParams *conv_params) {
+                                        const InterpFilterParams *filter_params_x,
+                                        const InterpFilterParams *filter_params_y, const int subpel_x_qn,
+                                        const int subpel_y_qn, ConvolveParams *conv_params) {
     if (w == 2 || h == 2) {
         svt_av1_convolve_y_sr_c(src,
                                 src_stride,
@@ -873,8 +874,9 @@ static inline void convolve_2d_sr_4tap_neon_dotprod(const uint8_t *src, int src_
 }
 
 void svt_av1_convolve_2d_sr_neon_dotprod(const uint8_t *src, int src_stride, uint8_t *dst, int dst_stride, int w, int h,
-                                         InterpFilterParams *filter_params_x, InterpFilterParams *filter_params_y,
-                                         const int subpel_x_qn, const int subpel_y_qn, ConvolveParams *conv_params) {
+                                         const InterpFilterParams *filter_params_x,
+                                         const InterpFilterParams *filter_params_y, const int subpel_x_qn,
+                                         const int subpel_y_qn, ConvolveParams *conv_params) {
     if (w == 2 || h == 2) {
         svt_av1_convolve_2d_sr_c(src,
                                  src_stride,

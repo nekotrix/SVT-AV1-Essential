@@ -214,8 +214,9 @@ void svt_av1_convolve_y_sr_12tap_sse2(const uint8_t *src, int src_stride, uint8_
 }
 
 void svt_av1_convolve_y_sr_sse2(const uint8_t *src, int32_t src_stride, uint8_t *dst, int32_t dst_stride, int32_t w,
-                                int32_t h, InterpFilterParams *filter_params_x, InterpFilterParams *filter_params_y,
-                                const int32_t subpel_x_q4, const int32_t subpel_y_q4, ConvolveParams *conv_params) {
+                                int32_t h, const InterpFilterParams *filter_params_x,
+                                const InterpFilterParams *filter_params_y, const int32_t subpel_x_q4,
+                                const int32_t subpel_y_q4, ConvolveParams *conv_params) {
     if (filter_params_y->taps > 8) {
         if (w < 8) {
             svt_av1_convolve_y_sr_c(src,
@@ -407,8 +408,9 @@ void svt_av1_convolve_x_sr_12tap_sse2(const uint8_t *src, int src_stride, uint8_
 }
 
 void svt_av1_convolve_x_sr_sse2(const uint8_t *src, int32_t src_stride, uint8_t *dst, int32_t dst_stride, int32_t w,
-                                int32_t h, InterpFilterParams *filter_params_x, InterpFilterParams *filter_params_y,
-                                const int32_t subpel_x_q4, const int32_t subpel_y_q4, ConvolveParams *conv_params) {
+                                int32_t h, const InterpFilterParams *filter_params_x,
+                                const InterpFilterParams *filter_params_y, const int32_t subpel_x_q4,
+                                const int32_t subpel_y_q4, ConvolveParams *conv_params) {
     if (filter_params_x->taps > 8) {
         if (w < 4) {
             svt_av1_convolve_x_sr_c(src,

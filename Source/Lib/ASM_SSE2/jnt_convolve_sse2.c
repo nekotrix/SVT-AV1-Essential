@@ -96,8 +96,9 @@ static INLINE __m128i convolve_rounding(const __m128i *const res_unsigned, const
 }
 
 void svt_av1_jnt_convolve_x_sse2(const uint8_t *src, int32_t src_stride, uint8_t *dst8, int32_t dst8_stride, int32_t w,
-                                 int32_t h, InterpFilterParams *filter_params_x, InterpFilterParams *filter_params_y,
-                                 const int32_t subpel_x_q4, const int32_t subpel_y_q4, ConvolveParams *conv_params) {
+                                 int32_t h, const InterpFilterParams *filter_params_x,
+                                 const InterpFilterParams *filter_params_y, const int32_t subpel_x_q4,
+                                 const int32_t subpel_y_q4, ConvolveParams *conv_params) {
     const int      bd               = 8;
     CONV_BUF_TYPE *dst              = conv_params->dst;
     const int      dst_stride       = conv_params->dst_stride;
@@ -223,8 +224,9 @@ void svt_av1_jnt_convolve_x_sse2(const uint8_t *src, int32_t src_stride, uint8_t
 }
 
 void svt_av1_jnt_convolve_y_sse2(const uint8_t *src, int32_t src_stride, uint8_t *dst8, int32_t dst8_stride, int32_t w,
-                                 int32_t h, InterpFilterParams *filter_params_x, InterpFilterParams *filter_params_y,
-                                 const int32_t subpel_x_q4, const int32_t subpel_y_q4, ConvolveParams *conv_params) {
+                                 int32_t h, const InterpFilterParams *filter_params_x,
+                                 const InterpFilterParams *filter_params_y, const int32_t subpel_x_q4,
+                                 const int32_t subpel_y_q4, ConvolveParams *conv_params) {
     const int      bd               = 8;
     CONV_BUF_TYPE *dst              = conv_params->dst;
     const int      dst_stride       = conv_params->dst_stride;

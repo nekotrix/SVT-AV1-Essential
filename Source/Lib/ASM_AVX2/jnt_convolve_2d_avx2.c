@@ -2088,8 +2088,9 @@ typedef void (*JntConvolve2dVerTapFunc)(const int16_t *const im_block, const int
                                         const int32_t dst8_stride);
 
 void svt_av1_jnt_convolve_2d_avx2(const uint8_t *src, int32_t src_stride, uint8_t *dst8, int32_t dst8_stride, int32_t w,
-                                  int32_t h, InterpFilterParams *filter_params_x, InterpFilterParams *filter_params_y,
-                                  const int32_t subpel_x_q4, const int32_t subpel_y_q4, ConvolveParams *conv_params) {
+                                  int32_t h, const InterpFilterParams *filter_params_x,
+                                  const InterpFilterParams *filter_params_y, const int32_t subpel_x_q4,
+                                  const int32_t subpel_y_q4, ConvolveParams *conv_params) {
     static const JntConvolve2dHorTapFunc jnt_convolve_2d_hor_tap_func_table[MAX_FILTER_TAP + 1] = {
         NULL,
         NULL,

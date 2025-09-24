@@ -382,8 +382,8 @@ static inline void dist_wtd_convolve_x_neon_dotprod(const uint8_t *src, int src_
 }
 
 void svt_av1_jnt_convolve_x_neon_dotprod(const uint8_t *src, int src_stride, uint8_t *dst8, int dst8_stride, int w,
-                                         int h, InterpFilterParams *filter_params_x,
-                                         InterpFilterParams *filter_params_y, const int subpel_x_qn,
+                                         int h, const InterpFilterParams *filter_params_x,
+                                         const InterpFilterParams *filter_params_y, const int subpel_x_qn,
                                          const int subpel_y_qn, ConvolveParams *conv_params) {
     if (w == 2 || h == 2) {
         svt_av1_jnt_convolve_x_c(src,
@@ -563,8 +563,8 @@ static inline void jnt_convolve_2d_horiz_neon_dotprod(const uint8_t *src, int sr
 }
 
 void svt_av1_jnt_convolve_2d_neon_dotprod(const uint8_t *src, int src_stride, uint8_t *dst8, int dst8_stride, int w,
-                                          int h, InterpFilterParams *filter_params_x,
-                                          InterpFilterParams *filter_params_y, const int subpel_x_qn,
+                                          int h, const InterpFilterParams *filter_params_x,
+                                          const InterpFilterParams *filter_params_y, const int subpel_x_qn,
                                           const int subpel_y_qn, ConvolveParams *conv_params) {
     assert(w % 4 == 0);
     assert(h % 4 == 0);
