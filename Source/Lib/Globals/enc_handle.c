@@ -388,7 +388,7 @@ void set_segments_numbers(SequenceControlSet* scs) {
         (scs->super_block_size == 128) ?
         ((scs->max_input_luma_height + 64) / 128) :
         ((scs->max_input_luma_height + 32) / 64);
-    scs->enc_dec_segment_col_count_array = (lp == PARALLEL_LEVEL_1) ? 1 :
+    scs->enc_dec_segment_col_count_array = (lp == PARALLEL_LEVEL_1 || is_pic_dimension_single_sb(scs->super_block_size, scs->max_input_luma_height)) ? 1 :
         (scs->super_block_size == 128) ?
         ((scs->max_input_luma_width + 64) / 128) :
         ((scs->max_input_luma_width + 32) / 64);
