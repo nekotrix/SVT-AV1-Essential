@@ -686,9 +686,10 @@ void finish_cdef_search(PictureControlSet *pcs) {
     const int           first_pass_fs_num          = cdef_search_ctrls->first_pass_fs_num;
     const int           default_second_pass_fs_num = cdef_search_ctrls->default_second_pass_fs_num;
     if (cdef_search_ctrls->use_reference_cdef_fs) {
-        int32_t *sb_index = (int32_t *)malloc(nvfb * nhfb * sizeof(*sb_index));
-        int32_t  best_gi  = 0;
-        sb_count          = 0;
+        int32_t *sb_index;
+        EB_MALLOC_ARRAY_NO_CHECK(sb_index, nvfb * nhfb);
+        int32_t best_gi = 0;
+        sb_count        = 0;
         assert(sb_index != NULL);
         for (fbr = 0; fbr < nvfb; ++fbr) {
             for (fbc = 0; fbc < nhfb; ++fbc) {
@@ -730,21 +731,31 @@ void finish_cdef_search(PictureControlSet *pcs) {
         frm_hdr->cdef_params.cdef_damping        = pri_damping;
         frm_hdr->cdef_params.cdef_y_strength[0]  = cdef_search_ctrls->pred_y_f;
         frm_hdr->cdef_params.cdef_uv_strength[0] = cdef_search_ctrls->pred_uv_f;
-        free(sb_index);
+        EB_FREE_ARRAY(sb_index);
         return;
     }
-    int32_t *sb_index = (int32_t *)malloc(nvfb * nhfb * sizeof(*sb_index));
+    int32_t *sb_index;
     // to keep track of the sb_address in units of SBs (not mi_size)
-    int32_t *sb_addr  = (int32_t *)malloc(nvfb * nhfb * sizeof(*sb_index));
+    int32_t *sb_addr;
+    EB_MALLOC_ARRAY_NO_CHECK(sb_index, nvfb * nhfb);
+    EB_MALLOC_ARRAY_NO_CHECK(sb_addr, nvfb * nhfb);
+    assert(sb_index != NULL);
+    assert(sb_addr != NULL);
+
+    uint64_t **mse[2];
+    EB_MALLOC_ARRAY_NO_CHECK(mse[0], nvfb * nhfb);
+    EB_MALLOC_ARRAY_NO_CHECK(mse[1], nvfb * nhfb);
+    assert(mse[0] != NULL);
+    assert(mse[1] != NULL);
+
     int32_t  start_gi = 0;
     int32_t  end_gi   = first_pass_fs_num + default_second_pass_fs_num;
-    assert(sb_index != NULL);
-    uint64_t **mse[2];
-    int32_t    i;
-    int32_t    nb_strengths;
-    int32_t    nb_strength_bits;
-    uint64_t   lambda;
-    uint32_t   fast_lambda, full_lambda = 0;
+    int32_t  i;
+    int32_t  nb_strengths;
+    int32_t  nb_strength_bits;
+    uint64_t lambda;
+    uint32_t fast_lambda, full_lambda = 0;
+
     svt_aom_lambda_assign(pcs,
                           &fast_lambda,
                           &full_lambda,
@@ -752,8 +763,6 @@ void finish_cdef_search(PictureControlSet *pcs) {
                           pcs->ppcs->frm_hdr.quantization_params.base_q_idx,
                           false);
     lambda   = full_lambda;
-    mse[0]   = (uint64_t **)malloc(sizeof(*mse) * nvfb * nhfb);
-    mse[1]   = (uint64_t **)malloc(sizeof(*mse) * nvfb * nhfb);
     sb_count = 0;
     for (fbr = 0; fbr < nvfb; ++fbr) {
         for (fbc = 0; fbc < nhfb; ++fbc) {
@@ -894,8 +903,8 @@ void finish_cdef_search(PictureControlSet *pcs) {
     }
     //cdef_pri_damping & cdef_sec_damping consolidated to cdef_damping
     frm_hdr->cdef_params.cdef_damping = 3 + (frm_hdr->quantization_params.base_q_idx >> 6);
-    free(mse[0]);
-    free(mse[1]);
-    free(sb_index);
-    free(sb_addr);
+    EB_FREE_ARRAY(mse[0]);
+    EB_FREE_ARRAY(mse[1]);
+    EB_FREE_ARRAY(sb_index);
+    EB_FREE_ARRAY(sb_addr);
 }

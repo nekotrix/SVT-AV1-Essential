@@ -2629,7 +2629,7 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
 
 static EbErrorType rtime_alloc_palette_search_buffers(ModeDecisionContext *ctx) {
     if (!ctx->palette_buffer)
-        EB_MALLOC(ctx->palette_buffer, sizeof(PALETTE_BUFFER));
+        EB_MALLOC_OBJECT(ctx->palette_buffer);
 
     if (!ctx->palette_cand_array) {
         EB_MALLOC_ARRAY(ctx->palette_cand_array, MAX_PAL_CAND);

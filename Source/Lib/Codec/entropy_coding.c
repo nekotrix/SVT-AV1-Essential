@@ -1335,7 +1335,7 @@ EbErrorType svt_aom_entropy_coder_ctor(EntropyCoder *ec, uint32_t buffer_size) {
 
     ec->dctor = entropy_coder_dctor;
 
-    EB_MALLOC(ec->fc, sizeof(FRAME_CONTEXT));
+    EB_MALLOC_OBJECT(ec->fc);
 
     EB_NEW(output_bitstream_ptr, svt_aom_output_bitstream_unit_ctor, buffer_size);
     ec->ec_output_bitstream_ptr = output_bitstream_ptr;

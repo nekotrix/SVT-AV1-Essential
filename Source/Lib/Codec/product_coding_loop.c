@@ -6720,10 +6720,6 @@ static void check_redundant_block(const BlockGeom *blk_geom, ModeDecisionContext
     }
 }
 
-static INLINE void rtime_alloc_uv_cand_buff_indices(uint32_t **uv_cand_buff_indices, uint32_t max_nics_uv) {
-    (*uv_cand_buff_indices) = (uint32_t *)malloc(max_nics_uv * sizeof(*uv_cand_buff_indices));
-}
-
 /*
 Perform search for the best chroma mode (intra modes only). The search is performed only on the intra luma
 modes that will be tested in MDS3 (plus DC is always tested). The search involves the following main parts:
@@ -7069,7 +7065,7 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
 
     // Sort uv_mode candidates (in terms of distortion only)
     uint32_t *uv_cand_buff_indices;
-    rtime_alloc_uv_cand_buff_indices(&uv_cand_buff_indices, ctx->max_nics_uv);
+    EB_MALLOC_ARRAY_NO_CHECK(uv_cand_buff_indices, ctx->max_nics_uv);
     memset(uv_cand_buff_indices, 0xFF, ctx->max_nics_uv * sizeof(*uv_cand_buff_indices));
 
     sort_fast_cost_based_candidates(
@@ -7205,7 +7201,7 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
             }
         }
     }
-    free(uv_cand_buff_indices);
+    EB_FREE_ARRAY(uv_cand_buff_indices);
     ctx->ind_uv_avail = 1;
 }
 

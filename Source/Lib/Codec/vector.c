@@ -24,6 +24,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <stdlib.h>
 #include <string.h>
 
+#include "svt_malloc.h"
+
 #include "vector.h"
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 int svt_aom_vector_setup(Vector *vector, uint32_t capacity, uint32_t element_size) {
@@ -35,7 +37,7 @@ int svt_aom_vector_setup(Vector *vector, uint32_t capacity, uint32_t element_siz
     vector->size         = 0;
     vector->capacity     = MAX(VECTOR_MINIMUM_CAPACITY, capacity);
     vector->element_size = element_size;
-    vector->data         = malloc(vector->capacity * element_size);
+    EB_MALLOC_NO_CHECK(vector->data, vector->capacity * element_size);
 
     return vector->data == NULL ? VECTOR_ERROR : VECTOR_SUCCESS;
 }
@@ -46,7 +48,7 @@ int svt_aom_vector_destroy(Vector *vector) {
     if (vector == NULL)
         return VECTOR_ERROR;
 
-    free(vector->data);
+    EB_FREE(vector->data);
     vector->data = NULL;
 
     return VECTOR_SUCCESS;
@@ -139,7 +141,8 @@ int _vector_reallocate(Vector *vector, uint32_t new_capacity) {
     new_capacity_in_bytes = new_capacity * vector->element_size;
     old                   = vector->data;
 
-    if ((vector->data = malloc(new_capacity_in_bytes)) == NULL)
+    EB_MALLOC_NO_CHECK(vector->data, new_capacity_in_bytes);
+    if (vector->data == NULL)
         return VECTOR_ERROR;
 #ifdef __STDC_LIB_EXT1__
     /* clang-format off */
@@ -156,7 +159,7 @@ int _vector_reallocate(Vector *vector, uint32_t new_capacity) {
 
     vector->capacity = new_capacity;
 
-    free(old);
+    EB_FREE(old);
 
     return VECTOR_SUCCESS;
 }

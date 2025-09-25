@@ -218,13 +218,11 @@ static EbErrorType init_thread_management_params() {
                 if (socket_id >= max_size) {
                     old_max_size = max_size;
                     max_size = max_size * 2;
-                    processorGroup *temp = realloc(lp_group, max_size * sizeof(*temp));
-                    if (temp) {
-                        memset(temp + old_max_size, 0, (max_size - old_max_size) * sizeof(*temp));
-                        lp_group = temp;
+                    EB_REALLOC_ARRAY(lp_group, max_size);
+                    if (lp_group) {
+                        memset(lp_group + old_max_size, 0, (max_size - old_max_size) * sizeof(*lp_group));
                     }
                     else {
-                        free(lp_group);
                         fclose(fin);
                         return EB_ErrorInsufficientResources;
                     }
@@ -1041,7 +1039,7 @@ static EbErrorType svt_enc_handle_ctor(
     enc_handle_ptr->compute_segments_total_count_array                    = EB_ComputeSegmentInitCount;
     // Initialize Callbacks
     EB_ALLOC_PTR_ARRAY(enc_handle_ptr->app_callback_ptr_array, enc_handle_ptr->encode_instance_total_count);
-    EB_MALLOC(enc_handle_ptr->app_callback_ptr_array[0], sizeof(EbCallback));
+    EB_MALLOC_OBJECT(enc_handle_ptr->app_callback_ptr_array[0]);
     enc_handle_ptr->app_callback_ptr_array[0]->error_handler = lib_svt_encoder_send_error_exit;
     enc_handle_ptr->app_callback_ptr_array[0]->handle = ebHandlePtr;
 
@@ -2384,15 +2382,11 @@ EB_API EbErrorType svt_av1_enc_init_handle(
 
     #if defined(__linux__)
         if(lp_group == NULL) {
-            EB_MALLOC(lp_group, INITIAL_PROCESSOR_GROUP * sizeof(processorGroup));
+            EB_MALLOC_ARRAY(lp_group, INITIAL_PROCESSOR_GROUP);
         }
     #endif
 
-    *p_handle = (EbComponentType*)malloc(sizeof(EbComponentType));
-    if (*p_handle == NULL) {
-        SVT_ERROR("Component Struct Malloc Failed\n");
-        return EB_ErrorInsufficientResources;
-    }
+    EB_MALLOC_OBJECT(*p_handle);
     // Init Component OS objects (threads, semaphores, etc.)
     // also links the various Component control functions
     EbErrorType return_error = init_svt_av1_encoder_handle(*p_handle);
@@ -2402,7 +2396,7 @@ EB_API EbErrorType svt_av1_enc_init_handle(
     }
     if (return_error != EB_ErrorNone) {
         svt_av1_enc_deinit(*p_handle);
-        free(*p_handle);
+        EB_FREE(*p_handle);
         *p_handle = NULL;
         return return_error;
     }
@@ -2436,9 +2430,9 @@ EB_API EbErrorType svt_av1_enc_deinit_handle(
     if (svt_enc_component) {
         EbErrorType return_error = svt_av1_enc_component_de_init(svt_enc_component);
 
-        free(svt_enc_component);
+        EB_FREE(svt_enc_component);
 #if  defined(__linux__)
-        EB_FREE(lp_group);
+        EB_FREE_ARRAY(lp_group);
 #endif
         svt_decrease_component_count();
         return return_error;
@@ -4763,13 +4757,10 @@ EB_API EbErrorType svt_av1_enc_stream_header(
     memset(&bitstream, 0, sizeof(Bitstream));
     memset(&output_bitstream, 0, sizeof(OutputBitstreamUnit));
     bitstream.output_bitstream_ptr = &output_bitstream;
-    output_stream_buffer = (EbBufferHeaderType *)malloc(sizeof(EbBufferHeaderType));
-    if (!output_stream_buffer) {
-        return EB_ErrorInsufficientResources;
-    }
-    output_stream_buffer->p_buffer = (uint8_t *)malloc(sizeof(uint8_t) * output_buffer_size);
+    EB_MALLOC_OBJECT(output_stream_buffer);
+    EB_MALLOC_ARRAY_NO_CHECK(output_stream_buffer->p_buffer, output_buffer_size);
     if (!output_stream_buffer->p_buffer) {
-        free(output_stream_buffer);
+        EB_FREE(output_stream_buffer);
         return EB_ErrorInsufficientResources;
     }
 
@@ -4801,8 +4792,8 @@ EB_API EbErrorType svt_av1_enc_stream_header_release(
         return EB_ErrorBadParameter;
     }
 
-    free(stream_header_ptr->p_buffer);
-    free(stream_header_ptr);
+    EB_FREE_ARRAY(stream_header_ptr->p_buffer);
+    EB_FREE(stream_header_ptr);
 
     return return_error;
 }

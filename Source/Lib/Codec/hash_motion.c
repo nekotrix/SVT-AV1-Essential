@@ -25,7 +25,7 @@ static void hash_table_clear_all(HashTable *p_hash_table) {
     for (int i = 0; i < max_addr; i++) {
         if (p_hash_table->p_lookup_table[i] != NULL) {
             svt_aom_vector_destroy(p_hash_table->p_lookup_table[i]);
-            free(p_hash_table->p_lookup_table[i]);
+            EB_FREE(p_hash_table->p_lookup_table[i]);
             p_hash_table->p_lookup_table[i] = NULL;
         }
     }
@@ -96,7 +96,6 @@ EbErrorType svt_aom_rtime_alloc_svt_av1_hash_table_create(HashTable *p_hash_tabl
         return err_code;
     }
     const int max_addr = 1 << (crc_bits + block_size_bits);
-    //p_hash_table->p_lookup_table = (Vector **)malloc(sizeof(p_hash_table->p_lookup_table[0]) * max_addr);
     EB_CALLOC_ARRAY(p_hash_table->p_lookup_table, max_addr);
 
     return err_code;
@@ -104,7 +103,7 @@ EbErrorType svt_aom_rtime_alloc_svt_av1_hash_table_create(HashTable *p_hash_tabl
 
 static bool hash_table_add_to_table(HashTable *p_hash_table, uint32_t hash_value, const BlockHash *curr_block_hash) {
     if (p_hash_table->p_lookup_table[hash_value] == NULL) {
-        p_hash_table->p_lookup_table[hash_value] = malloc(sizeof(*p_hash_table->p_lookup_table[hash_value]));
+        EB_MALLOC_OBJECT_NO_CHECK(p_hash_table->p_lookup_table[hash_value]);
         if (p_hash_table->p_lookup_table[hash_value] == NULL) {
             return false;
         }

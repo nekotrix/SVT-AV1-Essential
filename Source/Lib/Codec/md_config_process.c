@@ -589,7 +589,6 @@ static void av1_setup_motion_field(Av1Common *cm, PictureControlSet *pcs) {
         motion_field_projection(cm, pcs, LAST2_FRAME, 2);
 }
 EbErrorType svt_av1_hash_table_create(HashTable *p_hash_table);
-void       *rtime_alloc_block_hash_block_is_same(size_t size) { return malloc(size); }
 int32_t     svt_aom_noise_log1p_fp16(int32_t noise_level_fp16);
 /* Determine the frame complexity level (stored under pcs->coeff_lvl) based
 on the ME distortion and QP. */
@@ -957,10 +956,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                 uint32_t *block_hash_values[2];
                 int       j;
 
-                for (j = 0; j < 2; j++) {
-                    block_hash_values[j] = rtime_alloc_block_hash_block_is_same(sizeof(uint32_t) * pic_width *
-                                                                                pic_height);
-                }
+                for (j = 0; j < 2; j++) { EB_MALLOC_ARRAY_NO_CHECK(block_hash_values[j], pic_width * pic_height); }
                 svt_aom_rtime_alloc_svt_av1_hash_table_create(&pcs->hash_table);
                 Yv12BufferConfig cpi_source;
                 svt_aom_link_eb_to_aom_buffer_desc_8bit(pcs->ppcs->enhanced_pic, &cpi_source);
@@ -976,7 +972,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
                         svt_aom_rtime_alloc_svt_av1_add_to_hash_map_by_row_with_precal_data(
                             &pcs->hash_table, block_hash_values[dst_idx], pic_width, pic_height, size);
                 }
-                for (j = 0; j < 2; j++) { free(block_hash_values[j]); }
+                for (j = 0; j < 2; j++) { EB_FREE_ARRAY(block_hash_values[j]); }
             }
 
             svt_av1_init3smotion_compensation(&pcs->ss_cfg, pcs->ppcs->enhanced_pic->stride_y);

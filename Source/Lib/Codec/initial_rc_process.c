@@ -81,7 +81,7 @@ EbErrorType svt_aom_initial_rate_control_context_ctor(EbThreadContext *thread_ct
     context_ptr->initialrate_control_results_output_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->initial_rate_control_results_resource_ptr, 0);
 
-    EB_MALLOC(context_ptr->lad_queue, sizeof(LadQueue));
+    EB_MALLOC_OBJECT(context_ptr->lad_queue);
 
     context_ptr->lad_queue->cir_buf_size = ppcs_count;
     EB_ALLOC_PTR_ARRAY(context_ptr->lad_queue->cir_buf, ppcs_count);

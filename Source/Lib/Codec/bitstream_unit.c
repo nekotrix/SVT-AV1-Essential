@@ -176,7 +176,7 @@ static void svt_od_ec_enc_normalize(OdEcEnc* enc, OdEcWindow low, unsigned rng) 
   size: The initial size of the buffer, in bytes.*/
 void svt_od_ec_enc_init(OdEcEnc* enc, uint32_t size) {
     svt_od_ec_enc_reset(enc);
-    enc->buf     = (unsigned char*)malloc(sizeof(*enc->buf) * size);
+    EB_MALLOC_ARRAY_NO_CHECK(enc->buf, size);
     enc->storage = size;
     if (size > 0 && enc->buf == NULL) {
         enc->storage = 0;
@@ -200,7 +200,7 @@ void svt_od_ec_enc_reset(OdEcEnc* enc) {
 }
 
 /*Frees the buffers used by the encoder.*/
-void svt_od_ec_enc_clear(OdEcEnc* enc) { free(enc->buf); }
+void svt_od_ec_enc_clear(OdEcEnc* enc) { EB_FREE_ARRAY(enc->buf); }
 
 /*Encodes a symbol given its frequency in Q15.
   fl: CDF_PROB_TOP minus the cumulative frequency of all symbols that come

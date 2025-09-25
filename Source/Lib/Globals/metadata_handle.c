@@ -17,17 +17,19 @@
 #include "EbSvtAv1Metadata.h"
 #include "EbSvtAv1Enc.h"
 #include "svt_log.h"
+#include "svt_malloc.h"
 
 EB_API SvtMetadataT *svt_metadata_alloc(const uint32_t type, const uint8_t *data, const size_t sz) {
     if (!data || sz == 0)
         return NULL;
-    SvtMetadataT *metadata = (SvtMetadataT *)malloc(sizeof(SvtMetadataT));
+    SvtMetadataT *metadata;
+    EB_MALLOC_OBJECT_NO_CHECK(metadata);
     if (!metadata)
         return NULL;
-    metadata->type    = type;
-    metadata->payload = (uint8_t *)malloc(sz);
+    metadata->type = type;
+    EB_MALLOC_ARRAY_NO_CHECK(metadata->payload, sz);
     if (!metadata->payload) {
-        free(metadata);
+        EB_FREE(metadata);
         return NULL;
     }
     memcpy(metadata->payload, data, sz);
@@ -39,20 +41,21 @@ EB_API void svt_metadata_free(void *ptr) {
     SvtMetadataT **metadata = (SvtMetadataT **)ptr;
     if (*metadata) {
         if ((*metadata)->payload) {
-            free((*metadata)->payload);
+            EB_FREE_ARRAY((*metadata)->payload);
             (*metadata)->payload = NULL;
         }
-        free(*metadata);
+        EB_FREE(*metadata);
         *metadata = NULL;
     }
 }
 
 EB_API SvtMetadataArrayT *svt_metadata_array_alloc(const size_t sz) {
-    SvtMetadataArrayT *arr = (SvtMetadataArrayT *)calloc(1, sizeof(SvtMetadataArrayT));
+    SvtMetadataArrayT *arr;
+    EB_CALLOC_ARRAY_NO_CHECK(arr, 1);
     if (!arr)
         return NULL;
     if (sz > 0) {
-        arr->metadata_array = (SvtMetadataT **)calloc(sz, sizeof(SvtMetadataT *));
+        EB_CALLOC_ARRAY_NO_CHECK(arr->metadata_array, sz);
         if (!arr->metadata_array) {
             svt_metadata_array_free(&arr);
             return NULL;
@@ -67,9 +70,9 @@ EB_API void svt_metadata_array_free(void *arr) {
     if (*metadata) {
         if ((*metadata)->metadata_array) {
             for (size_t i = 0; i < (*metadata)->sz; i++) { svt_metadata_free(&((*metadata)->metadata_array[i])); }
-            free((*metadata)->metadata_array);
+            EB_FREE((*metadata)->metadata_array);
         }
-        free(*metadata);
+        EB_FREE(*metadata);
     }
     *metadata = NULL;
 }

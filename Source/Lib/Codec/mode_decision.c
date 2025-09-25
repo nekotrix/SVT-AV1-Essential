@@ -2861,8 +2861,7 @@ static void intra_bc_search(PictureControlSet *pcs, ModeDecisionContext *ctx, co
     x->errorperbit = full_lambda >> RD_EPB_SHIFT;
     x->errorperbit += (x->errorperbit == 0);
     //temp buffer for hash me
-    for (int i = 0; i < 2; i++)
-        x->hash_value_buffer[i] = (uint32_t *)malloc(AOM_BUFFER_SIZE_FOR_BLOCK_HASH * sizeof(uint32_t));
+    for (int i = 0; i < 2; i++) EB_MALLOC_ARRAY_NO_CHECK(x->hash_value_buffer[i], AOM_BUFFER_SIZE_FOR_BLOCK_HASH);
 
     Mv nearestmv, nearmv;
     svt_av1_find_best_ref_mvs_from_stack(0, ctx->ref_mv_stack /*mbmi_ext*/, xd, ref_frame, &nearestmv, &nearmv, 0);
@@ -2970,7 +2969,7 @@ static void intra_bc_search(PictureControlSet *pcs, ModeDecisionContext *ctx, co
         (*num_dv_cand)++;
     }
 
-    for (int i = 0; i < 2; i++) free(x->hash_value_buffer[i]);
+    for (int i = 0; i < 2; i++) EB_FREE_ARRAY(x->hash_value_buffer[i]);
 }
 static void inject_intra_bc_candidates(PictureControlSet *pcs, ModeDecisionContext *ctx, const SequenceControlSet *scs,
                                        BlkStruct *blk_ptr, uint32_t *cand_cnt) {

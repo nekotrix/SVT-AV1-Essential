@@ -260,7 +260,7 @@ static bool ransac_internal(const Correspondence *matched_points, int npoints, M
 
     int min_inliers = AOMMAX((int)(MIN_INLIER_PROB * npoints), minpts);
 
-    motions = (RANSAC_MOTION *)calloc(num_desired_motions, sizeof(RANSAC_MOTION));
+    EB_CALLOC_ARRAY_NO_CHECK(motions, num_desired_motions);
 
     // Allocate one large buffer which will be carved up to store the inlier
     // indices for the current motion plus the num_desired_motions many
@@ -268,7 +268,8 @@ static bool ransac_internal(const Correspondence *matched_points, int npoints, M
     // This allows us to keep the allocation/deallocation logic simple, without
     // having to (for example) check that `motions` is non-null before allocating
     // the inlier arrays
-    int *inlier_buffer = (int *)malloc(sizeof(*inlier_buffer) * npoints * (num_desired_motions + 1));
+    int *inlier_buffer;
+    EB_MALLOC_ARRAY_NO_CHECK(inlier_buffer, npoints * (num_desired_motions + 1));
 
     if (!(motions && inlier_buffer)) {
         ret_val           = false;
@@ -399,8 +400,8 @@ static bool ransac_internal(const Correspondence *matched_points, int npoints, M
     }
 
 finish_ransac:
-    free(inlier_buffer);
-    free(motions);
+    EB_FREE_ARRAY(inlier_buffer);
+    EB_FREE_ARRAY(motions);
 
     return ret_val;
 }
