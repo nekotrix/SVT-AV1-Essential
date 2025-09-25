@@ -17,7 +17,6 @@ Bin
 Build
 build
 compile_commands.json
-test/clang-format-diff.py
 test/vectors/
 test/docs/
 !Build/linux/build.sh
