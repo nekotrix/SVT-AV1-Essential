@@ -91,8 +91,8 @@ using highbd_convolve_func =
 
 using lowbd_convolve_func = void (*)(const uint8_t *src, int src_stride,
                                      uint8_t *dst, int dst_stride, int w, int h,
-                                     InterpFilterParams *filter_params_x,
-                                     InterpFilterParams *filter_params_y,
+                                     const InterpFilterParams *filter_params_x,
+                                     const InterpFilterParams *filter_params_y,
                                      const int subpel_x_qn,
                                      const int subpel_y_qn,
                                      ConvolveParams *conv_params);
@@ -135,8 +135,8 @@ class AV1ConvolveTest : public ::testing::TestWithParam<ConvolveParam> {
 
     virtual void run_convolve(int offset_r, int offset_c, int src_stride,
                               int dst_stride, int w, int h,
-                              InterpFilterParams *filter_params_x,
-                              InterpFilterParams *filter_params_y,
+                              const InterpFilterParams *filter_params_x,
+                              const InterpFilterParams *filter_params_y,
                               const int32_t subpel_x_q4,
                               const int32_t subpel_y_q4,
                               ConvolveParams *conv_params1,
@@ -144,8 +144,8 @@ class AV1ConvolveTest : public ::testing::TestWithParam<ConvolveParam> {
 
     virtual void speed_convolve(int offset_r, int offset_c, int src_stride,
                                 int dst_stride, int w, int h,
-                                InterpFilterParams *filter_params_x,
-                                InterpFilterParams *filter_params_y,
+                                const InterpFilterParams *filter_params_x,
+                                const InterpFilterParams *filter_params_y,
                                 const int32_t subpel_x_q4,
                                 const int32_t subpel_y_q4,
                                 ConvolveParams *conv_params1,
@@ -153,8 +153,8 @@ class AV1ConvolveTest : public ::testing::TestWithParam<ConvolveParam> {
 
     void test_convolve(int has_subx, int has_suby, int src_stride,
                        int dst_stride, int output_w, int output_h,
-                       InterpFilterParams *filter_params_x,
-                       InterpFilterParams *filter_params_y,
+                       const InterpFilterParams *filter_params_x,
+                       const InterpFilterParams *filter_params_y,
                        ConvolveParams *conv_params_ref,
                        ConvolveParams *conv_params_tst) {
         const int subx_range = has_subx ? 16 : 1;
@@ -239,8 +239,8 @@ class AV1ConvolveTest : public ::testing::TestWithParam<ConvolveParam> {
 
     void test_speed(int has_subx, int has_suby, int src_stride, int dst_stride,
                     int output_w, int output_h,
-                    InterpFilterParams *filter_params_x,
-                    InterpFilterParams *filter_params_y,
+                    const InterpFilterParams *filter_params_x,
+                    const InterpFilterParams *filter_params_y,
                     ConvolveParams *conv_params_ref,
                     ConvolveParams *conv_params_tst) {
         const int subx_range = has_subx ? 16 : 1;
@@ -570,8 +570,8 @@ class AV1LbdConvolveTest
     }
     void run_convolve(int offset_r, int offset_c, int src_stride,
                       int dst_stride, int output_w, int output_h,
-                      InterpFilterParams *filter_params_x,
-                      InterpFilterParams *filter_params_y,
+                      const InterpFilterParams *filter_params_x,
+                      const InterpFilterParams *filter_params_y,
                       const int32_t subpel_x_q4, const int32_t subpel_y_q4,
                       ConvolveParams *conv_params_ref,
                       ConvolveParams *conv_params_tst) override {
@@ -601,8 +601,8 @@ class AV1LbdConvolveTest
 
     void speed_convolve(int offset_r, int offset_c, int src_stride,
                         int dst_stride, int output_w, int output_h,
-                        InterpFilterParams *filter_params_x,
-                        InterpFilterParams *filter_params_y,
+                        const InterpFilterParams *filter_params_x,
+                        const InterpFilterParams *filter_params_y,
                         const int32_t subpel_x_q4, const int32_t subpel_y_q4,
                         ConvolveParams *conv_params_ref,
                         ConvolveParams *conv_params_tst) override {
@@ -866,8 +866,8 @@ class AV1HbdConvolveTest
     }
     void run_convolve(int offset_r, int offset_c, int src_stride,
                       int dst_stride, int blk_w, int blk_h,
-                      InterpFilterParams *filter_params_x,
-                      InterpFilterParams *filter_params_y,
+                      const InterpFilterParams *filter_params_x,
+                      const InterpFilterParams *filter_params_y,
                       const int32_t subpel_x_q4, const int32_t subpel_y_q4,
                       ConvolveParams *conv_params_ref,
                       ConvolveParams *conv_params_tst) override {
@@ -899,8 +899,8 @@ class AV1HbdConvolveTest
 
     void speed_convolve(int offset_r, int offset_c, int src_stride,
                         int dst_stride, int output_w, int output_h,
-                        InterpFilterParams *filter_params_x,
-                        InterpFilterParams *filter_params_y,
+                        const InterpFilterParams *filter_params_x,
+                        const InterpFilterParams *filter_params_y,
                         const int32_t subpel_x_q4, const int32_t subpel_y_q4,
                         ConvolveParams *conv_params_ref,
                         ConvolveParams *conv_params_tst) override {
