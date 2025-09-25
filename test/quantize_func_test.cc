@@ -1086,15 +1086,13 @@ class ComputeCulLevelTest
         scan[0] = 0;
 
         for (int test = 0; test < 1000; test++) {
-            // Every 50 iteration randomize buffers
-            if (!(test % 50))
-                for (uint32_t i = 0; i < max_size; i++) {
-                    quant_coeff[i] = quant_rnd.random();
-                    if (i != 0)
-                        scan[i] = rnd.random() % max_size;
-                }
-
             eob_ref = eob_test = rnd.random() % max_size;
+
+            for (uint32_t i = 0; i < max_size; i++) {
+                quant_coeff[i] = eob_ref == 0 ? 0 : quant_rnd.random();
+                if (i != 0)
+                    scan[i] = rnd.random() % max_size;
+            }
 
             int32_t ref_res =
                 svt_av1_compute_cul_level_c(scan, quant_coeff, &eob_ref);
