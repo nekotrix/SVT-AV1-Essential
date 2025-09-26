@@ -450,6 +450,7 @@ static void tpl_subpel_search(SequenceControlSet *scs, PictureParentControlSet *
     // Mvcost params
     int32_t qIndex = quantizer_to_qindex[(uint8_t)scs->static_config.qp] +
         scs->static_config.extended_crf_qindex_offset;
+    qIndex          = AOMMIN(MAXQ, qIndex);
     uint32_t rdmult = svt_aom_compute_rd_mult_based_on_qindex((EbBitDepth)8, pcs->update_type, qIndex) /
         TPL_RDMULT_SCALING_FACTOR;
     svt_tpl_init_mv_cost_params(&ms_params->mv_cost_params, &ref_mv, qIndex, rdmult,
@@ -1354,8 +1355,10 @@ static void tpl_mc_flow_dispenser(EncodeContext *enc_ctx, SequenceControlSet *sc
                                   PictureParentControlSet *pcs, int32_t frame_idx,
                                   SourceBasedOperationsContext *context_ptr) {
     EbPictureBufferDesc *recon_pic = enc_ctx->mc_flow_rec_picture_buffer[frame_idx];
+    int32_t              qIndex    = quantizer_to_qindex[(uint8_t)scs->static_config.qp] +
+        scs->static_config.extended_crf_qindex_offset;
+    qIndex = AOMMIN(MAXQ, qIndex);
 
-    int32_t qIndex = quantizer_to_qindex[(uint8_t)scs->static_config.qp];
     if (pcs->tpl_ctrls.enable_tpl_qps) {
         const double delta_rate_new[7][6] = {
             {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}, // 1L

@@ -998,7 +998,8 @@ typedef struct EbSvtAv1EncConfiguration {
 
     /* @brief qindex offset for extended CRF support
      * Value is internally determined by CRF parameter value, each quarter-step increment to the CRF adds 1 to the
-     * offset, with a maximum of 3 (i.e. three quarter-step increments)
+     * offset, with a maximum of 3 (i.e. three quarter-step increments) for fractional CRFs below 63, and up to
+     * 28 for the extended CRF range (63.25 to 70)
      * Default is 0 if CRF is an integer
      */
     uint8_t extended_crf_qindex_offset;

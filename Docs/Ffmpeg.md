@@ -19,7 +19,7 @@ The parameters that are most frequently changed from one encode to another are
 * `crf`. This parameter governs the quality/size trade-off. Higher CRF values will
   result in a final output that takes less space, but begins to lose detail. Lower CRF
   values retain more detail at the cost of larger file sizes. The possible range of CRF
-  in SVT-AV1 is 1-63. CRF values are not meant to be equivalent across different
+  in SVT-AV1 is 1-70. CRF values are not meant to be equivalent across different
   encoders. A good starting point for 1080p video is `crf=30`.
 * `preset`. This parameter governs the efficiency/encode-time trade-off. Lower
   presets will result in an output with better quality for a given file size, but
@@ -92,7 +92,7 @@ values in the range of 10-15 enable more aggressive use of this technique for vi
 grain. For 2D animation, lower values in the range of 4-6 are often appropriate. If the original
 video does not have natural grain, this parameter can be omitted.
 
-Note that the `crf` range for SVT-AV1 is 1-63, which is a wider range than is found on some popular
+Note that the `crf` range for SVT-AV1 is 1-70, which is a wider range than is found on some popular
 open-source encoders. As a result, `crf` values that approximate the visual quality in those encoders
 will tend to be higher in SVT-AV1.
 

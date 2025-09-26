@@ -244,8 +244,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
-    if ((config->qp == MAX_QP_VALUE && config->extended_crf_qindex_offset > 0)) {
-        SVT_ERROR("Instance %u: %s must be [0 - %d]\n", channel_number + 1, "CRF", 63);
+    if ((config->qp == MAX_QP_VALUE && config->extended_crf_qindex_offset > (7 * 4))) {
+        SVT_ERROR("Instance %u: %s must be [0 - %d]\n", channel_number + 1, "CRF", 70);
         return_error = EB_ErrorBadParameter;
     }
 
@@ -1573,8 +1573,9 @@ static EbErrorType str_to_crf(const char *nptr, EbSvtAv1EncConfiguration *config
     if (crf < 0)
         return EB_ErrorBadParameter;
 
+    uint32_t extended_q_index           = (uint32_t)(crf * 4);
     uint32_t qp                         = AOMMIN(MAX_QP_VALUE, (uint32_t)crf);
-    uint32_t extended_crf_qindex_offset = ((uint32_t)(crf * 4.0)) & 3;
+    uint32_t extended_crf_qindex_offset = extended_q_index - qp * 4;
 
     config_struct->qp                           = qp;
     config_struct->rate_control_mode            = SVT_AV1_RC_MODE_CQP_OR_CRF;

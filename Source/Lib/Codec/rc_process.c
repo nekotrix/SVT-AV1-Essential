@@ -3696,6 +3696,18 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                             frm_hdr->quantization_params.base_q_idx = qindex;
                         }
 
+                        // Extended CRF range (63.25 - 70), add offset to all temporal layers to compress QP scaling
+                        if (scs->static_config.qp == MAX_QP_VALUE && scs->static_config.extended_crf_qindex_offset) {
+                            int32_t qindex = frm_hdr->quantization_params.base_q_idx;
+
+                            // Testing revealed that limiting the max qindex offset to up the half the distance (i.e. 28 / 56)
+                            // between MAX_Q_INDEX and the current qindex is enough to achieve desired file size targets
+                            qindex += ((MAX_Q_INDEX - qindex) * scs->static_config.extended_crf_qindex_offset) / 56.0;
+                            qindex = clamp_qindex(scs, qindex);
+
+                            frm_hdr->quantization_params.base_q_idx = qindex;
+                        }
+
                         if (scs->static_config.luminance_qp_bias) {
                             int32_t qindex = frm_hdr->quantization_params.base_q_idx;
 

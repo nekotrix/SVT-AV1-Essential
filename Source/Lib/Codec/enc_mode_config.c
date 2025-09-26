@@ -7893,6 +7893,15 @@ set lpd0_level
             }
         }
     }
+
+    // Extended CRF range (63.25 - 70), increase lambda weight toward further bit saving
+    // Max lambda weight increase: 28 * 28 = 784
+    // The multiplier of "28" was derived empirically to allow a smooth bitrate decrease as
+    // CRF increases from 63.25 (extended_crf_qindex_offset = 1) to 70 (extended_crf_qindex_offset = 4 * 7)
+    if (scs->static_config.qp == MAX_QP_VALUE && scs->static_config.extended_crf_qindex_offset) {
+        pcs->lambda_weight += scs->static_config.extended_crf_qindex_offset * 28;
+    }
+
     uint8_t dlf_level = 0;
     if (pcs->scs->static_config.enable_dlf_flag && frm_hdr->allow_intrabc == 0) {
         EncMode dlf_enc_mode = enc_mode;
