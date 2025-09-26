@@ -180,7 +180,7 @@ class MseTestHighbd : public ::testing::TestWithParam<TestMseParamHighbd> {
     }
 
     void run_match_test() {
-        const int32_t mask = (1 << 8) - 1;
+        const int32_t mask = (1 << 10) - 1;
         SVTRandom rnd(0, mask);
         for (int i = 0; i < 10; ++i) {
             for (int j = 0; j < MAX_BLOCK_SIZE; ++j) {
@@ -201,8 +201,9 @@ class MseTestHighbd : public ::testing::TestWithParam<TestMseParamHighbd> {
     }
 
     void run_max_test() {
+        const int32_t mask = (1 << 10) - 1;
         for (int j = 0; j < MAX_BLOCK_SIZE; ++j) {
-            src_data_[j] = 255;
+            src_data_[j] = mask;
             ref_data_[j] = 0;
         }
         uint32_t sse_ref = mse_ref_(CONVERT_TO_BYTEPTR(src_data_),
@@ -248,13 +249,6 @@ INSTANTIATE_TEST_SUITE_P(NEON, MseTestHighbd,
                          ::testing::Values(TestMseParamHighbd(
                              16, 16, &svt_aom_highbd_8_mse16x16_neon,
                              &svt_aom_highbd_8_mse16x16_c)));
-
-#if HAVE_NEON_DOTPROD
-INSTANTIATE_TEST_SUITE_P(NEON_DOTPROD, MseTestHighbd,
-                         ::testing::Values(TestMseParamHighbd(
-                             16, 16, &svt_aom_highbd_8_mse16x16_neon_dotprod,
-                             &svt_aom_highbd_8_mse16x16_c)));
-#endif  // HAVE_NEON_DOTPROD
 
 #endif  // ARCH_AARCH64
 

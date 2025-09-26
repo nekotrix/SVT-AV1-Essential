@@ -922,8 +922,7 @@ EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet
             buffer_cr         = pcs->ppcs->save_source_picture_ptr[2];
             buffer_bit_inc_cr = pcs->ppcs->save_source_picture_bit_inc_ptr[2];
         } else {
-            uint32_t height_y  = input_pic->height + input_pic->org_y + input_pic->origin_bot_y;
-            uint32_t height_uv = (input_pic->height + input_pic->org_y + input_pic->origin_bot_y) >> ss_y;
+            uint32_t height_y = input_pic->height + input_pic->org_y + input_pic->origin_bot_y;
 
             buffer_y  = input_pic->buffer_y;
             buffer_cb = input_pic->buffer_cb;
@@ -943,13 +942,13 @@ EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet
                                           input_pic->stride_bit_inc_cb / 4,
                                           buffer_bit_inc_cb,
                                           input_pic->stride_bit_inc_cb,
-                                          height_uv);
+                                          height_y >> ss_y);
             // V
             svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_cr,
                                           input_pic->stride_bit_inc_cr / 4,
                                           buffer_bit_inc_cr,
                                           input_pic->stride_bit_inc_cr,
-                                          height_uv);
+                                          height_y >> ss_y);
         }
 
         int bd    = 10;
@@ -1128,8 +1127,7 @@ EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, b
             buffer_cr         = pcs->ppcs->save_source_picture_ptr[2];
             buffer_bit_inc_cr = pcs->ppcs->save_source_picture_bit_inc_ptr[2];
         } else {
-            uint32_t height_y  = input_pic->height + input_pic->org_y + input_pic->origin_bot_y;
-            uint32_t height_uv = (input_pic->height + input_pic->org_y + input_pic->origin_bot_y) >> ss_y;
+            uint32_t height_y = input_pic->height + input_pic->org_y + input_pic->origin_bot_y;
 
             buffer_y  = input_pic->buffer_y;
             buffer_cb = input_pic->buffer_cb;
@@ -1149,13 +1147,13 @@ EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, b
                                           input_pic->stride_bit_inc_cb / 4,
                                           buffer_bit_inc_cb,
                                           input_pic->stride_bit_inc_cb,
-                                          height_uv);
+                                          height_y >> ss_y);
             // V
             svt_c_unpack_compressed_10bit(input_pic->buffer_bit_inc_cr,
                                           input_pic->stride_bit_inc_cr / 4,
                                           buffer_bit_inc_cr,
                                           input_pic->stride_bit_inc_cr,
-                                          height_uv);
+                                          height_y >> ss_y);
         }
 
         recon_buffer = &((uint16_t *)recon_ptr->buffer_y)[recon_ptr->org_x + recon_ptr->org_y * recon_ptr->stride_y];

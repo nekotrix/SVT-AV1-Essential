@@ -1011,7 +1011,6 @@ extern "C" {
     unsigned int svt_aom_mse16x16_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride);
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     uint32_t svt_aom_highbd_8_mse16x16_neon(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr, int ref_stride);
-    uint32_t svt_aom_highbd_8_mse16x16_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr, int ref_stride);
 #endif
 
     uint32_t svt_aom_sad_16b_kernel_neon(uint16_t *src, uint32_t  src_stride, uint16_t *ref, uint32_t  ref_stride, uint32_t  height, uint32_t  width);
