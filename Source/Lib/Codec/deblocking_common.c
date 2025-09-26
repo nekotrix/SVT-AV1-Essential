@@ -82,7 +82,7 @@ void svt_av1_loop_filter_frame_init(FrameHeader *frm_hdr, LoopFilterInfoN *lfi, 
     // the multiplier is 1 for when filter_lvl is between 0 and 31;
     // 2 when filter_lvl is between 32 and 63
 
-    struct LoopFilter *const lf = &frm_hdr->loop_filter_params;
+    LoopFilter *const lf = &frm_hdr->loop_filter_params;
     // const struct segmentation *const seg = &pcs->ppcs->seg;
 
     // update sharpness limits

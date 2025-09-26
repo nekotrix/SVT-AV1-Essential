@@ -541,7 +541,7 @@ typedef struct FrameHeader {
     uint8_t lossless_array[MAX_SEGMENTS];
 
     /*!< Loop Filter Parameters */
-    struct LoopFilter loop_filter_params;
+    LoopFilter loop_filter_params;
 
     /*!< Constrained Directional Enhancement Filter */
     CdefParams cdef_params;

@@ -78,9 +78,9 @@ static const TxSize txsize_vert_map[TX_SIZES_ALL] = {
  *************************************************************************************************/
 void svt_av1_loop_filter_init(PictureControlSet *pcs) {
     //assert(MB_MODE_COUNT == n_elements(mode_lf_lut));
-    LoopFilterInfoN   *lfi = &pcs->ppcs->lf_info;
-    struct LoopFilter *lf  = &pcs->ppcs->frm_hdr.loop_filter_params;
-    int32_t            lvl;
+    LoopFilterInfoN *lfi = &pcs->ppcs->lf_info;
+    LoopFilter      *lf  = &pcs->ppcs->frm_hdr.loop_filter_params;
+    int32_t          lvl;
 
     lf->combine_vert_horz_lf = 1;
 

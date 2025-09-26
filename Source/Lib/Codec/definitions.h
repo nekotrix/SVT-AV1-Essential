@@ -1720,7 +1720,7 @@ typedef enum FrameContextIndex {
 #define MAX_SHARPNESS 7
 #define SIMD_WIDTH 16
 
-struct LoopFilter {
+typedef struct LoopFilter {
     int32_t filter_level[2];
     int32_t filter_level_u;
     int32_t filter_level_v;
@@ -1737,7 +1737,7 @@ struct LoopFilter {
     // 0 = ZERO_MV, MV
     int8_t  mode_deltas[MAX_MODE_LF_DELTAS];
     int32_t combine_vert_horz_lf;
-};
+} LoopFilter;
 
 #define MAX_SEGMENTS 8
 #define MAX_MB_PLANE 3

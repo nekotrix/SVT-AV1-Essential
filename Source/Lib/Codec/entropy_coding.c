@@ -2258,7 +2258,7 @@ static void encode_loopfilter(PictureParentControlSet *pcs, struct AomWriteBitBu
     if (frm_hdr->allow_intrabc)
         return;
 
-    struct LoopFilter *lf = &frm_hdr->loop_filter_params;
+    LoopFilter *lf = &frm_hdr->loop_filter_params;
 
     // Encode the loop filter level and type
     svt_aom_wb_write_literal(wb, lf->filter_level[0], 6);
