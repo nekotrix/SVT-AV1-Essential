@@ -255,6 +255,7 @@ class PsnrCalcHbdTest : public PsnrCalcTest<uint16_t, PsnrCalcHbdParam> {
             calc_psnr_part_and_check(part_w, part_h);
     }
 
+#define MAX_PSNR 100.0
     double sse_to_psnr(double samples, double peak, double sse) {
         if (sse > 0.0) {
             const double psnr = 10.0 * log10(samples * peak * peak / sse);
