@@ -348,7 +348,7 @@ static inline void vector_shift_x4(uint8x8_t *vec, uint8x8_t *v_zero, int shift_
     }
 }
 
-static inline void dr_prediction_z2_Nx4_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z2_4xH_neon(int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                              const uint8_t *left, int upsample_above, int upsample_left, int dx,
                                              int dy) {
     const int min_base_x  = -(1 << upsample_above);
@@ -384,7 +384,7 @@ static inline void dr_prediction_z2_Nx4_neon(int N, uint8_t *dst, ptrdiff_t stri
     const uint8x16_t   left_14   = vextq_u8(left_0, left_0, 14);
     const uint8x16x2_t left_vals = {{left_m2, left_14}};
 
-    for (int r = 0; r < N; r++) {
+    for (int r = 0; r < H; r++) {
         uint16x8_t   res, shift;
         uint8x8_t    resx, resy;
         uint16x4x2_t v_shift;
@@ -535,7 +535,7 @@ static inline void vector_shuffle(uint8x16_t *vec, uint8x16_t *vzero, int shift_
     }
 }
 
-static inline void dr_prediction_z2_Nx8_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z2_8xH_neon(int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                              const uint8_t *left, int upsample_above, int upsample_left, int dx,
                                              int dy) {
     const int min_base_x  = -(1 << upsample_above);
@@ -569,7 +569,7 @@ static inline void dr_prediction_z2_Nx8_neon(int N, uint8_t *dst, ptrdiff_t stri
     const uint8x16_t   left_30   = vextq_u8(left_16, left_16, 14);
     const uint8x16x3_t left_vals = {{left_m2, left_14, left_30}};
 
-    for (int r = 0; r < N; r++) {
+    for (int r = 0; r < H; r++) {
         uint8x8_t    resx, resy, resxy;
         uint16x8x2_t res, shift;
         shift.val[1] = vdupq_n_u16(0);
@@ -667,7 +667,7 @@ static inline void dr_prediction_z2_Nx8_neon(int N, uint8_t *dst, ptrdiff_t stri
     }
 }
 
-static inline void dr_prediction_z2_HxW_neon(int H, int W, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z2_WxH_neon(int W, int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                              const uint8_t *left, int dx, int dy) {
     // here upsample_above and upsample_left are 0 by design of
     // av1_use_intra_edge_upsample
@@ -859,15 +859,15 @@ void svt_av1_dr_prediction_z2_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, i
 
     switch (bw) {
     case 4: {
-        dr_prediction_z2_Nx4_neon(bh, dst, stride, above, left, upsample_above, upsample_left, dx, dy);
+        dr_prediction_z2_4xH_neon(bh, dst, stride, above, left, upsample_above, upsample_left, dx, dy);
         break;
     }
     case 8: {
-        dr_prediction_z2_Nx8_neon(bh, dst, stride, above, left, upsample_above, upsample_left, dx, dy);
+        dr_prediction_z2_8xH_neon(bh, dst, stride, above, left, upsample_above, upsample_left, dx, dy);
         break;
     }
     default: {
-        dr_prediction_z2_HxW_neon(bh, bw, dst, stride, above, left, dx, dy);
+        dr_prediction_z2_WxH_neon(bw, bh, dst, stride, above, left, dx, dy);
         break;
     }
     }
