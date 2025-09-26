@@ -138,5 +138,14 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Combine(::testing::ValuesIn(PRED_MODE_TABLE),
                        ::testing::ValuesIn(TX_SIZE_TABLE),
                        ::testing::Values(svt_av1_filter_intra_predictor_neon)));
+
+#ifdef HAVE_NEON_I8MM
+INSTANTIATE_TEST_SUITE_P(
+    NEON_I8MM, FilterIntraPredTest,
+    ::testing::Combine(
+        ::testing::ValuesIn(PRED_MODE_TABLE),
+        ::testing::ValuesIn(TX_SIZE_TABLE),
+        ::testing::Values(svt_av1_filter_intra_predictor_neon_i8mm)));
+#endif  // HAVE_NEON_I8MM
 #endif  // ARCH_AARCH64
 }  // namespace
