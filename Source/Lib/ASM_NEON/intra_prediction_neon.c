@@ -18,8 +18,8 @@
 #include "intra_prediction.h"
 
 /* ---------------------P R E D I C T I O N   Z 1--------------------------- */
-static inline void dr_prediction_z1_HxW_internal_neon_64(int H, int W, uint8x8_t *dst, const uint8_t *above,
-                                                         int upsample_above, int dx) {
+static inline void dr_prediction_z1_WxH_internal_neon_small(int W, int H, uint8x8_t *dst, const uint8_t *above,
+                                                            int upsample_above, int dx) {
     const int frac_bits  = 6 - upsample_above;
     const int max_base_x = ((W + H) - 1) << upsample_above;
 
@@ -36,18 +36,18 @@ static inline void dr_prediction_z1_HxW_internal_neon_64(int H, int W, uint8x8_t
     const uint8x8_t  v_32      = vdup_n_u8(32);
 
     int x = dx;
-    for (int r = 0; r < W; r++) {
+    for (int r = 0; r < H; r++) {
         int base          = x >> frac_bits;
         int base_max_diff = (max_base_x - base) >> upsample_above;
         if (base_max_diff <= 0) {
-            for (int i = r; i < W; ++i) {
+            for (int i = r; i < H; ++i) {
                 dst[i] = a_mbase_x; // save 4 values
             }
             return;
         }
 
-        if (base_max_diff > H)
-            base_max_diff = H;
+        if (base_max_diff > W)
+            base_max_diff = W;
 
         uint8x8x2_t a01_128;
         uint16x8_t  shift;
@@ -70,24 +70,24 @@ static inline void dr_prediction_z1_HxW_internal_neon_64(int H, int W, uint8x8_t
     }
 }
 
-static inline void dr_prediction_z1_4xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z1_4xH_neon(int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                              int upsample_above, int dx) {
     uint8x8_t dstvec[16];
 
-    dr_prediction_z1_HxW_internal_neon_64(4, N, dstvec, above, upsample_above, dx);
-    for (int i = 0; i < N; i++) { vst1_lane_u32((uint32_t *)(dst + stride * i), vreinterpret_u32_u8(dstvec[i]), 0); }
+    dr_prediction_z1_WxH_internal_neon_small(4, H, dstvec, above, upsample_above, dx);
+    for (int i = 0; i < H; i++) { vst1_lane_u32((uint32_t *)(dst + stride * i), vreinterpret_u32_u8(dstvec[i]), 0); }
 }
 
-static inline void dr_prediction_z1_8xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z1_8xH_neon(int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                              int upsample_above, int dx) {
     uint8x8_t dstvec[32];
 
-    dr_prediction_z1_HxW_internal_neon_64(8, N, dstvec, above, upsample_above, dx);
-    for (int i = 0; i < N; i++) { vst1_u8(dst + stride * i, dstvec[i]); }
+    dr_prediction_z1_WxH_internal_neon_small(8, H, dstvec, above, upsample_above, dx);
+    for (int i = 0; i < H; i++) { vst1_u8(dst + stride * i, dstvec[i]); }
 }
 
-static inline void dr_prediction_z1_HxW_internal_neon(int H, int W, uint8x16_t *dst, const uint8_t *above,
-                                                      int upsample_above, int dx) {
+static inline void dr_prediction_z1_WxH_internal_neon_large(int W, int H, uint8x16_t *dst, const uint8_t *above,
+                                                            int upsample_above, int dx) {
     const int frac_bits  = 6 - upsample_above;
     const int max_base_x = ((W + H) - 1) << upsample_above;
 
@@ -105,7 +105,7 @@ static inline void dr_prediction_z1_HxW_internal_neon(int H, int W, uint8x16_t *
     const uint8x16_t v_zero    = vdupq_n_u8(0);
 
     int x = dx;
-    for (int r = 0; r < W; r++) {
+    for (int r = 0; r < H; r++) {
         uint16x8x2_t res;
         uint16x8_t   shift;
         uint8x16_t   a0_128, a1_128;
@@ -113,14 +113,14 @@ static inline void dr_prediction_z1_HxW_internal_neon(int H, int W, uint8x16_t *
         int base          = x >> frac_bits;
         int base_max_diff = (max_base_x - base) >> upsample_above;
         if (base_max_diff <= 0) {
-            for (int i = r; i < W; ++i) {
+            for (int i = r; i < H; ++i) {
                 dst[i] = a_mbase_x; // save 4 values
             }
             return;
         }
 
-        if (base_max_diff > H)
-            base_max_diff = H;
+        if (base_max_diff > W)
+            base_max_diff = W;
 
         if (upsample_above) {
             uint8x8x2_t v_tmp_a0_128 = vld2_u8(above + base);
@@ -148,18 +148,18 @@ static inline void dr_prediction_z1_HxW_internal_neon(int H, int W, uint8x16_t *
     }
 }
 
-static inline void dr_prediction_z1_16xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
+static inline void dr_prediction_z1_16xH_neon(int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
                                               int upsample_above, int dx) {
     uint8x16_t dstvec[64];
 
-    dr_prediction_z1_HxW_internal_neon(16, N, dstvec, above, upsample_above, dx);
-    for (int i = 0; i < N; i++) { vst1q_u8(dst + stride * i, dstvec[i]); }
+    dr_prediction_z1_WxH_internal_neon_large(16, H, dstvec, above, upsample_above, dx);
+    for (int i = 0; i < H; i++) { vst1q_u8(dst + stride * i, dstvec[i]); }
 }
 
-static inline void dr_prediction_z1_32xN_internal_neon(int N, uint8x16x2_t *dstvec, const uint8_t *above, int dx) {
+static inline void dr_prediction_z1_32xH_internal_neon(int H, uint8x16x2_t *dstvec, const uint8_t *above, int dx) {
     // here upsample_above is 0 by design of av1_use_intra_edge_upsample
     const int frac_bits  = 6;
-    const int max_base_x = ((32 + N) - 1);
+    const int max_base_x = ((32 + H) - 1);
 
     // pre-filter above pixels
     // store in temp buffers:
@@ -173,13 +173,13 @@ static inline void dr_prediction_z1_32xN_internal_neon(int N, uint8x16x2_t *dstv
     const uint8x8_t  v_32      = vdup_n_u8(32);
 
     int x = dx;
-    for (int r = 0; r < N; r++) {
+    for (int r = 0; r < H; r++) {
         uint8x16_t res16[2];
 
         int base          = x >> frac_bits;
         int base_max_diff = (max_base_x - base);
         if (base_max_diff <= 0) {
-            for (int i = r; i < N; ++i) {
+            for (int i = r; i < H; ++i) {
                 dstvec[i].val[0] = a_mbase_x; // save 32 values
                 dstvec[i].val[1] = a_mbase_x;
             }
@@ -220,19 +220,19 @@ static inline void dr_prediction_z1_32xN_internal_neon(int N, uint8x16x2_t *dstv
     }
 }
 
-static inline void dr_prediction_z1_32xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above, int dx) {
+static inline void dr_prediction_z1_32xH_neon(int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above, int dx) {
     uint8x16x2_t dstvec[64];
-    dr_prediction_z1_32xN_internal_neon(N, dstvec, above, dx);
-    for (int i = 0; i < N; i++) {
+    dr_prediction_z1_32xH_internal_neon(H, dstvec, above, dx);
+    for (int i = 0; i < H; i++) {
         vst1q_u8(dst + stride * i, dstvec[i].val[0]);
         vst1q_u8(dst + stride * i + 16, dstvec[i].val[1]);
     }
 }
 
-static inline void dr_prediction_z1_64xN_neon(int N, uint8_t *dst, ptrdiff_t stride, const uint8_t *above, int dx) {
+static inline void dr_prediction_z1_64xH_neon(int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above, int dx) {
     // here upsample_above is 0 by design of av1_use_intra_edge_upsample
     const int frac_bits  = 6;
-    const int max_base_x = ((64 + N) - 1);
+    const int max_base_x = (64 + H) - 1;
 
     // pre-filter above pixels
     // store in temp buffers:
@@ -249,10 +249,10 @@ static inline void dr_prediction_z1_64xN_neon(int N, uint8_t *dst, ptrdiff_t str
     const uint8x16_t step          = vdupq_n_u8(16);
 
     int x = dx;
-    for (int r = 0; r < N; r++, dst += stride) {
+    for (int r = 0; r < H; r++, dst += stride, x += dx) {
         int base = x >> frac_bits;
         if (base >= max_base_x) {
-            for (int i = r; i < N; ++i) {
+            for (int i = r; i < H; ++i) {
                 vst1q_u8(dst, a_mbase_x);
                 vst1q_u8(dst + 16, a_mbase_x);
                 vst1q_u8(dst + 32, a_mbase_x);
@@ -302,23 +302,23 @@ void svt_av1_dr_prediction_z1_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, i
 
     switch (bw) {
     case 4: {
-        dr_prediction_z1_4xN_neon(bh, dst, stride, above, upsample_above, dx);
+        dr_prediction_z1_4xH_neon(bh, dst, stride, above, upsample_above, dx);
         break;
     }
     case 8: {
-        dr_prediction_z1_8xN_neon(bh, dst, stride, above, upsample_above, dx);
+        dr_prediction_z1_8xH_neon(bh, dst, stride, above, upsample_above, dx);
         break;
     }
     case 16: {
-        dr_prediction_z1_16xN_neon(bh, dst, stride, above, upsample_above, dx);
+        dr_prediction_z1_16xH_neon(bh, dst, stride, above, upsample_above, dx);
         break;
     }
     case 32: {
-        dr_prediction_z1_32xN_neon(bh, dst, stride, above, dx);
+        dr_prediction_z1_32xH_neon(bh, dst, stride, above, dx);
         break;
     }
     case 64: {
-        dr_prediction_z1_64xN_neon(bh, dst, stride, above, dx);
+        dr_prediction_z1_64xH_neon(bh, dst, stride, above, dx);
         break;
     }
     }
@@ -1207,7 +1207,7 @@ static inline void dr_prediction_z3_4x4_neon(uint8_t *dst, ptrdiff_t stride, con
     uint8x8_t    dstvec[4];
     uint16x4x2_t dest;
 
-    dr_prediction_z1_HxW_internal_neon_64(4, 4, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_small(4, 4, dstvec, left, upsample_left, dy);
     transpose4x8_8x4_low_neon(dstvec, &dest);
     vst1_lane_u32((uint32_t *)(dst + stride * 0), vreinterpret_u32_u16(dest.val[0]), 0);
     vst1_lane_u32((uint32_t *)(dst + stride * 1), vreinterpret_u32_u16(dest.val[0]), 1);
@@ -1220,7 +1220,7 @@ static inline void dr_prediction_z3_8x8_neon(uint8_t *dst, ptrdiff_t stride, con
     uint8x8_t    dstvec[8];
     uint32x2x2_t d[4];
 
-    dr_prediction_z1_HxW_internal_neon_64(8, 8, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_small(8, 8, dstvec, left, upsample_left, dy);
     transpose8x8_neon(dstvec, d);
     vst1_u32((uint32_t *)(dst + 0 * stride), d[0].val[0]);
     vst1_u32((uint32_t *)(dst + 1 * stride), d[0].val[1]);
@@ -1237,7 +1237,7 @@ static inline void dr_prediction_z3_4x8_neon(uint8_t *dst, ptrdiff_t stride, con
     uint8x8_t    dstvec[4];
     uint16x4x2_t d[2];
 
-    dr_prediction_z1_HxW_internal_neon_64(8, 4, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_small(8, 4, dstvec, left, upsample_left, dy);
     transpose4x8_8x4_neon(dstvec, d);
     vst1_lane_u32((uint32_t *)(dst + stride * 0), vreinterpret_u32_u16(d[0].val[0]), 0);
     vst1_lane_u32((uint32_t *)(dst + stride * 1), vreinterpret_u32_u16(d[0].val[0]), 1);
@@ -1254,7 +1254,7 @@ static inline void dr_prediction_z3_8x4_neon(uint8_t *dst, ptrdiff_t stride, con
     uint8x8_t    dstvec[8];
     uint32x2x2_t d[2];
 
-    dr_prediction_z1_HxW_internal_neon_64(4, 8, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_small(4, 8, dstvec, left, upsample_left, dy);
     transpose8x8_low_neon(dstvec, d);
     vst1_u32((uint32_t *)(dst + 0 * stride), d[0].val[0]);
     vst1_u32((uint32_t *)(dst + 1 * stride), d[0].val[1]);
@@ -1267,7 +1267,7 @@ static inline void dr_prediction_z3_8x16_neon(uint8_t *dst, ptrdiff_t stride, co
     uint8x16_t dstvec[8];
     uint64x2_t d[8];
 
-    dr_prediction_z1_HxW_internal_neon(16, 8, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_large(16, 8, dstvec, left, upsample_left, dy);
     transpose8x16_16x8_neon(dstvec, d);
     for (int i = 0; i < 8; i++) {
         vst1_u8(dst + i * stride, vreinterpret_u8_u64(vget_low_u64(d[i])));
@@ -1280,7 +1280,7 @@ static inline void dr_prediction_z3_16x8_neon(uint8_t *dst, ptrdiff_t stride, co
     uint8x8_t  dstvec[16];
     uint64x2_t d[8];
 
-    dr_prediction_z1_HxW_internal_neon_64(8, 16, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_small(8, 16, dstvec, left, upsample_left, dy);
     transpose16x8_8x16_neon(dstvec, d);
     for (int i = 0; i < 8; i++) { vst1q_u8(dst + i * stride, vreinterpretq_u8_u64(d[i])); }
 }
@@ -1290,7 +1290,7 @@ static inline void dr_prediction_z3_4x16_neon(uint8_t *dst, ptrdiff_t stride, co
     uint8x16_t   dstvec[4];
     uint16x8x2_t d[2];
 
-    dr_prediction_z1_HxW_internal_neon(16, 4, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_large(16, 4, dstvec, left, upsample_left, dy);
     transpose4x16_neon(dstvec, d);
     vst1q_lane_u32((uint32_t *)(dst + stride * 0), vreinterpretq_u32_u16(d[0].val[0]), 0);
     vst1q_lane_u32((uint32_t *)(dst + stride * 1), vreinterpretq_u32_u16(d[0].val[0]), 1);
@@ -1318,7 +1318,7 @@ static inline void dr_prediction_z3_16x4_neon(uint8_t *dst, ptrdiff_t stride, co
     uint8x8_t  dstvec[16];
     uint64x2_t d[8];
 
-    dr_prediction_z1_HxW_internal_neon_64(4, 16, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_small(4, 16, dstvec, left, upsample_left, dy);
     transpose16x8_8x16_neon(dstvec, d);
     for (int i = 0; i < 4; i++) { vst1q_u8(dst + i * stride, vreinterpretq_u8_u64(d[i])); }
 }
@@ -1327,7 +1327,7 @@ static inline void dr_prediction_z3_8x32_neon(uint8_t *dst, ptrdiff_t stride, co
     uint8x16x2_t dstvec[16];
     uint64x2x2_t d[16];
     uint8x16_t   v_zero = vdupq_n_u8(0);
-    dr_prediction_z1_32xN_internal_neon(8, dstvec, left, dy);
+    dr_prediction_z1_32xH_internal_neon(8, dstvec, left, dy);
     for (int i = 8; i < 16; i++) {
         dstvec[i].val[0] = v_zero;
         dstvec[i].val[1] = v_zero;
@@ -1344,7 +1344,7 @@ static inline void dr_prediction_z3_32x8_neon(uint8_t *dst, ptrdiff_t stride, co
     uint8x8_t  dstvec[32];
     uint64x2_t d[16];
 
-    dr_prediction_z1_HxW_internal_neon_64(8, 32, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_small(8, 32, dstvec, left, upsample_left, dy);
     transpose16x8_8x16_neon(dstvec, d);
     transpose16x8_8x16_neon(dstvec + 16, d + 8);
     for (int i = 0; i < 8; i++) {
@@ -1358,7 +1358,7 @@ static inline void dr_prediction_z3_16x16_neon(uint8_t *dst, ptrdiff_t stride, c
     uint8x16_t dstvec[16];
     uint64x2_t d[16];
 
-    dr_prediction_z1_HxW_internal_neon(16, 16, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_large(16, 16, dstvec, left, upsample_left, dy);
     transpose16x16_neon(dstvec, d);
     for (int i = 0; i < 16; i++) { vst1q_u8(dst + i * stride, vreinterpretq_u8_u64(d[i])); }
 }
@@ -1366,7 +1366,7 @@ static inline void dr_prediction_z3_16x16_neon(uint8_t *dst, ptrdiff_t stride, c
 static inline void dr_prediction_z3_32x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8x16x2_t dstvec[32];
     uint64x2x2_t d[32];
-    dr_prediction_z1_32xN_internal_neon(32, dstvec, left, dy);
+    dr_prediction_z1_32xH_internal_neon(32, dstvec, left, dy);
     transpose16x32_neon(dstvec, d);
     transpose16x32_neon(dstvec + 16, d + 16);
     for (int i = 0; i < 16; i++) {
@@ -1380,14 +1380,14 @@ static inline void dr_prediction_z3_32x32_neon(uint8_t *dst, ptrdiff_t stride, c
 static inline void dr_prediction_z3_64x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     DECLARE_ALIGNED(16, uint8_t, dstT[64 * 64]);
 
-    dr_prediction_z1_64xN_neon(64, dstT, 64, left, dy);
+    dr_prediction_z1_64xH_neon(64, dstT, 64, left, dy);
     transpose(dstT, 64, dst, stride, 64, 64);
 }
 
 static inline void dr_prediction_z3_16x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8x16x2_t dstvec[16];
     uint64x2x2_t d[16];
-    dr_prediction_z1_32xN_internal_neon(16, dstvec, left, dy);
+    dr_prediction_z1_32xH_internal_neon(16, dstvec, left, dy);
     transpose16x32_neon(dstvec, d);
     for (int i = 0; i < 16; i++) {
         vst1q_u8(dst + 2 * i * stride, vreinterpretq_u8_u64(d[i].val[0]));
@@ -1400,7 +1400,7 @@ static inline void dr_prediction_z3_32x16_neon(uint8_t *dst, ptrdiff_t stride, c
     uint8x16_t dstvec[32];
     uint64x2_t d[16];
 
-    dr_prediction_z1_HxW_internal_neon(16, 32, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_large(16, 32, dstvec, left, upsample_left, dy);
     for (int i = 0; i < 32; i += 16) {
         transpose16x16_neon((dstvec + i), d);
         for (int j = 0; j < 16; j++) { vst1q_u8(dst + j * stride + i, vreinterpretq_u8_u64(d[j])); }
@@ -1410,21 +1410,21 @@ static inline void dr_prediction_z3_32x16_neon(uint8_t *dst, ptrdiff_t stride, c
 static inline void dr_prediction_z3_32x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8_t dstT[64 * 32];
 
-    dr_prediction_z1_64xN_neon(32, dstT, 64, left, dy);
+    dr_prediction_z1_64xH_neon(32, dstT, 64, left, dy);
     transpose(dstT, 64, dst, stride, 32, 64);
 }
 
 static inline void dr_prediction_z3_64x32_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8_t dstT[32 * 64];
 
-    dr_prediction_z1_32xN_neon(64, dstT, 32, left, dy);
+    dr_prediction_z1_32xH_neon(64, dstT, 32, left, dy);
     transpose(dstT, 32, dst, stride, 64, 32);
 }
 
 static inline void dr_prediction_z3_16x64_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8_t dstT[64 * 16];
 
-    dr_prediction_z1_64xN_neon(16, dstT, 64, left, dy);
+    dr_prediction_z1_64xH_neon(16, dstT, 64, left, dy);
     transpose(dstT, 64, dst, stride, 16, 64);
 }
 
@@ -1433,7 +1433,7 @@ static inline void dr_prediction_z3_64x16_neon(uint8_t *dst, ptrdiff_t stride, c
     uint8x16_t dstvec[64];
     uint64x2_t d[16];
 
-    dr_prediction_z1_HxW_internal_neon(16, 64, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_large(16, 64, dstvec, left, upsample_left, dy);
     for (int i = 0; i < 64; i += 16) {
         transpose16x16_neon((dstvec + i), d);
         for (int j = 0; j < 16; j++) { vst1q_u8(dst + j * stride + i, vreinterpretq_u8_u64(d[j])); }
