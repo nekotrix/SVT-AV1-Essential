@@ -35,7 +35,8 @@ uint32_t svt_aom_mse16x16_c(const uint8_t *src_ptr, int32_t source_stride, const
     return variance(src_ptr, source_stride, ref_ptr, recon_stride, 16, 16);
 }
 
-int64_t get_sse(const uint8_t *a, int32_t a_stride, const uint8_t *b, int32_t b_stride, int32_t width, int32_t height) {
+int64_t svt_aom_get_sse(const uint8_t *a, int32_t a_stride, const uint8_t *b, int32_t b_stride, int32_t width,
+                        int32_t height) {
     const int32_t dw        = width & 15;
     const int32_t dh        = height & 15;
     int64_t       total_sse = 0;
@@ -85,8 +86,8 @@ static inline int64_t highbd_variance(const uint8_t *a8, int32_t a_stride, const
     return sse;
 }
 
-int64_t highbd_get_sse(const uint8_t *a, int32_t a_stride, const uint8_t *b, int32_t b_stride, int32_t width,
-                       int32_t height) {
+int64_t svt_aom_highbd_get_sse(const uint8_t *a, int32_t a_stride, const uint8_t *b, int32_t b_stride, int32_t width,
+                               int32_t height) {
     int64_t       total_sse = 0;
     int32_t       x, y;
     const int32_t dw  = width % 16;
@@ -183,62 +184,62 @@ HIGHBD_VAR(64, 16)
 
 int64_t svt_aom_get_y_sse_part(const Yv12BufferConfig *a, const Yv12BufferConfig *b, int32_t hstart, int32_t width,
                                int32_t vstart, int32_t height) {
-    return get_sse(a->y_buffer + vstart * a->y_stride + hstart,
-                   a->y_stride,
-                   b->y_buffer + vstart * b->y_stride + hstart,
-                   b->y_stride,
-                   width,
-                   height);
+    return svt_aom_get_sse(a->y_buffer + vstart * a->y_stride + hstart,
+                           a->y_stride,
+                           b->y_buffer + vstart * b->y_stride + hstart,
+                           b->y_stride,
+                           width,
+                           height);
 }
 
 int64_t svt_aom_get_u_sse_part(const Yv12BufferConfig *a, const Yv12BufferConfig *b, int32_t hstart, int32_t width,
                                int32_t vstart, int32_t height) {
-    return get_sse(a->u_buffer + vstart * a->uv_stride + hstart,
-                   a->uv_stride,
-                   b->u_buffer + vstart * b->uv_stride + hstart,
-                   b->uv_stride,
-                   width,
-                   height);
+    return svt_aom_get_sse(a->u_buffer + vstart * a->uv_stride + hstart,
+                           a->uv_stride,
+                           b->u_buffer + vstart * b->uv_stride + hstart,
+                           b->uv_stride,
+                           width,
+                           height);
 }
 
 int64_t svt_aom_get_v_sse_part(const Yv12BufferConfig *a, const Yv12BufferConfig *b, int32_t hstart, int32_t width,
                                int32_t vstart, int32_t height) {
-    return get_sse(a->v_buffer + vstart * a->uv_stride + hstart,
-                   a->uv_stride,
-                   b->v_buffer + vstart * b->uv_stride + hstart,
-                   b->uv_stride,
-                   width,
-                   height);
+    return svt_aom_get_sse(a->v_buffer + vstart * a->uv_stride + hstart,
+                           a->uv_stride,
+                           b->v_buffer + vstart * b->uv_stride + hstart,
+                           b->uv_stride,
+                           width,
+                           height);
 }
 
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
 int64_t svt_aom_highbd_get_y_sse_part(const Yv12BufferConfig *a, const Yv12BufferConfig *b, int32_t hstart,
                                       int32_t width, int32_t vstart, int32_t height) {
-    return highbd_get_sse(a->y_buffer + vstart * a->y_stride + hstart,
-                          a->y_stride,
-                          b->y_buffer + vstart * b->y_stride + hstart,
-                          b->y_stride,
-                          width,
-                          height);
+    return svt_aom_highbd_get_sse(a->y_buffer + vstart * a->y_stride + hstart,
+                                  a->y_stride,
+                                  b->y_buffer + vstart * b->y_stride + hstart,
+                                  b->y_stride,
+                                  width,
+                                  height);
 }
 
 int64_t svt_aom_highbd_get_u_sse_part(const Yv12BufferConfig *a, const Yv12BufferConfig *b, int32_t hstart,
                                       int32_t width, int32_t vstart, int32_t height) {
-    return highbd_get_sse(a->u_buffer + vstart * a->uv_stride + hstart,
-                          a->uv_stride,
-                          b->u_buffer + vstart * b->uv_stride + hstart,
-                          b->uv_stride,
-                          width,
-                          height);
+    return svt_aom_highbd_get_sse(a->u_buffer + vstart * a->uv_stride + hstart,
+                                  a->uv_stride,
+                                  b->u_buffer + vstart * b->uv_stride + hstart,
+                                  b->uv_stride,
+                                  width,
+                                  height);
 }
 
 int64_t svt_aom_highbd_get_v_sse_part(const Yv12BufferConfig *a, const Yv12BufferConfig *b, int32_t hstart,
                                       int32_t width, int32_t vstart, int32_t height) {
-    return highbd_get_sse(a->v_buffer + vstart * a->uv_stride + hstart,
-                          a->uv_stride,
-                          b->v_buffer + vstart * b->uv_stride + hstart,
-                          b->uv_stride,
-                          width,
-                          height);
+    return svt_aom_highbd_get_sse(a->v_buffer + vstart * a->uv_stride + hstart,
+                                  a->uv_stride,
+                                  b->v_buffer + vstart * b->uv_stride + hstart,
+                                  b->uv_stride,
+                                  width,
+                                  height);
 }
 #endif

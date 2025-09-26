@@ -1088,17 +1088,17 @@ EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, b
 
         recon_buffer        = &recon_ptr->buffer_y[recon_ptr->org_x + recon_ptr->org_y * recon_ptr->stride_y];
         input_buffer        = &buffer_y[input_pic->org_x + input_pic->org_y * input_pic->stride_y];
-        pcs->ppcs->luma_sse = get_sse(
+        pcs->ppcs->luma_sse = svt_aom_get_sse(
             input_buffer, input_pic->stride_y, recon_buffer, recon_ptr->stride_y, pic_w, pic_h);
 
         recon_buffer      = &recon_ptr->buffer_cb[recon_org_x_c + recon_org_y_c * recon_ptr->stride_cb];
         input_buffer      = &buffer_cb[input_org_x_c + input_org_y_c * input_pic->stride_cb];
-        pcs->ppcs->cb_sse = get_sse(
+        pcs->ppcs->cb_sse = svt_aom_get_sse(
             input_buffer, input_pic->stride_cb, recon_buffer, recon_ptr->stride_cb, pic_w >> ss_x, pic_h >> ss_y);
 
         recon_buffer      = &recon_ptr->buffer_cr[recon_org_x_c + recon_org_y_c * recon_ptr->stride_cr];
         input_buffer      = &buffer_cr[input_org_x_c + input_org_y_c * input_pic->stride_cr];
-        pcs->ppcs->cr_sse = get_sse(
+        pcs->ppcs->cr_sse = svt_aom_get_sse(
             input_buffer, input_pic->stride_cr, recon_buffer, recon_ptr->stride_cr, pic_w >> ss_x, pic_h >> ss_y);
 
         if (free_memory && pcs->ppcs->do_tf == true) {
