@@ -86,10 +86,10 @@ static INLINE void variance16_no_sum_avx2(const uint8_t *src, const int32_t src_
 
 AOM_VAR_NO_LOOP_NO_SUM_AVX2(16, 16, 8, 512);
 
-uint32_t svt_aom_mse16x16_avx2(const uint8_t *src, int32_t src_stride, const uint8_t *ref, int32_t ref_stride,
-                               uint32_t *sse) {
-    svt_aom_variance16x16_no_sum_avx2(src, src_stride, ref, ref_stride, sse);
-    return *sse;
+uint32_t svt_aom_mse16x16_avx2(const uint8_t *src, int32_t src_stride, const uint8_t *ref, int32_t ref_stride) {
+    uint32_t sse;
+    svt_aom_variance16x16_no_sum_avx2(src, src_stride, ref, ref_stride, &sse);
+    return sse;
 }
 
 static INLINE int variance_final_from_32bit_sum_avx2(__m256i vsse, __m256i vsum, unsigned int *const sse) {

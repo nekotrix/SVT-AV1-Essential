@@ -1015,8 +1015,7 @@ unsigned int svt_aom_sub_pixel_variance128x128_neon(const uint8_t *src, int src_
     }
 }
 
-unsigned int svt_aom_mse16x16_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
-                                   unsigned int *sse) {
+unsigned int svt_aom_mse16x16_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride) {
     int32x4_t sse_s32[4] = {vdupq_n_s32(0), vdupq_n_s32(0), vdupq_n_s32(0), vdupq_n_s32(0)};
 
     int i = 16;
@@ -1037,6 +1036,6 @@ unsigned int svt_aom_mse16x16_neon(const uint8_t *src, int src_stride, const uin
         ref += ref_stride;
     } while (--i != 0);
 
-    *sse = vaddvq_u32(vreinterpretq_u32_s32(horizontal_add_4d_s32x4(sse_s32)));
-    return *sse;
+    unsigned int sse = vaddvq_u32(vreinterpretq_u32_s32(horizontal_add_4d_s32x4(sse_s32)));
+    return sse;
 }

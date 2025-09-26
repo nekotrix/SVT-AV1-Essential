@@ -111,12 +111,14 @@ VAR_FN(64, 16, 16, 10);
 
 #undef VAR_FN
 
-void svt_aom_highbd_8_mse16x16_sse2(const uint8_t *src8, int32_t src_stride, const uint8_t *ref8, int32_t ref_stride,
-                                    uint32_t *sse) {
+uint32_t svt_aom_highbd_8_mse16x16_sse2(const uint8_t *src8, int32_t src_stride, const uint8_t *ref8,
+                                        int32_t ref_stride) {
     int32_t   sum;
     uint16_t *src = CONVERT_TO_SHORTPTR(src8);
     uint16_t *ref = CONVERT_TO_SHORTPTR(ref8);
 
     /*TODO: Remove calculate unused sum.*/
-    highbd_8_variance_sse2(src, src_stride, ref, ref_stride, 16, 16, sse, &sum, svt_aom_highbd_calc16x16var_sse2, 16);
+    uint32_t sse;
+    highbd_8_variance_sse2(src, src_stride, ref, ref_stride, 16, 16, &sse, &sum, svt_aom_highbd_calc16x16var_sse2, 16);
+    return sse;
 }

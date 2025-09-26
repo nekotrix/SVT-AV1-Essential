@@ -174,8 +174,7 @@ VARIANCE_WXH_NEON_DOTPROD(128, 128, 14)
 
 #undef VARIANCE_WXH_NEON_DOTPROD
 
-unsigned int svt_aom_mse16x16_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride,
-                                           unsigned int *sse) {
+unsigned int svt_aom_mse16x16_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride) {
     uint32x4_t sse_u32[2] = {vdupq_n_u32(0), vdupq_n_u32(0)};
 
     int h = 16;
@@ -196,6 +195,6 @@ unsigned int svt_aom_mse16x16_neon_dotprod(const uint8_t *src, int src_stride, c
         h -= 2;
     } while (h != 0);
 
-    *sse = vaddvq_u32(vaddq_u32(sse_u32[0], sse_u32[1]));
-    return *sse;
+    unsigned int sse = vaddvq_u32(vaddq_u32(sse_u32[0], sse_u32[1]));
+    return sse;
 }

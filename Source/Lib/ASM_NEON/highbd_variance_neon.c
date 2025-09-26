@@ -14,8 +14,8 @@
 #include "aom_dsp_rtcd.h"
 #include "mem_neon.h"
 
-void svt_aom_highbd_8_mse16x16_neon(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr, int ref_stride,
-                                    uint32_t *sse) {
+uint32_t svt_aom_highbd_8_mse16x16_neon(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr,
+                                        int ref_stride) {
     uint16_t *src = CONVERT_TO_SHORTPTR(src_ptr);
     uint16_t *ref = CONVERT_TO_SHORTPTR(ref_ptr);
 
@@ -40,7 +40,7 @@ void svt_aom_highbd_8_mse16x16_neon(const uint8_t *src_ptr, int src_stride, cons
         ref += ref_stride;
     } while (--i != 0);
 
-    *sse = vaddvq_u32(vaddq_u32(sse_u32[0], sse_u32[1]));
+    return vaddvq_u32(vaddq_u32(sse_u32[0], sse_u32[1]));
 }
 
 static inline void highbd_variance_4xh_neon(const uint16_t *src_ptr, int src_stride, const uint16_t *ref_ptr,

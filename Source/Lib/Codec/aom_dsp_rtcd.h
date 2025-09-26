@@ -248,8 +248,8 @@ extern "C" {
     RTCD_EXTERN uint64_t(*svt_handle_transform64x64_N2_N4)(int32_t *output);
     uint64_t svt_search_one_dual_c(int *lev0, int *lev1, int nb_strengths, uint64_t** mse[2], int sb_count, int start_gi, int end_gi);
     RTCD_EXTERN uint64_t(*svt_search_one_dual)(int *lev0, int *lev1, int nb_strengths, uint64_t** mse[2], int sb_count, int start_gi, int end_gi);
-    uint32_t svt_aom_mse16x16_c(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride, uint32_t *sse);
-    RTCD_EXTERN uint32_t(*svt_aom_mse16x16)(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride, uint32_t *sse);
+    uint32_t svt_aom_mse16x16_c(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride);
+    RTCD_EXTERN uint32_t(*svt_aom_mse16x16)(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride);
     void svt_aom_quantize_b_c(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr, const int16_t *round_ptr, const int16_t *quant_ptr, const int16_t *quant_shift_ptr, TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr, uint16_t *eob_ptr, const int16_t *scan, const int16_t *iscan, const QmVal *qm_ptr, const QmVal *iqm_ptr, const int32_t log_scale);
     RTCD_EXTERN void(*svt_aom_quantize_b)(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr, const int16_t *round_ptr,const int16_t *quant_ptr, const int16_t *quant_shift_ptr,TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr,uint16_t *eob_ptr, const int16_t *scan, const int16_t *iscan,const QmVal *qm_ptr, const QmVal *iqm_ptr, const int32_t log_scale);
     RTCD_EXTERN void(*svt_av1_quantize_b_qm)(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr, const int16_t *round_ptr,const int16_t *quant_ptr, const int16_t *quant_shift_ptr,TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr,uint16_t *eob_ptr, const int16_t *scan, const int16_t *iscan,const QmVal *qm_ptr, const QmVal *iqm_ptr, const int32_t log_scale);
@@ -273,8 +273,8 @@ extern "C" {
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     void svt_av1_highbd_quantize_fp_qm_c(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr, const int16_t *round_ptr, const int16_t *quant_ptr, const int16_t *quant_shift_ptr, TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr, uint16_t *eob_ptr, const int16_t *scan, const int16_t *iscan, const QmVal *qm_ptr, const QmVal *iqm_ptr, int16_t log_scale);
     RTCD_EXTERN void(*svt_av1_highbd_quantize_fp_qm)(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr, const int16_t *round_ptr, const int16_t *quant_ptr, const int16_t *quant_shift_ptr, TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr, uint16_t *eob_ptr, const int16_t *scan, const int16_t *iscan, const QmVal *qm_ptr, const QmVal *iqm_ptr, int16_t log_scale);
-    void svt_aom_highbd_8_mse16x16_c(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride, uint32_t *sse);
-    RTCD_EXTERN void(*svt_aom_highbd_8_mse16x16)(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride, uint32_t *sse);
+    uint32_t svt_aom_highbd_8_mse16x16_c(const uint8_t *src_ptr, int32_t source_stride, const uint8_t *ref_ptr, int32_t recon_stride);
+    RTCD_EXTERN uint32_t(*svt_aom_highbd_8_mse16x16)(const uint8_t *src_ptr, int32_t source_stride, const uint8_t *ref_ptr, int32_t recon_stride);
 #endif
     uint32_t svt_aom_sad128x128_c(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr, int ref_stride);
     RTCD_EXTERN uint32_t(*svt_aom_sad128x128)(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr, int ref_stride);
@@ -1007,11 +1007,11 @@ extern "C" {
 
     void svt_pme_sad_loop_kernel_neon(const struct svt_mv_cost_param *mv_cost_params, uint8_t* src, uint32_t src_stride, uint8_t* ref, uint32_t ref_stride, uint32_t block_height, uint32_t block_width, uint32_t *best_cost, int16_t *best_mvx, int16_t *best_mvy, int16_t search_position_start_x, int16_t search_position_start_y, int16_t search_area_width, int16_t search_area_height, int16_t search_step, int16_t mvx, int16_t mvy);
 
-    unsigned int svt_aom_mse16x16_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, unsigned int *sse);
-    unsigned int svt_aom_mse16x16_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, unsigned int *sse);
+    unsigned int svt_aom_mse16x16_neon(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride);
+    unsigned int svt_aom_mse16x16_neon_dotprod(const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride);
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
-    void svt_aom_highbd_8_mse16x16_neon(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr, int ref_stride, uint32_t *sse);
-    void svt_aom_highbd_8_mse16x16_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr, int ref_stride, uint32_t *sse);
+    uint32_t svt_aom_highbd_8_mse16x16_neon(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr, int ref_stride);
+    uint32_t svt_aom_highbd_8_mse16x16_neon_dotprod(const uint8_t *src_ptr, int src_stride, const uint8_t *ref_ptr, int ref_stride);
 #endif
 
     uint32_t svt_aom_sad_16b_kernel_neon(uint16_t *src, uint32_t  src_stride, uint16_t *ref, uint32_t  ref_stride, uint32_t  height, uint32_t  width);
@@ -1635,8 +1635,8 @@ extern "C" {
     uint64_t svt_handle_transform64x64_avx2(int32_t *output);
     uint64_t svt_search_one_dual_avx2(int *lev0, int *lev1, int nb_strengths, uint64_t** mse[2], int sb_count, int start_gi, int end_gi);
     uint64_t svt_search_one_dual_avx512(int *lev0, int *lev1, int nb_strengths, uint64_t** mse[2], int sb_count, int start_gi, int end_gi);
-    uint32_t svt_aom_mse16x16_sse2(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride, uint32_t *sse);
-    uint32_t svt_aom_mse16x16_avx2(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride, uint32_t *sse);
+    uint32_t svt_aom_mse16x16_sse2(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride);
+    uint32_t svt_aom_mse16x16_avx2(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride);
 
     void svt_aom_quantize_b_sse4_1(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr, const int16_t *round_ptr, const int16_t *quant_ptr, const int16_t *quant_shift_ptr, TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr, uint16_t *eob_ptr, const int16_t *scan, const int16_t *iscan, const QmVal *qm_ptr, const QmVal *iqm_ptr, const int32_t log_scale);
     void svt_aom_quantize_b_avx2(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr, const int16_t *round_ptr, const int16_t *quant_ptr, const int16_t *quant_shift_ptr, TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr, uint16_t *eob_ptr, const int16_t *scan, const int16_t *iscan, const QmVal *qm_ptr, const QmVal *iqm_ptr, const int32_t log_scale);
@@ -1669,7 +1669,7 @@ void svt_av1_quantize_fp_32x32_sse4_1(const TranLow *coeff_ptr, intptr_t n_coeff
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     void svt_av1_highbd_quantize_fp_qm_avx2(const TranLow *coeff_ptr, intptr_t n_coeffs, const int16_t *zbin_ptr, const int16_t *round_ptr, const int16_t *quant_ptr, const int16_t *quant_shift_ptr, TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, const int16_t *dequant_ptr, uint16_t *eob_ptr, const int16_t *scan, const int16_t *iscan, const QmVal *qm_ptr, const QmVal *iqm_ptr, int16_t log_scale);
 
-    void svt_aom_highbd_8_mse16x16_sse2(const uint8_t *src_ptr, int32_t  source_stride, const uint8_t *ref_ptr, int32_t  recon_stride, uint32_t *sse);
+    uint32_t svt_aom_highbd_8_mse16x16_sse2(const uint8_t *src_ptr, int32_t source_stride, const uint8_t *ref_ptr, int32_t recon_stride);
 #endif
 
     /* DC_PRED top */
