@@ -24,7 +24,9 @@
 #include "gtest/gtest.h"
 #include "aom_dsp_rtcd.h"
 #include "definitions.h"
+#include "intra_prediction.h"
 #include "random.h"
+#include "util.h"
 
 namespace {
 using svt_av1_test_tool::SVTRandom;
@@ -115,6 +117,11 @@ using Z2_HBD = void (*)(uint16_t *dst, ptrdiff_t stride, int bw, int bh,
 using Z3_HBD = void (*)(uint16_t *dst, ptrdiff_t stride, int bw, int bh,
                         const uint16_t *above, const uint16_t *left,
                         int upsample_left, int dx, int dy, int bd);
+
+using Z1_LbdPredParam = std::tuple<Z1_LBD, int>;
+using Z2_LbdPredParam = std::tuple<Z2_LBD, int>;
+using Z3_LbdPredParam = std::tuple<Z3_LBD, int>;
+
 /**
  * @brief Unit test for intra directional prediction:
  * - svt_av1_highbd_dr_prediction_z{1, 2, 3}_avx2
@@ -163,13 +170,12 @@ class DrPredTest {
             dx_ = get_dx(angle);
             dy_ = get_dy(angle);
             if (dx_ & dy_)
-                RunTest();
+                RunTest(angle);
         }
     }
 
   protected:
     void common_init() {
-        upsample_above_ = upsample_left_ = 0;
         bw_ = bh_ = 0;
         dx_ = dy_ = 1;
         dst_ref_ = &dst_ref_data_[0];
@@ -202,7 +208,7 @@ class DrPredTest {
             dst_tst_[i] = 0;
     }
 
-    void RunTest() {
+    void RunTest(int angle) {
         SVTRandom rnd(0, (1 << bd_) - 1);
         for (int cnt = 0; cnt < num_tests; ++cnt) {
             prepare_neighbor_pixel(rnd, cnt);
@@ -211,6 +217,15 @@ class DrPredTest {
                 clear_output_pixel();
                 bw_ = tx_size_wide[tx];
                 bh_ = tx_size_high[tx];
+
+                if (enable_upsample_) {
+                    upsample_above_ = svt_aom_use_intra_edge_upsample(
+                        bw_, bh_, angle - 90, 0);
+                    upsample_left_ = svt_aom_use_intra_edge_upsample(
+                        bw_, bh_, angle - 180, 0);
+                } else {
+                    upsample_above_ = upsample_left_ = 0;
+                }
 
                 Predict();
 
@@ -243,6 +258,7 @@ class DrPredTest {
 
     int upsample_above_;
     int upsample_left_;
+    int enable_upsample_;
     int bw_;
     int bh_;
     int dx_;
@@ -257,13 +273,14 @@ class DrPredTest {
 };
 
 class LowbdZ1PredTest : public DrPredTest<uint8_t, Z1_LBD>,
-                        public ::testing::TestWithParam<Z1_LBD> {
+                        public ::testing::TestWithParam<Z1_LbdPredParam> {
   public:
     LowbdZ1PredTest() {
         start_angle_ = z1_start_angle;
         stop_angle_ = start_angle_ + 90;
         ref_func_ = svt_av1_dr_prediction_z1_c;
-        tst_func_ = GetParam();
+        tst_func_ = TEST_GET_PARAM(0);
+        enable_upsample_ = TEST_GET_PARAM(1);
         bd_ = 8;
 
         common_init();
@@ -297,23 +314,28 @@ TEST_P(LowbdZ1PredTest, MatchTest) {
 }
 
 #ifdef ARCH_X86_64
-INSTANTIATE_TEST_SUITE_P(AVX2, LowbdZ1PredTest,
-                         ::testing::Values(svt_av1_dr_prediction_z1_avx2));
+INSTANTIATE_TEST_SUITE_P(
+    AVX2, LowbdZ1PredTest,
+    ::testing::Combine(::testing::Values(svt_av1_dr_prediction_z1_avx2),
+                       ::testing::Values(0, 1)));
 #endif  // ARCH_X86_64
 
 #ifdef ARCH_AARCH64
-INSTANTIATE_TEST_SUITE_P(NEON, LowbdZ1PredTest,
-                         ::testing::Values(svt_av1_dr_prediction_z1_neon));
+INSTANTIATE_TEST_SUITE_P(
+    NEON, LowbdZ1PredTest,
+    ::testing::Combine(::testing::Values(svt_av1_dr_prediction_z1_neon),
+                       ::testing::Values(0, 1)));
 #endif  // ARCH_AARCH64
 
 class LowbdZ2PredTest : public DrPredTest<uint8_t, Z2_LBD>,
-                        public ::testing::TestWithParam<Z2_LBD> {
+                        public ::testing::TestWithParam<Z2_LbdPredParam> {
   public:
     LowbdZ2PredTest() {
         start_angle_ = z2_start_angle;
         stop_angle_ = start_angle_ + 90;
         ref_func_ = svt_av1_dr_prediction_z2_c;
-        tst_func_ = GetParam();
+        tst_func_ = TEST_GET_PARAM(0);
+        enable_upsample_ = TEST_GET_PARAM(1);
         bd_ = 8;
 
         common_init();
@@ -349,23 +371,29 @@ TEST_P(LowbdZ2PredTest, MatchTest) {
 }
 
 #ifdef ARCH_X86_64
-INSTANTIATE_TEST_SUITE_P(AVX2, LowbdZ2PredTest,
-                         ::testing::Values(svt_av1_dr_prediction_z2_avx2));
+INSTANTIATE_TEST_SUITE_P(
+    AVX2, LowbdZ2PredTest,
+    ::testing::Combine(::testing::Values(svt_av1_dr_prediction_z2_avx2),
+                       ::testing::Values(0, 1)));
+
 #endif  // ARCH_X86_64
 
 #ifdef ARCH_AARCH64
-INSTANTIATE_TEST_SUITE_P(NEON, LowbdZ2PredTest,
-                         ::testing::Values(svt_av1_dr_prediction_z2_neon));
+INSTANTIATE_TEST_SUITE_P(
+    NEON, LowbdZ2PredTest,
+    ::testing::Combine(::testing::Values(svt_av1_dr_prediction_z2_neon),
+                       ::testing::Values(0, 1)));
 #endif  // ARCH_AARCH64
 
 class LowbdZ3PredTest : public DrPredTest<uint8_t, Z3_LBD>,
-                        public ::testing::TestWithParam<Z3_LBD> {
+                        public ::testing::TestWithParam<Z3_LbdPredParam> {
   public:
     LowbdZ3PredTest() {
         start_angle_ = z3_start_angle;
         stop_angle_ = start_angle_ + 90;
         ref_func_ = svt_av1_dr_prediction_z3_c;
-        tst_func_ = GetParam();
+        tst_func_ = TEST_GET_PARAM(0);
+        enable_upsample_ = TEST_GET_PARAM(1);
         bd_ = 8;
 
         common_init();
@@ -399,13 +427,17 @@ TEST_P(LowbdZ3PredTest, MatchTest) {
 }
 
 #ifdef ARCH_X86_64
-INSTANTIATE_TEST_SUITE_P(AVX2, LowbdZ3PredTest,
-                         ::testing::Values(svt_av1_dr_prediction_z3_avx2));
+INSTANTIATE_TEST_SUITE_P(
+    AVX2, LowbdZ3PredTest,
+    ::testing::Combine(::testing::Values(svt_av1_dr_prediction_z3_avx2),
+                       ::testing::Values(0, 1)));
 #endif  // ARCH_X86_64
 
 #ifdef ARCH_AARCH64
-INSTANTIATE_TEST_SUITE_P(NEON, LowbdZ3PredTest,
-                         ::testing::Values(svt_av1_dr_prediction_z3_neon));
+INSTANTIATE_TEST_SUITE_P(
+    NEON, LowbdZ3PredTest,
+    ::testing::Combine(::testing::Values(svt_av1_dr_prediction_z3_neon),
+                       ::testing::Values(0, 1)));
 #endif  // ARCH_AARCH64
 
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
