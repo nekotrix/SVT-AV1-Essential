@@ -24,16 +24,10 @@ static inline void dr_prediction_z1_WxH_internal_neon_small(int W, int H, uint8x
     const int max_base_x = ((W + H) - 1) << upsample_above;
 
     assert(dx > 0);
-    // pre-filter above pixels
-    // store in temp buffers:
-    //   above[x] * 32 + 16
-    //   above[x+1] - above[x]
-    // final pixels will be calculated as:
-    //   (above[x] * 32 + 16 + (above[x+1] - above[x]) * shift) >> 5
+    //   above0 * (32 - shift) + above1 * shift
+    // = (above1 - above0) * shift + above0 * 32
 
-    const uint16x8_t a16       = vdupq_n_u16(16);
-    const uint8x8_t  a_mbase_x = vdup_n_u8(above[max_base_x]);
-    const uint8x8_t  v_32      = vdup_n_u8(32);
+    const uint8x8_t a_mbase_x = vdup_n_u8(above[max_base_x]);
 
     int x = dx;
     for (int r = 0; r < H; r++) {
@@ -53,18 +47,19 @@ static inline void dr_prediction_z1_WxH_internal_neon_small(int W, int H, uint8x
         uint16x8_t  shift;
         if (upsample_above) {
             a01_128 = vld2_u8(above + base);
-            shift   = vdupq_n_u16(((x << upsample_above) & 0x3f) >> 1);
+            shift   = vdupq_n_u16(x & 0x1f); // ((x << upsample_above) & 0x3f) >> 1
         } else {
             a01_128.val[0] = vld1_u8(above + base);
             a01_128.val[1] = vld1_u8(above + base + 1);
             shift          = vdupq_n_u16((x & 0x3f) >> 1);
         }
+
         uint16x8_t diff = vsubl_u8(a01_128.val[1], a01_128.val[0]);
-        uint16x8_t a32  = vmlal_u8(a16, a01_128.val[0], v_32);
+        uint16x8_t a32  = vshll_n_u8(a01_128.val[0], 5);
         uint16x8_t res  = vmlaq_u16(a32, diff, shift);
 
         uint8x8_t mask = vld1_u8(base_mask[base_max_diff]);
-        dst[r]         = vbsl_u8(mask, vshrn_n_u16(res, 5), a_mbase_x);
+        dst[r]         = vbsl_u8(mask, vrshrn_n_u16(res, 5), a_mbase_x);
 
         x += dx;
     }
@@ -87,31 +82,22 @@ static inline void dr_prediction_z1_8xH_neon(int H, uint8_t *dst, ptrdiff_t stri
 }
 
 static inline void dr_prediction_z1_WxH_internal_neon_large(int W, int H, uint8x16_t *dst, const uint8_t *above,
-                                                            int upsample_above, int dx) {
-    const int frac_bits  = 6 - upsample_above;
-    const int max_base_x = ((W + H) - 1) << upsample_above;
+                                                            int dx) {
+    // Here upsample_above is 0 by design of svt_aom_use_intra_edge_upsample
+    // defined in Source/Lib/Codec/intra_prediction.c.
+    const int frac_bits  = 6;
+    const int max_base_x = (W + H) - 1;
 
     assert(dx > 0);
-    // pre-filter above pixels
-    // store in temp buffers:
-    //   above[x] * 32 + 16
-    //   above[x+1] - above[x]
-    // final pixels will be calculated as:
-    //   (above[x] * 32 + 16 + (above[x+1] - above[x]) * shift) >> 5
+    //   above0 * (32 - shift) + above1 * shift
+    // = (above1 - above0) * shift + above0 * 32
 
-    const uint16x8_t a16       = vdupq_n_u16(16);
     const uint8x16_t a_mbase_x = vdupq_n_u8(above[max_base_x]);
-    const uint8x8_t  v_32      = vdup_n_u8(32);
-    const uint8x16_t v_zero    = vdupq_n_u8(0);
 
     int x = dx;
     for (int r = 0; r < H; r++) {
-        uint16x8x2_t res;
-        uint16x8_t   shift;
-        uint8x16_t   a0_128, a1_128;
-
         int base          = x >> frac_bits;
-        int base_max_diff = (max_base_x - base) >> upsample_above;
+        int base_max_diff = max_base_x - base;
         if (base_max_diff <= 0) {
             for (int i = r; i < H; ++i) {
                 dst[i] = a_mbase_x; // save 4 values
@@ -122,24 +108,18 @@ static inline void dr_prediction_z1_WxH_internal_neon_large(int W, int H, uint8x
         if (base_max_diff > W)
             base_max_diff = W;
 
-        if (upsample_above) {
-            uint8x8x2_t v_tmp_a0_128 = vld2_u8(above + base);
-            a0_128                   = vcombine_u8(v_tmp_a0_128.val[0], v_tmp_a0_128.val[1]);
-            a1_128                   = vextq_u8(a0_128, v_zero, 8);
-            shift                    = vdupq_n_u16(((x << upsample_above) & 0x3f) >> 1);
-        } else {
-            a0_128 = vld1q_u8(above + base);
-            a1_128 = vld1q_u8(above + base + 1);
-            shift  = vdupq_n_u16((x & 0x3f) >> 1);
-        }
-        uint16x8x2_t diff, a32;
+        uint8x16_t a0_128 = vld1q_u8(above + base);
+        uint8x16_t a1_128 = vld1q_u8(above + base + 1);
+        uint16x8_t shift  = vdupq_n_u16((x & 0x3f) >> 1);
+
+        uint16x8x2_t diff, a32, res;
         diff.val[0]       = vsubl_u8(vget_low_u8(a1_128), vget_low_u8(a0_128));
         diff.val[1]       = vsubl_u8(vget_high_u8(a1_128), vget_high_u8(a0_128));
-        a32.val[0]        = vmlal_u8(a16, vget_low_u8(a0_128), v_32);
-        a32.val[1]        = vmlal_u8(a16, vget_high_u8(a0_128), v_32);
+        a32.val[0]        = vshll_n_u8(vget_low_u8(a0_128), 5);
+        a32.val[1]        = vshll_n_u8(vget_high_u8(a0_128), 5);
         res.val[0]        = vmlaq_u16(a32.val[0], diff.val[0], shift);
         res.val[1]        = vmlaq_u16(a32.val[1], diff.val[1], shift);
-        uint8x16_t v_temp = vcombine_u8(vshrn_n_u16(res.val[0], 5), vshrn_n_u16(res.val[1], 5));
+        uint8x16_t v_temp = vcombine_u8(vrshrn_n_u16(res.val[0], 5), vrshrn_n_u16(res.val[1], 5));
 
         uint8x16_t mask = vld1q_u8(base_mask[base_max_diff]);
         dst[r]          = vbslq_u8(mask, v_temp, a_mbase_x);
@@ -148,29 +128,23 @@ static inline void dr_prediction_z1_WxH_internal_neon_large(int W, int H, uint8x
     }
 }
 
-static inline void dr_prediction_z1_16xH_neon(int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above,
-                                              int upsample_above, int dx) {
+static inline void dr_prediction_z1_16xH_neon(int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above, int dx) {
     uint8x16_t dstvec[64];
 
-    dr_prediction_z1_WxH_internal_neon_large(16, H, dstvec, above, upsample_above, dx);
+    dr_prediction_z1_WxH_internal_neon_large(16, H, dstvec, above, dx);
     for (int i = 0; i < H; i++) { vst1q_u8(dst + stride * i, dstvec[i]); }
 }
 
 static inline void dr_prediction_z1_32xH_internal_neon(int H, uint8x16x2_t *dstvec, const uint8_t *above, int dx) {
-    // here upsample_above is 0 by design of av1_use_intra_edge_upsample
+    // Here upsample_above is 0 by design of svt_aom_use_intra_edge_upsample
+    // defined in Source/Lib/Codec/intra_prediction.c.
     const int frac_bits  = 6;
     const int max_base_x = ((32 + H) - 1);
 
-    // pre-filter above pixels
-    // store in temp buffers:
-    //   above[x] * 32 + 16
-    //   above[x+1] - above[x]
-    // final pixels will be calculated as:
-    //   (above[x] * 32 + 16 + (above[x+1] - above[x]) * shift) >> 5
+    //   above0 * (32 - shift) + above1 * shift
+    // = (above1 - above0) * shift + above0 * 32
 
     const uint8x16_t a_mbase_x = vdupq_n_u8(above[max_base_x]);
-    const uint16x8_t a16       = vdupq_n_u16(16);
-    const uint8x8_t  v_32      = vdup_n_u8(32);
 
     int x = dx;
     for (int r = 0; r < H; r++) {
@@ -195,18 +169,19 @@ static inline void dr_prediction_z1_32xH_internal_neon(int H, uint8x16x2_t *dstv
             if (mdiff <= 0) {
                 res16[jj] = a_mbase_x;
             } else {
+                uint8x16_t a0_128 = vld1q_u8(above + base + j);
+                uint8x16_t a1_128 = vld1q_u8(above + base + j + 1);
+
                 uint16x8x2_t a32, diff, res;
-                uint8x16_t   a0_128, a1_128;
-                a0_128      = vld1q_u8(above + base + j);
-                a1_128      = vld1q_u8(above + base + j + 1);
                 diff.val[0] = vsubl_u8(vget_low_u8(a1_128), vget_low_u8(a0_128));
                 diff.val[1] = vsubl_u8(vget_high_u8(a1_128), vget_high_u8(a0_128));
-                a32.val[0]  = vmlal_u8(a16, vget_low_u8(a0_128), v_32);
-                a32.val[1]  = vmlal_u8(a16, vget_high_u8(a0_128), v_32);
-                res.val[0]  = vmlaq_u16(a32.val[0], diff.val[0], shift);
-                res.val[1]  = vmlaq_u16(a32.val[1], diff.val[1], shift);
+                a32.val[0]  = vshll_n_u8(vget_low_u8(a0_128), 5);
+                a32.val[1]  = vshll_n_u8(vget_high_u8(a0_128), 5);
 
-                res16[jj] = vcombine_u8(vshrn_n_u16(res.val[0], 5), vshrn_n_u16(res.val[1], 5));
+                res.val[0] = vmlaq_u16(a32.val[0], diff.val[0], shift);
+                res.val[1] = vmlaq_u16(a32.val[1], diff.val[1], shift);
+
+                res16[jj] = vcombine_u8(vrshrn_n_u16(res.val[0], 5), vrshrn_n_u16(res.val[1], 5));
             }
         }
 
@@ -230,23 +205,15 @@ static inline void dr_prediction_z1_32xH_neon(int H, uint8_t *dst, ptrdiff_t str
 }
 
 static inline void dr_prediction_z1_64xH_neon(int H, uint8_t *dst, ptrdiff_t stride, const uint8_t *above, int dx) {
-    // here upsample_above is 0 by design of av1_use_intra_edge_upsample
+    // Here upsample_above is 0 by design of svt_aom_use_intra_edge_upsample
+    // defined in Source/Lib/Codec/intra_prediction.c.
     const int frac_bits  = 6;
     const int max_base_x = (64 + H) - 1;
 
-    // pre-filter above pixels
-    // store in temp buffers:
-    //   above[x] * 32 + 16
-    //   above[x+1] - above[x]
-    // final pixels will be calculated as:
-    //   (above[x] * 32 + 16 + (above[x+1] - above[x]) * shift) >> 5
+    //   above0 * (32 - shift) + above1 * shift
+    // = (above1 - above0) * shift + above0 * 32
 
-    const uint16x8_t a16           = vdupq_n_u16(16);
-    const uint8x16_t a_mbase_x     = vdupq_n_u8(above[max_base_x]);
-    const uint8x16_t max_base_x128 = vdupq_n_u8(max_base_x);
-    const uint8x8_t  v_32          = vdup_n_u8(32);
-    const uint8x16_t v_zero        = vdupq_n_u8(0);
-    const uint8x16_t step          = vdupq_n_u8(16);
+    const uint8x16_t a_mbase_x = vdupq_n_u8(above[max_base_x]);
 
     int x = dx;
     for (int r = 0; r < H; r++, dst += stride, x += dx) {
@@ -262,35 +229,33 @@ static inline void dr_prediction_z1_64xH_neon(int H, uint8_t *dst, ptrdiff_t str
             return;
         }
 
-        uint16x8_t shift       = vdupq_n_u16((x & 0x3f) >> 1);
-        uint8x16_t base_inc128 = vaddq_u8(vdupq_n_u8(base),
-                                          vcombine_u8(vcreate_u8(0x0706050403020100), vcreate_u8(0x0F0E0D0C0B0A0908)));
+        uint16x8_t shift = vdupq_n_u16((x & 0x3f) >> 1);
 
         for (int j = 0; j < 64; j += 16) {
             int mdif = max_base_x - (base + j);
             if (mdif <= 0) {
                 vst1q_u8(dst + j, a_mbase_x);
             } else {
+                uint8x16_t a0_128 = vld1q_u8(above + base + j);
+                uint8x16_t a1_128 = vld1q_u8(above + base + 1 + j);
+
                 uint16x8x2_t a32, diff, res;
-                uint8x16_t   a0_128, a1_128, mask128, res128;
-                a0_128            = vld1q_u8(above + base + j);
-                a1_128            = vld1q_u8(above + base + 1 + j);
                 diff.val[0]       = vsubl_u8(vget_low_u8(a1_128), vget_low_u8(a0_128));
                 diff.val[1]       = vsubl_u8(vget_high_u8(a1_128), vget_high_u8(a0_128));
-                a32.val[0]        = vmlal_u8(a16, vget_low_u8(a0_128), v_32);
-                a32.val[1]        = vmlal_u8(a16, vget_high_u8(a0_128), v_32);
+                a32.val[0]        = vshll_n_u8(vget_low_u8(a0_128), 5);
+                a32.val[1]        = vshll_n_u8(vget_high_u8(a0_128), 5);
                 res.val[0]        = vmlaq_u16(a32.val[0], diff.val[0], shift);
                 res.val[1]        = vmlaq_u16(a32.val[1], diff.val[1], shift);
-                uint8x16_t v_temp = vcombine_u8(vshrn_n_u16(res.val[0], 5), vshrn_n_u16(res.val[1], 5));
+                uint8x16_t v_temp = vcombine_u8(vrshrn_n_u16(res.val[0], 5), vrshrn_n_u16(res.val[1], 5));
 
-                mask128 = vcgtq_u8(vqsubq_u8(max_base_x128, base_inc128), v_zero);
-                res128  = vbslq_u8(mask128, v_temp, a_mbase_x);
+                mdif = mdif > 16 ? 16 : mdif;
+
+                uint8x16_t mask   = vld1q_u8(base_mask[mdif]);
+                uint8x16_t res128 = vbslq_u8(mask, v_temp, a_mbase_x);
+
                 vst1q_u8(dst + j, res128);
-
-                base_inc128 = vaddq_u8(base_inc128, step);
             }
         }
-        x += dx;
     }
 }
 
@@ -310,7 +275,7 @@ void svt_av1_dr_prediction_z1_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, i
         break;
     }
     case 16: {
-        dr_prediction_z1_16xH_neon(bh, dst, stride, above, upsample_above, dx);
+        dr_prediction_z1_16xH_neon(bh, dst, stride, above, dx);
         break;
     }
     case 32: {
@@ -1262,12 +1227,11 @@ static inline void dr_prediction_z3_8x4_neon(uint8_t *dst, ptrdiff_t stride, con
     vst1_u32((uint32_t *)(dst + 3 * stride), d[1].val[1]);
 }
 
-static inline void dr_prediction_z3_8x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
-                                              int dy) {
+static inline void dr_prediction_z3_8x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8x16_t dstvec[8];
     uint64x2_t d[8];
 
-    dr_prediction_z1_WxH_internal_neon_large(16, 8, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_large(16, 8, dstvec, left, dy);
     transpose8x16_16x8_neon(dstvec, d);
     for (int i = 0; i < 8; i++) {
         vst1_u8(dst + i * stride, vreinterpret_u8_u64(vget_low_u64(d[i])));
@@ -1285,12 +1249,11 @@ static inline void dr_prediction_z3_16x8_neon(uint8_t *dst, ptrdiff_t stride, co
     for (int i = 0; i < 8; i++) { vst1q_u8(dst + i * stride, vreinterpretq_u8_u64(d[i])); }
 }
 
-static inline void dr_prediction_z3_4x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
-                                              int dy) {
+static inline void dr_prediction_z3_4x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8x16_t   dstvec[4];
     uint16x8x2_t d[2];
 
-    dr_prediction_z1_WxH_internal_neon_large(16, 4, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_large(16, 4, dstvec, left, dy);
     transpose4x16_neon(dstvec, d);
     vst1q_lane_u32((uint32_t *)(dst + stride * 0), vreinterpretq_u32_u16(d[0].val[0]), 0);
     vst1q_lane_u32((uint32_t *)(dst + stride * 1), vreinterpretq_u32_u16(d[0].val[0]), 1);
@@ -1353,12 +1316,11 @@ static inline void dr_prediction_z3_32x8_neon(uint8_t *dst, ptrdiff_t stride, co
     }
 }
 
-static inline void dr_prediction_z3_16x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
-                                               int dy) {
+static inline void dr_prediction_z3_16x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8x16_t dstvec[16];
     uint64x2_t d[16];
 
-    dr_prediction_z1_WxH_internal_neon_large(16, 16, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_large(16, 16, dstvec, left, dy);
     transpose16x16_neon(dstvec, d);
     for (int i = 0; i < 16; i++) { vst1q_u8(dst + i * stride, vreinterpretq_u8_u64(d[i])); }
 }
@@ -1395,12 +1357,11 @@ static inline void dr_prediction_z3_16x32_neon(uint8_t *dst, ptrdiff_t stride, c
     }
 }
 
-static inline void dr_prediction_z3_32x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
-                                               int dy) {
+static inline void dr_prediction_z3_32x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8x16_t dstvec[32];
     uint64x2_t d[16];
 
-    dr_prediction_z1_WxH_internal_neon_large(16, 32, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_large(16, 32, dstvec, left, dy);
     for (int i = 0; i < 32; i += 16) {
         transpose16x16_neon((dstvec + i), d);
         for (int j = 0; j < 16; j++) { vst1q_u8(dst + j * stride + i, vreinterpretq_u8_u64(d[j])); }
@@ -1428,12 +1389,11 @@ static inline void dr_prediction_z3_16x64_neon(uint8_t *dst, ptrdiff_t stride, c
     transpose(dstT, 64, dst, stride, 16, 64);
 }
 
-static inline void dr_prediction_z3_64x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int upsample_left,
-                                               int dy) {
+static inline void dr_prediction_z3_64x16_neon(uint8_t *dst, ptrdiff_t stride, const uint8_t *left, int dy) {
     uint8x16_t dstvec[64];
     uint64x2_t d[16];
 
-    dr_prediction_z1_WxH_internal_neon_large(16, 64, dstvec, left, upsample_left, dy);
+    dr_prediction_z1_WxH_internal_neon_large(16, 64, dstvec, left, dy);
     for (int i = 0; i < 64; i += 16) {
         transpose16x16_neon((dstvec + i), d);
         for (int j = 0; j < 16; j++) { vst1q_u8(dst + j * stride + i, vreinterpretq_u8_u64(d[j])); }
@@ -1458,7 +1418,7 @@ void svt_av1_dr_prediction_z3_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, i
             break;
         }
         case 16: {
-            dr_prediction_z3_16x16_neon(dst, stride, left, upsample_left, dy);
+            dr_prediction_z3_16x16_neon(dst, stride, left, dy);
             break;
         }
         case 32: {
@@ -1479,7 +1439,7 @@ void svt_av1_dr_prediction_z3_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, i
                     break;
                 }
                 case 8: {
-                    dr_prediction_z3_8x16_neon(dst, stride, left, upsample_left, dy);
+                    dr_prediction_z3_8x16_neon(dst, stride, left, dy);
                     break;
                 }
                 case 16: {
@@ -1494,7 +1454,7 @@ void svt_av1_dr_prediction_z3_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, i
             } else {
                 switch (bw) {
                 case 4: {
-                    dr_prediction_z3_4x16_neon(dst, stride, left, upsample_left, dy);
+                    dr_prediction_z3_4x16_neon(dst, stride, left, dy);
                     break;
                 }
                 case 8: {
@@ -1519,7 +1479,7 @@ void svt_av1_dr_prediction_z3_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, i
                     break;
                 }
                 case 16: {
-                    dr_prediction_z3_32x16_neon(dst, stride, left, upsample_left, dy);
+                    dr_prediction_z3_32x16_neon(dst, stride, left, dy);
                     break;
                 }
                 case 32: {
@@ -1538,7 +1498,7 @@ void svt_av1_dr_prediction_z3_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, i
                     break;
                 }
                 case 16: {
-                    dr_prediction_z3_64x16_neon(dst, stride, left, upsample_left, dy);
+                    dr_prediction_z3_64x16_neon(dst, stride, left, dy);
                     break;
                 }
                 }
