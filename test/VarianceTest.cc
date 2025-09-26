@@ -237,18 +237,18 @@ TEST_P(MseTestHighbd, MaxTest) {
 };
 
 #ifdef ARCH_X86_64
-INSTANTIATE_TEST_SUITE_P(SSE2, MseTestHighbd,
-                         ::testing::Values(TestMseParamHighbd(
-                             16, 16, &svt_aom_highbd_8_mse16x16_sse2,
-                             &svt_aom_highbd_8_mse16x16_c)));
+INSTANTIATE_TEST_SUITE_P(
+    SSE2, MseTestHighbd,
+    ::testing::Values(TestMseParamHighbd(16, 16, &svt_aom_highbd_mse16x16_sse2,
+                                         &svt_aom_highbd_mse16x16_c)));
 
 #endif  // ARCH_X86_64
 
 #ifdef ARCH_AARCH64
-INSTANTIATE_TEST_SUITE_P(NEON, MseTestHighbd,
-                         ::testing::Values(TestMseParamHighbd(
-                             16, 16, &svt_aom_highbd_8_mse16x16_neon,
-                             &svt_aom_highbd_8_mse16x16_c)));
+INSTANTIATE_TEST_SUITE_P(
+    NEON, MseTestHighbd,
+    ::testing::Values(TestMseParamHighbd(16, 16, &svt_aom_highbd_mse16x16_neon,
+                                         &svt_aom_highbd_mse16x16_c)));
 
 #endif  // ARCH_AARCH64
 

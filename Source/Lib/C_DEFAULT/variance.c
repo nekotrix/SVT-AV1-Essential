@@ -450,8 +450,8 @@ OBMC_SUBPIX_VAR(16, 64)
 OBMC_VAR(64, 16)
 OBMC_SUBPIX_VAR(64, 16)
 
-uint32_t svt_aom_highbd_8_mse16x16_c(const uint8_t *src_ptr, int32_t source_stride, const uint8_t *ref_ptr,
-                                     int32_t recon_stride) {
+uint32_t svt_aom_highbd_mse16x16_c(const uint8_t *src_ptr, int32_t source_stride, const uint8_t *ref_ptr,
+                                   int32_t recon_stride) {
     const uint16_t *a    = CONVERT_TO_SHORTPTR(src_ptr);
     const uint16_t *b    = CONVERT_TO_SHORTPTR(ref_ptr);
     uint64_t        tsse = 0;

@@ -72,8 +72,8 @@ int64_t get_sse(const uint8_t *a, int32_t a_stride, const uint8_t *b, int32_t b_
 }
 
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
-static inline int64_t highbd_8_variance(const uint8_t *a8, int32_t a_stride, const uint8_t *b8, int32_t b_stride,
-                                        int32_t w, int32_t h) {
+static inline int64_t highbd_variance(const uint8_t *a8, int32_t a_stride, const uint8_t *b8, int32_t b_stride,
+                                      int32_t w, int32_t h) {
     const uint16_t *a   = CONVERT_TO_SHORTPTR(a8);
     const uint16_t *b   = CONVERT_TO_SHORTPTR(b8);
     int64_t         sse = 0;
@@ -93,11 +93,11 @@ int64_t highbd_get_sse(const uint8_t *a, int32_t a_stride, const uint8_t *b, int
     const int32_t dh  = height % 16;
     uint32_t      sse = 0;
     if (dw > 0) {
-        sse = highbd_8_variance(&a[width - dw], a_stride, &b[width - dw], b_stride, dw, height);
+        sse = highbd_variance(&a[width - dw], a_stride, &b[width - dw], b_stride, dw, height);
         total_sse += sse;
     }
     if (dh > 0) {
-        sse = highbd_8_variance(
+        sse = highbd_variance(
             &a[(height - dh) * a_stride], a_stride, &b[(height - dh) * b_stride], b_stride, width - dw, dh);
         total_sse += sse;
     }
@@ -105,7 +105,7 @@ int64_t highbd_get_sse(const uint8_t *a, int32_t a_stride, const uint8_t *b, int
         const uint8_t *pa = a;
         const uint8_t *pb = b;
         for (x = 0; x < width / 16; ++x) {
-            sse = svt_aom_highbd_8_mse16x16(pa, a_stride, pb, b_stride);
+            sse = svt_aom_highbd_mse16x16(pa, a_stride, pb, b_stride);
 
             total_sse += sse;
             pa += 16;

@@ -222,7 +222,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_AVX2(svt_av1_quantize_fp_qm, svt_av1_quantize_fp_qm_c, svt_av1_quantize_fp_qm_avx2);
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     SET_AVX2(svt_av1_highbd_quantize_fp_qm, svt_av1_highbd_quantize_fp_qm_c, svt_av1_highbd_quantize_fp_qm_avx2);
-    SET_SSE2(svt_aom_highbd_8_mse16x16, svt_aom_highbd_8_mse16x16_c, svt_aom_highbd_8_mse16x16_sse2);
+    SET_SSE2(svt_aom_highbd_mse16x16, svt_aom_highbd_mse16x16_c, svt_aom_highbd_mse16x16_sse2);
 #endif
 
     //SAD
@@ -602,7 +602,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_av1_quantize_fp_qm, svt_av1_quantize_fp_qm_c);
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     SET_ONLY_C(svt_av1_highbd_quantize_fp_qm, svt_av1_highbd_quantize_fp_qm_c);
-    SET_NEON(svt_aom_highbd_8_mse16x16, svt_aom_highbd_8_mse16x16_c, svt_aom_highbd_8_mse16x16_neon);
+    SET_NEON(svt_aom_highbd_mse16x16, svt_aom_highbd_mse16x16_c, svt_aom_highbd_mse16x16_neon);
 #endif
 
     //SAD
@@ -984,7 +984,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_av1_quantize_fp_qm, svt_av1_quantize_fp_qm_c);
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     SET_ONLY_C(svt_av1_highbd_quantize_fp_qm, svt_av1_highbd_quantize_fp_qm_c);
-    SET_ONLY_C(svt_aom_highbd_8_mse16x16, svt_aom_highbd_8_mse16x16_c);
+    SET_ONLY_C(svt_aom_highbd_mse16x16, svt_aom_highbd_mse16x16_c);
 #endif
 
     //SAD
