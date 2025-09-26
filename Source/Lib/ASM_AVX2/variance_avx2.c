@@ -34,7 +34,7 @@ static INLINE void variance_kernel_no_sum_avx2(const __m256i src, const __m256i 
     *sse = _mm256_add_epi32(*sse, _mm256_add_epi32(madd0, madd1));
 }
 
-static INLINE void variance_final_from_32bit_no_sum_avx2(__m256i vsse, uint32_t *const sse) {
+static INLINE uint32_t variance_final_from_32bit_no_sum_avx2(__m256i vsse) {
     // extract the low lane and add it to the high lane
     const __m128i sse_reg_128 = mm256_add_hi_lo_epi32(vsse);
     const __m128i zero        = _mm_setzero_si128();
@@ -46,7 +46,7 @@ static INLINE void variance_final_from_32bit_no_sum_avx2(__m256i vsse, uint32_t 
 
     // perform the final summation and extract the results
     const __m128i res = _mm_add_epi32(sse_sum, _mm_srli_si128(sse_sum, 8));
-    *((int32_t *)sse) = _mm_cvtsi128_si32(res);
+    return _mm_cvtsi128_si32(res);
 }
 
 // Horizontal addition for computing the sum in variance calculations.
@@ -76,20 +76,11 @@ static INLINE void variance16_no_sum_avx2(const uint8_t *src, const int32_t src_
         ref += 2 * ref_stride;
     }
 }
-#define AOM_VAR_NO_LOOP_NO_SUM_AVX2(bw, bh, bits, max_pixel)                                             \
-    void svt_aom_variance##bw##x##bh##_no_sum_avx2(                                                      \
-        const uint8_t *src, int32_t src_stride, const uint8_t *ref, int32_t ref_stride, uint32_t *sse) { \
-        __m256i vsse = _mm256_setzero_si256();                                                           \
-        variance##bw##_no_sum_avx2(src, src_stride, ref, ref_stride, bh, &vsse);                         \
-        variance_final_from_32bit_no_sum_avx2(vsse, sse);                                                \
-    }
-
-AOM_VAR_NO_LOOP_NO_SUM_AVX2(16, 16, 8, 512);
 
 uint32_t svt_aom_mse16x16_avx2(const uint8_t *src, int32_t src_stride, const uint8_t *ref, int32_t ref_stride) {
-    uint32_t sse;
-    svt_aom_variance16x16_no_sum_avx2(src, src_stride, ref, ref_stride, &sse);
-    return sse;
+    __m256i vsse = _mm256_setzero_si256();
+    variance16_no_sum_avx2(src, src_stride, ref, ref_stride, 16, &vsse);
+    return variance_final_from_32bit_no_sum_avx2(vsse);
 }
 
 static INLINE int variance_final_from_32bit_sum_avx2(__m256i vsse, __m256i vsum, unsigned int *const sse) {
@@ -230,7 +221,7 @@ static INLINE void variance128_avx2(const uint8_t *src, const int src_stride, co
     }
 }
 
-#define AOM_VAR_NO_LOOP_AVX2(bw, bh, bits, max_pixel)                                                \
+#define AOM_VAR_NO_LOOP_AVX2(bw, bh, bits)                                                           \
     unsigned int svt_aom_variance##bw##x##bh##_avx2(                                                 \
         const uint8_t *src, int src_stride, const uint8_t *ref, int ref_stride, unsigned int *sse) { \
         __m256i vsse = _mm256_setzero_si256();                                                       \
@@ -240,24 +231,24 @@ static INLINE void variance128_avx2(const uint8_t *src, const int src_stride, co
         return *sse - (uint32_t)(((int64_t)sum * sum) >> bits);                                      \
     }
 
-AOM_VAR_NO_LOOP_AVX2(8, 4, 5, 512);
-AOM_VAR_NO_LOOP_AVX2(8, 8, 6, 512);
-AOM_VAR_NO_LOOP_AVX2(8, 16, 7, 512);
-AOM_VAR_NO_LOOP_AVX2(8, 32, 8, 512);
+AOM_VAR_NO_LOOP_AVX2(8, 4, 5);
+AOM_VAR_NO_LOOP_AVX2(8, 8, 6);
+AOM_VAR_NO_LOOP_AVX2(8, 16, 7);
+AOM_VAR_NO_LOOP_AVX2(8, 32, 8);
 
-AOM_VAR_NO_LOOP_AVX2(16, 4, 6, 512);
-AOM_VAR_NO_LOOP_AVX2(16, 8, 7, 512);
-AOM_VAR_NO_LOOP_AVX2(16, 16, 8, 512);
-AOM_VAR_NO_LOOP_AVX2(16, 32, 9, 512);
-AOM_VAR_NO_LOOP_AVX2(16, 64, 10, 1024);
+AOM_VAR_NO_LOOP_AVX2(16, 4, 6);
+AOM_VAR_NO_LOOP_AVX2(16, 8, 7);
+AOM_VAR_NO_LOOP_AVX2(16, 16, 8);
+AOM_VAR_NO_LOOP_AVX2(16, 32, 9);
+AOM_VAR_NO_LOOP_AVX2(16, 64, 10);
 
-AOM_VAR_NO_LOOP_AVX2(32, 8, 8, 512);
-AOM_VAR_NO_LOOP_AVX2(32, 16, 9, 512);
-AOM_VAR_NO_LOOP_AVX2(32, 32, 10, 1024);
-AOM_VAR_NO_LOOP_AVX2(32, 64, 11, 2048);
+AOM_VAR_NO_LOOP_AVX2(32, 8, 8);
+AOM_VAR_NO_LOOP_AVX2(32, 16, 9);
+AOM_VAR_NO_LOOP_AVX2(32, 32, 10);
+AOM_VAR_NO_LOOP_AVX2(32, 64, 11);
 
-AOM_VAR_NO_LOOP_AVX2(64, 16, 10, 1024);
-AOM_VAR_NO_LOOP_AVX2(64, 32, 11, 2048);
+AOM_VAR_NO_LOOP_AVX2(64, 16, 10);
+AOM_VAR_NO_LOOP_AVX2(64, 32, 11);
 
 #define AOM_VAR_LOOP_AVX2(bw, bh, bits, uh)                                                          \
     unsigned int svt_aom_variance##bw##x##bh##_avx2(                                                 \
