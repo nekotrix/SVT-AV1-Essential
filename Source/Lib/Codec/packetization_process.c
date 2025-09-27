@@ -611,7 +611,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
 
             // Delayed call from Rest process
             {
-                if (scs->static_config.stat_report) {
+                if (pcs->ppcs->compute_ssim) {
                     // memory is freed in the svt_aom_ssim_calculations call
                     svt_aom_ssim_calculations(pcs, scs, true);
                 } else {
@@ -656,7 +656,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
                 if (pcs->tile_tok[0][0])
                     EB_FREE_ARRAY(pcs->tile_tok[0][0]);
             }
-        } else if (!scs->static_config.stat_report)
+        } else if (!(pcs->ppcs->compute_psnr || pcs->ppcs->compute_ssim))
             free_temporal_filtering_buffer(pcs, scs);
         //****************************************************
         // Input Entropy Results into Reordering Queue
@@ -701,17 +701,20 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
         output_stream_ptr->temporal_layer_index = pcs->ppcs->temporal_layer_index;
         output_stream_ptr->qp                   = pcs->ppcs->picture_qp;
         output_stream_ptr->avg_qp               = pcs->ppcs->avg_qp;
-        if (scs->static_config.stat_report) {
-            output_stream_ptr->luma_sse  = pcs->ppcs->luma_sse;
-            output_stream_ptr->cr_sse    = pcs->ppcs->cr_sse;
-            output_stream_ptr->cb_sse    = pcs->ppcs->cb_sse;
+        if (pcs->ppcs->compute_psnr) {
+            output_stream_ptr->luma_sse = pcs->ppcs->luma_sse;
+            output_stream_ptr->cr_sse   = pcs->ppcs->cr_sse;
+            output_stream_ptr->cb_sse   = pcs->ppcs->cb_sse;
+        } else {
+            output_stream_ptr->luma_sse = 0;
+            output_stream_ptr->cr_sse   = 0;
+            output_stream_ptr->cb_sse   = 0;
+        }
+        if (pcs->ppcs->compute_ssim) {
             output_stream_ptr->luma_ssim = pcs->ppcs->luma_ssim;
             output_stream_ptr->cr_ssim   = pcs->ppcs->cr_ssim;
             output_stream_ptr->cb_ssim   = pcs->ppcs->cb_ssim;
         } else {
-            output_stream_ptr->luma_sse  = 0;
-            output_stream_ptr->cr_sse    = 0;
-            output_stream_ptr->cb_sse    = 0;
             output_stream_ptr->luma_ssim = 0;
             output_stream_ptr->cr_ssim   = 0;
             output_stream_ptr->cb_ssim   = 0;

@@ -414,6 +414,35 @@ static EbErrorType test_update_frame_rate_info(uint64_t pic_num, EbBufferHeaderT
     return EB_ErrorNone;
 }
 #endif
+#if FTR_PER_FRAME_QUALITY_SAMPLE
+// test_update_psnr_per_frame_info: sample test case for computing PSNR per frame
+static EbErrorType test_update_psnr_per_frame_info(uint64_t pic_num, EbBufferHeaderType *header_ptr) {
+    int interval = 10;
+    if (pic_num % (1 * interval) != 0) {
+        return EB_ErrorNone;
+    }
+    SvtAv1ComputeQualityInfo *data = (SvtAv1ComputeQualityInfo *)malloc(sizeof(SvtAv1ComputeQualityInfo));
+    data->compute_psnr             = true;
+    data->compute_ssim             = false;
+
+    EbPrivDataNode *new_node = (EbPrivDataNode *)malloc(sizeof(EbPrivDataNode));
+    new_node->size           = sizeof(SvtAv1ComputeQualityInfo);
+    new_node->node_type      = COMPUTE_QUALITY_EVENT;
+    new_node->data           = data;
+    new_node->next           = NULL;
+
+    // append to tail
+    if (header_ptr->p_app_private == NULL) {
+        header_ptr->p_app_private = new_node;
+    } else {
+        EbPrivDataNode *last = header_ptr->p_app_private;
+        while (last->next != NULL) { last = last->next; }
+        last->next = new_node;
+    }
+
+    return EB_ErrorNone;
+}
+#endif
 #if FTR_RES_ON_FLY_SAMPLE
 // test_update_rate_info: sample test case for updating the resolution on the fly
 static EbErrorType test_update_input_pic_def(uint64_t pic_num, EbBufferHeaderType *header_ptr, EbConfig *app_cfg) {
@@ -589,6 +618,9 @@ void process_input_buffer(EncChannel *channel) {
 #endif
 #if FTR_FRAME_RATE_ON_FLY_SAMPLE
             test_update_frame_rate_info(header_ptr->pts, header_ptr);
+#endif
+#if FTR_PER_FRAME_QUALITY_SAMPLE
+            test_update_psnr_per_frame_info(header_ptr->pts, header_ptr);
 #endif
             retrieve_roi_map_event(app_cfg->roi_map, header_ptr->pts, header_ptr);
             // Send the picture

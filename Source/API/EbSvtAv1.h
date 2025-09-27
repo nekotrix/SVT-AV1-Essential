@@ -272,6 +272,9 @@ typedef enum {
 #if FTR_FRAME_RATE_ON_THE_FLY
     FRAME_RATE_CHANGE_EVENT, // Frame rate change data per picture
 #endif
+#if FTR_PER_FRAME_QUALITY
+    COMPUTE_QUALITY_EVENT, // Compute quality per frame
+#endif
     PRIVATE_DATA_TYPES // end of private data types
 } PrivDataType;
 typedef struct EbPrivDataNode {
@@ -317,6 +320,13 @@ typedef struct SvtAv1FrameRateInfo {
     uint32_t frame_rate_numerator;
     uint32_t frame_rate_denominator;
 } SvtAv1FrameRateInfo;
+#endif
+
+#if FTR_PER_FRAME_QUALITY
+typedef struct SvtAv1ComputeQualityInfo {
+    bool compute_psnr;
+    bool compute_ssim;
+} SvtAv1ComputeQualityInfo;
 #endif
 
 /*!\brief Structure containing film grain synthesis parameters for a frame

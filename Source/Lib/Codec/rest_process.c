@@ -416,19 +416,24 @@ void *svt_aom_rest_kernel(void *input_ptr) {
                                        "Couldn't allocate memory for uncompressed 10bit buffers for PSNR "
                                        "calculations");
                 }
-            } else if (scs->static_config.stat_report) {
-                // Note: if temporal_filtering is used, memory needs to be freed in the last of these calls
-                EbErrorType return_error = psnr_calculations(pcs, scs, false);
-                if (return_error != EB_ErrorNone) {
-                    svt_aom_assert_err(0,
-                                       "Couldn't allocate memory for uncompressed 10bit buffers for PSNR "
-                                       "calculations");
+            } else {
+                EbErrorType return_error = EB_ErrorNone;
+                if (pcs->ppcs->compute_psnr) {
+                    // Note: if temporal_filtering is used, memory needs to be freed in the last of these calls
+                    return_error = psnr_calculations(pcs, scs, !pcs->ppcs->compute_ssim);
+                    if (return_error != EB_ErrorNone) {
+                        svt_aom_assert_err(0,
+                                           "Couldn't allocate memory for uncompressed 10bit buffers for PSNR "
+                                           "calculations");
+                    }
                 }
-                return_error = svt_aom_ssim_calculations(pcs, scs, true /* free memory here */);
-                if (return_error != EB_ErrorNone) {
-                    svt_aom_assert_err(0,
-                                       "Couldn't allocate memory for uncompressed 10bit buffers for SSIM "
-                                       "calculations");
+                if (pcs->ppcs->compute_ssim) {
+                    return_error = svt_aom_ssim_calculations(pcs, scs, true /* free memory here */);
+                    if (return_error != EB_ErrorNone) {
+                        svt_aom_assert_err(0,
+                                           "Couldn't allocate memory for uncompressed 10bit buffers for SSIM "
+                                           "calculations");
+                    }
                 }
             }
 

@@ -816,6 +816,14 @@ static void update_frame_event(PictureParentControlSet *pcs, uint64_t pic_num) {
             svt_aom_assert_err(node->size == sizeof(SvtAv1RoiMapEvt *) && node->data,
                                "invalide private data of type ROI_MAP_EVENT");
             scs->enc_ctx->roi_map_evt = (SvtAv1RoiMapEvt *)node->data;
+#if FTR_PER_FRAME_QUALITY
+        } else if (node->node_type == COMPUTE_QUALITY_EVENT) {
+            svt_aom_assert_err(node->size == sizeof(SvtAv1ComputeQualityInfo) && node->data,
+                               "invalid private data of type COMPUTE_QUALITY_EVENT");
+            SvtAv1ComputeQualityInfo *quality_info = (SvtAv1ComputeQualityInfo *)node->data;
+            pcs->compute_psnr                      = pcs->compute_psnr || quality_info->compute_psnr;
+            pcs->compute_ssim                      = pcs->compute_ssim || quality_info->compute_ssim;
+#endif
         }
         node = node->next;
     }
@@ -1115,6 +1123,8 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             pcs->y8b_wrapper          = y8b_wrapper;
             pcs->end_of_sequence_flag = end_of_sequence_flag;
             pcs->rc_reset_flag        = false;
+            pcs->compute_psnr         = scs->static_config.stat_report;
+            pcs->compute_ssim         = scs->static_config.stat_report;
             update_frame_event(pcs, context_ptr->picture_number_array[instance_index]);
             pcs->is_not_scaled = (scs->static_config.superres_mode == SUPERRES_NONE) &&
                 scs->static_config.resize_mode == RESIZE_NONE;

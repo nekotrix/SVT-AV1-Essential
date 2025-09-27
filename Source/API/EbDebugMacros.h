@@ -36,6 +36,7 @@ extern "C" {
 
 #define FTR_FRAME_RATE_ON_THE_FLY   1 // Add ability to change frame rate on the fly (without inserting keyframe)
 #define OPT_RATE_ON_THE_FLY_NO_KF   1 // Add ability to change bitrate on the fly without inserting keyframe
+#define FTR_PER_FRAME_QUALITY       1 // Add ability to compute quality for specific frame
 #define FTR_SFRAME_FLEX             1 // Add S-Frame Flexible ARF Mode
 #if FTR_SFRAME_FLEX
 #define FTR_SFRAME_POSI             1 // Add parameter to allow user insert S-Frames by picture number
@@ -65,6 +66,9 @@ extern "C" {
 #define FTR_RATE_ON_FLY_SAMPLE       0 // Sample functions to change bit rate
 #if FTR_FRAME_RATE_ON_THE_FLY
 #define FTR_FRAME_RATE_ON_FLY_SAMPLE 0 // Sample functions to change frame rate
+#endif
+#if FTR_PER_FRAME_QUALITY
+#define FTR_PER_FRAME_QUALITY_SAMPLE 0 // Sample functions to compute PSNR per frame
 #endif
 #endif
 // Super-resolution debugging code
