@@ -23,10 +23,6 @@
 #include "transpose_neon.h"
 #include "utility.h"
 
-void compute_stats_win3_sve(const int16_t *const d, const int32_t d_stride, const int16_t *const s,
-                            const int32_t s_stride, const int32_t width, const int32_t height, int64_t *const M,
-                            int64_t *const H);
-
 void compute_stats_win5_sve(const int16_t *const d, const int32_t d_stride, const int16_t *const s,
                             const int32_t s_stride, const int32_t width, const int32_t height, int64_t *const M,
                             int64_t *const H);

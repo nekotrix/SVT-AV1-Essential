@@ -121,11 +121,9 @@ void svt_av1_compute_stats_highbd_sve(int32_t wiener_win, const uint8_t *dgd8, c
 
     if (wiener_win == WIENER_WIN) {
         compute_stats_win7_sve(d, d_stride, s, s_stride, width, height, M, H);
-    } else if (wiener_win == WIENER_WIN_CHROMA) {
-        compute_stats_win5_sve(d, d_stride, s, s_stride, width, height, M, H);
     } else {
-        assert(wiener_win == WIENER_WIN_3TAP);
-        compute_stats_win3_sve(d, d_stride, s, s_stride, width, height, M, H);
+        assert(wiener_win == WIENER_WIN_CHROMA);
+        compute_stats_win5_sve(d, d_stride, s, s_stride, width, height, M, H);
     }
 
     // H is a symmetric matrix, so we only need to fill out the upper triangle.

@@ -18,7 +18,6 @@
 #include "utility.h"
 #include "picture_operators_sse2.h"
 
-#define WIN_3TAP ((WIENER_WIN_3TAP - 1) * 2)
 #define WIN_CHROMA ((WIENER_WIN_CHROMA - 1) * 2)
 #define WIN_7 ((WIENER_WIN - 1) * 2)
 
@@ -468,32 +467,6 @@ static INLINE void msub_sse4_1(const __m128i src, const __m128i dgd, __m128i *su
     *sum             = _mm_sub_epi32(*sum, sd);
 }
 
-static void stats_top_win3_sse4_1(const __m128i src[2], const __m128i dgd[2], const int16_t *const d,
-                                  const int32_t d_stride, __m128i *sum_m, __m128i *sum_h) {
-    __m128i dgds[WIENER_WIN_3TAP * 2];
-
-    dgds[0] = _mm_loadu_si128((__m128i *)(d + 0 * d_stride));
-    dgds[1] = _mm_loadu_si128((__m128i *)(d + 0 * d_stride + 8));
-    dgds[2] = _mm_loadu_si128((__m128i *)(d + 1 * d_stride));
-    dgds[3] = _mm_loadu_si128((__m128i *)(d + 1 * d_stride + 8));
-    dgds[4] = _mm_loadu_si128((__m128i *)(d + 2 * d_stride));
-    dgds[5] = _mm_loadu_si128((__m128i *)(d + 2 * d_stride + 8));
-
-    madd_sse4_1(src[0], dgds[0], &sum_m[0]);
-    madd_sse4_1(src[1], dgds[1], &sum_m[1]);
-    madd_sse4_1(src[0], dgds[2], &sum_m[2]);
-    madd_sse4_1(src[1], dgds[3], &sum_m[3]);
-    madd_sse4_1(src[0], dgds[4], &sum_m[4]);
-    madd_sse4_1(src[1], dgds[5], &sum_m[5]);
-
-    madd_sse4_1(dgd[0], dgds[0], &sum_h[0]);
-    madd_sse4_1(dgd[1], dgds[1], &sum_h[1]);
-    madd_sse4_1(dgd[0], dgds[2], &sum_h[2]);
-    madd_sse4_1(dgd[1], dgds[3], &sum_h[3]);
-    madd_sse4_1(dgd[0], dgds[4], &sum_h[4]);
-    madd_sse4_1(dgd[1], dgds[5], &sum_h[5]);
-}
-
 static void stats_top_win5_sse4_1(const __m128i src[2], const __m128i dgd[2], const int16_t *const d,
                                   const int32_t d_stride, __m128i *sum_m, __m128i *sum_h) {
     __m128i dgds[WIENER_WIN_CHROMA * 2];
@@ -582,20 +555,6 @@ static void stats_top_win7_sse4_1(const __m128i src[2], const __m128i dgd[2], co
     madd_sse4_1(dgd[1], dgds[13], &sum_h[13]);
 }
 
-static void stats_left_win3_sse4_1(const __m128i src[2], const int16_t *d, const int32_t d_stride, __m128i *sum) {
-    __m128i dgds[WIN_3TAP];
-
-    dgds[0] = _mm_loadu_si128((__m128i *)(d + 1 * d_stride));
-    dgds[1] = _mm_loadu_si128((__m128i *)(d + 1 * d_stride + 8));
-    dgds[2] = _mm_loadu_si128((__m128i *)(d + 2 * d_stride));
-    dgds[3] = _mm_loadu_si128((__m128i *)(d + 2 * d_stride + 8));
-
-    madd_sse4_1(src[0], dgds[0], &sum[0]);
-    madd_sse4_1(src[1], dgds[1], &sum[1]);
-    madd_sse4_1(src[0], dgds[2], &sum[2]);
-    madd_sse4_1(src[1], dgds[3], &sum[3]);
-}
-
 static void stats_left_win5_sse4_1(const __m128i src[2], const int16_t *d, const int32_t d_stride, __m128i *sum) {
     __m128i dgds[WIN_CHROMA];
 
@@ -646,27 +605,6 @@ static void stats_left_win7_sse4_1(const __m128i src[2], const int16_t *d, const
     madd_sse4_1(src[1], dgds[9], &sum[9]);
     madd_sse4_1(src[0], dgds[10], &sum[10]);
     madd_sse4_1(src[1], dgds[11], &sum[11]);
-}
-
-static void load_square_win3_sse4_1(const int16_t *const di, const int16_t *const d_j, const int32_t d_stride,
-                                    const int32_t height, __m128i *d_is, __m128i *d_ie, __m128i *d_js, __m128i *d_je) {
-    d_is[0] = _mm_loadu_si128((__m128i *)(di + 0 * d_stride));
-    d_is[1] = _mm_loadu_si128((__m128i *)(di + 0 * d_stride + 8));
-    d_js[0] = _mm_loadu_si128((__m128i *)(d_j + 0 * d_stride));
-    d_js[1] = _mm_loadu_si128((__m128i *)(d_j + 0 * d_stride + 8));
-    d_is[2] = _mm_loadu_si128((__m128i *)(di + 1 * d_stride));
-    d_is[3] = _mm_loadu_si128((__m128i *)(di + 1 * d_stride + 8));
-    d_js[2] = _mm_loadu_si128((__m128i *)(d_j + 1 * d_stride));
-    d_js[3] = _mm_loadu_si128((__m128i *)(d_j + 1 * d_stride + 8));
-
-    d_ie[0] = _mm_loadu_si128((__m128i *)(di + (0 + height) * d_stride));
-    d_ie[1] = _mm_loadu_si128((__m128i *)(di + (0 + height) * d_stride + 8));
-    d_je[0] = _mm_loadu_si128((__m128i *)(d_j + (0 + height) * d_stride));
-    d_je[1] = _mm_loadu_si128((__m128i *)(d_j + (0 + height) * d_stride + 8));
-    d_ie[2] = _mm_loadu_si128((__m128i *)(di + (1 + height) * d_stride));
-    d_ie[3] = _mm_loadu_si128((__m128i *)(di + (1 + height) * d_stride + 8));
-    d_je[2] = _mm_loadu_si128((__m128i *)(d_j + (1 + height) * d_stride));
-    d_je[3] = _mm_loadu_si128((__m128i *)(d_j + (1 + height) * d_stride + 8));
 }
 
 static void load_square_win5_sse4_1(const int16_t *const di, const int16_t *const d_j, const int32_t d_stride,
@@ -759,19 +697,6 @@ static void load_square_win7_sse4_1(const int16_t *const di, const int16_t *cons
     d_je[11] = _mm_loadu_si128((__m128i *)(d_j + (5 + height) * d_stride + 8));
 }
 
-static void load_triangle_win3_sse4_1(const int16_t *const di, const int32_t d_stride, const int32_t height,
-                                      __m128i *d_is, __m128i *d_ie) {
-    d_is[0] = _mm_loadu_si128((__m128i *)(di + 0 * d_stride));
-    d_is[1] = _mm_loadu_si128((__m128i *)(di + 0 * d_stride + 8));
-    d_is[2] = _mm_loadu_si128((__m128i *)(di + 1 * d_stride));
-    d_is[3] = _mm_loadu_si128((__m128i *)(di + 1 * d_stride + 8));
-
-    d_ie[0] = _mm_loadu_si128((__m128i *)(di + (0 + height) * d_stride));
-    d_ie[1] = _mm_loadu_si128((__m128i *)(di + (0 + height) * d_stride + 8));
-    d_ie[2] = _mm_loadu_si128((__m128i *)(di + (1 + height) * d_stride));
-    d_ie[3] = _mm_loadu_si128((__m128i *)(di + (1 + height) * d_stride + 8));
-}
-
 static void load_triangle_win5_sse4_1(const int16_t *const di, const int32_t d_stride, const int32_t height,
                                       __m128i *d_is, __m128i *d_ie) {
     d_is[0] = _mm_loadu_si128((__m128i *)(di + 0 * d_stride));
@@ -820,27 +745,6 @@ static void load_triangle_win7_sse4_1(const int16_t *const di, const int32_t d_s
     d_ie[9]  = _mm_loadu_si128((__m128i *)(di + (4 + height) * d_stride + 8));
     d_ie[10] = _mm_loadu_si128((__m128i *)(di + (5 + height) * d_stride));
     d_ie[11] = _mm_loadu_si128((__m128i *)(di + (5 + height) * d_stride + 8));
-}
-
-static void derive_square_win3_sse4_1(const __m128i *d_is, const __m128i *d_ie, const __m128i *d_js,
-                                      const __m128i *d_je, __m128i deltas[][WIN_3TAP]) {
-    msub_sse4_1(d_is[0], d_js[0], &deltas[0][0]);
-    msub_sse4_1(d_is[1], d_js[1], &deltas[0][1]);
-    msub_sse4_1(d_is[0], d_js[2], &deltas[0][2]);
-    msub_sse4_1(d_is[1], d_js[3], &deltas[0][3]);
-    msub_sse4_1(d_is[2], d_js[0], &deltas[1][0]);
-    msub_sse4_1(d_is[3], d_js[1], &deltas[1][1]);
-    msub_sse4_1(d_is[2], d_js[2], &deltas[1][2]);
-    msub_sse4_1(d_is[3], d_js[3], &deltas[1][3]);
-
-    madd_sse4_1(d_ie[0], d_je[0], &deltas[0][0]);
-    madd_sse4_1(d_ie[1], d_je[1], &deltas[0][1]);
-    madd_sse4_1(d_ie[0], d_je[2], &deltas[0][2]);
-    madd_sse4_1(d_ie[1], d_je[3], &deltas[0][3]);
-    madd_sse4_1(d_ie[2], d_je[0], &deltas[1][0]);
-    madd_sse4_1(d_ie[3], d_je[1], &deltas[1][1]);
-    madd_sse4_1(d_ie[2], d_je[2], &deltas[1][2]);
-    madd_sse4_1(d_ie[3], d_je[3], &deltas[1][3]);
 }
 
 static void derive_square_win5_sse4_1(const __m128i *d_is, const __m128i *d_ie, const __m128i *d_js,
@@ -1077,22 +981,6 @@ static void derive_square_win7_sse4_1(const __m128i *d_is, const __m128i *d_ie, 
     madd_sse4_1(d_ie[11], d_je[11], &deltas[5][11]);
 }
 
-static void derive_triangle_win3_sse4_1(const __m128i *d_is, const __m128i *d_ie, __m128i *deltas) {
-    msub_sse4_1(d_is[0], d_is[0], &deltas[0]);
-    msub_sse4_1(d_is[1], d_is[1], &deltas[1]);
-    msub_sse4_1(d_is[0], d_is[2], &deltas[2]);
-    msub_sse4_1(d_is[1], d_is[3], &deltas[3]);
-    msub_sse4_1(d_is[2], d_is[2], &deltas[4]);
-    msub_sse4_1(d_is[3], d_is[3], &deltas[5]);
-
-    madd_sse4_1(d_ie[0], d_ie[0], &deltas[0]);
-    madd_sse4_1(d_ie[1], d_ie[1], &deltas[1]);
-    madd_sse4_1(d_ie[0], d_ie[2], &deltas[2]);
-    madd_sse4_1(d_ie[1], d_ie[3], &deltas[3]);
-    madd_sse4_1(d_ie[2], d_ie[2], &deltas[4]);
-    madd_sse4_1(d_ie[3], d_ie[3], &deltas[5]);
-}
-
 static void derive_triangle_win5_sse4_1(const __m128i *d_is, const __m128i *d_ie, __m128i *deltas) {
     msub_sse4_1(d_is[0], d_is[0], &deltas[0]);
     msub_sse4_1(d_is[1], d_is[1], &deltas[1]);
@@ -1266,63 +1154,12 @@ static INLINE __m128i hadd_four_32_sse4_1(const __m128i src0, const __m128i src1
     return _mm_hadd_epi32(s01, s01);
 }
 
-static INLINE void load_more_32_sse4_1(const int16_t *const src, const int32_t width, __m128i dst[2]) {
-    dst[0] = _mm_srli_si128(dst[0], 4);
-    dst[1] = _mm_srli_si128(dst[1], 4);
-    dst[0] = _mm_insert_epi32(dst[0], *(int32_t *)src, 3);
-    dst[1] = _mm_insert_epi32(dst[1], *(int32_t *)(src + width), 3);
-}
-
 static INLINE void load_more_16_sse4_1(const int16_t *const src, const int32_t width, const __m128i org[2],
                                        __m128i dst[2]) {
     dst[0] = _mm_srli_si128(org[0], 2);
     dst[1] = _mm_srli_si128(org[1], 2);
     dst[0] = _mm_insert_epi16(dst[0], *(int32_t *)src, 7);
     dst[1] = _mm_insert_epi16(dst[1], *(int32_t *)(src + width), 7);
-}
-
-static void step3_win3_sse4_1(const int16_t **const d, const int32_t d_stride, const int32_t width, const int32_t h4,
-                              __m128i dd[2], __m128i *deltas) {
-    // 16-bit idx: 0, 2, 4, 6, 1, 3, 5, 7, 0, 2, 4, 6, 1, 3, 5, 7
-    const __m128i shf = _mm_setr_epi8(0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15);
-
-    int32_t y = h4;
-    while (y) {
-        __m128i ds[WIENER_WIN_3TAP * 2];
-
-        // 00s 01s 10s 11s 20s 21s 30s 31s  00e 01e 10e 11e 20e 21e 30e 31e
-        dd[0] = _mm_insert_epi32(dd[0], *(int32_t *)(*d + 2 * d_stride), 2);
-        dd[0] = _mm_insert_epi32(dd[0], *(int32_t *)(*d + 3 * d_stride), 3);
-        dd[1] = _mm_insert_epi32(dd[1], *(int32_t *)(*d + 2 * d_stride + width), 2);
-        dd[1] = _mm_insert_epi32(dd[1], *(int32_t *)(*d + 3 * d_stride + width), 3);
-        // 00s 10s 20s 30s 01s 11s 21s 31s  00e 10e 20e 30e 01e 11e 21e 31e
-        ds[0] = _mm_shuffle_epi8(dd[0], shf);
-        ds[3] = _mm_shuffle_epi8(dd[1], shf);
-
-        // 10s 11s 20s 21s 30s 31s 40s 41s  10e 11e 20e 21e 30e 31e 40e 41e
-        load_more_32_sse4_1(*d + 4 * d_stride, width, dd);
-        // 10s 20s 30s 40s 11s 21s 31s 41s  10e 20e 30e 40e 11e 21e 31e 41e
-        ds[1] = _mm_shuffle_epi8(dd[0], shf);
-        ds[4] = _mm_shuffle_epi8(dd[1], shf);
-
-        // 20s 21s 30s 31s 40s 41s 50s 51s  20e 21e 30e 31e 40e 41e 50e 51e
-        load_more_32_sse4_1(*d + 5 * d_stride, width, dd);
-        // 20s 30s 40s 50s 21s 31s 41s 51s  20e 30e 40e 50e 21e 31e 41e 51e
-        ds[2] = _mm_shuffle_epi8(dd[0], shf);
-        ds[5] = _mm_shuffle_epi8(dd[1], shf);
-
-        madd_sse4_1(ds[0], ds[0], &deltas[0]);
-        madd_sse4_1(ds[3], ds[3], &deltas[1]);
-        madd_sse4_1(ds[0], ds[1], &deltas[2]);
-        madd_sse4_1(ds[3], ds[4], &deltas[3]);
-        madd_sse4_1(ds[0], ds[2], &deltas[4]);
-        madd_sse4_1(ds[3], ds[5], &deltas[5]);
-
-        dd[0] = _mm_srli_si128(dd[0], 8);
-        dd[1] = _mm_srli_si128(dd[1], 8);
-        *d += 4 * d_stride;
-        y -= 4;
-    };
 }
 
 static void step3_win5_sse4_1(const int16_t **const d, const int32_t d_stride, const int32_t width,
@@ -1513,519 +1350,6 @@ static INLINE void shift_right_4b_2x128(__m128i vec[2]) {
     vec[1]       = _mm_srli_si128(vec[1], 4);
     vec[0]       = _mm_insert_epi32(vec[0], tmp2, 3);
     vec[1]       = _mm_insert_epi32(vec[1], tmp1, 3);
-}
-
-static void compute_stats_win3_sse4_1(const int16_t *const d, const int32_t d_stride, const int16_t *const s,
-                                      const int32_t s_stride, const int32_t width, const int32_t height,
-                                      int64_t *const M, int64_t *const H, EbBitDepth bit_depth) {
-    const int32_t wiener_win  = WIENER_WIN_3TAP;
-    const int32_t wiener_win2 = wiener_win * wiener_win;
-    const int32_t w16         = width & ~15;
-    const int32_t h4          = height & ~3;
-    const int32_t h8          = height & ~7;
-    const __m128i mask[2]     = {_mm_loadu_si128((__m128i *)(mask_16bit[width - w16])),
-                                 _mm_loadu_si128((__m128i *)(mask_16bit[width - w16] + 8))};
-    int32_t       i, j, x, y;
-
-    if (bit_depth == EB_EIGHT_BIT) {
-        // Step 1: Calculate the top edge of the whole matrix, i.e., the top
-        // edge of each triangle and square on the top row.
-        j = 0;
-        do {
-            const int16_t *s_t                        = s;
-            const int16_t *d_t                        = d;
-            __m128i        sum_m[WIENER_WIN_3TAP * 2] = {_mm_setzero_si128()};
-            __m128i        sum_h[WIENER_WIN_3TAP * 2] = {_mm_setzero_si128()};
-            __m128i        src[2], dgd[2];
-
-            y = height;
-            do {
-                x = 0;
-                while (x < w16) {
-                    src[0] = _mm_loadu_si128((__m128i *)(s_t + x));
-                    src[1] = _mm_loadu_si128((__m128i *)(s_t + x + 8));
-                    dgd[0] = _mm_loadu_si128((__m128i *)(d_t + x));
-                    dgd[1] = _mm_loadu_si128((__m128i *)(d_t + x + 8));
-                    stats_top_win3_sse4_1(src, dgd, d_t + j + x, d_stride, sum_m, sum_h);
-                    x += 16;
-                };
-
-                if (w16 != width) {
-                    src[0] = _mm_loadu_si128((__m128i *)(s_t + w16));
-                    src[1] = _mm_loadu_si128((__m128i *)(s_t + w16 + 8));
-                    dgd[0] = _mm_loadu_si128((__m128i *)(d_t + w16));
-                    dgd[1] = _mm_loadu_si128((__m128i *)(d_t + w16 + 8));
-                    src[0] = _mm_and_si128(src[0], mask[0]);
-                    src[1] = _mm_and_si128(src[1], mask[1]);
-                    dgd[0] = _mm_and_si128(dgd[0], mask[0]);
-                    dgd[1] = _mm_and_si128(dgd[1], mask[1]);
-                    stats_top_win3_sse4_1(src, dgd, d_t + j + w16, d_stride, sum_m, sum_h);
-                }
-
-                s_t += s_stride;
-                d_t += d_stride;
-            } while (--y);
-
-            _mm_storel_epi64((__m128i *)&M[wiener_win * j], hadd_two_32_to_64_sse4_1(sum_m[0], sum_m[1]));
-            _mm_storel_epi64((__m128i *)&M[wiener_win * j + 1], hadd_two_32_to_64_sse4_1(sum_m[2], sum_m[3]));
-            _mm_storel_epi64((__m128i *)&M[wiener_win * j + 2], hadd_two_32_to_64_sse4_1(sum_m[4], sum_m[5]));
-            _mm_storel_epi64((__m128i *)(H + wiener_win * j), hadd_two_32_to_64_sse4_1(sum_h[0], sum_h[1]));
-            _mm_storel_epi64((__m128i *)(H + wiener_win * j + 1), hadd_two_32_to_64_sse4_1(sum_h[2], sum_h[3]));
-            _mm_storel_epi64((__m128i *)(H + wiener_win * j + 2), hadd_two_32_to_64_sse4_1(sum_h[4], sum_h[5]));
-        } while (++j < wiener_win);
-
-        // Step 2: Calculate the left edge of each square on the top row.
-        j = 1;
-        do {
-            const int16_t *d_t             = d;
-            __m128i        sum_h[WIN_3TAP] = {_mm_setzero_si128()};
-            __m128i        dgd[2];
-
-            y = height;
-            do {
-                x = 0;
-                while (x < w16) {
-                    dgd[0] = _mm_loadu_si128((__m128i *)(d_t + j + x));
-                    dgd[1] = _mm_loadu_si128((__m128i *)(d_t + j + x + 8));
-                    stats_left_win3_sse4_1(dgd, d_t + x, d_stride, sum_h);
-                    x += 16;
-                };
-
-                if (w16 != width) {
-                    dgd[0] = _mm_loadu_si128((__m128i *)(d_t + j + x));
-                    dgd[1] = _mm_loadu_si128((__m128i *)(d_t + j + x + 8));
-                    dgd[0] = _mm_and_si128(dgd[0], mask[0]);
-                    dgd[1] = _mm_and_si128(dgd[1], mask[1]);
-                    stats_left_win3_sse4_1(dgd, d_t + x, d_stride, sum_h);
-                }
-
-                d_t += d_stride;
-            } while (--y);
-
-            _mm_storel_epi64((__m128i *)&H[1 * wiener_win2 + j * wiener_win],
-                             hadd_two_32_to_64_sse4_1(sum_h[0], sum_h[1]));
-            _mm_storel_epi64((__m128i *)&H[2 * wiener_win2 + j * wiener_win],
-                             hadd_two_32_to_64_sse4_1(sum_h[2], sum_h[3]));
-        } while (++j < wiener_win);
-    } else {
-        const int32_t num_bit_left = 32 - 1 /* sign */ - 2 * bit_depth /* energy */ + 3 /* SIMD */;
-        const int32_t h_allowed    = (1 << num_bit_left) / (w16 + ((w16 != width) ? 16 : 0));
-
-        // Step 1: Calculate the top edge of the whole matrix, i.e., the top
-        // edge of each triangle and square on the top row.
-        j = 0;
-        do {
-            const int16_t *s_t                        = s;
-            const int16_t *d_t                        = d;
-            int32_t        height_t                   = 0;
-            __m128i        sum_m[WIENER_WIN_3TAP * 2] = {_mm_setzero_si128()};
-            __m128i        sum_h[WIENER_WIN_3TAP * 2] = {_mm_setzero_si128()};
-            __m128i        src[2], dgd[2];
-
-            do {
-                const int32_t h_t = ((height - height_t) < h_allowed) ? (height - height_t) : h_allowed;
-                __m128i       row_m[WIENER_WIN_3TAP * 2] = {_mm_setzero_si128()};
-                __m128i       row_h[WIENER_WIN_3TAP * 2] = {_mm_setzero_si128()};
-
-                y = h_t;
-                do {
-                    x = 0;
-                    while (x < w16) {
-                        src[0] = _mm_loadu_si128((__m128i *)(s_t + x));
-                        src[1] = _mm_loadu_si128((__m128i *)(s_t + x + 8));
-                        dgd[0] = _mm_loadu_si128((__m128i *)(d_t + x));
-                        dgd[1] = _mm_loadu_si128((__m128i *)(d_t + x + 8));
-                        stats_top_win3_sse4_1(src, dgd, d_t + j + x, d_stride, row_m, row_h);
-                        x += 16;
-                    };
-
-                    if (w16 != width) {
-                        src[0] = _mm_loadu_si128((__m128i *)(s_t + w16));
-                        src[1] = _mm_loadu_si128((__m128i *)(s_t + w16 + 8));
-                        dgd[0] = _mm_loadu_si128((__m128i *)(d_t + w16));
-                        dgd[1] = _mm_loadu_si128((__m128i *)(d_t + w16 + 8));
-                        src[0] = _mm_and_si128(src[0], mask[0]);
-                        src[1] = _mm_and_si128(src[1], mask[1]);
-                        dgd[0] = _mm_and_si128(dgd[0], mask[0]);
-                        dgd[1] = _mm_and_si128(dgd[1], mask[1]);
-                        stats_top_win3_sse4_1(src, dgd, d_t + j + w16, d_stride, row_m, row_h);
-                    }
-
-                    s_t += s_stride;
-                    d_t += d_stride;
-                } while (--y);
-
-                add_32_to_64_sse4_1(row_m[0], &sum_m[0]);
-                add_32_to_64_sse4_1(row_m[1], &sum_m[1]);
-                add_32_to_64_sse4_1(row_m[2], &sum_m[2]);
-                add_32_to_64_sse4_1(row_m[3], &sum_m[3]);
-                add_32_to_64_sse4_1(row_m[4], &sum_m[4]);
-                add_32_to_64_sse4_1(row_m[5], &sum_m[5]);
-                add_32_to_64_sse4_1(row_h[0], &sum_h[0]);
-                add_32_to_64_sse4_1(row_h[1], &sum_h[1]);
-                add_32_to_64_sse4_1(row_h[2], &sum_h[2]);
-                add_32_to_64_sse4_1(row_h[3], &sum_h[3]);
-                add_32_to_64_sse4_1(row_h[4], &sum_h[4]);
-                add_32_to_64_sse4_1(row_h[5], &sum_h[5]);
-
-                height_t += h_t;
-            } while (height_t < height);
-
-            _mm_storel_epi64((__m128i *)&M[wiener_win * j], hadd_2_two_64_sse4_1(sum_m[0], sum_m[1]));
-            _mm_storel_epi64((__m128i *)&M[wiener_win * j + 1], hadd_2_two_64_sse4_1(sum_m[2], sum_m[3]));
-            _mm_storel_epi64((__m128i *)&M[wiener_win * j + 2], hadd_2_two_64_sse4_1(sum_m[4], sum_m[5]));
-            _mm_storel_epi64((__m128i *)(H + wiener_win * j), hadd_2_two_64_sse4_1(sum_h[0], sum_h[1]));
-            _mm_storel_epi64((__m128i *)(H + wiener_win * j + 1), hadd_2_two_64_sse4_1(sum_h[2], sum_h[3]));
-            _mm_storel_epi64((__m128i *)(H + wiener_win * j + 2), hadd_2_two_64_sse4_1(sum_h[4], sum_h[5]));
-        } while (++j < wiener_win);
-
-        // Step 2: Calculate the left edge of each square on the top row.
-        j = 1;
-        do {
-            const int16_t *d_t             = d;
-            int32_t        height_t        = 0;
-            __m128i        sum_h[WIN_3TAP] = {_mm_setzero_si128()};
-            __m128i        dgd[2];
-
-            do {
-                const int32_t h_t             = ((height - height_t) < h_allowed) ? (height - height_t) : h_allowed;
-                __m128i       row_h[WIN_3TAP] = {_mm_setzero_si128()};
-
-                y = h_t;
-                do {
-                    x = 0;
-                    while (x < w16) {
-                        dgd[0] = _mm_loadu_si128((__m128i *)(d_t + j + x));
-                        dgd[1] = _mm_loadu_si128((__m128i *)(d_t + j + x + 8));
-                        stats_left_win3_sse4_1(dgd, d_t + x, d_stride, row_h);
-                        x += 16;
-                    };
-
-                    if (w16 != width) {
-                        dgd[0] = _mm_loadu_si128((__m128i *)(d_t + j + x));
-                        dgd[1] = _mm_loadu_si128((__m128i *)(d_t + j + x + 8));
-                        dgd[0] = _mm_and_si128(dgd[0], mask[0]);
-                        dgd[1] = _mm_and_si128(dgd[1], mask[1]);
-                        stats_left_win3_sse4_1(dgd, d_t + x, d_stride, row_h);
-                    }
-
-                    d_t += d_stride;
-                } while (--y);
-
-                add_32_to_64_sse4_1(row_h[0], &sum_h[0]);
-                add_32_to_64_sse4_1(row_h[1], &sum_h[1]);
-                add_32_to_64_sse4_1(row_h[2], &sum_h[2]);
-                add_32_to_64_sse4_1(row_h[3], &sum_h[3]);
-
-                height_t += h_t;
-            } while (height_t < height);
-
-            _mm_storel_epi64((__m128i *)&H[1 * wiener_win2 + j * wiener_win], hadd_2_two_64_sse4_1(sum_h[0], sum_h[1]));
-            _mm_storel_epi64((__m128i *)&H[2 * wiener_win2 + j * wiener_win], hadd_2_two_64_sse4_1(sum_h[2], sum_h[3]));
-        } while (++j < wiener_win);
-    }
-
-    // Step 3: Derive the top edge of each triangle along the diagonal. No
-    // triangle in top row.
-    {
-        const int16_t *d_t           = d;
-        __m128i        dd[2]         = {_mm_setzero_si128()}; // Initialize to avoid warning.
-        __m128i        deltas[4 * 2] = {_mm_setzero_si128()};
-        __m128i        delta[2];
-
-        dd[0] = _mm_insert_epi32(dd[0], *(int32_t *)(d_t + 0 * d_stride), 0);
-        dd[0] = _mm_insert_epi32(dd[0], *(int32_t *)(d_t + 1 * d_stride), 1);
-        dd[1] = _mm_insert_epi32(dd[1], *(int32_t *)(d_t + 0 * d_stride + width), 0);
-        dd[1] = _mm_insert_epi32(dd[1], *(int32_t *)(d_t + 1 * d_stride + width), 1);
-
-        step3_win3_sse4_1(&d_t, d_stride, width, h4, dd, deltas);
-
-        deltas[0] = _mm_hadd_epi32(deltas[0], deltas[2]);
-        deltas[1] = _mm_hadd_epi32(deltas[1], deltas[3]);
-        deltas[2] = _mm_hadd_epi32(deltas[4], deltas[4]);
-        deltas[3] = _mm_hadd_epi32(deltas[5], deltas[5]);
-        delta[0]  = _mm_sub_epi32(deltas[1], deltas[0]);
-        delta[1]  = _mm_sub_epi32(deltas[3], deltas[2]);
-
-        if (h4 != height) {
-            // 16-bit idx: 0, 2, 1, 3, 0, 2, 1, 3
-            const __m128i shf0 = _mm_setr_epi8(0, 1, 4, 5, 2, 3, 6, 7, 0, 1, 4, 5, 2, 3, 6, 7);
-            // 16-bit idx: 0, 2, 1, 3, 4, 6, 5, 7, 0, 2, 1, 3, 4, 6, 5, 7
-            const __m128i shf1 = _mm_setr_epi8(0, 1, 4, 5, 2, 3, 6, 7, 8, 9, 12, 13, 10, 11, 14, 15);
-
-            dd[0] = _mm_insert_epi32(dd[0], *(int32_t *)(d_t + 0 * d_stride), 0);
-            dd[0] = _mm_insert_epi32(dd[0], *(int32_t *)(d_t + 0 * d_stride + width), 1);
-            dd[0] = _mm_insert_epi32(dd[0], *(int32_t *)(d_t + 1 * d_stride), 2);
-            dd[0] = _mm_insert_epi32(dd[0], *(int32_t *)(d_t + 1 * d_stride + width), 3);
-
-            y = height - h4;
-            do {
-                __m128i t0;
-
-                // -00s -01s 00e 01e
-                t0 = _mm_cvtsi32_si128(*(int32_t *)d_t);
-                t0 = _mm_sub_epi16(_mm_setzero_si128(), t0);
-                t0 = _mm_insert_epi32(t0, *(int32_t *)(d_t + width), 1);
-                t0 = _mm_shuffle_epi8(t0, shf0);
-
-                // 00s 01s 00e 01e 10s 11s 10e 11e  20s 21s 20e 21e xx xx xx xx
-                dd[1] = _mm_insert_epi32(dd[1], *(int32_t *)(d_t + 2 * d_stride), 0);
-                dd[1] = _mm_insert_epi32(dd[1], *(int32_t *)(d_t + 2 * d_stride + width), 1);
-                // 00s 00e 01s 01e 10s 10e 11s 11e  20s 20e 21e 21s xx xx xx xx
-                const __m128i dd_t_1 = _mm_shuffle_epi8(dd[0], shf1);
-                const __m128i dd_t_2 = _mm_shuffle_epi8(dd[1], shf1);
-                madd_sse4_1(t0, dd_t_1, &delta[0]);
-                madd_sse4_1(t0, dd_t_2, &delta[1]);
-
-                int64_t tmp1 = _mm_cvtsi128_si64(dd[0]);
-                int64_t tmp2 = _mm_cvtsi128_si64(dd[1]);
-                dd[0]        = _mm_srli_si128(dd[0], 8);
-                dd[1]        = _mm_srli_si128(dd[1], 8);
-                dd[0]        = _mm_insert_epi64(dd[0], tmp2, 1);
-                dd[1]        = _mm_insert_epi64(dd[1], tmp1, 1);
-
-                d_t += d_stride;
-            } while (--y);
-        }
-
-        // Writing one more H on the top edge of a triangle along the diagonal
-        // falls to the next triangle in the same row, which would be calculated
-        // later, so it won't overflow.
-        // 00 01 02 02  10 11 12 12
-        const __m128i delta_lo = _mm_unpacklo_epi32(delta[0], delta[1]);
-        const __m128i delta_hi = _mm_unpackhi_epi32(delta[0], delta[1]);
-
-        delta[0] = _mm_unpacklo_epi32(delta_lo, delta_hi);
-        delta[1] = _mm_unpackhi_epi32(delta_lo, delta_hi);
-
-        update_4_stats_sse4_1(H + 0 * wiener_win * wiener_win2 + 0 * wiener_win,
-                              delta[0],
-                              H + 1 * wiener_win * wiener_win2 + 1 * wiener_win);
-        update_4_stats_sse4_1(H + 1 * wiener_win * wiener_win2 + 1 * wiener_win,
-                              delta[1],
-                              H + 2 * wiener_win * wiener_win2 + 2 * wiener_win);
-    }
-
-    // Step 4: Derive the top and left edge of each square. No square in top and
-    // bottom row.
-    {
-        const int16_t *d_t                                   = d;
-        __m128i        deltas[(2 * WIENER_WIN_3TAP - 1) * 2] = {_mm_setzero_si128()};
-        __m128i        dd[WIENER_WIN_3TAP * 2]               = {_mm_setzero_si128()};
-        __m128i        ds[WIENER_WIN_3TAP * 2]               = {_mm_setzero_si128()};
-        __m128i        se0[2], se1[2], xx[2], yy[2];
-        __m128i        delta[2];
-
-        y = 0;
-        while (y < h8) {
-            // 00s 01s 10s 11s 20s 21s 30s 31s  00e 01e 10e 11e 20e 21e 30e 31e
-            se0[0] = _mm_setr_epi32(*(int32_t *)(d_t + 0 * d_stride),
-                                    *(int32_t *)(d_t + 1 * d_stride),
-                                    *(int32_t *)(d_t + 2 * d_stride),
-                                    *(int32_t *)(d_t + 3 * d_stride));
-            se0[1] = _mm_setr_epi32(*(int32_t *)(d_t + 0 * d_stride + width),
-                                    *(int32_t *)(d_t + 1 * d_stride + width),
-                                    *(int32_t *)(d_t + 2 * d_stride + width),
-                                    *(int32_t *)(d_t + 3 * d_stride + width));
-
-            // 40s 41s 50s 51s 60s 61s 70s 71s  40e 41e 50e 51e 60e 61e 70e 71e
-            se1[0] = _mm_setr_epi32(*(int32_t *)(d_t + 4 * d_stride),
-                                    *(int32_t *)(d_t + 5 * d_stride),
-                                    *(int32_t *)(d_t + 6 * d_stride),
-                                    *(int32_t *)(d_t + 7 * d_stride));
-            se1[1] = _mm_setr_epi32(*(int32_t *)(d_t + 4 * d_stride + width),
-                                    *(int32_t *)(d_t + 5 * d_stride + width),
-                                    *(int32_t *)(d_t + 6 * d_stride + width),
-                                    *(int32_t *)(d_t + 7 * d_stride + width));
-
-            // 00s 10s 20s 30s 40s 50s 60s 70s  00e 10e 20e 30e 40e 50e 60e 70e
-            xx[0] = _mm_slli_epi32(se0[0], 16);
-            xx[1] = _mm_slli_epi32(se0[1], 16);
-            yy[0] = _mm_slli_epi32(se1[0], 16);
-            yy[1] = _mm_slli_epi32(se1[1], 16);
-            xx[0] = _mm_srai_epi32(xx[0], 16);
-            xx[1] = _mm_srai_epi32(xx[1], 16);
-            yy[0] = _mm_srai_epi32(yy[0], 16);
-            yy[1] = _mm_srai_epi32(yy[1], 16);
-            dd[0] = _mm_packs_epi32(xx[0], yy[0]);
-            dd[1] = _mm_packs_epi32(xx[1], yy[1]);
-
-            // 01s 11s 21s 31s 41s 51s 61s 71s  01e 11e 21e 31e 41e 51e 61e 71e
-            se0[0] = _mm_srai_epi32(se0[0], 16);
-            se0[1] = _mm_srai_epi32(se0[1], 16);
-            se1[0] = _mm_srai_epi32(se1[0], 16);
-            se1[1] = _mm_srai_epi32(se1[1], 16);
-            ds[0]  = _mm_packs_epi32(se0[0], se1[0]);
-            ds[1]  = _mm_packs_epi32(se0[1], se1[1]);
-
-            load_more_16_sse4_1(d_t + 8 * d_stride + 0, width, &dd[0], &dd[2]);
-            load_more_16_sse4_1(d_t + 8 * d_stride + 1, width, &ds[0], &ds[2]);
-            load_more_16_sse4_1(d_t + 9 * d_stride + 0, width, &dd[2], &dd[4]);
-            load_more_16_sse4_1(d_t + 9 * d_stride + 1, width, &ds[2], &ds[4]);
-
-            madd_sse4_1(dd[0], ds[0], &deltas[0]);
-            madd_sse4_1(dd[1], ds[1], &deltas[1]);
-            madd_sse4_1(dd[0], ds[2], &deltas[2]);
-            madd_sse4_1(dd[1], ds[3], &deltas[3]);
-            madd_sse4_1(dd[0], ds[4], &deltas[4]);
-            madd_sse4_1(dd[1], ds[5], &deltas[5]);
-            madd_sse4_1(dd[2], ds[0], &deltas[6]);
-            madd_sse4_1(dd[3], ds[1], &deltas[7]);
-            madd_sse4_1(dd[4], ds[0], &deltas[8]);
-            madd_sse4_1(dd[5], ds[1], &deltas[9]);
-
-            d_t += 8 * d_stride;
-            y += 8;
-        };
-
-        deltas[0] = _mm_hadd_epi32(deltas[0], deltas[2]);
-        deltas[1] = _mm_hadd_epi32(deltas[1], deltas[3]);
-        deltas[2] = _mm_hadd_epi32(deltas[4], deltas[4]);
-        deltas[3] = _mm_hadd_epi32(deltas[5], deltas[5]);
-        deltas[4] = _mm_hadd_epi32(deltas[6], deltas[8]);
-        deltas[5] = _mm_hadd_epi32(deltas[7], deltas[9]);
-        deltas[0] = _mm_hadd_epi32(deltas[0], deltas[2]);
-        deltas[1] = _mm_hadd_epi32(deltas[1], deltas[3]);
-        deltas[2] = _mm_hadd_epi32(deltas[4], deltas[4]);
-        deltas[3] = _mm_hadd_epi32(deltas[5], deltas[5]);
-        delta[0]  = _mm_sub_epi32(deltas[1], deltas[0]);
-        delta[1]  = _mm_sub_epi32(deltas[3], deltas[2]);
-
-        if (h8 != height) {
-            ds[0] = _mm_insert_epi16(ds[0], d_t[0 * d_stride + 1], 0);
-            ds[0] = _mm_insert_epi16(ds[0], d_t[0 * d_stride + 1 + width], 1);
-
-            dd[1] = _mm_insert_epi16(dd[1], -d_t[1 * d_stride], 0);
-            ds[0] = _mm_insert_epi16(ds[0], d_t[1 * d_stride + 1], 2);
-            dd[1] = _mm_insert_epi16(dd[1], d_t[1 * d_stride + width], 1);
-            ds[0] = _mm_insert_epi16(ds[0], d_t[1 * d_stride + 1 + width], 3);
-
-            do {
-                dd[0] = _mm_insert_epi16(dd[0], -d_t[0 * d_stride], 0);
-                dd[0] = _mm_insert_epi16(dd[0], d_t[0 * d_stride + width], 1);
-
-                int32_t res = _mm_cvtsi128_si32(dd[0]);
-                dd[0]       = _mm_set1_epi32(res);
-                res         = _mm_cvtsi128_si32(dd[1]);
-                dd[1]       = _mm_set1_epi32(res);
-
-                ds[1] = _mm_insert_epi16(ds[1], d_t[0 * d_stride + 1], 0);
-                ds[1] = _mm_insert_epi16(ds[1], d_t[0 * d_stride + 1], 2);
-                ds[1] = _mm_insert_epi16(ds[1], d_t[0 * d_stride + 1 + width], 1);
-                ds[1] = _mm_insert_epi16(ds[1], d_t[0 * d_stride + 1 + width], 3);
-
-                dd[1] = _mm_insert_epi16(dd[1], -d_t[2 * d_stride], 2);
-                ds[0] = _mm_insert_epi16(ds[0], d_t[2 * d_stride + 1], 4);
-                dd[1] = _mm_insert_epi16(dd[1], d_t[2 * d_stride + width], 3);
-                ds[0] = _mm_insert_epi16(ds[0], d_t[2 * d_stride + 1 + width], 5);
-
-                madd_sse4_1(dd[0], ds[0], &delta[0]);
-                madd_sse4_1(dd[1], ds[1], &delta[1]);
-
-                // right shift 4 bytes
-                shift_right_4b_2x128(&dd[0]);
-                shift_right_4b_2x128(&ds[0]);
-                d_t += d_stride;
-            } while (++y < height);
-        }
-
-        // Writing one more H on the top edge of a square falls to the next
-        // square in the same row or the first H in the next row, which would be
-        // calculated later, so it won't overflow.
-        update_4_stats_sse4_1(H + 0 * wiener_win * wiener_win2 + 1 * wiener_win,
-                              delta[0],
-                              H + 1 * wiener_win * wiener_win2 + 2 * wiener_win);
-        H[(1 * wiener_win + 1) * wiener_win2 + 2 * wiener_win] =
-            H[(0 * wiener_win + 1) * wiener_win2 + 1 * wiener_win] + _mm_extract_epi32(delta[1], 0);
-        H[(1 * wiener_win + 2) * wiener_win2 + 2 * wiener_win] =
-            H[(0 * wiener_win + 2) * wiener_win2 + 1 * wiener_win] + _mm_extract_epi32(delta[1], 1);
-    }
-
-    // Step 5: Derive other points of each square. No square in bottom row.
-    i = 0;
-    do {
-        const int16_t *const di = d + i;
-
-        j = i + 1;
-        do {
-            const int16_t *const d_j                                   = d + j;
-            __m128i              deltas[WIENER_WIN_3TAP - 1][WIN_3TAP] = {{_mm_setzero_si128()}, {_mm_setzero_si128()}};
-            __m128i              d_is[WIN_3TAP], d_ie[WIN_3TAP];
-            __m128i              d_js[WIN_3TAP], d_je[WIN_3TAP];
-            __m128i              delta64[2];
-
-            x = 0;
-            while (x < w16) {
-                load_square_win3_sse4_1(di + x, d_j + x, d_stride, height, d_is, d_ie, d_js, d_je);
-                derive_square_win3_sse4_1(d_is, d_ie, d_js, d_je, deltas);
-                x += 16;
-            };
-
-            if (w16 != width) {
-                load_square_win3_sse4_1(di + x, d_j + x, d_stride, height, d_is, d_ie, d_js, d_je);
-                d_is[0] = _mm_and_si128(d_is[0], mask[0]);
-                d_is[1] = _mm_and_si128(d_is[1], mask[1]);
-                d_is[2] = _mm_and_si128(d_is[2], mask[0]);
-                d_is[3] = _mm_and_si128(d_is[3], mask[1]);
-                d_ie[0] = _mm_and_si128(d_ie[0], mask[0]);
-                d_ie[1] = _mm_and_si128(d_ie[1], mask[1]);
-                d_ie[2] = _mm_and_si128(d_ie[2], mask[0]);
-                d_ie[3] = _mm_and_si128(d_ie[3], mask[1]);
-                derive_square_win3_sse4_1(d_is, d_ie, d_js, d_je, deltas);
-            }
-
-            delta64[0] = hadd_four_32_sse4_1(deltas[0][0], deltas[0][1], deltas[0][2], deltas[0][3]);
-            delta64[1] = hadd_four_32_sse4_1(deltas[1][0], deltas[1][1], deltas[1][2], deltas[1][3]);
-            delta64[0] = _mm_cvtepi32_epi64(delta64[0]);
-            delta64[1] = _mm_cvtepi32_epi64(delta64[1]);
-
-            update_2_stats_sse2(H + (i * wiener_win + 0) * wiener_win2 + j * wiener_win,
-                                delta64[0],
-                                H + (i * wiener_win + 1) * wiener_win2 + j * wiener_win + 1);
-            update_2_stats_sse2(H + (i * wiener_win + 1) * wiener_win2 + j * wiener_win,
-                                delta64[1],
-                                H + (i * wiener_win + 2) * wiener_win2 + j * wiener_win + 1);
-        } while (++j < wiener_win);
-    } while (++i < wiener_win - 1);
-
-    // Step 6: Derive other points of each upper triangle along the diagonal.
-    i = 0;
-    do {
-        const int16_t *const di                                              = d + i;
-        __m128i              deltas[WIENER_WIN_3TAP * (WIENER_WIN_3TAP - 1)] = {_mm_setzero_si128()};
-        __m128i              d_is[WIN_3TAP], d_ie[WIN_3TAP];
-        __m128i              delta01, delta02;
-
-        x = 0;
-        while (x < w16) {
-            load_triangle_win3_sse4_1(di + x, d_stride, height, d_is, d_ie);
-            derive_triangle_win3_sse4_1(d_is, d_ie, deltas);
-            x += 16;
-        };
-
-        if (w16 != width) {
-            load_triangle_win3_sse4_1(di + x, d_stride, height, d_is, d_ie);
-            d_is[0] = _mm_and_si128(d_is[0], mask[0]);
-            d_is[1] = _mm_and_si128(d_is[1], mask[1]);
-            d_is[2] = _mm_and_si128(d_is[2], mask[0]);
-            d_is[3] = _mm_and_si128(d_is[3], mask[1]);
-            d_ie[0] = _mm_and_si128(d_ie[0], mask[0]);
-            d_ie[1] = _mm_and_si128(d_ie[1], mask[1]);
-            d_ie[2] = _mm_and_si128(d_ie[2], mask[0]);
-            d_ie[3] = _mm_and_si128(d_ie[3], mask[1]);
-            derive_triangle_win3_sse4_1(d_is, d_ie, deltas);
-        }
-
-        delta01 = hadd_four_32_sse4_1(deltas[0], deltas[1], deltas[2], deltas[3]);
-        delta01 = _mm_cvtepi32_epi64(delta01);
-        delta02 = hadd_four_32_sse4_1(deltas[4], deltas[5], deltas[4], deltas[5]);
-
-        update_2_stats_sse2(H + (i * wiener_win + 0) * wiener_win2 + i * wiener_win,
-                            delta01,
-                            H + (i * wiener_win + 1) * wiener_win2 + i * wiener_win + 1);
-        H[(i * wiener_win + 2) * wiener_win2 + i * wiener_win + 2] =
-            H[(i * wiener_win + 1) * wiener_win2 + i * wiener_win + 1] + _mm_cvtsi128_si32(delta02);
-    } while (++i < wiener_win);
 }
 
 static void compute_stats_win5_sse4_1(const int16_t *const d, const int32_t d_stride, const int16_t *const s,
@@ -3374,11 +2698,9 @@ void svt_av1_compute_stats_sse4_1(int32_t wiener_win, const uint8_t *dgd, const 
 
     if (wiener_win == WIENER_WIN) {
         compute_stats_win7_sse4_1(d, d_stride, s, s_stride, width, height, M, H, 8);
-    } else if (wiener_win == WIENER_WIN_CHROMA) {
-        compute_stats_win5_sse4_1(d, d_stride, s, s_stride, width, height, M, H, 8);
     } else {
-        assert(wiener_win == WIENER_WIN_3TAP);
-        compute_stats_win3_sse4_1(d, d_stride, s, s_stride, width, height, M, H, 8);
+        assert(wiener_win == WIENER_WIN_CHROMA);
+        compute_stats_win5_sse4_1(d, d_stride, s, s_stride, width, height, M, H, 8);
     }
 
     // H is a symmetric matrix, so we only need to fill out the upper triangle.
@@ -3427,11 +2749,9 @@ void svt_av1_compute_stats_highbd_sse4_1(int32_t wiener_win, const uint8_t *dgd8
 
     if (wiener_win == WIENER_WIN) {
         compute_stats_win7_sse4_1(d, d_stride, s, s_stride, width, height, M, H, bit_depth);
-    } else if (wiener_win == WIENER_WIN_CHROMA) {
-        compute_stats_win5_sse4_1(d, d_stride, s, s_stride, width, height, M, H, bit_depth);
     } else {
-        assert(wiener_win == WIENER_WIN_3TAP);
-        compute_stats_win3_sse4_1(d, d_stride, s, s_stride, width, height, M, H, bit_depth);
+        assert(wiener_win == WIENER_WIN_CHROMA);
+        compute_stats_win5_sse4_1(d, d_stride, s, s_stride, width, height, M, H, bit_depth);
     }
 
     // H is a symmetric matrix, so we only need to fill out the upper triangle.

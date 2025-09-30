@@ -124,8 +124,6 @@ void svt_apply_selfguided_restoration_c(const uint8_t *dat8, int32_t width, int3
 #define WIENER_WIN2_CHROMA ((WIENER_WIN_CHROMA) * (WIENER_WIN_CHROMA))
 #define WIENER_FILT_PREC_BITS 7
 #define WIENER_FILT_STEP (1 << WIENER_FILT_PREC_BITS)
-#define WIENER_WIN_3TAP (WIENER_WIN - 4)
-#define WIENER_WIN2_3TAP ((WIENER_WIN_3TAP) * (WIENER_WIN_3TAP))
 
 // Central values for the taps
 #define WIENER_FILT_TAP0_MIDV (3)

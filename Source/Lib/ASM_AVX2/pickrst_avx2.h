@@ -339,44 +339,6 @@ static INLINE __m256i load_win7_avx2(const int16_t *const d, const int32_t width
     return _mm256_shuffle_epi8(t1, shf);
 }
 
-static INLINE void step3_win3_avx2(const int16_t **const d, const int32_t d_stride, const int32_t width,
-                                   const int32_t h4, __m256i *const dd, __m256i deltas[WIENER_WIN_3TAP]) {
-    // 16-bit idx: 0, 2, 4, 6, 1, 3, 5, 7, 0, 2, 4, 6, 1, 3, 5, 7
-    const __m256i shf = _mm256_setr_epi8(
-        0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15, 0, 1, 4, 5, 8, 9, 12, 13, 2, 3, 6, 7, 10, 11, 14, 15);
-
-    int32_t y = h4;
-    while (y) {
-        __m256i ds[WIENER_WIN_3TAP];
-
-        // 00s 01s 10s 11s 20s 21s 30s 31s  00e 01e 10e 11e 20e 21e 30e 31e
-        *dd = _mm256_insert_epi32(*dd, *(int32_t *)(*d + 2 * d_stride), 2);
-        *dd = _mm256_insert_epi32(*dd, *(int32_t *)(*d + 2 * d_stride + width), 6);
-        *dd = _mm256_insert_epi32(*dd, *(int32_t *)(*d + 3 * d_stride), 3);
-        *dd = _mm256_insert_epi32(*dd, *(int32_t *)(*d + 3 * d_stride + width), 7);
-        // 00s 10s 20s 30s 01s 11s 21s 31s  00e 10e 20e 30e 01e 11e 21e 31e
-        ds[0] = _mm256_shuffle_epi8(*dd, shf);
-
-        // 10s 11s 20s 21s 30s 31s 40s 41s  10e 11e 20e 21e 30e 31e 40e 41e
-        load_more_32_avx2(*d + 4 * d_stride, width, dd);
-        // 10s 20s 30s 40s 11s 21s 31s 41s  10e 20e 30e 40e 11e 21e 31e 41e
-        ds[1] = _mm256_shuffle_epi8(*dd, shf);
-
-        // 20s 21s 30s 31s 40s 41s 50s 51s  20e 21e 30e 31e 40e 41e 50e 51e
-        load_more_32_avx2(*d + 5 * d_stride, width, dd);
-        // 20s 30s 40s 50s 21s 31s 41s 51s  20e 30e 40e 50e 21e 31e 41e 51e
-        ds[2] = _mm256_shuffle_epi8(*dd, shf);
-
-        madd_avx2(ds[0], ds[0], &deltas[0]);
-        madd_avx2(ds[0], ds[1], &deltas[1]);
-        madd_avx2(ds[0], ds[2], &deltas[2]);
-
-        *dd = _mm256_srli_si256(*dd, 8);
-        *d += 4 * d_stride;
-        y -= 4;
-    };
-}
-
 static INLINE void step3_win5_avx2(const int16_t **const d, const int32_t d_stride, const int32_t width,
                                    const int32_t height, __m256i *const dd, __m256i ds[WIENER_WIN_CHROMA],
                                    __m256i deltas[WIENER_WIN_CHROMA]) {
