@@ -341,11 +341,13 @@ BlockSize TEST_BLOCK_SIZES[] = {BlockSize(4, 4),
                                 BlockSize(128, 128)};
 TestPattern TEST_PATTERNS[] = {MIN, MAX, RANDOM};
 
+#if ARCH_X86_64
 static void av1_k_means_wrapper(av1_k_means_func func, const int *data,
                                 int *centroids, uint8_t *indices, int n, int k,
                                 int max_itr) {
     func(data, centroids, indices, n, k, max_itr);
 }
+#endif
 
 static void av1_k_means_wrapper(av1_k_means_indices_func func, const int *data,
                                 int *centroids, uint8_t *indices, int n, int k,
@@ -554,6 +556,16 @@ class Av1KMeansIndicesDimTest : public Av1KMeansDim<av1_k_means_indices_func> {
     }
 };
 
+TEST_P(Av1KMeansIndicesDimTest, RunCheckOutput) {
+    run_test();
+};
+
+TEST_P(Av1KMeansIndicesDimTest, DISABLED_speed) {
+    speed();
+};
+
+#if ARCH_X86_64
+
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Av1KMeansDimTest);
 
 TEST_P(Av1KMeansDimTest, RunCheckOutput) {
@@ -564,15 +576,6 @@ TEST_P(Av1KMeansDimTest, DISABLED_speed) {
     speed();
 };
 
-TEST_P(Av1KMeansIndicesDimTest, RunCheckOutput) {
-    run_test();
-};
-
-TEST_P(Av1KMeansIndicesDimTest, DISABLED_speed) {
-    speed();
-};
-
-#if ARCH_X86_64
 std::tuple<av1_k_means_func, av1_k_means_func> TEST_FUNC_PAIRS[] = {
     std::make_tuple(svt_av1_k_means_dim1_c, svt_av1_k_means_dim1_avx2),
     std::make_tuple(svt_av1_k_means_dim2_c, svt_av1_k_means_dim2_avx2)};
