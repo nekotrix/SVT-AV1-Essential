@@ -448,6 +448,8 @@ typedef uint64_t EbCpuFlags;
 #define EB_CPU_FLAGS_SVE (1 << 4)
 // Armv9.0-A SVE2 instructions.
 #define EB_CPU_FLAGS_SVE2 (1 << 5)
+// sad_loop_kernel has special code for this core.
+#define EB_CPU_FLAGS_NEOVERSE_V2 (1 << 6)
 
 #endif
 #define EB_CPU_FLAGS_INVALID (1ULL << (sizeof(EbCpuFlags) * 8ULL - 1ULL))

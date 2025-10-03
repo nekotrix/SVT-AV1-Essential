@@ -18,6 +18,7 @@
 #include "compute_sad_c.h"
 #include "compute_sad_neon.h"
 #include "compute_sad_neon_dotprod.h"
+#include "compute_sad_sve.h"
 #include "neon_sve_bridge.h"
 #include "sum_neon.h"
 #include "utility.h"
@@ -32,21 +33,16 @@ static inline uint32x4_t sadwxhx4d_sve(const uint8_t *src, uint32_t src_stride, 
         const uint8_t *src_ptr = src;
         const uint8_t *ref_ptr = ref;
 
-        uint8x16_t ref0 = vld1q_u8(ref_ptr);
         while (w >= 16) {
-            const uint8x16_t ref1 = vld1q_u8(ref_ptr + 16);
-            const uint8x16_t s    = vld1q_u8(src_ptr);
-
-            sad16_neon_dotprod(s, ref0, &sum_u32[0]);
-            sad16_neon_dotprod(s, vextq_u8(ref0, ref1, 1), &sum_u32[1]);
-            sad16_neon_dotprod(s, vextq_u8(ref0, ref1, 2), &sum_u32[2]);
-            sad16_neon_dotprod(s, vextq_u8(ref0, ref1, 3), &sum_u32[3]);
+            const uint8x16_t s = vld1q_u8(src_ptr);
+            sad16_neon_dotprod(s, vld1q_u8(ref_ptr + 0), &sum_u32[0]);
+            sad16_neon_dotprod(s, vld1q_u8(ref_ptr + 1), &sum_u32[1]);
+            sad16_neon_dotprod(s, vld1q_u8(ref_ptr + 2), &sum_u32[2]);
+            sad16_neon_dotprod(s, vld1q_u8(ref_ptr + 3), &sum_u32[3]);
 
             src_ptr += 16;
             ref_ptr += 16;
             w -= 16;
-
-            ref0 = ref1;
         }
 
         const svbool_t   p  = svwhilelt_b8_s32(0, width & 15);
@@ -66,38 +62,6 @@ static inline uint32x4_t sadwxhx4d_sve(const uint8_t *src, uint32_t src_stride, 
     } while (--height != 0);
 
     return horizontal_add_4d_u32x4(sum_u32);
-}
-
-static inline uint32_t sad_anywxh_sve(const uint8_t *src, uint32_t src_stride, const uint8_t *ref, uint32_t ref_stride,
-                                      uint32_t width, uint32_t height) {
-    uint32x4_t sum_u32 = vdupq_n_u32(0);
-
-    do {
-        int w = width;
-
-        const uint8_t *src_ptr = src;
-        const uint8_t *ref_ptr = ref;
-
-        while (w >= 16) {
-            const uint8x16_t s = vld1q_u8(src_ptr);
-            sad16_neon_dotprod(s, vld1q_u8(ref_ptr), &sum_u32);
-
-            src_ptr += 16;
-            ref_ptr += 16;
-            w -= 16;
-        }
-
-        const svbool_t   p  = svwhilelt_b8_s32(0, width & 15);
-        const uint8x16_t s  = svget_neonq_u8(svld1_u8(p, src_ptr));
-        const uint8x16_t r0 = svget_neonq_u8(svld1_u8(p, ref_ptr + 0));
-
-        sad16_neon_dotprod(s, r0, &sum_u32);
-
-        src += src_stride;
-        ref += ref_stride;
-    } while (--height != 0);
-
-    return vaddvq_u32(sum_u32);
 }
 
 static inline void svt_sad_loop_kernelwxh_sve(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,

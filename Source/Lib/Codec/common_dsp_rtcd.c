@@ -107,6 +107,12 @@ EbCpuFlags svt_aom_get_cpu_flags_to_use() {
 
 #if defined(__linux__) || HAVE_ELF_AUX_INFO
 
+static inline uint64_t read_midr_el1(void) {
+    uint64_t v;
+    __asm__ volatile ("mrs %0, midr_el1" : "=r"(v));
+    return v;
+}
+
 // Define hwcap values ourselves: building with an old auxv header where these
 // hwcap values are not defined should not prevent features from being enabled.
 #define AOM_AARCH64_HWCAP_NEON (1 << 1)
@@ -162,6 +168,15 @@ EbCpuFlags svt_aom_get_cpu_flags(void) {
     if (hwcap2 & AOM_AARCH64_HWCAP2_SVE2)
         flags |= EB_CPU_FLAGS_SVE2;
 #endif // HAVE_SVE2
+
+    const uint64_t midr = read_midr_el1();
+    const unsigned implementer = (midr >> 24) & 0xFF;   // [31:24]
+    const unsigned partnum     = (midr >> 4)  & 0xFFF;  // [15:4]
+
+    if (implementer == 0x41 && partnum == 0xD4F) {
+      flags |= EB_CPU_FLAGS_NEOVERSE_V2;
+    }
+
     return flags;
 }
 

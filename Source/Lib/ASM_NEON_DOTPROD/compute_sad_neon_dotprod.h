@@ -10,6 +10,9 @@
  * PATENTS file, you can obtain it at www.aomedia.org/license/patent.
  */
 
+#ifndef COMPUTE_SAD_NEON_DOTPROD_H
+#define COMPUTE_SAD_NEON_DOTPROD_H
+
 #include <arm_neon.h>
 
 #include "aom_dsp_rtcd.h"
@@ -406,9 +409,6 @@ static inline void svt_sad_loop_kernel4xh_neon_dotprod(uint8_t *src, uint32_t sr
     }
 }
 
-// Permute table to gather the last two elements of each of the 8 ref blocks so we can do sad8d in one operation.
-DECLARE_ALIGNED(16, static const uint8_t, kPermTable2xh[16]) = {4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12};
-
 static inline uint16x8_t sad6xhx8d_neon_dotprod(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
                                                 uint32_t ref_stride, uint32_t h) {
     /* Initialize 'sum' to store the sum of absolute differences (SAD) of 8 search spaces. */
@@ -416,7 +416,7 @@ static inline uint16x8_t sad6xhx8d_neon_dotprod(const uint8_t *src, uint32_t src
     uint32x4_t   sum1      = vdupq_n_u32(0);
     uint16x8_t   sum       = vdupq_n_u16(0);
     uint8x16x2_t perm_tbl  = vld1q_u8_x2(kPermTable4xh);
-    uint8x16_t   perm_tbl2 = vld1q_u8(kPermTable2xh);
+    uint8x16_t   perm_tbl2 = vld1q_u8(kPermTable2xh + 32);
 
     do {
         uint8x16_t src0 = vreinterpretq_u8_u32(vld1q_dup_u32((const uint32_t *)src));
@@ -766,3 +766,52 @@ static inline void svt_sad_loop_kernel48xh_small_neon_dotprod(uint8_t *src, uint
         ref += src_stride_raw;
     }
 }
+
+static inline uint32_t sad_anywxh_neon_dotprod(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
+                                               uint32_t ref_stride, uint32_t width, uint32_t height) {
+    uint16x8_t sum_u16 = vdupq_n_u16(0);
+    uint32x4_t sum_u32 = vdupq_n_u32(0);
+    uint32_t   sum     = 0;
+
+    do {
+        int w = width;
+
+        const uint8_t *src_ptr = src;
+        const uint8_t *ref_ptr = ref;
+
+        while (w >= 16) {
+            const uint8x16_t s = vld1q_u8(src_ptr);
+            sad16_neon_dotprod(s, vld1q_u8(ref_ptr), &sum_u32);
+
+            src_ptr += 16;
+            ref_ptr += 16;
+            w -= 16;
+        }
+
+        if (w >= 8) {
+            const uint8x8_t s = vld1_u8(src_ptr);
+            sum_u16           = vabal_u8(sum_u16, s, vld1_u8(ref_ptr));
+            src_ptr += 8;
+            ref_ptr += 8;
+            w -= 8;
+        }
+
+        if (w >= 4) {
+            const uint8x8_t s = load_u8_4x1(src_ptr);
+            sum_u16           = vabal_u8(sum_u16, s, load_u8_4x1(ref_ptr));
+            src_ptr += 4;
+            ref_ptr += 4;
+            w -= 4;
+        }
+
+        while (--w >= 0) { sum += EB_ABS_DIFF(src_ptr[w], ref_ptr[w]); }
+
+        src += src_stride;
+        ref += ref_stride;
+    } while (--height != 0);
+
+    sum_u32 = vpadalq_u16(sum_u32, sum_u16);
+    return sum + vaddvq_u32(sum_u32);
+}
+
+#endif // COMPUTE_SAD_NEON_DOTPROD_H

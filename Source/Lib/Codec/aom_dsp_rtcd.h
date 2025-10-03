@@ -992,14 +992,17 @@ extern "C" {
                               int16_t *x_search_center, int16_t *y_search_center,
                               uint32_t src_stride_raw, uint8_t skip_search_line,
                               int16_t search_area_width, int16_t search_area_height);
-
     void svt_sad_loop_kernel_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
                               uint32_t block_height, uint32_t block_width, uint64_t *best_sad,
                               int16_t *x_search_center, int16_t *y_search_center,
                               uint32_t src_stride_raw, uint8_t skip_search_line,
                               int16_t search_area_width, int16_t search_area_height);
-
     void svt_sad_loop_kernel_sve(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
+                              uint32_t block_height, uint32_t block_width, uint64_t *best_sad,
+                              int16_t *x_search_center, int16_t *y_search_center,
+                              uint32_t src_stride_raw, uint8_t skip_search_line,
+                              int16_t search_area_width, int16_t search_area_height);
+    void svt_sad_loop_kernel_neoverse_v2(uint8_t *src, uint32_t src_stride, uint8_t *ref, uint32_t ref_stride,
                               uint32_t block_height, uint32_t block_width, uint64_t *best_sad,
                               int16_t *x_search_center, int16_t *y_search_center,
                               uint32_t src_stride_raw, uint8_t skip_search_line,

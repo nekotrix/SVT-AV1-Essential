@@ -23,6 +23,7 @@ target_sources(
   PUBLIC block_error_sve.c
   PUBLIC cdef_sve.c
   PUBLIC compute_sad_sve.c
+  PUBLIC compute_sad_neoverse_v2.c
   PUBLIC corner_match_sve.c
   PUBLIC highbd_convolve_sve.c
   PUBLIC highbd_jnt_convolve_sve.c

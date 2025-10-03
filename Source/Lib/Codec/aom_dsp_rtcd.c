@@ -31,8 +31,8 @@
 #define SET_FUNCTION(ptr, func, flag)                             \
     if ((uintptr_t)NULL != (uintptr_t)(func) && (flags & (flag))) \
         ptr = func;
-
 #ifdef ARCH_X86_64
+
 #if EN_AVX512_SUPPORT
 #define SET_FUNCTION_AVX512(ptr, avx512) SET_FUNCTION(ptr, avx512, EB_CPU_FLAGS_AVX512F)
 #else /* EN_AVX512_SUPPORT */
@@ -60,14 +60,17 @@
 
 #if HAVE_SVE
 #define SET_FUNCTION_SVE(ptr, sve) SET_FUNCTION(ptr, sve, EB_CPU_FLAGS_SVE)
+#define SET_FUNCTION_NEOVERSE_V2(ptr, neoverse_v2) SET_FUNCTION(ptr, neoverse_v2, EB_CPU_FLAGS_NEOVERSE_V2)
 #else
 #define SET_FUNCTION_SVE(ptr, sve)
+#define SET_FUNCTION_NEOVERSE_V2(ptr, neoverse_v2)
 #endif // HAVE_SVE
 
-#define SET_FUNCTIONS_AARCH64(ptr, neon, neon_dotprod, sve) \
-    SET_FUNCTION(ptr, neon, EB_CPU_FLAGS_NEON)              \
-    SET_FUNCTION_NEON_DOTPROD(ptr, neon_dotprod)            \
-    SET_FUNCTION_SVE(ptr, sve)
+#define SET_FUNCTIONS_AARCH64(ptr, neon, neon_dotprod, sve, neoverse_v2) \
+    SET_FUNCTION(ptr, neon, EB_CPU_FLAGS_NEON)                           \
+    SET_FUNCTION_NEON_DOTPROD(ptr, neon_dotprod)                         \
+    SET_FUNCTION_SVE(ptr, sve)                                           \
+    SET_FUNCTION_NEOVERSE_V2(ptr, neoverse_v2)
 #endif
 
 
@@ -118,27 +121,27 @@
 #elif defined ARCH_AARCH64
 
 // general function dispatcher
-#define SET_FUNCTIONS(ptr, c, neon, neon_dotprod, sve)      \
-    do {                                                    \
-        CHECK_PTR_IS_NOT_SET(ptr)                           \
-        SET_FUNCTION_C(ptr, c)                              \
-        SET_FUNCTIONS_AARCH64(ptr, neon, neon_dotprod, sve) \
-        CHECK_PTR_IS_SET(ptr)                               \
+#define SET_FUNCTIONS(ptr, c, neon, neon_dotprod, sve, neoverse_v2)      \
+    do {                                                                 \
+        CHECK_PTR_IS_NOT_SET(ptr)                                        \
+        SET_FUNCTION_C(ptr, c)                                           \
+        SET_FUNCTIONS_AARCH64(ptr, neon, neon_dotprod, sve, neoverse_v2) \
+        CHECK_PTR_IS_SET(ptr)                                            \
     } while (0)
 
 // special case when Neon optimization is available
 #if CONFIG_ARM_NEON_IS_GUARANTEED
 // when Neon is guaranteed to be available - we can skip C function assignment
 // and thus allow linker to strip C code from final binary to reduce size.
-#define SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, sve) \
-    do {                                                    \
-        CHECK_PTR_IS_NOT_SET(ptr)                           \
-        SET_FUNCTIONS_AARCH64(ptr, neon, neon_dotprod, sve) \
-        CHECK_PTR_IS_SET(ptr)                               \
+#define SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, sve, neoverse_v2) \
+    do {                                                                 \
+        CHECK_PTR_IS_NOT_SET(ptr)                                        \
+        SET_FUNCTIONS_AARCH64(ptr, neon, neon_dotprod, sve, neoverse_v2) \
+        CHECK_PTR_IS_SET(ptr)                                            \
     } while (0)
 #else
-#define SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, sve) \
-    SET_FUNCTIONS(ptr, c, neon, neon_dotprod, sve)
+#define SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, sve, neoverse_v2) \
+    SET_FUNCTIONS(ptr, c, neon, neon_dotprod, sve, neoverse_v2)
 #endif
 #endif
 
@@ -164,10 +167,11 @@
 #define SET_AVX2_AVX512(ptr, c, avx2, avx512)                         SET_FUNCTIONS_AVX2(ptr, c, 0, 0, 0, 0, 0, 0, 0, 0, avx2, avx512)
 #define SET_SSE2_AVX2_AVX512(ptr, c, sse2, avx2, avx512)              SET_FUNCTIONS_AVX2(ptr, c, 0, 0, sse2, 0, 0, 0, 0, 0, avx2, avx512)
 #elif defined ARCH_AARCH64
-#define SET_NEON(ptr, c, neon)                                        SET_FUNCTIONS_NEON(ptr, c, neon, 0, 0)
-#define SET_NEON_NEON_DOTPROD(ptr, c, neon, neon_dotprod)             SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, 0)
-#define SET_NEON_NEON_DOTPROD_SVE(ptr, c, neon, neon_dotprod, sve)    SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, sve)
-#define SET_NEON_SVE(ptr, c, neon, sve)                               SET_FUNCTIONS_NEON(ptr, c, neon, 0, sve)
+#define SET_NEON(ptr, c, neon)                                        SET_FUNCTIONS_NEON(ptr, c, neon, 0, 0, 0)
+#define SET_NEON_NEON_DOTPROD(ptr, c, neon, neon_dotprod)             SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, 0, 0)
+#define SET_NEON_NEON_DOTPROD_SVE_NEOVERSE_V2(ptr, c, neon, neon_dotprod, sve, neoverse_v2)    SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, sve, neoverse_v2)
+#define SET_NEON_NEON_DOTPROD_SVE(ptr, c, neon, neon_dotprod, sve)    SET_FUNCTIONS_NEON(ptr, c, neon, neon_dotprod, sve, 0)
+#define SET_NEON_SVE(ptr, c, neon, sve)                               SET_FUNCTIONS_NEON(ptr, c, neon, 0, sve, 0)
 #endif
 
 void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
@@ -884,7 +888,7 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_av1_get_gradient_hist, svt_av1_get_gradient_hist_c);
     SET_NEON(svt_av1_get_nz_map_contexts, svt_av1_get_nz_map_contexts_c, svt_av1_get_nz_map_contexts_neon);
     SET_NEON(svt_search_one_dual, svt_search_one_dual_c, svt_search_one_dual_neon);
-    SET_NEON_NEON_DOTPROD_SVE(svt_sad_loop_kernel, svt_sad_loop_kernel_c, svt_sad_loop_kernel_neon, svt_sad_loop_kernel_neon_dotprod, svt_sad_loop_kernel_sve);
+    SET_NEON_NEON_DOTPROD_SVE_NEOVERSE_V2(svt_sad_loop_kernel, svt_sad_loop_kernel_c, svt_sad_loop_kernel_neon, svt_sad_loop_kernel_neon_dotprod, svt_sad_loop_kernel_sve, svt_sad_loop_kernel_neoverse_v2);
     SET_NEON(svt_pme_sad_loop_kernel, svt_pme_sad_loop_kernel_c, svt_pme_sad_loop_kernel_neon);
     SET_NEON(svt_av1_apply_zz_based_temporal_filter_planewise_medium, svt_av1_apply_zz_based_temporal_filter_planewise_medium_c, svt_av1_apply_zz_based_temporal_filter_planewise_medium_neon);
     SET_NEON(svt_av1_apply_zz_based_temporal_filter_planewise_medium_hbd, svt_av1_apply_zz_based_temporal_filter_planewise_medium_hbd_c, svt_av1_apply_zz_based_temporal_filter_planewise_medium_hbd_neon);

@@ -37,34 +37,25 @@ static inline uint32x4_t sadwxhx4d_neon_dotprod(const uint8_t *src, uint32_t src
         const uint8_t *src_ptr = src;
         const uint8_t *ref_ptr = ref;
 
-        uint8x16_t r0 = vld1q_u8(ref_ptr);
-
         while (w >= 16) {
-            const uint8x16_t r1 = vld1q_u8(ref_ptr + 16);
-            const uint8x16_t s  = vld1q_u8(src_ptr);
-
-            sad16_neon_dotprod(s, r0, &sum_u32[0]);
-            sad16_neon_dotprod(s, vextq_u8(r0, r1, 1), &sum_u32[1]);
-            sad16_neon_dotprod(s, vextq_u8(r0, r1, 2), &sum_u32[2]);
-            sad16_neon_dotprod(s, vextq_u8(r0, r1, 3), &sum_u32[3]);
+            const uint8x16_t s = vld1q_u8(src_ptr);
+            sad16_neon_dotprod(s, vld1q_u8(ref_ptr + 0), &sum_u32[0]);
+            sad16_neon_dotprod(s, vld1q_u8(ref_ptr + 1), &sum_u32[1]);
+            sad16_neon_dotprod(s, vld1q_u8(ref_ptr + 2), &sum_u32[2]);
+            sad16_neon_dotprod(s, vld1q_u8(ref_ptr + 3), &sum_u32[3]);
 
             src_ptr += 16;
             ref_ptr += 16;
             w -= 16;
-
-            r0 = r1;
         }
 
         if (w >= 8) {
-            const uint8x16_t r   = vld1q_u8(ref_ptr);
-            const uint8x8_t  r_l = vget_low_u8(r);
-            const uint8x8_t  r_h = vget_high_u8(r);
-            const uint8x8_t  s   = vld1_u8(src_ptr);
+            const uint8x8_t s = vld1_u8(src_ptr);
+            sum_u16[0]        = vabal_u8(sum_u16[0], s, vld1_u8(ref_ptr + 0));
+            sum_u16[1]        = vabal_u8(sum_u16[1], s, vld1_u8(ref_ptr + 1));
+            sum_u16[2]        = vabal_u8(sum_u16[2], s, vld1_u8(ref_ptr + 2));
+            sum_u16[3]        = vabal_u8(sum_u16[3], s, vld1_u8(ref_ptr + 3));
 
-            sum_u16[0] = vabal_u8(sum_u16[0], s, r_l);
-            sum_u16[1] = vabal_u8(sum_u16[1], s, vext_u8(r_l, r_h, 1));
-            sum_u16[2] = vabal_u8(sum_u16[2], s, vext_u8(r_l, r_h, 2));
-            sum_u16[3] = vabal_u8(sum_u16[3], s, vext_u8(r_l, r_h, 3));
             src_ptr += 8;
             ref_ptr += 8;
             w -= 8;
@@ -96,53 +87,6 @@ static inline uint32x4_t sadwxhx4d_neon_dotprod(const uint8_t *src, uint32_t src
     sum_u32[2] = vpadalq_u16(sum_u32[2], sum_u16[2]);
     sum_u32[3] = vpadalq_u16(sum_u32[3], sum_u16[3]);
     return vaddq_u32(vaddw_u16(sum4, vget_low_u16(sum)), horizontal_add_4d_u32x4(sum_u32));
-}
-
-static inline uint32_t sad_anywxh_neon_dotprod(const uint8_t *src, uint32_t src_stride, const uint8_t *ref,
-                                               uint32_t ref_stride, uint32_t width, uint32_t height) {
-    uint16x8_t sum_u16 = vdupq_n_u16(0);
-    uint32x4_t sum_u32 = vdupq_n_u32(0);
-    uint32_t   sum     = 0;
-
-    do {
-        int w = width;
-
-        const uint8_t *src_ptr = src;
-        const uint8_t *ref_ptr = ref;
-
-        while (w >= 16) {
-            const uint8x16_t s = vld1q_u8(src_ptr);
-            sad16_neon_dotprod(s, vld1q_u8(ref_ptr), &sum_u32);
-
-            src_ptr += 16;
-            ref_ptr += 16;
-            w -= 16;
-        }
-
-        if (w >= 8) {
-            const uint8x8_t s = vld1_u8(src_ptr);
-            sum_u16           = vabal_u8(sum_u16, s, vld1_u8(ref_ptr));
-            src_ptr += 8;
-            ref_ptr += 8;
-            w -= 8;
-        }
-
-        if (w >= 4) {
-            const uint8x8_t s = load_u8_4x1(src_ptr);
-            sum_u16           = vabal_u8(sum_u16, s, load_u8_4x1(ref_ptr));
-            src_ptr += 4;
-            ref_ptr += 4;
-            w -= 4;
-        }
-
-        while (--w >= 0) { sum += EB_ABS_DIFF(src_ptr[w], ref_ptr[w]); }
-
-        src += src_stride;
-        ref += ref_stride;
-    } while (--height != 0);
-
-    sum_u32 = vpadalq_u16(sum_u32, sum_u16);
-    return sum + vaddvq_u32(sum_u32);
 }
 
 static inline void svt_sad_loop_kernelwxh_neon_dotprod(uint8_t *src, uint32_t src_stride, uint8_t *ref,

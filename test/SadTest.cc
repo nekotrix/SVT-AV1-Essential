@@ -684,7 +684,6 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::ValuesIn(TEST_LOOP_AREAS),
                        ::testing::Values(0, 1),
                        ::testing::Values(svt_sad_loop_kernel_neon)));
-
 #if HAVE_NEON_DOTPROD
 INSTANTIATE_TEST_SUITE_P(
     NEON_DOTPROD, sad_LoopTest,
@@ -701,6 +700,13 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::ValuesIn(TEST_LOOP_AREAS),
                        ::testing::Values(0, 1),
                        ::testing::Values(svt_sad_loop_kernel_sve)));
+
+INSTANTIATE_TEST_SUITE_P(
+    NEOVERSE_V2, sad_LoopTest,
+    ::testing::Combine(::testing::ValuesIn(TEST_PATTERNS),
+                       ::testing::ValuesIn(TEST_LOOP_AREAS),
+                       ::testing::Values(0, 1),
+                       ::testing::Values(svt_sad_loop_kernel_neoverse_v2)));
 #endif  // HAVE_SVE
 #endif  // ARCH_AARCH64
 
