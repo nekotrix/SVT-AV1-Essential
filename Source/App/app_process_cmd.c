@@ -1037,9 +1037,7 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
                     const int    eta_hours   = eta_r / 3600;
                     const int    eta_minutes = (eta_r - (eta_hours * 3600)) / 60;
                     const int    eta_seconds = eta_r - (eta_hours * 3600) - (eta_minutes * 60);
-                    const double estsz       = ((double)app_cfg->performance_context.byte_count *
-                                          app_cfg->frames_to_be_encoded / *frame_count) /
-                        1000000;
+                    const double estsz       = size * app_cfg->frames_to_be_encoded / *frame_count;
 
                     // Encoder knows how many frames are to be encoded, therefore an ETA can be calculated
                     fprintf(stderr,
