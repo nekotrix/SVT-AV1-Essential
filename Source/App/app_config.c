@@ -660,7 +660,7 @@ ConfigDescription config_entry_options[] = {
 
     {PRESET_TOKEN,
      "Encoder preset, presets < 0 are for debugging. Higher presets means faster encodes, but with "
-     "a quality tradeoff, default is 10 [-1-13]"},
+     "a quality tradeoff, default is 8 [-1-13]"},
 
     {SVTAV1_PARAMS, "colon separated list of key=value pairs of parameters with keys based on config file options"},
 
