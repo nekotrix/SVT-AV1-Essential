@@ -2212,7 +2212,7 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
     // Set palette_level
     if (sc_class1) {
         if (rtc_tune)
-            pcs->palette_level = is_islice && sc_class1 ? 3 : is_islice ? 2 : 0;
+            pcs->palette_level = is_islice ? 3 : 0;
         else if (enc_mode <= ENC_M2)
             pcs->palette_level = is_base ? 2 : 0;
         else if (enc_mode <= ENC_M9)
@@ -7798,41 +7798,34 @@ void svt_aom_sig_deriv_enc_dec_light_pd0(SequenceControlSet *scs, PictureControl
         subres_level = 0;
         // The controls checks the deviation between: (1) the pred-to-src SAD of even rows and (2) the pred-to-src SAD of odd rows for each 64x64 to decide whether to use subres or not
         // then applies the result to the 64x64 block and to all children, therefore if incomplete 64x64 then shut subres
-        if (b64_geom->is_complete_b64) {
-            // Use ME distortion and variance detector to enable subres
-            uint64_t use_subres_th = compute_subres_th(scs, ctx);
-            uint32_t fast_lambda   = ctx->hbd_md ? ctx->fast_lambda_md[EB_10_BIT_MD] : ctx->fast_lambda_md[EB_8_BIT_MD];
-            uint64_t cost_64x64    = RDCOST(fast_lambda, 0, ppcs->me_64x64_distortion[ctx->sb_index]);
+        // Use ME distortion and variance detector to enable subres
+        uint64_t use_subres_th = compute_subres_th(scs, ctx);
+        uint32_t fast_lambda   = ctx->hbd_md ? ctx->fast_lambda_md[EB_10_BIT_MD] : ctx->fast_lambda_md[EB_8_BIT_MD];
+        uint64_t cost_64x64    = RDCOST(fast_lambda, 0, ppcs->me_64x64_distortion[ctx->sb_index]);
 
-            if (pd0_level <= LPD0_LVL_2) {
-                if (is_islice || ppcs->transition_present == 1)
-                    subres_level = 1;
-                else
-                    subres_level = (cost_64x64 < use_subres_th) ? 1 : 0;
-            } else if (pd0_level <= LPD0_LVL_3) {
-                if (is_islice || ppcs->transition_present == 1)
-                    subres_level = 1;
-                else if (is_not_last_layer)
-                    subres_level = (cost_64x64 < use_subres_th) ? 1 : 0;
-                else
-                    subres_level = 2;
-            } else {
-                if (is_not_last_layer)
-                    subres_level = ctx->disallow_8x8 ||
-                            (ctx->depth_removal_ctrls.enabled &&
-                             (ctx->depth_removal_ctrls.disallow_below_16x16 ||
-                              ctx->depth_removal_ctrls.disallow_below_32x32 ||
-                              ctx->depth_removal_ctrls.disallow_below_64x64))
-                        ? 2
-                        : 1;
-                else
-                    subres_level = 2;
-            }
-        } else {
-            if (pd0_level <= LPD0_LVL_2)
-                subres_level = 0;
+        if (pd0_level <= LPD0_LVL_2) {
+            if (is_islice || ppcs->transition_present == 1)
+                subres_level = 1;
             else
-                subres_level = is_not_last_layer ? 0 : 2;
+                subres_level = (cost_64x64 < use_subres_th) ? 1 : 0;
+        } else if (pd0_level <= LPD0_LVL_3) {
+            if (is_islice || ppcs->transition_present == 1)
+                subres_level = 1;
+            else if (is_not_last_layer)
+                subres_level = (cost_64x64 < use_subres_th) ? 1 : 0;
+            else
+                subres_level = 2;
+        } else {
+            if (is_not_last_layer)
+                subres_level = ctx->disallow_8x8 ||
+                        (ctx->depth_removal_ctrls.enabled &&
+                         (ctx->depth_removal_ctrls.disallow_below_16x16 ||
+                          ctx->depth_removal_ctrls.disallow_below_32x32 ||
+                          ctx->depth_removal_ctrls.disallow_below_64x64))
+                    ? 2
+                    : 1;
+            else
+                subres_level = 2;
         }
     }
     set_subres_controls(ctx, subres_level);

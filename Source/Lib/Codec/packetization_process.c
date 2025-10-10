@@ -33,11 +33,11 @@
  * Context
  **************************************/
 typedef struct PacketizationContext {
-    EbDctor      dctor;
-    EbFifo      *entropy_coding_input_fifo_ptr;
-    EbFifo      *rate_control_tasks_output_fifo_ptr;
-    EbFifo      *picture_decision_results_output_fifo_ptr; // to motion estimation process
-    EbFifo      *picture_demux_fifo_ptr; // to picture manager process
+    EbDctor dctor;
+    EbFifo *entropy_coding_input_fifo_ptr;
+    EbFifo *rate_control_tasks_output_fifo_ptr;
+    EbFifo *picture_decision_results_output_fifo_ptr; // to motion estimation process
+    EbFifo *picture_demux_fifo_ptr; // to picture manager process
 #if DETAILED_FRAME_OUTPUT
     uint64_t dpb_disp_order[8], dpb_dec_order[8];
 #endif
@@ -663,10 +663,10 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
         //****************************************************
         // get a new entry spot
         int32_t queue_entry_index = pcs->ppcs->decode_order % enc_ctx->packetization_reorder_queue_size;
-        PacketizationReorderEntry *queue_entry_ptr   = enc_ctx->packetization_reorder_queue[queue_entry_index];
-        queue_entry_ptr->start_time_seconds          = pcs->ppcs->start_time_seconds;
-        queue_entry_ptr->start_time_u_seconds        = pcs->ppcs->start_time_u_seconds;
-        queue_entry_ptr->is_alt_ref                  = pcs->ppcs->is_alt_ref;
+        PacketizationReorderEntry *queue_entry_ptr = enc_ctx->packetization_reorder_queue[queue_entry_index];
+        queue_entry_ptr->start_time_seconds        = pcs->ppcs->start_time_seconds;
+        queue_entry_ptr->start_time_u_seconds      = pcs->ppcs->start_time_u_seconds;
+        queue_entry_ptr->is_alt_ref                = pcs->ppcs->is_alt_ref;
         svt_get_empty_object(scs->enc_ctx->stream_output_fifo_ptr, &pcs->ppcs->output_stream_wrapper_ptr);
         EbObjectWrapper    *output_stream_wrapper_ptr = pcs->ppcs->output_stream_wrapper_ptr;
         EbBufferHeaderType *output_stream_ptr         = (EbBufferHeaderType *)output_stream_wrapper_ptr->object_ptr;
@@ -825,11 +825,9 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
             if (svt_aom_is_pic_skipped(pcs->ppcs))
                 stat_struct.total_num_bits = 0;
             stat_struct.temporal_layer_index = pcs->temporal_layer_index;
-            if (scs->static_config.pass == ENC_FIRST_PASS) {
-                update_firstpass_stats(pcs->ppcs, (const int)pcs->picture_number, pcs->ppcs->ts_duration, &stat_struct);
-                if (ppcs->end_of_sequence_flag)
-                    svt_av1_end_first_pass(ppcs);
-            }
+            update_firstpass_stats(pcs->ppcs, (const int)pcs->picture_number, pcs->ppcs->ts_duration, &stat_struct);
+            if (ppcs->end_of_sequence_flag)
+                svt_av1_end_first_pass(ppcs);
         }
         queue_entry_ptr->total_num_bits = pcs->ppcs->total_num_bits;
         queue_entry_ptr->frame_type     = frm_hdr->frame_type;

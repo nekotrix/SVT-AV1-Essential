@@ -1345,7 +1345,6 @@ static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
                 (search_area_height /
                  me_ctx->reduce_me_sr_divisor[list_index][ref_pic_index]));
             int16_t search_area_height_before_sr_reduction = search_area_height;
-            int16_t search_area_width_before_sr_reduction  = search_area_width;
             uint64_t best_hme_sad = (uint64_t)~0;
             if (me_ctx->me_early_exit_th) {
                 if (me_ctx->zz_sad[list_index][ref_pic_index] <
@@ -1381,8 +1380,7 @@ static void integer_search_b64(PictureParentControlSet *pcs, MeContext* me_ctx,
                     }
                     if (list_index || ref_pic_index) {
                         if (me_ctx->p_sb_best_sad[0][0][0] < 5000)
-                            if (search_area_height == search_area_height_before_sr_reduction &&
-                                search_area_width == search_area_width_before_sr_reduction) {
+                            if (search_area_height == search_area_height_before_sr_reduction) {
                                 search_area_height = search_area_height >> 1;
                                 search_area_width  = search_area_width >> 1;
                             }

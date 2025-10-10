@@ -120,11 +120,10 @@ void svt_av1_build_quantizer(PictureParentControlSet *pcs, EbBitDepth bit_depth,
         int           diff          = q - pcs->frm_hdr.quantization_params.base_q_idx;
         const int32_t sharpness_val = pcs->scs->static_config.sharpness;
 
-        if ((sharpness_val > 0 && diff < 0) || (sharpness_val < 0 && diff > 0)) {
-            int32_t offset = sharpness_val > 0 ? MAX(sharpness_val << 1, abs(diff))
-                                               : MIN(abs(sharpness_val) << 1, diff);
-            qzbin_factor += (sharpness_val > 0) ? -offset : offset;
-            qrounding_factor += (sharpness_val > 0) ? offset : -offset;
+        if (sharpness_val > 0 && diff < 0) {
+            int32_t offset = MAX(sharpness_val << 1, abs(diff));
+            qzbin_factor += -offset;
+            qrounding_factor += offset;
             qzbin_factor     = CLIP3(1, 256, qzbin_factor);
             qrounding_factor = CLIP3(1, 256, qrounding_factor);
         }
@@ -1061,9 +1060,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             SpeedFeatures *sf    = &pcs->sf;
 
             const int mesh_speed           = AOMMIN(speed, MAX_MESH_SPEED);
-            sf->exhaustive_searches_thresh = (1 << 25);
-            if (mesh_speed > 0)
-                sf->exhaustive_searches_thresh = sf->exhaustive_searches_thresh << 1;
+            sf->exhaustive_searches_thresh = (1 << 25) << 1;
 
             for (i = 0; i < MAX_MESH_STEP; ++i) {
                 sf->mesh_patterns[i].range    = good_quality_mesh_patterns[mesh_speed][i].range;

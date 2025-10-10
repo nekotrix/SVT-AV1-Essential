@@ -719,9 +719,8 @@ class QuantizeQmTest : public QuantizeTest<QuantizeQmParam, QuantizeQmFunc> {
                         iqmatrix_[q][c][t] = iqmatrix_[q][c][qm_tx_size];
                     } else {
                         assert(current + size <= QM_TOTAL_SIZE);
-                        qmatrix_[q][c][t] = &wt_matrix_ref[q][c >= 1][current];
-                        iqmatrix_[q][c][t] =
-                            &iwt_matrix_ref[q][c >= 1][current];
+                        qmatrix_[q][c][t] = &wt_matrix_ref[q][0][current];
+                        iqmatrix_[q][c][t] = &iwt_matrix_ref[q][0][current];
                         current += size;
                     }
                 }

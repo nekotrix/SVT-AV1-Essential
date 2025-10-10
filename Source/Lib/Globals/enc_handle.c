@@ -5708,7 +5708,7 @@ static EbErrorType validate_on_the_fly_settings(EbBufferHeaderType *input_ptr, S
                 SVT_ERROR("Resolution change on the fly is not supported for 10-bit encoding\n");
                 return EB_ErrorBadParameter;
             }
-            else if (input_ptr->pic_type == EB_AV1_KEY_PICTURE) {
+            else {
                 svt_aom_assert_err(node->size == sizeof(SvtAv1InputPicDef),
                     "invalide private data of type RES_CHANGE_EVENT");
                 SvtAv1InputPicDef  *input_pic_def = (SvtAv1InputPicDef *)node->data;
@@ -6386,14 +6386,11 @@ EB_API EbErrorType svt_av1_enc_get_stream_info(EbComponentType *    svt_enc_comp
     if (stream_info_id >= SVT_AV1_STREAM_INFO_END || stream_info_id < SVT_AV1_STREAM_INFO_START) {
         return EB_ErrorBadParameter;
     }
-    EbEncHandle         *enc_handle = (EbEncHandle*)svt_enc_component->p_component_private;
-    if (stream_info_id == SVT_AV1_STREAM_INFO_FIRST_PASS_STATS_OUT) {
-        EncodeContext*      context = enc_handle->scs_instance_array[0]->enc_ctx;
-        SvtAv1FixedBuf*     first_pass_stats = (SvtAv1FixedBuf*)info;
-        first_pass_stats->buf = context->stats_out.stat;
-        first_pass_stats->sz = context->stats_out.size * sizeof(FIRSTPASS_STATS);
-        return EB_ErrorNone;
-    }
-    return EB_ErrorBadParameter;
+    EbEncHandle         *enc_handle = svt_enc_component->p_component_private;
+    EncodeContext*      context = enc_handle->scs_instance_array[0]->enc_ctx;
+    SvtAv1FixedBuf*     first_pass_stats = info;
+    first_pass_stats->buf = context->stats_out.stat;
+    first_pass_stats->sz = context->stats_out.size * sizeof(FIRSTPASS_STATS);
+    return EB_ErrorNone;
 }
 // clang-format on

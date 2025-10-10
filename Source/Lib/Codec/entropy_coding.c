@@ -763,91 +763,89 @@ static EbErrorType av1_encode_tx_coef_uv(PictureControlSet *pcs, EntropyCodingCo
     for (unsigned tx_index = 0; tx_index < txb_count; ++tx_index) {
         const TxSize chroma_tx_size = blk_geom->txsize_uv[tx_depth];
 
-        if (blk_geom->has_uv) {
-            // cb
-            int32_t *coeff_buffer = (int32_t *)coeff_ptr->buffer_cb + ec_ctx->coded_area_sb_uv;
-            int16_t  txb_skip_ctx = 0;
-            int16_t  dc_sign_ctx  = 0;
+        // cb
+        int32_t *coeff_buffer = (int32_t *)coeff_ptr->buffer_cb + ec_ctx->coded_area_sb_uv;
+        int16_t  txb_skip_ctx = 0;
+        int16_t  dc_sign_ctx  = 0;
 
-            svt_aom_get_txb_ctx(
-                pcs,
-                COMPONENT_CHROMA,
-                cb_dc_sign_level_coeff_na,
-                ROUND_UV(blk_org_x + blk_geom->tx_org_x[is_inter][tx_depth][tx_index] - blk_geom->org_x) >> 1,
-                ROUND_UV(blk_org_y + blk_geom->tx_org_y[is_inter][tx_depth][tx_index] - blk_geom->org_y) >> 1,
-                blk_geom->bsize_uv,
-                chroma_tx_size,
-                &txb_skip_ctx,
-                &dc_sign_ctx);
+        svt_aom_get_txb_ctx(
+            pcs,
+            COMPONENT_CHROMA,
+            cb_dc_sign_level_coeff_na,
+            ROUND_UV(blk_org_x + blk_geom->tx_org_x[is_inter][tx_depth][tx_index] - blk_geom->org_x) >> 1,
+            ROUND_UV(blk_org_y + blk_geom->tx_org_y[is_inter][tx_depth][tx_index] - blk_geom->org_y) >> 1,
+            blk_geom->bsize_uv,
+            chroma_tx_size,
+            &txb_skip_ctx,
+            &dc_sign_ctx);
 
-            int32_t cul_level_cb = av1_write_coeffs_txb_1d(pcs->ppcs,
-                                                           frame_context,
-                                                           ec_ctx->mbmi,
-                                                           ec_writer,
-                                                           blk_ptr,
-                                                           chroma_tx_size,
-                                                           0,
-                                                           tx_index,
-                                                           intraLumaDir,
-                                                           coeff_buffer,
-                                                           coeff_ptr->stride_cb,
-                                                           COMPONENT_CHROMA,
-                                                           txb_skip_ctx,
-                                                           dc_sign_ctx,
-                                                           blk_ptr->eob.u[tx_index]);
+        int32_t cul_level_cb = av1_write_coeffs_txb_1d(pcs->ppcs,
+                                                       frame_context,
+                                                       ec_ctx->mbmi,
+                                                       ec_writer,
+                                                       blk_ptr,
+                                                       chroma_tx_size,
+                                                       0,
+                                                       tx_index,
+                                                       intraLumaDir,
+                                                       coeff_buffer,
+                                                       coeff_ptr->stride_cb,
+                                                       COMPONENT_CHROMA,
+                                                       txb_skip_ctx,
+                                                       dc_sign_ctx,
+                                                       blk_ptr->eob.u[tx_index]);
 
-            // cr
-            coeff_buffer = (int32_t *)coeff_ptr->buffer_cr + ec_ctx->coded_area_sb_uv;
-            txb_skip_ctx = 0;
-            dc_sign_ctx  = 0;
+        // cr
+        coeff_buffer = (int32_t *)coeff_ptr->buffer_cr + ec_ctx->coded_area_sb_uv;
+        txb_skip_ctx = 0;
+        dc_sign_ctx  = 0;
 
-            svt_aom_get_txb_ctx(
-                pcs,
-                COMPONENT_CHROMA,
-                cr_dc_sign_level_coeff_na,
-                ROUND_UV(blk_org_x + blk_geom->tx_org_x[is_inter][tx_depth][tx_index] - blk_geom->org_x) >> 1,
-                ROUND_UV(blk_org_y + blk_geom->tx_org_y[is_inter][tx_depth][tx_index] - blk_geom->org_y) >> 1,
-                blk_geom->bsize_uv,
-                chroma_tx_size,
-                &txb_skip_ctx,
-                &dc_sign_ctx);
+        svt_aom_get_txb_ctx(
+            pcs,
+            COMPONENT_CHROMA,
+            cr_dc_sign_level_coeff_na,
+            ROUND_UV(blk_org_x + blk_geom->tx_org_x[is_inter][tx_depth][tx_index] - blk_geom->org_x) >> 1,
+            ROUND_UV(blk_org_y + blk_geom->tx_org_y[is_inter][tx_depth][tx_index] - blk_geom->org_y) >> 1,
+            blk_geom->bsize_uv,
+            chroma_tx_size,
+            &txb_skip_ctx,
+            &dc_sign_ctx);
 
-            int32_t cul_level_cr = av1_write_coeffs_txb_1d(pcs->ppcs,
-                                                           frame_context,
-                                                           ec_ctx->mbmi,
-                                                           ec_writer,
-                                                           blk_ptr,
-                                                           chroma_tx_size,
-                                                           0,
-                                                           tx_index,
-                                                           intraLumaDir,
-                                                           coeff_buffer,
-                                                           coeff_ptr->stride_cr,
-                                                           COMPONENT_CHROMA,
-                                                           txb_skip_ctx,
-                                                           dc_sign_ctx,
-                                                           blk_ptr->eob.v[tx_index]);
-            // Update the cb Dc Sign Level Coeff Neighbor Array
-            uint8_t dc_sign_level_coeff = (uint8_t)cul_level_cb;
-            svt_aom_neighbor_array_unit_mode_write(
-                cb_dc_sign_level_coeff_na,
-                &dc_sign_level_coeff,
-                ROUND_UV(blk_org_x + blk_geom->tx_org_x[is_inter][tx_depth][tx_index] - blk_geom->org_x) >> 1,
-                ROUND_UV(blk_org_y + blk_geom->tx_org_y[is_inter][tx_depth][tx_index] - blk_geom->org_y) >> 1,
-                blk_geom->tx_width_uv[tx_depth],
-                blk_geom->tx_height_uv[tx_depth],
-                NEIGHBOR_ARRAY_UNIT_TOP_AND_LEFT_ONLY_MASK);
-            // Update the cr DC Sign Level Coeff Neighbor Array
-            dc_sign_level_coeff = (uint8_t)cul_level_cr;
-            svt_aom_neighbor_array_unit_mode_write(
-                cr_dc_sign_level_coeff_na,
-                &dc_sign_level_coeff,
-                ROUND_UV(blk_org_x + blk_geom->tx_org_x[is_inter][tx_depth][tx_index] - blk_geom->org_x) >> 1,
-                ROUND_UV(blk_org_y + blk_geom->tx_org_y[is_inter][tx_depth][tx_index] - blk_geom->org_y) >> 1,
-                blk_geom->tx_width_uv[tx_depth],
-                blk_geom->tx_height_uv[tx_depth],
-                NEIGHBOR_ARRAY_UNIT_TOP_AND_LEFT_ONLY_MASK);
-        }
+        int32_t cul_level_cr = av1_write_coeffs_txb_1d(pcs->ppcs,
+                                                       frame_context,
+                                                       ec_ctx->mbmi,
+                                                       ec_writer,
+                                                       blk_ptr,
+                                                       chroma_tx_size,
+                                                       0,
+                                                       tx_index,
+                                                       intraLumaDir,
+                                                       coeff_buffer,
+                                                       coeff_ptr->stride_cr,
+                                                       COMPONENT_CHROMA,
+                                                       txb_skip_ctx,
+                                                       dc_sign_ctx,
+                                                       blk_ptr->eob.v[tx_index]);
+        // Update the cb Dc Sign Level Coeff Neighbor Array
+        uint8_t dc_sign_level_coeff = (uint8_t)cul_level_cb;
+        svt_aom_neighbor_array_unit_mode_write(
+            cb_dc_sign_level_coeff_na,
+            &dc_sign_level_coeff,
+            ROUND_UV(blk_org_x + blk_geom->tx_org_x[is_inter][tx_depth][tx_index] - blk_geom->org_x) >> 1,
+            ROUND_UV(blk_org_y + blk_geom->tx_org_y[is_inter][tx_depth][tx_index] - blk_geom->org_y) >> 1,
+            blk_geom->tx_width_uv[tx_depth],
+            blk_geom->tx_height_uv[tx_depth],
+            NEIGHBOR_ARRAY_UNIT_TOP_AND_LEFT_ONLY_MASK);
+        // Update the cr DC Sign Level Coeff Neighbor Array
+        dc_sign_level_coeff = (uint8_t)cul_level_cr;
+        svt_aom_neighbor_array_unit_mode_write(
+            cr_dc_sign_level_coeff_na,
+            &dc_sign_level_coeff,
+            ROUND_UV(blk_org_x + blk_geom->tx_org_x[is_inter][tx_depth][tx_index] - blk_geom->org_x) >> 1,
+            ROUND_UV(blk_org_y + blk_geom->tx_org_y[is_inter][tx_depth][tx_index] - blk_geom->org_y) >> 1,
+            blk_geom->tx_width_uv[tx_depth],
+            blk_geom->tx_height_uv[tx_depth],
+            NEIGHBOR_ARRAY_UNIT_TOP_AND_LEFT_ONLY_MASK);
 
         ec_ctx->coded_area_sb_uv += blk_geom->tx_width_uv[tx_depth] * blk_geom->tx_height_uv[tx_depth];
     }

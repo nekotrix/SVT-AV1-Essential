@@ -251,14 +251,7 @@ void SvtAv1E2ETestFramework::init_test(TestVideoVector &test_vector) {
     ASSERT_EQ(return_error, EB_ErrorNone)
         << "svt_av1_enc_init return error:" << return_error;
 
-#if TILES_PARALLEL
-    bool has_tiles = (bool)(av1enc_ctx_.enc_params.tile_columns ||
-                            av1enc_ctx_.enc_params.tile_rows);
-#else
-    bool has_tiles = (bool)false;
-#endif
-    obu_frame_header_size_ =
-        has_tiles ? OBU_FRAME_HEADER_SIZE + 1 : OBU_FRAME_HEADER_SIZE;
+    obu_frame_header_size_ = OBU_FRAME_HEADER_SIZE;
 
     // create reference decoder if required.
     if (enable_decoder) {

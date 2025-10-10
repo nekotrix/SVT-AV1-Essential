@@ -327,8 +327,7 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
         const int subsampling_y = (pli == 0) ? 0 : 1;
         xdec[pli]               = subsampling_x;
         ydec[pli]               = subsampling_y;
-        plane_bsize[pli]        = subsampling_y ? (subsampling_x ? BLOCK_4X4 : BLOCK_8X4)
-                                                : (subsampling_x ? BLOCK_4X8 : BLOCK_8X8);
+        plane_bsize[pli]        = subsampling_y ? BLOCK_4X4 : BLOCK_8X8;
         mi_wide_l2[pli]         = MI_SIZE_LOG2 - subsampling_x;
         mi_high_l2[pli]         = MI_SIZE_LOG2 - subsampling_y;
         src[pli]                = pcs->cdef_input_recon[pli];

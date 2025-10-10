@@ -191,8 +191,7 @@ void speed_buffer_control(ResourceCoordinationContext *context_ptr, PictureParen
         // Go to a slower mode based on the fullness and changes of the buffer
         if (scs->enc_ctx->sc_buffer < target_fps &&
             (context_ptr->prev_enc_mode_delta > -1 ||
-             (context_ptr->prev_enc_mode_delta < 0 &&
-              scs->enc_ctx->sc_frame_in > context_ptr->previous_mode_change_frame_in + target_fps * 2))) {
+             scs->enc_ctx->sc_frame_in > context_ptr->previous_mode_change_frame_in + target_fps * 2)) {
             if (context_ptr->previous_buffer_check1 > scs->enc_ctx->sc_buffer + buffer_threshold_1) {
                 encoder_mode_delta += -1;
                 change_cond = 2;

@@ -3127,7 +3127,7 @@ static uint8_t inter_chroma_4xn_pred(PictureControlSet *pcs, MacroBlockD *xd, Bl
     const int32_t row_start = (block_size_high[bsize] == 4) && ss_y ? -1 : 0;
     const int32_t col_start = (block_size_wide[bsize] == 4) && ss_x ? -1 : 0;
 
-    for (int32_t row = row_start; row <= 0 && sub8x8_inter; ++row) {
+    for (int32_t row = row_start; row <= 0; ++row) {
         for (int32_t col = col_start; col <= 0; ++col) {
             const MbModeInfo *this_mbmi = xd->mi[row * xd->mi_stride + col];
             if (!is_inter_block(&this_mbmi->block_mi))

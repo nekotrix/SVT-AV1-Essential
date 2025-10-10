@@ -3917,14 +3917,10 @@ uint32_t svt_aom_product_full_mode_decision(
         if (!cand->palette_info)
             blk_ptr->palette_size[0] = blk_ptr->palette_size[1] = 0;
         else if (svt_av1_allow_palette(ctx->md_palette_level, ctx->blk_geom->bsize)) {
-            if (cand->palette_info) {
-                memcpy(&blk_ptr->palette_info->pmi, &cand->palette_info->pmi, sizeof(PaletteModeInfo));
-                memcpy(blk_ptr->palette_info->color_idx_map, cand->palette_info->color_idx_map, MAX_PALETTE_SQUARE);
-                blk_ptr->palette_size[0] = cand->palette_size [0];
-                blk_ptr->palette_size[1] = cand->palette_size [1];
-            }
-            else
-                memset(blk_ptr->palette_info->color_idx_map, 0, MAX_PALETTE_SQUARE);
+            memcpy(&blk_ptr->palette_info->pmi, &cand->palette_info->pmi, sizeof(PaletteModeInfo));
+            memcpy(blk_ptr->palette_info->color_idx_map, cand->palette_info->color_idx_map, MAX_PALETTE_SQUARE);
+            blk_ptr->palette_size[0] = cand->palette_size [0];
+            blk_ptr->palette_size[1] = cand->palette_size [1];
         }
 
         if (blk_ptr->block_mi.use_intrabc == 0) {

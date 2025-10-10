@@ -187,7 +187,7 @@ void svt_c_unpack_compressed_10bit(const uint8_t *inn_bit_buffer, uint32_t inn_s
                 uncompressed_byte = (data_byte << 2) & 0xC0;
             } else if (col_index % 4 == 2) {
                 uncompressed_byte = (data_byte << 4) & 0xC0;
-            } else if (col_index % 4 == 3) {
+            } else {
                 uncompressed_byte = (data_byte << 6) & 0xC0;
             }
 

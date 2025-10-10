@@ -1482,14 +1482,10 @@ void svt_aom_cyclic_refresh_init(PictureParentControlSet *ppcs) {
 
     uint16_t sb_cnt = scs->sb_total_count;
 
-    if (cr->apply_cyclic_refresh) {
-        cr->sb_start            = scs->enc_ctx->cr_sb_end;
-        cr->sb_end              = cr->sb_start + sb_cnt * cr->percent_refresh / 100;
-        scs->enc_ctx->cr_sb_end = cr->sb_end >= sb_cnt ? 0 : cr->sb_end;
-    } else {
-        cr->sb_start = 0;
-        cr->sb_end   = 0;
-    }
+    cr->sb_start            = scs->enc_ctx->cr_sb_end;
+    cr->sb_end              = cr->sb_start + sb_cnt * cr->percent_refresh / 100;
+    scs->enc_ctx->cr_sb_end = cr->sb_end >= sb_cnt ? 0 : cr->sb_end;
+
     // Use larger delta - qp(increase rate_ratio_qdelta) for first few(~4)
     // periods of the refresh cycle, after a key frame.
     cr->max_qdelta_perc = 60;
@@ -2235,10 +2231,10 @@ static int adjust_q_cbr(PictureParentControlSet *ppcs, int q) {
     EncodeContext      *enc_ctx = scs->enc_ctx;
     RATE_CONTROL       *rc      = &enc_ctx->rc;
 
-    const int           max_delta      = max_delta_per_layer[ppcs->hierarchical_levels][ppcs->temporal_layer_index];
-    const int           max_delta_down = (ppcs->sc_class1) ? AOMMIN(max_delta, AOMMAX(1, rc->q_1_frame / 2))
-                                                           : AOMMIN(max_delta, AOMMAX(1, rc->q_1_frame / 3));
-    const int           change_avg_frame_bandwidth = abs(rc->avg_frame_bandwidth - rc->prev_avg_frame_bandwidth) >
+    const int max_delta                  = max_delta_per_layer[ppcs->hierarchical_levels][ppcs->temporal_layer_index];
+    const int max_delta_down             = (ppcs->sc_class1) ? AOMMIN(max_delta, AOMMAX(1, rc->q_1_frame / 2))
+                                                             : AOMMIN(max_delta, AOMMAX(1, rc->q_1_frame / 3));
+    const int change_avg_frame_bandwidth = abs(rc->avg_frame_bandwidth - rc->prev_avg_frame_bandwidth) >
         0.1 * (rc->avg_frame_bandwidth);
     // If resolution changes or avg_frame_bandwidth significantly changed,
     // then set this flag to indicate change in target bits per macroblock.
@@ -2579,7 +2575,7 @@ static int rc_pick_q_and_bounds_no_stats_cbr(PictureControlSet *pcs) {
         if (pcs->slice_type == I_SLICE) {
             int q1 = pcs->picture_number == 0 ? q + 20 : rc->q_1_frame;
             q      = (q + q1) / 2;
-        } else if (pcs->slice_type != I_SLICE && pcs->ppcs->temporal_layer_index == 0) {
+        } else if (pcs->ppcs->temporal_layer_index == 0) {
             int qdelta = 0;
             qdelta     = svt_av1_compute_qdelta_by_rate(
                 rc, pcs->ppcs->frm_hdr.frame_type, active_worst_quality, QFACTOR, bit_depth, pcs->ppcs->sc_class1);
@@ -3390,7 +3386,7 @@ void recode_loop_update_q(PictureParentControlSet *ppcs, int *const loop, int *c
     *q    = clamp_qindex(scs, *q);
     *loop = (*q != last_q);
     // Used for capped CRF. Update the active worse quality based on the final assigned qindex
-    if (rc_cfg->mode == AOM_Q && scs->static_config.max_bit_rate && *loop == 0 && ppcs->temporal_layer_index == 0 &&
+    if (rc_cfg->mode == AOM_Q && scs->static_config.max_bit_rate && ppcs->temporal_layer_index == 0 &&
         ppcs->loop_count > 0) {
         if (ppcs->slice_type == I_SLICE)
             rc->active_worst_quality = get_kf_q_tpl(rc, *q, scs->static_config.encoder_bit_depth);

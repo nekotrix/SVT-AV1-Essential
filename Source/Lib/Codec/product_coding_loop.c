@@ -3173,7 +3173,7 @@ static void pme_search(PictureControlSet *pcs, ModeDecisionContext *ctx, EbPictu
         full_pel_search_width  = MAX(3, DIVIDE_AND_ROUND(full_pel_search_width * q_weight, q_weight_denom));
         full_pel_search_height = MAX(3, DIVIDE_AND_ROUND(full_pel_search_height * q_weight, q_weight_denom));
     }
-    input_pic = hbd_md ? pcs->input_frame16bit : pcs->ppcs->enhanced_pic;
+    input_pic = pcs->ppcs->enhanced_pic;
 
     uint32_t input_origin_index = (ctx->blk_org_y + input_pic->org_y) * input_pic->stride_y +
         (ctx->blk_org_x + input_pic->org_x);
@@ -9998,8 +9998,7 @@ static void check_curr_to_parent_cost(SequenceControlSet *scs, PictureControlSet
         uint64_t parent_depth_cost = 0, current_depth_cost = 0;
 
         // from a given child index, derive the index of the parent
-        uint32_t parent_depth_idx_mds = blk_geom->parent_depth_idx_mds;
-        assert(parent_depth_idx_mds == blk_geom->parent_depth_idx_mds);
+        const uint32_t parent_depth_idx_mds = blk_geom->parent_depth_idx_mds;
         if ((pcs->slice_type == I_SLICE && parent_depth_idx_mds == 0 && scs->seq_header.sb_size == BLOCK_128X128) ||
             !ctx->cost_avail[parent_depth_idx_mds])
             parent_depth_cost = MAX_MODE_COST;

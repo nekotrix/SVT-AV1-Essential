@@ -1629,7 +1629,7 @@ void svt_aom_crf_assign_max_rate(PictureParentControlSet *ppcs) {
             int max_adjustment = (available_bit_ratio + 20 < available_frames_ratio) ? rc->active_worst_quality
                                                                                      : rc->active_worst_quality / 2;
             // Adjust up from assigned QP.
-            if (buff_lvl_step && available_bit_ratio < available_frames_ratio + 10) {
+            if (available_bit_ratio < available_frames_ratio + 10) {
                 adjustment = (int)(max_adjustment * (OPTIMAL_BUFFER_LEVEL - available_bit_ratio) / buff_lvl_step);
             }
         } else {

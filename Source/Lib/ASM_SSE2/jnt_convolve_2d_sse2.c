@@ -247,10 +247,7 @@ void svt_av1_jnt_convolve_2d_sse2(const uint8_t *src, int32_t src_stride, uint8_
 
                     const __m128i res_8 = _mm_packus_epi16(round_result, round_result);
 
-                    if (w > 4)
-                        _mm_storel_epi64((__m128i *)(&dst8[i * dst8_stride + j]), res_8);
-                    else
-                        *(uint32_t *)(&dst8[i * dst8_stride + j]) = _mm_cvtsi128_si32(res_8);
+                    _mm_storel_epi64((__m128i *)(&dst8[i * dst8_stride + j]), res_8);
                 } else {
                     _mm_storeu_si128((__m128i *)(&dst[i * dst_stride + j]), res_unsigned);
                 }
@@ -362,11 +359,7 @@ void svt_av1_jnt_convolve_2d_copy_sse2(const uint8_t *src, int32_t src_stride, u
                         &comp_avg_res, &offset_const, &rounding_const, rounding_shift);
 
                     const __m128i res_8 = _mm_packus_epi16(round_result, round_result);
-
-                    if (w > 4)
-                        _mm_storel_epi64((__m128i *)(&dst8[j]), res_8);
-                    else
-                        *(uint32_t *)(&dst8[j]) = _mm_cvtsi128_si32(res_8);
+                    _mm_storel_epi64((__m128i *)(&dst8[j]), res_8);
                 } else {
                     _mm_storeu_si128((__m128i *)(&dst[j]), res_unsigned);
                 }

@@ -470,7 +470,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 ref_entry->is_ref                        = pcs->is_ref;
                 ref_entry->decode_order                  = pcs->decode_order;
                 ref_entry->refresh_frame_mask            = pcs->av1_ref_signal.refresh_frame_mask;
-                ref_entry->dec_order_of_last_ref         = pcs->is_ref ? UINT64_MAX : 0;
+                ref_entry->dec_order_of_last_ref         = UINT64_MAX;
                 ref_entry->frame_end_cdf_update_required = pcs->frame_end_cdf_update_mode;
 
                 CHECK_REPORT_ERROR(
@@ -589,13 +589,12 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                     ref_entry = search_ref_in_ref_queue(enc_ctx, ref_poc);
 
                     refs_available = (ref_entry == NULL) ? false
-                        : (scs->static_config.rate_control_mode && entry_ppcs->slice_type != I_SLICE &&
-                           entry_ppcs->temporal_layer_index == 0 && !ref_entry->feedback_arrived &&
-                           !enc_ctx->terminating_sequence_flag_received)
+                        : (scs->static_config.rate_control_mode && entry_ppcs->temporal_layer_index == 0 &&
+                           !ref_entry->feedback_arrived && !enc_ctx->terminating_sequence_flag_received)
                         ? false
-                        : (entry_ppcs->frame_end_cdf_update_mode && !ref_entry->frame_context_updated) ? false
-                        : (ref_entry->reference_available) ? true // The Reference has been completed
-                                                           : false; // The Reference has not been completed
+                        : (entry_ppcs->frame_end_cdf_update_mode && !ref_entry->frame_context_updated)
+                        ? false
+                        : ref_entry->reference_available;
                     svt_release_mutex(enc_ctx->ref_pic_list_mutex);
                 }
             }

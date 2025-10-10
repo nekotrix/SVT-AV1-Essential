@@ -966,7 +966,7 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
             int32_t plane_end = 2;
 
             for (int32_t plane = 1; plane <= plane_end; ++plane) {
-                TxSize tx_size = plane ? ed_ctx->blk_geom->txsize_uv[tx_depth] : ed_ctx->blk_geom->txsize[tx_depth];
+                TxSize tx_size = ed_ctx->blk_geom->txsize_uv[tx_depth];
 
                 if (plane == 1) {
                     if (blk_originy_uv != 0)
@@ -1012,39 +1012,32 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
                 mode = (blk_ptr->block_mi.uv_mode == UV_CFL_PRED) ? (PredictionMode)UV_DC_PRED
                                                                   : (PredictionMode)blk_ptr->block_mi.uv_mode;
 
-                svt_av1_predict_intra_block_16bit(
-                    bit_depth,
-                    ED_STAGE,
-                    ed_ctx->blk_geom,
-                    ed_ctx->blk_ptr->av1xd,
-                    plane ? ed_ctx->blk_geom->bwidth_uv : ed_ctx->blk_geom->bwidth,
-                    plane ? ed_ctx->blk_geom->bheight_uv : ed_ctx->blk_geom->bheight,
-                    tx_size,
-                    mode,
-                    plane ? blk_ptr->block_mi.angle_delta[PLANE_TYPE_UV] : blk_ptr->block_mi.angle_delta[PLANE_TYPE_Y],
-                    0, //chroma
-                    blk_ptr->palette_info,
-                    FILTER_INTRA_MODES,
-                    top_neigh_array + 1,
-                    left_neigh_array + 1,
-                    recon_buffer,
-                    plane
-                        ? 0
-                        : (ed_ctx->blk_geom->tx_org_x[is_inter][tx_depth][ed_ctx->txb_itr] - ed_ctx->blk_geom->org_x) >>
-                            2,
-                    plane
-                        ? 0
-                        : (ed_ctx->blk_geom->tx_org_y[is_inter][tx_depth][ed_ctx->txb_itr] - ed_ctx->blk_geom->org_y) >>
-                            2,
-                    plane,
-                    ed_ctx->blk_geom->bsize,
-                    txb_origin_x,
-                    txb_origin_y,
-                    ed_ctx->blk_org_x,
-                    ed_ctx->blk_org_y,
-                    0,
-                    0,
-                    &pcs->scs->seq_header);
+                svt_av1_predict_intra_block_16bit(bit_depth,
+                                                  ED_STAGE,
+                                                  ed_ctx->blk_geom,
+                                                  ed_ctx->blk_ptr->av1xd,
+                                                  ed_ctx->blk_geom->bwidth_uv,
+                                                  ed_ctx->blk_geom->bheight_uv,
+                                                  tx_size,
+                                                  mode,
+                                                  blk_ptr->block_mi.angle_delta[PLANE_TYPE_UV],
+                                                  0, //chroma
+                                                  blk_ptr->palette_info,
+                                                  FILTER_INTRA_MODES,
+                                                  top_neigh_array + 1,
+                                                  left_neigh_array + 1,
+                                                  recon_buffer,
+                                                  0,
+                                                  0,
+                                                  plane,
+                                                  ed_ctx->blk_geom->bsize,
+                                                  txb_origin_x,
+                                                  txb_origin_y,
+                                                  ed_ctx->blk_org_x,
+                                                  ed_ctx->blk_org_y,
+                                                  0,
+                                                  0,
+                                                  &pcs->scs->seq_header);
             }
         } else
 #endif
@@ -1057,7 +1050,7 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
             int32_t plane_end = 2;
 
             for (int32_t plane = 1; plane <= plane_end; ++plane) {
-                TxSize tx_size = plane ? ed_ctx->blk_geom->txsize_uv[tx_depth] : ed_ctx->blk_geom->txsize[tx_depth];
+                TxSize tx_size = ed_ctx->blk_geom->txsize_uv[tx_depth];
 
                 if (plane == 1) {
                     if (blk_originy_uv != 0)
@@ -1104,38 +1097,31 @@ static void perform_intra_coding_loop(PictureControlSet *pcs, SuperBlock *sb_ptr
 
                 // Hsan: if CHROMA_MODE_2, then CFL will be evaluated @ EP as no CHROMA @ MD
                 // If that's the case then you should ensure than the 1st chroma prediction uses UV_DC_PRED (that's the default configuration for CHROMA_MODE_2 if CFL applicable (set @ fast loop candidates injection) then MD assumes chroma mode always UV_DC_PRED)
-                svt_av1_predict_intra_block(
-                    ED_STAGE,
-                    ed_ctx->blk_geom,
-                    blk_ptr->av1xd,
-                    plane ? ed_ctx->blk_geom->bwidth_uv : ed_ctx->blk_geom->bwidth,
-                    plane ? ed_ctx->blk_geom->bheight_uv : ed_ctx->blk_geom->bheight,
-                    tx_size,
-                    mode,
-                    plane ? blk_ptr->block_mi.angle_delta[PLANE_TYPE_UV] : blk_ptr->block_mi.angle_delta[PLANE_TYPE_Y],
-                    0, //chroma
-                    blk_ptr->palette_info,
-                    FILTER_INTRA_MODES,
-                    top_neigh_array + 1,
-                    left_neigh_array + 1,
-                    recon_buffer,
-                    plane
-                        ? 0
-                        : (ed_ctx->blk_geom->tx_org_x[is_inter][tx_depth][ed_ctx->txb_itr] - ed_ctx->blk_geom->org_x) >>
-                            2,
-                    plane
-                        ? 0
-                        : (ed_ctx->blk_geom->tx_org_y[is_inter][tx_depth][ed_ctx->txb_itr] - ed_ctx->blk_geom->org_y) >>
-                            2,
-                    plane,
-                    ed_ctx->blk_geom->bsize,
-                    txb_origin_x,
-                    txb_origin_y,
-                    ed_ctx->blk_org_x,
-                    ed_ctx->blk_org_y,
-                    0,
-                    0,
-                    &pcs->scs->seq_header);
+                svt_av1_predict_intra_block(ED_STAGE,
+                                            ed_ctx->blk_geom,
+                                            blk_ptr->av1xd,
+                                            ed_ctx->blk_geom->bwidth_uv,
+                                            ed_ctx->blk_geom->bheight_uv,
+                                            tx_size,
+                                            mode,
+                                            blk_ptr->block_mi.angle_delta[PLANE_TYPE_UV],
+                                            0, //chroma
+                                            blk_ptr->palette_info,
+                                            FILTER_INTRA_MODES,
+                                            top_neigh_array + 1,
+                                            left_neigh_array + 1,
+                                            recon_buffer,
+                                            0,
+                                            0,
+                                            plane,
+                                            ed_ctx->blk_geom->bsize,
+                                            txb_origin_x,
+                                            txb_origin_y,
+                                            ed_ctx->blk_org_x,
+                                            ed_ctx->blk_org_y,
+                                            0,
+                                            0,
+                                            &pcs->scs->seq_header);
             }
         }
 
