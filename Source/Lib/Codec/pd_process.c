@@ -1199,7 +1199,7 @@ static int8_t get_sframe_qp_offset(SvtAv1SFramePositions const *sframe_posi, uin
 static void setup_sframe_qp(PictureParentControlSet *ppcs) {
     SequenceControlSet *scs = ppcs->scs;
 #if FTR_SFRAME_DEC_POSI
-    uint64_t pic_num = scs->static_config.sframe_mode == 4 ? ppcs->decode_order : ppcs->picture_number;
+    uint64_t pic_num = scs->static_config.sframe_mode == SFRAME_DEC_POSI_BASE ? ppcs->decode_order : ppcs->picture_number;
     uint8_t sframe_qp = scs->static_config.sframe_qp > 0 ? scs->static_config.sframe_qp : get_sframe_qp(&scs->static_config.sframe_posi, pic_num);
 #else
     uint8_t sframe_qp = scs->static_config.sframe_qp > 0 ? scs->static_config.sframe_qp : get_sframe_qp(&scs->static_config.sframe_posi, ppcs->picture_number);
@@ -1269,7 +1269,7 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
         if (is_arf) {
 #if FTR_SFRAME_DEC_POSI
             // SFRAME_DEC_POSI_BASE: adjust the frame before insert position to be ARF, and set the next ARF as S-Frame, only necessary in random access mode
-            int32_t sframe_offset = (sframe_mode == SFRAME_DEC_POSI_BASE && ppcs->scs->static_config.pred_structure == RANDOM_ACCESS) ? 1 : 0;
+            int32_t sframe_offset = sframe_mode == SFRAME_DEC_POSI_BASE ? 1 : 0;
             // set this ARF to S-Frame if it is decided by previous processing
             if (pd_ctx->next_arf_is_s) {
                 frm_hdr->frame_type = S_FRAME;
@@ -1384,10 +1384,9 @@ static void decide_sframe_mg(PictureParentControlSet *ppcs, EncodeContext *enc_c
     int32_t sframe_dist = enc_ctx->sf_cfg.sframe_dist;
     const EbSFrameMode sframe_mode = enc_ctx->sf_cfg.sframe_mode;
 #if FTR_SFRAME_DEC_POSI
-    if (sframe_mode == SFRAME_FLEXIBLE_BASE || sframe_mode == SFRAME_DEC_POSI_BASE) {
-        int32_t sframe_offset = (sframe_mode == SFRAME_DEC_POSI_BASE && scs->static_config.pred_structure == RANDOM_ACCESS) ? 1 : 0;
-        // reset next_arf_sframe when key frame inserted
-        pd_ctx->next_arf_is_s = false;
+    int32_t sframe_offset = (sframe_mode == SFRAME_DEC_POSI_BASE && scs->static_config.pred_structure == RANDOM_ACCESS) ? 1 : 0;
+    // reset next_arf_sframe when key frame inserted
+    pd_ctx->next_arf_is_s = false;
 #else
     if (sframe_mode == SFRAME_FLEXIBLE_BASE) {
 #endif // FTR_SFRAME_POSI
@@ -1425,7 +1424,9 @@ static void decide_sframe_mg(PictureParentControlSet *ppcs, EncodeContext *enc_c
             }
             assert(pd_ctx->sframe_hier_lvls >= 0 && pd_ctx->sframe_hier_lvls <= (int32_t)scs->static_config.hierarchical_levels);
         }
+#if !FTR_SFRAME_DEC_POSI
     }
+#endif // !FTR_SFRAME_DEC_POSI
     return;
 }
 #endif // FTR_SFRAME_FLEX
@@ -1646,7 +1647,7 @@ static void  av1_generate_rps_info(
             set_ref_list_counts(pcs, ctx);
 #if FTR_SFRAME_FLEX
 #if FTR_SFRAME_DEC_POSI
-            if (scs->static_config.sframe_mode >= SFRAME_FLEXIBLE_BASE)
+            if (IS_SFRAME_FLEXIBLE_INSERT(scs->static_config.sframe_mode))
 #else
             if (scs->static_config.sframe_mode == SFRAME_FLEXIBLE_BASE)
 #endif // FTR_SFRAME_DEC_POSI
@@ -3839,7 +3840,7 @@ static void low_delay_store_tf_pictures(
 {
 #if FTR_SFRAME_FLEX
 #if FTR_SFRAME_DEC_POSI
-    const uint32_t mg_size = 1 << (scs->static_config.sframe_mode >= SFRAME_FLEXIBLE_BASE ? (uint32_t)ctx->sframe_hier_lvls : scs->static_config.hierarchical_levels);
+    const uint32_t mg_size = 1 << (IS_SFRAME_FLEXIBLE_INSERT(scs->static_config.sframe_mode) ? (uint32_t)ctx->sframe_hier_lvls : scs->static_config.hierarchical_levels);
 #else
     const uint32_t mg_size = 1 << (scs->static_config.sframe_mode == SFRAME_FLEXIBLE_BASE ? (uint32_t)ctx->sframe_hier_lvls : scs->static_config.hierarchical_levels);
 #endif // FTR_SFRAME_DEC_POSI
@@ -4166,7 +4167,7 @@ static void copy_tf_params(SequenceControlSet *scs, PictureParentControlSet *pcs
         // When the hierarchical level reaches zero during flexible S-Frame insertion, tf_pic_arr_cnt is reset to zero upon mini-GOP closure.
         // Add additional protection for TF handling.
 #if FTR_SFRAME_DEC_POSI
-        if (scs->static_config.sframe_mode >= SFRAME_FLEXIBLE_BASE && pcs->tf_ctrls.enabled && ctx->tf_pic_arr_cnt == 0)
+        if (IS_SFRAME_FLEXIBLE_INSERT(scs->static_config.sframe_mode) && pcs->tf_ctrls.enabled && ctx->tf_pic_arr_cnt == 0)
 #else
         if (scs->static_config.sframe_mode == SFRAME_FLEXIBLE_BASE && pcs->tf_ctrls.enabled && ctx->tf_pic_arr_cnt == 0)
 #endif // FTR_SFRAME_DEC_POSI
@@ -4592,7 +4593,7 @@ static uint32_t get_pic_idx_in_mg(SequenceControlSet* scs, PictureParentControlS
         // In S-Frame flexible insertion mode, hierarchical levels are adjusted based on the S-Frame position.
         // Picture indices in the low-delay mini-GOP are calculated from the last saved ARF.
 #if FTR_SFRAME_DEC_POSI
-        if (scs->static_config.sframe_mode >= SFRAME_FLEXIBLE_BASE) {
+        if (IS_SFRAME_FLEXIBLE_INSERT(scs->static_config.sframe_mode)) {
 #else
         if (scs->static_config.sframe_mode == SFRAME_FLEXIBLE_BASE) {
 #endif // FTR_SFRAME_DEC_POSI

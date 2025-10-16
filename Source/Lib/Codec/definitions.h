@@ -2310,6 +2310,9 @@ typedef enum {
 
 #define MAX_U32 0xFFFFFFFF
 
+// Both SFRAME_FLEXIBLE_BASE and SFRAME_DEC_POSI_BASE use flexible insertion
+#define IS_SFRAME_FLEXIBLE_INSERT(mode) (mode == SFRAME_FLEXIBLE_BASE || mode == SFRAME_DEC_POSI_BASE)
+
 #ifdef __cplusplus
 }
 #endif

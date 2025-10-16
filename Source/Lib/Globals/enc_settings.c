@@ -730,7 +730,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
 #endif // FTR_SFRAME_DEC_POSI
 #if FTR_SFRAME_POSI
 #if FTR_SFRAME_DEC_POSI
-    if (config->sframe_posi.sframe_posis && config->sframe_mode < SFRAME_FLEXIBLE_BASE) {
+    if (config->sframe_posi.sframe_posis && !IS_SFRAME_FLEXIBLE_INSERT(config->sframe_mode)) {
 #else
     if (config->sframe_posi.sframe_posis && config->sframe_mode != SFRAME_FLEXIBLE_BASE) {
 #endif // FTR_SFRAME_DEC_POSI
