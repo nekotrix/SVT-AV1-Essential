@@ -266,26 +266,106 @@ static inline void vertical_filter_8x1_f8(const int16x8_t *src, int32x4_t *res_l
     *res_high = horizontal_add_4d_s32x4(m4567_pairs);
 }
 
+static AOM_FORCE_INLINE void warp_affine_horizontal_neon(const uint8_t *ref, int width, int height, int stride,
+                                                         int p_width, int p_height, int16_t alpha, int16_t beta,
+                                                         const int64_t x4, const int64_t y4, const int i,
+                                                         int16x8_t tmp[]) {
+    const int height_limit = AOMMIN(8, p_height - i) + 7;
+
+    int32_t ix4 = (int32_t)(x4 >> WARPEDMODEL_PREC_BITS);
+    int32_t iy4 = (int32_t)(y4 >> WARPEDMODEL_PREC_BITS);
+
+    int32_t sx4 = x4 & ((1 << WARPEDMODEL_PREC_BITS) - 1);
+    sx4 += alpha * (-4) + beta * (-4) + (1 << (WARPEDDIFF_PREC_BITS - 1)) +
+        (WARPEDPIXEL_PREC_SHIFTS << WARPEDDIFF_PREC_BITS);
+    sx4 &= ~((1 << WARP_PARAM_REDUCE_BITS) - 1);
+
+    if (warp_affine_special_case(ref, ix4, iy4, width, height, stride, height_limit, tmp)) {
+        return;
+    }
+
+    static const uint8_t kIotaArr[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+    const uint8x16_t     indx       = vld1q_u8(kIotaArr);
+
+    const int out_of_boundary_left  = -(ix4 - 6);
+    const int out_of_boundary_right = (ix4 + 8) - width;
+
+    if (p_width == 4) {
+        if (beta == 0) {
+            if (alpha == 0) {
+                int16x8_t f_s16 = vld1q_s16(svt_aom_warped_filter[sx4 >> WARPEDDIFF_PREC_BITS]);
+                APPLY_HORIZONTAL_SHIFT(horizontal_filter_4x1_f1_beta0, f_s16);
+            } else {
+                APPLY_HORIZONTAL_SHIFT(horizontal_filter_4x1_f4, sx4, alpha);
+            }
+        } else {
+            if (alpha == 0) {
+                APPLY_HORIZONTAL_SHIFT(horizontal_filter_4x1_f1, sx4 + beta * (k - 3));
+            } else {
+                APPLY_HORIZONTAL_SHIFT(horizontal_filter_4x1_f4, sx4 + beta * (k - 3), alpha);
+            }
+        }
+    } else {
+        if (beta == 0) {
+            if (alpha == 0) {
+                int16x8_t f_s16 = vld1q_s16(svt_aom_warped_filter[sx4 >> WARPEDDIFF_PREC_BITS]);
+                APPLY_HORIZONTAL_SHIFT(horizontal_filter_8x1_f1_beta0, f_s16);
+            } else {
+                APPLY_HORIZONTAL_SHIFT(horizontal_filter_8x1_f8, sx4, alpha);
+            }
+        } else {
+            if (alpha == 0) {
+                APPLY_HORIZONTAL_SHIFT(horizontal_filter_8x1_f1, sx4 + beta * (k - 3));
+            } else {
+                APPLY_HORIZONTAL_SHIFT(horizontal_filter_8x1_f8, sx4 + beta * (k - 3), alpha);
+            }
+        }
+    }
+}
 void svt_av1_warp_affine_neon(const int32_t *mat, const uint8_t *ref, int width, int height, int stride, uint8_t *pred,
                               int p_col, int p_row, int p_width, int p_height, int p_stride, int subsampling_x,
                               int subsampling_y, ConvolveParams *conv_params, int16_t alpha, int16_t beta,
                               int16_t gamma, int16_t delta) {
-    av1_warp_affine_common(mat,
-                           ref,
-                           width,
-                           height,
-                           stride,
-                           pred,
-                           p_col,
-                           p_row,
-                           p_width,
-                           p_height,
-                           p_stride,
-                           subsampling_x,
-                           subsampling_y,
-                           conv_params,
-                           alpha,
-                           beta,
-                           gamma,
-                           delta);
+    const int       w0                    = conv_params->fwd_offset;
+    const int       w1                    = conv_params->bck_offset;
+    const int       is_compound           = conv_params->is_compound;
+    uint16_t *const dst                   = conv_params->dst;
+    const int       dst_stride            = conv_params->dst_stride;
+    const int       do_average            = conv_params->do_average;
+    const int       use_dist_wtd_comp_avg = conv_params->use_dist_wtd_comp_avg;
+
+    assert(IMPLIES(is_compound, dst != NULL));
+    assert(IMPLIES(do_average, is_compound));
+
+    for (int i = 0; i < p_height; i += 8) {
+        for (int j = 0; j < p_width; j += 8) {
+            const int32_t src_x = (p_col + j + 4) << subsampling_x;
+            const int32_t src_y = (p_row + i + 4) << subsampling_y;
+            const int64_t dst_x = (int64_t)mat[2] * src_x + (int64_t)mat[3] * src_y + (int64_t)mat[0];
+            const int64_t dst_y = (int64_t)mat[4] * src_x + (int64_t)mat[5] * src_y + (int64_t)mat[1];
+
+            const int64_t x4 = dst_x >> subsampling_x;
+            const int64_t y4 = dst_y >> subsampling_y;
+
+            int16x8_t tmp[15];
+            warp_affine_horizontal_neon(ref, width, height, stride, p_width, p_height, alpha, beta, x4, y4, i, tmp);
+            warp_affine_vertical(pred,
+                                 p_width,
+                                 p_height,
+                                 p_stride,
+                                 is_compound,
+                                 dst,
+                                 dst_stride,
+                                 do_average,
+                                 use_dist_wtd_comp_avg,
+                                 gamma,
+                                 delta,
+                                 y4,
+                                 i,
+                                 j,
+                                 tmp,
+                                 w0,
+                                 w1);
+        }
+    }
 }
