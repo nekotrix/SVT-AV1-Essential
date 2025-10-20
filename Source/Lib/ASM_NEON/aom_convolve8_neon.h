@@ -64,43 +64,6 @@ static inline uint8x8_t convolve6_8(const int16x8_t s0, const int16x8_t s1, cons
     return vqrshrun_n_s16(sum, FILTER_BITS - 1);
 }
 
-static inline int16x4_t convolve8_4(const int16x4_t s0, const int16x4_t s1, const int16x4_t s2, const int16x4_t s3,
-                                    const int16x4_t s4, const int16x4_t s5, const int16x4_t s6, const int16x4_t s7,
-                                    const int16x8_t filter) {
-    const int16x4_t filter_lo = vget_low_s16(filter);
-    const int16x4_t filter_hi = vget_high_s16(filter);
-
-    int16x4_t sum = vmul_lane_s16(s0, filter_lo, 0);
-    sum           = vmla_lane_s16(sum, s1, filter_lo, 1);
-    sum           = vmla_lane_s16(sum, s2, filter_lo, 2);
-    sum           = vmla_lane_s16(sum, s3, filter_lo, 3);
-    sum           = vmla_lane_s16(sum, s4, filter_hi, 0);
-    sum           = vmla_lane_s16(sum, s5, filter_hi, 1);
-    sum           = vmla_lane_s16(sum, s6, filter_hi, 2);
-    sum           = vmla_lane_s16(sum, s7, filter_hi, 3);
-
-    return sum;
-}
-
-static inline uint8x8_t convolve8_8(const int16x8_t s0, const int16x8_t s1, const int16x8_t s2, const int16x8_t s3,
-                                    const int16x8_t s4, const int16x8_t s5, const int16x8_t s6, const int16x8_t s7,
-                                    const int16x8_t filter) {
-    const int16x4_t filter_lo = vget_low_s16(filter);
-    const int16x4_t filter_hi = vget_high_s16(filter);
-
-    int16x8_t sum = vmulq_lane_s16(s0, filter_lo, 0);
-    sum           = vmlaq_lane_s16(sum, s1, filter_lo, 1);
-    sum           = vmlaq_lane_s16(sum, s2, filter_lo, 2);
-    sum           = vmlaq_lane_s16(sum, s3, filter_lo, 3);
-    sum           = vmlaq_lane_s16(sum, s4, filter_hi, 0);
-    sum           = vmlaq_lane_s16(sum, s5, filter_hi, 1);
-    sum           = vmlaq_lane_s16(sum, s6, filter_hi, 2);
-    sum           = vmlaq_lane_s16(sum, s7, filter_hi, 3);
-
-    // We halved the filter values so -1 from right shift.
-    return vqrshrun_n_s16(sum, FILTER_BITS - 1);
-}
-
 static inline void convolve8_horiz_2tap_neon(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
                                              ptrdiff_t dst_stride, const int16_t *filter_x, int w, int h) {
     // Bilinear filter values are all positive.
