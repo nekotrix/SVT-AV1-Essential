@@ -1221,6 +1221,15 @@ static void setup_sframe_qp(PictureParentControlSet *ppcs) {
 }
 #endif // FTR_SFRAME_QP
 
+#if FTR_SFRAME_DEC_POSI
+// Adjust the S-frame position offset for S-frame decode order mode.
+// In low-delay mode, the decode order is the same as the display order,
+// so the offset adjustment is unnecessary.
+static int32_t sframe_position_offset(SequenceControlSet *scs) {
+    return (scs->static_config.sframe_mode == SFRAME_DEC_POSI_BASE && scs->static_config.pred_structure == RANDOM_ACCESS) ? 1 : 0;
+}
+#endif // FTR_SFRAME_DEC_POSI
+
 // Decide whether to make an inter frame into an S-Frame
 static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ctx, PictureDecisionContext *pd_ctx)
 {
@@ -1268,8 +1277,8 @@ static void set_sframe_type(PictureParentControlSet *ppcs, EncodeContext *enc_ct
         // SFRAME_FLEXIBLE_ARF: if the considered frame is not an altref frame, modify the mini-GOP structure to promote it to an altref frame
         if (is_arf) {
 #if FTR_SFRAME_DEC_POSI
-            // SFRAME_DEC_POSI_BASE: adjust the frame before insert position to be ARF, and set the next ARF as S-Frame, only necessary in random access mode
-            int32_t sframe_offset = sframe_mode == SFRAME_DEC_POSI_BASE ? 1 : 0;
+            // SFRAME_DEC_POSI_BASE: adjust the frame before insert position to be ARF, and set the next ARF as S-Frame
+            int32_t sframe_offset = sframe_position_offset(ppcs->scs);
             // set this ARF to S-Frame if it is decided by previous processing
             if (pd_ctx->next_arf_is_s) {
                 frm_hdr->frame_type = S_FRAME;
@@ -1382,12 +1391,12 @@ static void decide_sframe_mg(PictureParentControlSet *ppcs, EncodeContext *enc_c
 {
     SequenceControlSet* scs = ppcs->scs;
     int32_t sframe_dist = enc_ctx->sf_cfg.sframe_dist;
-    const EbSFrameMode sframe_mode = enc_ctx->sf_cfg.sframe_mode;
 #if FTR_SFRAME_DEC_POSI
-    int32_t sframe_offset = (sframe_mode == SFRAME_DEC_POSI_BASE && scs->static_config.pred_structure == RANDOM_ACCESS) ? 1 : 0;
+    int32_t sframe_offset = sframe_position_offset(scs);
     // reset next_arf_sframe when key frame inserted
     pd_ctx->next_arf_is_s = false;
 #else
+    const EbSFrameMode sframe_mode = enc_ctx->sf_cfg.sframe_mode;
     if (sframe_mode == SFRAME_FLEXIBLE_BASE) {
 #endif // FTR_SFRAME_POSI
         // reset sframe_hier_lvls when key frame inserted
