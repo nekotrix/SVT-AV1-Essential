@@ -51,12 +51,13 @@ static inline int16x4_t convolve8_4_h(const uint8x16_t samples, const int8x8_t f
                                  vqtbl1q_s8(samples_128, permute_tbl.val[1])};
 
     // Accumulate into 128 * FILTER_WEIGHT to account for range transform.
-    int32x4_t acc = vdupq_n_s32(128 * FILTER_WEIGHT);
+    // (Divide by 2 since we halved the filter values.)
+    int32x4_t acc = vdupq_n_s32(128 * FILTER_WEIGHT / 2);
     int32x4_t sum = vdotq_lane_s32(acc, perm_samples[0], filters, 0);
     sum           = vdotq_lane_s32(sum, perm_samples[1], filters, 1);
 
     // Further narrowing and packing is performed by the caller.
-    return vqmovn_s32(sum);
+    return vmovn_s32(sum);
 }
 
 static inline uint8x8_t convolve8_8_h(const uint8x16_t samples, const int8x8_t filters,
@@ -73,7 +74,8 @@ static inline uint8x8_t convolve8_8_h(const uint8x16_t samples, const int8x8_t f
                                  vqtbl1q_s8(samples_128, permute_tbl.val[2])};
 
     // Accumulate into 128 * FILTER_WEIGHT to account for range transform.
-    int32x4_t acc = vdupq_n_s32(128 * FILTER_WEIGHT);
+    // (Divide by 2 since we halved the filter values.)
+    int32x4_t acc = vdupq_n_s32(128 * FILTER_WEIGHT / 2);
     // First 4 output values.
     int32x4_t sum0 = vdotq_lane_s32(acc, perm_samples[0], filters, 0);
     sum0           = vdotq_lane_s32(sum0, perm_samples[1], filters, 1);
@@ -82,13 +84,15 @@ static inline uint8x8_t convolve8_8_h(const uint8x16_t samples, const int8x8_t f
     sum1           = vdotq_lane_s32(sum1, perm_samples[2], filters, 1);
 
     // Narrow and re-pack.
-    int16x8_t sum = vcombine_s16(vqmovn_s32(sum0), vqmovn_s32(sum1));
-    return vqrshrun_n_s16(sum, FILTER_BITS);
+    int16x8_t sum = vcombine_s16(vmovn_s32(sum0), vmovn_s32(sum1));
+    // We halved the filter values so -1 from right shift.
+    return vqrshrun_n_s16(sum, FILTER_BITS - 1);
 }
 
 static inline void convolve8_horiz_8tap_neon_dotprod(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
                                                      ptrdiff_t dst_stride, const int16_t *filter_x, int w, int h) {
-    const int8x8_t filter = vmovn_s16(vld1q_s16(filter_x));
+    // Filter values are even, so halve to reduce intermediate precision reqs.
+    const int8x8_t filter = vshrn_n_s16(vld1q_s16(filter_x), 1);
 
     if (w == 4) {
         const uint8x16x2_t perm_tbl = vld1q_u8_x2(kDotProdPermuteTbl);
@@ -96,12 +100,13 @@ static inline void convolve8_horiz_8tap_neon_dotprod(const uint8_t *src, ptrdiff
             uint8x16_t s0, s1, s2, s3;
             load_u8_16x4(src, src_stride, &s0, &s1, &s2, &s3);
 
-            int16x4_t d0  = convolve8_4_h(s0, filter, perm_tbl);
-            int16x4_t d1  = convolve8_4_h(s1, filter, perm_tbl);
-            int16x4_t d2  = convolve8_4_h(s2, filter, perm_tbl);
-            int16x4_t d3  = convolve8_4_h(s3, filter, perm_tbl);
-            uint8x8_t d01 = vqrshrun_n_s16(vcombine_s16(d0, d1), FILTER_BITS);
-            uint8x8_t d23 = vqrshrun_n_s16(vcombine_s16(d2, d3), FILTER_BITS);
+            int16x4_t d0 = convolve8_4_h(s0, filter, perm_tbl);
+            int16x4_t d1 = convolve8_4_h(s1, filter, perm_tbl);
+            int16x4_t d2 = convolve8_4_h(s2, filter, perm_tbl);
+            int16x4_t d3 = convolve8_4_h(s3, filter, perm_tbl);
+            // We halved the filter values so -1 from right shift.
+            uint8x8_t d01 = vqrshrun_n_s16(vcombine_s16(d0, d1), FILTER_BITS - 1);
+            uint8x8_t d23 = vqrshrun_n_s16(vcombine_s16(d2, d3), FILTER_BITS - 1);
 
             store_u8x4_strided_x2(dst + 0 * dst_stride, dst_stride, d01);
             store_u8x4_strided_x2(dst + 2 * dst_stride, dst_stride, d23);
@@ -313,12 +318,13 @@ static inline int16x4_t convolve8_4_v(const int8x16_t samples_lo, const int8x16_
     // The sample range transform and permutation are performed by the caller.
 
     // Accumulate into 128 * FILTER_WEIGHT to account for range transform.
-    int32x4_t acc = vdupq_n_s32(128 * FILTER_WEIGHT);
+    // (Divide by 2 since we halved the filter values.)
+    int32x4_t acc = vdupq_n_s32(128 * FILTER_WEIGHT / 2);
     int32x4_t sum = vdotq_lane_s32(acc, samples_lo, filters, 0);
     sum           = vdotq_lane_s32(sum, samples_hi, filters, 1);
 
     // Further narrowing and packing is performed by the caller.
-    return vqmovn_s32(sum);
+    return vmovn_s32(sum);
 }
 
 static inline uint8x8_t convolve8_8_v(const int8x16_t samples0_lo, const int8x16_t samples0_hi,
@@ -327,7 +333,8 @@ static inline uint8x8_t convolve8_8_v(const int8x16_t samples0_lo, const int8x16
     // The sample range transform and permutation are performed by the caller.
 
     // Accumulate into 128 * FILTER_WEIGHT to account for range transform.
-    int32x4_t acc = vdupq_n_s32(128 * FILTER_WEIGHT);
+    // (Divide by 2 since we halved the filter values.)
+    int32x4_t acc = vdupq_n_s32(128 * FILTER_WEIGHT / 2);
     // First 4 output values.
     int32x4_t sum0 = vdotq_lane_s32(acc, samples0_lo, filters, 0);
     sum0           = vdotq_lane_s32(sum0, samples0_hi, filters, 1);
@@ -336,13 +343,15 @@ static inline uint8x8_t convolve8_8_v(const int8x16_t samples0_lo, const int8x16
     sum1           = vdotq_lane_s32(sum1, samples1_hi, filters, 1);
 
     // Narrow and re-pack.
-    int16x8_t sum = vcombine_s16(vqmovn_s32(sum0), vqmovn_s32(sum1));
-    return vqrshrun_n_s16(sum, FILTER_BITS);
+    int16x8_t sum = vcombine_s16(vmovn_s32(sum0), vmovn_s32(sum1));
+    // We halved the filter values so -1 from right shift.
+    return vqrshrun_n_s16(sum, FILTER_BITS - 1);
 }
 
 static inline void convolve8_vert_8tap_neon_dotprod(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
                                                     ptrdiff_t dst_stride, const int16_t *filter_y, int w, int h) {
-    const int8x8_t     filter          = vmovn_s16(vld1q_s16(filter_y));
+    // Filter values are even, so halve to reduce intermediate precision reqs.
+    const int8x8_t     filter          = vshrn_n_s16(vld1q_s16(filter_y), 1);
     const uint8x16x3_t merge_block_tbl = vld1q_u8_x3(kDotProdMergeBlockTbl);
     int8x16x2_t        samples_LUT;
 
@@ -387,12 +396,13 @@ static inline void convolve8_vert_8tap_neon_dotprod(const uint8_t *src, ptrdiff_
             s5678              = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[1]);
             s6789              = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[2]);
 
-            int16x4_t d0  = convolve8_4_v(s0123, s4567, filter);
-            int16x4_t d1  = convolve8_4_v(s1234, s5678, filter);
-            int16x4_t d2  = convolve8_4_v(s2345, s6789, filter);
-            int16x4_t d3  = convolve8_4_v(s3456, s78910, filter);
-            uint8x8_t d01 = vqrshrun_n_s16(vcombine_s16(d0, d1), FILTER_BITS);
-            uint8x8_t d23 = vqrshrun_n_s16(vcombine_s16(d2, d3), FILTER_BITS);
+            int16x4_t d0 = convolve8_4_v(s0123, s4567, filter);
+            int16x4_t d1 = convolve8_4_v(s1234, s5678, filter);
+            int16x4_t d2 = convolve8_4_v(s2345, s6789, filter);
+            int16x4_t d3 = convolve8_4_v(s3456, s78910, filter);
+            // We halved the filter values so -1 from right shift.
+            uint8x8_t d01 = vqrshrun_n_s16(vcombine_s16(d0, d1), FILTER_BITS - 1);
+            uint8x8_t d23 = vqrshrun_n_s16(vcombine_s16(d2, d3), FILTER_BITS - 1);
 
             store_u8x4_strided_x2(dst + 0 * dst_stride, dst_stride, d01);
             store_u8x4_strided_x2(dst + 2 * dst_stride, dst_stride, d23);
