@@ -167,35 +167,35 @@ void svt_aom_upsampled_pred_neon(MacroBlockD                  *xd,
         }
     } else if (!subpel_y_q3) {
         const int16_t *const kernel = av1_get_interp_filter_subpel_kernel(*filter, subpel_x_q3 << 1);
-        svt_aom_convolve8_horiz_neon(ref, ref_stride, comp_pred, width, kernel, 16, NULL, -1, width, height);
+        svt_aom_convolve8_horiz(ref, ref_stride, comp_pred, width, kernel, 16, NULL, -1, width, height);
     } else if (!subpel_x_q3) {
         const int16_t *const kernel = av1_get_interp_filter_subpel_kernel(*filter, subpel_y_q3 << 1);
-        svt_aom_convolve8_vert_neon(ref, ref_stride, comp_pred, width, NULL, -1, kernel, 16, width, height);
+        svt_aom_convolve8_vert(ref, ref_stride, comp_pred, width, NULL, -1, kernel, 16, width, height);
     } else {
         DECLARE_ALIGNED(16, uint8_t, temp[((MAX_SB_SIZE * 2 + 16) + 16) * MAX_SB_SIZE]);
         const int16_t *const kernel_x            = av1_get_interp_filter_subpel_kernel(*filter, subpel_x_q3 << 1);
         const int16_t *const kernel_y            = av1_get_interp_filter_subpel_kernel(*filter, subpel_y_q3 << 1);
         const int            intermediate_height = (((height - 1) * 8 + subpel_y_q3) >> 3) + filter->taps;
         assert(intermediate_height <= (MAX_SB_SIZE * 2 + 16) + 16);
-        svt_aom_convolve8_horiz_neon(ref - ref_stride * ((filter->taps >> 1) - 1),
-                                     ref_stride,
-                                     temp,
-                                     MAX_SB_SIZE,
-                                     kernel_x,
-                                     16,
-                                     NULL,
-                                     -1,
-                                     width,
-                                     intermediate_height);
-        svt_aom_convolve8_vert_neon(temp + MAX_SB_SIZE * ((filter->taps >> 1) - 1),
-                                    MAX_SB_SIZE,
-                                    comp_pred,
-                                    width,
-                                    NULL,
-                                    -1,
-                                    kernel_y,
-                                    16,
-                                    width,
-                                    height);
+        svt_aom_convolve8_horiz(ref - ref_stride * ((filter->taps >> 1) - 1),
+                                ref_stride,
+                                temp,
+                                MAX_SB_SIZE,
+                                kernel_x,
+                                16,
+                                NULL,
+                                -1,
+                                width,
+                                intermediate_height);
+        svt_aom_convolve8_vert(temp + MAX_SB_SIZE * ((filter->taps >> 1) - 1),
+                               MAX_SB_SIZE,
+                               comp_pred,
+                               width,
+                               NULL,
+                               -1,
+                               kernel_y,
+                               16,
+                               width,
+                               height);
     }
 }

@@ -304,6 +304,28 @@ INSTANTIATE_TEST_SUITE_P(
                                          (int)USE_8_TAPS),
                        ::testing::Values(0, 1, 2), ::testing::Values(0, 1, 2),
                        ::testing::Values(EB_CPU_FLAGS_NEON)));
+
+#ifdef HAVE_NEON_DOTPROD
+INSTANTIATE_TEST_SUITE_P(
+    NEON_DOTPROD, AomUpsampledPredTest,
+    ::testing::Combine(::testing::Range(BLOCK_4X4, BlockSizeS_ALL),
+                       ::testing::Values(svt_aom_upsampled_pred_neon),
+                       ::testing::Values((int)USE_2_TAPS, (int)USE_4_TAPS,
+                                         (int)USE_8_TAPS),
+                       ::testing::Values(0, 1, 2), ::testing::Values(0, 1, 2),
+                       ::testing::Values(EB_CPU_FLAGS_NEON_DOTPROD)));
+#endif  // HAVE_NEON_DOTPROD
+
+#ifdef HAVE_NEON_I8MM
+INSTANTIATE_TEST_SUITE_P(
+    NEON_I8MM, AomUpsampledPredTest,
+    ::testing::Combine(::testing::Range(BLOCK_4X4, BlockSizeS_ALL),
+                       ::testing::Values(svt_aom_upsampled_pred_neon),
+                       ::testing::Values((int)USE_2_TAPS, (int)USE_4_TAPS,
+                                         (int)USE_8_TAPS),
+                       ::testing::Values(0, 1, 2), ::testing::Values(0, 1, 2),
+                       ::testing::Values(EB_CPU_FLAGS_NEON_I8MM)));
+#endif  // HAVE_NEON_I8MM
 #endif  // ARCH_AARCH64
 
 typedef void (*CflLumaSubsamplingLbdFunc)(const uint8_t *, int32_t, int16_t *,
