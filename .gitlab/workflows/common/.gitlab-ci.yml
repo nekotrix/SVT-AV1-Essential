@@ -224,7 +224,6 @@
   - mkdir ffmpeg-build
   - cd ffmpeg-build
   - time dash ../ffmpeg-src/configure
-    --arch=x86_64
     --pkg-config-flags="--static"
     --cc="${CC:-ccache gcc}"
     --cxx="${CXX:-ccache g++}"
