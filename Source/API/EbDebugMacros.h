@@ -47,6 +47,7 @@ extern "C" {
 #endif // FTR_SFRAME_FLEX
 #define FIX_TUNE_SSIM               1 // Fix SSIM mode
 #define RFCTR_PARSE_LIST            1 // Refactor parameter parsing list and support the range of int8 and uint8
+#define FIX_QUEUE_DEADLOCK          1 // Use min-heap instead of queue to manage out-of-order decode orders
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
