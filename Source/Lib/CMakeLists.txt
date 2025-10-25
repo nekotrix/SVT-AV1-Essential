@@ -127,8 +127,8 @@ set_target_properties(SvtAv1Enc PROPERTIES SOVERSION ${ENC_VERSION_MAJOR})
 set_target_properties(SvtAv1Enc PROPERTIES C_VISIBILITY_PRESET hidden)
 set_target_properties(SvtAv1Enc PROPERTIES EXPORT_NAME ${SVT_AV1_TARGET})
 
-target_link_libraries(SvtAv1Enc PUBLIC  $<BUILD_INTERFACE:${PLATFORM_LIBS}>
-                                PRIVATE $<INSTALL_INTERFACE:${PLATFORM_LIBS}>)
+target_link_libraries(SvtAv1Enc PUBLIC  "$<BUILD_INTERFACE:${PLATFORM_LIBS}>"
+                                PRIVATE "$<INSTALL_INTERFACE:${PLATFORM_LIBS}>")
 
 file(GLOB API_HEADERS ${PROJECT_SOURCE_DIR}/Source/API/*.h)
 set_target_properties(SvtAv1Enc PROPERTIES PUBLIC_HEADER "${API_HEADERS}")
