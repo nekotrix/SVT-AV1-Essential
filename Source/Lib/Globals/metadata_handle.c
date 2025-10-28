@@ -88,13 +88,11 @@ EB_API int svt_add_metadata(EbBufferHeaderType *buffer, const uint32_t type, con
     SvtMetadataT *metadata = svt_metadata_alloc(type, data, sz);
     if (!metadata)
         return -1;
-    SvtMetadataT **metadata_array = (SvtMetadataT **)realloc(buffer->metadata->metadata_array,
-                                                             (buffer->metadata->sz + 1) * sizeof(metadata));
-    if (!metadata_array) {
+    EB_REALLOC_ARRAY_NO_CHECK(buffer->metadata->metadata_array, buffer->metadata->sz + 1);
+    if (!buffer->metadata->metadata_array) {
         svt_metadata_free(&metadata);
         return -1;
     }
-    buffer->metadata->metadata_array                       = metadata_array;
     buffer->metadata->metadata_array[buffer->metadata->sz] = metadata;
     buffer->metadata->sz++;
     return 0;

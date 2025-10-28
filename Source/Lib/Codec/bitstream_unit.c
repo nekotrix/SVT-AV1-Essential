@@ -130,13 +130,12 @@ static void svt_od_ec_enc_normalize(OdEcEnc* enc, OdEcWindow low, unsigned rng) 
         uint32_t       storage = enc->storage;
         uint32_t       offs    = enc->offs;
         if (offs + 8 > storage) {
-            storage            = 2 * storage + 8;
-            unsigned char* tmp = (unsigned char*)realloc(out, sizeof(*out) * storage);
-            if (tmp == NULL) {
+            storage = 2 * storage + 8;
+            EB_REALLOC_ARRAY_NO_CHECK(out, storage);
+            if (out == NULL) {
                 enc->error = -1;
                 return;
             }
-            out          = tmp;
             enc->buf     = out;
             enc->storage = storage;
         }
@@ -317,13 +316,12 @@ unsigned char* svt_od_ec_enc_done(OdEcEnc* enc, uint32_t* nbytes) {
     const int s_bits = (s + 7) >> 3;
     int       b      = MAX(s_bits, 0);
     if (offs + b > storage) {
-        storage            = offs + b;
-        unsigned char* tmp = (unsigned char*)realloc(out, sizeof(*out) * storage);
-        if (tmp == NULL) {
+        storage = offs + b;
+        EB_REALLOC_ARRAY_NO_CHECK(out, storage);
+        if (out == NULL) {
             enc->error = -1;
             return NULL;
         }
-        out          = tmp;
         enc->buf     = out;
         enc->storage = storage;
     }

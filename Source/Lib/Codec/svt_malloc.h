@@ -206,6 +206,19 @@ void svt_remove_mem_entry(void* ptr, EbPtrType type);
         pa = p_ra;                             \
     } while (0)
 
+#define EB_REALLOC_ARRAY_NO_CHECK(pa, count)           \
+    do {                                               \
+        size_t s_ra = sizeof(*(pa)) * (count);         \
+        void*  p_ra = realloc(pa, s_ra);               \
+        if (p_ra) {                                    \
+            EB_REMOVE_MEM_ENTRY(pa, EB_N_PTR);         \
+            EB_NO_THROW_ADD_MEM(p_ra, s_ra, EB_N_PTR); \
+        } else {                                       \
+            EB_FREE(pa);                               \
+        }                                              \
+        pa = p_ra;                                     \
+    } while (0)
+
 #define EB_CALLOC_ARRAY(pa, count) \
     do { EB_CALLOC(pa, count, sizeof(*(pa))); } while (0)
 
