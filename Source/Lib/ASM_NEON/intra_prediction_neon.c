@@ -1303,124 +1303,219 @@ void svt_av1_dr_prediction_z3_neon(uint8_t *dst, ptrdiff_t stride, int32_t bw, i
     }
 }
 
-/* --------------------- Filter Intra--------------------------- */
-#define MASK_LOW 0x604020006040200 // (0 | (2 << 8) | (4 << 16) | (6 << 24)) x 2
-#define MASK_HIGH 0x705030107050301 // (1 | (3 << 8) | (5 << 16) | (7 << 24)) x 2
-
-DECLARE_ALIGNED(16, static const int8_t, svt_av1_filter_intra_taps_neon[FILTER_INTRA_MODES][8][8]) = {
+// These kernels are a transposed version of those defined in filterintra_c.c,
+// with the absolute value of the negatives taken in the top row.
+DECLARE_ALIGNED(16, static const uint8_t, av1_filter_intra_taps_neon[FILTER_INTRA_MODES][7][8]) = {
+    // clang-format off
     {
-        {-6, 0, 0, 0, -5, 10, 0, 0},
-        {10, 0, 12, 0, 2, 0, 9, 0},
-        {-3, 1, 0, 0, -3, 1, 10, 0},
-        {1, 10, 7, 0, 1, 2, 5, 0},
-        {-4, 0, 0, 12, -3, 6, 0, 9},
-        {6, 0, 2, 0, 2, 0, 2, 0},
-        {-3, 2, 0, 7, -3, 2, 6, 5},
-        {2, 6, 2, 0, 1, 2, 3, 0},
+        {  6,  5,  3,  3,  4,  3,  3,  3 },
+        { 10,  2,  1,  1,  6,  2,  2,  1 },
+        {  0, 10,  1,  1,  0,  6,  2,  2 },
+        {  0,  0, 10,  2,  0,  0,  6,  2 },
+        {  0,  0,  0, 10,  0,  0,  0,  6 },
+        { 12,  9,  7,  5,  2,  2,  2,  3 },
+        {  0,  0,  0,  0, 12,  9,  7,  5 }
     },
     {
-        {-10, 0, 0, 0, -6, 16, 0, 0},
-        {16, 0, 10, 0, 0, 0, 6, 0},
-        {-4, 0, 0, 0, -2, 0, 16, 0},
-        {0, 16, 4, 0, 0, 0, 2, 0},
-        {-10, 0, 0, 10, -6, 16, 0, 6},
-        {16, 0, 0, 0, 0, 0, 0, 0},
-        {-4, 0, 0, 4, -2, 0, 16, 2},
-        {0, 16, 0, 0, 0, 0, 0, 0},
+        { 10,  6,  4,  2, 10,  6,  4,  2 },
+        { 16,  0,  0,  0, 16,  0,  0,  0 },
+        {  0, 16,  0,  0,  0, 16,  0,  0 },
+        {  0,  0, 16,  0,  0,  0, 16,  0 },
+        {  0,  0,  0, 16,  0,  0,  0, 16 },
+        { 10,  6,  4,  2,  0,  0,  0,  0 },
+        {  0,  0,  0,  0, 10,  6,  4,  2 }
     },
     {
-        {-8, 0, 0, 0, -8, 8, 0, 0},
-        {8, 0, 16, 0, 0, 0, 16, 0},
-        {-8, 0, 0, 0, -8, 0, 8, 0},
-        {0, 8, 16, 0, 0, 0, 16, 0},
-        {-4, 0, 0, 16, -4, 4, 0, 16},
-        {4, 0, 0, 0, 0, 0, 0, 0},
-        {-4, 0, 0, 16, -4, 0, 4, 16},
-        {0, 4, 0, 0, 0, 0, 0, 0},
+        {  8,  8,  8,  8,  4,  4,  4,  4 },
+        {  8,  0,  0,  0,  4,  0,  0,  0 },
+        {  0,  8,  0,  0,  0,  4,  0,  0 },
+        {  0,  0,  8,  0,  0,  0,  4,  0 },
+        {  0,  0,  0,  8,  0,  0,  0,  4 },
+        { 16, 16, 16, 16,  0,  0,  0,  0 },
+        {  0,  0,  0,  0, 16, 16, 16, 16 }
     },
     {
-        {-2, 0, 0, 0, -1, 8, 0, 0},
-        {8, 0, 10, 0, 3, 0, 6, 0},
-        {-1, 3, 0, 0, 0, 2, 8, 0},
-        {2, 8, 4, 0, 1, 3, 2, 0},
-        {-1, 0, 0, 10, -1, 4, 0, 6},
-        {4, 0, 3, 0, 3, 0, 4, 0},
-        {-1, 3, 0, 4, -1, 2, 4, 3},
-        {2, 4, 4, 0, 2, 3, 3, 0},
+        {  2,  1,  1,  0,  1,  1,  1,  1 },
+        {  8,  3,  2,  1,  4,  3,  2,  2 },
+        {  0,  8,  3,  2,  0,  4,  3,  2 },
+        {  0,  0,  8,  3,  0,  0,  4,  3 },
+        {  0,  0,  0,  8,  0,  0,  0,  4 },
+        { 10,  6,  4,  2,  3,  4,  4,  3 },
+        {  0,  0,  0,  0, 10,  6,  4,  3 }
     },
     {
-        {-12, 0, 0, 0, -10, 14, 0, 0},
-        {14, 0, 14, 0, 0, 0, 12, 0},
-        {-9, 0, 0, 0, -8, 0, 14, 0},
-        {0, 14, 11, 0, 0, 0, 10, 0},
-        {-10, 0, 0, 14, -9, 12, 0, 12},
-        {12, 0, 0, 0, 1, 0, 0, 0},
-        {-8, 0, 0, 11, -7, 0, 12, 9},
-        {0, 12, 1, 0, 0, 1, 1, 0},
-    },
+        { 12, 10,  9,  8, 10,  9,  8,  7 },
+        { 14,  0,  0,  0, 12,  1,  0,  0 },
+        {  0, 14,  0,  0,  0, 12,  0,  0 },
+        {  0,  0, 14,  0,  0,  0, 12,  1 },
+        {  0,  0,  0, 14,  0,  0,  0, 12 },
+        { 14, 12, 11, 10,  0,  0,  1,  1 },
+        {  0,  0,  0,  0, 14, 12, 11,  9 }
+    }
+    // clang-format on
 };
+
+static inline uint8x8_t filter_intra_predictor(uint8x8_t s0, uint8x8_t s1, uint8x8_t s2, uint8x8_t s3, uint8x8_t s4,
+                                               uint8x8_t s5, uint8x8_t s6, const uint8x8_t f0, const uint8x8_t f1,
+                                               const uint8x8_t f2, const uint8x8_t f3, const uint8x8_t f4,
+                                               const uint8x8_t f5, const uint8x8_t f6) {
+    uint16x8_t acc = vmull_u8(s1, f1);
+    // First row of each filter has all negative values so subtract.
+    acc = vmlsl_u8(acc, s0, f0);
+    acc = vmlal_u8(acc, s2, f2);
+    acc = vmlal_u8(acc, s3, f3);
+    acc = vmlal_u8(acc, s4, f4);
+    acc = vmlal_u8(acc, s5, f5);
+    acc = vmlal_u8(acc, s6, f6);
+
+    return vqrshrun_n_s16(vreinterpretq_s16_u16(acc), FILTER_INTRA_SCALE_BITS);
+}
 
 void svt_av1_filter_intra_predictor_neon(uint8_t *dst, ptrdiff_t stride, TxSize tx_size, const uint8_t *above,
                                          const uint8_t *left, int mode) {
-    int       r, c;
-    uint8_t   buffer[33][33];
-    const int bw = tx_size_wide[tx_size];
-    const int bh = tx_size_high[tx_size];
-    DECLARE_ALIGNED(16, uint8_t, p[8]);
-    int16x8_t out_01, out_23, out_45, out_67;
+    const int width  = tx_size_wide[tx_size];
+    const int height = tx_size_high[tx_size];
+    assert(width <= 32 && height <= 32);
 
-    const int8x16_t f1f0       = vld1q_s8(svt_av1_filter_intra_taps_neon[mode][0]);
-    const int8x16_t f3f2       = vld1q_s8(svt_av1_filter_intra_taps_neon[mode][2]);
-    const int8x16_t f5f4       = vld1q_s8(svt_av1_filter_intra_taps_neon[mode][4]);
-    const int8x16_t f7f6       = vld1q_s8(svt_av1_filter_intra_taps_neon[mode][6]);
-    const int16x8_t f1f0_lo    = vmovl_s8(vget_low_s8(f1f0));
-    const int16x8_t f1f0_hi    = vmovl_s8(vget_high_s8(f1f0));
-    const int16x8_t f3f2_lo    = vmovl_s8(vget_low_s8(f3f2));
-    const int16x8_t f3f2_hi    = vmovl_s8(vget_high_s8(f3f2));
-    const int16x8_t f5f4_lo    = vmovl_s8(vget_low_s8(f5f4));
-    const int16x8_t f5f4_hi    = vmovl_s8(vget_high_s8(f5f4));
-    const int16x8_t f7f6_lo    = vmovl_s8(vget_low_s8(f7f6));
-    const int16x8_t f7f6_hi    = vmovl_s8(vget_high_s8(f7f6));
-    const uint8x8_t vmask_low  = vcreate_u8(MASK_LOW);
-    const uint8x8_t vmask_high = vcreate_u8(MASK_HIGH);
+    const uint8x8_t f0 = vld1_u8(av1_filter_intra_taps_neon[mode][0]);
+    const uint8x8_t f1 = vld1_u8(av1_filter_intra_taps_neon[mode][1]);
+    const uint8x8_t f2 = vld1_u8(av1_filter_intra_taps_neon[mode][2]);
+    const uint8x8_t f3 = vld1_u8(av1_filter_intra_taps_neon[mode][3]);
+    const uint8x8_t f4 = vld1_u8(av1_filter_intra_taps_neon[mode][4]);
+    const uint8x8_t f5 = vld1_u8(av1_filter_intra_taps_neon[mode][5]);
+    const uint8x8_t f6 = vld1_u8(av1_filter_intra_taps_neon[mode][6]);
 
-    assert(bw <= 32 && bh <= 32);
+    // Computing 4 cols per iteration (instead of 8) for 8x<h> blocks is faster.
+    if (width <= 8) {
+        uint8x8_t s0 = vdup_n_u8(above[-1]);
+        uint8x8_t s5 = vdup_n_u8(left[0]);
+        uint8x8_t s6 = vdup_n_u8(left[1]);
 
-    for (r = 0; r < bh; ++r) buffer[r + 1][0] = left[r];
-    memcpy(buffer[0], &above[-1], (bw + 1) * sizeof(uint8_t));
+        int c = 0;
+        do {
+            uint8x8_t s1234 = load_u8_4x1(above + c);
+            uint8x8_t s1    = vdup_lane_u8(s1234, 0);
+            uint8x8_t s2    = vdup_lane_u8(s1234, 1);
+            uint8x8_t s3    = vdup_lane_u8(s1234, 2);
+            uint8x8_t s4    = vdup_lane_u8(s1234, 3);
 
-    for (r = 1; r < bh + 1; r += 2) {
-        for (c = 1; c < bw + 1; c += 4) {
-            memcpy(p, &buffer[r - 1][c - 1], 5 * sizeof(uint8_t));
-            p[5] = buffer[r][c - 1];
-            p[6] = buffer[r + 1][c - 1];
-            p[7] = 0;
+            uint8x8_t res = filter_intra_predictor(s0, s1, s2, s3, s4, s5, s6, f0, f1, f2, f3, f4, f5, f6);
 
-            const uint8x8_t p_b = vld1_u8(p);
+            store_u8x4_strided_x2(dst + c, stride, res);
 
-            const uint16x8_t p_b_lo = vmovl_u8(vtbl1_u8(p_b, vmask_low));
-            const uint16x8_t p_b_hi = vmovl_u8(vtbl1_u8(p_b, vmask_high));
+            s0 = s4;
+            s5 = vdup_lane_u8(res, 3);
+            s6 = vdup_lane_u8(res, 7);
 
-            out_01                        = vmulq_s16(vreinterpretq_s16_u16(p_b_lo), f1f0_lo);
-            out_01                        = vmlaq_s16(out_01, vreinterpretq_s16_u16(p_b_hi), f1f0_hi);
-            out_23                        = vmulq_s16(vreinterpretq_s16_u16(p_b_lo), f3f2_lo);
-            out_23                        = vmlaq_s16(out_23, vreinterpretq_s16_u16(p_b_hi), f3f2_hi);
-            out_45                        = vmulq_s16(vreinterpretq_s16_u16(p_b_lo), f5f4_lo);
-            out_45                        = vmlaq_s16(out_45, vreinterpretq_s16_u16(p_b_hi), f5f4_hi);
-            out_67                        = vmulq_s16(vreinterpretq_s16_u16(p_b_lo), f7f6_lo);
-            out_67                        = vmlaq_s16(out_67, vreinterpretq_s16_u16(p_b_hi), f7f6_hi);
-            const int16x8_t  out_0123     = vpaddq_s16(out_01, out_23);
-            const int16x8_t  out_4567     = vpaddq_s16(out_45, out_67);
-            const int16x8_t  out_01234567 = vpaddq_s16(out_0123, out_4567);
-            const uint32x2_t out_r        = vreinterpret_u32_u8(vqmovun_s16(vrshrq_n_s16(out_01234567, 4)));
-            vst1_lane_u32((uint32_t *)&buffer[r][c], out_r, 0);
-            vst1_lane_u32((uint32_t *)&buffer[r + 1][c], out_r, 1);
-        }
-    }
+            c += 4;
+        } while (c < width);
 
-    for (r = 0; r < bh; ++r) {
-        memcpy(dst, &buffer[r + 1][1], bw * sizeof(uint8_t));
-        dst += stride;
+        int r = 2;
+        do {
+            s0 = vdup_n_u8(left[r - 1]);
+            s5 = vdup_n_u8(left[r + 0]);
+            s6 = vdup_n_u8(left[r + 1]);
+
+            c = 0;
+            do {
+                uint8x8_t s1234 = load_u8_4x1(dst + (r - 1) * stride + c);
+                uint8x8_t s1    = vdup_lane_u8(s1234, 0);
+                uint8x8_t s2    = vdup_lane_u8(s1234, 1);
+                uint8x8_t s3    = vdup_lane_u8(s1234, 2);
+                uint8x8_t s4    = vdup_lane_u8(s1234, 3);
+
+                uint8x8_t res = filter_intra_predictor(s0, s1, s2, s3, s4, s5, s6, f0, f1, f2, f3, f4, f5, f6);
+
+                store_u8x4_strided_x2(dst + r * stride + c, stride, res);
+
+                s0 = s4;
+                s5 = vdup_lane_u8(res, 3);
+                s6 = vdup_lane_u8(res, 7);
+
+                c += 4;
+            } while (c < width);
+
+            r += 2;
+        } while (r < height);
+    } else {
+        uint8x8_t s0_lo = vdup_n_u8(above[-1]);
+        uint8x8_t s5_lo = vdup_n_u8(left[0]);
+        uint8x8_t s6_lo = vdup_n_u8(left[1]);
+
+        int c = 0;
+        do {
+            uint8x8_t s1234 = vld1_u8(above + c);
+            uint8x8_t s1_lo = vdup_lane_u8(s1234, 0);
+            uint8x8_t s2_lo = vdup_lane_u8(s1234, 1);
+            uint8x8_t s3_lo = vdup_lane_u8(s1234, 2);
+            uint8x8_t s4_lo = vdup_lane_u8(s1234, 3);
+
+            uint8x8_t res_lo = filter_intra_predictor(
+                s0_lo, s1_lo, s2_lo, s3_lo, s4_lo, s5_lo, s6_lo, f0, f1, f2, f3, f4, f5, f6);
+
+            uint8x8_t s0_hi = s4_lo;
+            uint8x8_t s1_hi = vdup_lane_u8(s1234, 4);
+            uint8x8_t s2_hi = vdup_lane_u8(s1234, 5);
+            uint8x8_t s3_hi = vdup_lane_u8(s1234, 6);
+            uint8x8_t s4_hi = vdup_lane_u8(s1234, 7);
+            uint8x8_t s5_hi = vdup_lane_u8(res_lo, 3);
+            uint8x8_t s6_hi = vdup_lane_u8(res_lo, 7);
+
+            uint8x8_t res_hi = filter_intra_predictor(
+                s0_hi, s1_hi, s2_hi, s3_hi, s4_hi, s5_hi, s6_hi, f0, f1, f2, f3, f4, f5, f6);
+
+            uint32x2x2_t res = vzip_u32(vreinterpret_u32_u8(res_lo), vreinterpret_u32_u8(res_hi));
+
+            vst1_u8(dst + 0 * stride + c, vreinterpret_u8_u32(res.val[0]));
+            vst1_u8(dst + 1 * stride + c, vreinterpret_u8_u32(res.val[1]));
+
+            s0_lo = s4_hi;
+            s5_lo = vdup_lane_u8(res_hi, 3);
+            s6_lo = vdup_lane_u8(res_hi, 7);
+            c += 8;
+        } while (c < width);
+
+        int r = 2;
+        do {
+            s0_lo = vdup_n_u8(left[r - 1]);
+            s5_lo = vdup_n_u8(left[r + 0]);
+            s6_lo = vdup_n_u8(left[r + 1]);
+
+            c = 0;
+            do {
+                uint8x8_t s1234 = vld1_u8(dst + (r - 1) * stride + c);
+                uint8x8_t s1_lo = vdup_lane_u8(s1234, 0);
+                uint8x8_t s2_lo = vdup_lane_u8(s1234, 1);
+                uint8x8_t s3_lo = vdup_lane_u8(s1234, 2);
+                uint8x8_t s4_lo = vdup_lane_u8(s1234, 3);
+
+                uint8x8_t res_lo = filter_intra_predictor(
+                    s0_lo, s1_lo, s2_lo, s3_lo, s4_lo, s5_lo, s6_lo, f0, f1, f2, f3, f4, f5, f6);
+
+                uint8x8_t s0_hi = s4_lo;
+                uint8x8_t s1_hi = vdup_lane_u8(s1234, 4);
+                uint8x8_t s2_hi = vdup_lane_u8(s1234, 5);
+                uint8x8_t s3_hi = vdup_lane_u8(s1234, 6);
+                uint8x8_t s4_hi = vdup_lane_u8(s1234, 7);
+                uint8x8_t s5_hi = vdup_lane_u8(res_lo, 3);
+                uint8x8_t s6_hi = vdup_lane_u8(res_lo, 7);
+
+                uint8x8_t res_hi = filter_intra_predictor(
+                    s0_hi, s1_hi, s2_hi, s3_hi, s4_hi, s5_hi, s6_hi, f0, f1, f2, f3, f4, f5, f6);
+
+                uint32x2x2_t res = vzip_u32(vreinterpret_u32_u8(res_lo), vreinterpret_u32_u8(res_hi));
+
+                vst1_u8(dst + (r + 0) * stride + c, vreinterpret_u8_u32(res.val[0]));
+                vst1_u8(dst + (r + 1) * stride + c, vreinterpret_u8_u32(res.val[1]));
+
+                s0_lo = s4_hi;
+                s5_lo = vdup_lane_u8(res_hi, 3);
+                s6_lo = vdup_lane_u8(res_hi, 7);
+                c += 8;
+            } while (c < width);
+
+            r += 2;
+        } while (r < height);
     }
 }
 
