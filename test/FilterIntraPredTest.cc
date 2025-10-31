@@ -139,7 +139,7 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::ValuesIn(TX_SIZE_TABLE),
                        ::testing::Values(svt_av1_filter_intra_predictor_neon)));
 
-#ifdef HAVE_NEON_I8MM
+#if HAVE_NEON_I8MM
 INSTANTIATE_TEST_SUITE_P(
     NEON_I8MM, FilterIntraPredTest,
     ::testing::Combine(

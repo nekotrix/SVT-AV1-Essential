@@ -305,7 +305,7 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(0, 1, 2), ::testing::Values(0, 1, 2),
                        ::testing::Values(EB_CPU_FLAGS_NEON)));
 
-#ifdef HAVE_NEON_DOTPROD
+#if HAVE_NEON_DOTPROD
 INSTANTIATE_TEST_SUITE_P(
     NEON_DOTPROD, AomUpsampledPredTest,
     ::testing::Combine(::testing::Range(BLOCK_4X4, BlockSizeS_ALL),
@@ -316,7 +316,7 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::Values(EB_CPU_FLAGS_NEON_DOTPROD)));
 #endif  // HAVE_NEON_DOTPROD
 
-#ifdef HAVE_NEON_I8MM
+#if HAVE_NEON_I8MM
 INSTANTIATE_TEST_SUITE_P(
     NEON_I8MM, AomUpsampledPredTest,
     ::testing::Combine(::testing::Range(BLOCK_4X4, BlockSizeS_ALL),
