@@ -314,6 +314,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+    if (scs->static_config.frame_rate_numerator < scs->static_config.frame_rate_denominator) {
+        SVT_ERROR("Instance %u: Invalid frame rate. The minimum supported frame rate is 1 fps.\n", channel_number + 1);
+        return_error = EB_ErrorBadParameter;
+    }
+
     if (config->recode_loop > 4) {
         SVT_ERROR("Instance %u: The recode_loop must be [0 - 4] \n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
