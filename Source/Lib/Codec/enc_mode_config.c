@@ -7884,7 +7884,11 @@ set lpd0_level
         pcs->lambda_weight = CLIP3(0, 72, MIN(pcs->picture_qp * 4, (63 - pcs->picture_qp) * 3)) + 128;
     } else { // Tune 0 to 2
         if (!rtc_tune && !(enc_mode <= ENC_MR)) {
+#if FIX_INTRA_BLUR_QP62
+            if (!is_islice && pcs->picture_qp >= 62) {
+#else
             if (pcs->picture_qp >= 62) {
+#endif
                 pcs->lambda_weight = 300;
             } else if (pcs->picture_qp >= 56) {
                 pcs->lambda_weight = 175;
