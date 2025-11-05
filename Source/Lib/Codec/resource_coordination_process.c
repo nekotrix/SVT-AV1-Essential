@@ -855,6 +855,19 @@ static void set_eos_terminating_signals(PictureParentControlSet *pcs) {
         tmp_out_str->n_filled_len = 0;
 
         svt_post_full_object(tmp_out_str_wrp);
+
+        // if applicable, also need to signal recon EOS
+        if (scs->static_config.recon_enabled) {
+            EbObjectWrapper *tmp_out_recon_wrp;
+            svt_get_empty_object(scs->enc_ctx->recon_output_fifo_ptr, &tmp_out_recon_wrp);
+            EbBufferHeaderType *tmp_out_recon = (EbBufferHeaderType *)tmp_out_recon_wrp->object_ptr;
+
+            tmp_out_recon->flags        = EB_BUFFERFLAG_EOS;
+            tmp_out_recon->n_filled_len = 0;
+
+            svt_post_full_object(tmp_out_recon_wrp);
+        }
+
         release_references_eos(scs);
     }
 
