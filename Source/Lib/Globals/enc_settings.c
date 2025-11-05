@@ -864,6 +864,10 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         }
     }
 
+    if (!config->rtc && config->enc_mode >= ENC_M10) {
+        SVT_WARN("Non-RTC M10+ are meant for automation tooling usage. Visual artifacts may occur otherwise.\n");
+    }
+
     if (scs->static_config.scene_change_detection) {
         scs->static_config.scene_change_detection = 0;
         SVT_WARN(
