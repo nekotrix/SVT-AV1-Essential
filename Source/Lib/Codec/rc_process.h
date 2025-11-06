@@ -25,9 +25,10 @@
 #define SAD_CLIP_COEFF 5
 // 88 + 3*16*8
 #define SLICE_HEADER_BITS_NUM 104
+#if !FIX_FPS_CALC
 #define RC_PRECISION 16
 #define RC_PRECISION_OFFSET (1 << (RC_PRECISION - 1))
-
+#endif
 #define RC_PRINTS 0
 #define ADAPTIVE_PERCENTAGE 1
 

@@ -343,12 +343,18 @@ static void set_me_search_params(SequenceControlSet *scs, PictureParentControlSe
     }
 
     // Scale up the MIN ME area if low frame rate
+#if FIX_FPS_CALC
+    if (scs->frame_rate <= 240) {
+        me_ctx->me_sa.sa_min.width  = (me_ctx->me_sa.sa_min.width * 3) >> 1;
+        me_ctx->me_sa.sa_min.height = (me_ctx->me_sa.sa_min.height * 3) >> 1;
+    }
+#else
     bool low_frame_rate_flag = (scs->frame_rate >> 16);
     if (low_frame_rate_flag) {
         me_ctx->me_sa.sa_min.width  = (me_ctx->me_sa.sa_min.width * 3) >> 1;
         me_ctx->me_sa.sa_min.height = (me_ctx->me_sa.sa_min.height * 3) >> 1;
     }
-
+#endif
     uint32_t q_weight, q_weight_denom;
     svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.me_qp_based_th_scaling,
                                             &q_weight,

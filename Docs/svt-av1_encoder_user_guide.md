@@ -129,27 +129,27 @@ If a qp/crf value is not specified, a default value is assigned (35).
 
 Here are some sample encode command lines
 
-#### 1 pass CRF at maximum speed from 24fps yuv 1920x1080 input
-`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --fps 24 --crf 30 --preset 12 -b output.ivf`
+#### 1 pass CRF at maximum speed for a 1920x1080 input
+`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --crf 30 --preset 12 -b output.ivf`
 
-#### 1 pass VBR 1000 Kbps at medium speed from 24fps yuv 1920x1080 input
-`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --fps 24 --rc 1 --tbr 1000 --preset 5 -b output.ivf`
+#### 1 pass VBR 1000 Kbps at medium speed for a 1920x1080 input
+`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --rc 1 --tbr 1000 --preset 5 -b output.ivf`
 
-#### Multi-pass VBR 1000 Kbps at maximum quality from 24fps yuv 1920x1080 input
+#### Multi-pass VBR 1000 Kbps at maximum quality for a 1920x1080 input
 Single command line :
 
-`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --fps 24 --rc 1 --tbr 1000 --preset 0 --passes 2 --stats stat_file.stat -b output.ivf`
+`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --rc 1 --tbr 1000 --preset 0 --passes 2 --stats stat_file.stat -b output.ivf`
 
 or
 
 Multiple command lines :
 
-`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --fps 24 --rc 1 --tbr 1000 --preset 0 --pass 1 --stats stat_file.stat`
-`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --fps 24 --rc 1 --tbr 1000 --preset 0 --pass 2 --stats stat_file.stat`
-`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --fps 24 --rc 1 --tbr 1000 --preset 0 --pass 3 --stats stat_file.stat -b output.ivf`
+`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --rc 1 --tbr 1000 --preset 0 --pass 1 --stats stat_file.stat`
+`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --rc 1 --tbr 1000 --preset 0 --pass 2 --stats stat_file.stat`
+`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --rc 1 --tbr 1000 --preset 0 --pass 3 --stats stat_file.stat -b output.ivf`
 
-#### 1 pass CRF at maximum speed from 24fps yuv 1920x1080 input with full range video signal
-`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --fps 24 --crf 30 --preset 12 --color-range full -b output.ivf`
+#### 1 pass CRF at maximum speed for a 1920x1080 input with full range video signal
+`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --crf 30 --preset 12 --color-range full -b output.ivf`
 
-#### 1 pass CRF at maximum speed from 24fps yuv 1920x1080 input with colorimetry set to BT.709
-`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --fps 24 --crf 30 --preset 12 --color-primaries bt709 --transfer-characteristics bt709 --matrix-coefficients bt709 -b output.ivf`
+#### 1 pass CRF at maximum speed for a 1920x1080 input with colorimetry set to BT.709
+`SvtAv1EncApp -i input.yuv -w 1920 -h 1080 --crf 30 --preset 12 --color-primaries bt709 --transfer-characteristics bt709 --matrix-coefficients bt709 -b output.ivf`

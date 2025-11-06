@@ -77,8 +77,9 @@
 
 // scale factors for lambda value for different frame types
 #define LAMBDA_SCALE_FACTORS_TOKEN "--lambda-scale-factors"
-
+#if !FIX_FPS_CALC
 #define FRAME_RATE_TOKEN "--fps"
+#endif
 #define FRAME_RATE_NUMERATOR_TOKEN "--fps-num"
 #define FRAME_RATE_DENOMINATOR_TOKEN "--fps-denom"
 #define ENCODER_COLOR_FORMAT "--color-format"
@@ -513,13 +514,14 @@ static EbErrorType set_progress(EbConfig *cfg, const char *token, const char *va
     }
     return EB_ErrorNone;
 }
+#if !FIX_FPS_CALC
 static EbErrorType set_frame_rate(EbConfig *cfg, const char *token, const char *value) {
     (void)token;
     cfg->config.frame_rate_numerator   = strtoul(value, NULL, 0);
     cfg->config.frame_rate_denominator = 1;
     return EB_ErrorNone;
 }
-
+#endif
 /**
  * @brief split colon separated string into key=value pairs
  *
@@ -698,7 +700,9 @@ ConfigDescription config_entry_global_options[] = {
     {LEVEL_TOKEN,
      "Bitstream level, defined in A.3 of the av1 spec, default is 0 [0: autodetect from input, "
      "2.0-7.3]"},
+#if !FIX_FPS_CALC
     {FRAME_RATE_TOKEN, "Input video frame rate, integer values only, inferred if y4m, default is 60 [1-240]"},
+#endif
     {FRAME_RATE_NUMERATOR_TOKEN, "Input video frame rate numerator, default is 60000 [0-2^32-1]"},
     {FRAME_RATE_DENOMINATOR_TOKEN, "Input video frame rate denominator, default is 1000 [0-2^32-1]"},
     {INPUT_DEPTH_TOKEN, "Input video file and output bitstream bit-depth, default is 8 [8, 10]"},
@@ -1024,8 +1028,10 @@ ConfigEntry config_entry[] = {
     {ENCODER_COLOR_FORMAT, "EncoderColorFormat", set_cfg_generic_token},
     {PROFILE_TOKEN, "Profile", set_cfg_generic_token},
     {LEVEL_TOKEN, "Level", set_level},
-    //   Frame Rate tokens
+//   Frame Rate tokens
+#if !FIX_FPS_CALC
     {FRAME_RATE_TOKEN, "FrameRate", set_frame_rate},
+#endif
     {FRAME_RATE_NUMERATOR_TOKEN, "FrameRateNumerator", set_cfg_generic_token},
     {FRAME_RATE_DENOMINATOR_TOKEN, "FrameRateDenominator", set_cfg_generic_token},
 

@@ -3017,9 +3017,10 @@ static void capped_crf_reencode(PictureParentControlSet *ppcs, int *const q) {
     SequenceControlSet *scs     = ppcs->scs;
     EncodeContext      *enc_ctx = scs->enc_ctx;
     RATE_CONTROL *const rc      = &enc_ctx->rc;
-
-    uint32_t frame_rate   = ((scs->frame_rate + (1 << (RC_PRECISION - 1))) >> RC_PRECISION);
-    int      frames_in_sw = (int)rc->rate_average_periodin_frames;
+#if !FIX_FPS_CALC
+    uint32_t frame_rate = ((scs->frame_rate + (1 << (RC_PRECISION - 1))) >> RC_PRECISION);
+#endif
+    int frames_in_sw = (int)rc->rate_average_periodin_frames;
 
     int64_t spent_bits_sw       = 0, available_bit_sw;
     int     coded_frames_num_sw = 0;
@@ -3029,7 +3030,11 @@ static void capped_crf_reencode(PictureParentControlSet *ppcs, int *const q) {
     frames_in_sw        = (scs->passes > 1)
                ? MIN(end_index, (int32_t)scs->twopass.stats_buf_ctx->total_stats->count) - start_index
                : frames_in_sw;
+#if FIX_FPS_CALC
+    int64_t max_bits_sw = (int64_t)(scs->static_config.max_bit_rate * ((double)frames_in_sw / scs->frame_rate));
+#else
     int64_t max_bits_sw = (int64_t)scs->static_config.max_bit_rate * (int32_t)frames_in_sw / frame_rate;
+#endif
     max_bits_sw += (max_bits_sw * scs->static_config.mbr_over_shoot_pct / 100);
     // Loop over the sliding window and calculated the spent bits
     for (int index = start_index; index < end_index; index++) {
@@ -3477,6 +3482,28 @@ static void coded_frames_stat_calc(PictureParentControlSet *ppcs) {
 
                 queue_entry_index_temp++;
             }
+#if FIX_FPS_CALC
+            assert(frames_in_sw > 0);
+            if (frames_in_sw == (uint32_t)rc->rate_average_periodin_frames) {
+                const uint64_t avg_bit_rate_kbps = (uint64_t)(((double)rc->total_bit_actual_per_sw * scs->frame_rate) /
+                                                              ((double)frames_in_sw * 1000.0));
+                rc->max_bit_actual_per_sw        = MAX(rc->max_bit_actual_per_sw, avg_bit_rate_kbps);
+                if (queue_entry_ptr->picture_number % rc->rate_average_periodin_frames == 0) {
+                    rc->max_bit_actual_per_gop = MAX(rc->max_bit_actual_per_gop, avg_bit_rate_kbps);
+                    rc->min_bit_actual_per_gop = MIN(rc->min_bit_actual_per_gop, avg_bit_rate_kbps);
+#if DEBUG_RC_CAP_LOG
+                    SVT_LOG("POC:%d\t%.0f\t%.2f%% \n",
+                            (int)queue_entry_ptr->picture_number,
+                            (double)avg_bit_rate_kbps,
+                            100.0 *
+                                    ((double)rc->total_bit_actual_per_sw * frame_rate /
+                                     ((double)frames_in_sw * MAX((double)scs->static_config.max_bit_rate, 1.0))) -
+                                100.0);
+
+#endif
+                }
+            }
+#else
             uint32_t frame_rate = ((scs->frame_rate + (1 << (RC_PRECISION - 1))) >> RC_PRECISION);
             assert(frames_in_sw > 0);
             if (frames_in_sw == (uint32_t)rc->rate_average_periodin_frames) {
@@ -3497,6 +3524,7 @@ static void coded_frames_stat_calc(PictureParentControlSet *ppcs) {
 #endif
                 }
             }
+#endif
 #if DEBUG_RC_CAP_LOG
             if (frames_in_sw == rc->rate_average_periodin_frames - 1) {
                 SVT_LOG("\n%d GopMax\t", (int32_t)rc->max_bit_actual_per_gop);

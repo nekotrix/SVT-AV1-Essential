@@ -105,7 +105,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = scs->static_config.level % 10;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 512,
                                 288,
                                 30.0,
@@ -114,7 +118,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 704,
                                 396,
                                 30.0,
@@ -123,7 +131,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 1088,
                                 612,
                                 30.0,
@@ -132,7 +144,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 1376,
                                 774,
                                 30.0,
@@ -141,7 +157,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 2048,
                                 1152,
                                 30.0,
@@ -150,7 +170,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 2048,
                                 1152,
                                 60.0,
@@ -159,7 +183,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 4096,
                                 2176,
                                 30.0,
@@ -168,7 +196,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 4096,
                                 2176,
                                 60.0,
@@ -177,7 +209,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 4096,
                                 2176,
                                 120.0,
@@ -186,7 +222,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 2;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 8192,
                                 4352,
                                 30.0,
@@ -195,7 +235,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 8192,
                                 4352,
                                 60.0,
@@ -204,7 +248,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 8192,
                                 4352,
                                 120.0,
@@ -213,7 +261,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 2;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 16384,
                                 8704,
                                 30.0,
@@ -222,7 +274,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 16384,
                                 8704,
                                 60.0,
@@ -231,7 +287,11 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
+#if FIX_FPS_CALC
+                                scs->frame_rate,
+#else
                                 (scs->frame_rate >> 16),
+#endif
                                 16384,
                                 8704,
                                 120.0,

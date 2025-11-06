@@ -139,7 +139,11 @@ typedef struct SequenceControlSet {
     uint16_t          top_padding;
     uint16_t          right_padding;
     uint16_t          bot_padding;
-    uint32_t          frame_rate; //stored in Q16
+#if FIX_FPS_CALC
+    double frame_rate;
+#else
+    uint32_t frame_rate; //stored in Q16
+#endif
     uint32_t          encoder_bit_depth;
     EbInputResolution input_resolution;
 
@@ -227,7 +231,16 @@ typedef struct SequenceControlSet {
     uint32_t     total_process_init_count;
     int32_t      lap_rc;
     TWO_PASS     twopass;
-    double       double_frame_rate;
+#if FIX_FPS_CALC
+    /*!
+    * Updated framerate for the current parallel frame.
+    * cpi->framerate is updated with new_framerate during
+    * post encode updates for parallel frames.
+    */
+    double new_framerate;
+#else
+    double double_frame_rate;
+#endif
     ScaleFactors sf_identity;
     VqCtrls      vq_ctrls;
     uint8_t      calc_hist;
