@@ -75,7 +75,12 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
             disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(enc_mode, is_base));
         }
     }
-    bool     disallow_8x8 = svt_aom_get_disallow_8x8(enc_mode, rtc, screen_content_mode);
+    bool     disallow_8x8 = svt_aom_get_disallow_8x8(enc_mode,
+                                                 rtc,
+                                                 screen_content_mode,
+                                                 sb_size_pix,
+                                                 picture_control_set->frame_width,
+                                                 picture_control_set->frame_height);
     uint32_t tot_blk_num;
     if (sb_size_pix == 128)
         if (disallow_8x8 && disallow_sub_16x16_nsq)

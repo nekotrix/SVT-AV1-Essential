@@ -4039,7 +4039,12 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     for (uint8_t is_islice = 0; is_islice <= 1; is_islice++)
         for (uint8_t is_base = 0; is_base <= 1; is_base++)
             disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode, is_base));
-    bool disallow_8x8 = svt_aom_get_disallow_8x8(scs->static_config.enc_mode, scs->static_config.rtc, scs->static_config.screen_content_mode);
+    bool disallow_8x8 = svt_aom_get_disallow_8x8(scs->static_config.enc_mode,
+        scs->static_config.rtc,
+        scs->static_config.screen_content_mode,
+        scs->super_block_size,
+        scs->max_input_luma_width,
+        scs->max_input_luma_height);
         if (scs->super_block_size == 128) {
     if(!allow_HVA_HVB && disallow_4x4) {
         scs->svt_aom_geom_idx = GEOM_10;

@@ -5981,7 +5981,16 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
         ctx->depth_removal_ctrls.disallow_below_32x32 = false;
     if (b64_geom->width % 8 != 0 || b64_geom->height % 8 != 0)
         ctx->depth_removal_ctrls.disallow_below_16x16 = false;
-    ctx->disallow_8x8 = pcs->pic_disallow_8x8;
+    // Must check disallow_8x8 on an SB level. If a preset wants 8x8 off, it may still be required at the
+    // picture edge if the SB width/height is <=8 (to ensure that there is a conformant block to encode
+    // for those dimensions). Use the SB width/height so that 8x8 can still be skipped for all complete
+    // SBs and used only for the incomplete blocks that require 8x8 for conformance.
+    ctx->disallow_8x8 = svt_aom_get_disallow_8x8(enc_mode,
+                                                 rtc_tune,
+                                                 scs->static_config.screen_content_mode,
+                                                 scs->super_block_size,
+                                                 b64_geom->width,
+                                                 b64_geom->height);
     ctx->disallow_4x4 = pcs->pic_disallow_4x4;
     if (rtc_tune && !pcs->ppcs->sc_class1) {
         // RTC assumes SB 64x64 is used
@@ -6696,8 +6705,17 @@ bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base) {
 /*
 * return the 8x8 level
 Used by svt_aom_sig_deriv_enc_dec and memory allocation
+
+The aligned width/height can be either the picture width/height or the SB width/height. For memory
+allocation, we should use the picture width/height.
 */
-bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool rtc_tune, uint32_t screen_content_mode) {
+bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool rtc_tune, uint32_t screen_content_mode, const uint16_t sb_size,
+                              const uint16_t aligned_width, const uint16_t aligned_height) {
+    // If aligned picture dimensions result in an SB with width/height of 8, the picture will
+    // require 8x8 blocks for conformance. When the width/height is <=8 larger block sizes will
+    // be invalid.
+    if (((aligned_width % sb_size) == 8) || ((aligned_height % sb_size) == 8))
+        return false;
     if (rtc_tune) {
         if (screen_content_mode == 1) {
             if (enc_mode <= ENC_M10)
@@ -7595,16 +7613,12 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
             pcs->mds0_level = is_islice ? 0 : 2;
     }
     /*
-disallow_4x4
-*/
+    disallow_4x4
+    */
     pcs->pic_disallow_4x4 = svt_aom_get_disallow_4x4(enc_mode, is_base);
     /*
-    * pic_disallow_8x8
+    Bypassing EncDec
     */
-    pcs->pic_disallow_8x8 = svt_aom_get_disallow_8x8(enc_mode, rtc_tune, scs->static_config.screen_content_mode);
-    /*
-Bypassing EncDec
-*/
     // This signal can only be modified per picture right now, not per SB.  Per SB requires
     // neighbour array updates at EncDec for all SBs, that are currently skipped if EncDec is bypassed.
     if (!ppcs->frm_hdr.segmentation_params.segmentation_enabled) {
@@ -7613,8 +7627,8 @@ Bypassing EncDec
         pcs->pic_bypass_encdec = 0;
 
     /*
-set lpd0_level
-*/
+    set lpd0_level
+    */
     // for the low delay enhance base layer frames, lower the enc_mode to improve the quality
     set_pic_lpd0_lvl(pcs, enc_mode);
     // Depth-removal not supported for I_SLICE

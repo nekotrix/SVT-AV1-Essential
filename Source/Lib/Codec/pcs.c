@@ -1076,7 +1076,10 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     disallow_8x8                        = MIN(disallow_8x8,
                        svt_aom_get_disallow_8x8(init_data_ptr->enc_mode,
                                                 init_data_ptr->static_config.rtc,
-                                                init_data_ptr->static_config.screen_content_mode));
+                                                init_data_ptr->static_config.screen_content_mode,
+                                                init_data_ptr->sb_size,
+                                                init_data_ptr->picture_width,
+                                                init_data_ptr->picture_height));
     object_ptr->disallow_8x8_all_frames = disallow_8x8;
     /* If 4x4 blocks are disallowed for all frames, the the MI blocks only need to be allocated for
     8x8 blocks.  The mi_grid will still be 4x4 so that the data can be accessed the same way throughout
