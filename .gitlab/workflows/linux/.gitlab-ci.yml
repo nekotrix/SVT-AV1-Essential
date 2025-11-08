@@ -556,7 +556,7 @@ Linux Startup MG Test:
     - |
       for PRESET in 5 10; do
         for MG_SIZE in 2 3 4; do
-          ./Bin/Release/SvtAv1EncApp --svtav1-params startup-mg-size=${MG_SIZE}:qp=32:aq-mode=2:hierarchical-levels=5 -n 120 --keyint -1 --preset ${PRESET} -w 640 -h 480 --fps 30 -i kirland_640_480_30.yuv -b m${PRESET}_smg${MG_SIZE}.ivf
+          ./Bin/Release/SvtAv1EncApp --svtav1-params startup-mg-size=${MG_SIZE}:qp=32:aq-mode=2:hierarchical-levels=5 -n 120 --keyint -1 --preset ${PRESET} -w 640 -h 480 -i kirland_640_480_30.yuv -b m${PRESET}_smg${MG_SIZE}.ivf
         done
       done
     - |
@@ -605,8 +605,8 @@ Linux ROI map Test:
       printf "60 128 128 128 128 128 128 128 128 128 128 128 128 128 128 128 128 128 128 128 128 128 128 128 128 \
       0 -4 1 1 128 128 128 128 128 1 0 -10 0 0 128 128 128 128 1 0 -2 -6 -2 0 1 128 128 128 0 -2 -4 -6 -4 0 0 128 \
       128 1 -2 -4 -6 -6 -6 -2 0 128 128 1 -2 -4 -6 -6 -6 -2 0 128" >>roi-sample-kirland_640_480_30-two-events.txt
-    - ./Bin/Release/SvtAv1EncApp --roi-map-file roi-sample-kirland_640_480_30-two-events.txt --keyint 60 -n 120 -q 32 --preset 8 -w 640 -h 480 --fps 30 -i kirland_640_480_30.yuv -b roi.ivf -o roi_recon.yuv
-    - ./Bin/Release/SvtAv1EncApp --roi-map-file roi-sample-kirland_640_480_30-two-events.txt --keyint 60 -n 120 -q 32 --preset 8 --tile-columns 1 -w 640 -h 480 --fps 30 -i kirland_640_480_30.yuv -b roi_tiles.ivf -o roi_tiles_recon.yuv
+    - ./Bin/Release/SvtAv1EncApp --roi-map-file roi-sample-kirland_640_480_30-two-events.txt --keyint 60 -n 120 -q 32 --preset 8 -w 640 -h 480 -i kirland_640_480_30.yuv -b roi.ivf -o roi_recon.yuv
+    - ./Bin/Release/SvtAv1EncApp --roi-map-file roi-sample-kirland_640_480_30-two-events.txt --keyint 60 -n 120 -q 32 --preset 8 --tile-columns 1 -w 640 -h 480 -i kirland_640_480_30.yuv -b roi_tiles.ivf -o roi_tiles_recon.yuv
   artifacts:
     paths:
       - "roi*.ivf"
