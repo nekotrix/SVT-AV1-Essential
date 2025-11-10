@@ -137,30 +137,6 @@ static AOM_FORCE_INLINE int16x8_t horizontal_filter_8x1_f1(const uint8x16_t in, 
     return horizontal_filter_8x1_f1_beta0(in, f_s16);
 }
 
-static inline void vertical_filter_4x1_f1(const int16x8_t *src, int32x4_t *res, int sy) {
-    int16x4_t s0 = vget_low_s16(src[0]);
-    int16x4_t s1 = vget_low_s16(src[1]);
-    int16x4_t s2 = vget_low_s16(src[2]);
-    int16x4_t s3 = vget_low_s16(src[3]);
-    int16x4_t s4 = vget_low_s16(src[4]);
-    int16x4_t s5 = vget_low_s16(src[5]);
-    int16x4_t s6 = vget_low_s16(src[6]);
-    int16x4_t s7 = vget_low_s16(src[7]);
-
-    int16x8_t f = vld1q_s16((int16_t *)(svt_aom_warped_filter + (sy >> WARPEDDIFF_PREC_BITS)));
-
-    int32x4_t m0123 = vmull_lane_s16(s0, vget_low_s16(f), 0);
-    m0123           = vmlal_lane_s16(m0123, s1, vget_low_s16(f), 1);
-    m0123           = vmlal_lane_s16(m0123, s2, vget_low_s16(f), 2);
-    m0123           = vmlal_lane_s16(m0123, s3, vget_low_s16(f), 3);
-    m0123           = vmlal_lane_s16(m0123, s4, vget_high_s16(f), 0);
-    m0123           = vmlal_lane_s16(m0123, s5, vget_high_s16(f), 1);
-    m0123           = vmlal_lane_s16(m0123, s6, vget_high_s16(f), 2);
-    m0123           = vmlal_lane_s16(m0123, s7, vget_high_s16(f), 3);
-
-    *res = m0123;
-}
-
 static inline void vertical_filter_4x1_f4(const int16x8_t *src, int32x4_t *res, int sy, int gamma) {
     int16x8_t s0, s1, s2, s3;
     transpose_elems_s16_4x8(vget_low_s16(src[0]),
@@ -191,40 +167,6 @@ static inline void vertical_filter_4x1_f4(const int16x8_t *src, int32x4_t *res, 
     int32x4_t m0123_pairs[] = {m0, m1, m2, m3};
 
     *res = horizontal_add_4d_s32x4(m0123_pairs);
-}
-
-static inline void vertical_filter_8x1_f1(const int16x8_t *src, int32x4_t *res_low, int32x4_t *res_high, int sy) {
-    int16x8_t s0 = src[0];
-    int16x8_t s1 = src[1];
-    int16x8_t s2 = src[2];
-    int16x8_t s3 = src[3];
-    int16x8_t s4 = src[4];
-    int16x8_t s5 = src[5];
-    int16x8_t s6 = src[6];
-    int16x8_t s7 = src[7];
-
-    int16x8_t f = vld1q_s16((int16_t *)(svt_aom_warped_filter + (sy >> WARPEDDIFF_PREC_BITS)));
-
-    int32x4_t m0123 = vmull_lane_s16(vget_low_s16(s0), vget_low_s16(f), 0);
-    m0123           = vmlal_lane_s16(m0123, vget_low_s16(s1), vget_low_s16(f), 1);
-    m0123           = vmlal_lane_s16(m0123, vget_low_s16(s2), vget_low_s16(f), 2);
-    m0123           = vmlal_lane_s16(m0123, vget_low_s16(s3), vget_low_s16(f), 3);
-    m0123           = vmlal_lane_s16(m0123, vget_low_s16(s4), vget_high_s16(f), 0);
-    m0123           = vmlal_lane_s16(m0123, vget_low_s16(s5), vget_high_s16(f), 1);
-    m0123           = vmlal_lane_s16(m0123, vget_low_s16(s6), vget_high_s16(f), 2);
-    m0123           = vmlal_lane_s16(m0123, vget_low_s16(s7), vget_high_s16(f), 3);
-
-    int32x4_t m4567 = vmull_lane_s16(vget_high_s16(s0), vget_low_s16(f), 0);
-    m4567           = vmlal_lane_s16(m4567, vget_high_s16(s1), vget_low_s16(f), 1);
-    m4567           = vmlal_lane_s16(m4567, vget_high_s16(s2), vget_low_s16(f), 2);
-    m4567           = vmlal_lane_s16(m4567, vget_high_s16(s3), vget_low_s16(f), 3);
-    m4567           = vmlal_lane_s16(m4567, vget_high_s16(s4), vget_high_s16(f), 0);
-    m4567           = vmlal_lane_s16(m4567, vget_high_s16(s5), vget_high_s16(f), 1);
-    m4567           = vmlal_lane_s16(m4567, vget_high_s16(s6), vget_high_s16(f), 2);
-    m4567           = vmlal_lane_s16(m4567, vget_high_s16(s7), vget_high_s16(f), 3);
-
-    *res_low  = m0123;
-    *res_high = m4567;
 }
 
 static inline void vertical_filter_8x1_f8(const int16x8_t *src, int32x4_t *res_low, int32x4_t *res_high, int sy,
