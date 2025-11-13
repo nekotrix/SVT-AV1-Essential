@@ -103,9 +103,11 @@ typedef struct SequenceControlSet {
     uint8_t use_boundaries_in_rest_search;
     uint8_t enable_pic_mgr_dec_order; // if enabled: pic mgr starts pictures in dec order
     uint8_t enable_dec_order; // if enabled: encoding are in dec order
+#if !CLN_REMOVE_OIS_FLAG
     /*!< Use in loop motion OIS
          Default is 1. */
     uint8_t in_loop_ois;
+#endif
     /*!< Allow the usage of motion field motion vector in the stream
         (The signal changes per preset; 0: Enabled, 1: Disabled) Default is 1. */
     uint8_t mfmv_enabled;

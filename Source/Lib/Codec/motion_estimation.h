@@ -56,10 +56,12 @@ extern "C" {
         PictureParentControlSet   *pcs,
         MotionEstimationContext_t *me_context_ptr,
         EbPictureBufferDesc       *input_ptr);
+#if !CLN_REMOVE_OIS_FLAG
     extern EbErrorType svt_aom_open_loop_intra_search_mb(
         PictureParentControlSet *pcs,
         uint32_t                   b64_index,
         EbPictureBufferDesc       *input_ptr);
+#endif
 #define a_b_c  0
 #define a_c_b  1
 #define b_a_c  2

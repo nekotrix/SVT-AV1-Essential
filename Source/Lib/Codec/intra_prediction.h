@@ -138,10 +138,14 @@ static INLINE int32_t cfl_idx_to_alpha(int32_t alpha_idx, int32_t joint_sign, Cf
     const int32_t abs_alpha_q3 = (pred_type == CFL_PRED_U) ? CFL_IDX_U(alpha_idx) : CFL_IDX_V(alpha_idx);
     return (alpha_sign == CFL_SIGN_POS) ? abs_alpha_q3 + 1 : -abs_alpha_q3 - 1;
 }
-
-extern void        filter_intra_edge(OisMbResults *ois_mb_results_ptr, uint8_t mode, uint16_t max_frame_width,
-                                     uint16_t max_frame_height, int32_t p_angle, int32_t cu_origin_x, int32_t cu_origin_y,
-                                     uint8_t *above_row, uint8_t *left_col);
+#if CLN_REMOVE_OIS_FLAG
+extern void filter_intra_edge(uint8_t mode, uint16_t max_frame_width, uint16_t max_frame_height, int32_t p_angle,
+                              int32_t cu_origin_x, int32_t cu_origin_y, uint8_t *above_row, uint8_t *left_col);
+#else
+extern void filter_intra_edge(OisMbResults *ois_mb_results_ptr, uint8_t mode, uint16_t max_frame_width,
+                              uint16_t max_frame_height, int32_t p_angle, int32_t cu_origin_x, int32_t cu_origin_y,
+                              uint8_t *above_row, uint8_t *left_col);
+#endif
 extern EbErrorType svt_aom_intra_prediction_open_loop_mb(int32_t p_angle, uint8_t ois_intra_mode, uint32_t srcOriginX,
                                                          uint32_t srcOriginY, TxSize tx_size, uint8_t *above_row,
                                                          uint8_t *left_col, uint8_t *dst, uint32_t dst_stride);

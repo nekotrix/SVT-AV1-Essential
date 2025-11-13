@@ -53,6 +53,8 @@ extern "C" {
 
 #define CLN_MDC_FUNCS               1 // Clean-up unused MDC functions and variables
 #define CLN_RECON_FUNC              1 // Clean-up MD recon function
+#define CLN_REMOVE_OIS_FLAG         1 // Clean-up OIS functions and variables
+
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

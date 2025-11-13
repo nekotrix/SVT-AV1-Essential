@@ -3121,7 +3121,7 @@ EbErrorType svt_aom_motion_estimation_b64(
     }
     return return_error;
 }
-
+#if !CLN_REMOVE_OIS_FLAG
 EbErrorType svt_aom_open_loop_intra_search_mb(PictureParentControlSet *pcs, uint32_t b64_index,
                                       EbPictureBufferDesc *input_ptr) {
     EbErrorType         return_error = EB_ErrorNone;
@@ -3282,4 +3282,5 @@ EbErrorType svt_aom_open_loop_intra_search_mb(PictureParentControlSet *pcs, uint
     }
     return return_error;
 }
+#endif
 // clang-format on

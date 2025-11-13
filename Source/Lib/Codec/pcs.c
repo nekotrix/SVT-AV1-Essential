@@ -1407,8 +1407,10 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
 static void me_dctor(EbPtr p) {
     MotionEstimationData *obj = (MotionEstimationData *)p;
     EB_DELETE_PTR_ARRAY(obj->me_results, obj->init_b64_total_count);
+#if !CLN_REMOVE_OIS_FLAG
     if (obj->ois_mb_results)
         EB_FREE_2D(obj->ois_mb_results);
+#endif
     if (obj->tpl_stats)
         EB_FREE_2D(obj->tpl_stats);
     if (obj->tpl_beta)
@@ -1469,10 +1471,12 @@ static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_d
             adaptive_picture_width_in_mb  = (uint16_t)((init_data_ptr->picture_width + 31) / 32);
             adaptive_picture_height_in_mb = (uint16_t)((init_data_ptr->picture_height + 31) / 32);
         }
+#if !CLN_REMOVE_OIS_FLAG
         if (init_data_ptr->in_loop_ois == 0)
             EB_MALLOC_2D(object_ptr->ois_mb_results, (uint32_t)(picture_width_in_mb * picture_height_in_mb), 1);
         else
             object_ptr->ois_mb_results = NULL;
+#endif
         EB_MALLOC_2D(
             object_ptr->tpl_stats, (uint32_t)((adaptive_picture_width_in_mb) * (adaptive_picture_height_in_mb)), 1);
         if (init_data_ptr->tpl_lad_mg > 0)
@@ -1486,7 +1490,9 @@ static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_d
         EB_MALLOC_ARRAY(object_ptr->tpl_sb_rdmult_scaling_factors,
                         adaptive_picture_width_in_mb * adaptive_picture_height_in_mb);
     } else {
-        object_ptr->ois_mb_results                = NULL;
+#if !CLN_REMOVE_OIS_FLAG
+        object_ptr->ois_mb_results = NULL;
+#endif
         object_ptr->tpl_stats                     = NULL;
         object_ptr->tpl_beta                      = NULL;
         object_ptr->tpl_rdmult_scaling_factors    = NULL;

@@ -415,8 +415,10 @@ typedef struct MotionEstimationData {
     uint8_t        max_cand; // total max me candidates given the active references
     uint8_t        max_refs; // total max active references
     uint8_t        max_l0; // max active refs in L0
+#if !CLN_REMOVE_OIS_FLAG
     OisMbResults **ois_mb_results;
-    TplStats     **tpl_stats;
+#endif
+    TplStats **tpl_stats;
 
     TplSrcStats *tpl_src_stats_buffer; // tpl src based stats
 
@@ -1163,7 +1165,9 @@ typedef struct PictureControlSetInitData {
     uint16_t   non_m8_pad_h;
     uint8_t    enable_tpl_la;
     uint8_t    tpl_synth_size;
-    uint8_t    in_loop_ois;
+#if !CLN_REMOVE_OIS_FLAG
+    uint8_t in_loop_ois;
+#endif
     uint32_t   rate_control_mode;
     Av1Common *av1_cm;
     uint16_t   init_max_block_cnt;

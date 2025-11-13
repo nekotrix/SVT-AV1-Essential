@@ -284,13 +284,14 @@ void *svt_aom_motion_estimation_kernel(void *input_ptr) {
                         }
                     }
                 }
-
+#if !CLN_REMOVE_OIS_FLAG
                 if (scs->in_loop_ois == 0 && pcs->tpl_ctrls.enable)
                     for (uint32_t y_b64_index = y_b64_start_index; y_b64_index < y_b64_end_index; ++y_b64_index)
                         for (uint32_t x_b64_index = x_b64_start_index; x_b64_index < x_b64_end_index; ++x_b64_index) {
                             uint32_t b64_index = (uint16_t)(x_b64_index + y_b64_index * pic_width_in_b64);
                             svt_aom_open_loop_intra_search_mb(pcs, b64_index, input_pic);
                         }
+#endif
             }
             // Get Empty Results Object
             svt_get_empty_object(me_context_ptr->motion_estimation_results_output_fifo_ptr,

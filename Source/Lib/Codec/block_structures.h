@@ -23,12 +23,12 @@ extern "C" {
 
 #define MAX_TILE_WIDTH (4096) // Max Tile width in pixels
 #define MAX_TILE_AREA (4096 * 2304) // Maximum tile area in pixels
-
+#if !CLN_REMOVE_OIS_FLAG
 typedef struct OisMbResults {
     int64_t intra_cost;
     int32_t intra_mode;
 } OisMbResults;
-
+#endif
 typedef struct TileInfo {
     int32_t mi_row_start, mi_row_end;
     int32_t mi_col_start, mi_col_end;
