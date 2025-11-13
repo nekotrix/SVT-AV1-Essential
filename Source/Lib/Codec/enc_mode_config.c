@@ -5743,7 +5743,11 @@ static void set_tx_shortcut_ctrls(PictureControlSet *pcs, ModeDecisionContext *c
         ctrls->chroma_detector_level = 0;
         break;
     case 1:
-        ctrls->bypass_tx_th          = 15;
+#if CLN_MDS0_DIST_PD1
+        ctrls->bypass_tx_th = 4;
+#else
+        ctrls->bypass_tx_th = 15;
+#endif
         ctrls->apply_pf_on_coeffs    = 1;
         ctrls->use_mds3_shortcuts_th = 0;
         ctrls->chroma_detector_level = 1;
@@ -5754,10 +5758,12 @@ static void set_tx_shortcut_ctrls(PictureControlSet *pcs, ModeDecisionContext *c
         ctrls->use_mds3_shortcuts_th = 0;
         ctrls->chroma_detector_level = 1;
         break;
-    case 3:
-        ctrls->bypass_tx_th          = 1;
-        ctrls->apply_pf_on_coeffs    = 1;
+    case 3: ctrls->bypass_tx_th = 1; ctrls->apply_pf_on_coeffs = 1;
+#if CLN_MDS0_DIST_PD1
+        ctrls->use_mds3_shortcuts_th = 10;
+#else
         ctrls->use_mds3_shortcuts_th = 25;
+#endif
         ctrls->chroma_detector_level = 1;
         break;
     default: assert(0); break;
