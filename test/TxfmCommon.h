@@ -24,6 +24,7 @@
 #define _TXFM_TEST_H_
 
 #include "aom_dsp_rtcd.h"
+#include "TxfmCommon.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -212,21 +213,6 @@ static INLINE bool is_txfm_allowed(TxType tx_type, TxSize tx_size) {
     }
 
     return false;
-}
-
-static INLINE int32_t get_txb_wide(TxSize tx_size) {
-    tx_size = av1_get_adjusted_tx_size(tx_size);
-    return tx_size_wide[tx_size];
-}
-
-static INLINE int32_t get_txb_high(TxSize tx_size) {
-    tx_size = av1_get_adjusted_tx_size(tx_size);
-    return tx_size_high[tx_size];
-}
-
-static INLINE int32_t get_txb_bwl(TxSize tx_size) {
-    tx_size = av1_get_adjusted_tx_size(tx_size);
-    return tx_size_wide_log2[tx_size];
 }
 
 using IsTxTypeImpFunc = bool (*)(const TxType tx_type);

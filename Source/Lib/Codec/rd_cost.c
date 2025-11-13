@@ -156,7 +156,56 @@ static int32_t av1_transform_type_rate_estimation(struct ModeDecisionContext *ct
     }
     return 0;
 }
+#if FIX_EOB_COEF_CTX
+// Update the eob-related CDFs. Function assumes allow_update_cdf is true
+// as the only action of the function is to update the CDFs.
+static void update_eob_context(int eob, TxSize tx_size, TxClass tx_class, PlaneType plane, FRAME_CONTEXT *ec_ctx) {
+    int          eob_extra;
+    const int    eob_pt  = get_eob_pos_token(eob, &eob_extra);
+    const TxSize txs_ctx = (TxSize)((txsize_sqr_map[tx_size] + txsize_sqr_up_map[tx_size] + 1) >> 1);
+    assert(txs_ctx < TX_SIZES);
+    const int eob_multi_size = txsize_log2_minus4[tx_size];
+    const int eob_multi_ctx  = (tx_class == TX_CLASS_2D) ? 0 : 1;
 
+    switch (eob_multi_size) {
+    case 0: update_cdf(ec_ctx->eob_flag_cdf16[plane][eob_multi_ctx], eob_pt - 1, 5); break;
+    case 1: update_cdf(ec_ctx->eob_flag_cdf32[plane][eob_multi_ctx], eob_pt - 1, 6); break;
+    case 2: update_cdf(ec_ctx->eob_flag_cdf64[plane][eob_multi_ctx], eob_pt - 1, 7); break;
+    case 3: update_cdf(ec_ctx->eob_flag_cdf128[plane][eob_multi_ctx], eob_pt - 1, 8); break;
+    case 4: update_cdf(ec_ctx->eob_flag_cdf256[plane][eob_multi_ctx], eob_pt - 1, 9); break;
+    case 5: update_cdf(ec_ctx->eob_flag_cdf512[plane][eob_multi_ctx], eob_pt - 1, 10); break;
+    case 6:
+    default: update_cdf(ec_ctx->eob_flag_cdf1024[plane][eob_multi_ctx], eob_pt - 1, 11); break;
+    }
+
+    const int eob_offset_bits = eb_k_eob_offset_bits[eob_pt];
+    if (eob_offset_bits > 0) {
+        const int eob_ctx   = eob_pt - 3;
+        const int eob_shift = eob_offset_bits - 1;
+        const int bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
+        update_cdf(ec_ctx->eob_extra_cdf[txs_ctx][plane][eob_ctx], bit, 2);
+    }
+}
+
+// Transform end of block bit estimation
+int get_eob_cost(int eob, const LvMapEobCost *txb_eob_costs, const LvMapCoeffCost *txb_costs, TxClass tx_class) {
+    int       eob_extra;
+    const int eob_pt        = get_eob_pos_token(eob, &eob_extra);
+    const int eob_multi_ctx = (tx_class == TX_CLASS_2D) ? 0 : 1;
+    int       eob_cost      = txb_eob_costs->eob_cost[eob_multi_ctx][eob_pt - 1];
+
+    const int eob_offset_bits = eb_k_eob_offset_bits[eob_pt];
+    if (eob_offset_bits > 0) {
+        const int eob_ctx   = eob_pt - 3;
+        const int eob_shift = eob_offset_bits - 1;
+        const int bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
+        eob_cost += txb_costs->eob_extra_cost[eob_ctx][bit];
+        if (eob_offset_bits > 1)
+            eob_cost += av1_cost_literal(eob_offset_bits - 1);
+    }
+    return eob_cost;
+}
+#else
 static const int8_t eob_to_pos_small[33] = {
     0, 1, 2, // 0-2
     3, 3, // 3-4
@@ -296,6 +345,7 @@ static int get_eob_cost(int eob, const LvMapEobCost *txb_eob_costs, const LvMapC
     }
     return eob_cost;
 }
+#endif
 static INLINE int32_t av1_cost_skip_txb(struct ModeDecisionContext *ctx, uint8_t allow_update_cdf,
                                         FRAME_CONTEXT *ec_ctx, TxSize transform_size, PlaneType plane_type,
                                         int16_t txb_skip_ctx) {
@@ -482,10 +532,16 @@ uint64_t svt_av1_cost_coeffs_txb(struct ModeDecisionContext *ctx, uint8_t allow_
                                                                            reduced_transform_set_flag);
 
     // Transform eob bit estimation
+#if FIX_EOB_COEF_CTX
+    cost += get_eob_cost(eob, eob_bits, coeff_costs, tx_class);
+    if (allow_update_cdf)
+        update_eob_context(eob, transform_size, tx_class, plane_type, ec_ctx);
+#else
     int32_t eob_cost = get_eob_cost(eob, eob_bits, coeff_costs, tx_class);
     cost += eob_cost;
     if (allow_update_cdf)
         svt_av1_update_eob_context(eob, transform_size, tx_class, plane_type, ec_ctx, allow_update_cdf);
+#endif
     // Transform non-zero coeff bit estimation
     svt_av1_get_nz_map_contexts(levels,
                                 scan,

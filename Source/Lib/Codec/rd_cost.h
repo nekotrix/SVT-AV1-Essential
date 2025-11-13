@@ -84,6 +84,10 @@ static INLINE uint8_t av1_drl_ctx(const CandidateMv *ref_mv_stack, int32_t ref_i
         : ref_mv_stack[ref_idx + 1].weight < REF_CAT_LEVEL ? 2
                                                            : 0;
 }
+#if FIX_EOB_COEF_CTX
+// Transform end of block bit estimation
+int get_eob_cost(int eob, const LvMapEobCost *txb_eob_costs, const LvMapCoeffCost *txb_costs, TxClass tx_class);
+#endif
 #ifdef __cplusplus
 }
 #endif

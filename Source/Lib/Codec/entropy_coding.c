@@ -317,7 +317,7 @@ static void write_golomb(AomWriter *w, int32_t level) {
 
     for (i = length - 1; i >= 0; --i) aom_write_bit(w, (x >> i) & 0x01);
 }
-
+#if !FIX_EOB_COEF_CTX
 static const uint8_t eob_to_pos_small[33] = {
     0, 1, 2, // 0-2
     3, 3, // 3-4
@@ -360,6 +360,7 @@ static INLINE int16_t get_eob_pos_token(const int16_t eob, int16_t *const extra)
 
     return t;
 }
+#endif
 /************************************************************************************************/
 // blockd.h
 
@@ -558,11 +559,17 @@ static int32_t av1_write_coeffs_txb_1d(PictureParentControlSet *ppcs, FRAME_CONT
     if (component_type == COMPONENT_LUMA) {
         av1_write_tx_type(ppcs, frame_context, mbmi, ec_writer, intraLumaDir, tx_type, tx_size);
     }
-
+#if FIX_EOB_COEF_CTX
+    int       eob_extra;
+    const int eob_pt         = get_eob_pos_token(eob, &eob_extra);
+    const int eob_multi_size = txsize_log2_minus4[tx_size];
+    const int eob_multi_ctx  = (tx_type_to_class[tx_type] == TX_CLASS_2D) ? 0 : 1;
+#else
     int16_t       eob_extra;
     const int16_t eob_pt         = get_eob_pos_token(eob, &eob_extra);
     const int16_t eob_multi_size = txsize_log2_minus4[tx_size];
     const int16_t eob_multi_ctx  = (tx_type_to_class[tx_type] == TX_CLASS_2D) ? 0 : 1;
+#endif
     switch (eob_multi_size) {
     case 0:
         aom_write_symbol(ec_writer, eob_pt - 1, frame_context->eob_flag_cdf16[component_type][eob_multi_ctx], 5);
@@ -586,9 +593,23 @@ static int32_t av1_write_coeffs_txb_1d(PictureParentControlSet *ppcs, FRAME_CONT
         aom_write_symbol(ec_writer, eob_pt - 1, frame_context->eob_flag_cdf1024[component_type][eob_multi_ctx], 11);
         break;
     }
-
+#if FIX_EOB_COEF_CTX
+    const int eob_offset_bits = eb_k_eob_offset_bits[eob_pt];
+#else
     const int16_t eob_offset_bits = eb_k_eob_offset_bits[eob_pt];
+#endif
     if (eob_offset_bits > 0) {
+#if FIX_EOB_COEF_CTX
+        const int eob_ctx   = eob_pt - 3;
+        int       eob_shift = eob_offset_bits - 1;
+        int       bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
+        aom_write_symbol(ec_writer, bit, frame_context->eob_extra_cdf[txs_ctx][component_type][eob_ctx], 2);
+        for (int i = 1; i < eob_offset_bits; i++) {
+            eob_shift = eob_offset_bits - 1 - i;
+            bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
+            aom_write_bit(ec_writer, bit);
+        }
+#else
         int32_t eob_shift = eob_offset_bits - 1;
         int32_t bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
         aom_write_symbol(ec_writer, bit, frame_context->eob_extra_cdf[txs_ctx][component_type][eob_pt], 2);
@@ -597,6 +618,7 @@ static int32_t av1_write_coeffs_txb_1d(PictureParentControlSet *ppcs, FRAME_CONT
             bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
             aom_write_bit(ec_writer, bit);
         }
+#endif
     }
 
     svt_av1_get_nz_map_contexts(levels, scan, eob, tx_size, tx_type_to_class[tx_type], coeff_contexts);

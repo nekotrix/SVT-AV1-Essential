@@ -422,9 +422,11 @@ static INLINE void update_cdf(AomCdfProb *cdf, int8_t val, int nsymbs) {
 #define TOKEN_CDF_Q_CTXS 4
 
 #define TXB_SKIP_CONTEXTS 13
-
+#if FIX_EOB_COEF_CTX
+#define EOB_COEF_CONTEXTS 9
+#else
 #define EOB_COEF_CONTEXTS 22
-
+#endif
 #define SIG_COEF_CONTEXTS_2D 26
 #define SIG_COEF_CONTEXTS_1D 16
 #define SIG_COEF_CONTEXTS_EOB 4

@@ -591,7 +591,7 @@ void svt_av1_highbd_quantize_fp_qm_c(const TranLow *coeff_ptr, intptr_t count, c
                                 iqm_ptr,
                                 log_scale);
 }
-
+#if !FIX_EOB_COEF_CTX
 // Hsan: code clean up; from static to extern as now used @ more than 1 file
 
 static const int8_t eob_to_pos_small[33] = {
@@ -655,6 +655,7 @@ static int get_eob_cost(int eob, const LvMapEobCost *txb_eob_costs, const LvMapC
     }
     return eob_cost;
 }
+#endif
 static INLINE int get_lower_levels_ctx_general(int is_last, int scan_idx, int bwl, int height, const uint8_t *levels,
                                                int coeff_idx, TxSize tx_size, TxClass tx_class) {
     if (is_last) {
