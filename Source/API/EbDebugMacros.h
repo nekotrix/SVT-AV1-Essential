@@ -55,6 +55,9 @@ extern "C" {
 #define CLN_RECON_FUNC              1 // Clean-up MD recon function
 #define CLN_REMOVE_OIS_FLAG         1 // Clean-up OIS functions and variables
 #define FIX_EOB_COEF_CTX            1 // Fix the number of contexts used for signaling the EOB
+#define FIX_IND_UV_SEARCH_TX        1 // Set MD stage to 0 for independent chroma search to prevent using uninit'd data to skip TX
+#define FIX_CHROMA_SKIP             1 // Properly update chroma settings when chroma is skipped
+#define CLN_MOVE_CHROMA_CHECK       1 // Move chroma complexity check inside MD stage check for PD1
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

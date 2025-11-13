@@ -6138,14 +6138,22 @@ static void full_loop_core_light_pd1(PictureControlSet *pcs, ModeDecisionContext
         }
 
         perform_chroma = chroma_component > COMPONENT_LUMA;
-
+#if FIX_CHROMA_SKIP
+        if (chroma_component == COMPONENT_CHROMA_CB || chroma_component == COMPONENT_LUMA) {
+#else
         if (chroma_component == COMPONENT_CHROMA_CB) {
+#endif
             cr_full_distortion[DIST_SSD][DIST_CALC_RESIDUAL]   = 0;
             cr_full_distortion[DIST_SSD][DIST_CALC_PREDICTION] = 0;
             cr_coeff_bits                                      = 0;
             cand_bf->v_has_coeff                               = 0;
             cand_bf->eob.v[0]                                  = 0;
+#if FIX_CHROMA_SKIP
+        }
+        if (chroma_component == COMPONENT_CHROMA_CR || chroma_component == COMPONENT_LUMA) {
+#else
         } else if (chroma_component == COMPONENT_CHROMA_CR) {
+#endif
             cb_full_distortion[DIST_SSD][DIST_CALC_RESIDUAL]   = 0;
             cb_full_distortion[DIST_SSD][DIST_CALC_PREDICTION] = 0;
             cb_coeff_bits                                      = 0;
@@ -6428,6 +6436,18 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
     const uint16_t txb_count = ctx->blk_geom->txb_count[cand->block_mi.tx_depth];
     cand_bf->cnt_nz_coeff    = 0;
     for (uint8_t txb_itr = 0; txb_itr < txb_count; txb_itr++) cand_bf->cnt_nz_coeff += cand_bf->eob.y[txb_itr];
+#if CLN_MOVE_CHROMA_CHECK
+    //CHROMA
+    if (ctx->mds_do_chroma) {
+        assert(ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1);
+        ctx->chroma_complexity = COMPONENT_LUMA;
+        if (ctx->tx_shortcut_ctrls.chroma_detector_level && ctx->md_stage == MD_STAGE_3 &&
+            (ctx->tx_shortcut_ctrls.apply_pf_on_coeffs || ctx->use_tx_shortcuts_mds3)) {
+            chroma_complexity_check_pred(ctx, cand_bf, input_pic, loc, 1 /*use_var*/);
+        }
+
+        const uint16_t cb_qindex = ctx->qp_index;
+#else
     //CHROMA
 
     ctx->chroma_complexity = COMPONENT_LUMA;
@@ -6440,6 +6460,7 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
     uint16_t cb_qindex = ctx->qp_index;
     if (ctx->mds_do_chroma) {
         assert(ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1);
+#endif
         bool cfl_performed = false;
         if (!is_inter && ctx->md_stage == MD_STAGE_3 && ctx->cfl_ctrls.enabled &&
             MAX(ctx->blk_geom->bheight, ctx->blk_geom->bwidth) <= 32) {
@@ -8737,6 +8758,11 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
     // Search for the best independent intra chroma mode if search is enabled to be done before MDS0
     if (ctx->uv_ctrls.uv_mode == CHROMA_MODE_0 && !ctx->uv_ctrls.ind_uv_last_mds && ctx->blk_geom->sq_size < 128 &&
         ctx->blk_geom->has_uv) {
+#if FIX_IND_UV_SEARCH_TX
+        // Set MD stage to 0 to avoid using TX shortcuts in chroma transform path that are
+        // meant to be based on luma TX data, which is not available
+        ctx->md_stage = MD_STAGE_0;
+#endif
         search_best_independent_uv_mode(pcs,
                                         input_pic,
                                         loc.input_cb_origin_in_index,
