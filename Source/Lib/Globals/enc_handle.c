@@ -4227,9 +4227,14 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     }
     set_mrp_ctrl(scs, mrp_level);
     scs->is_short_clip = scs->static_config.gop_constraint_rc ? 1 : 0; // set to 1 if multipass and less than 200 frames in resourcecordination
-
+#if FTR_DEPTH_REMOVAL_INTRA
+    if (scs->static_config.avif                              ||
+        scs->allintra                                        ||
+        scs->static_config.enable_adaptive_quantization == 1 ||
+#else
     // Variance is required for scene change detection and segmentation-based quantization and subjective mode tf control
     if (scs->static_config.enable_adaptive_quantization == 1 ||
+#endif
         scs->static_config.scene_change_detection == 1       ||
         scs->vq_ctrls.sharpness_ctrls.tf == 1                ||
         scs->static_config.enable_variance_boost)
@@ -4283,7 +4288,11 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     scs->static_config.multiply_keyint = config_struct->multiply_keyint;
     scs->static_config.intra_refresh_type = config_struct->intra_refresh_type;
     scs->static_config.enc_mode = config_struct->enc_mode;
+#if FTR_STILL_IMAGE_UP_TO_M12
+    if (scs->static_config.rtc || scs->static_config.avif || scs->allintra) {
+#else
     if(scs->static_config.rtc) {
+#endif
         if (scs->static_config.enc_mode > ENC_M12) {
             SVT_WARN("Preset M%d is mapped to M12.\n", scs->static_config.enc_mode);
             scs->static_config.enc_mode = ENC_M12;
@@ -4299,7 +4308,11 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     svt_aom_derive_input_resolution(
         &input_resolution,
         scs->max_input_luma_width * scs->max_input_luma_height);
+#if FTR_STILL_IMAGE_UP_TO_M12
+    if (!scs->static_config.avif && !scs->allintra && scs->static_config.pred_structure == RANDOM_ACCESS && scs->static_config.enc_mode > ENC_M9 && input_resolution >= INPUT_SIZE_4K_RANGE) {
+#else
     if (scs->static_config.pred_structure == RANDOM_ACCESS && scs->static_config.enc_mode > ENC_M9 && input_resolution >= INPUT_SIZE_4K_RANGE) {
+#endif
         scs->static_config.enc_mode = ENC_M9;
         SVT_WARN("Setting preset to M9 as it is the highest supported preset for 4k and higher resolutions in Random Access mode\n");
     }

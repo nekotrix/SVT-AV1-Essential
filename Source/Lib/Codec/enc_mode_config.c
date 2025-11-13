@@ -101,7 +101,35 @@ static void get_sb128_me_data(PictureControlSet *pcs, ModeDecisionContext *ctx, 
     *me_8x8_dist     = dist_8;
     *me_8x8_cost_var = me_8x8_cost_variance;
 }
-
+#if FTR_DEPTH_REMOVAL_INTRA
+/*
+* Estimate the variance of the 128x128 by averaging the variances of the sub-64x64 blocks
+*/
+static void get_sb128_variance(PictureControlSet *pcs, ModeDecisionContext *ctx, uint16_t *variance) {
+    uint32_t b64_size       = pcs->scs->b64_size;
+    uint32_t b64_pic_width  = (pcs->ppcs->aligned_width + b64_size - 1) / b64_size;
+    uint32_t b64_pic_height = (pcs->ppcs->aligned_height + b64_size - 1) / b64_size;
+    uint32_t b64_x          = (ctx->sb_origin_x / b64_size);
+    uint32_t b64_y          = (ctx->sb_origin_y / b64_size);
+    uint32_t b64_index      = b64_x + b64_y * b64_pic_width;
+    uint16_t var_64         = pcs->ppcs->variance[b64_index][ME_TIER_ZERO_PU_64x64];
+    uint8_t  count          = 1;
+    if (b64_x + 1 < b64_pic_width) {
+        var_64 += pcs->ppcs->variance[b64_index + 1][ME_TIER_ZERO_PU_64x64];
+        count++;
+    }
+    if (b64_y + 1 < b64_pic_height) {
+        var_64 += pcs->ppcs->variance[b64_index + b64_pic_width][ME_TIER_ZERO_PU_64x64];
+        count++;
+    }
+    if (b64_x + 1 < b64_pic_width && b64_y + 1 < b64_pic_height) {
+        var_64 += pcs->ppcs->variance[b64_index + b64_pic_width + 1][ME_TIER_ZERO_PU_64x64];
+        count++;
+    }
+    var_64 /= count;
+    *variance = var_64;
+}
+#endif
 // use this function to set the enable_me_8x8 level
 uint8_t svt_aom_get_enable_me_8x8(EncMode enc_mode, bool rtc_tune, EbInputResolution input_resolution) {
     uint8_t enable_me_8x8 = 0;
@@ -2397,9 +2425,79 @@ void set_depth_removal_level_controls_rtc(PictureControlSet *pcs, ModeDecisionCo
 static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                              uint8_t depth_removal_level) {
     DepthRemovalCtrls *depth_removal_ctrls = &ctx->depth_removal_ctrls;
+#if FTR_DEPTH_REMOVAL_INTRA
+    if (pcs->slice_type == I_SLICE) {
+        // Base term (resolution-independent)
+        uint16_t base_var_th_b16 = 0;
+        uint16_t base_var_th_b32 = 0;
+        uint16_t base_var_th_b64 = 0;
 
+        switch (depth_removal_level) {
+        case 0: depth_removal_ctrls->enabled = 0; break;
+
+        case 1:
+            depth_removal_ctrls->enabled = 1;
+            base_var_th_b16              = 750;
+            base_var_th_b32              = 500;
+            base_var_th_b64              = 50;
+            break;
+
+        case 2:
+            depth_removal_ctrls->enabled = 1;
+            base_var_th_b16              = 1500;
+            base_var_th_b32              = 1250;
+            base_var_th_b64              = 50;
+            break;
+
+        case 3:
+            depth_removal_ctrls->enabled = 1;
+            base_var_th_b16              = (uint16_t)~0;
+            base_var_th_b32              = 3000;
+            base_var_th_b64              = 50;
+            break;
+        }
+
+        if (depth_removal_ctrls->enabled) {
+            SbGeom *sb_geom = &pcs->ppcs->sb_geom[ctx->sb_index];
+
+            uint16_t variance;
+            if (pcs->scs->super_block_size == 64) {
+                variance = pcs->ppcs->variance[ctx->sb_index][ME_TIER_ZERO_PU_64x64];
+            } else {
+                get_sb128_variance(pcs, ctx, &variance);
+            }
+
+            uint16_t var_th_b16 = 0;
+            uint16_t var_th_b32 = 0;
+            uint16_t var_th_b64 = 0;
+
+// Scaled term (resolution-dependent)
+#define LIN_MULT 910
+#define LIN_SHIFT 24
+            uint32_t scale     = pcs->ppcs->enhanced_pic->width * pcs->ppcs->enhanced_pic->height;
+            uint16_t var_scale = (uint32_t)(((uint64_t)scale * LIN_MULT) >> LIN_SHIFT);
+
+            // Increase threshold as resolution increases (more aggressive at higher res)
+            var_th_b16 = MIN((uint16_t)~0, ((uint32_t)base_var_th_b16 + (uint32_t)var_scale));
+            var_th_b32 = MIN((uint16_t)~0, ((uint32_t)base_var_th_b32 + (uint32_t)var_scale));
+            var_th_b64 = MIN((uint16_t)~0, ((uint32_t)base_var_th_b64 + (uint32_t)var_scale));
+
+            depth_removal_ctrls->disallow_below_64x64 = (sb_geom->width % 64 == 0 && sb_geom->height % 64 == 0)
+                ? (depth_removal_ctrls->disallow_below_64x64 || variance < var_th_b64)
+                : 0;
+
+            depth_removal_ctrls->disallow_below_32x32 = (sb_geom->width % 32 == 0 && sb_geom->height % 32 == 0)
+                ? (depth_removal_ctrls->disallow_below_32x32 || variance < var_th_b32)
+                : 0;
+
+            depth_removal_ctrls->disallow_below_16x16 = (sb_geom->width % 16 == 0 && sb_geom->height % 16 == 0)
+                ? (depth_removal_ctrls->disallow_below_16x16 || variance < var_th_b16)
+                : 0;
+        }
+#else
     if (pcs->slice_type == I_SLICE) {
         depth_removal_ctrls->enabled = 0;
+#endif
     } else {
         // me_distortion => EB_8_BIT_MD
         uint32_t fast_lambda = ctx->fast_lambda_md[EB_8_BIT_MD];
@@ -7255,6 +7353,10 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     const bool               rtc_tune            = scs->static_config.rtc;
     const bool               is_not_last_layer   = !ppcs->is_highest_layer;
     const uint32_t           sq_qp               = scs->static_config.qp;
+#if FTR_DEPTH_REMOVAL_INTRA
+    const bool all_intra   = scs->allintra;
+    const bool still_image = scs->static_config.avif;
+#endif
     //MFMV
     uint8_t mfmv_level = 0;
     if (is_islice || scs->mfmv_enabled == 0 || pcs->ppcs->frm_hdr.error_resilient_mode) {
@@ -7643,8 +7745,20 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     */
     // for the low delay enhance base layer frames, lower the enc_mode to improve the quality
     set_pic_lpd0_lvl(pcs, enc_mode);
+#if FTR_DEPTH_REMOVAL_INTRA
+    if (all_intra || still_image) {
+        if (enc_mode <= ENC_M10) {
+            pcs->pic_depth_removal_level = 0;
+        } else if (enc_mode <= ENC_M11) {
+            pcs->pic_depth_removal_level = 1;
+        } else {
+            pcs->pic_depth_removal_level = 3;
+        }
+    } else if (is_islice || transition_present) {
+#else
     // Depth-removal not supported for I_SLICE
     if (is_islice || transition_present) {
+#endif
         pcs->pic_depth_removal_level = 0;
     } else {
         // Set depth_removal_level_controls

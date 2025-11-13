@@ -59,6 +59,8 @@ extern "C" {
 #define FIX_CHROMA_SKIP             1 // Properly update chroma settings when chroma is skipped
 #define CLN_MOVE_CHROMA_CHECK       1 // Move chroma complexity check inside MD stage check for PD1
 #define CLN_MDS0_DIST_PD1           1 // Fix fast-cost derivation
+#define FTR_STILL_IMAGE_UP_TO_M12   1 // Still-image up to M12
+#define FTR_DEPTH_REMOVAL_INTRA     1 // Add support for variance-based depth removal for INTRA frames to speed up still-image processing
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL
