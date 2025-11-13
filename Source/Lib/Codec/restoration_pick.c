@@ -539,13 +539,19 @@ static INLINE void apply_sgr(int32_t sgr_params_idx, const uint8_t *dat8, int32_
         }
     }
 }
-
+#if CLN_MDC_FUNCS
+static SgrprojInfo search_selfguided_restoration(const uint8_t *dat8, int32_t width, int32_t height, int32_t dat_stride,
+                                                 const uint8_t *src8, int32_t src_stride, int32_t use_highbitdepth,
+                                                 int32_t bit_depth, int32_t pu_width, int32_t pu_height,
+                                                 int32_t *rstbuf, SgFilterCtrls *ctrls, int32_t plane) {
+#else
 static SgrprojInfo search_selfguided_restoration(const uint8_t *dat8, int32_t width, int32_t height, int32_t dat_stride,
                                                  const uint8_t *src8, int32_t src_stride, int32_t use_highbitdepth,
                                                  int32_t bit_depth, int32_t pu_width, int32_t pu_height,
                                                  int32_t *rstbuf, int8_t sg_ref_frame_ep[2],
                                                  int32_t sg_frame_ep_cnt[SGRPROJ_PARAMS], SgFilterCtrls *ctrls,
                                                  int32_t plane, int8_t step) {
+#endif
     int32_t *flt0 = rstbuf;
     int32_t *flt1 = flt0 + RESTORATION_UNITPELS_MAX;
     int32_t  ep, bestep = 0;
@@ -554,7 +560,13 @@ static SgrprojInfo search_selfguided_restoration(const uint8_t *dat8, int32_t wi
     int32_t  flt_stride = ((width + 7) & ~7) + 8;
     assert(pu_width == (RESTORATION_PROC_UNIT_SIZE >> 1) || pu_width == RESTORATION_PROC_UNIT_SIZE);
     assert(pu_height == (RESTORATION_PROC_UNIT_SIZE >> 1) || pu_height == RESTORATION_PROC_UNIT_SIZE);
-
+#if CLN_MDC_FUNCS
+    plane            = !!plane; // plane > 0 ? 1 : 0;
+    int8_t start_ep  = ctrls->start_ep[plane];
+    int8_t end_ep    = ctrls->end_ep[plane];
+    int8_t ep_inc    = ctrls->ep_inc[plane];
+    int8_t do_refine = ctrls->refine[plane];
+#else
     //two types of searches: Ref based (when step<16) and fixed spaced search.
     //TODO: test the fixed based for fast decode and try to unify.
     int8_t start_ep, end_ep, ep_inc, do_refine;
@@ -578,7 +590,7 @@ static SgrprojInfo search_selfguided_restoration(const uint8_t *dat8, int32_t wi
         ep_inc    = ctrls->ep_inc[plane];
         do_refine = ctrls->refine[plane];
     }
-
+#endif
     for (ep = start_ep; ep < end_ep; ep += ep_inc) {
         int32_t exq[2];
         apply_sgr(ep,
@@ -1219,7 +1231,9 @@ static void search_sgrproj_seg(const RestorationTileLimits *limits, const Av1Pix
     const int32_t ss_y            = is_uv && cm->subsampling_y;
     const int32_t procunit_width  = RESTORATION_PROC_UNIT_SIZE >> ss_x;
     const int32_t procunit_height = RESTORATION_PROC_UNIT_SIZE >> ss_y;
-    int8_t        step            = cm->sg_filter_ctrls.step_range;
+#if !CLN_MDC_FUNCS
+    int8_t step = cm->sg_filter_ctrls.step_range;
+#endif
 
     rusi->sgrproj = search_selfguided_restoration(dgd_start,
                                                   limits->h_end - limits->h_start,
@@ -1232,15 +1246,20 @@ static void search_sgrproj_seg(const RestorationTileLimits *limits, const Av1Pix
                                                   procunit_width,
                                                   procunit_height,
                                                   rsc->tmpbuf,
+#if !CLN_MDC_FUNCS
                                                   cm->sg_ref_frame_ep,
                                                   cm->sg_frame_ep_cnt,
+#endif
                                                   &cm->sg_filter_ctrls,
+#if CLN_MDC_FUNCS
+                                                  rsc->plane);
+#else
                                                   rsc->plane,
                                                   step);
     svt_block_on_mutex(cm->child_pcs->rest_search_mutex);
     cm->sg_frame_ep_cnt[rusi->sgrproj.ep]++;
     svt_release_mutex(cm->child_pcs->rest_search_mutex);
-
+#endif
     RestorationUnitInfo rui;
     rui.restoration_type = RESTORE_SGRPROJ;
     rui.sgrproj_info     = rusi->sgrproj;

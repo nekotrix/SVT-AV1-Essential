@@ -1257,10 +1257,10 @@ static void svt_aom_set_sg_filter_ctrls(Av1Common *cm, uint8_t sg_filter_lvl) {
 
     switch (sg_filter_lvl) {
     case 0: ctrls->enabled = 0; break;
-    case 1:
-        ctrls->enabled     = 1;
-        ctrls->use_chroma  = 1;
-        ctrls->step_range  = 16;
+    case 1: ctrls->enabled = 1; ctrls->use_chroma = 1;
+#if !CLN_MDC_FUNCS
+        ctrls->step_range = 16;
+#endif
         ctrls->start_ep[0] = 0;
         ctrls->end_ep[0]   = 16;
         ctrls->ep_inc[0]   = 1;
@@ -1270,10 +1270,10 @@ static void svt_aom_set_sg_filter_ctrls(Av1Common *cm, uint8_t sg_filter_lvl) {
         ctrls->refine[0]   = 1;
         ctrls->refine[1]   = 1;
         break;
-    case 2:
-        ctrls->enabled     = 1;
-        ctrls->use_chroma  = 1;
-        ctrls->step_range  = 16;
+    case 2: ctrls->enabled = 1; ctrls->use_chroma = 1;
+#if !CLN_MDC_FUNCS
+        ctrls->step_range = 16;
+#endif
         ctrls->start_ep[0] = 0;
         ctrls->end_ep[0]   = 16;
         ctrls->ep_inc[0]   = 1;
@@ -1283,10 +1283,10 @@ static void svt_aom_set_sg_filter_ctrls(Av1Common *cm, uint8_t sg_filter_lvl) {
         ctrls->refine[0]   = 1;
         ctrls->refine[1]   = 0;
         break;
-    case 3:
-        ctrls->enabled     = 1;
-        ctrls->use_chroma  = 1;
-        ctrls->step_range  = 16;
+    case 3: ctrls->enabled = 1; ctrls->use_chroma = 1;
+#if !CLN_MDC_FUNCS
+        ctrls->step_range = 16;
+#endif
         ctrls->start_ep[0] = 0;
         ctrls->end_ep[0]   = 16;
         ctrls->ep_inc[0]   = 8;
@@ -1296,10 +1296,10 @@ static void svt_aom_set_sg_filter_ctrls(Av1Common *cm, uint8_t sg_filter_lvl) {
         ctrls->refine[0]   = 1;
         ctrls->refine[1]   = 0;
         break;
-    case 4:
-        ctrls->enabled     = 1;
-        ctrls->use_chroma  = 0;
-        ctrls->step_range  = 16;
+    case 4: ctrls->enabled = 1; ctrls->use_chroma = 0;
+#if !CLN_MDC_FUNCS
+        ctrls->step_range = 16;
+#endif
         ctrls->start_ep[0] = 0;
         ctrls->end_ep[0]   = 16;
         ctrls->ep_inc[0]   = 8;

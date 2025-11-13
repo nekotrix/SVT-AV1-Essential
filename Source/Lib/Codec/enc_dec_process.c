@@ -2077,7 +2077,11 @@ void recode_loop_update_q(PictureParentControlSet *ppcs, int *const loop, int *c
                           int *const overshoot_seen, int *const low_cr_seen, const int loop_count);
 void svt_variance_adjust_qp(PictureControlSet *pcs);
 void svt_aom_sb_qp_derivation_tpl_la(PictureControlSet *pcs);
+#if CLN_MDC_FUNCS
+void mdc_init_qp_update(PictureControlSet *pcs);
+#else
 void mode_decision_configuration_init_qp_update(PictureControlSet *pcs);
+#endif
 void svt_aom_init_enc_dec_segement(PictureParentControlSet *ppcs);
 
 static void recode_loop_decision_maker(PictureControlSet *pcs, SequenceControlSet *scs, bool *do_recode) {
@@ -2810,7 +2814,11 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                 // do as dorecode do
                 pcs->enc_dec_coded_sb_count = 0;
                 // re-init mode decision configuration for qp update for re-encode frame
+#if CLN_MDC_FUNCS
+                mdc_init_qp_update(pcs);
+#else
                 mode_decision_configuration_init_qp_update(pcs);
+#endif
                 // init segment for re-encode frame
                 svt_aom_init_enc_dec_segement(pcs->ppcs);
 
@@ -3140,7 +3148,11 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                     }
                     pcs->enc_dec_coded_sb_count = 0;
                     // re-init mode decision configuration for qp update for re-encode frame
+#if CLN_MDC_FUNCS
+                    mdc_init_qp_update(pcs);
+#else
                     mode_decision_configuration_init_qp_update(pcs);
+#endif
                     // init segment for re-encode frame
                     svt_aom_init_enc_dec_segement(pcs->ppcs);
                     EbObjectWrapper *enc_dec_re_encode_tasks_wrapper;

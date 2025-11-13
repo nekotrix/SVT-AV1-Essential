@@ -51,6 +51,7 @@ extern "C" {
 #define FIX_INTRA_BLUR_QP62         1 // Intra lambda-weight tuning for INTRA frames at high QPs (>=62) to reduce blurriness
 #define FIX_FPS_CALC                1 // Fix frame-rate derivation to handle < 1 fps
 
+#define CLN_MDC_FUNCS               1 // Clean-up unused MDC functions and variables
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

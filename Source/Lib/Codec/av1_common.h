@@ -46,10 +46,12 @@ typedef struct WnFilterCtrls {
 
 typedef struct SgFilterCtrls {
     bool enabled;
+#if !CLN_MDC_FUNCS
     // [0,16] - the range of epsilon to test for the self-guided filter selection; lower is more
     // aggressive
     int8_t step_range;
     //active when step_range=16 (step based search is off)
+#endif
     //There are 16 possible combinations to test indexed from 0..15
     int8_t start_ep[PLANE_TYPES]; //search start     index
     int8_t end_ep[PLANE_TYPES]; //search end       index (search stops at end-1)
@@ -84,10 +86,12 @@ typedef struct Av1Common {
     //    SeqHeader                       *seq_header_ptr;
     WnFilterCtrls wn_filter_ctrls;
     SgFilterCtrls sg_filter_ctrls;
-    int32_t       sg_frame_ep_cnt[SGRPROJ_PARAMS];
-    int32_t       sg_frame_ep;
-    int8_t        sg_ref_frame_ep[2];
-    uint8_t       use_boundaries_in_rest_search; // Use boundary pixels in restoration filtering search
+#if !CLN_MDC_FUNCS
+    int32_t sg_frame_ep_cnt[SGRPROJ_PARAMS];
+    int32_t sg_frame_ep;
+    int8_t  sg_ref_frame_ep[2];
+#endif
+    uint8_t use_boundaries_in_rest_search; // Use boundary pixels in restoration filtering search
 
     FrameSize frm_size;
     TilesInfo tiles_info;

@@ -221,8 +221,10 @@ static void copy_statistics_to_ref_obj_ect(PictureControlSet *pcs, SequenceContr
     obj->tmp_layer_idx   = pcs->temporal_layer_index;
     obj->is_scene_change = ppcs->scene_change_flag;
 
-    Av1Common *cm    = ppcs->av1_cm;
+    Av1Common *cm = ppcs->av1_cm;
+#if !CLN_MDC_FUNCS
     obj->sg_frame_ep = cm->sg_frame_ep;
+#endif
     if (scs->mfmv_enabled || !ppcs->is_not_scaled) {
         obj->frame_type = frm_hdr->frame_type;
         obj->order_hint = ppcs->cur_order_hint;
@@ -334,7 +336,7 @@ void *svt_aom_rest_kernel(void *input_ptr) {
                         svt_av1_loop_restoration_filter_frame(context_ptr->rst_tmpbuf, cm->frame_to_show, cm, 0);
                     }
                 }
-
+#if !CLN_MDC_FUNCS
                 if (cm->sg_filter_ctrls.enabled) {
                     uint8_t best_ep_cnt = 0;
                     uint8_t best_ep     = 0;
@@ -346,6 +348,7 @@ void *svt_aom_rest_kernel(void *input_ptr) {
                     }
                     cm->sg_frame_ep = best_ep;
                 }
+#endif
             } else {
                 pcs->rst_info[0].frame_restoration_type = RESTORE_NONE;
                 pcs->rst_info[1].frame_restoration_type = RESTORE_NONE;
