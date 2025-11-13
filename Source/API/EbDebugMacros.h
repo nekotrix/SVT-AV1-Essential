@@ -52,6 +52,7 @@ extern "C" {
 #define FIX_FPS_CALC                1 // Fix frame-rate derivation to handle < 1 fps
 
 #define CLN_MDC_FUNCS               1 // Clean-up unused MDC functions and variables
+#define CLN_RECON_FUNC              1 // Clean-up MD recon function
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

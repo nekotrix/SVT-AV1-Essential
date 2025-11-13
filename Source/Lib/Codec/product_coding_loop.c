@@ -727,21 +727,33 @@ void av1_perform_inverse_transform_recon_luma(PictureControlSet *pcs, ModeDecisi
 }
 static void av1_perform_inverse_transform_recon(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                                 ModeDecisionCandidateBuffer *cand_bf, const BlockGeom *blk_geom) {
+#if CLN_RECON_FUNC
+    const uint8_t  tx_depth       = cand_bf->cand->block_mi.tx_depth;
+    const uint32_t tu_total_count = ctx->blk_geom->txb_count[tx_depth];
+    uint32_t       txb_itr        = 0;
+#else
     uint32_t tu_total_count;
     uint32_t txb_itr;
 
     UNUSED(blk_geom);
 
-    const uint8_t tx_depth   = cand_bf->cand->block_mi.tx_depth;
-    tu_total_count           = ctx->blk_geom->txb_count[tx_depth];
-    txb_itr                  = 0;
+    const uint8_t tx_depth = cand_bf->cand->block_mi.tx_depth;
+    tu_total_count         = ctx->blk_geom->txb_count[tx_depth];
+    txb_itr                = 0;
+#endif
     uint32_t   txb_1d_offset = 0, txb_1d_offset_uv = 0;
     const bool is_inter = is_inter_mode(cand_bf->cand->block_mi.mode) || cand_bf->cand->block_mi.use_intrabc;
     do {
+#if CLN_RECON_FUNC
+        const uint32_t txb_origin_x = ctx->blk_geom->tx_org_x[is_inter][tx_depth][txb_itr];
+        const uint32_t txb_origin_y = ctx->blk_geom->tx_org_y[is_inter][tx_depth][txb_itr];
+        const uint32_t txb_width    = ctx->blk_geom->tx_width[tx_depth];
+#else
         uint32_t txb_origin_x = ctx->blk_geom->tx_org_x[is_inter][tx_depth][txb_itr];
         uint32_t txb_origin_y = ctx->blk_geom->tx_org_y[is_inter][tx_depth][txb_itr];
         uint32_t txb_width    = ctx->blk_geom->tx_width[tx_depth];
-        TxSize   tx_size      = ctx->blk_geom->txsize[tx_depth];
+#endif
+        TxSize tx_size = ctx->blk_geom->txsize[tx_depth];
         if (ctx->mds_subres_step == 2) {
             if (tx_size == TX_64X64)
                 tx_size = TX_64X16;
@@ -869,13 +881,21 @@ static void av1_perform_inverse_transform_recon(PictureControlSet *pcs, ModeDeci
         //CHROMA
         if (ctx->blk_geom->has_uv && (tx_depth == 0 || txb_itr == 0)) {
             if (ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1) {
+#if CLN_RECON_FUNC
+                const uint32_t chroma_txb_width  = tx_size_wide[ctx->blk_geom->txsize_uv[tx_depth]];
+                const uint32_t chroma_txb_height = tx_size_high[ctx->blk_geom->txsize_uv[tx_depth]];
+                const uint32_t cb_tu_chroma_origin_index =
+                    ((((txb_origin_x >> 3) << 3) + ((txb_origin_y >> 3) << 3) * cand_bf->rec_coeff->stride_cb) >> 1);
+                const uint32_t cr_tu_chroma_origin_index =
+                    ((((txb_origin_x >> 3) << 3) + ((txb_origin_y >> 3) << 3) * cand_bf->rec_coeff->stride_cr) >> 1);
+#else
                 uint32_t chroma_txb_width  = tx_size_wide[ctx->blk_geom->txsize_uv[tx_depth]];
                 uint32_t chroma_txb_height = tx_size_high[ctx->blk_geom->txsize_uv[tx_depth]];
                 uint32_t cb_tu_chroma_origin_index =
                     ((((txb_origin_x >> 3) << 3) + ((txb_origin_y >> 3) << 3) * cand_bf->rec_coeff->stride_cb) >> 1);
                 uint32_t cr_tu_chroma_origin_index =
                     ((((txb_origin_x >> 3) << 3) + ((txb_origin_y >> 3) << 3) * cand_bf->rec_coeff->stride_cr) >> 1);
-
+#endif
                 if (ctx->blk_ptr->u_has_coeff & (1 << txb_itr))
                     svt_aom_inv_transform_recon_wrapper(pcs,
                                                         ctx,
