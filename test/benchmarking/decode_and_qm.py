@@ -211,7 +211,7 @@ def calculate_single_file_quality_metrics(
     os.makedirs(conv_dir, exist_ok=True)
 
     # Create quality metrics calculator
-    allow_metrics = {"vmaf": False, "ssimulacra2": False, "mssim": False}
+    allow_metrics = {"vmaf": False, "ssimulacra2": False, "ms_ssim": False}
     for m in config_manager.get_metrics().get("allowed_metrics", []):
         allow_metrics[m] = True
 
@@ -220,7 +220,7 @@ def calculate_single_file_quality_metrics(
 
     if allow_metrics["ssimulacra2"]:
         need_png = True
-    if allow_metrics["vmaf"] or allow_metrics["mssim"]:
+    if allow_metrics["vmaf"] or allow_metrics["ms_ssim"]:
         need_y4m = not (ref_yuv_file and filename.endswith(".yuv"))
 
     dist_png_file = (

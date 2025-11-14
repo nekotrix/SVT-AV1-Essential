@@ -188,7 +188,7 @@ class QualityMetricsCalculator:
                 )
             )
 
-        if allow_metrics.get("vmaf", False) or allow_metrics.get("mssim", False):
+        if allow_metrics.get("vmaf", False) or allow_metrics.get("ms_ssim", False):
             self.register_metric(
                 lambda src, test: VMAFMetric(
                     src,
@@ -241,7 +241,7 @@ class QualityMetricsCalculator:
             and os.path.exists(tmp_ref_file)
             and (
                 self.allow_metrics.get("vmaf", False)
-                or self.allow_metrics.get("mssim", False)
+                or self.allow_metrics.get("ms_ssim", False)
             )
         ):
             for metric_factory in self.metrics:

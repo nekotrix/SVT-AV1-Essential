@@ -36,7 +36,7 @@ For completeness, the following snippet shows a more comprehensive set of fields
         allowed_codecs: ["jpegli", "svtav1"]                # List of codecs that should be used
 
     metrics:
-        allowed_metrics: ["vmaf", "ssimulacra2", "mssim"]   # List of metrics to compute. PSNR is calculated via VMAF library
+        allowed_metrics: ["vmaf", "ssimulacra2", "ms_ssim"] # List of metrics to compute. PSNR is calculated via VMAF library
         allow_bdrate: true                                  # Set to true to enable BDRate metric computation by default
         anchor_encoder: "jpegli"                            # Encoder used to generate the reference for BDRate
         anchor_speed: 0                                     # Encoder speed for the reference BDRate computation

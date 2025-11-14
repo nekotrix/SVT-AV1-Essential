@@ -208,13 +208,13 @@ def generate_input_data_reformats(input_ext, source_data_dir, target_data_dirs, 
             if codec_name in codec_settings:
                 formats.add(codec_settings[codec_name]["input_extension"])
 
-    allow_metrics = {"vmaf": False, "ssimulacra2": False, "mssim": False}
+    allow_metrics = {"vmaf": False, "ssimulacra2": False, "ms_ssim": False}
     for m in config_manager.get_metrics().get("allowed_metrics", []):
         allow_metrics[m] = True
 
-    if allow_metrics["ssimulacra2"] or allow_metrics["mssim"]:
+    if allow_metrics["ssimulacra2"]:
         formats.add("png")
-    if allow_metrics["vmaf"] and not ("yuv" in formats):
+    if (allow_metrics["vmaf"] or allow_metrics["ms_ssim"]) and not ("yuv" in formats):
         formats.add("y4m")
 
     _ = [os.makedirs(x, exist_ok=True) for x in target_data_dirs.values()]
