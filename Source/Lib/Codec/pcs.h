@@ -310,6 +310,11 @@ typedef struct PictureControlSet {
     uint8_t md_nsq_mv_search_level;
     uint8_t md_pme_level;
     uint8_t mds0_level;
+#if OPT_MD_SIGNALS
+    uint8_t rdoq_level;
+    uint8_t intra_level;
+    uint8_t dist_based_ang_intra_level;
+#endif
     uint8_t pic_disallow_4x4; // disallow 4x4 at pic level
     // depth_removal_level signal at the picture level
     uint8_t pic_depth_removal_level;

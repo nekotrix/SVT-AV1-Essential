@@ -961,12 +961,16 @@ typedef struct ModeDecisionContext {
     uint8_t           unipred3x3_injection;
     Bipred3x3Controls bipred3x3_ctrls;
     uint8_t           redundant_blk;
-    uint8_t           nic_level;
-    uint8_t          *cfl_temp_luma_recon;
-    uint16_t         *cfl_temp_luma_recon16bit;
-    bool              blk_skip_decision;
-    int8_t            rdoq_level;
-    Mv                sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
+#if !OPT_MD_SIGNALS
+    uint8_t nic_level;
+#endif
+    uint8_t  *cfl_temp_luma_recon;
+    uint16_t *cfl_temp_luma_recon16bit;
+    bool      blk_skip_decision;
+#if !OPT_MD_SIGNALS
+    int8_t rdoq_level;
+#endif
+    Mv sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
     // Store ME MV of the square to use with NSQ shapes; 4x4 will also use the 8x8 ME MVs
     Mv       sq_sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
     Mv       fp_me_mv[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];

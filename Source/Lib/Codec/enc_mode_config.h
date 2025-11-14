@@ -76,6 +76,12 @@ uint8_t svt_aom_get_inter_intra_level(EncMode enc_mode, uint8_t is_base, uint8_t
 uint8_t svt_aom_get_obmc_level(EncMode enc_mode, uint32_t qp, uint8_t seq_qp_mod);
 void    svt_aom_set_nsq_geom_ctrls(ModeDecisionContext *ctx, uint8_t nsq_geom_level, uint8_t *allow_HVA_HVB,
                                    uint8_t *allow_HV4, uint8_t *min_nsq_bsize);
+#if OPT_MD_SIGNALS
+void svt_aom_get_intra_mode_levels(EncMode enc_mode, uint32_t input_resolution, bool still_image, bool all_intra,
+                                   bool rtc_tune, bool is_islice, bool is_base, bool sc_class1, int transition_present,
+                                   bool low_latency_kf, uint32_t *intra_level_ptr,
+                                   uint32_t *dist_based_ang_intra_level_ptr);
+#endif
 uint8_t svt_aom_get_tpl_synthesizer_block_size(int8_t tpl_level, uint32_t picture_width, uint32_t picture_height);
 
 void svt_aom_set_mfmv_config(SequenceControlSet *scs);

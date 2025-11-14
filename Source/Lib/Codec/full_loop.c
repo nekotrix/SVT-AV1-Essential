@@ -1517,7 +1517,11 @@ uint8_t svt_aom_quantize_inv_quantize(PictureControlSet *pcs, ModeDecisionContex
 
     // If rdoq_level is specified in the command line instruction, set perform_rdoq accordingly.
     perform_rdoq = !svt_av1_is_lossless_segment(pcs, ctx->blk_ptr->segment_id) &&
+#if OPT_MD_SIGNALS
+        ((ctx->mds_do_rdoq || is_encode_pass) && ctx->rdoq_ctrls.enabled);
+#else
         ((ctx->mds_do_rdoq || is_encode_pass) && ctx->rdoq_level);
+#endif
     const int dequant_shift = ctx->hbd_md ? pcs->ppcs->enhanced_pic->bit_depth - 5 : 3;
     const int qstep         = candidate_plane.dequant_qtx[1] /*[AC]*/ >> dequant_shift;
     if (!is_encode_pass) {
