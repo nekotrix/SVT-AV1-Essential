@@ -206,8 +206,13 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     // If independent chroma search is used, need to allocate additional 84 candidate buffers
     bool is_chroma_mode_0 = false;
     for (uint8_t is_i_slice = 0; is_i_slice < 2; is_i_slice++) {
+#if TUNE_STILL_IMAGE_0
+        is_chroma_mode_0 = svt_aom_set_chroma_controls(NULL, svt_aom_get_chroma_level(scs, enc_mode, is_i_slice)) ==
+            CHROMA_MODE_0;
+#else
         is_chroma_mode_0 = svt_aom_set_chroma_controls(NULL, svt_aom_get_chroma_level(enc_mode, is_i_slice)) ==
             CHROMA_MODE_0;
+#endif
         if (is_chroma_mode_0)
             break;
     }
@@ -227,7 +232,11 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
             for (uint8_t is_base = 0; is_base < 2; is_base++) {
                 if (use_update_cdf)
                     break;
+#if TUNE_STILL_IMAGE_0
+                use_update_cdf |= svt_aom_get_update_cdf_level(scs, enc_mode, is_islice, is_base, sc_class1);
+#else
                 use_update_cdf |= svt_aom_get_update_cdf_level(enc_mode, is_islice, is_base, sc_class1);
+#endif
             }
         }
     }

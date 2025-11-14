@@ -282,12 +282,20 @@ typedef struct SuperBlock {
     TileInfo       tile_info;
     uint16_t       final_blk_cnt; // number of block(s) posted from EncDec to EC
 } SuperBlock;
-
+#if TUNE_STILL_IMAGE_0
+extern EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr, uint8_t sb_size,
+                                                    uint16_t sb_origin_x, uint16_t sb_origin_y, uint16_t sb_index,
+                                                    EncMode enc_mode, bool rtc, uint32_t screen_content_mode,
+                                                    uint16_t max_block_cnt, bool still_image, bool all_intra,
+                                                    ResolutionRange           input_resolution,
+                                                    struct PictureControlSet *picture_control_set);
+#else
 extern EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr, uint8_t sb_size,
                                                     uint16_t sb_origin_x, uint16_t sb_origin_y, uint16_t sb_index,
                                                     EncMode enc_mode, bool rtc, uint32_t screen_content_mode,
                                                     uint16_t                  max_block_cnt,
                                                     struct PictureControlSet *picture_control_set);
+#endif
 
 #ifdef __cplusplus
 }

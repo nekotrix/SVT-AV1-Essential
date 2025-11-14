@@ -442,6 +442,11 @@ EbErrorType pcs_update_param(PictureControlSet *pcs) {
 static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr object_init_data_ptr) {
     PictureControlSetInitData *init_data_ptr = (PictureControlSetInitData *)object_init_data_ptr;
 
+#if TUNE_STILL_IMAGE_0
+    const bool still_image = init_data_ptr->static_config.avif;
+    const bool all_intra   = init_data_ptr->allintra;
+#endif
+
     EbPictureBufferDescInitData coeff_buffer_desc_init_data;
 
     // Max/Min CU Sizes
@@ -492,8 +497,13 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                                        init_data_ptr->static_config.enable_restoration_filtering,
                                        init_data_ptr->input_resolution,
                                        init_data_ptr->static_config.fast_decode,
+#if TUNE_STILL_IMAGE_0
+                                       still_image,
+                                       all_intra,
+#else
                                        init_data_ptr->static_config.avif,
                                        init_data_ptr->allintra,
+#endif
                                        init_data_ptr->rtc_tune)) {
         set_restoration_unit_size(
             init_data_ptr->picture_width, init_data_ptr->picture_height, 1, 1, object_ptr->rst_info);
@@ -547,7 +557,23 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     object_ptr->sb_total_count          = all_sb;
     object_ptr->sb_total_count_unscaled = all_sb;
     EB_ALLOC_PTR_ARRAY(object_ptr->sb_ptr_array, object_ptr->sb_total_count_unscaled);
-
+#if TUNE_STILL_IMAGE_0
+    for (sb_index = 0; sb_index < all_sb; ++sb_index) {
+        EB_NEW(object_ptr->sb_ptr_array[sb_index],
+               svt_aom_largest_coding_unit_ctor,
+               (uint8_t)init_data_ptr->sb_size,
+               (uint16_t)(sb_origin_x * max_blk_size),
+               (uint16_t)(sb_origin_y * max_blk_size),
+               (uint16_t)sb_index,
+               init_data_ptr->enc_mode,
+               init_data_ptr->static_config.rtc,
+               init_data_ptr->static_config.screen_content_mode,
+               init_data_ptr->init_max_block_cnt,
+               still_image,
+               all_intra,
+               init_data_ptr->input_resolution,
+               object_ptr);
+#else
     for (sb_index = 0; sb_index < all_sb; ++sb_index) {
         EB_NEW(object_ptr->sb_ptr_array[sb_index],
                svt_aom_largest_coding_unit_ctor,
@@ -560,6 +586,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                init_data_ptr->static_config.screen_content_mode,
                init_data_ptr->init_max_block_cnt,
                object_ptr);
+#endif
         // Increment the Order in coding order (Raster Scan Order)
         sb_origin_y = (sb_origin_x == picture_sb_w - 1) ? sb_origin_y + 1 : sb_origin_y;
         sb_origin_x = (sb_origin_x == picture_sb_w - 1) ? 0 : sb_origin_x + 1;
@@ -1050,8 +1077,18 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
             for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
                 if (!disallow_4x4 && !disallow_8x8)
                     break;
+#if TUNE_STILL_IMAGE_0
+                const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(still_image,
+                                                                        all_intra,
+                                                                        init_data_ptr->input_resolution,
+                                                                        init_data_ptr->enc_mode,
+                                                                        is_base,
+                                                                        coeff_lvl,
+                                                                        init_data_ptr->static_config.rtc);
+#else
                 const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(
                     init_data_ptr->enc_mode, is_base, coeff_lvl, init_data_ptr->static_config.rtc);
+#endif
                 // nsq_geom_lvl level 0 means NSQ shapes are disallowed so don't adjust based on the level
                 if (nsq_geom_lvl) {
                     uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
@@ -1073,13 +1110,25 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     }
 
     object_ptr->disallow_4x4_all_frames = disallow_4x4;
-    disallow_8x8                        = MIN(disallow_8x8,
+#if TUNE_STILL_IMAGE_0
+    disallow_8x8 = MIN(disallow_8x8,
+                       svt_aom_get_disallow_8x8(init_data_ptr->enc_mode,
+                                                still_image,
+                                                all_intra,
+                                                init_data_ptr->static_config.rtc,
+                                                init_data_ptr->static_config.screen_content_mode,
+                                                init_data_ptr->sb_size,
+                                                init_data_ptr->picture_width,
+                                                init_data_ptr->picture_height));
+#else
+    disallow_8x8 = MIN(disallow_8x8,
                        svt_aom_get_disallow_8x8(init_data_ptr->enc_mode,
                                                 init_data_ptr->static_config.rtc,
                                                 init_data_ptr->static_config.screen_content_mode,
                                                 init_data_ptr->sb_size,
                                                 init_data_ptr->picture_width,
                                                 init_data_ptr->picture_height));
+#endif
     object_ptr->disallow_8x8_all_frames = disallow_8x8;
     /* If 4x4 blocks are disallowed for all frames, the the MI blocks only need to be allocated for
     8x8 blocks.  The mi_grid will still be 4x4 so that the data can be accessed the same way throughout

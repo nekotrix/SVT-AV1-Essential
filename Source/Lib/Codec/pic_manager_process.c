@@ -282,6 +282,23 @@ void superres_setup_child_pcs(SequenceControlSet *entry_scs_ptr, PictureParentCo
         uint16_t sb_index;
         uint16_t sb_origin_x = 0;
         uint16_t sb_origin_y = 0;
+#if TUNE_STILL_IMAGE_0
+        for (sb_index = 0; sb_index < child_pcs->sb_total_count; ++sb_index) {
+            svt_aom_largest_coding_unit_dctor(child_pcs->sb_ptr_array[sb_index]);
+            svt_aom_largest_coding_unit_ctor(child_pcs->sb_ptr_array[sb_index],
+                                             (uint8_t)entry_scs_ptr->sb_size,
+                                             (uint16_t)(sb_origin_x * entry_scs_ptr->sb_size),
+                                             (uint16_t)(sb_origin_y * entry_scs_ptr->sb_size),
+                                             (uint16_t)sb_index,
+                                             child_pcs->enc_mode,
+                                             entry_scs_ptr->static_config.rtc,
+                                             entry_scs_ptr->static_config.screen_content_mode,
+                                             entry_scs_ptr->max_block_cnt,
+                                             entry_scs_ptr->static_config.avif,
+                                             entry_scs_ptr->allintra,
+                                             entry_scs_ptr->input_resolution,
+                                             child_pcs);
+#else
         for (sb_index = 0; sb_index < child_pcs->sb_total_count; ++sb_index) {
             svt_aom_largest_coding_unit_dctor(child_pcs->sb_ptr_array[sb_index]);
             svt_aom_largest_coding_unit_ctor(child_pcs->sb_ptr_array[sb_index],
@@ -294,6 +311,7 @@ void superres_setup_child_pcs(SequenceControlSet *entry_scs_ptr, PictureParentCo
                                              entry_scs_ptr->static_config.screen_content_mode,
                                              entry_scs_ptr->max_block_cnt,
                                              child_pcs);
+#endif
             // Increment the Order in coding order (Raster Scan Order)
             sb_origin_y = (sb_origin_x == pic_width_in_sb - 1) ? sb_origin_y + 1 : sb_origin_y;
             sb_origin_x = (sb_origin_x == pic_width_in_sb - 1) ? 0 : sb_origin_x + 1;
@@ -748,6 +766,23 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 uint16_t sb_index;
                 uint16_t sb_origin_x = 0;
                 uint16_t sb_origin_y = 0;
+#if TUNE_STILL_IMAGE_0
+                for (sb_index = 0; sb_index < child_pcs->sb_total_count; ++sb_index) {
+                    svt_aom_largest_coding_unit_dctor(child_pcs->sb_ptr_array[sb_index]);
+                    svt_aom_largest_coding_unit_ctor(child_pcs->sb_ptr_array[sb_index],
+                                                     (uint8_t)scs->sb_size,
+                                                     (uint16_t)(sb_origin_x * scs->sb_size),
+                                                     (uint16_t)(sb_origin_y * scs->sb_size),
+                                                     (uint16_t)sb_index,
+                                                     child_pcs->enc_mode,
+                                                     scs->static_config.rtc,
+                                                     scs->static_config.screen_content_mode,
+                                                     scs->max_block_cnt,
+                                                     scs->static_config.avif,
+                                                     scs->allintra,
+                                                     scs->input_resolution,
+                                                     child_pcs);
+#else
                 for (sb_index = 0; sb_index < child_pcs->sb_total_count; ++sb_index) {
                     svt_aom_largest_coding_unit_dctor(child_pcs->sb_ptr_array[sb_index]);
                     svt_aom_largest_coding_unit_ctor(child_pcs->sb_ptr_array[sb_index],
@@ -760,6 +795,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                                                      scs->static_config.screen_content_mode,
                                                      scs->max_block_cnt,
                                                      child_pcs);
+#endif
                     // Increment the Order in coding order (Raster Scan Order)
                     sb_origin_y = (sb_origin_x == pic_width_in_sb - 1) ? sb_origin_y + 1 : sb_origin_y;
                     sb_origin_x = (sb_origin_x == pic_width_in_sb - 1) ? 0 : sb_origin_x + 1;

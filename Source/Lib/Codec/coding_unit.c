@@ -31,13 +31,20 @@ Tasks & Questions
     -Need a ReconPicture for each candidate.
     -I don't see a way around doing the copies in temp memory and then copying it in...
 */
+#if TUNE_STILL_IMAGE_0
+EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr, uint8_t sb_size_pix,
+                                             uint16_t sb_origin_x, uint16_t sb_origin_y, uint16_t sb_index,
+                                             EncMode enc_mode, bool rtc, uint32_t screen_content_mode,
+                                             uint16_t max_block_cnt, bool still_image, bool all_intra,
+                                             ResolutionRange input_resolution, PictureControlSet *picture_control_set)
+#else
 EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr, uint8_t sb_size_pix,
                                              uint16_t sb_origin_x, uint16_t sb_origin_y, uint16_t sb_index,
                                              EncMode enc_mode, bool rtc, uint32_t screen_content_mode,
                                              uint16_t max_block_cnt,
 
                                              PictureControlSet *picture_control_set)
-
+#endif
 {
     larget_coding_unit_ptr->dctor = svt_aom_largest_coding_unit_dctor;
 
@@ -56,7 +63,12 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
     for (uint8_t is_base = 0; is_base <= 1; is_base++) {
         for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
             for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
+#if TUNE_STILL_IMAGE_0
+                const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(
+                    still_image, all_intra, input_resolution, enc_mode, is_base, coeff_lvl, rtc);
+#else
                 const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(enc_mode, is_base, coeff_lvl, rtc);
+#endif
                 // nsq_geom_lvl level 0 means NSQ shapes are disallowed so don't adjust based on the level
                 if (nsq_geom_lvl) {
                     uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
@@ -75,12 +87,23 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
             disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(enc_mode, is_base));
         }
     }
-    bool     disallow_8x8 = svt_aom_get_disallow_8x8(enc_mode,
+#if TUNE_STILL_IMAGE_0
+    bool disallow_8x8 = svt_aom_get_disallow_8x8(enc_mode,
+                                                 still_image,
+                                                 all_intra,
                                                  rtc,
                                                  screen_content_mode,
                                                  sb_size_pix,
                                                  picture_control_set->frame_width,
                                                  picture_control_set->frame_height);
+#else
+    bool disallow_8x8 = svt_aom_get_disallow_8x8(enc_mode,
+                                                 rtc,
+                                                 screen_content_mode,
+                                                 sb_size_pix,
+                                                 picture_control_set->frame_width,
+                                                 picture_control_set->frame_height);
+#endif
     uint32_t tot_blk_num;
     if (sb_size_pix == 128)
         if (disallow_8x8 && disallow_sub_16x16_nsq)
