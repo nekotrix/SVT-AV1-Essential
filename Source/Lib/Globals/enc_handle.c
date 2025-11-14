@@ -627,15 +627,18 @@ static EbErrorType load_default_buffer_configuration_settings(
     }
 
     if (scs->static_config.avif) {
-        scs->input_buffer_fifo_init_count = 2;
-        scs->picture_control_set_pool_init_count = 2;
-        scs->pa_reference_picture_buffer_init_count = 2;
+        scs->input_buffer_fifo_init_count = 4;
+        scs->picture_control_set_pool_init_count = 4;
+        scs->pa_reference_picture_buffer_init_count = 4;
         scs->tpl_reference_picture_buffer_init_count = 0;
-        scs->output_recon_buffer_fifo_init_count = scs->reference_picture_buffer_init_count = 1;
+        scs->output_recon_buffer_fifo_init_count = 1;
+        scs->reference_picture_buffer_init_count = 2;
         scs->picture_control_set_pool_init_count_child = 1;
         scs->enc_dec_pool_init_count = 1;
         scs->me_pool_init_count = 1;
         scs->overlay_input_picture_buffer_init_count = 0;
+        scs->allintra = true;
+        scs->static_config.intra_period_length = 0;
     }
 
     //#====================== Inter process Fifos ======================
@@ -5460,16 +5463,6 @@ EB_API EbErrorType svt_av1_enc_send_picture(
     EbBufferHeaderType   *app_hdr = p_buffer;
     enc_handle_ptr->frame_received = true;
 
-    static bool is_first_picture_sent = 0;
-    // Check if a picture has already been sent and AVIF mode is used
-    if (enc_handle_ptr->scs_instance_array[0]->scs->static_config.avif && is_first_picture_sent && p_buffer->flags != EB_BUFFERFLAG_EOS) {
-        p_buffer->flags = EB_BUFFERFLAG_EOS;
-        p_buffer->pic_type = EB_AV1_INVALID_PICTURE;
-        enc_handle_ptr->eos_received = 1;
-        return_val = EB_ErrorBadParameter;
-        SVT_ERROR("Error: A picture has already been sent. The library only supports one picture in AVIF mode.\n");
-    }
-
     // Exit the library if we detect an invalid API input buffer @ the previous library call
     if (enc_handle_ptr->is_prev_valid == false) {
         p_buffer->flags = EB_BUFFERFLAG_EOS;
@@ -5563,7 +5556,6 @@ EB_API EbErrorType svt_av1_enc_send_picture(
     input_cmd_obj->y8b_wrapper = y8b_wrapper;
     //Send to Lib
     svt_post_full_object(input_cmd_wrp);
-    is_first_picture_sent = 1;
     return return_val;
 }
 static void copy_output_recon_buffer(
