@@ -4625,9 +4625,11 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     scs->static_config.qp = config_struct->qp;
     scs->static_config.recon_enabled = config_struct->recon_enabled;
     scs->static_config.enable_tpl_la = config_struct->enable_tpl_la;
+#if !FIX_TUNE_SSIM_LAMBDA
     if (scs->static_config.enable_tpl_la != 1){
         scs->static_config.enable_tpl_la = 1;
     }
+#endif
     // Extract frame rate from Numerator and Denominator if not 0
     if (scs->static_config.frame_rate_numerator != 0 && scs->static_config.frame_rate_denominator != 0)
 #if FIX_FPS_CALC

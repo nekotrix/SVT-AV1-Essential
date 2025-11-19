@@ -2154,8 +2154,10 @@ unsigned int svt_aom_get_perpixel_variance(const uint8_t *buf, uint32_t stride, 
     return ROUND_POWER_OF_TWO(var, eb_num_pels_log2_lookup[block_size]);
 }
 static void aom_av1_set_mb_ssim_rdmult_scaling(PictureParentControlSet *pcs) {
+#if !FIX_TUNE_SSIM_LAMBDA
     if (!pcs->scs->static_config.enable_tpl_la) // tuning rdmult with SSIM requires TPL ME data
         return;
+#endif
     Av1Common *cm       = pcs->av1_cm;
     const int  y_stride = pcs->enhanced_pic->stride_y;
     uint8_t   *y_buffer = pcs->enhanced_pic->buffer_y + pcs->enhanced_pic->org_x + pcs->enhanced_pic->org_y * y_stride;
@@ -2168,13 +2170,17 @@ static void aom_av1_set_mb_ssim_rdmult_scaling(PictureParentControlSet *pcs) {
     double    log_sum  = 0.0;
 
     const double factor_a = 67.035434;
+#if FIX_TUNE_SSIM_LAMBDA
+    const double factor_b = -0.0021489;
+    const double factor_c = 17.492222;
+#else
     const double factor_b = pcs->scs->input_resolution < INPUT_SIZE_720p_RANGE ? -0.0004489
         : pcs->scs->input_resolution < INPUT_SIZE_1080p_RANGE                  ? -0.0011489
                                                                                : -0.0022489;
     const double factor_c = pcs->scs->input_resolution < INPUT_SIZE_720p_RANGE ? 17.492222
         : pcs->scs->input_resolution < INPUT_SIZE_1080p_RANGE                  ? 37.492222
                                                                                : 35.492222;
-
+#endif
     const bool do_print = false;
     if (do_print) {
         fprintf(stdout, "16x16 block variance");
@@ -2202,8 +2208,16 @@ static void aom_av1_set_mb_ssim_rdmult_scaling(PictureParentControlSet *pcs) {
 
             // Curve fitting with an exponential model on all 16x16 blocks from the
             // midres dataset.
-            double var_backup                                   = var;
-            var                                                 = factor_a * (1 - exp(factor_b * var)) + factor_c;
+            double var_backup = var;
+            var               = factor_a * (1 - exp(factor_b * var)) + factor_c;
+#if FIX_TUNE_SSIM_LAMBDA
+            // As per the above computation, var will be in the range of
+            // [17.492222, 84.527656], assuming the data type is of infinite
+            // precision. The following assert conservatively checks if var is in
+            // the range of [17.0, 85.0] to avoid any issues due to the precision of
+            // the relevant data type.
+            assert(var > 17.0 && var < 85.0);
+#endif
             pcs->pa_me_data->ssim_rdmult_scaling_factors[index] = var;
             log_sum += log(var);
             if (do_print) {
@@ -2222,18 +2236,22 @@ static void aom_av1_set_mb_ssim_rdmult_scaling(PictureParentControlSet *pcs) {
     if (do_print) {
         fprintf(stdout, "16x16 block rdmult scaling factors");
     }
+#if !FIX_TUNE_SSIM_LAMBDA
     double min = 0xfffffff;
     double max = 0;
+#endif
     for (int row = 0; row < num_rows; ++row) {
         for (int col = 0; col < num_cols; ++col) {
             const int index = row * num_cols + col;
             pcs->pa_me_data->ssim_rdmult_scaling_factors[index] /= log_sum;
+#if !FIX_TUNE_SSIM_LAMBDA
             if (pcs->pa_me_data->ssim_rdmult_scaling_factors[index] < min) {
                 min = pcs->pa_me_data->ssim_rdmult_scaling_factors[index];
             }
             if (pcs->pa_me_data->ssim_rdmult_scaling_factors[index] > max) {
                 max = pcs->pa_me_data->ssim_rdmult_scaling_factors[index];
             }
+#endif
             if (do_print) {
                 if (col == 0) {
                     fprintf(stdout, "\n");

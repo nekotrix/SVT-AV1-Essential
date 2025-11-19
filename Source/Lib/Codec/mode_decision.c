@@ -3796,6 +3796,16 @@ uint32_t svt_aom_product_full_mode_decision(
     ModeDecisionCandidateBuffer* cand_bf = buffer_ptr_array[lowest_cost_index];
     ModeDecisionCandidate* cand = cand_bf->cand;
     blk_ptr->total_rate = cand_bf->total_rate;
+#if FIX_TUNE_SSIM_LAMBDA
+    if (!(ctx->pd_pass == PD_PASS_1 && ctx->fixed_partition)) {
+        // When lambda tuning is on, lambda of each block is set separately, however at interdepth decision the sb lambda is used
+        uint32_t full_lambda = ctx->hbd_md ?
+            ctx->full_sb_lambda_md[EB_10_BIT_MD] :
+            ctx->full_sb_lambda_md[EB_8_BIT_MD];
+        ctx->blk_ptr->cost =
+            RDCOST(full_lambda, cand_bf->total_rate, cand_bf->full_dist);
+        ctx->blk_ptr->default_cost = ctx->blk_ptr->cost;
+#else
     if (!(ctx->pd_pass == PD_PASS_1 && ctx->fixed_partition)) {
         if (ctx->blk_lambda_tuning) {
             // When lambda tuning is on, lambda of each block is set separately, however at interdepth decision the sb lambda is used
@@ -3810,6 +3820,7 @@ uint32_t svt_aom_product_full_mode_decision(
             ctx->blk_ptr->cost = *(cand_bf->full_cost);
             ctx->blk_ptr->default_cost = *(cand_bf->full_cost);
         }
+#endif
         ctx->blk_ptr->full_dist = cand_bf->full_dist;
     }
 
@@ -3983,8 +3994,10 @@ static int get_superblock_tpl_column_end(PictureParentControlSet* ppcs, int mi_c
 
 void aom_av1_set_ssim_rdmult(struct ModeDecisionContext *ctx, PictureControlSet *pcs,
                          const int mi_row, const int mi_col) {
+#if !FIX_TUNE_SSIM_LAMBDA
   if (!pcs->ppcs->scs->static_config.enable_tpl_la) // tuning rdmult with SSIM requires TPL ME data
     return;
+#endif
   const AV1_COMMON *const cm = pcs->ppcs->av1_cm;
   BlockSize bsize = ctx->blk_geom->bsize;
 
@@ -3997,19 +4010,29 @@ void aom_av1_set_ssim_rdmult(struct ModeDecisionContext *ctx, PictureControlSet 
   const int num_brows = (mi_size_high[bsize] + num_mi_h - 1) / num_mi_h;
   int row, col;
   double num_of_mi = 0.0;
+#if FIX_TUNE_SSIM_LAMBDA
+  double geom_mean_of_scale = 1.0;
+#else
   double geom_mean_of_scale = 0.0;
-
+#endif
   for (row = mi_row / num_mi_w;
        row < num_rows && row < mi_row / num_mi_w + num_brows; ++row) {
     for (col = mi_col / num_mi_h;
          col < num_cols && col < mi_col / num_mi_h + num_bcols; ++col) {
       const int index = row * num_cols + col;
+#if FIX_TUNE_SSIM_LAMBDA
+      geom_mean_of_scale *= pcs->ppcs->pa_me_data->ssim_rdmult_scaling_factors[index];
+#else
       geom_mean_of_scale += log(pcs->ppcs->pa_me_data->ssim_rdmult_scaling_factors[index]);
+#endif
       num_of_mi += 1.0;
     }
   }
+#if FIX_TUNE_SSIM_LAMBDA
+  geom_mean_of_scale = pow(geom_mean_of_scale, (1.0 / num_of_mi));
+#else
   geom_mean_of_scale = exp(geom_mean_of_scale / num_of_mi);
-
+#endif
   if (!pcs->ppcs->blk_lambda_tuning) {
       ctx->full_lambda_md[EB_8_BIT_MD] = (uint32_t)((double)ctx->ed_ctx->pic_full_lambda[EB_8_BIT_MD] * geom_mean_of_scale + 0.5);
       ctx->full_lambda_md[EB_10_BIT_MD] = (uint32_t)((double)ctx->ed_ctx->pic_full_lambda[EB_10_BIT_MD] * geom_mean_of_scale + 0.5);
