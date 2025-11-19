@@ -189,7 +189,9 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
 #endif
 
 #if defined ARCH_X86_64
+#if !FTR_USE_HADAMARD_MDS0
     SET_ONLY_C(hadamard_path, hadamard_path_c);
+#endif
     SET_AVX2(svt_aom_sse, svt_aom_sse_c, svt_aom_sse_avx2);
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     SET_AVX2(svt_aom_highbd_sse, svt_aom_highbd_sse_c, svt_aom_highbd_sse_avx2);
@@ -569,7 +571,9 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_AVX2(svt_ssim_8x8_hbd, svt_ssim_8x8_hbd_c, svt_ssim_8x8_hbd_avx2);
     SET_AVX2(svt_ssim_4x4_hbd, svt_ssim_4x4_hbd_c, svt_ssim_4x4_hbd_avx2);
 #elif defined ARCH_AARCH64
+#if !FTR_USE_HADAMARD_MDS0
     SET_NEON(hadamard_path, hadamard_path_c, hadamard_path_neon);
+#endif
     SET_NEON_NEON_DOTPROD(svt_aom_sse, svt_aom_sse_c, svt_aom_sse_neon, svt_aom_sse_neon_dotprod);
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     SET_NEON_SVE(svt_aom_highbd_sse, svt_aom_highbd_sse_c, svt_aom_highbd_sse_neon, svt_aom_highbd_sse_sve);
@@ -951,7 +955,9 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_ONLY_C(svt_ssim_8x8_hbd, svt_ssim_8x8_hbd_c);
     SET_ONLY_C(svt_ssim_4x4_hbd, svt_ssim_4x4_hbd_c);
 #else
+#if !FTR_USE_HADAMARD_MDS0
     SET_ONLY_C(hadamard_path, hadamard_path_c);
+#endif
     SET_ONLY_C(svt_aom_sse, svt_aom_sse_c);
 #if CONFIG_ENABLE_HIGH_BIT_DEPTH
     SET_ONLY_C(svt_aom_highbd_sse, svt_aom_highbd_sse_c);

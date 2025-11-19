@@ -64,6 +64,9 @@ extern "C" {
 #define TUNE_STILL_IMAGE_0          1 // Perform a first round of tuning for still-image
 #define OPT_MD_SIGNALS              1 // Clean up INTRA-level derivation, fix PD0/PD1 interactions, and adaptively set the intra-edge-filter flag
 #define FIX_TUNE_SSIM_LAMBDA        1 // Fix SSIM mode lambda: fix per-SB lambda for balanced inter-depth decisions, and use default factors when deriving the lambda scaling factors
+#define TUNE_STILL_IMAGE_1          1 // Perform a second round of tuning for still-image
+#define OPT_DEFAULT_LAMBDA_MULT     1 // Use default lambda at RDOQ
+#define FTR_USE_HADAMARD_MDS0       1 // Use Hadamard at mds0
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

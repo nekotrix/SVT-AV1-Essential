@@ -44,13 +44,21 @@ void svt_aom_sig_deriv_me(SequenceControlSet *scs, PictureParentControlSet *pcs,
 void    svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, ModeDecisionContext *ctx);
 uint8_t svt_aom_derive_gm_level(PictureParentControlSet *pcs, bool super_res_off);
 
-void    svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level);
+void svt_aom_set_gm_controls(PictureParentControlSet *pcs, uint8_t gm_level);
+#if TUNE_STILL_IMAGE_1
+uint8_t svt_aom_get_enable_sg(EncMode enc_mode, uint8_t input_resolution, uint8_t fast_decode, bool still_image,
+                              bool all_intra);
+#else
 uint8_t svt_aom_get_enable_sg(EncMode enc_mode, uint8_t input_resolution, uint8_t fast_decode, bool avif);
+#endif
 uint8_t svt_aom_get_enable_restoration(EncMode enc_mode, int8_t config_enable_restoration, uint8_t input_resolution,
                                        uint8_t fast_decode, bool avif, bool allintra, bool rtc_tune);
 void    svt_aom_set_dist_based_ref_pruning_controls(ModeDecisionContext *ctx, uint8_t dist_based_ref_pruning_level);
-
+#if TUNE_STILL_IMAGE_1
+bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base, bool avif, bool allintra);
+#else
 bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base);
+#endif
 #if TUNE_STILL_IMAGE_0
 bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool still_image, bool all_intra, bool rtc_tune,
                               uint32_t screen_content_mode, const uint16_t sb_size, const uint16_t aligned_width,

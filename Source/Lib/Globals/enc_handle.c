@@ -3735,7 +3735,11 @@ void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
     if (scs->static_config.avif || scs->allintra) {
 #endif
 #if TUNE_STILL_IMAGE_0
+#if TUNE_STILL_IMAGE_1
+        if (scs->static_config.enc_mode <= ENC_M2) {
+#else
         if (scs->static_config.enc_mode <= ENC_M0) {
+#endif
             scs->qp_based_th_scaling_ctrls.tf_me_qp_based_th_scaling       = 0;
             scs->qp_based_th_scaling_ctrls.tf_ref_qp_based_th_scaling      = 0;
             scs->qp_based_th_scaling_ctrls.depths_qp_based_th_scaling      = 0;
@@ -3746,8 +3750,11 @@ void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
             scs->qp_based_th_scaling_ctrls.nic_pruning_qp_based_th_scaling = 1;
             scs->qp_based_th_scaling_ctrls.pme_qp_based_th_scaling         = 0;
             scs->qp_based_th_scaling_ctrls.txt_qp_based_th_scaling         = 1;
-
+#if TUNE_STILL_IMAGE_1
+        } else if (scs->static_config.enc_mode <= ENC_M5) {
+#else
         } else if (scs->static_config.enc_mode <= ENC_M3) {
+#endif
             scs->qp_based_th_scaling_ctrls.tf_me_qp_based_th_scaling       = 0;
             scs->qp_based_th_scaling_ctrls.tf_ref_qp_based_th_scaling      = 0;
             scs->qp_based_th_scaling_ctrls.depths_qp_based_th_scaling      = 0;
@@ -3999,7 +4006,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
 #endif
         if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
 #if TUNE_STILL_IMAGE_0
+#if TUNE_STILL_IMAGE_1
+            if (scs->static_config.enc_mode <= ENC_M3) {
+#else
             if (scs->static_config.enc_mode <= ENC_M8) {
+#endif
                 scs->super_block_size = 128;
             }
             else {
@@ -4122,7 +4133,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     bool disallow_4x4 = true;
     for (uint8_t is_islice = 0; is_islice <= 1; is_islice++)
         for (uint8_t is_base = 0; is_base <= 1; is_base++)
+#if TUNE_STILL_IMAGE_1
+            disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode, is_base, still_image, all_intra));
+#else
             disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode, is_base));
+#endif
 #if TUNE_STILL_IMAGE_0
     bool disallow_8x8 = svt_aom_get_disallow_8x8(scs->static_config.enc_mode,
         still_image, all_intra,

@@ -1105,6 +1105,9 @@ typedef struct ModeDecisionContext {
     NicCtrls        nic_ctrls;
     Mv              ref_mv;
     uint16_t        sb_index;
+#if FTR_USE_HADAMARD_MDS0
+    bool mds0_use_hadamard;
+#endif
     uint64_t        mds0_best_cost_per_class[CAND_CLASS_TOTAL];
     uint64_t        mds0_best_cost;
     uint8_t         mds0_best_class;

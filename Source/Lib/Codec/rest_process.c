@@ -118,7 +118,12 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
                 context_ptr->org_rec_frame->bit_depth = EB_EIGHT_BIT;
         }
         context_ptr->rst_tmpbuf = NULL;
+#if TUNE_STILL_IMAGE_1
+        if (svt_aom_get_enable_sg(
+                init_data_ptr->enc_mode, scs->input_resolution, config->fast_decode, config->avif, scs->allintra))
+#else
         if (svt_aom_get_enable_sg(init_data_ptr->enc_mode, scs->input_resolution, config->fast_decode, config->avif))
+#endif
             EB_MALLOC_ALIGNED(context_ptr->rst_tmpbuf, RESTORATION_TMPBUF_SIZE);
     }
 

@@ -1021,6 +1021,24 @@ enum {
 } UENUM1BYTE(DELTAQ_MODE);
 
 // These numbers are empirically obtained.
+#if OPT_DEFAULT_LAMBDA_MULT
+#if TUNE_CHROMA_SSIM
+static const int plane_rd_mult[2][REF_TYPES][PLANE_TYPES] = {{
+                                                                 {17, 13},
+                                                                 {16, 10},
+                                                             },
+                                                             {
+                                                                 {17, 13},
+                                                                 {16, 10},
+                                                             }};
+#else
+static const int plane_rd_mult[2][REF_TYPES][PLANE_TYPES] = {{{17, 20}, {16, 20}},
+                                                             {
+                                                                 {17, 13},
+                                                                 {16, 10},
+                                                             }};
+#endif
+#else
 static const int plane_rd_mult[REF_TYPES][PLANE_TYPES] = {
 #if TUNE_CHROMA_SSIM
     {17, 13},
@@ -1030,6 +1048,7 @@ static const int plane_rd_mult[REF_TYPES][PLANE_TYPES] = {
     {16, 20},
 #endif
 };
+#endif
 
 /*
  * Reduce the number of non-zero quantized coefficients before getting to the main/complex RDOQ stage
@@ -1076,6 +1095,11 @@ static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                TranLow *qcoeff_ptr, TranLow *dqcoeff_ptr, uint16_t *eob, const QuantParam *qparam,
                                TxSize tx_size, TxType tx_type, bool is_inter, uint8_t use_sharpness,
                                uint8_t delta_q_present, uint8_t picture_qp, uint32_t lambda, int plane) {
+#if OPT_DEFAULT_LAMBDA_MULT
+    SequenceControlSet *scs         = pcs->scs;
+    bool                still_image = scs->static_config.avif;
+    bool                all_intra   = scs->allintra;
+#endif
     int                    sharpness  = 0; // No Sharpness
     int                    fast_mode  = (ctx->rdoq_ctrls.eob_fast_y_inter && is_inter && !plane) ||
             (ctx->rdoq_ctrls.eob_fast_y_intra && !is_inter && !plane) ||
@@ -1123,7 +1147,13 @@ static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx,
             rweight   = 0;
         }
     }
-    const int64_t  rdmult = (((((int64_t)lambda * plane_rd_mult[is_inter][plane_type]) * rweight) / 100) + 2) >> rshift;
+#if OPT_DEFAULT_LAMBDA_MULT
+    const int64_t rdmult =
+        (((((int64_t)lambda * plane_rd_mult[still_image || all_intra][is_inter][plane_type]) * rweight) / 100) + 2) >>
+        rshift;
+#else
+    const int64_t rdmult = (((((int64_t)lambda * plane_rd_mult[is_inter][plane_type]) * rweight) / 100) + 2) >> rshift;
+#endif
     uint8_t        levels_buf[TX_PAD_2D];
     uint8_t *const levels = set_levels(levels_buf, width);
 
