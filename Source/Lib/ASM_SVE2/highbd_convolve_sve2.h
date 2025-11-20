@@ -16,26 +16,9 @@
 
 #include "neon_sve_bridge.h"
 #include "neon_sve2_bridge.h"
+#include "definitions.h"
 
-// clang-format off
-DECLARE_ALIGNED(16, static const uint16_t, kDotProdMergeBlockTbl[24]) = {
-    // Shift left and insert new last column in transposed 4x4 block.
-    1, 2, 3, 0, 5, 6, 7, 4,
-    // Shift left and insert two new columns in transposed 4x4 block.
-    2, 3, 0, 1, 6, 7, 4, 5,
-    // Shift left and insert three new columns in transposed 4x4 block.
-    3, 0, 1, 2, 7, 4, 5, 6,
-};
-
-DECLARE_ALIGNED(16, static const uint16_t, kDotProdTbl[32]) = {
-    0, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 3, 4, 5, 6,
-    4, 5, 6, 7, 5, 6, 7, 0, 6, 7, 0, 1, 7, 0, 1, 2,
-};
-
-DECLARE_ALIGNED(16, static const uint16_t, kDeinterleaveTbl[8]) = {
-    0, 2, 4, 6, 1, 3, 5, 7,
-};
-// clang-format on
+DECLARE_ALIGNED(16, extern const uint16_t, svt_kHbdDotProdMergeBlockTbl[24]);
 
 static inline void svt_tbl2x4_s16(int16x8_t t0[4], int16x8_t t1[4], uint16x8_t tbl, int16x8_t res[4]) {
     res[0] = svt_tbl2_s16(t0[0], t1[0], tbl);

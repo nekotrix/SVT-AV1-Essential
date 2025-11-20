@@ -20,7 +20,13 @@
 #include "sum_neon.h"
 #include "utility.h"
 
-DECLARE_ALIGNED(16, static const uint16_t, kDotProdTbl[32]) = {
+// clang-format off
+DECLARE_ALIGNED(16, const uint16_t, svt_kDeinterleaveTbl[8]) = {
+  0, 2, 4, 6, 1, 3, 5, 7,
+};
+// clang-format on
+
+DECLARE_ALIGNED(16, const uint16_t, svt_kHbdDotProdTbl[32]) = {
     // clang-format off
     0, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 3, 4, 5, 6,
     4, 5, 6, 7, 5, 6, 7, 0, 6, 7, 0, 1, 7, 0, 1, 2,
@@ -88,12 +94,6 @@ static inline void highbd_convolve_x_sr_8tap_sve(const uint16_t *src, int src_st
     } while (height != 0);
 }
 
-// clang-format off
-DECLARE_ALIGNED(16, static const uint16_t, kDeinterleaveTbl[8]) = {
-  0, 2, 4, 6, 1, 3, 5, 7,
-};
-// clang-format on
-
 static inline uint16x4_t convolve4_4_x(int16x8_t s0, int16x8_t filter, int64x2_t offset, uint16x8x2_t permute_tbl,
                                        uint16x4_t max) {
     int16x8_t permuted_samples0 = svt_tbl_s16(s0, permute_tbl.val[0]);
@@ -134,7 +134,7 @@ static inline void highbd_convolve_x_sr_4tap_sve(const uint16_t *src, int src_st
 
     if (width == 4) {
         const uint16x4_t max         = vdup_n_u16((1 << bd) - 1);
-        uint16x8x2_t     permute_tbl = vld1q_u16_x2(kDotProdTbl);
+        uint16x8x2_t     permute_tbl = vld1q_u16_x2(svt_kHbdDotProdTbl);
 
         const int16_t *s = (const int16_t *)(src);
 
@@ -155,7 +155,7 @@ static inline void highbd_convolve_x_sr_4tap_sve(const uint16_t *src, int src_st
         } while (height != 0);
     } else {
         const uint16x8_t max = vdupq_n_u16((1 << bd) - 1);
-        uint16x8_t       idx = vld1q_u16(kDeinterleaveTbl);
+        uint16x8_t       idx = vld1q_u16(svt_kDeinterleaveTbl);
 
         do {
             const int16_t *s = (const int16_t *)(src);

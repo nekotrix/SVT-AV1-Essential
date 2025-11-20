@@ -15,6 +15,7 @@
 #include "definitions.h"
 #include "highbd_jnt_convolve_neon.h"
 #include "highbd_jnt_convolve_sve.h"
+#include "highbd_convolve_sve.h"
 #include "highbd_convolve_sve2.h"
 #include "mem_neon.h"
 #include "neon_sve_bridge.h"
@@ -59,7 +60,7 @@ static inline void highbd_dist_wtd_convolve_y_8tap_sve2(const uint16_t *src, int
     const int64x2_t offset   = vdupq_n_s64((1 << (bd + FILTER_BITS)) + (1 << (bd + FILTER_BITS - 1)));
     const int16x8_t y_filter = vld1q_s16(y_filter_ptr);
 
-    uint16x8x3_t merge_block_tbl = vld1q_u16_x3(kDotProdMergeBlockTbl);
+    uint16x8x3_t merge_block_tbl = vld1q_u16_x3(svt_kHbdDotProdMergeBlockTbl);
     // Scale indices by size of the true vector length to avoid reading from an
     // 'undefined' portion of a vector on a system with SVE vectors > 128-bit.
     uint16x8_t correction0 = vreinterpretq_u16_u64(vdupq_n_u64(svcnth() * 0x0001000000000000ULL));
@@ -317,7 +318,7 @@ static inline void highbd_dist_wtd_convolve_2d_horiz_4tap_sve2(const uint16_t *s
     // a time and then process the last 3 rows separately.
 
     if (width == 4) {
-        uint16x8x2_t permute_tbl = vld1q_u16_x2(kDotProdTbl);
+        uint16x8x2_t permute_tbl = vld1q_u16_x2(svt_kHbdDotProdTbl);
 
         const int16_t *s = (const int16_t *)(src);
 
@@ -347,7 +348,7 @@ static inline void highbd_dist_wtd_convolve_2d_horiz_4tap_sve2(const uint16_t *s
 
         store_u16_4x3(dst, dst_stride, d0, d1, d2);
     } else {
-        uint16x8_t idx = vld1q_u16(kDeinterleaveTbl);
+        uint16x8_t idx = vld1q_u16(svt_kDeinterleaveTbl);
 
         do {
             const int16_t *s = (const int16_t *)(src);
@@ -438,7 +439,7 @@ static inline void highbd_dist_wtd_convolve_2d_vert_8tap_sve2(const uint16_t *sr
     const int16x8_t y_filter   = vld1q_s16(y_filter_ptr);
     const int64x2_t offset_vec = vdupq_n_s64(offset);
 
-    uint16x8x3_t merge_block_tbl = vld1q_u16_x3(kDotProdMergeBlockTbl);
+    uint16x8x3_t merge_block_tbl = vld1q_u16_x3(svt_kHbdDotProdMergeBlockTbl);
     // Scale indices by size of the true vector length to avoid reading from an
     // 'undefined' portion of a vector on a system with SVE vectors > 128-bit.
     uint16x8_t correction0 = vreinterpretq_u16_u64(vdupq_n_u64(svcnth() * 0x0001000000000000ULL));

@@ -17,9 +17,6 @@
 #include "inter_prediction.h"
 #include "mem_neon.h"
 
-DECLARE_ALIGNED(16, extern const uint8_t, kDotProdPermuteTbl[48]);
-DECLARE_ALIGNED(16, extern const uint8_t, kDotProdMergeBlockTbl[48]);
-
 static inline bool is_convolve_2tap(const int16_t *const filter) {
     return (const void *)filter == (const void *)bilinear_filters;
 }

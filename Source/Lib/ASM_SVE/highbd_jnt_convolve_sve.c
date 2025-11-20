@@ -13,15 +13,12 @@
 
 #include "common_dsp_rtcd.h"
 #include "definitions.h"
+#include "highbd_convolve_sve.h"
 #include "highbd_jnt_convolve_neon.h"
 #include "highbd_jnt_convolve_sve.h"
 #include "mem_neon.h"
 #include "neon_sve_bridge.h"
 #include "utility.h"
-
-DECLARE_ALIGNED(16, static const uint16_t, kDotProdTbl[32]) = {
-    0, 1, 2, 3, 1, 2, 3, 4, 2, 3, 4, 5, 3, 4, 5, 6, 4, 5, 6, 7, 5, 6, 7, 0, 6, 7, 0, 1, 7, 0, 1, 2,
-};
 
 static inline void highbd_dist_wtd_convolve_x_8tap_sve(const uint16_t *src, int src_stride, uint16_t *dst,
                                                        int dst_stride, int width, int height,
@@ -60,12 +57,6 @@ static inline void highbd_dist_wtd_convolve_x_8tap_sve(const uint16_t *src, int 
     } while (height != 0);
 }
 
-// clang-format off
-DECLARE_ALIGNED(16, static const uint16_t, kDeinterleaveTbl[8]) = {
-  0, 2, 4, 6, 1, 3, 5, 7,
-};
-// clang-format on
-
 static inline void highbd_dist_wtd_convolve_x_4tap_sve(const uint16_t *src, int src_stride, uint16_t *dst,
                                                        int dst_stride, int width, int height,
                                                        const int16_t *x_filter_ptr, const int bd) {
@@ -75,7 +66,7 @@ static inline void highbd_dist_wtd_convolve_x_4tap_sve(const uint16_t *src, int 
     const int16x8_t filter   = vcombine_s16(x_filter, vdup_n_s16(0));
 
     if (width == 4) {
-        uint16x8x2_t permute_tbl = vld1q_u16_x2(kDotProdTbl);
+        uint16x8x2_t permute_tbl = vld1q_u16_x2(svt_kHbdDotProdTbl);
 
         const int16_t *s = (const int16_t *)(src);
 
@@ -95,7 +86,7 @@ static inline void highbd_dist_wtd_convolve_x_4tap_sve(const uint16_t *src, int 
             height -= 4;
         } while (height != 0);
     } else {
-        uint16x8_t idx = vld1q_u16(kDeinterleaveTbl);
+        uint16x8_t idx = vld1q_u16(svt_kDeinterleaveTbl);
 
         do {
             const int16_t *s = (const int16_t *)(src);

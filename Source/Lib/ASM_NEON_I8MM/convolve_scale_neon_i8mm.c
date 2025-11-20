@@ -16,16 +16,10 @@
 #include "common_dsp_rtcd.h"
 #include "compound_convolve_neon.h"
 #include "convolve_scale_neon.h"
+#include "convolve_scale_neon_dotprod.h"
 #include "filter.h"
 #include "mem_neon.h"
 #include "transpose_neon.h"
-
-// clang-format off
-DECLARE_ALIGNED(16, static const uint8_t, kScale2DotProdPermuteTbl[32]) = {
-  0, 1, 2, 3, 2, 3, 4, 5, 4, 5,  6,  7,  6,  7,  8,  9,
-  4, 5, 6, 7, 6, 7, 8, 9, 8, 9, 10, 11, 10, 11, 12, 13
-};
-// clang-format on
 
 static inline int16x4_t convolve8_4_h(const uint8x8_t s0, const uint8x8_t s1, const uint8x8_t s2, const uint8x8_t s3,
                                       const int8x8_t filter, const int32x4_t horiz_const) {
@@ -195,7 +189,7 @@ static inline void convolve_horiz_scale_2_neon_i8mm(const uint8_t *src, int src_
     // The additional -1 is needed because we are halving the filter values.
     const int32x4_t horiz_offset = vdupq_n_s32((1 << (bd + FILTER_BITS - 2)) + (1 << (ROUND0_BITS - 2)));
 
-    const uint8x16x2_t permute_tbl = vld1q_u8_x2(kScale2DotProdPermuteTbl);
+    const uint8x16x2_t permute_tbl = vld1q_u8_x2(svt_kScale2DotProdPermuteTbl);
     // Filter values are all even so halve them to fit in int8_t.
     const int8x8_t filter = vshrn_n_s16(vld1q_s16(x_filter), 1);
 

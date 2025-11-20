@@ -14,6 +14,7 @@
 #include "common_dsp_rtcd.h"
 #include "definitions.h"
 #include "filter.h"
+#include "highbd_convolve_sve.h"
 #include "highbd_convolve_sve2.h"
 #include "inter_prediction.h"
 #include "mem_neon.h"
@@ -22,6 +23,17 @@
 #include "sum_neon.h"
 #include "transpose_neon.h"
 #include "utility.h"
+
+// clang-format off
+DECLARE_ALIGNED(16, const uint16_t, svt_kHbdDotProdMergeBlockTbl[24]) = {
+    // Shift left and insert new last column in transposed 4x4 block.
+    1, 2, 3, 0, 5, 6, 7, 4,
+    // Shift left and insert two new columns in transposed 4x4 block.
+    2, 3, 0, 1, 6, 7, 4, 5,
+    // Shift left and insert three new columns in transposed 4x4 block.
+    3, 0, 1, 2, 7, 4, 5, 6,
+};
+// clang-format on
 
 static inline uint16x4_t highbd_convolve8_4_y(int16x8_t samples_lo[2], int16x8_t samples_hi[2], int16x8_t filter,
                                               uint16x4_t max) {
@@ -63,7 +75,7 @@ static inline void highbd_convolve_y_sr_8tap_sve2(const uint16_t *src, ptrdiff_t
 
     const int16x8_t y_filter = vld1q_s16(filter_y);
 
-    uint16x8x3_t merge_block_tbl = vld1q_u16_x3(kDotProdMergeBlockTbl);
+    uint16x8x3_t merge_block_tbl = vld1q_u16_x3(svt_kHbdDotProdMergeBlockTbl);
     // Scale indices by size of the true vector length to avoid reading from an
     // 'undefined' portion of a vector on a system with SVE vectors > 128-bit.
     uint16x8_t correction0 = vreinterpretq_u16_u64(vdupq_n_u64(svcnth() * 0x0001000000000000ULL));
@@ -449,7 +461,7 @@ static inline void highbd_convolve_2d_sr_horiz_4tap_sve2(const uint16_t *src, in
     if (width == 4) {
         const int16_t *s = (const int16_t *)(src);
 
-        uint16x8x2_t permute_tbl = vld1q_u16_x2(kDotProdTbl);
+        uint16x8x2_t permute_tbl = vld1q_u16_x2(svt_kHbdDotProdTbl);
 
         do {
             int16x8_t s0, s1, s2, s3;
@@ -467,7 +479,7 @@ static inline void highbd_convolve_2d_sr_horiz_4tap_sve2(const uint16_t *src, in
             height -= 4;
         } while (height > 0);
     } else {
-        uint16x8_t idx = vld1q_u16(kDeinterleaveTbl);
+        uint16x8_t idx = vld1q_u16(svt_kDeinterleaveTbl);
 
         do {
             const int16_t *s = (const int16_t *)(src);
@@ -542,7 +554,7 @@ static inline void highbd_convolve_2d_sr_vert_8tap_sve2(const uint16_t *src, ptr
     const int64x2_t offset   = vdupq_n_s64(y_offset);
     const int16x8_t y_filter = vld1q_s16(filter_y);
 
-    uint16x8x3_t merge_block_tbl = vld1q_u16_x3(kDotProdMergeBlockTbl);
+    uint16x8x3_t merge_block_tbl = vld1q_u16_x3(svt_kHbdDotProdMergeBlockTbl);
     // Scale indices by size of the true vector length to avoid reading from an
     // 'undefined' portion of a vector on a system with SVE vectors > 128-bit.
     uint16x8_t correction0 = vreinterpretq_u16_u64(vdupq_n_u64(svcnth() * 0x0001000000000000ULL));

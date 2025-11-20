@@ -12,14 +12,11 @@
 #include <arm_neon.h>
 
 #include "common_dsp_rtcd.h"
+#include "convolve_neon_dotprod.h"
 #include "definitions.h"
 #include "neon_sve_bridge.h"
 #include "utility.h"
 #include "warp_plane_neon.h"
-
-DECLARE_ALIGNED(16, static const uint8_t, usdot_permute_idx[48]) = {
-    0, 1, 2, 3, 1, 2, 3, 4,  2, 3, 4,  5,  3, 4,  5,  6,  4,  5,  6,  7,  5,  6,  7,  8,
-    6, 7, 8, 9, 7, 8, 9, 10, 8, 9, 10, 11, 9, 10, 11, 12, 10, 11, 12, 13, 11, 12, 13, 14};
 
 static AOM_FORCE_INLINE int16x8_t horizontal_filter_4x1_f4(const uint8x16_t in, int sx, int alpha) {
     // Only put the constant in every other lane to avoid double-counting when
@@ -87,8 +84,8 @@ static AOM_FORCE_INLINE int16x8_t horizontal_filter_4x1_f1_beta0(const uint8x16_
 
     int8x16_t f_s8 = vcombine_s8(vmovn_s16(f_s16), vmovn_s16(f_s16));
 
-    uint8x16_t perm0 = vld1q_u8(&usdot_permute_idx[0]);
-    uint8x16_t perm1 = vld1q_u8(&usdot_permute_idx[16]);
+    uint8x16_t perm0 = vld1q_u8(&svt_kDotProdPermuteTbl[0]);
+    uint8x16_t perm1 = vld1q_u8(&svt_kDotProdPermuteTbl[16]);
 
     // Permute samples ready for dot product.
     // { 0,  1,  2,  3,  1,  2,  3,  4,  2,  3,  4,  5,  3,  4,  5,  6 }
@@ -113,9 +110,9 @@ static AOM_FORCE_INLINE int16x8_t horizontal_filter_8x1_f1_beta0(const uint8x16_
 
     int8x16_t f_s8 = vcombine_s8(vmovn_s16(f_s16), vmovn_s16(f_s16));
 
-    uint8x16_t perm0 = vld1q_u8(&usdot_permute_idx[0]);
-    uint8x16_t perm1 = vld1q_u8(&usdot_permute_idx[16]);
-    uint8x16_t perm2 = vld1q_u8(&usdot_permute_idx[32]);
+    uint8x16_t perm0 = vld1q_u8(&svt_kDotProdPermuteTbl[0]);
+    uint8x16_t perm1 = vld1q_u8(&svt_kDotProdPermuteTbl[16]);
+    uint8x16_t perm2 = vld1q_u8(&svt_kDotProdPermuteTbl[32]);
 
     // Permute samples ready for dot product.
     // { 0,  1,  2,  3,  1,  2,  3,  4,  2,  3,  4,  5,  3,  4,  5,  6 }

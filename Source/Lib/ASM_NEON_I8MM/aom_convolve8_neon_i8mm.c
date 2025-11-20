@@ -14,26 +14,11 @@
 
 #include "aom_convolve8_neon.h"
 #include "common_dsp_rtcd.h"
-#include "definitions.h"
+#include "convolve_neon_dotprod.h"
+#include "convolve_neon_i8mm.h"
 #include "filter.h"
 #include "mem_neon.h"
 #include "transpose_neon.h"
-
-// clang-format off
-DECLARE_ALIGNED(16, static const uint8_t, kMatMulPermuteTbl[32]) = {
-    0,  1,  2,  3,  4,  5,  6,  7,  2,  3,  4,  5,  6,  7,  8,  9,
-    4,  5,  6,  7,  8,  9, 10, 11,  6,  7,  8,  9, 10, 11, 12, 13
-};
-
-DECLARE_ALIGNED(16, static const uint8_t, kDotProdMergeBlockTbl[48]) = {
-    // Shift left and insert new last column in transposed 4x4 block.
-    1, 2, 3, 16, 5, 6, 7, 20, 9, 10, 11, 24, 13, 14, 15, 28,
-    // Shift left and insert two new columns in transposed 4x4 block.
-    2, 3, 16, 17, 6, 7, 20, 21, 10, 11, 24, 25, 14, 15, 28, 29,
-    // Shift left and insert three new columns in transposed 4x4 block.
-    3, 16, 17, 18, 7, 20, 21, 22, 11, 24, 25, 26, 15, 28, 29, 30
-};
-// clang-format on
 
 static inline int16x4_t convolve6_4_h(const uint8x16_t samples, const int8x16_t filter, const uint8x16_t permute_tbl) {
     // Permute samples ready for matrix multiply.
@@ -76,7 +61,7 @@ static inline void convolve8_horiz_6tap_neon_i8mm(const uint8_t *src, ptrdiff_t 
     const int8x16_t filter = vcombine_s8(vext_s8(x_filter, x_filter, 1), x_filter);
 
     if (width == 4) {
-        const uint8x16_t perm_tbl = vld1q_u8(kMatMulPermuteTbl);
+        const uint8x16_t perm_tbl = vld1q_u8(svt_kMatMul6PermuteTbl);
         do {
             uint8x16_t s0, s1, s2, s3;
             load_u8_16x4(src, src_stride, &s0, &s1, &s2, &s3);
@@ -97,7 +82,7 @@ static inline void convolve8_horiz_6tap_neon_i8mm(const uint8_t *src, ptrdiff_t 
             height -= 4;
         } while (height > 0);
     } else {
-        const uint8x16x2_t perm_tbl = vld1q_u8_x2(kMatMulPermuteTbl);
+        const uint8x16x2_t perm_tbl = vld1q_u8_x2(svt_kMatMul6PermuteTbl);
 
         do {
             int            w = width;
@@ -179,7 +164,7 @@ static inline void convolve8_vert_8tap_neon_i8mm(const uint8_t *src, ptrdiff_t s
                                                  ptrdiff_t dst_stride, const int16_t *filter_y, int w, int h) {
     // Filter values are even, so halve to reduce intermediate precision reqs.
     const int8x8_t     filter          = vshrn_n_s16(vld1q_s16(filter_y), 1);
-    const uint8x16x3_t merge_block_tbl = vld1q_u8_x3(kDotProdMergeBlockTbl);
+    const uint8x16x3_t merge_block_tbl = vld1q_u8_x3(svt_kDotProdMergeBlockTbl);
     uint8x16x2_t       samples_LUT;
 
     if (w == 4) {

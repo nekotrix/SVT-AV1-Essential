@@ -13,11 +13,29 @@
 
 #include "common_dsp_rtcd.h"
 #include "convolve_neon.h"
+#include "convolve_neon_dotprod.h"
 #include "definitions.h"
 #include "filter.h"
 #include "mem_neon.h"
 #include "transpose_neon.h"
 #include "utility.h"
+
+// clang-format off
+DECLARE_ALIGNED(16, const uint8_t, svt_kDotProdPermuteTbl[48]) = {
+    0, 1, 2,  3,  1, 2,  3,  4,  2,  3,  4,  5,  3,  4,  5,  6,
+    4, 5, 6,  7,  5, 6,  7,  8,  6,  7,  8,  9,  7,  8,  9,  10,
+    8, 9, 10, 11, 9, 10, 11, 12, 10, 11, 12, 13, 11, 12, 13, 14
+};
+
+DECLARE_ALIGNED(16, const uint8_t, svt_kDotProdMergeBlockTbl[48]) = {
+    // Shift left and insert new last column in transposed 4x4 block.
+    1, 2, 3, 16, 5, 6, 7, 20, 9, 10, 11, 24, 13, 14, 15, 28,
+    // Shift left and insert two new columns in transposed 4x4 block.
+    2, 3, 16, 17, 6, 7, 20, 21, 10, 11, 24, 25, 14, 15, 28, 29,
+    // Shift left and insert three new columns in transposed 4x4 block.
+    3, 16, 17, 18, 7, 20, 21, 22, 11, 24, 25, 26, 15, 28, 29, 30
+};
+// clang-format on
 
 static inline int16x4_t convolve4_4_x(const uint8x16_t samples, const int8x8_t filters, const uint8x16_t permute_tbl) {
     // Transform sample range to [-128, 127] for 8-bit signed dot product.
@@ -77,7 +95,7 @@ static inline void convolve_x_sr_4tap_neon_dotprod(const uint8_t *src, ptrdiff_t
     const int8x8_t filter = vshrn_n_s16(vcombine_s16(x_filter, vdup_n_s16(0)), 1);
 
     if (width == 4) {
-        const uint8x16_t permute_tbl = vld1q_u8(kDotProdPermuteTbl);
+        const uint8x16_t permute_tbl = vld1q_u8(svt_kDotProdPermuteTbl);
 
         do {
             uint8x16_t s0, s1, s2, s3;
@@ -99,7 +117,7 @@ static inline void convolve_x_sr_4tap_neon_dotprod(const uint8_t *src, ptrdiff_t
             height -= 4;
         } while (height != 0);
     } else {
-        const uint8x16x2_t permute_tbl = vld1q_u8_x2(kDotProdPermuteTbl);
+        const uint8x16x2_t permute_tbl = vld1q_u8_x2(svt_kDotProdPermuteTbl);
 
         do {
             const uint8_t *s = src;
@@ -198,7 +216,7 @@ void svt_av1_convolve_x_sr_neon_dotprod(const uint8_t *src, int32_t src_stride, 
 
     const int16x8_t x_filter_s16 = vld1q_s16(x_filter_ptr);
 
-    const uint8x16x3_t permute_tbl = vld1q_u8_x3(kDotProdPermuteTbl);
+    const uint8x16x3_t permute_tbl = vld1q_u8_x3(svt_kDotProdPermuteTbl);
     // Filter values are even, so halve to reduce intermediate precision reqs.
     const int8x8_t x_filter = vshrn_n_s16(x_filter_s16, 1);
 
@@ -264,7 +282,7 @@ static inline void convolve_y_sr_8tap_neon_dotprod(const uint8_t *src_ptr, int s
     // Filter values are even, so halve to reduce intermediate precision reqs.
     const int8x8_t filter = vshrn_n_s16(vld1q_s16(y_filter_ptr), 1);
 
-    const uint8x16x3_t merge_block_tbl = vld1q_u8_x3(kDotProdMergeBlockTbl);
+    const uint8x16x3_t merge_block_tbl = vld1q_u8_x3(svt_kDotProdMergeBlockTbl);
 
     if (w == 4) {
         uint8x8_t t0, t1, t2, t3, t4, t5, t6;
@@ -438,7 +456,7 @@ static inline void convolve_y_sr_4tap_neon_dotprod(const uint8_t *src_ptr, int s
     // Filter values are even, so halve to reduce intermediate precision reqs.
     const int16x8_t    filter_s16      = vcombine_s16(vld1_s16(y_filter_ptr + 2), vdup_n_s16(0));
     const int8x8_t     filter          = vshrn_n_s16(filter_s16, 1);
-    const uint8x16x3_t merge_block_tbl = vld1q_u8_x3(kDotProdMergeBlockTbl);
+    const uint8x16x3_t merge_block_tbl = vld1q_u8_x3(svt_kDotProdMergeBlockTbl);
     int8x16x2_t        samples_LUT;
 
     if (w == 4) {
@@ -661,7 +679,7 @@ static inline void convolve_2d_sr_horiz_4tap_neon_dotprod(const uint8_t *src, pt
     const int32x4_t correction = vdupq_n_s32(((128 << FILTER_BITS) + horiz_const) / 2);
 
     if (w == 4) {
-        const uint8x16_t permute_tbl = vld1q_u8(kDotProdPermuteTbl);
+        const uint8x16_t permute_tbl = vld1q_u8(svt_kDotProdPermuteTbl);
 
         do {
             uint8x16_t s0, s1, s2, s3;
@@ -688,7 +706,7 @@ static inline void convolve_2d_sr_horiz_4tap_neon_dotprod(const uint8_t *src, pt
             dst += dst_stride;
         } while (--h != 0);
     } else {
-        const uint8x16x2_t permute_tbl = vld1q_u8_x2(kDotProdPermuteTbl);
+        const uint8x16x2_t permute_tbl = vld1q_u8_x2(svt_kDotProdPermuteTbl);
         do {
             const uint8_t *s     = src;
             int16_t       *d     = dst;
@@ -777,7 +795,7 @@ static inline void convolve_2d_sr_horiz_8tap_neon_dotprod(const uint8_t *src, in
     int            dst_stride = im_stride;
     int            height     = im_h;
 
-    const uint8x16x3_t permute_tbl = vld1q_u8_x3(kDotProdPermuteTbl);
+    const uint8x16x3_t permute_tbl = vld1q_u8_x3(svt_kDotProdPermuteTbl);
     do {
         const uint8_t *s     = src_ptr;
         int16_t       *d     = dst_ptr;
@@ -837,7 +855,7 @@ static inline void convolve_2d_sr_6tap_neon_dotprod(const uint8_t *src, int src_
     // Halve the total because we halved the filter values.
     const int32x4_t    correction  = vdupq_n_s32(((128 << FILTER_BITS) + horiz_const) / 2);
     const int16x8_t    vert_const  = vdupq_n_s16(1 << (bd - 1));
-    const uint8x16x3_t permute_tbl = vld1q_u8_x3(kDotProdPermuteTbl);
+    const uint8x16x3_t permute_tbl = vld1q_u8_x3(svt_kDotProdPermuteTbl);
 
     do {
         const uint8_t *s      = src;
@@ -906,7 +924,7 @@ static inline void convolve_2d_sr_4tap_neon_dotprod(const uint8_t *src, int src_
     const int32x4_t correction = vdupq_n_s32(((128 << FILTER_BITS) + horiz_const) / 2);
 
     if (w == 4) {
-        const uint8x16_t permute_tbl = vld1q_u8(kDotProdPermuteTbl);
+        const uint8x16_t permute_tbl = vld1q_u8(svt_kDotProdPermuteTbl);
 
         uint8x16_t h_s0, h_s1, h_s2;
         load_u8_16x3(src, src_stride, &h_s0, &h_s1, &h_s2);
@@ -946,7 +964,7 @@ static inline void convolve_2d_sr_4tap_neon_dotprod(const uint8_t *src, int src_
             h -= 4;
         } while (h != 0);
     } else {
-        const uint8x16x2_t permute_tbl = vld1q_u8_x2(kDotProdPermuteTbl);
+        const uint8x16x2_t permute_tbl = vld1q_u8_x2(svt_kDotProdPermuteTbl);
 
         do {
             int            height = h;

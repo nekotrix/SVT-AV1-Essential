@@ -21,9 +21,9 @@
 #include "transpose_neon.h"
 
 // clang-format off
-DECLARE_ALIGNED(16, static const uint8_t, kScale2DotProdPermuteTbl[32]) = {
-  0, 1, 2, 3, 2, 3, 4, 5, 4, 5,  6,  7,  6,  7,  8,  9,
-  4, 5, 6, 7, 6, 7, 8, 9, 8, 9, 10, 11, 10, 11, 12, 13
+DECLARE_ALIGNED(16, const uint8_t, svt_kScale2DotProdPermuteTbl[32]) = {
+    0, 1, 2, 3, 2, 3, 4, 5, 4, 5,  6,  7,  6,  7,  8,  9,
+    4, 5, 6, 7, 6, 7, 8, 9, 8, 9, 10, 11, 10, 11, 12, 13
 };
 // clang-format on
 
@@ -222,7 +222,7 @@ static inline void convolve_horiz_scale_2_neon_dotprod(const uint8_t *src, int s
     // Divide the total by 2 because we halved the filter values.
     const int32x4_t horiz_offset_vec = vdupq_n_s32((horiz_offset + dotprod_offset) >> 1);
 
-    const uint8x16x2_t permute_tbl = vld1q_u8_x2(kScale2DotProdPermuteTbl);
+    const uint8x16x2_t permute_tbl = vld1q_u8_x2(svt_kScale2DotProdPermuteTbl);
     // Filter values are all even so halve them to fit in int8_t.
     const int8x8_t filter = vshrn_n_s16(vld1q_s16(x_filter), 1);
 
