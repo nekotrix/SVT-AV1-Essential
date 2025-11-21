@@ -561,6 +561,11 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
         PictureParentControlSet *ppcs = pcs->ppcs;
         scs                           = pcs->scs;
 
+#if OPT_RECON_OPERATIONS
+        const bool still_image = scs->static_config.avif;
+        const bool all_intra   = scs->allintra;
+#endif
+
         bool       is_16bit                   = scs->is_16bit_pipeline;
         Av1Common *cm                         = pcs->ppcs->av1_cm;
         frm_hdr                               = &pcs->ppcs->frm_hdr;
@@ -578,7 +583,12 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
             pcs->cdef_dist_dev = -1;
             if (scs->seq_header.cdef_level && pcs->ppcs->cdef_level) {
                 finish_cdef_search(pcs);
+#if OPT_RECON_OPERATIONS
+                if (ppcs->enable_restoration || (pcs->ppcs->is_ref && !still_image && !all_intra) ||
+                    scs->static_config.recon_enabled) {
+#else
                 if (ppcs->enable_restoration || pcs->ppcs->is_ref || scs->static_config.recon_enabled) {
+#endif
                     // Do application iff there are non-zero filters
                     if (frm_hdr->cdef_params.cdef_y_strength[0] != 0 || frm_hdr->cdef_params.cdef_uv_strength[0] != 0 ||
                         pcs->ppcs->nb_cdef_strengths != 1) {

@@ -67,7 +67,9 @@ extern "C" {
 #define TUNE_STILL_IMAGE_1          1 // Perform a second round of tuning for still-image
 #define OPT_DEFAULT_LAMBDA_MULT     1 // Use default lambda at RDOQ
 #define FTR_USE_HADAMARD_MDS0       1 // Use Hadamard at mds0
-
+#define TUNE_STILL_IMAGE_2          1 // Perform a third round of tuning for still-image
+#define OPT_SSIM_METRIC             1 // Remove SSIM distortion calculations for INTRA frames
+#define OPT_RECON_OPERATIONS        1 // Remove unnecessary reconstruction operations
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

@@ -1208,18 +1208,18 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
     }
 }
 #if FTR_USE_HADAMARD_MDS0
-uint32_t hadamard_path(ModeDecisionCandidateBuffer* cand_bf, ModeDecisionContext* ctx, EbPictureBufferDesc* input_pic, BlockLocation* loc) {
-
-    EbPictureBufferDesc* pred = cand_bf->pred;
+uint32_t hadamard_path(ModeDecisionCandidateBuffer *cand_bf, ModeDecisionContext *ctx, EbPictureBufferDesc *input_pic,
+                       BlockLocation *loc) {
+    EbPictureBufferDesc *pred = cand_bf->pred;
 
     const uint32_t input_origin_index = loc->input_origin_index;
-    const uint32_t cu_origin_index = loc->blk_origin_index;
+    const uint32_t cu_origin_index    = loc->blk_origin_index;
 
     BlockSize bsize = ctx->blk_geom->bsize;
-    uint32_t input_idx, pred_idx, res_idx;
+    uint32_t  input_idx, pred_idx, res_idx;
 
-    int16_t* res_ptr = (int16_t *) cand_bf->residual->buffer_y + cu_origin_index;
-    int32_t* coeff_ptr = (int32_t *)ctx->tx_coeffs->buffer_y;
+    int16_t *res_ptr   = (int16_t *)cand_bf->residual->buffer_y + cu_origin_index;
+    int32_t *coeff_ptr = (int32_t *)ctx->tx_coeffs->buffer_y;
 
     uint32_t satd_cost = 0;
 
@@ -1227,8 +1227,8 @@ uint32_t hadamard_path(ModeDecisionCandidateBuffer* cand_bf, ModeDecisionContext
 
     const int stepr = eb_tx_size_high_unit[tx_size];
     const int stepc = eb_tx_size_wide_unit[tx_size];
-    const int txbw = tx_size_wide[tx_size];
-    const int txbh = tx_size_high[tx_size];
+    const int txbw  = tx_size_wide[tx_size];
+    const int txbh  = tx_size_high[tx_size];
 
     const int max_blocks_wide = block_size_wide[bsize] >> MI_SIZE_LOG2;
     const int max_blocks_high = block_size_high[bsize] >> MI_SIZE_LOG2;
@@ -1238,39 +1238,30 @@ uint32_t hadamard_path(ModeDecisionCandidateBuffer* cand_bf, ModeDecisionContext
     for (row = 0; row < max_blocks_high; row += stepr) {
         for (col = 0; col < max_blocks_wide; col += stepc) {
             input_idx = ((row * input_pic->stride_y) + col) << 2;
-            pred_idx = ((row * pred->stride_y) + col) << 2;
-            res_idx = 0;
+            pred_idx  = ((row * pred->stride_y) + col) << 2;
+            res_idx   = 0;
 
-            svt_aom_residual_kernel(
-                input_pic->buffer_y,
-                input_idx + input_origin_index,
-                input_pic->stride_y,
-                pred->buffer_y,
-                pred_idx + cu_origin_index,
-                pred->stride_y,
-                (int16_t*)res_ptr,
-                res_idx,
-                cand_bf->residual->stride_y,
-                ctx->hbd_md,
-                txbw,
-                txbh);
+            svt_aom_residual_kernel(input_pic->buffer_y,
+                                    input_idx + input_origin_index,
+                                    input_pic->stride_y,
+                                    pred->buffer_y,
+                                    pred_idx + cu_origin_index,
+                                    pred->stride_y,
+                                    (int16_t *)res_ptr,
+                                    res_idx,
+                                    cand_bf->residual->stride_y,
+                                    ctx->hbd_md,
+                                    txbw,
+                                    txbh);
 
             switch (tx_size) {
-            case TX_4X4:
-                svt_aom_hadamard_4x4(res_ptr, cand_bf->residual->stride_y, &(coeff_ptr[0]));
-                break;
+            case TX_4X4: svt_aom_hadamard_4x4(res_ptr, cand_bf->residual->stride_y, &(coeff_ptr[0])); break;
 
-            case TX_8X8:
-                svt_aom_hadamard_8x8(res_ptr, cand_bf->residual->stride_y, &(coeff_ptr[0]));
-                break;
+            case TX_8X8: svt_aom_hadamard_8x8(res_ptr, cand_bf->residual->stride_y, &(coeff_ptr[0])); break;
 
-            case TX_16X16:
-                svt_aom_hadamard_16x16(res_ptr, cand_bf->residual->stride_y, &(coeff_ptr[0]));
-                break;
+            case TX_16X16: svt_aom_hadamard_16x16(res_ptr, cand_bf->residual->stride_y, &(coeff_ptr[0])); break;
 
-            case TX_32X32:
-                svt_aom_hadamard_32x32(res_ptr, cand_bf->residual->stride_y, &(coeff_ptr[0]));
-                break;
+            case TX_32X32: svt_aom_hadamard_32x32(res_ptr, cand_bf->residual->stride_y, &(coeff_ptr[0])); break;
 
             default: assert(0);
             }
@@ -1305,8 +1296,7 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
 
 #if FTR_USE_HADAMARD_MDS0
     if (ctx->mds0_use_hadamard) {
-
-        uint32_t satd = hadamard_path(cand_bf, ctx, input_pic, loc);
+        uint32_t satd           = hadamard_path(cand_bf, ctx, input_pic, loc);
         cand_bf->luma_fast_dist = satd;
 
         luma_fast_dist = cand_bf->luma_fast_dist << 4;
@@ -5919,6 +5909,12 @@ void chroma_complexity_check_pred(ModeDecisionContext *ctx, ModeDecisionCandidat
                                                                                  : COMPONENT_CHROMA_CR;
     }
 
+#if TUNE_STILL_IMAGE_2
+    if (cb_dist > y_dist || cr_dist > y_dist) {
+        ctx->cfl_complexity = COMPONENT_CHROMA;
+    }
+#endif
+
     if (use_var) {
         const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize_uv];
         unsigned int            sse;
@@ -5964,6 +5960,11 @@ void chroma_complexity_check_pred(ModeDecisionContext *ctx, ModeDecisionCandidat
             ctx->chroma_complexity = (ctx->chroma_complexity == COMPONENT_CHROMA_CB) ? COMPONENT_CHROMA
                                                                                      : COMPONENT_CHROMA_CR;
         }
+#if TUNE_STILL_IMAGE_2
+        if (block_var_cb > ctx->cfl_ctrls.cplx_th || block_var_cr > ctx->cfl_ctrls.cplx_th) {
+            ctx->cfl_complexity = COMPONENT_CHROMA;
+        }
+#endif
     }
 }
 
@@ -6589,8 +6590,15 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
     if (ctx->mds_do_chroma) {
         assert(ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1);
         ctx->chroma_complexity = COMPONENT_LUMA;
+#if TUNE_STILL_IMAGE_2
+        ctx->cfl_complexity = COMPONENT_LUMA;
+        if ((ctx->cfl_ctrls.enabled && ctx->cfl_ctrls.cplx_th) ||
+            (ctx->tx_shortcut_ctrls.chroma_detector_level && ctx->md_stage == MD_STAGE_3 &&
+             (ctx->tx_shortcut_ctrls.apply_pf_on_coeffs || ctx->use_tx_shortcuts_mds3))) {
+#else
         if (ctx->tx_shortcut_ctrls.chroma_detector_level && ctx->md_stage == MD_STAGE_3 &&
             (ctx->tx_shortcut_ctrls.apply_pf_on_coeffs || ctx->use_tx_shortcuts_mds3)) {
+#endif
             chroma_complexity_check_pred(ctx, cand_bf, input_pic, loc, 1 /*use_var*/);
         }
 
@@ -6610,16 +6618,19 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
         assert(ctx->blk_geom->has_uv && ctx->uv_ctrls.uv_mode <= CHROMA_MODE_1);
 #endif
         bool cfl_performed = false;
-        if (!is_inter && ctx->md_stage == MD_STAGE_3 && ctx->cfl_ctrls.enabled &&
-            MAX(ctx->blk_geom->bheight, ctx->blk_geom->bwidth) <= 32) {
-            // Test CFL if allowable:
-            // 1: Recon the Luma and form the pred_buf_q3
-            // 2: Loop over alphas and find the best CFL params
-            // 3: Compare CFL cost to the best non-CFL chroma mode and select best
-            cfl_prediction(pcs, cand_bf, ctx, input_pic, input_cb_origin_in_index, blk_chroma_origin_index);
+#if TUNE_STILL_IMAGE_2
+        if (!ctx->cfl_ctrls.cplx_th || ctx->cfl_complexity == COMPONENT_CHROMA)
+#endif
+            if (!is_inter && ctx->md_stage == MD_STAGE_3 && ctx->cfl_ctrls.enabled &&
+                MAX(ctx->blk_geom->bheight, ctx->blk_geom->bwidth) <= 32) {
+                // Test CFL if allowable:
+                // 1: Recon the Luma and form the pred_buf_q3
+                // 2: Loop over alphas and find the best CFL params
+                // 3: Compare CFL cost to the best non-CFL chroma mode and select best
+                cfl_prediction(pcs, cand_bf, ctx, input_pic, input_cb_origin_in_index, blk_chroma_origin_index);
 
-            cfl_performed = true;
-        }
+                cfl_performed = true;
+            }
         //Cb Residual
         svt_aom_residual_kernel(input_pic->buffer_cb,
                                 input_cb_origin_in_index,
@@ -9195,9 +9206,18 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
         loc.blk_origin_index = blk_geom->org_x + blk_geom->org_y * ctx->sb_size;
     }
     // 3rd Full-Loop
-    ctx->md_stage        = MD_STAGE_3;
-    ctx->tune_ssim_level = (pcs->scs->static_config.tune == TUNE_SSIM) && (ctx->pd_pass == PD_PASS_1) ? SSIM_LVL_3
-                                                                                                      : SSIM_LVL_0;
+    ctx->md_stage = MD_STAGE_3;
+#if OPT_SSIM_METRIC
+    ctx->tune_ssim_level = (pcs->scs->static_config.tune == TUNE_SSIM && pcs->slice_type != I_SLICE &&
+                            ctx->pd_pass == PD_PASS_1)
+        ? SSIM_LVL_3
+        : SSIM_LVL_0;
+#else
+    ctx->tune_ssim_level = (pcs->scs->static_config.tune == TUNE_SSIM && pcs->slice_type != I_SLICE &&
+                            ctx->pd_pass == PD_PASS_1)
+        ? SSIM_LVL_3
+        : SSIM_LVL_0;
+#endif
     md_stage_3(pcs, ctx, input_pic, &loc, ctx->md_stage_3_total_count);
 
     // Full Mode Decision (choose the best mode)

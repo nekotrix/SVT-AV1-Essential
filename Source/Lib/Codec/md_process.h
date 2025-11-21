@@ -739,6 +739,9 @@ typedef struct CflCtrls {
     bool enabled;
     // Early exit to reduce the number of iterations to compute CFL parameters
     uint8_t itr_th;
+#if TUNE_STILL_IMAGE_2
+    uint8_t cplx_th;
+#endif
 } CflCtrls;
 typedef struct MdRateEstCtrls {
     // If true, update skip context and dc_sign context (updates are done in the same func, so
@@ -1174,6 +1177,9 @@ typedef struct ModeDecisionContext {
     // Indicates which chroma components (if any) are complex, relative to luma. Chroma TX shortcuts
     // based on luma should not be used when chroma is complex.
     uint8_t chroma_complexity;
+#if TUNE_STILL_IMAGE_2
+    uint8_t cfl_complexity;
+#endif
     // Signal to skip INTER TX in LPD1; should only be used by M13 as this causes blocking
     // artifacts. 0: OFF, 1: Skip INTER TX if neighs have 0 coeffs, 2: skip all INTER TX
     uint8_t lpd1_skip_inter_tx_level;

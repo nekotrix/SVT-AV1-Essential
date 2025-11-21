@@ -267,6 +267,10 @@ void *svt_aom_rest_kernel(void *input_ptr) {
         FrameHeader             *frm_hdr      = &ppcs->frm_hdr;
         bool                     is_16bit     = scs->is_16bit_pipeline;
         Av1Common               *cm           = ppcs->av1_cm;
+#if OPT_RECON_OPERATIONS
+        const bool still_image = scs->static_config.avif;
+        const bool all_intra   = scs->allintra;
+#endif
         if (ppcs->enable_restoration && frm_hdr->allow_intrabc == 0) {
             // If using boundaries during the filter search, copy the recon pic to a new buffer (to
             // avoid race condition from many threads modifying the same recon pic).
@@ -334,7 +338,11 @@ void *svt_aom_rest_kernel(void *input_ptr) {
                 rest_finish_search(pcs);
 
                 // Only need recon if REF pic or recon is output
+#if OPT_RECON_OPERATIONS
+                if ((ppcs->is_ref && !still_image && !all_intra) || scs->static_config.recon_enabled) {
+#else
                 if (ppcs->is_ref || scs->static_config.recon_enabled) {
+#endif
                     if (pcs->rst_info[0].frame_restoration_type != RESTORE_NONE ||
                         pcs->rst_info[1].frame_restoration_type != RESTORE_NONE ||
                         pcs->rst_info[2].frame_restoration_type != RESTORE_NONE) {
