@@ -148,6 +148,83 @@ class VMAFMetric(QualityMetric):
         return "VMAF"
 
 
+class PSNRMetric(QualityMetric):
+    def __init__(
+        self,
+        ref_file: str,
+        distorted_file: str,
+        logger: Logger,
+        vmaf_bin: str,
+        artifacts_path: str = "",
+    ):
+        super().__init__(ref_file=ref_file, distorted_file=distorted_file)
+        self.vmaf_bin = vmaf_bin
+        self.artifacts_path = artifacts_path
+        self.logger = logger
+
+    def calculate(self) -> Optional[Dict[str, float]]:
+        ref_stem = pathlib.Path(self.ref_file).stem
+        out_path = os.path.join(self.artifacts_path, f"{ref_stem}.xml")
+
+        try:
+            command: List[str] = [
+                self.vmaf_bin,
+                "-r",
+                self.ref_file,
+                "-d",
+                self.distorted_file,
+                "-o",
+                out_path,
+                "--xml",
+                "--feature",
+                "psnr",
+                "--no_prediction",
+            ]
+
+            if self.ref_file.endswith(".yuv"):
+                width, height, _ = utils.get_file_desc(os.path.basename(self.ref_file))
+                command += [
+                    "--width",
+                    str(width),
+                    "--height",
+                    str(height),
+                    "--pixel_format",
+                    "420",
+                    "--bitdepth",
+                    "8",
+                ]
+
+            result = subprocess.run(
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+
+            if result.returncode != 0:
+                self.logger.error(f"Error calculating PSNR: {result.stderr.strip()}")
+                return None
+
+            import xml.etree.ElementTree as ET
+
+            tree = ET.parse(out_path)
+            vmaf_data = tree.getroot()
+
+            metrics = {}
+
+            # Find all metric elements in pooled_metrics section
+            for metric_elem in vmaf_data.findall("./pooled_metrics/metric"):
+                name = metric_elem.get("name", "")
+                mean = float(metric_elem.get("mean", 0))
+                metrics[name] = mean
+            return metrics
+
+        except Exception as e:
+            self.logger.error(f"Error parsing PSNR output: {e}")
+            return None
+
+    @classmethod
+    def get_name(cls) -> str:
+        return "PSNR"
+
+
 class QualityMetricsCalculator:
     def __init__(
         self,
@@ -199,6 +276,17 @@ class QualityMetricsCalculator:
                     self.artifacts_path,
                 )
             )
+        elif allow_metrics.get("psnr", False):
+            # special case if VMAF is not enabled, as it computes PSNR already
+            self.register_metric(
+                lambda src, test: PSNRMetric(
+                    src,
+                    test,
+                    logger,
+                    binaries["vmaf"],
+                    self.artifacts_path,
+                )
+            )
 
     def register_metric(self, metric_factory):
         self.metrics.append(metric_factory)
@@ -247,6 +335,20 @@ class QualityMetricsCalculator:
             for metric_factory in self.metrics:
                 metric_instance = metric_factory(tmp_ref_file, tmp_distorted_file)
                 if metric_instance.get_name().lower() == "vmaf":
+                    value = metric_instance.calculate()
+                    if isinstance(value, dict):
+                        for sub_metric_name, sub_value in value.items():
+                            file_metrics[sub_metric_name] = sub_value
+        elif (
+            tmp_distorted_file
+            and tmp_ref_file
+            and os.path.exists(tmp_distorted_file)
+            and os.path.exists(tmp_ref_file)
+            and self.allow_metrics.get("psnr", False)
+        ):
+            for metric_factory in self.metrics:
+                metric_instance = metric_factory(tmp_ref_file, tmp_distorted_file)
+                if metric_instance.get_name().lower() == "psnr":
                     value = metric_instance.calculate()
                     if isinstance(value, dict):
                         for sub_metric_name, sub_value in value.items():

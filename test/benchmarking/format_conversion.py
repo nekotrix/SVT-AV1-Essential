@@ -10,6 +10,7 @@
 # https://www.aomedia.org/license/patent-license.
 
 import os
+import re
 import subprocess
 import sys
 from logging import Logger
@@ -128,7 +129,7 @@ def get_resolution(filename):
         "-select_streams",
         "v:0",
         "-show_entries",
-        "stream=width,height",
+        "stream=width,height,r_frame_rate",
         "-of",
         "csv=p=0:s=x",
         filename,
@@ -136,12 +137,15 @@ def get_resolution(filename):
     result = subprocess.run(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
-    res = result.stdout.strip()
-    if "x" in res:
-        width, height = map(int, res.split("x"))
-        return width, height
-    else:
-        raise ValueError(f"Could not get resolution for {filename}")
+    pattern = re.compile(r"(?P<width>\d+)x(?P<height>\d+)x(?P<fps_n>\d+)/(?P<fps_d>\d+)")
+    match = pattern.search(result.stdout.strip())
+    if match:
+        width = int(match.group("width"))
+        height = int(match.group("height"))
+        fps_n = int(match.group("fps_n"))
+        fps_d = int(match.group("fps_d"))
+        return width, height, fps_n // fps_d
+    raise ValueError(f"Could not get resolution for {filename}")
 
 
 def convert_to_yuv(file: str, target_dir: str, logger: Logger):
@@ -159,8 +163,8 @@ def convert_to_yuv(file: str, target_dir: str, logger: Logger):
         return target_path
 
     if file.endswith(".y4m") or file.endswith(".png"):
-        width, height = get_resolution(file)
-        target_path = output_file + f"_{width}x{height}.yuv"
+        width, height, fps = get_resolution(file)
+        target_path = output_file + f"_{width}x{height}_{fps}.yuv"
         if not os.path.exists(target_path):
             # Convert Y4M/PNG to YUV
             cmd = [
