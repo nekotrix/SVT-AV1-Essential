@@ -894,9 +894,9 @@ typedef struct EbSvtAv1EncConfiguration {
     /* New parameters can go in under this line. Also deduct the size of the parameter */
     /* from the padding array */
 
-    /* Variance boost
-     * false = disable variance boost
-     * true = enable variance boost
+    /* Variance Boost
+     * false = disable Variance Boost
+     * true = enable Variance Boost
      * Default is false. */
     bool enable_variance_boost;
     /* @brief Selects the curve strength to boost low variance regions according to a fast-growing formula

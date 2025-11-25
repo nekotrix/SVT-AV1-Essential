@@ -85,7 +85,7 @@ extern "C" {
 // Switch frame debugging code
 #define DEBUG_SFRAME            0
 
-// Variance boost debugging code
+// Variance Boost debugging code
 #define DEBUG_VAR_BOOST         0
 #define DEBUG_VAR_BOOST_QP      0
 #define DEBUG_VAR_BOOST_STATS   0

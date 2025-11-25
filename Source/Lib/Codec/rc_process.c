@@ -3762,8 +3762,7 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
 #endif // FTR_SFRAME_QP
                         pcs->picture_qp = clamp_qp(scs, (frm_hdr->quantization_params.base_q_idx + 2) >> 2);
                     }
-                    int32_t chroma_qindex = frm_hdr->quantization_params.base_q_idx +
-                        scs->static_config.extended_crf_qindex_offset;
+                    int32_t chroma_qindex = frm_hdr->quantization_params.base_q_idx;
                     if (frame_is_intra_only(pcs->ppcs)) {
                         chroma_qindex += scs->static_config.key_frame_chroma_qindex_offset;
                     } else {
@@ -3933,7 +3932,7 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
             }
 
             // adjust SB qindex based on variance
-            // note: do not enable variance boost for CBR rate control mode
+            // note: do not enable Variance Boost for CBR rate control mode
             if (scs->static_config.enable_variance_boost &&
                 scs->static_config.rate_control_mode != SVT_AV1_RC_MODE_CBR) {
                 svt_variance_adjust_qp(pcs);

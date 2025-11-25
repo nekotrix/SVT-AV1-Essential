@@ -4651,7 +4651,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     scs->static_config.startup_qp_offset = config_struct->startup_qp_offset;
     scs->static_config.enable_roi_map = config_struct->enable_roi_map;
 
-    // Variance boost
+    // Variance Boost
     scs->static_config.enable_variance_boost = config_struct->enable_variance_boost;
     scs->static_config.variance_boost_strength = config_struct->variance_boost_strength;
     scs->static_config.variance_octile = config_struct->variance_octile;

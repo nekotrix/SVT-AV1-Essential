@@ -706,7 +706,7 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
                 pcs->r0_delta_qp_quant = 0;
 
             } else {
-                // When another delta-QP modulator (e.g., variance boost) is active alongside TPL,
+                // When another delta-QP modulator (e.g., Variance Boost) is active alongside TPL,
                 // r0_delta_qp_quant has no effect and is assumed equal to r0_delta_qp_md
                 pcs->r0_gen = 1;
                 if (pcs->hierarchical_levels == 5) { // 6L

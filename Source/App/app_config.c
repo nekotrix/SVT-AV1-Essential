@@ -975,12 +975,12 @@ ConfigDescription config_entry_color_description[] = {
     // Termination
     {NULL, NULL}};
 
-ConfigDescription config_entry_variance_boost[] = {
-    // Variance boost
-    {ENABLE_VARIANCE_BOOST_TOKEN, "Enable variance boost, default is 0 [0-1]"},
-    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 2 [1-4]"},
-    {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 5 [1-8]"},
-    {VARIANCE_BOOST_CURVE_TOKEN, "Curve for variance boost, default is 0 [0-2]"},
+ConfigDescription config_entry_psychovisual[] = {
+    // Variance Boost
+    {ENABLE_VARIANCE_BOOST_TOKEN, "Enable Variance Boost, default is 0 [0-1]"},
+    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance Boost strength, default is 2 [1-4]"},
+    {VARIANCE_OCTILE_TOKEN, "Octile for Variance Boost, default is 5 [1-8]"},
+    {VARIANCE_BOOST_CURVE_TOKEN, "Curve for Variance Boost, default is 0 [0-2]"},
     // QP scale compress
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 0 [0-3]"},
     // Adaptive film grain
@@ -1179,7 +1179,7 @@ ConfigEntry config_entry[] = {
     // Sharpness
     {SHARPNESS_TOKEN, "Sharpness", set_cfg_generic_token},
 
-    // Variance boost
+    // Variance Boost
     {ENABLE_VARIANCE_BOOST_TOKEN, "EnableVarianceBoost", set_cfg_generic_token},
     {VARIANCE_BOOST_STRENGTH_TOKEN, "VarianceBoostStrength", set_cfg_generic_token},
     {VARIANCE_OCTILE_TOKEN, "VarianceOctile", set_cfg_generic_token},
@@ -1762,7 +1762,7 @@ uint32_t get_help(int32_t argc, char *const argv[]) {
     print_options("GOP size and type Options", config_entry_intra_refresh);
     print_options("AV1 Specific Options", config_entry_specific);
     print_options("Color Description Options", config_entry_color_description);
-    print_options("Variance Boost Options", config_entry_variance_boost);
+    print_options("Psychovisual Options", config_entry_psychovisual);
 
     return 1;
 }
