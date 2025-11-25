@@ -294,7 +294,6 @@ void superres_setup_child_pcs(SequenceControlSet *entry_scs_ptr, PictureParentCo
                                              entry_scs_ptr->static_config.rtc,
                                              entry_scs_ptr->static_config.screen_content_mode,
                                              entry_scs_ptr->max_block_cnt,
-                                             entry_scs_ptr->static_config.avif,
                                              entry_scs_ptr->allintra,
                                              entry_scs_ptr->input_resolution,
                                              child_pcs);
@@ -778,7 +777,6 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                                                      scs->static_config.rtc,
                                                      scs->static_config.screen_content_mode,
                                                      scs->max_block_cnt,
-                                                     scs->static_config.avif,
                                                      scs->allintra,
                                                      scs->input_resolution,
                                                      child_pcs);

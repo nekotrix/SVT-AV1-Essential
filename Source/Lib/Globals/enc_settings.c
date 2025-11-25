@@ -671,9 +671,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
-    // Block the use of M4 or lower for resolutions higher than 4K, unless still-image coding is used (due to memory constraints)
-    if (!scs->static_config.avif &&
-        (uint64_t)(scs->max_input_luma_width * scs->max_input_luma_height) > INPUT_SIZE_4K_TH &&
+    // Block the use of M4 or lower for resolutions higher than 4K, unless allintra coding is used (due to memory constraints)
+    if (!scs->allintra && (uint64_t)(scs->max_input_luma_width * scs->max_input_luma_height) > INPUT_SIZE_4K_TH &&
         config->enc_mode <= ENC_M4) {
         SVT_ERROR("Instance %u: 8k+ resolution support is limited to M5 and faster presets.\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;

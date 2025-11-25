@@ -562,8 +562,7 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
         scs                           = pcs->scs;
 
 #if OPT_RECON_OPERATIONS
-        const bool still_image = scs->static_config.avif;
-        const bool all_intra   = scs->allintra;
+        const bool allintra = scs->allintra;
 #endif
 
         bool       is_16bit                   = scs->is_16bit_pipeline;
@@ -584,8 +583,7 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
             if (scs->seq_header.cdef_level && pcs->ppcs->cdef_level) {
                 finish_cdef_search(pcs);
 #if OPT_RECON_OPERATIONS
-                if (ppcs->enable_restoration || (pcs->ppcs->is_ref && !still_image && !all_intra) ||
-                    scs->static_config.recon_enabled) {
+                if (ppcs->enable_restoration || (pcs->ppcs->is_ref && !allintra) || scs->static_config.recon_enabled) {
 #else
                 if (ppcs->enable_restoration || pcs->ppcs->is_ref || scs->static_config.recon_enabled) {
 #endif

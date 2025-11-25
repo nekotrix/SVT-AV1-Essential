@@ -150,6 +150,9 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
                                                EbFifo *mode_decision_configuration_input_fifo_ptr,
                                                EbFifo *mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision,
                                                uint8_t seq_qp_mod) {
+    const EbInputResolution input_resolution = scs->input_resolution;
+    const bool              allintra         = scs->allintra;
+
     uint32_t buffer_index;
     uint32_t cand_index;
 
@@ -207,8 +210,8 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     bool is_chroma_mode_0 = false;
     for (uint8_t is_i_slice = 0; is_i_slice < 2; is_i_slice++) {
 #if TUNE_STILL_IMAGE_0
-        is_chroma_mode_0 = svt_aom_set_chroma_controls(NULL, svt_aom_get_chroma_level(scs, enc_mode, is_i_slice)) ==
-            CHROMA_MODE_0;
+        is_chroma_mode_0 = svt_aom_set_chroma_controls(
+                               NULL, svt_aom_get_chroma_level(enc_mode, is_i_slice, allintra)) == CHROMA_MODE_0;
 #else
         is_chroma_mode_0 = svt_aom_set_chroma_controls(NULL, svt_aom_get_chroma_level(enc_mode, is_i_slice)) ==
             CHROMA_MODE_0;
@@ -233,7 +236,8 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
                 if (use_update_cdf)
                     break;
 #if TUNE_STILL_IMAGE_0
-                use_update_cdf |= svt_aom_get_update_cdf_level(scs, enc_mode, is_islice, is_base, sc_class1);
+                use_update_cdf |= svt_aom_get_update_cdf_level(
+                    enc_mode, is_islice, is_base, sc_class1, input_resolution, allintra);
 #else
                 use_update_cdf |= svt_aom_get_update_cdf_level(enc_mode, is_islice, is_base, sc_class1);
 #endif

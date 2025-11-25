@@ -1096,9 +1096,8 @@ static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                TxSize tx_size, TxType tx_type, bool is_inter, uint8_t use_sharpness,
                                uint8_t delta_q_present, uint8_t picture_qp, uint32_t lambda, int plane) {
 #if OPT_DEFAULT_LAMBDA_MULT
-    SequenceControlSet *scs         = pcs->scs;
-    bool                still_image = scs->static_config.avif;
-    bool                all_intra   = scs->allintra;
+    SequenceControlSet *scs      = pcs->scs;
+    bool                allintra = scs->allintra;
 #endif
     int                    sharpness  = 0; // No Sharpness
     int                    fast_mode  = (ctx->rdoq_ctrls.eob_fast_y_inter && is_inter && !plane) ||
@@ -1148,8 +1147,8 @@ static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx,
         }
     }
 #if OPT_DEFAULT_LAMBDA_MULT
-    const int64_t rdmult =
-        (((((int64_t)lambda * plane_rd_mult[still_image || all_intra][is_inter][plane_type]) * rweight) / 100) + 2) >>
+    const int64_t rdmult = (((((int64_t)lambda * plane_rd_mult[allintra][is_inter][plane_type]) * rweight) / 100) +
+                            2) >>
         rshift;
 #else
     const int64_t rdmult = (((((int64_t)lambda * plane_rd_mult[is_inter][plane_type]) * rweight) / 100) + 2) >> rshift;

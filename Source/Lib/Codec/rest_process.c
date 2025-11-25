@@ -73,6 +73,7 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
     const EbSvtAv1EncConfiguration *config        = &scs->static_config;
     EbPictureBufferDescInitData    *init_data_ptr = (EbPictureBufferDescInitData *)object_init_data_ptr;
     RestContext                    *context_ptr;
+    bool                            allintra = scs->allintra;
     EB_CALLOC_ARRAY(context_ptr, 1);
     thread_ctx->priv  = context_ptr;
     thread_ctx->dctor = rest_context_dctor;
@@ -90,8 +91,7 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
                                        config->enable_restoration_filtering,
                                        scs->input_resolution,
                                        config->fast_decode,
-                                       config->avif,
-                                       scs->allintra,
+                                       allintra,
                                        scs->static_config.rtc)) {
         EbPictureBufferDescInitData init_data;
 
@@ -119,8 +119,7 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
         }
         context_ptr->rst_tmpbuf = NULL;
 #if TUNE_STILL_IMAGE_1
-        if (svt_aom_get_enable_sg(
-                init_data_ptr->enc_mode, scs->input_resolution, config->fast_decode, config->avif, scs->allintra))
+        if (svt_aom_get_enable_sg(init_data_ptr->enc_mode, scs->input_resolution, config->fast_decode, allintra))
 #else
         if (svt_aom_get_enable_sg(init_data_ptr->enc_mode, scs->input_resolution, config->fast_decode, config->avif))
 #endif
@@ -268,8 +267,7 @@ void *svt_aom_rest_kernel(void *input_ptr) {
         bool                     is_16bit     = scs->is_16bit_pipeline;
         Av1Common               *cm           = ppcs->av1_cm;
 #if OPT_RECON_OPERATIONS
-        const bool still_image = scs->static_config.avif;
-        const bool all_intra   = scs->allintra;
+        const bool allintra = scs->allintra;
 #endif
         if (ppcs->enable_restoration && frm_hdr->allow_intrabc == 0) {
             // If using boundaries during the filter search, copy the recon pic to a new buffer (to
@@ -339,7 +337,7 @@ void *svt_aom_rest_kernel(void *input_ptr) {
 
                 // Only need recon if REF pic or recon is output
 #if OPT_RECON_OPERATIONS
-                if ((ppcs->is_ref && !still_image && !all_intra) || scs->static_config.recon_enabled) {
+                if ((ppcs->is_ref && !allintra) || scs->static_config.recon_enabled) {
 #else
                 if (ppcs->is_ref || scs->static_config.recon_enabled) {
 #endif

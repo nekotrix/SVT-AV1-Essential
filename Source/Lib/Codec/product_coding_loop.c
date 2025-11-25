@@ -7401,11 +7401,10 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
     }
 
     // Set number of UV candidates to be tested in the full loop
-    unsigned int uv_mode_nfl_count = pcs->scs->static_config.avif || pcs->scs->allintra
-        ? ppcs->is_highest_layer ? 16 : 32
-        : pcs->slice_type == I_SLICE ? 64
-        : !ppcs->is_highest_layer    ? 32
-                                     : 16;
+    unsigned int uv_mode_nfl_count = pcs->scs->allintra ? ppcs->is_highest_layer ? 16 : 32
+        : pcs->slice_type == I_SLICE                    ? 64
+        : !ppcs->is_highest_layer                       ? 32
+                                                        : 16;
     uv_mode_nfl_count              = MAX(1, DIVIDE_AND_ROUND(uv_mode_nfl_count * ctx->uv_ctrls.uv_nic_scaling_num, 16));
     uv_mode_nfl_count              = MIN(uv_mode_nfl_count, uv_mode_total_count);
     uv_mode_nfl_count              = MAX(uv_mode_nfl_count, 1);

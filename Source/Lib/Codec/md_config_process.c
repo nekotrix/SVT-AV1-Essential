@@ -641,7 +641,7 @@ static void av1_setup_motion_field(Av1Common *cm, PictureControlSet *pcs) {
 EbErrorType svt_av1_hash_table_create(HashTable *p_hash_table);
 int32_t     svt_aom_noise_log1p_fp16(int32_t noise_level_fp16);
 #if CLN_MDC_FUNCS
-void generate_ibc_data(PictureControlSet *pcs) {
+static void generate_ibc_data(PictureControlSet *pcs) {
     if (!pcs->ppcs->frm_hdr.allow_intrabc)
         return;
 

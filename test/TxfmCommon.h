@@ -24,7 +24,7 @@
 #define _TXFM_TEST_H_
 
 #include "aom_dsp_rtcd.h"
-#include "TxfmCommon.h"
+#include "common_utils.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -3589,13 +3589,9 @@ static void set_first_pass_ctrls(
     }
 }
 
-static uint8_t get_tpl(uint8_t pred_structure, uint8_t superres_mode, uint8_t resize_mode, uint8_t aq_mode, bool avif, bool allintra) {
+static uint8_t get_tpl(uint8_t pred_structure, uint8_t superres_mode, uint8_t resize_mode, uint8_t aq_mode, bool allintra) {
     if (allintra) {
         SVT_WARN("TPL is disabled for all-intra coding\n");
-        return 0;
-    }
-    else if (avif) {
-        SVT_WARN("TPL is disabled for avif\n");
         return 0;
     } else if (aq_mode == 0) {
         SVT_WARN("TPL is disabled for aq_mode 0\n");
@@ -3728,9 +3724,8 @@ static void validate_scaling_params(SequenceControlSet *scs) {
 }
 void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
 #if TUNE_STILL_IMAGE_0
-    const bool still_image = scs->static_config.avif;
-    const bool all_intra = scs->allintra;
-    if (still_image || all_intra) {
+    const bool allintra = scs->allintra;
+    if (allintra) {
 #else
     if (scs->static_config.avif || scs->allintra) {
 #endif
@@ -3820,8 +3815,7 @@ void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
 static void set_param_based_on_input(SequenceControlSet *scs)
 {
 #if TUNE_STILL_IMAGE_0
-    const bool still_image = scs->static_config.avif;
-    const bool all_intra = scs->allintra;
+    const bool allintra = scs->allintra;
 #endif
 
     set_multi_pass_params(
@@ -3835,8 +3829,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->static_config.resize_mode,
         scs->static_config.enable_adaptive_quantization,
 #if TUNE_STILL_IMAGE_0
-        still_image,
-        all_intra);
+        allintra);
 #else
         scs->static_config.avif,
         scs->allintra);
@@ -3959,7 +3952,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
 
     // no future minigop is used for lowdelay prediction structure
 #if TUNE_STILL_IMAGE_0
-    if (still_image || all_intra || scs->static_config.pred_structure == LOW_DELAY) {
+    if (allintra || scs->static_config.pred_structure == LOW_DELAY) {
 #else
     if (scs->static_config.avif ||scs->allintra ||  scs->static_config.pred_structure == LOW_DELAY) {
 #endif
@@ -4000,7 +3993,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->static_config.enable_variance_boost)
         scs->super_block_size = 64;
 #if TUNE_STILL_IMAGE_0
-    else if (still_image || all_intra) {
+    else if (allintra) {
 #else
     else if (scs->static_config.avif || scs->allintra) {
 #endif
@@ -4115,7 +4108,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
             for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++)
             {
 #if TUNE_STILL_IMAGE_0
-                nsq_geom_level = svt_aom_get_nsq_geom_level(still_image, all_intra, scs->input_resolution, scs->static_config.enc_mode, is_base, coeff_lvl, scs->static_config.rtc);
+                nsq_geom_level = svt_aom_get_nsq_geom_level(allintra, scs->input_resolution, scs->static_config.enc_mode, is_base, coeff_lvl, scs->static_config.rtc);
 #else
                 nsq_geom_level = svt_aom_get_nsq_geom_level(scs->static_config.enc_mode, is_base, coeff_lvl, scs->static_config.rtc);
 #endif
@@ -4134,13 +4127,13 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     for (uint8_t is_islice = 0; is_islice <= 1; is_islice++)
         for (uint8_t is_base = 0; is_base <= 1; is_base++)
 #if TUNE_STILL_IMAGE_1
-            disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode, is_base, still_image, all_intra));
+            disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode, is_base, allintra));
 #else
             disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode, is_base));
 #endif
 #if TUNE_STILL_IMAGE_0
     bool disallow_8x8 = svt_aom_get_disallow_8x8(scs->static_config.enc_mode,
-        still_image, all_intra,
+        allintra,
         scs->static_config.rtc,
         scs->static_config.screen_content_mode,
         scs->super_block_size,
@@ -4324,8 +4317,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     set_mrp_ctrl(scs, mrp_level);
     scs->is_short_clip = scs->static_config.gop_constraint_rc ? 1 : 0; // set to 1 if multipass and less than 200 frames in resourcecordination
 #if FTR_DEPTH_REMOVAL_INTRA
-    if (still_image                                          ||
-        all_intra                                            ||
+    if (allintra                                            ||
         scs->static_config.enable_adaptive_quantization == 1 ||
 #else
     // Variance is required for scene change detection and segmentation-based quantization and subjective mode tf control
@@ -4358,16 +4350,17 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     scs->static_config.pred_structure = config_struct->pred_structure;
 
     scs->static_config.avif = config_struct->avif;
+    scs->allintra = (scs->static_config.intra_period_length == 0 || scs->static_config.avif);
     scs->static_config.rtc = config_struct->rtc;
     if (scs->static_config.rtc && scs->static_config.pred_structure != LOW_DELAY) {
         scs->static_config.pred_structure = LOW_DELAY;
         SVT_WARN("Instance %u: Force low delay pred structure to be used for rtc.\n");
     }
     // Tpl is disabled in low delay applications
-    if (scs->static_config.avif || scs->allintra || scs->static_config.pred_structure == LOW_DELAY) {
+    if (scs->allintra || scs->static_config.pred_structure == LOW_DELAY) {
         config_struct->enable_tpl_la = 0;
     }
-    scs->enable_qp_scaling_flag = scs->static_config.avif || scs->allintra ? 0 : 1;
+    scs->enable_qp_scaling_flag = scs->allintra ? 0 : 1;
     // Set Picture Parameters for statistics gathering
     scs->picture_analysis_number_of_regions_per_width =
         scs->max_input_luma_width >= 64 ? HIGHER_THAN_CLASS_1_REGION_SPLIT_PER_WIDTH : 1;
@@ -4380,12 +4373,11 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     // Padding Offsets
     scs->b64_size = 64;
     scs->static_config.intra_period_length = config_struct->intra_period_length;
-    scs->allintra = (scs->static_config.intra_period_length == 0);
     scs->static_config.multiply_keyint = config_struct->multiply_keyint;
     scs->static_config.intra_refresh_type = config_struct->intra_refresh_type;
     scs->static_config.enc_mode = config_struct->enc_mode;
 #if FTR_STILL_IMAGE_UP_TO_M12
-    if (scs->static_config.rtc || scs->static_config.avif || scs->allintra) {
+    if (scs->static_config.rtc || scs->allintra) {
 #else
     if(scs->static_config.rtc) {
 #endif
@@ -4405,7 +4397,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         &input_resolution,
         scs->max_input_luma_width * scs->max_input_luma_height);
 #if FTR_STILL_IMAGE_UP_TO_M12
-    if (!scs->static_config.avif && !scs->allintra && scs->static_config.pred_structure == RANDOM_ACCESS && scs->static_config.enc_mode > ENC_M9 && input_resolution >= INPUT_SIZE_4K_RANGE) {
+    if (!scs->allintra && scs->static_config.pred_structure == RANDOM_ACCESS && scs->static_config.enc_mode > ENC_M9 && input_resolution >= INPUT_SIZE_4K_RANGE) {
 #else
     if (scs->static_config.pred_structure == RANDOM_ACCESS && scs->static_config.enc_mode > ENC_M9 && input_resolution >= INPUT_SIZE_4K_RANGE) {
 #endif
@@ -4655,7 +4647,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     // Get Default Intra Period if not specified
     if (scs->static_config.intra_period_length == -2) {
         scs->static_config.intra_period_length = compute_default_intra_period(scs);
-        scs->allintra = (scs->static_config.intra_period_length == 0);
+        scs->allintra = (scs->static_config.intra_period_length == 0 || scs->static_config.avif);
     }
     else if (scs->static_config.multiply_keyint) {
         const double fps = (double)scs->static_config.frame_rate_numerator /
@@ -4665,7 +4657,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     }
     if (scs->static_config.look_ahead_distance == (uint32_t)~0)
         scs->static_config.look_ahead_distance = compute_default_look_ahead(&scs->static_config);
-    scs->static_config.enable_tf = ( config_struct->avif || scs->allintra) ? 0 : config_struct->enable_tf;
+    scs->static_config.enable_tf = scs->allintra ? 0 : config_struct->enable_tf;
     scs->static_config.enable_overlays = config_struct->enable_overlays;
     scs->static_config.superres_mode = config_struct->superres_mode;
     scs->static_config.superres_denom = config_struct->superres_denom;

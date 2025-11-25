@@ -1343,9 +1343,9 @@ static void svt_aom_set_sg_filter_ctrls(Av1Common *cm, uint8_t sg_filter_lvl) {
 
 // Returns the level for Wiener restoration filter
 static uint8_t svt_aom_get_wn_filter_level(EncMode enc_mode, uint8_t input_resolution, bool is_not_last_layer,
-                                           bool avif, bool allintra, bool rtc_tune) {
+                                           bool allintra, bool rtc_tune) {
     uint8_t wn_filter_lvl = 0;
-    if (avif || allintra) {
+    if (allintra) {
 #if TUNE_STILL_IMAGE_0
 #if TUNE_STILL_IMAGE_2
         if (enc_mode <= ENC_M1)
@@ -1370,8 +1370,8 @@ static uint8_t svt_aom_get_wn_filter_level(EncMode enc_mode, uint8_t input_resol
         wn_filter_lvl = is_not_last_layer ? 5 : 0;
     else
         wn_filter_lvl = 0;
-    // Disable wiener restoration for resolutions 8K and above, unless still - image coding is used(due to memory constraints)
-    if (!avif && input_resolution >= INPUT_SIZE_8K_RANGE)
+    // Disable wiener restoration for resolutions 8K and above, unless allintra coding is used (due to memory constraints)
+    if (!allintra && input_resolution >= INPUT_SIZE_8K_RANGE)
         wn_filter_lvl = 0;
 
     return wn_filter_lvl;
@@ -1380,13 +1380,13 @@ static uint8_t svt_aom_get_wn_filter_level(EncMode enc_mode, uint8_t input_resol
 // Returns the level for self-guided restoration filter
 #if TUNE_STILL_IMAGE_1
 static uint8_t svt_aom_get_sg_filter_level(EncMode enc_mode, uint8_t input_resolution, uint8_t fast_decode,
-                                           bool still_image, bool all_intra) {
+                                           bool allintra) {
 #else
 static uint8_t svt_aom_get_sg_filter_level(EncMode enc_mode, uint8_t input_resolution, uint8_t fast_decode, bool avif) {
 #endif
     uint8_t sg_filter_lvl = 0;
 #if TUNE_STILL_IMAGE_1
-    if (still_image || all_intra) {
+    if (allintra) {
         if (enc_mode <= ENC_MR)
             sg_filter_lvl = 1;
         else
@@ -1401,9 +1401,9 @@ static uint8_t svt_aom_get_sg_filter_level(EncMode enc_mode, uint8_t input_resol
     else
         sg_filter_lvl = 0;
 
-    // Disable self-guided restoration for resolutions 8K and above, unless still - image coding is used(due to memory constraints)
+    // Disable self-guided restoration for resolutions 8K and above, unless allintra coding is used (due to memory constraints)
 #if TUNE_STILL_IMAGE_1
-    if ((!still_image && input_resolution >= INPUT_SIZE_8K_RANGE) ||
+    if ((!allintra && input_resolution >= INPUT_SIZE_8K_RANGE) ||
 #else
     if ((!avif && input_resolution >= INPUT_SIZE_8K_RANGE) ||
 #endif
@@ -1438,12 +1438,12 @@ static void dlf_level_modulation(PictureControlSet *pcs, uint8_t *default_dlf_le
 
 #if OPT_MD_SIGNALS
 static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t is_not_last_layer, uint8_t fast_decode,
-                             EbInputResolution resolution, bool still_image, bool all_intra, int is_base) {
+                             EbInputResolution resolution, bool allintra, int is_base) {
     const uint8_t sc_class1       = pcs->ppcs->sc_class1;
     uint8_t       dlf_level       = 0;
     uint8_t       modulation_mode = 0; // 0: off, 1: only towards bd-rate, 2: both sides; , 3: only towards speed
 
-    if (still_image || all_intra) {
+    if (allintra) {
         if ((fast_decode == 0 || resolution <= INPUT_SIZE_360p_RANGE) &&
             (pcs->scs->input_resolution <= INPUT_SIZE_1080p_RANGE)) {
 #if TUNE_STILL_IMAGE_1
@@ -1697,8 +1697,7 @@ static void svt_aom_set_dlf_controls(PictureParentControlSet *pcs, uint8_t dlf_l
 static void set_intrabc_level(PictureParentControlSet *pcs, SequenceControlSet *scs, uint8_t ibc_level) {
     IntraBCCtrls *intraBC_ctrls = &pcs->intraBC_ctrls;
 #if TUNE_STILL_IMAGE_1
-    uint8_t allow_4x4_blocks = !svt_aom_get_disallow_4x4(
-        pcs->enc_mode, pcs->temporal_layer_index == 0, scs->static_config.avif, scs->allintra);
+    uint8_t allow_4x4_blocks = !svt_aom_get_disallow_4x4(pcs->enc_mode, pcs->temporal_layer_index == 0, scs->allintra);
 #else
     uint8_t allow_4x4_blocks = !svt_aom_get_disallow_4x4(pcs->enc_mode, pcs->temporal_layer_index == 0);
 #endif
@@ -1818,8 +1817,7 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
     const uint8_t           sc_class1         = pcs->sc_class1;
     const uint8_t           is_not_last_layer = !pcs->is_highest_layer;
 #if TUNE_STILL_IMAGE_0
-    const bool still_image = scs->static_config.avif;
-    const bool all_intra   = scs->allintra;
+    const bool allintra = scs->allintra;
 #endif
     // Set GM ctrls assuming super-res is off for gm-pp need
     svt_aom_set_gm_controls(pcs, svt_aom_derive_gm_level(pcs, true));
@@ -1919,7 +1917,7 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
     } else if (scs->static_config.cdef_level != DEFAULT) {
         cdef_search_level = (int8_t)(scs->static_config.cdef_level);
 #if TUNE_STILL_IMAGE_0
-    } else if (still_image || all_intra) {
+    } else if (allintra) {
         if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
 #if TUNE_STILL_IMAGE_1
             if (enc_mode <= ENC_M0)
@@ -1993,7 +1991,7 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
 
     uint8_t cdef_recon_level = 0;
 #if TUNE_STILL_IMAGE_0
-    if (still_image || all_intra) {
+    if (allintra) {
         if (enc_mode <= ENC_M9)
             cdef_recon_level = 0;
         else
@@ -2033,9 +2031,8 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
                                         scs->max_initial_input_luma_width * scs->max_initial_input_luma_height);
 
 #if TUNE_STILL_IMAGE_1
-        wn = svt_aom_get_wn_filter_level(
-            enc_mode, init_input_resolution, is_not_last_layer, still_image, all_intra, rtc_tune);
-        sg = svt_aom_get_sg_filter_level(enc_mode, init_input_resolution, fast_decode, still_image, all_intra);
+        wn = svt_aom_get_wn_filter_level(enc_mode, init_input_resolution, is_not_last_layer, allintra, rtc_tune);
+        sg = svt_aom_get_sg_filter_level(enc_mode, init_input_resolution, fast_decode, allintra);
 #else
         wn = svt_aom_get_wn_filter_level(
             enc_mode, init_input_resolution, is_not_last_layer, scs->static_config.avif, scs->allintra, rtc_tune);
@@ -2261,10 +2258,9 @@ static void set_inter_comp_controls(ModeDecisionContext *ctx, uint8_t inter_comp
     }
 }
 #if TUNE_STILL_IMAGE_1
-uint8_t svt_aom_get_enable_sg(EncMode enc_mode, uint8_t input_resolution, uint8_t fast_decode, bool still_image,
-                              bool all_intra) {
+uint8_t svt_aom_get_enable_sg(EncMode enc_mode, uint8_t input_resolution, uint8_t fast_decode, bool allintra) {
     uint8_t sg = 0;
-    sg         = svt_aom_get_sg_filter_level(enc_mode, input_resolution, fast_decode, still_image, all_intra);
+    sg         = svt_aom_get_sg_filter_level(enc_mode, input_resolution, fast_decode, allintra);
     return (sg > 0);
 }
 #else
@@ -2280,17 +2276,17 @@ uint8_t svt_aom_get_enable_sg(EncMode enc_mode, uint8_t input_resolution, uint8_
 */
 #if TUNE_STILL_IMAGE_1
 uint8_t svt_aom_get_enable_restoration(EncMode enc_mode, int8_t config_enable_restoration, uint8_t input_resolution,
-                                       uint8_t fast_decode, bool still_image, bool all_intra, bool rtc_tune) {
+                                       uint8_t fast_decode, bool allintra, bool rtc_tune) {
     if (config_enable_restoration != DEFAULT)
         return config_enable_restoration;
 
     uint8_t wn = 0;
     for (int is_ref = 0; is_ref < 2; is_ref++) {
-        wn = svt_aom_get_wn_filter_level(enc_mode, input_resolution, is_ref, still_image, all_intra, rtc_tune);
+        wn = svt_aom_get_wn_filter_level(enc_mode, input_resolution, is_ref, allintra, rtc_tune);
         if (wn)
             break;
     }
-    uint8_t sg = svt_aom_get_enable_sg(enc_mode, input_resolution, fast_decode, still_image, all_intra);
+    uint8_t sg = svt_aom_get_enable_sg(enc_mode, input_resolution, fast_decode, allintra);
     return (sg > 0 || wn > 0);
 }
 #else
@@ -2343,8 +2339,7 @@ void svt_aom_sig_deriv_pre_analysis_scs(SequenceControlSet *scs) {
     const int8_t enc_mode = scs->static_config.enc_mode;
     const bool   rtc_tune = scs->static_config.rtc;
 #if OPT_MD_SIGNALS
-    const bool              still_image      = scs->static_config.avif;
-    const bool              all_intra        = scs->allintra;
+    const bool              allintra         = scs->allintra;
     const EbInputResolution input_resolution = scs->input_resolution;
     const bool              low_latency_kf   = scs->low_latency_kf;
 #endif
@@ -2376,7 +2371,7 @@ void svt_aom_sig_deriv_pre_analysis_scs(SequenceControlSet *scs) {
     }
 #if OPT_MD_SIGNALS
     // For non-still-image or non-all-intra configurations, keep edge filter always ON, otherwise OFF unless angular refinement pruning techniques are active
-    if (still_image || all_intra) {
+    if (allintra) {
         // Flag indicating whether angular refinement pruning is active
         bool is_ang_refinement_pruned = 0;
 
@@ -2390,8 +2385,7 @@ void svt_aom_sig_deriv_pre_analysis_scs(SequenceControlSet *scs) {
 
                         svt_aom_get_intra_mode_levels(enc_mode,
                                                       input_resolution,
-                                                      still_image,
-                                                      all_intra,
+                                                      allintra,
                                                       rtc_tune,
                                                       is_islice,
                                                       is_base,
@@ -2432,8 +2426,7 @@ void svt_aom_sig_deriv_pre_analysis_scs(SequenceControlSet *scs) {
             scs->static_config.enable_restoration_filtering,
             init_input_resolution,
             scs->static_config.fast_decode,
-            scs->static_config.avif,
-            scs->allintra,
+            allintra,
             rtc_tune);
     } else
         scs->seq_header.enable_restoration = (uint8_t)scs->static_config.enable_restoration_filtering;
@@ -4201,7 +4194,7 @@ uint8_t svt_aom_get_nic_level(SequenceControlSet *scs, EncMode enc_mode, uint8_t
                               uint8_t sc_class1) {
     uint8_t nic_level;
 
-    if (scs->static_config.avif || scs->allintra) {
+    if (scs->allintra) {
         if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
             if (enc_mode <= ENC_MR)
                 nic_level = 2;
@@ -5147,14 +5140,14 @@ static void set_nsq_search_ctrls(PictureControlSet *pcs, ModeDecisionContext *ct
     set_sq_txs_ctrls(ctx, ctx->nsq_search_ctrls.psq_txs_lvl);
 }
 #if OPT_MD_SIGNALS
-void svt_aom_get_intra_mode_levels(EncMode enc_mode, uint32_t input_resolution, bool still_image, bool all_intra,
-                                   bool rtc_tune, bool is_islice, bool is_base, bool sc_class1, int transition_present,
+void svt_aom_get_intra_mode_levels(EncMode enc_mode, uint32_t input_resolution, bool allintra, bool rtc_tune,
+                                   bool is_islice, bool is_base, bool sc_class1, int transition_present,
                                    bool low_latency_kf, uint32_t *intra_level_ptr,
                                    uint32_t *dist_based_ang_intra_level_ptr) {
     uint32_t intra_level;
     uint32_t dist_based_ang_intra_level;
 
-    if (still_image || all_intra) {
+    if (allintra) {
         if (input_resolution <= INPUT_SIZE_1080p_RANGE) {
 #if TUNE_STILL_IMAGE_1
             if (enc_mode <= ENC_M3) {
@@ -6770,8 +6763,7 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
     EncMode    enc_mode = pcs->enc_mode;
     const bool rtc_tune = scs->static_config.rtc;
 #if TUNE_STILL_IMAGE_0
-    const bool still_image = scs->static_config.avif;
-    const bool all_intra   = scs->allintra;
+    const bool allintra = scs->allintra;
 #endif
     set_block_based_depth_refinement_controls(ctx, pcs->pic_block_based_depth_refinement_level);
 
@@ -6802,8 +6794,7 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
     // SBs and used only for the incomplete blocks that require 8x8 for conformance.
 #if TUNE_STILL_IMAGE_0
     ctx->disallow_8x8 = svt_aom_get_disallow_8x8(enc_mode,
-                                                 still_image,
-                                                 all_intra,
+                                                 allintra,
                                                  rtc_tune,
                                                  scs->static_config.screen_content_mode,
                                                  scs->super_block_size,
@@ -7312,8 +7303,7 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
     uint8_t                  ref_skip_perc = pcs->ref_skip_percentage;
     const bool               rtc_tune      = scs->static_config.rtc;
 #if TUNE_STILL_IMAGE_0
-    const bool still_image = scs->static_config.avif;
-    const bool all_intra   = scs->allintra;
+    const bool allintra = scs->allintra;
 #endif
     set_nsq_search_ctrls(pcs, ctx, pcs->nsq_search_level);
 #if TUNE_STILL_IMAGE_0
@@ -7372,8 +7362,7 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
 #if OPT_MD_SIGNALS
     uint8_t rdoq_level = 0;
     if (pd_pass == PD_PASS_0) {
-        if ((!rtc_tune && enc_mode <= ENC_M6) || (rtc_tune && enc_mode <= ENC_M7) ||
-            ((still_image || all_intra) && enc_mode <= ENC_M11))
+        if ((!rtc_tune && enc_mode <= ENC_M6) || (rtc_tune && enc_mode <= ENC_M7) || (allintra && enc_mode <= ENC_M11))
             rdoq_level = 1;
         else
             rdoq_level = 0;
@@ -7408,7 +7397,7 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
     if (pd_pass == PD_PASS_0)
         depth_early_exit_lvl = 1;
 #if TUNE_STILL_IMAGE_0
-    if (still_image || all_intra) {
+    if (allintra) {
         if (enc_mode <= ENC_M9)
             depth_early_exit_lvl = 1;
         else
@@ -7566,7 +7555,7 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
 #if FTR_USE_HADAMARD_MDS0
     // Use Hadamard at MDS0
     ctx->mds0_use_hadamard = false;
-    if (still_image || all_intra) {
+    if (allintra) {
         if (pd_pass == PD_PASS_0)
             ctx->mds0_use_hadamard = false;
         else
@@ -7586,7 +7575,7 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
     if (pd_pass == PD_PASS_0)
         skip_sub_depth_lvl = 0;
 #if TUNE_STILL_IMAGE_0
-    else if (still_image || all_intra)
+    else if (allintra)
         if (enc_mode <= ENC_M9)
             skip_sub_depth_lvl = 1;
         else
@@ -7610,13 +7599,13 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
 Used by svt_aom_sig_deriv_enc_dec and memory allocation
 */
 #if TUNE_STILL_IMAGE_1
-bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base, bool still_image, bool all_intra) {
+bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base, bool allintra) {
 #else
 bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base) {
 #endif
     UNUSED(is_base);
 #if TUNE_STILL_IMAGE_1
-    if (still_image || all_intra) {
+    if (allintra) {
 #if TUNE_STILL_IMAGE_2
         if (enc_mode <= ENC_M2)
 #else
@@ -7641,9 +7630,8 @@ The aligned width/height can be either the picture width/height or the SB width/
 allocation, we should use the picture width/height.
 */
 #if TUNE_STILL_IMAGE_0
-bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool still_image, bool all_intra, bool rtc_tune,
-                              uint32_t screen_content_mode, const uint16_t sb_size, const uint16_t aligned_width,
-                              const uint16_t aligned_height) {
+bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool allintra, bool rtc_tune, uint32_t screen_content_mode,
+                              const uint16_t sb_size, const uint16_t aligned_width, const uint16_t aligned_height) {
 #else
 bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool rtc_tune, uint32_t screen_content_mode, const uint16_t sb_size,
                               const uint16_t aligned_width, const uint16_t aligned_height) {
@@ -7654,7 +7642,7 @@ bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool rtc_tune, uint32_t screen_c
     if (((aligned_width % sb_size) == 8) || ((aligned_height % sb_size) == 8))
         return false;
 #if TUNE_STILL_IMAGE_0
-    if (still_image || all_intra) {
+    if (allintra) {
         return false;
     } else if (rtc_tune) {
 #else
@@ -7675,14 +7663,14 @@ bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool rtc_tune, uint32_t screen_c
         return false;
 }
 #if TUNE_STILL_IMAGE_0
-uint8_t svt_aom_get_nsq_geom_level(bool still_image, bool all_intra, ResolutionRange input_resolution, EncMode enc_mode,
-                                   uint8_t is_base, InputCoeffLvl coeff_lvl, bool rtc) {
+uint8_t svt_aom_get_nsq_geom_level(bool allintra, ResolutionRange input_resolution, EncMode enc_mode, uint8_t is_base,
+                                   InputCoeffLvl coeff_lvl, bool rtc) {
 #else
 uint8_t svt_aom_get_nsq_geom_level(EncMode enc_mode, uint8_t is_base, InputCoeffLvl coeff_lvl, bool rtc) {
 #endif
     uint8_t nsq_geom_level;
 #if TUNE_STILL_IMAGE_0
-    if (still_image || all_intra) {
+    if (allintra) {
         if (input_resolution <= INPUT_SIZE_1080p_RANGE) {
 #if TUNE_STILL_IMAGE_1
             if (enc_mode <= ENC_MR) {
@@ -7761,7 +7749,7 @@ uint8_t svt_aom_get_nsq_geom_level(EncMode enc_mode, uint8_t is_base, InputCoeff
 uint8_t svt_aom_get_nsq_search_level(PictureControlSet *pcs, EncMode enc_mode, InputCoeffLvl coeff_lvl, uint32_t qp) {
     int        nsq_search_level;
     const bool rtc_tune = pcs->scs->static_config.rtc;
-    if (pcs->scs->static_config.avif || pcs->scs->allintra) {
+    if (pcs->scs->allintra) {
 #if TUNE_STILL_IMAGE_0
         if (pcs->scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
             if (enc_mode <= ENC_MR) {
@@ -8000,15 +7988,15 @@ static EbErrorType rtime_alloc_ec_ctx_array(PictureControlSet *pcs, uint16_t all
     return EB_ErrorNone;
 }
 #if TUNE_STILL_IMAGE_0
-uint8_t svt_aom_get_update_cdf_level(SequenceControlSet *scs, EncMode enc_mode, SliceType is_islice, uint8_t is_base,
-                                     uint8_t sc_class1) {
+uint8_t svt_aom_get_update_cdf_level(EncMode enc_mode, SliceType is_islice, uint8_t is_base, uint8_t sc_class1,
+                                     const EbInputResolution input_resolution, bool allintra) {
 #else
 uint8_t svt_aom_get_update_cdf_level(EncMode enc_mode, SliceType is_islice, uint8_t is_base, uint8_t sc_class1) {
 #endif
     uint8_t update_cdf_level = 0;
 #if TUNE_STILL_IMAGE_0
-    if (scs->allintra || scs->static_config.avif) {
-        if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
+    if (allintra) {
+        if (input_resolution <= INPUT_SIZE_1080p_RANGE) {
             if (enc_mode <= ENC_M3)
                 update_cdf_level = 1;
 #if TUNE_STILL_IMAGE_1
@@ -8051,13 +8039,13 @@ uint8_t svt_aom_get_update_cdf_level(EncMode enc_mode, SliceType is_islice, uint
     return update_cdf_level;
 }
 #if TUNE_STILL_IMAGE_0
-uint8_t svt_aom_get_chroma_level(SequenceControlSet *scs, EncMode enc_mode, const uint8_t is_islice) {
+uint8_t svt_aom_get_chroma_level(EncMode enc_mode, const uint8_t is_islice, bool allintra) {
 #else
 uint8_t svt_aom_get_chroma_level(EncMode enc_mode, const uint8_t is_islice) {
 #endif
     uint8_t chroma_level = 0;
 #if TUNE_STILL_IMAGE_0
-    if (scs->allintra || scs->static_config.avif) {
+    if (allintra) {
         if (enc_mode <= ENC_MR)
             chroma_level = 1;
 #if TUNE_STILL_IMAGE_2
@@ -8118,7 +8106,7 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
     else
         qp_band_idx = 3;
 #if TUNE_STILL_IMAGE_0
-    if (pcs->scs->allintra || pcs->scs->static_config.avif) {
+    if (pcs->scs->allintra) {
         if (enc_mode <= ENC_M3) {
             pcs->pic_lpd0_lvl = 0;
 #if TUNE_STILL_IMAGE_1
@@ -8359,7 +8347,7 @@ uint8_t get_filter_intra_level(EncMode enc_mode) {
 #endif
     uint8_t filter_intra_level;
 #if TUNE_STILL_IMAGE_0
-    if (scs->allintra || scs->static_config.avif) {
+    if (scs->allintra) {
 #if TUNE_STILL_IMAGE_2
 #if TUNE_STILL_IMAGE_2
         if (enc_mode <= ENC_M2)
@@ -8485,8 +8473,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     const bool               is_not_last_layer   = !ppcs->is_highest_layer;
     const uint32_t           sq_qp               = scs->static_config.qp;
 #if FTR_DEPTH_REMOVAL_INTRA
-    const bool still_image = scs->static_config.avif;
-    const bool all_intra   = scs->allintra;
+    const bool allintra = scs->allintra;
 #endif
     //MFMV
     uint8_t mfmv_level = 0;
@@ -8519,7 +8506,8 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     }
     mfmv_controls(pcs, mfmv_level);
 #if TUNE_STILL_IMAGE_0
-    uint8_t update_cdf_level = svt_aom_get_update_cdf_level(scs, enc_mode, is_islice, is_base, sc_class1);
+    uint8_t update_cdf_level = svt_aom_get_update_cdf_level(
+        enc_mode, is_islice, is_base, sc_class1, input_resolution, allintra);
 #else
     uint8_t update_cdf_level = svt_aom_get_update_cdf_level(enc_mode, is_islice, is_base, sc_class1);
 #endif
@@ -8541,7 +8529,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     pcs->pic_filter_intra_level = get_filter_intra_level(enc_mode);
 #endif
 #if OPT_MD_SIGNALS
-    if (still_image || all_intra)
+    if (allintra)
         if (pcs->enc_mode <= ENC_M9)
             pcs->ppcs->use_accurate_part_ctx = true;
         else
@@ -8647,8 +8635,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     uint32_t dist_based_ang_intra_level = 0;
     svt_aom_get_intra_mode_levels(enc_mode,
                                   input_resolution,
-                                  still_image,
-                                  all_intra,
+                                  allintra,
                                   rtc_tune,
                                   is_islice,
                                   is_base,
@@ -8682,7 +8669,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     // Set the level for the txt search
     pcs->txt_level = 0;
 #if OPT_MD_SIGNALS
-    if (all_intra || still_image) {
+    if (allintra) {
         if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
 #if TUNE_STILL_IMAGE_2
             if (enc_mode <= ENC_M2)
@@ -8772,7 +8759,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     }
 #if TUNE_STILL_IMAGE_0 // pic rdoq level
     // Set RDOQ level
-    if (still_image || all_intra) {
+    if (allintra) {
         if (enc_mode <= ENC_M11)
             pcs->rdoq_level = 1;
         else
@@ -8808,7 +8795,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     }
     frm_hdr->interpolation_filter = SWITCHABLE;
 #if TUNE_STILL_IMAGE_0
-    pcs->chroma_level = svt_aom_get_chroma_level(scs, enc_mode, is_islice);
+    pcs->chroma_level = svt_aom_get_chroma_level(enc_mode, is_islice, allintra);
 #else
     pcs->chroma_level = svt_aom_get_chroma_level(enc_mode, is_islice);
 #endif
@@ -8820,7 +8807,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
             pcs->cfl_level = 1;
         else
             pcs->cfl_level = is_base ? 2 : 0;
-    } else if (all_intra || still_image) {
+    } else if (allintra) {
         if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
 #if TUNE_STILL_IMAGE_1
             if (enc_mode <= ENC_MR)
@@ -8934,7 +8921,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     // Set the level the spatial sse @ full-loop
     if (enc_mode <= ENC_M2)
 #if TUNE_STILL_IMAGE_0
-        pcs->spatial_sse_full_loop_level = still_image || all_intra ? 3 : 1;
+        pcs->spatial_sse_full_loop_level = allintra ? 3 : 1;
 #else
         pcs->spatial_sse_full_loop_level = scs->static_config.avif || scs->allintra ? 3 : 1;
 #endif
@@ -8943,7 +8930,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     //set the nsq_level
 #if TUNE_STILL_IMAGE_0
     pcs->nsq_geom_level = svt_aom_get_nsq_geom_level(
-        still_image, all_intra, scs->input_resolution, enc_mode, is_base, pcs->coeff_lvl, rtc_tune);
+        allintra, scs->input_resolution, enc_mode, is_base, pcs->coeff_lvl, rtc_tune);
 #else
     pcs->nsq_geom_level = svt_aom_get_nsq_geom_level(enc_mode, is_base, pcs->coeff_lvl, rtc_tune);
 #endif
@@ -8955,7 +8942,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         pcs->inter_intra_level = 0;
 
 #if OPT_MD_SIGNALS
-    if (still_image || all_intra) {
+    if (allintra) {
         if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
             if (enc_mode <= ENC_M3) {
                 pcs->txs_level = 2;
@@ -9077,7 +9064,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     disallow_4x4
     */
 #if TUNE_STILL_IMAGE_1
-    pcs->pic_disallow_4x4 = svt_aom_get_disallow_4x4(enc_mode, is_base, still_image, all_intra);
+    pcs->pic_disallow_4x4 = svt_aom_get_disallow_4x4(enc_mode, is_base, allintra);
 #else
     pcs->pic_disallow_4x4 = svt_aom_get_disallow_4x4(enc_mode, is_base);
 #endif
@@ -9097,7 +9084,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     // for the low delay enhance base layer frames, lower the enc_mode to improve the quality
     set_pic_lpd0_lvl(pcs, enc_mode);
 #if FTR_DEPTH_REMOVAL_INTRA
-    if (all_intra || still_image) {
+    if (allintra) {
 #if TUNE_STILL_IMAGE_1
 #if TUNE_STILL_IMAGE_2
         if (enc_mode <= ENC_M10) {
@@ -9219,7 +9206,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         }
     } else {
 #if TUNE_STILL_IMAGE_0
-        if (still_image || all_intra) {
+        if (allintra) {
 #else
         if (scs->static_config.avif || scs->allintra) {
 #endif
@@ -9469,8 +9456,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
                                   is_not_last_layer,
                                   fast_decode,
                                   input_resolution,
-                                  still_image,
-                                  all_intra,
+                                  allintra,
                                   (pcs->temporal_layer_index == 0));
 #else
         dlf_level = get_dlf_level(pcs,

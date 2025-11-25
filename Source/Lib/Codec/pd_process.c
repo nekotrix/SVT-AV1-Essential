@@ -5067,7 +5067,7 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
         pcs = (PictureParentControlSet*)in_results_ptr->pcs_wrapper->object_ptr;
         scs = pcs->scs;
         enc_ctx = scs->enc_ctx;
-
+        const bool allintra = scs->allintra;
         // Input Picture Analysis Results into the Picture Decision Reordering Queue
         // Since the prior Picture Analysis processes stage is multithreaded, inputs to the Picture Decision Process
         // can arrive out-of-display-order, so a the Picture Decision Reordering Queue is used to enforce processing of
@@ -5134,10 +5134,9 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
 #endif // FTR_SFRAME_FLEX
 
             release_prev_picture_from_reorder_queue(enc_ctx);
-            assert(IMPLIES(scs->allintra, scs->static_config.intra_period_length == 0));
+
             // If the Intra period length is 0, then introduce an intra for every picture
-            if (scs->allintra) {
-                assert(scs->static_config.intra_period_length == 0);
+            if (allintra) {
                 pcs->idr_flag = true;
                 pcs->cra_flag = false;
             }
@@ -5166,7 +5165,7 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
                 true :
                 pcs->idr_flag;
 #if FTR_SFRAME_POSI
-            if (!scs->allintra && pcs->picture_number > 0 && scs->static_config.sframe_posi.sframe_posis && (pcs->cra_flag || pcs->idr_flag)) {
+            if (!allintra && pcs->picture_number > 0 && scs->static_config.sframe_posi.sframe_posis && (pcs->cra_flag || pcs->idr_flag)) {
                 // if this key frame position is set to an S-frame by sframe-posi, replace this I frame with B frame,
                 // and then the S_FRAME will be set in set_sframe_type()
                 int32_t dist_next_s = 0;

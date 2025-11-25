@@ -342,10 +342,7 @@ static void result_model_store(PictureParentControlSet *pcs, TplStats *tpl_stats
 double svt_av1_convert_qindex_to_q(int32_t qindex, EbBitDepth bit_depth);
 
 int32_t svt_av1_compute_qdelta(double qstart, double qtarget, EbBitDepth bit_depth);
-#if CLN_REMOVE_OIS_FLAG
-extern void filter_intra_edge(uint8_t mode, uint16_t max_frame_width, uint16_t max_frame_height, int32_t p_angle,
-                              int32_t cu_origin_x, int32_t cu_origin_y, uint8_t *above_row, uint8_t *left_col);
-#else
+#if !CLN_REMOVE_OIS_FLAG
 extern void filter_intra_edge(OisMbResults *ois_mb_results_ptr, uint8_t mode, uint16_t max_frame_width,
                               uint16_t max_frame_height, int32_t p_angle, int32_t cu_origin_x, int32_t cu_origin_y,
                               uint8_t *above_row, uint8_t *left_col);
@@ -707,14 +704,14 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                                 above_row = above_data + MAX_TPL_SIZE;
                                 left_col  = left_data + MAX_TPL_SIZE;
 #if CLN_REMOVE_OIS_FLAG
-                                filter_intra_edge(ois_intra_mode,
-                                                  scs->max_input_luma_width,
-                                                  scs->max_input_luma_height,
-                                                  p_angle,
-                                                  (int32_t)mb_origin_x,
-                                                  (int32_t)mb_origin_y,
-                                                  above_row,
-                                                  left_col);
+                                svt_aom_filter_intra_edge(ois_intra_mode,
+                                                          scs->max_input_luma_width,
+                                                          scs->max_input_luma_height,
+                                                          p_angle,
+                                                          (int32_t)mb_origin_x,
+                                                          (int32_t)mb_origin_y,
+                                                          above_row,
+                                                          left_col);
 #else
                             filter_intra_edge(NULL,
                                               ois_intra_mode,
@@ -1131,14 +1128,14 @@ static void tpl_mc_flow_dispenser_sb_generic(EncodeContext *enc_ctx, SequenceCon
                 // Edge filter
                 if (av1_is_directional_mode((PredictionMode)ois_intra_mode)) {
 #if CLN_REMOVE_OIS_FLAG
-                    filter_intra_edge(ois_intra_mode,
-                                      scs->max_input_luma_width,
-                                      scs->max_input_luma_height,
-                                      p_angle,
-                                      mb_origin_x,
-                                      mb_origin_y,
-                                      above_row,
-                                      left_col);
+                    svt_aom_filter_intra_edge(ois_intra_mode,
+                                              scs->max_input_luma_width,
+                                              scs->max_input_luma_height,
+                                              p_angle,
+                                              mb_origin_x,
+                                              mb_origin_y,
+                                              above_row,
+                                              left_col);
 #else
                     filter_intra_edge(NULL,
                                       ois_intra_mode,

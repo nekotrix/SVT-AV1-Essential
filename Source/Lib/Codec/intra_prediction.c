@@ -2530,8 +2530,8 @@ void svt_aom_highbd_filter_intra_predictor(uint16_t *dst, ptrdiff_t stride, TxSi
 }
 #endif
 #if CLN_REMOVE_OIS_FLAG
-void filter_intra_edge(uint8_t mode, uint16_t max_frame_width, uint16_t max_frame_height, int32_t p_angle,
-                       int32_t cu_origin_x, int32_t cu_origin_y, uint8_t *above_row, uint8_t *left_col) {
+void svt_aom_filter_intra_edge(uint8_t mode, uint16_t max_frame_width, uint16_t max_frame_height, int32_t p_angle,
+                               int32_t cu_origin_x, int32_t cu_origin_y, uint8_t *above_row, uint8_t *left_col) {
 #else
 //static int is_smooth_luma(uint8_t mode) {
 //    return (mode == SMOOTH_PRED || mode == SMOOTH_V_PRED || mode == SMOOTH_H_PRED);

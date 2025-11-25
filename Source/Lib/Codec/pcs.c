@@ -398,7 +398,6 @@ EbErrorType pcs_update_param(PictureControlSet *pcs) {
                                        scs->static_config.enable_restoration_filtering,
                                        scs->input_resolution,
                                        scs->static_config.fast_decode,
-                                       scs->static_config.avif,
                                        scs->allintra,
                                        rtc_tune)) {
         set_restoration_unit_size(scs->max_input_luma_width, scs->max_input_luma_height, 1, 1, pcs->rst_info);
@@ -443,8 +442,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     PictureControlSetInitData *init_data_ptr = (PictureControlSetInitData *)object_init_data_ptr;
 
 #if TUNE_STILL_IMAGE_0
-    const bool still_image = init_data_ptr->static_config.avif;
-    const bool all_intra   = init_data_ptr->allintra;
+    const bool allintra = init_data_ptr->allintra;
 #endif
 
     EbPictureBufferDescInitData coeff_buffer_desc_init_data;
@@ -498,8 +496,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                                        init_data_ptr->input_resolution,
                                        init_data_ptr->static_config.fast_decode,
 #if TUNE_STILL_IMAGE_0
-                                       still_image,
-                                       all_intra,
+                                       allintra,
 #else
                                        init_data_ptr->static_config.avif,
                                        init_data_ptr->allintra,
@@ -569,8 +566,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                init_data_ptr->static_config.rtc,
                init_data_ptr->static_config.screen_content_mode,
                init_data_ptr->init_max_block_cnt,
-               still_image,
-               all_intra,
+               allintra,
                init_data_ptr->input_resolution,
                object_ptr);
 #else
@@ -1078,8 +1074,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                 if (!disallow_4x4 && !disallow_8x8)
                     break;
 #if TUNE_STILL_IMAGE_0
-                const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(still_image,
-                                                                        all_intra,
+                const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(allintra,
                                                                         init_data_ptr->input_resolution,
                                                                         init_data_ptr->enc_mode,
                                                                         is_base,
@@ -1105,9 +1100,9 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
         for (uint8_t is_base = 0; is_base <= 1; is_base++) {
 #if TUNE_STILL_IMAGE_1
-            disallow_4x4 = MIN(disallow_4x4,
-                               svt_aom_get_disallow_4x4(
-                                   init_data_ptr->enc_mode, init_data_ptr->static_config.rtc, still_image, all_intra));
+            disallow_4x4 = MIN(
+                disallow_4x4,
+                svt_aom_get_disallow_4x4(init_data_ptr->enc_mode, init_data_ptr->static_config.rtc, allintra));
 #else
             disallow_4x4 = MIN(disallow_4x4,
                                svt_aom_get_disallow_4x4(init_data_ptr->enc_mode, init_data_ptr->static_config.rtc));
@@ -1119,8 +1114,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
 #if TUNE_STILL_IMAGE_0
     disallow_8x8 = MIN(disallow_8x8,
                        svt_aom_get_disallow_8x8(init_data_ptr->enc_mode,
-                                                still_image,
-                                                all_intra,
+                                                allintra,
                                                 init_data_ptr->static_config.rtc,
                                                 init_data_ptr->static_config.screen_content_mode,
                                                 init_data_ptr->sb_size,
