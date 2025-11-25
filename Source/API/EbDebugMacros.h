@@ -70,6 +70,8 @@ extern "C" {
 #define TUNE_STILL_IMAGE_2          1 // Perform a third round of tuning for still-image
 #define OPT_SSIM_METRIC             1 // Remove SSIM distortion calculations for INTRA frames
 #define OPT_RECON_OPERATIONS        1 // Remove unnecessary reconstruction operations
+#define OPT_FD2_FD1_STILL_IMAGE     1 // Add fast-decode for still-image
+
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

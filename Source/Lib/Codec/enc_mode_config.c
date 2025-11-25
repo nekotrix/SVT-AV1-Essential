@@ -1444,6 +1444,28 @@ static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t i
     uint8_t       modulation_mode = 0; // 0: off, 1: only towards bd-rate, 2: both sides; , 3: only towards speed
 
     if (allintra) {
+#if OPT_FD2_FD1_STILL_IMAGE
+        if (pcs->scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
+            if (fast_decode <= 1 || resolution <= INPUT_SIZE_360p_RANGE) {
+#if TUNE_STILL_IMAGE_1
+#if TUNE_STILL_IMAGE_2
+                if (enc_mode <= ENC_M3) {
+#else
+                if (enc_mode <= ENC_MR) {
+#endif
+#else
+                if (enc_mode <= ENC_M2) {
+#endif
+                    dlf_level = 1;
+                } else {
+                    dlf_level       = 5;
+                    modulation_mode = 3;
+                }
+            } else {
+                dlf_level       = 0;
+                modulation_mode = 3;
+            }
+#else
         if ((fast_decode == 0 || resolution <= INPUT_SIZE_360p_RANGE) &&
             (pcs->scs->input_resolution <= INPUT_SIZE_1080p_RANGE)) {
 #if TUNE_STILL_IMAGE_1
@@ -1460,6 +1482,7 @@ static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t i
                 dlf_level       = 5;
                 modulation_mode = 3;
             }
+#endif
         } else {
             if (enc_mode <= ENC_M0) {
                 dlf_level = 1;
@@ -1992,10 +2015,23 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
     uint8_t cdef_recon_level = 0;
 #if TUNE_STILL_IMAGE_0
     if (allintra) {
+#if OPT_FD2_FD1_STILL_IMAGE
+        if ((fast_decode == 0 || input_resolution <= INPUT_SIZE_360p_RANGE)) {
+            if (enc_mode <= ENC_M9)
+                cdef_recon_level = 0;
+            else
+                cdef_recon_level = 1;
+        } else if (fast_decode == 1) {
+            cdef_recon_level = 1;
+        } else {
+            cdef_recon_level = 4;
+        }
+#else
         if (enc_mode <= ENC_M9)
             cdef_recon_level = 0;
         else
             cdef_recon_level = 1;
+#endif
     } else if (rtc_tune) {
 #else
     if (rtc_tune) {

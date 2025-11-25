@@ -4348,9 +4348,6 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     scs->max_input_luma_height = config_struct->source_height;
     // SB Definitions
     scs->static_config.pred_structure = config_struct->pred_structure;
-
-    scs->static_config.avif = config_struct->avif;
-    scs->allintra = (scs->static_config.intra_period_length == 0 || scs->static_config.avif);
     scs->static_config.rtc = config_struct->rtc;
     if (scs->static_config.rtc && scs->static_config.pred_structure != LOW_DELAY) {
         scs->static_config.pred_structure = LOW_DELAY;
@@ -4373,6 +4370,8 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     // Padding Offsets
     scs->b64_size = 64;
     scs->static_config.intra_period_length = config_struct->intra_period_length;
+    scs->static_config.avif = config_struct->avif;
+    scs->allintra = (scs->static_config.intra_period_length == 0 || scs->static_config.avif);
     scs->static_config.multiply_keyint = config_struct->multiply_keyint;
     scs->static_config.intra_refresh_type = config_struct->intra_refresh_type;
     scs->static_config.enc_mode = config_struct->enc_mode;
