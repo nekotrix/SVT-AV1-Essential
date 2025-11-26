@@ -754,6 +754,9 @@ INSTANTIATE_TEST_SUITE_P(ConvolveTest2D_NEON_I8MM, AV1LbdJntConvolveTest,
 INSTANTIATE_TEST_SUITE_P(ConvolveTestX_NEON_I8MM, AV1LbdJntConvolveTest,
                          BuildParamsLbd(1, 0,
                                         svt_av1_jnt_convolve_x_neon_i8mm));
+INSTANTIATE_TEST_SUITE_P(ConvolveTestY_NEON_I8MM, AV1LbdJntConvolveTest,
+                         BuildParamsLbd(0, 1,
+                                        svt_av1_jnt_convolve_y_neon_i8mm));
 #endif  // HAVE_NEON_I8MM
 #endif  // ARCH_AARCH64
 
