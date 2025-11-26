@@ -640,6 +640,524 @@ void svt_av1_jnt_convolve_2d_neon_dotprod(const uint8_t *src, int src_stride, ui
     }
 }
 
+static inline int16x4_t convolve4_4_y(const int8x16_t s0, const int8x8_t filters) {
+    // The sample range transform and permutation are performed by the caller.
+    // Accumulate into 128 << FILTER_BITS to account for range transform.
+    // (- 1 since we halved the filters.)
+    const int32x4_t acc = vdupq_n_s32(128 << (FILTER_BITS - 1));
+
+    int32x4_t sum = vdotq_lane_s32(acc, s0, filters, 0);
+
+    // Further narrowing and packing is performed by the caller.
+    return vmovn_s32(sum);
+}
+
+static inline uint16x8_t convolve4_8_y(const int8x16_t s0, const int8x16_t s1, const int8x8_t filters,
+                                       const int16x8_t round_offset) {
+    // The sample range transform and permutation are performed by the caller.
+    // Accumulate into 128 << FILTER_BITS to account for range transform.
+    // (- 1 since we halved the filters.)
+    const int32x4_t acc = vdupq_n_s32(128 << (FILTER_BITS - 1));
+
+    int32x4_t sum0123 = vdotq_lane_s32(acc, s0, filters, 0);
+    int32x4_t sum4567 = vdotq_lane_s32(acc, s1, filters, 0);
+
+    // Narrow and re-pack.
+    int16x8_t sum = vcombine_s16(vmovn_s32(sum0123), vmovn_s32(sum4567));
+
+    // We halved the filter values so -1 from right shift.
+    return vreinterpretq_u16_s16(vrsraq_n_s16(round_offset, sum, ROUND0_BITS - 1));
+}
+
+static inline void dist_wtd_convolve_y_4tap_neon_dotprod(const uint8_t *src_ptr, int32_t src_stride, int32_t w,
+                                                         int32_t h, const int16_t *y_filter_ptr,
+                                                         ConvolveParams *conv_params) {
+    const int     bd           = 8;
+    const int     offset_bits  = bd + 2 * FILTER_BITS - ROUND0_BITS;
+    const int16_t round_offset = (1 << (offset_bits - COMPOUND_ROUND1_BITS)) +
+        (1 << (offset_bits - COMPOUND_ROUND1_BITS - 1));
+    const int16x8_t round_offset_vec = vdupq_n_s16(round_offset);
+
+    CONV_BUF_TYPE *dst_ptr    = conv_params->dst;
+    const int32_t  dst_stride = conv_params->dst_stride;
+
+    // Filter values are even, so halve to reduce intermediate precision reqs.
+    const int16x8_t    filter_s16      = vcombine_s16(vld1_s16(y_filter_ptr + 2), vdup_n_s16(0));
+    const int8x8_t     filter          = vshrn_n_s16(filter_s16, 1);
+    const uint8x16x3_t merge_block_tbl = vld1q_u8_x3(dot_prod_merge_block_tbl);
+    int8x16x2_t        samples_LUT;
+
+    if (w == 4) {
+        uint8x8_t t0, t1, t2, t3;
+        load_u8_8x4(src_ptr, src_stride, &t0, &t1, &t2, &t3);
+        src_ptr += 4 * src_stride;
+
+        // Transform sample range to [-128, 127] for 8-bit signed dot product.
+        int8x8_t s0 = vreinterpret_s8_u8(vsub_u8(t0, vdup_n_u8(128)));
+        int8x8_t s1 = vreinterpret_s8_u8(vsub_u8(t1, vdup_n_u8(128)));
+        int8x8_t s2 = vreinterpret_s8_u8(vsub_u8(t2, vdup_n_u8(128)));
+        int8x8_t s3 = vreinterpret_s8_u8(vsub_u8(t3, vdup_n_u8(128)));
+
+        // This operation combines a conventional transpose and the sample permute
+        // required before computing the dot product.
+        int8x16_t s0123;
+        transpose_concat_elems_s8_4x4(s0, s1, s2, s3, &s0123);
+
+        do {
+            uint8x8_t t4, t5, t6, t7;
+            load_u8_8x4(src_ptr, src_stride, &t4, &t5, &t6, &t7);
+
+            int8x8_t s4 = vreinterpret_s8_u8(vsub_u8(t4, vdup_n_u8(128)));
+            int8x8_t s5 = vreinterpret_s8_u8(vsub_u8(t5, vdup_n_u8(128)));
+            int8x8_t s6 = vreinterpret_s8_u8(vsub_u8(t6, vdup_n_u8(128)));
+            int8x8_t s7 = vreinterpret_s8_u8(vsub_u8(t7, vdup_n_u8(128)));
+
+            int8x16_t s4567;
+            transpose_concat_elems_s8_4x4(s4, s5, s6, s7, &s4567);
+
+            // Merge new data into block from previous iteration.
+            samples_LUT.val[0] = s0123;
+            samples_LUT.val[1] = s4567;
+            int8x16_t s1234    = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[0]);
+            int8x16_t s2345    = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[1]);
+            int8x16_t s3456    = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[2]);
+
+            int16x4_t d0 = convolve4_4_y(s0123, filter);
+            int16x4_t d1 = convolve4_4_y(s1234, filter);
+            int16x4_t d2 = convolve4_4_y(s2345, filter);
+            int16x4_t d3 = convolve4_4_y(s3456, filter);
+
+            // We halved the filter values so -1 from right shift.
+            int16x8_t d01 = vrsraq_n_s16(round_offset_vec, vcombine_s16(d0, d1), ROUND0_BITS - 1);
+            int16x8_t d23 = vrsraq_n_s16(round_offset_vec, vcombine_s16(d2, d3), ROUND0_BITS - 1);
+
+            store_u16x4_strided_x2(dst_ptr + 0 * dst_stride, dst_stride, vreinterpretq_u16_s16(d01));
+            store_u16x4_strided_x2(dst_ptr + 2 * dst_stride, dst_stride, vreinterpretq_u16_s16(d23));
+
+            // Prepare block for next iteration - re-using as much as possible.
+            // Shuffle everything up four rows.
+            s0123 = s4567;
+            src_ptr += 4 * src_stride;
+            dst_ptr += 4 * dst_stride;
+            h -= 4;
+        } while (h != 0);
+    } else {
+        do {
+            int32_t        height = h;
+            const uint8_t *s      = src_ptr;
+            CONV_BUF_TYPE *d      = dst_ptr;
+
+            uint8x8_t t0, t1, t2, t3;
+            load_u8_8x4(s, src_stride, &t0, &t1, &t2, &t3);
+            s += 4 * src_stride;
+
+            // Transform sample range to [-128, 127] for 8-bit signed dot product.
+            int8x8_t s0 = vreinterpret_s8_u8(vsub_u8(t0, vdup_n_u8(128)));
+            int8x8_t s1 = vreinterpret_s8_u8(vsub_u8(t1, vdup_n_u8(128)));
+            int8x8_t s2 = vreinterpret_s8_u8(vsub_u8(t2, vdup_n_u8(128)));
+            int8x8_t s3 = vreinterpret_s8_u8(vsub_u8(t3, vdup_n_u8(128)));
+
+            // This operation combines a conventional transpose and the sample permute
+            // required before computing the dot product.
+            int8x16_t s0123_lo, s0123_hi;
+            transpose_concat_elems_s8_8x4(s0, s1, s2, s3, &s0123_lo, &s0123_hi);
+
+            do {
+                uint8x8_t t4, t5, t6, t7;
+                load_u8_8x4(s, src_stride, &t4, &t5, &t6, &t7);
+
+                int8x8_t s4 = vreinterpret_s8_u8(vsub_u8(t4, vdup_n_u8(128)));
+                int8x8_t s5 = vreinterpret_s8_u8(vsub_u8(t5, vdup_n_u8(128)));
+                int8x8_t s6 = vreinterpret_s8_u8(vsub_u8(t6, vdup_n_u8(128)));
+                int8x8_t s7 = vreinterpret_s8_u8(vsub_u8(t7, vdup_n_u8(128)));
+
+                int8x16_t s4567_lo, s4567_hi;
+                transpose_concat_elems_s8_8x4(s4, s5, s6, s7, &s4567_lo, &s4567_hi);
+
+                // Merge new data into block from previous iteration.
+                samples_LUT.val[0] = s0123_lo;
+                samples_LUT.val[1] = s4567_lo;
+                int8x16_t s1234_lo = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[0]);
+                int8x16_t s2345_lo = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[1]);
+                int8x16_t s3456_lo = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[2]);
+
+                samples_LUT.val[0] = s0123_hi;
+                samples_LUT.val[1] = s4567_hi;
+                int8x16_t s1234_hi = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[0]);
+                int8x16_t s2345_hi = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[1]);
+                int8x16_t s3456_hi = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[2]);
+
+                uint16x8_t d0 = convolve4_8_y(s0123_lo, s0123_hi, filter, round_offset_vec);
+                uint16x8_t d1 = convolve4_8_y(s1234_lo, s1234_hi, filter, round_offset_vec);
+                uint16x8_t d2 = convolve4_8_y(s2345_lo, s2345_hi, filter, round_offset_vec);
+                uint16x8_t d3 = convolve4_8_y(s3456_lo, s3456_hi, filter, round_offset_vec);
+
+                store_u16_8x4(d, dst_stride, d0, d1, d2, d3);
+
+                // Prepare block for next iteration - re-using as much as possible.
+                // Shuffle everything up four rows.
+                s0123_lo = s4567_lo;
+                s0123_hi = s4567_hi;
+
+                s += 4 * src_stride;
+                d += 4 * dst_stride;
+                height -= 4;
+            } while (height != 0);
+            src_ptr += 8;
+            dst_ptr += 8;
+            w -= 8;
+        } while (w != 0);
+    }
+}
+
+static inline void dist_wtd_convolve_y_4tap_dist_wtd_avg_neon_dotprod(const uint8_t *src_ptr, int32_t src_stride,
+                                                                      uint8_t *dst8_ptr, int32_t dst8_stride, int32_t w,
+                                                                      int32_t h, const int16_t *y_filter_ptr,
+                                                                      ConvolveParams *conv_params) {
+    const int     bd           = 8;
+    const int     offset_bits  = bd + 2 * FILTER_BITS - ROUND0_BITS;
+    const int16_t round_offset = (1 << (offset_bits - COMPOUND_ROUND1_BITS)) +
+        (1 << (offset_bits - COMPOUND_ROUND1_BITS - 1));
+    const int16x8_t round_offset_vec = vdupq_n_s16(round_offset);
+
+    const uint16_t fwd_offset = conv_params->fwd_offset;
+    const uint16_t bck_offset = conv_params->bck_offset;
+    CONV_BUF_TYPE *dst_ptr    = conv_params->dst;
+    const int32_t  dst_stride = conv_params->dst_stride;
+
+    // Filter values are even, so halve to reduce intermediate precision reqs.
+    const int16x8_t    filter_s16      = vcombine_s16(vld1_s16(y_filter_ptr + 2), vdup_n_s16(0));
+    const int8x8_t     filter          = vshrn_n_s16(filter_s16, 1);
+    const uint8x16x3_t merge_block_tbl = vld1q_u8_x3(dot_prod_merge_block_tbl);
+    int8x16x2_t        samples_LUT;
+
+    if (w == 4) {
+        uint8x8_t t0, t1, t2, t3;
+        load_u8_8x4(src_ptr, src_stride, &t0, &t1, &t2, &t3);
+        src_ptr += 4 * src_stride;
+
+        // Transform sample range to [-128, 127] for 8-bit signed dot product.
+        int8x8_t s0 = vreinterpret_s8_u8(vsub_u8(t0, vdup_n_u8(128)));
+        int8x8_t s1 = vreinterpret_s8_u8(vsub_u8(t1, vdup_n_u8(128)));
+        int8x8_t s2 = vreinterpret_s8_u8(vsub_u8(t2, vdup_n_u8(128)));
+        int8x8_t s3 = vreinterpret_s8_u8(vsub_u8(t3, vdup_n_u8(128)));
+
+        // This operation combines a conventional transpose and the sample permute
+        // required before computing the dot product.
+        int8x16_t s0123;
+        transpose_concat_elems_s8_4x4(s0, s1, s2, s3, &s0123);
+
+        do {
+            uint8x8_t t4, t5, t6, t7;
+            load_u8_8x4(src_ptr, src_stride, &t4, &t5, &t6, &t7);
+
+            int8x8_t s4 = vreinterpret_s8_u8(vsub_u8(t4, vdup_n_u8(128)));
+            int8x8_t s5 = vreinterpret_s8_u8(vsub_u8(t5, vdup_n_u8(128)));
+            int8x8_t s6 = vreinterpret_s8_u8(vsub_u8(t6, vdup_n_u8(128)));
+            int8x8_t s7 = vreinterpret_s8_u8(vsub_u8(t7, vdup_n_u8(128)));
+
+            int8x16_t s4567;
+            transpose_concat_elems_s8_4x4(s4, s5, s6, s7, &s4567);
+
+            // Merge new data into block from previous iteration.
+            samples_LUT.val[0] = s0123;
+            samples_LUT.val[1] = s4567;
+            int8x16_t s1234    = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[0]);
+            int8x16_t s2345    = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[1]);
+            int8x16_t s3456    = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[2]);
+
+            int16x4_t d0 = convolve4_4_y(s0123, filter);
+            int16x4_t d1 = convolve4_4_y(s1234, filter);
+            int16x4_t d2 = convolve4_4_y(s2345, filter);
+            int16x4_t d3 = convolve4_4_y(s3456, filter);
+
+            // We halved the filter values so -1 from right shift.
+            uint16x8_t d01 = vreinterpretq_u16_s16(
+                vrsraq_n_s16(round_offset_vec, vcombine_s16(d0, d1), ROUND0_BITS - 1));
+            uint16x8_t d23 = vreinterpretq_u16_s16(
+                vrsraq_n_s16(round_offset_vec, vcombine_s16(d2, d3), ROUND0_BITS - 1));
+
+            uint16x4_t dd0, dd1, dd2, dd3;
+            load_u16_4x4(dst_ptr, dst_stride, &dd0, &dd1, &dd2, &dd3);
+
+            uint8x8_t d0_u8, d1_u8;
+            compute_dist_wtd_avg_8x2(vcombine_u16(dd0, dd1),
+                                     vcombine_u16(dd2, dd3),
+                                     d01,
+                                     d23,
+                                     fwd_offset,
+                                     bck_offset,
+                                     round_offset_vec,
+                                     &d0_u8,
+                                     &d1_u8);
+
+            store_u8x4_strided_x2(dst8_ptr + 0 * dst8_stride, dst8_stride, d0_u8);
+            store_u8x4_strided_x2(dst8_ptr + 2 * dst8_stride, dst8_stride, d1_u8);
+
+            // Prepare block for next iteration - re-using as much as possible.
+            // Shuffle everything up four rows.
+            s0123 = s4567;
+
+            src_ptr += 4 * src_stride;
+            dst_ptr += 4 * dst_stride;
+            dst8_ptr += 4 * dst8_stride;
+            h -= 4;
+        } while (h != 0);
+    } else {
+        do {
+            int32_t        height = h;
+            const uint8_t *s      = src_ptr;
+            CONV_BUF_TYPE *d      = dst_ptr;
+            uint8_t       *d_u8   = dst8_ptr;
+
+            uint8x8_t t0, t1, t2, t3;
+            load_u8_8x4(s, src_stride, &t0, &t1, &t2, &t3);
+            s += 4 * src_stride;
+
+            // Transform sample range to [-128, 127] for 8-bit signed dot product.
+            int8x8_t s0 = vreinterpret_s8_u8(vsub_u8(t0, vdup_n_u8(128)));
+            int8x8_t s1 = vreinterpret_s8_u8(vsub_u8(t1, vdup_n_u8(128)));
+            int8x8_t s2 = vreinterpret_s8_u8(vsub_u8(t2, vdup_n_u8(128)));
+            int8x8_t s3 = vreinterpret_s8_u8(vsub_u8(t3, vdup_n_u8(128)));
+
+            // This operation combines a conventional transpose and the sample permute
+            // required before computing the dot product.
+            int8x16_t s0123_lo, s0123_hi;
+            transpose_concat_elems_s8_8x4(s0, s1, s2, s3, &s0123_lo, &s0123_hi);
+
+            do {
+                uint8x8_t t4, t5, t6, t7;
+                load_u8_8x4(s, src_stride, &t4, &t5, &t6, &t7);
+
+                int8x8_t s4 = vreinterpret_s8_u8(vsub_u8(t4, vdup_n_u8(128)));
+                int8x8_t s5 = vreinterpret_s8_u8(vsub_u8(t5, vdup_n_u8(128)));
+                int8x8_t s6 = vreinterpret_s8_u8(vsub_u8(t6, vdup_n_u8(128)));
+                int8x8_t s7 = vreinterpret_s8_u8(vsub_u8(t7, vdup_n_u8(128)));
+
+                int8x16_t s4567_lo, s4567_hi;
+                transpose_concat_elems_s8_8x4(s4, s5, s6, s7, &s4567_lo, &s4567_hi);
+
+                // Merge new data into block from previous iteration.
+                samples_LUT.val[0] = s0123_lo;
+                samples_LUT.val[1] = s4567_lo;
+                int8x16_t s1234_lo = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[0]);
+                int8x16_t s2345_lo = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[1]);
+                int8x16_t s3456_lo = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[2]);
+
+                samples_LUT.val[0] = s0123_hi;
+                samples_LUT.val[1] = s4567_hi;
+                int8x16_t s1234_hi = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[0]);
+                int8x16_t s2345_hi = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[1]);
+                int8x16_t s3456_hi = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[2]);
+
+                uint16x8_t d0 = convolve4_8_y(s0123_lo, s0123_hi, filter, round_offset_vec);
+                uint16x8_t d1 = convolve4_8_y(s1234_lo, s1234_hi, filter, round_offset_vec);
+                uint16x8_t d2 = convolve4_8_y(s2345_lo, s2345_hi, filter, round_offset_vec);
+                uint16x8_t d3 = convolve4_8_y(s3456_lo, s3456_hi, filter, round_offset_vec);
+
+                uint16x8_t dd0, dd1, dd2, dd3;
+                load_u16_8x4(d, dst_stride, &dd0, &dd1, &dd2, &dd3);
+
+                uint8x8_t d0_u8, d1_u8, d2_u8, d3_u8;
+                compute_dist_wtd_avg_8x4(dd0,
+                                         dd1,
+                                         dd2,
+                                         dd3,
+                                         d0,
+                                         d1,
+                                         d2,
+                                         d3,
+                                         fwd_offset,
+                                         bck_offset,
+                                         round_offset_vec,
+                                         &d0_u8,
+                                         &d1_u8,
+                                         &d2_u8,
+                                         &d3_u8);
+
+                store_u8_8x4(d_u8, dst8_stride, d0_u8, d1_u8, d2_u8, d3_u8);
+
+                // Prepare block for next iteration - re-using as much as possible.
+                // Shuffle everything up four rows.
+                s0123_lo = s4567_lo;
+                s0123_hi = s4567_hi;
+
+                s += 4 * src_stride;
+                d += 4 * dst_stride;
+                d_u8 += 4 * dst8_stride;
+                height -= 4;
+            } while (height != 0);
+            src_ptr += 8;
+            dst_ptr += 8;
+            dst8_ptr += 8;
+            w -= 8;
+        } while (w != 0);
+    }
+}
+
+static inline void dist_wtd_convolve_y_4tap_avg_neon_dotprod(const uint8_t *src_ptr, int32_t src_stride,
+                                                             uint8_t *dst8_ptr, int32_t dst8_stride, int32_t w,
+                                                             int32_t h, const int16_t *y_filter_ptr,
+                                                             ConvolveParams *conv_params) {
+    const int     bd           = 8;
+    const int     offset_bits  = bd + 2 * FILTER_BITS - ROUND0_BITS;
+    const int16_t round_offset = (1 << (offset_bits - COMPOUND_ROUND1_BITS)) +
+        (1 << (offset_bits - COMPOUND_ROUND1_BITS - 1));
+    const int16x8_t round_offset_vec = vdupq_n_s16(round_offset);
+
+    CONV_BUF_TYPE  *dst_ptr    = conv_params->dst;
+    const int32_t   dst_stride = conv_params->dst_stride;
+    const int16x8_t filter_s16 = vcombine_s16(vld1_s16(y_filter_ptr + 2), vdup_n_s16(0));
+
+    // Filter values are even, so halve to reduce intermediate precision reqs.
+    const int8x8_t     filter          = vshrn_n_s16(filter_s16, 1);
+    const uint8x16x3_t merge_block_tbl = vld1q_u8_x3(dot_prod_merge_block_tbl);
+    int8x16x2_t        samples_LUT;
+
+    if (w == 4) {
+        uint8x8_t t0, t1, t2, t3;
+        load_u8_8x4(src_ptr, src_stride, &t0, &t1, &t2, &t3);
+        src_ptr += 4 * src_stride;
+
+        // Transform sample range to [-128, 127] for 8-bit signed dot product.
+        int8x8_t s0 = vreinterpret_s8_u8(vsub_u8(t0, vdup_n_u8(128)));
+        int8x8_t s1 = vreinterpret_s8_u8(vsub_u8(t1, vdup_n_u8(128)));
+        int8x8_t s2 = vreinterpret_s8_u8(vsub_u8(t2, vdup_n_u8(128)));
+        int8x8_t s3 = vreinterpret_s8_u8(vsub_u8(t3, vdup_n_u8(128)));
+
+        // This operation combines a conventional transpose and the sample permute
+        // required before computing the dot product.
+        int8x16_t s0123;
+        transpose_concat_elems_s8_4x4(s0, s1, s2, s3, &s0123);
+
+        do {
+            uint8x8_t t4, t5, t6, t7;
+            load_u8_8x4(src_ptr, src_stride, &t4, &t5, &t6, &t7);
+
+            int8x8_t s4 = vreinterpret_s8_u8(vsub_u8(t4, vdup_n_u8(128)));
+            int8x8_t s5 = vreinterpret_s8_u8(vsub_u8(t5, vdup_n_u8(128)));
+            int8x8_t s6 = vreinterpret_s8_u8(vsub_u8(t6, vdup_n_u8(128)));
+            int8x8_t s7 = vreinterpret_s8_u8(vsub_u8(t7, vdup_n_u8(128)));
+
+            int8x16_t s4567;
+            transpose_concat_elems_s8_4x4(s4, s5, s6, s7, &s4567);
+
+            // Merge new data into block from previous iteration.
+            samples_LUT.val[0] = s0123;
+            samples_LUT.val[1] = s4567;
+            int8x16_t s1234    = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[0]);
+            int8x16_t s2345    = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[1]);
+            int8x16_t s3456    = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[2]);
+
+            int16x4_t d0 = convolve4_4_y(s0123, filter);
+            int16x4_t d1 = convolve4_4_y(s1234, filter);
+            int16x4_t d2 = convolve4_4_y(s2345, filter);
+            int16x4_t d3 = convolve4_4_y(s3456, filter);
+
+            // We halved the filter values so -1 from right shift.
+            uint16x8_t d01 = vreinterpretq_u16_s16(
+                vrsraq_n_s16(round_offset_vec, vcombine_s16(d0, d1), ROUND0_BITS - 1));
+            uint16x8_t d23 = vreinterpretq_u16_s16(
+                vrsraq_n_s16(round_offset_vec, vcombine_s16(d2, d3), ROUND0_BITS - 1));
+
+            uint16x4_t dd0, dd1, dd2, dd3;
+            load_u16_4x4(dst_ptr, dst_stride, &dd0, &dd1, &dd2, &dd3);
+
+            uint8x8_t d0_u8, d1_u8;
+            compute_basic_avg_8x2(
+                vcombine_u16(dd0, dd1), vcombine_u16(dd2, dd3), d01, d23, round_offset_vec, &d0_u8, &d1_u8);
+
+            store_u8x4_strided_x2(dst8_ptr + 0 * dst8_stride, dst8_stride, d0_u8);
+            store_u8x4_strided_x2(dst8_ptr + 2 * dst8_stride, dst8_stride, d1_u8);
+
+            // Prepare block for next iteration - re-using as much as possible.
+            // Shuffle everything up four rows.
+            s0123 = s4567;
+
+            src_ptr += 4 * src_stride;
+            dst_ptr += 4 * dst_stride;
+            dst8_ptr += 4 * dst8_stride;
+            h -= 4;
+        } while (h != 0);
+    } else {
+        do {
+            int32_t        height = h;
+            const uint8_t *s      = src_ptr;
+            CONV_BUF_TYPE *d      = dst_ptr;
+            uint8_t       *d_u8   = dst8_ptr;
+
+            uint8x8_t t0, t1, t2, t3;
+            load_u8_8x4(s, src_stride, &t0, &t1, &t2, &t3);
+            s += 4 * src_stride;
+
+            // Transform sample range to [-128, 127] for 8-bit signed dot product.
+            int8x8_t s0 = vreinterpret_s8_u8(vsub_u8(t0, vdup_n_u8(128)));
+            int8x8_t s1 = vreinterpret_s8_u8(vsub_u8(t1, vdup_n_u8(128)));
+            int8x8_t s2 = vreinterpret_s8_u8(vsub_u8(t2, vdup_n_u8(128)));
+            int8x8_t s3 = vreinterpret_s8_u8(vsub_u8(t3, vdup_n_u8(128)));
+
+            // This operation combines a conventional transpose and the sample permute
+            // required before computing the dot product.
+            int8x16_t s0123_lo, s0123_hi;
+            transpose_concat_elems_s8_8x4(s0, s1, s2, s3, &s0123_lo, &s0123_hi);
+
+            do {
+                uint8x8_t t4, t5, t6, t7;
+                load_u8_8x4(s, src_stride, &t4, &t5, &t6, &t7);
+
+                int8x8_t s4 = vreinterpret_s8_u8(vsub_u8(t4, vdup_n_u8(128)));
+                int8x8_t s5 = vreinterpret_s8_u8(vsub_u8(t5, vdup_n_u8(128)));
+                int8x8_t s6 = vreinterpret_s8_u8(vsub_u8(t6, vdup_n_u8(128)));
+                int8x8_t s7 = vreinterpret_s8_u8(vsub_u8(t7, vdup_n_u8(128)));
+
+                int8x16_t s4567_lo, s4567_hi;
+                transpose_concat_elems_s8_8x4(s4, s5, s6, s7, &s4567_lo, &s4567_hi);
+
+                // Merge new data into block from previous iteration.
+                samples_LUT.val[0] = s0123_lo;
+                samples_LUT.val[1] = s4567_lo;
+                int8x16_t s1234_lo = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[0]);
+                int8x16_t s2345_lo = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[1]);
+                int8x16_t s3456_lo = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[2]);
+
+                samples_LUT.val[0] = s0123_hi;
+                samples_LUT.val[1] = s4567_hi;
+                int8x16_t s1234_hi = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[0]);
+                int8x16_t s2345_hi = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[1]);
+                int8x16_t s3456_hi = vqtbl2q_s8(samples_LUT, merge_block_tbl.val[2]);
+
+                uint16x8_t d0 = convolve4_8_y(s0123_lo, s0123_hi, filter, round_offset_vec);
+                uint16x8_t d1 = convolve4_8_y(s1234_lo, s1234_hi, filter, round_offset_vec);
+                uint16x8_t d2 = convolve4_8_y(s2345_lo, s2345_hi, filter, round_offset_vec);
+                uint16x8_t d3 = convolve4_8_y(s3456_lo, s3456_hi, filter, round_offset_vec);
+
+                uint16x8_t dd0, dd1, dd2, dd3;
+                load_u16_8x4(d, dst_stride, &dd0, &dd1, &dd2, &dd3);
+
+                uint8x8_t d0_u8, d1_u8, d2_u8, d3_u8;
+                compute_basic_avg_8x4(
+                    dd0, dd1, dd2, dd3, d0, d1, d2, d3, round_offset_vec, &d0_u8, &d1_u8, &d2_u8, &d3_u8);
+
+                store_u8_8x4(d_u8, dst8_stride, d0_u8, d1_u8, d2_u8, d3_u8);
+
+                // Prepare block for next iteration - re-using as much as possible.
+                // Shuffle everything up four rows.
+                s0123_lo = s4567_lo;
+                s0123_hi = s4567_hi;
+
+                s += 4 * src_stride;
+                d += 4 * dst_stride;
+                d_u8 += 4 * dst8_stride;
+                height -= 4;
+            } while (height != 0);
+            src_ptr += 8;
+            dst_ptr += 8;
+            dst8_ptr += 8;
+            w -= 8;
+        } while (w != 0);
+    }
+}
+
 static inline int16x4_t convolve8_4_y(const int8x16_t s0, const int8x16_t s1, const int8x8_t filters) {
     // The sample range transform and permutation are performed by the caller.
     // Accumulate into 128 << FILTER_BITS to account for range transform.
@@ -1231,15 +1749,29 @@ void svt_av1_jnt_convolve_y_neon_dotprod(const uint8_t *src, int32_t src_stride,
 
     const int16_t *y_filter_ptr = av1_get_interp_filter_subpel_kernel(*filter_params_y, subpel_y_qn & SUBPEL_MASK);
 
-    if (conv_params->do_average) {
-        if (UNLIKELY(conv_params->use_jnt_comp_avg)) {
-            dist_wtd_convolve_y_8tap_dist_wtd_avg_neon_dotprod(
-                src - 3 * src_stride, src_stride, dst8, dst8_stride, w, h, y_filter_ptr, conv_params);
+    if (get_filter_tap(filter_params_y, subpel_y_qn) <= 4) {
+        if (conv_params->do_average) {
+            if (UNLIKELY(conv_params->use_jnt_comp_avg)) {
+                dist_wtd_convolve_y_4tap_dist_wtd_avg_neon_dotprod(
+                    src - src_stride, src_stride, dst8, dst8_stride, w, h, y_filter_ptr, conv_params);
+            } else {
+                dist_wtd_convolve_y_4tap_avg_neon_dotprod(
+                    src - src_stride, src_stride, dst8, dst8_stride, w, h, y_filter_ptr, conv_params);
+            }
         } else {
-            dist_wtd_convolve_y_8tap_avg_neon_dotprod(
-                src - 3 * src_stride, src_stride, dst8, dst8_stride, w, h, y_filter_ptr, conv_params);
+            dist_wtd_convolve_y_4tap_neon_dotprod(src - src_stride, src_stride, w, h, y_filter_ptr, conv_params);
         }
     } else {
-        dist_wtd_convolve_y_8tap_neon_dotprod(src - 3 * src_stride, src_stride, w, h, y_filter_ptr, conv_params);
+        if (conv_params->do_average) {
+            if (UNLIKELY(conv_params->use_jnt_comp_avg)) {
+                dist_wtd_convolve_y_8tap_dist_wtd_avg_neon_dotprod(
+                    src - 3 * src_stride, src_stride, dst8, dst8_stride, w, h, y_filter_ptr, conv_params);
+            } else {
+                dist_wtd_convolve_y_8tap_avg_neon_dotprod(
+                    src - 3 * src_stride, src_stride, dst8, dst8_stride, w, h, y_filter_ptr, conv_params);
+            }
+        } else {
+            dist_wtd_convolve_y_8tap_neon_dotprod(src - 3 * src_stride, src_stride, w, h, y_filter_ptr, conv_params);
+        }
     }
 }
