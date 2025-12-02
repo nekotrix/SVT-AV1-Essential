@@ -76,6 +76,7 @@ extern "C" {
 #define EN_M11_RA                   1 // Enable M11 for RA
 #define EN_FLAT_ALL_PRESETS         1 // Enable flat pred structure for all RTC presets
 #define TUNE_RTC_RA_PRESETS         1 // Preset tuning for RTC mode and RA
+#define CLN_ME_SCALING              1 // Remove min ME search area scaling based on non-zero framerate (which is always true)
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

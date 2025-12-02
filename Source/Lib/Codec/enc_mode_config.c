@@ -303,6 +303,120 @@ static void set_me_search_params(SequenceControlSet *scs, PictureParentControlSe
     const EncMode enc_mode  = pcs->enc_mode;
     const uint8_t sc_class1 = pcs->sc_class1;
     const bool    rtc_tune  = scs->static_config.rtc;
+#if CLN_ME_SCALING
+    // Set the min and max ME search area
+    if (rtc_tune) {
+        if (sc_class1) {
+            if (enc_mode <= ENC_M7) {
+                me_ctx->me_sa.sa_min = (SearchArea){48, 48};
+                me_ctx->me_sa.sa_max = (SearchArea){96, 96};
+            } else if (enc_mode <= ENC_M9) {
+                if (input_resolution < INPUT_SIZE_1080p_RANGE) {
+                    me_ctx->me_sa.sa_min = (SearchArea){24, 16};
+                    me_ctx->me_sa.sa_max = (SearchArea){32, 16};
+                } else {
+                    me_ctx->me_sa.sa_min = (SearchArea){24, 24};
+                    me_ctx->me_sa.sa_max = (SearchArea){24, 24};
+                }
+            } else {
+                if (input_resolution < INPUT_SIZE_1080p_RANGE) {
+                    me_ctx->me_sa.sa_min = (SearchArea){24, 16};
+                    me_ctx->me_sa.sa_max = (SearchArea){32, 16};
+                } else {
+                    me_ctx->me_sa.sa_min = (SearchArea){16, 9};
+                    me_ctx->me_sa.sa_max = (SearchArea){16, 9};
+                }
+            }
+        } else {
+            if ((!scs->use_flat_ipp && enc_mode <= ENC_M9) || (scs->use_flat_ipp && enc_mode <= ENC_M10)) {
+                if (input_resolution < INPUT_SIZE_1080p_RANGE) {
+                    me_ctx->me_sa.sa_min = (SearchArea){24, 16};
+                    me_ctx->me_sa.sa_max = (SearchArea){32, 16};
+                } else {
+                    me_ctx->me_sa.sa_min = (SearchArea){16, 9};
+                    me_ctx->me_sa.sa_max = (SearchArea){16, 9};
+                }
+            } else if (!scs->use_flat_ipp && enc_mode <= ENC_M10) {
+                if (input_resolution < INPUT_SIZE_1080p_RANGE) {
+                    me_ctx->me_sa.sa_min = (SearchArea){12, 4};
+                    me_ctx->me_sa.sa_max = (SearchArea){16, 9};
+                } else {
+                    me_ctx->me_sa.sa_min = (SearchArea){16, 9};
+                    me_ctx->me_sa.sa_max = (SearchArea){16, 9};
+                }
+            } else if (enc_mode <= ENC_M11) {
+                if (input_resolution < INPUT_SIZE_720p_RANGE) {
+                    me_ctx->me_sa.sa_min = (SearchArea){12, 4};
+                    me_ctx->me_sa.sa_max = (SearchArea){16, 9};
+                } else if (input_resolution < INPUT_SIZE_1080p_RANGE) {
+                    me_ctx->me_sa.sa_min = (SearchArea){12, 1};
+                    me_ctx->me_sa.sa_max = (SearchArea){16, 7};
+                } else if (input_resolution < INPUT_SIZE_4K_RANGE) {
+                    me_ctx->me_sa.sa_min = (SearchArea){8, 1};
+                    me_ctx->me_sa.sa_max = (SearchArea){8, 7};
+                } else {
+                    me_ctx->me_sa.sa_min = (SearchArea){8, 1};
+                    me_ctx->me_sa.sa_max = (SearchArea){8, 1};
+                }
+            } else {
+                me_ctx->me_sa.sa_min = (SearchArea){8, 1};
+                me_ctx->me_sa.sa_max = (SearchArea){8, 1};
+            }
+        }
+    } else if (sc_class1) {
+        if (enc_mode <= ENC_MR) {
+            me_ctx->me_sa.sa_min = (SearchArea){60, 60};
+            me_ctx->me_sa.sa_max = (SearchArea){240, 240};
+        } else if (enc_mode <= ENC_M0) {
+            me_ctx->me_sa.sa_min = (SearchArea){48, 48};
+            me_ctx->me_sa.sa_max = (SearchArea){192, 192};
+        } else if (enc_mode <= ENC_M1) {
+            me_ctx->me_sa.sa_min = (SearchArea){24, 24};
+            me_ctx->me_sa.sa_max = (SearchArea){128, 128};
+        } else if (enc_mode <= ENC_M4) {
+            me_ctx->me_sa.sa_min = (SearchArea){12, 12};
+            me_ctx->me_sa.sa_max = (SearchArea){96, 96};
+        } else if (enc_mode <= ENC_M7) {
+            me_ctx->me_sa.sa_min = (SearchArea){12, 12};
+            me_ctx->me_sa.sa_max = (SearchArea){64, 64};
+        } else {
+            me_ctx->me_sa.sa_min = (SearchArea){12, 12};
+            me_ctx->me_sa.sa_max = (SearchArea){16, 16};
+        }
+    } else if (enc_mode <= ENC_MR) {
+        me_ctx->me_sa.sa_min = (SearchArea){96, 96};
+        me_ctx->me_sa.sa_max = (SearchArea){256, 256};
+    } else if (enc_mode <= ENC_M1) {
+        me_ctx->me_sa.sa_min = (SearchArea){84, 84};
+        me_ctx->me_sa.sa_max = (SearchArea){224, 224};
+    } else if (enc_mode <= ENC_M3) {
+        me_ctx->me_sa.sa_min = (SearchArea){24, 24};
+        me_ctx->me_sa.sa_max = (SearchArea){88, 88};
+    } else if (enc_mode <= ENC_M5) {
+        me_ctx->me_sa.sa_min = (SearchArea){24, 12};
+        me_ctx->me_sa.sa_max = (SearchArea){48, 32};
+    } else if (enc_mode <= ENC_M7) {
+        me_ctx->me_sa.sa_min = (SearchArea){24, 9};
+        me_ctx->me_sa.sa_max = (SearchArea){24, 12};
+    } else if (enc_mode <= ENC_M10) {
+        if (input_resolution < INPUT_SIZE_720p_RANGE) {
+            me_ctx->me_sa.sa_min = (SearchArea){12, 4};
+            me_ctx->me_sa.sa_max = (SearchArea){16, 9};
+        } else if (input_resolution < INPUT_SIZE_1080p_RANGE) {
+            me_ctx->me_sa.sa_min = (SearchArea){12, 1};
+            me_ctx->me_sa.sa_max = (SearchArea){16, 7};
+        } else if (input_resolution < INPUT_SIZE_4K_RANGE) {
+            me_ctx->me_sa.sa_min = (SearchArea){8, 1};
+            me_ctx->me_sa.sa_max = (SearchArea){8, 7};
+        } else {
+            me_ctx->me_sa.sa_min = (SearchArea){8, 1};
+            me_ctx->me_sa.sa_max = (SearchArea){8, 1};
+        }
+    } else {
+        me_ctx->me_sa.sa_min = (SearchArea){8, 1};
+        me_ctx->me_sa.sa_max = (SearchArea){8, 1};
+    }
+#else
     // Set the min and max ME search area
     if (rtc_tune) {
         if (sc_class1) {
@@ -413,11 +527,10 @@ static void set_me_search_params(SequenceControlSet *scs, PictureParentControlSe
         me_ctx->me_sa.sa_min.height = (me_ctx->me_sa.sa_min.height * 3) >> 1;
     }
 #endif
+#endif
     uint32_t q_weight, q_weight_denom;
-    svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.me_qp_based_th_scaling,
-                                            &q_weight,
-                                            &q_weight_denom,
-                                            pcs->scs->static_config.qp);
+    svt_aom_get_qp_based_th_scaling_factors(
+        scs->qp_based_th_scaling_ctrls.me_qp_based_th_scaling, &q_weight, &q_weight_denom, scs->static_config.qp);
     me_ctx->me_sa.sa_min.width  = MAX(8, DIVIDE_AND_ROUND(me_ctx->me_sa.sa_min.width * q_weight, q_weight_denom));
     me_ctx->me_sa.sa_min.height = MAX(3, DIVIDE_AND_ROUND(me_ctx->me_sa.sa_min.height * q_weight, q_weight_denom));
     me_ctx->me_sa.sa_max.width  = MAX(8, DIVIDE_AND_ROUND(me_ctx->me_sa.sa_max.width * q_weight, q_weight_denom));
