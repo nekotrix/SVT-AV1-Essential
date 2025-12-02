@@ -1160,8 +1160,19 @@ typedef struct ModeDecisionContext {
     // regular PD1 classifier uses the number of non-zero coefficient(s)). 3: Skip pd0 if block size
     // is equal to or greater than 32x32
     Lpd1Ctrls lpd1_ctrls;
+#if OPT_LPD1_RTC
+    // Limits minimum LDP1 level that can the detector can act on. This is meant to set a minimum LPD1
+    // level that will be used (unless the set level is more conservative than pd1_lvl_refinement.
+    // 0: off
+    // 1: LPD1 detector will not act if LPD1 level is <= LPD1_LVL_0
+    // 2: LPD1 detector will not act if LPD1 level is <= LPD1_LVL_1. If LPD1 level is >= LPD1_LVL_1, the min
+    //    LPD1 level will be LPD1_LVL_1. If LPD1 is <= LPD1_LVL_0, then the detector will not apply and
+    //    the set level will be used without the detector.
+    uint8_t pd1_lvl_refinement;
+#else
     // Refines the pd1_level per SB. 0: OFF, 1: conservative 2: Aggressive
     uint8_t         pd1_lvl_refinement;
+#endif
     SpatialSSECtrls spatial_sse_ctrls;
 
     uint16_t init_max_block_cnt;

@@ -7112,6 +7112,9 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
 #if TUNE_STILL_IMAGE_0
     const bool allintra = scs->allintra;
 #endif
+#if OPT_LPD1_RTC
+    const bool    is_not_last_layer = !pcs->ppcs->is_highest_layer;
+#endif
     set_block_based_depth_refinement_controls(ctx, pcs->pic_block_based_depth_refinement_level);
 
     // pic_pred_depth_only shouldn't be changed after this point
@@ -7174,7 +7177,11 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
             int lpd1_lvl = pcs->pic_lpd1_lvl;
             if (pcs->slice_type != I_SLICE) {
                 int me_8x8 = pcs->ppcs->me_8x8_cost_variance[ctx->sb_index];
+#if TUNE_RTC_RA_PRESETS
+                int th     = ((!scs->use_flat_ipp && enc_mode <= ENC_M8) || (scs->use_flat_ipp && enc_mode <= ENC_M9)) ? 3 * ctx->qp_index : 3000;
+#else
                 int th     = enc_mode <= ENC_M8 ? 3 * ctx->qp_index : 3000;
+#endif
 
                 // when lpd1 is optimized, this lpd1_lvl == 0 check should be removed, leaving only the lpd1_lvl +=2 statement
                 // this extra check has been added to help low-delay perform similarly to v1.7.0
@@ -7185,6 +7192,11 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
                     if (me_8x8 < th)
                         lpd1_lvl += 2;
                 }
+#if OPT_LPD1_RTC
+                // For SBs that are part of the cyclic refresh, use conservative settings
+                if (ctx->sb_ptr->qindex != pcs->ppcs->frm_hdr.quantization_params.base_q_idx)
+                    lpd1_lvl -= 2;
+#endif
             }
             // Checking against 7, as 7 is the max level for lpd1_lvl. If max level for lpd1_lvl changes, the check should be updated
             lpd1_lvl = MAX(0, MIN(lpd1_lvl, 7));
@@ -7193,12 +7205,21 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
     } else
         set_lpd1_ctrls(ctx, pcs->pic_lpd1_lvl);
 
+#if OPT_LPD1_RTC
+    if ((!rtc_tune && enc_mode <= ENC_M10) || (rtc_tune && enc_mode <= ENC_M9))
+        ctx->pd1_lvl_refinement = 0;
+    else if (rtc_tune && scs->use_flat_ipp && enc_mode <= ENC_M10)
+        ctx->pd1_lvl_refinement = is_not_last_layer ? 0 : 2;
+    else
+        ctx->pd1_lvl_refinement = 2;
+#else
     if (!rtc_tune)
         ctx->pd1_lvl_refinement = 0;
     else if (enc_mode <= ENC_M7)
         ctx->pd1_lvl_refinement = 1;
     else
         ctx->pd1_lvl_refinement = 2;
+#endif
     svt_aom_set_nsq_geom_ctrls(ctx, pcs->nsq_geom_level, NULL, NULL, NULL);
 
     if (scs->static_config.max_tx_size == 32) {
@@ -9977,6 +9998,61 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         else
             pcs->pic_lpd1_lvl = is_base ? 0 : 5;
     } else if (rtc_tune) {
+#if OPT_LPD1_RTC
+        if (enc_mode <= ENC_M7) {
+            if (input_resolution <= INPUT_SIZE_360p_RANGE) {
+                pcs->pic_lpd1_lvl = is_base ? 0 : 2;
+            } else {
+                pcs->pic_lpd1_lvl = is_base ? 0 : 3;
+            }
+        } else if ((!scs->use_flat_ipp && enc_mode <= ENC_M10) || (scs->use_flat_ipp && enc_mode <= ENC_M9)) {
+            if (input_resolution <= INPUT_SIZE_480p_RANGE) {
+                pcs->pic_lpd1_lvl = is_base ? 0 : is_not_last_layer ? 2 : 3;
+            } else {
+                pcs->pic_lpd1_lvl = is_base ? 0 : 5;
+            }
+        } else if (enc_mode <= ENC_M10) {
+            if (input_resolution <= INPUT_SIZE_480p_RANGE) {
+                pcs->pic_lpd1_lvl = is_islice ? 0 : is_base ? 1 : 3;
+            } else {
+                pcs->pic_lpd1_lvl = is_base ? 0 : 5;
+            }
+        } else if (enc_mode <= ENC_M11) {
+            pcs->pic_lpd1_lvl = is_islice ? 0 : is_base ? 1 : 5;
+        } else {
+            pcs->pic_lpd1_lvl = is_islice ? 0 : is_base ? 4 : 7;
+        }
+    } else {
+        if (enc_mode <= ENC_M6) {
+            pcs->pic_lpd1_lvl = 0;
+        } else if (enc_mode <= ENC_M9) {
+            if (input_resolution <= INPUT_SIZE_360p_RANGE)
+                pcs->pic_lpd1_lvl = is_not_last_layer ? 0 : 2;
+            else if (input_resolution <= INPUT_SIZE_480p_RANGE)
+                pcs->pic_lpd1_lvl = is_base ? 0 : 2;
+            else {
+                pcs->pic_lpd1_lvl = is_base ? 0 : 3;
+            }
+        } else if (enc_mode <= ENC_M10) {
+            if (input_resolution <= INPUT_SIZE_480p_RANGE) {
+                if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL) {
+                    pcs->pic_lpd1_lvl = is_base ? 0 : 3;
+                } else if (pcs->coeff_lvl == HIGH_LVL) {
+                    pcs->pic_lpd1_lvl = is_base ? 0 : 5;
+                } else { // Regular
+                    pcs->pic_lpd1_lvl = is_base ? 0 : 4;
+                }
+            } else {
+                pcs->pic_lpd1_lvl = is_base ? 0 : 5;
+            }
+        } else if (enc_mode <= ENC_M11) {
+            pcs->pic_lpd1_lvl = is_base ? 0 : 7;
+        }
+        else {
+            pcs->pic_lpd1_lvl = is_islice ? 0 : is_base ? 3 : 7;
+        }
+    }
+#else
         if (enc_mode <= ENC_M6) {
             if (input_resolution <= INPUT_SIZE_360p_RANGE) {
                 if (pcs->coeff_lvl == HIGH_LVL)
@@ -10055,6 +10131,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         // Checking against 7, as 7 is the max level for lpd1_lvl. If max level for lpd1_lvl changes, the check should be updated
         pcs->pic_lpd1_lvl = MIN(pcs->pic_lpd1_lvl + 1, 7);
     }
+#endif
     // Can only use light-PD1 under the following conditions
     // There is another check before PD1 is called; pred_depth_only is not checked here, because some modes
     // may force pred_depth_only at the light-pd1 detector

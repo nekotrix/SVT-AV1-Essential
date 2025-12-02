@@ -81,6 +81,7 @@ extern "C" {
 #define FIX_FRAMES_SINCE_KEY        1 // align to libaom count
 #define OPT_ME_DIST_IN_RC           1 // Use 64x64 ME distortion for adjust_q_cbr_flat; update at every frame
 #define FIX_RATE_SPIKES             1 // Fix bit allocation behaviour that causes every 4th frame to be huge in flat pred structure
+#define OPT_LPD1_RTC                1 // Simplify and improve LPD1 for RTC
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
