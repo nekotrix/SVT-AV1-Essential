@@ -7350,7 +7350,12 @@ void svt_aom_sig_deriv_enc_dec_light_pd0(SequenceControlSet *scs, PictureControl
 
     uint8_t depth_early_exit_lvl = 1;
     // When only the predicted depth is used, use safe early exit THs
+#if OPT_RTC_VLPD0_DEPTH
+    if ((rtc_tune && !scs->use_flat_ipp && pcs->enc_mode <= ENC_M11 && pd0_level == VERY_LIGHT_PD0) ||
+        (rtc_tune && scs->use_flat_ipp && pcs->enc_mode <= ENC_M12 && pd0_level == VERY_LIGHT_PD0))
+#else
     if (rtc_tune && pd0_level == VERY_LIGHT_PD0)
+#endif
         depth_early_exit_lvl = 0;
     else if (pd0_level <= LPD0_LVL_0 || ctx->pic_pred_depth_only)
         depth_early_exit_lvl = 1;
@@ -7986,6 +7991,9 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
     else
         depth_early_exit_lvl = 2;
     set_depth_early_exit_ctrls(ctx, depth_early_exit_lvl);
+#if CLN_UNUSED_SIGS
+    set_obmc_controls(ctx, pd_pass == PD_PASS_0 ? 0 : ppcs->pic_obmc_level);
+#else
     // Set pic_obmc_level @ MD
     if (pd_pass == PD_PASS_0)
         ctx->md_pic_obmc_level = 0;
@@ -7993,6 +8001,7 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
         ctx->md_pic_obmc_level = pcs->ppcs->pic_obmc_level;
 
     set_obmc_controls(ctx, ctx->md_pic_obmc_level);
+#endif
     set_inter_intra_ctrls(ctx, pd_pass == PD_PASS_0 ? 0 : pcs->inter_intra_level);
     set_txs_controls(pcs, ctx, pd_pass == PD_PASS_0 ? 0 : pcs->txs_level);
     set_filter_intra_ctrls(ctx, pd_pass == PD_PASS_0 ? 0 : pcs->pic_filter_intra_level);

@@ -1045,12 +1045,16 @@ typedef struct ModeDecisionContext {
     // Control fast_coeff_est_level per mds
     uint8_t mds_fast_coeff_est_level;
     // Control subres_step per mds
-    uint8_t              mds_subres_step;
-    uint8_t              md_pic_obmc_level;
-    FilterIntraCtrls     filter_intra_ctrls;
-    uint8_t              md_allow_intrabc;
-    uint8_t              md_palette_level;
-    uint8_t              dist_based_ref_pruning;
+    uint8_t mds_subres_step;
+#if !CLN_UNUSED_SIGS
+    uint8_t md_pic_obmc_level;
+#endif
+    FilterIntraCtrls filter_intra_ctrls;
+    uint8_t          md_allow_intrabc;
+    uint8_t          md_palette_level;
+#if !CLN_UNUSED_SIGS
+    uint8_t dist_based_ref_pruning;
+#endif
     DepthRemovalCtrls    depth_removal_ctrls;
     DepthRefinementCtrls depth_refinement_ctrls;
     SkipSubDepthCtrls    skip_sub_depth_ctrls;

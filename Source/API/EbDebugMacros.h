@@ -87,6 +87,9 @@ extern "C" {
 #define OPT_SKIP_CANDS_LPD1         1 // Optimize how candidates are skipped in lpd1
 #define OPT_RATE_EST_FAST           1 // bypass some rate estimation steps for speed
 #define OPT_LPD1_TX_SKIP            1 // Optimize LPD1 TX skipping based on full cost estimate
+#define OPT_LPD0_RTC                1 // Unify LPD0-classifier between rtc and non-rtc
+#define OPT_RTC_VLPD0_DEPTH         1 // Enable depth early exit for VLPD0 in RTC M12. Aggressive tx shortcut level for RTC M12.
+#define CLN_UNUSED_SIGS             1 // Remove unused signals
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

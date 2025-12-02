@@ -2167,7 +2167,11 @@ static void exaustive_light_pd1_features(ModeDecisionContext *md_ctx, PicturePar
             md_ctx->spatial_sse_ctrls.level == SSSE_OFF && md_ctx->md_sq_me_ctrls.enabled == 0 &&
             md_ctx->md_pme_ctrls.enabled == 0 && md_ctx->txt_ctrls.enabled == 0 && md_ctx->unipred3x3_injection == 0 &&
             md_ctx->bipred3x3_ctrls.enabled == 0 && md_ctx->inter_comp_ctrls.tot_comp_types == 1 &&
+#if CLN_UNUSED_SIGS
+            md_ctx->obmc_ctrls.enabled == 0 && md_ctx->filter_intra_ctrls.enabled == 0 &&
+#else
             md_ctx->md_pic_obmc_level == 0 && md_ctx->filter_intra_ctrls.enabled == 0 &&
+#endif
             md_ctx->new_nearest_near_comb_injection == 0 && md_ctx->md_palette_level == 0 &&
             ppcs->gm_ctrls.enabled == 0 &&
             // If TXS enabled at picture level, there are necessary context updates that must be added to LPD1
@@ -2509,7 +2513,11 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
                     if (pcs->ppcs->ref_list0_count_try && is_ref_l0_avail) {
                         EbReferenceObject *ref_obj_l0 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+#if OPT_LPD0_RTC
+                        if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index || pcs->scs->use_flat_ipp) {
+#else
                         if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index) {
+#endif
                             l0_was_intra += ref_obj_l0->sb_intra[md_ctx->sb_index];
                             l0_refs++;
                         }
@@ -2522,7 +2530,11 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
                     if (pcs->ppcs->ref_list1_count_try && is_ref_l1_avail) {
                         EbReferenceObject *ref_obj_l1 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+#if OPT_LPD0_RTC
+                        if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index || pcs->scs->use_flat_ipp) {
+#else
                         if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index) {
+#endif
                             l1_was_intra += ref_obj_l1->sb_intra[md_ctx->sb_index];
                             l1_refs++;
                         }
@@ -3042,10 +3054,18 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                                 : 0;
 
                         // If LPD0 is used, a more conservative level can be set for complex SBs
+#if OPT_LPD0_RTC
+                        const bool use_lpd0_classifier = !scs->static_config.rtc || pcs->ppcs->sc_class1 ||
+                            pcs->enc_mode <= ENC_M9;
+                        if (use_lpd0_classifier && md_ctx->lpd0_ctrls.pd0_level > REGULAR_PD0) {
+                            lpd0_detector(pcs, md_ctx, pic_width_in_sb);
+                        }
+#else
                         const bool rtc_tune = scs->static_config.rtc;
                         if (!(rtc_tune && !pcs->ppcs->sc_class1) && md_ctx->lpd0_ctrls.pd0_level > REGULAR_PD0) {
                             lpd0_detector(pcs, md_ctx, pic_width_in_sb);
                         }
+#endif
 
                         // PD0 is only skipped if there is a single depth to test
                         if (skip_pd_pass_0)

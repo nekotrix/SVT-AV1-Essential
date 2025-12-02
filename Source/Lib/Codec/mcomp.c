@@ -623,7 +623,8 @@ int svt_av1_find_best_sub_pixel_tree_pruned(void *ictx, MacroBlockD *xd, const s
     if (early_neigh_check_exit)
         return besterr;
 #if OPT_SUBPEL_TH
-    const uint64_t th_normalizer = (uint64_t)(((var_params->w * var_params->h) << 5) * (uint64_t)ms_params->abs_th_mult);
+    const uint64_t th_normalizer = (uint64_t)(((var_params->w * var_params->h) << 5) *
+                                              (uint64_t)ms_params->abs_th_mult);
     if ((uint64_t)qp * besterr < th_normalizer)
         return besterr;
 #else
@@ -740,7 +741,8 @@ int svt_av1_find_best_sub_pixel_tree(void *ictx, MacroBlockD *xd, const struct A
     if (early_neigh_check_exit)
         return besterr;
 #if OPT_SUBPEL_TH
-    const uint64_t th_normalizer = (uint64_t)(((var_params->w * var_params->h) << 5) * (uint64_t)ms_params->abs_th_mult);
+    const uint64_t th_normalizer = (uint64_t)(((var_params->w * var_params->h) << 5) *
+                                              (uint64_t)ms_params->abs_th_mult);
     if ((uint64_t)qp * besterr < th_normalizer)
         return besterr;
 
