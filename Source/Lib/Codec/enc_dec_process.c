@@ -2186,7 +2186,7 @@ static void exaustive_light_pd1_features(ModeDecisionContext *md_ctx, PicturePar
 /* Light-PD1 classifier used when cost/coeff info is available.  If PD0 is skipped, or the trasnsform is
 not performed, a separate detector (lpd1_detector_skip_pd0) is used. */
 #if OPT_LPD1_RTC
-static void lpd1_detector_post_pd0(PictureControlSet* pcs, ModeDecisionContext* md_ctx) {
+static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *md_ctx) {
 #else
 static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *md_ctx, bool rtc_tune) {
 #endif
@@ -2290,7 +2290,7 @@ static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *
                         (((uint32_t)~0) >> 2) to avoid overflow issues from the multiplication. */
                     if (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] < (((uint32_t)~0) >> 2) &&
                         pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] >
-                        (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >> 5) * (73 - pcs->picture_qp))
+                            (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >> 5) * (73 - pcs->picture_qp))
                         md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
 #else
                     // lpd1 needs to be optimized for low-delay so that all modes can use the RA version of this check
@@ -2317,7 +2317,7 @@ static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *
 /* Light-PD1 classifier used when cost/coeff info is unavailable.  If PD0 is skipped, or the trasnsform is
 not performed, this detector is used (else lpd1_detector_post_pd0() is used). */
 #if OPT_LPD1_RTC
-static void lpd1_detector_skip_pd0(PictureControlSet* pcs, ModeDecisionContext* md_ctx, uint32_t pic_width_in_sb) {
+static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *md_ctx, uint32_t pic_width_in_sb) {
 #else
 static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *md_ctx, uint32_t pic_width_in_sb,
                                    bool rtc_tune) {
@@ -2435,7 +2435,7 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
                             (((uint32_t)~0) >> 2) to avoid overflow issues from the multiplication. */
                         if (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] < (((uint32_t)~0) >> 2) &&
                             pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] >
-                            (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >> 5) * (73 - pcs->picture_qp))
+                                (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >> 5) * (73 - pcs->picture_qp))
                             md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
 #else
                         // lpd1 needs to be optimized for low-delay so that all modes can use the RA version of this check

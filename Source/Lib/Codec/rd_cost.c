@@ -1021,7 +1021,10 @@ static uint64_t av1_inter_fast_cost_light(struct ModeDecisionContext *ctx, BlkSt
     const uint8_t        is_compound         = is_inter_compound_mode(cand->block_mi.mode);
     const uint32_t       mode_context        = svt_aom_mode_context_analyzer(ctx->inter_mode_ctx[ref_frame_type], rf);
     uint64_t             reference_picture_bits_num = 0;
-    reference_picture_bits_num                      = ctx->estimate_ref_frames_num_bits[ref_frame_type];
+#if OPT_RATE_EST_FAST
+    if (ctx->approx_inter_rate < 2)
+#endif
+        reference_picture_bits_num = ctx->estimate_ref_frames_num_bits[ref_frame_type];
     if (is_compound) {
         assert(INTER_COMPOUND_OFFSET(inter_mode) < INTER_COMPOUND_MODES);
         inter_mode_bits_num += r->inter_compound_mode_fac_bits[mode_context][INTER_COMPOUND_OFFSET(inter_mode)];

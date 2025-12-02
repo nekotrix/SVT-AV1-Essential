@@ -517,7 +517,18 @@ typedef struct NicCtrls {
 } NicCtrls;
 typedef struct CandEliminationCtlrs {
     uint32_t enabled;
-    uint8_t  dc_only;
+#if OPT_SKIP_CANDS_LPD1
+    // if inter distortion is below dc_only_th * block_area then test DC only for intra candidates
+    // inter distortion can be from pme/subpel or MDS0 (for LPD1 only)
+    // 0: off, higher is more aggressive
+    uint16_t dc_only_th;
+    // if inter distortion is below skip_dc_th * block_area then skip testing intra candidates
+    // skip_dc_th active in LPD1 MDS0 only.
+    // 0: off, higher is more aggressive
+    uint16_t skip_dc_th;
+#else
+    uint8_t dc_only;
+#endif
 } CandEliminationCtlrs;
 typedef struct NsqGeomCtrls {
     // Enable or disable nsq signal. 0: disabled, 1: enabled
@@ -1171,7 +1182,7 @@ typedef struct ModeDecisionContext {
     uint8_t pd1_lvl_refinement;
 #else
     // Refines the pd1_level per SB. 0: OFF, 1: conservative 2: Aggressive
-    uint8_t         pd1_lvl_refinement;
+    uint8_t pd1_lvl_refinement;
 #endif
     SpatialSSECtrls spatial_sse_ctrls;
 
@@ -1179,8 +1190,14 @@ typedef struct ModeDecisionContext {
     // set to true if MDS3 needs to perform a full 10bit compensation in MDS3 (to make MDS3
     // conformant when using bypass_encdec)
     uint8_t need_hbd_comp_mds3;
+#if OPT_RATE_EST_FAST
     // use approximate rate for inter cost (set at pic-level b/c some pic-level initializations will
     // be removed)
+    // 0: off, 1: on, 2: on (more aggressive)
+#else
+    // use approximate rate for inter cost (set at pic-level b/c some pic-level initializations will
+    // be removed)
+#endif
     uint8_t approx_inter_rate;
     // Enable pSad
     uint8_t     enable_psad;
@@ -1198,9 +1215,16 @@ typedef struct ModeDecisionContext {
     // Signal to skip INTER TX in LPD1; should only be used by M13 as this causes blocking
     // artifacts. 0: OFF, 1: Skip INTER TX if neighs have 0 coeffs, 2: skip all INTER TX
     uint8_t lpd1_skip_inter_tx_level;
+#if OPT_LPD1_TX_SKIP
+    // Specifies the threshold to bypass transform in LPD1 based on full cost estimate.
+    // 0: OFF (no bypassing)
+    // The higher the number, the more aggressive the feature is
+    uint8_t lpd1_bypass_tx_th;
+#else
     // Specifies the threshold divisor to bypass transform in LPD1. 0: OFF (no bypassing)
     // The lower the number, the more aggressive the feature is
     uint8_t lpd1_bypass_tx_th_div;
+#endif
     // chroma components to compensate at MDS3 of LPD1
     COMPONENT_TYPE lpd1_chroma_comp;
     uint8_t        lpd1_shift_mds0_dist;

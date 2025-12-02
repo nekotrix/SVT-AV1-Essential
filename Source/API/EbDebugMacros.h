@@ -83,6 +83,10 @@ extern "C" {
 #define FIX_RATE_SPIKES             1 // Fix bit allocation behaviour that causes every 4th frame to be huge in flat pred structure
 #define OPT_LPD1_RTC                1 // Simplify and improve LPD1 for RTC
 #define OPT_REMOVE_ENH_BASE         1 // Remove LD enhanced base frame
+#define OPT_SUBPEL_TH               1 // Optimize subpel skipping equation
+#define OPT_SKIP_CANDS_LPD1         1 // Optimize how candidates are skipped in lpd1
+#define OPT_RATE_EST_FAST           1 // bypass some rate estimation steps for speed
+#define OPT_LPD1_TX_SKIP            1 // Optimize LPD1 TX skipping based on full cost estimate
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

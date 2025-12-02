@@ -362,8 +362,14 @@ typedef struct PictureControlSet {
     uint64_t avg_me_clpx;
     uint64_t min_me_clpx;
     uint64_t max_me_clpx;
+#if OPT_RATE_EST_FAST
     // use approximate rate for inter cost (set at pic-level b/c some pic-level initializations will
     // be removed)
+    // 0: off, 1: on, 2: on (more aggressive)
+#else
+    // use approximate rate for inter cost (set at pic-level b/c some pic-level initializations will
+    // be removed)
+#endif
     uint8_t  approx_inter_rate;
     uint8_t  skip_intra;
     uint16_t lambda_weight;
@@ -1079,7 +1085,7 @@ typedef struct PictureParentControlSet {
     StatStruct                      stat_struct;
     CyclicRefresh                   cyclic_refresh;
 #if !OPT_REMOVE_ENH_BASE
-    bool                            ld_enhanced_base_frame; // enhanced periodic base layer frames used in LD
+    bool ld_enhanced_base_frame; // enhanced periodic base layer frames used in LD
 #endif
     bool                            update_ref_count; // Update ref count
     bool                            use_accurate_part_ctx;

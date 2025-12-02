@@ -3718,7 +3718,11 @@ static void md_subpel_me_controls(ModeDecisionContext *ctx, uint8_t md_subpel_me
         md_subpel_me_ctrls->max_precision         = QUARTER_PEL;
         md_subpel_me_ctrls->subpel_search_method  = SUBPEL_TREE_PRUNED;
         md_subpel_me_ctrls->pred_variance_th      = 50;
-        md_subpel_me_ctrls->abs_th_mult           = 2;
+#if OPT_SUBPEL_TH
+        md_subpel_me_ctrls->abs_th_mult = 8;
+#else
+        md_subpel_me_ctrls->abs_th_mult = 2;
+#endif
         md_subpel_me_ctrls->round_dev_th          = MAX_SIGNED_VALUE;
         md_subpel_me_ctrls->skip_diag_refinement  = 3;
         md_subpel_me_ctrls->skip_zz_mv            = 0;
@@ -3734,7 +3738,11 @@ static void md_subpel_me_controls(ModeDecisionContext *ctx, uint8_t md_subpel_me
         md_subpel_me_ctrls->max_precision         = QUARTER_PEL;
         md_subpel_me_ctrls->subpel_search_method  = SUBPEL_TREE_PRUNED;
         md_subpel_me_ctrls->pred_variance_th      = 100;
-        md_subpel_me_ctrls->abs_th_mult           = 2;
+#if OPT_SUBPEL_TH
+        md_subpel_me_ctrls->abs_th_mult = 8;
+#else
+        md_subpel_me_ctrls->abs_th_mult = 2;
+#endif
 #if TUNE_RTC_RA_PRESETS
         md_subpel_me_ctrls->round_dev_th = -15;
 #else
@@ -3754,7 +3762,11 @@ static void md_subpel_me_controls(ModeDecisionContext *ctx, uint8_t md_subpel_me
         md_subpel_me_ctrls->max_precision         = QUARTER_PEL;
         md_subpel_me_ctrls->subpel_search_method  = SUBPEL_TREE_PRUNED;
         md_subpel_me_ctrls->pred_variance_th      = 100;
-        md_subpel_me_ctrls->abs_th_mult           = 2;
+#if OPT_SUBPEL_TH
+        md_subpel_me_ctrls->abs_th_mult = 8;
+#else
+        md_subpel_me_ctrls->abs_th_mult = 2;
+#endif
 #if TUNE_RTC_RA_PRESETS
         md_subpel_me_ctrls->round_dev_th = -25;
 #else
@@ -3778,7 +3790,11 @@ static void md_subpel_me_controls(ModeDecisionContext *ctx, uint8_t md_subpel_me
         md_subpel_me_ctrls->max_precision         = HALF_PEL;
         md_subpel_me_ctrls->subpel_search_method  = SUBPEL_TREE_PRUNED;
         md_subpel_me_ctrls->pred_variance_th      = 100;
-        md_subpel_me_ctrls->abs_th_mult           = 2;
+#if OPT_SUBPEL_TH
+        md_subpel_me_ctrls->abs_th_mult = 8;
+#else
+        md_subpel_me_ctrls->abs_th_mult = 2;
+#endif
         md_subpel_me_ctrls->round_dev_th          = -25;
         md_subpel_me_ctrls->skip_diag_refinement  = 4;
         md_subpel_me_ctrls->skip_zz_mv            = 1;
@@ -4209,7 +4225,13 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
                                      uint32_t me_64x64_distortion, uint8_t l0_was_skip, uint8_t l1_was_skip,
                                      uint8_t ref_skip_perc) {
     CandReductionCtrls *cand_reduction_ctrls = &ctx->cand_reduction_ctrls;
-    const bool          rtc_tune             = pcs->scs->static_config.rtc;
+#if OPT_SKIP_CANDS_LPD1
+    const bool is_lpd1           = ctx->lpd1_ctrls.pd1_level > REGULAR_PD1;
+    const bool is_not_last_layer = !pcs->ppcs->is_highest_layer;
+    const bool use_flat_ipp      = pcs->scs->use_flat_ipp;
+#else
+    const bool rtc_tune = pcs->scs->static_config.rtc;
+#endif
     switch (cand_reduction_level) {
     case 0:
         // Filter INTRA reduction
@@ -4267,7 +4289,11 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
         cand_reduction_ctrls->redundant_cand_ctrls.score_th = 0;
 
         // use_neighbouring_mode
+#if OPT_SKIP_CANDS_LPD1
+        cand_reduction_ctrls->use_neighbouring_mode_ctrls.enabled = 1;
+#else
         cand_reduction_ctrls->use_neighbouring_mode_ctrls.enabled = rtc_tune ? 0 : 1;
+#endif
 
         // near_count_ctrls
         cand_reduction_ctrls->near_count_ctrls.enabled         = 1;
@@ -4279,7 +4305,15 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
 
         // cand_elimination_ctrls
         cand_reduction_ctrls->cand_elimination_ctrls.enabled = 1;
+#if OPT_SKIP_CANDS_LPD1
+        cand_reduction_ctrls->cand_elimination_ctrls.dc_only_th = is_lpd1 ? (use_flat_ipp            ? 200
+                                                                                 : is_not_last_layer ? 30
+                                                                                                     : 200)
+                                                                          : (is_not_last_layer ? 10 : 200);
+        cand_reduction_ctrls->cand_elimination_ctrls.skip_dc_th = 0;
+#else
         cand_reduction_ctrls->cand_elimination_ctrls.dc_only = 1;
+#endif
 
         // reduce_unipred_candidates
         cand_reduction_ctrls->reduce_unipred_candidates = 0;
@@ -4293,7 +4327,11 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
         cand_reduction_ctrls->redundant_cand_ctrls.score_th = 0;
 
         // use_neighbouring_mode
+#if OPT_SKIP_CANDS_LPD1
+        cand_reduction_ctrls->use_neighbouring_mode_ctrls.enabled = 1;
+#else
         cand_reduction_ctrls->use_neighbouring_mode_ctrls.enabled = rtc_tune ? 0 : 1;
+#endif
 
         // near_count_ctrls
         cand_reduction_ctrls->near_count_ctrls.enabled         = 1;
@@ -4305,7 +4343,15 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
 
         // cand_elimination_ctrls
         cand_reduction_ctrls->cand_elimination_ctrls.enabled = 1;
+#if OPT_SKIP_CANDS_LPD1
+        cand_reduction_ctrls->cand_elimination_ctrls.dc_only_th = is_lpd1 ? (use_flat_ipp            ? 200
+                                                                                 : is_not_last_layer ? 30
+                                                                                                     : 200)
+                                                                          : (is_not_last_layer ? 10 : 200);
+        cand_reduction_ctrls->cand_elimination_ctrls.skip_dc_th = 0;
+#else
         cand_reduction_ctrls->cand_elimination_ctrls.dc_only = 1;
+#endif
 
         // reduce_unipred_candidates
         cand_reduction_ctrls->reduce_unipred_candidates = 1;
@@ -4320,7 +4366,11 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
         cand_reduction_ctrls->redundant_cand_ctrls.mag_th   = 64;
 
         // use_neighbouring_mode
+#if OPT_SKIP_CANDS_LPD1
+        cand_reduction_ctrls->use_neighbouring_mode_ctrls.enabled = 1;
+#else
         cand_reduction_ctrls->use_neighbouring_mode_ctrls.enabled = rtc_tune ? 0 : 1;
+#endif
 
         // near_count_ctrls
         cand_reduction_ctrls->near_count_ctrls.enabled         = 1;
@@ -4332,7 +4382,15 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
 
         // cand_elimination_ctrls
         cand_reduction_ctrls->cand_elimination_ctrls.enabled = 1;
+#if OPT_SKIP_CANDS_LPD1
+        cand_reduction_ctrls->cand_elimination_ctrls.dc_only_th = is_lpd1 ? (use_flat_ipp            ? 600
+                                                                                 : is_not_last_layer ? 30
+                                                                                                     : 600)
+                                                                          : (is_not_last_layer ? 10 : 200);
+        cand_reduction_ctrls->cand_elimination_ctrls.skip_dc_th = 0;
+#else
         cand_reduction_ctrls->cand_elimination_ctrls.dc_only = 1;
+#endif
 
         // reduce_unipred_candidates
         cand_reduction_ctrls->reduce_unipred_candidates = 1;
@@ -4347,7 +4405,11 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
         cand_reduction_ctrls->redundant_cand_ctrls.mag_th   = 64;
 
         // use_neighbouring_mode
+#if OPT_SKIP_CANDS_LPD1
+        cand_reduction_ctrls->use_neighbouring_mode_ctrls.enabled = 1;
+#else
         cand_reduction_ctrls->use_neighbouring_mode_ctrls.enabled = rtc_tune ? 0 : 1;
+#endif
 
         // near_count_ctrls
         cand_reduction_ctrls->near_count_ctrls.enabled         = 1;
@@ -4359,7 +4421,15 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
 
         // cand_elimination_ctrls
         cand_reduction_ctrls->cand_elimination_ctrls.enabled = 1;
+#if OPT_SKIP_CANDS_LPD1
+        cand_reduction_ctrls->cand_elimination_ctrls.dc_only_th = is_lpd1 ? (use_flat_ipp            ? 800
+                                                                                 : is_not_last_layer ? 30
+                                                                                                     : 600)
+                                                                          : (is_not_last_layer ? 10 : 200);
+        cand_reduction_ctrls->cand_elimination_ctrls.skip_dc_th = is_not_last_layer ? 5 : 15;
+#else
         cand_reduction_ctrls->cand_elimination_ctrls.dc_only = 1;
+#endif
 
         // reduce_unipred_candidates
         cand_reduction_ctrls->reduce_unipred_candidates = (pcs->ppcs->is_highest_layer ||
@@ -4378,7 +4448,11 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
         cand_reduction_ctrls->redundant_cand_ctrls.mag_th   = 64;
 
         // use_neighbouring_mode
+#if OPT_SKIP_CANDS_LPD1
+        cand_reduction_ctrls->use_neighbouring_mode_ctrls.enabled = 1;
+#else
         cand_reduction_ctrls->use_neighbouring_mode_ctrls.enabled = rtc_tune ? 0 : 1;
+#endif
 
         // near_count_ctrls
         cand_reduction_ctrls->near_count_ctrls.enabled         = 1;
@@ -4390,7 +4464,15 @@ static void set_cand_reduction_ctrls(PictureControlSet *pcs, ModeDecisionContext
 
         // cand_elimination_ctrls
         cand_reduction_ctrls->cand_elimination_ctrls.enabled = 1;
+#if OPT_SKIP_CANDS_LPD1
+        cand_reduction_ctrls->cand_elimination_ctrls.dc_only_th = is_lpd1 ? (use_flat_ipp            ? 800
+                                                                                 : is_not_last_layer ? 30
+                                                                                                     : 600)
+                                                                          : (is_not_last_layer ? 10 : 200);
+        cand_reduction_ctrls->cand_elimination_ctrls.skip_dc_th = is_not_last_layer ? 5 : 15;
+#else
         cand_reduction_ctrls->cand_elimination_ctrls.dc_only = 1;
+#endif
 
         // reduce_unipred_candidates
         cand_reduction_ctrls->reduce_unipred_candidates = (pcs->ppcs->is_highest_layer ||
@@ -7115,7 +7197,7 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
     const bool allintra = scs->allintra;
 #endif
 #if OPT_LPD1_RTC
-    const bool    is_not_last_layer = !pcs->ppcs->is_highest_layer;
+    const bool is_not_last_layer = !pcs->ppcs->is_highest_layer;
 #endif
     set_block_based_depth_refinement_controls(ctx, pcs->pic_block_based_depth_refinement_level);
 
@@ -7180,9 +7262,11 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
             if (pcs->slice_type != I_SLICE) {
                 int me_8x8 = pcs->ppcs->me_8x8_cost_variance[ctx->sb_index];
 #if TUNE_RTC_RA_PRESETS
-                int th     = ((!scs->use_flat_ipp && enc_mode <= ENC_M8) || (scs->use_flat_ipp && enc_mode <= ENC_M9)) ? 3 * ctx->qp_index : 3000;
+                int th = ((!scs->use_flat_ipp && enc_mode <= ENC_M8) || (scs->use_flat_ipp && enc_mode <= ENC_M9))
+                    ? 3 * ctx->qp_index
+                    : 3000;
 #else
-                int th     = enc_mode <= ENC_M8 ? 3 * ctx->qp_index : 3000;
+                int th = enc_mode <= ENC_M8 ? 3 * ctx->qp_index : 3000;
 #endif
 
                 // when lpd1 is optimized, this lpd1_lvl == 0 check should be removed, leaving only the lpd1_lvl +=2 statement
@@ -7466,6 +7550,18 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
     uint8_t cand_reduction_level = 0;
     if (is_islice) {
         cand_reduction_level = 0;
+#if OPT_SKIP_CANDS_LPD1
+    } else {
+        if (lpd1_level <= LPD1_LVL_0)
+            cand_reduction_level = 2;
+        else if (lpd1_level <= LPD1_LVL_2)
+            cand_reduction_level = 3;
+        else if (lpd1_level <= LPD1_LVL_3)
+            cand_reduction_level = 4;
+        else
+            cand_reduction_level = 5;
+    }
+#else
     } else if (rtc_tune) {
         if (lpd1_level <= LPD1_LVL_0)
             cand_reduction_level = 2;
@@ -7485,6 +7581,7 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
         else
             cand_reduction_level = 6;
     }
+#endif
     if (ppcs->scs->rc_stat_gen_pass_mode)
         cand_reduction_level = 6;
     set_cand_reduction_ctrls(pcs,
@@ -7687,6 +7784,15 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
             }
         }
     }
+#if OPT_LPD1_TX_SKIP
+    ctx->lpd1_bypass_tx_th = 0;
+    if (rtc_tune) {
+        if (lpd1_level <= LPD1_LVL_0)
+            ctx->lpd1_bypass_tx_th = 100;
+        else
+            ctx->lpd1_bypass_tx_th = 200;
+    }
+#else
     // 0: Feature off
     // Lower the threshold, the more aggressive the feature is
     ctx->lpd1_bypass_tx_th_div = 0;
@@ -7698,6 +7804,7 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
         else
             ctx->lpd1_bypass_tx_th_div = 3;
     }
+#endif
     uint8_t rate_est_level = 0;
     if (lpd1_level <= LPD1_LVL_0)
         rate_est_level = 4;
@@ -7705,9 +7812,16 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
         rate_est_level = 0;
     set_rate_est_ctrls(ctx, rate_est_level);
 
+#if OPT_RATE_EST_FAST
+    // If want to turn off approximating inter rate, must ensure that the approximation is also disabled
+    // at the pic level (pcs->approx_inter_rate)
+    // If the pic level signal is set more aggressive than the default lpd1 setting (lvl 1), use the pic level.
+    ctx->approx_inter_rate = MAX(1, pcs->approx_inter_rate);
+#else
     // If want to turn off approximating inter rate, must ensure that the approximation is also disabled
     // at the pic level (pcs->approx_inter_rate)
     ctx->approx_inter_rate = 1;
+#endif
 
     uint8_t pf_level = 1;
 #if !FIX_RATE_SPIKES
@@ -8709,34 +8823,34 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
 #endif
         if (rtc_tune) {
 #if OPT_REMOVE_ENH_BASE
-            if (sc_class1) {
-                if (enc_mode <= ENC_M9) {
-                    pcs->pic_lpd0_lvl = is_base ? 5 : 7;
-                } else {
-                    pcs->pic_lpd0_lvl = is_islice ? 5 : 7;
-                }
+        if (sc_class1) {
+            if (enc_mode <= ENC_M9) {
+                pcs->pic_lpd0_lvl = is_base ? 5 : 7;
             } else {
-                if (enc_mode <= ENC_M7) {
-                    if (input_resolution <= INPUT_SIZE_360p_RANGE)
-                        pcs->pic_lpd0_lvl = is_islice ? 0 : 1;
-                    else
-                        pcs->pic_lpd0_lvl = is_base ? 3 : 4;
-                } else if (enc_mode <= ENC_M8) {
-                    if (input_resolution <= INPUT_SIZE_360p_RANGE)
-                        pcs->pic_lpd0_lvl = is_islice ? 1 : 3;
-                    else
-                        pcs->pic_lpd0_lvl = is_base ? 3 : 5;
-                } else if (enc_mode <= ENC_M9) {
-                    if (input_resolution <= INPUT_SIZE_360p_RANGE)
-                        pcs->pic_lpd0_lvl = is_base ? 5 : 7;
-                    else
-                        pcs->pic_lpd0_lvl = is_base ? 3 : 5;
-                } else if (enc_mode <= ENC_M10) {
-                    pcs->pic_lpd0_lvl = is_base ? 5 : 7;
-                } else {
-                    pcs->pic_lpd0_lvl = (is_islice || transition_present) ? 6 : 7;
-                }
+                pcs->pic_lpd0_lvl = is_islice ? 5 : 7;
             }
+        } else {
+            if (enc_mode <= ENC_M7) {
+                if (input_resolution <= INPUT_SIZE_360p_RANGE)
+                    pcs->pic_lpd0_lvl = is_islice ? 0 : 1;
+                else
+                    pcs->pic_lpd0_lvl = is_base ? 3 : 4;
+            } else if (enc_mode <= ENC_M8) {
+                if (input_resolution <= INPUT_SIZE_360p_RANGE)
+                    pcs->pic_lpd0_lvl = is_islice ? 1 : 3;
+                else
+                    pcs->pic_lpd0_lvl = is_base ? 3 : 5;
+            } else if (enc_mode <= ENC_M9) {
+                if (input_resolution <= INPUT_SIZE_360p_RANGE)
+                    pcs->pic_lpd0_lvl = is_base ? 5 : 7;
+                else
+                    pcs->pic_lpd0_lvl = is_base ? 3 : 5;
+            } else if (enc_mode <= ENC_M10) {
+                pcs->pic_lpd0_lvl = is_base ? 5 : 7;
+            } else {
+                pcs->pic_lpd0_lvl = (is_islice || transition_present) ? 6 : 7;
+            }
+        }
 #else
         if (sc_class1) {
             if (enc_mode <= ENC_M9) {
@@ -9250,6 +9364,21 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     // Switchable Motion Mode
     frm_hdr->is_motion_mode_switchable = frm_hdr->is_motion_mode_switchable || ppcs->pic_obmc_level;
 
+#if OPT_RATE_EST_FAST
+    if (rtc_tune) {
+        if (enc_mode <= ENC_M8)
+            pcs->approx_inter_rate = 0;
+        else if (enc_mode <= ENC_M10)
+            pcs->approx_inter_rate = 1;
+        else
+            pcs->approx_inter_rate = 2;
+    } else {
+        if (enc_mode <= ENC_M9)
+            pcs->approx_inter_rate = 0;
+        else
+            pcs->approx_inter_rate = 1;
+    }
+#else
     if (rtc_tune) {
         if (enc_mode <= ENC_M8)
             pcs->approx_inter_rate = 0;
@@ -9261,6 +9390,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         else
             pcs->approx_inter_rate = 1;
     }
+#endif
     if (is_islice || transition_present)
         pcs->skip_intra = 0;
     else if (rtc_tune) {
@@ -10110,8 +10240,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
             }
         } else if (enc_mode <= ENC_M11) {
             pcs->pic_lpd1_lvl = is_base ? 0 : 7;
-        }
-        else {
+        } else {
             pcs->pic_lpd1_lvl = is_islice ? 0 : is_base ? 3 : 7;
         }
     }
