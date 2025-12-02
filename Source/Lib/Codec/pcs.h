@@ -1078,7 +1078,9 @@ typedef struct PictureParentControlSet {
     struct PictureParentControlSet *gf_group[MAX_TPL_GROUP_SIZE];
     StatStruct                      stat_struct;
     CyclicRefresh                   cyclic_refresh;
+#if !OPT_REMOVE_ENH_BASE
     bool                            ld_enhanced_base_frame; // enhanced periodic base layer frames used in LD
+#endif
     bool                            update_ref_count; // Update ref count
     bool                            use_accurate_part_ctx;
     uint16_t                        max_can_count;

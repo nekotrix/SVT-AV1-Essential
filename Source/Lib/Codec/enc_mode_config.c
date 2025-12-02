@@ -2371,12 +2371,14 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
         pcs->use_best_me_unipred_cand_only = 0;
     else
         pcs->use_best_me_unipred_cand_only = 1;
+#if !OPT_REMOVE_ENH_BASE
     const uint8_t ld_enhanced_base_frame_interval = 12;
     pcs->ld_enhanced_base_frame =
         (rtc_tune && is_base && !is_islice &&
          ((pcs->picture_number - scs->enc_ctx->last_idr_picture) % ld_enhanced_base_frame_interval == 0))
         ? 1
         : 0;
+#endif
 #if TUNE_RTC_RA_PRESETS
     pcs->update_ref_count = 0;
 #else
@@ -8706,6 +8708,36 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
     } else
 #endif
         if (rtc_tune) {
+#if OPT_REMOVE_ENH_BASE
+            if (sc_class1) {
+                if (enc_mode <= ENC_M9) {
+                    pcs->pic_lpd0_lvl = is_base ? 5 : 7;
+                } else {
+                    pcs->pic_lpd0_lvl = is_islice ? 5 : 7;
+                }
+            } else {
+                if (enc_mode <= ENC_M7) {
+                    if (input_resolution <= INPUT_SIZE_360p_RANGE)
+                        pcs->pic_lpd0_lvl = is_islice ? 0 : 1;
+                    else
+                        pcs->pic_lpd0_lvl = is_base ? 3 : 4;
+                } else if (enc_mode <= ENC_M8) {
+                    if (input_resolution <= INPUT_SIZE_360p_RANGE)
+                        pcs->pic_lpd0_lvl = is_islice ? 1 : 3;
+                    else
+                        pcs->pic_lpd0_lvl = is_base ? 3 : 5;
+                } else if (enc_mode <= ENC_M9) {
+                    if (input_resolution <= INPUT_SIZE_360p_RANGE)
+                        pcs->pic_lpd0_lvl = is_base ? 5 : 7;
+                    else
+                        pcs->pic_lpd0_lvl = is_base ? 3 : 5;
+                } else if (enc_mode <= ENC_M10) {
+                    pcs->pic_lpd0_lvl = is_base ? 5 : 7;
+                } else {
+                    pcs->pic_lpd0_lvl = (is_islice || transition_present) ? 6 : 7;
+                }
+            }
+#else
         if (sc_class1) {
             if (enc_mode <= ENC_M9) {
                 if (coeff_lvl == VLOW_LVL || coeff_lvl == LOW_LVL) {
@@ -8782,17 +8814,22 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
                     pcs->pic_lpd0_lvl = (is_islice || transition_present) ? 6 : 7;
             }
         }
+#endif
     } else {
         if (enc_mode <= ENC_M3)
             pcs->pic_lpd0_lvl = 0;
         else if (enc_mode <= ENC_M4)
             pcs->pic_lpd0_lvl = 1;
+#if TUNE_RTC_RA_PRESETS
+        else if (enc_mode <= ENC_M7) {
+#else
         else if (enc_mode <= ENC_M5) {
             if (input_resolution <= INPUT_SIZE_360p_RANGE)
                 pcs->pic_lpd0_lvl = 3;
             else
                 pcs->pic_lpd0_lvl = (is_base || transition_present) ? 3 : 5;
         } else if (enc_mode <= ENC_M7) {
+#endif
             if (input_resolution <= INPUT_SIZE_360p_RANGE)
                 pcs->pic_lpd0_lvl = 3;
             else if (input_resolution <= INPUT_SIZE_480p_RANGE)
@@ -8828,7 +8865,11 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
                     pcs->pic_lpd0_lvl = (is_base || transition_present) ? MIN(MAX_LDP0_LVL, 3 + qp_offset)
                                                                         : MIN(MAX_LDP0_LVL, 5 + qp_offset);
             }
+#if TUNE_RTC_RA_PRESETS
+        } else if (enc_mode <= ENC_M10) {
+#else
         } else {
+#endif
             if (input_resolution <= INPUT_SIZE_360p_RANGE) {
                 // For seq_qp_mode 3, there is no conservative offset to disallow because the qp offset is limited to at least 0
                 const int qp_offset = (seq_qp_mod <= 1) ? 0 : (int)ldp0_lvl_offset[qp_band_idx];
@@ -8855,6 +8896,28 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
                     pcs->pic_lpd0_lvl = (is_base || transition_present) ? MIN(MAX_LDP0_LVL, 3 + qp_offset)
                                                                         : MIN(MAX_LDP0_LVL, 5 + qp_offset);
             }
+#if TUNE_RTC_RA_PRESETS
+        } else {
+            if (input_resolution <= INPUT_SIZE_360p_RANGE) {
+                // For seq_qp_mode 3, there is no conservative offset to disallow because the qp offset is limited to at least 0
+                const int qp_offset = (seq_qp_mod <= 1) ? 0 : (int)ldp0_lvl_offset[qp_band_idx];
+                if (coeff_lvl == VLOW_LVL || coeff_lvl == LOW_LVL) {
+                    pcs->pic_lpd0_lvl = (is_base || transition_present) ? MIN(MAX_LDP0_LVL, 3 + qp_offset)
+                                                                        : MIN(MAX_LDP0_LVL, 5 + qp_offset);
+                } else if (coeff_lvl == NORMAL_LVL) {
+                    pcs->pic_lpd0_lvl = (is_base || transition_present) ? MIN(MAX_LDP0_LVL, 4 + qp_offset)
+                                                                        : MIN(MAX_LDP0_LVL, 6 + qp_offset);
+                } else {
+                    pcs->pic_lpd0_lvl = (is_base || transition_present) ? MIN(MAX_LDP0_LVL, 5 + qp_offset)
+                                                                        : MIN(MAX_LDP0_LVL, 7 + qp_offset);
+                }
+            } else {
+                if (coeff_lvl == HIGH_LVL)
+                    pcs->pic_lpd0_lvl = 7;
+                else
+                    pcs->pic_lpd0_lvl = (is_islice || transition_present) ? 6 : 7;
+            }
+#endif
         }
     }
     if (pcs->scs->super_block_size == 128) {
