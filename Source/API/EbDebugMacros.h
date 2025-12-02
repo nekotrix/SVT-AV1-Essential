@@ -77,6 +77,10 @@ extern "C" {
 #define EN_FLAT_ALL_PRESETS         1 // Enable flat pred structure for all RTC presets
 #define TUNE_RTC_RA_PRESETS         1 // Preset tuning for RTC mode and RA
 #define CLN_ME_SCALING              1 // Remove min ME search area scaling based on non-zero framerate (which is always true)
+#define OPT_RTC_FACTORS             1 // Use same RTC CBR factors as libaom
+#define FIX_FRAMES_SINCE_KEY        1 // align to libaom count
+#define OPT_ME_DIST_IN_RC           1 // Use 64x64 ME distortion for adjust_q_cbr_flat; update at every frame
+#define FIX_RATE_SPIKES             1 // Fix bit allocation behaviour that causes every 4th frame to be huge in flat pred structure
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

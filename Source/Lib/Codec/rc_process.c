@@ -614,11 +614,19 @@ int svt_av1_get_deltaq_offset(EbBitDepth bit_depth, int qindex, double beta, uin
 static int get_bpmb_enumerator_cbr(FRAME_TYPE frame_type, const int is_screen_content_type) {
     int enumerator;
 
+#if OPT_RTC_FACTORS
+    if (is_screen_content_type) {
+        enumerator = (frame_type == KEY_FRAME) ? 1000000 : 750000;
+    } else {
+        enumerator = (frame_type == KEY_FRAME) ? 1400000 : 1000000;
+    }
+#else
     if (is_screen_content_type) {
         enumerator = (frame_type == KEY_FRAME) ? 1000000 : 600000;
     } else {
         enumerator = (frame_type == KEY_FRAME) ? 1500000 : 1000000;
     }
+#endif
 
     return enumerator;
 }
@@ -2152,7 +2160,11 @@ static int adjust_q_cbr_flat(PictureParentControlSet *ppcs, int q) {
                 q = qclamp;
         }
         // Adjust Q base on source content change from scene detection.
+#if OPT_ME_DIST_IN_RC
+        if (rc->prev_avg_base_me_dist > 0 && rc->frames_since_key > 5 && rc->cur_avg_base_me_dist > 0) {
+#else
         if (rc->prev_avg_base_me_dist > 0 && rc->frames_since_key > 10 && rc->cur_avg_base_me_dist > 0) {
+#endif
             const int bit_depth = scs->static_config.encoder_bit_depth;
             double    delta     = (double)rc->cur_avg_base_me_dist / (double)rc->prev_avg_base_me_dist - 1.0;
             // Push Q downwards if content change is decreasing and buffer level
@@ -2200,7 +2212,11 @@ static int adjust_q_cbr(PictureParentControlSet *ppcs, int q) {
         (!enc_ctx->rc_cfg.gf_cbr_boost_pct ||
          !(ppcs->update_type == SVT_AV1_GF_UPDATE || ppcs->update_type == SVT_AV1_ARF_UPDATE))) {
         // Adjust Q base on source content change.
+#if OPT_ME_DIST_IN_RC
+        if (ppcs->temporal_layer_index == 0 && rc->prev_avg_base_me_dist > 0 && rc->frames_since_key > 5 &&
+#else
         if (ppcs->temporal_layer_index == 0 && rc->prev_avg_base_me_dist > 0 && rc->frames_since_key > 10 &&
+#endif
             rc->cur_avg_base_me_dist > 0) {
             const int bit_depth = scs->static_config.encoder_bit_depth;
             double    delta     = (double)rc->cur_avg_base_me_dist / (double)rc->prev_avg_base_me_dist - 1.0;
@@ -2295,8 +2311,15 @@ static int calc_active_worst_quality_no_stats_cbr(PictureParentControlSet *ppcs)
     svt_release_mutex(enc_ctx->frame_updated_mutex);
     ambient_qp = (frame_updated < 4) ? AOMMIN(rc->avg_frame_qindex[INTER_FRAME], rc->avg_frame_qindex[KEY_FRAME])
                                      : rc->avg_frame_qindex[INTER_FRAME];
+#if OPT_RTC_FACTORS
+    ambient_qp = AOMMIN(rc->worst_quality, ambient_qp);
+#else
     active_worst_quality = AOMMIN(rc->worst_quality, ambient_qp * 5 / 4);
+#endif
     if (rc->buffer_level > rc->optimal_buffer_level) {
+#if OPT_RTC_FACTORS
+        active_worst_quality = AOMMIN(rc->worst_quality, ambient_qp * 5 / 4);
+#endif
         // Adjust down.
         // Maximum limit for down adjustment, ~30%.
         int max_adjustment_down = active_worst_quality / 3;
@@ -2307,6 +2330,9 @@ static int calc_active_worst_quality_no_stats_cbr(PictureParentControlSet *ppcs)
             active_worst_quality -= adjustment;
         }
     } else if (rc->buffer_level > critical_level) {
+#if OPT_RTC_FACTORS
+        active_worst_quality = AOMMIN(rc->worst_quality, ambient_qp);
+#endif
         // Adjust up from ambient Q.
         if (critical_level) {
             buff_lvl_step = (rc->optimal_buffer_level - critical_level);
@@ -2314,7 +2340,11 @@ static int calc_active_worst_quality_no_stats_cbr(PictureParentControlSet *ppcs)
                 adjustment = (int)((rc->worst_quality - ambient_qp) * (rc->optimal_buffer_level - rc->buffer_level) /
                                    buff_lvl_step);
             }
+#if OPT_RTC_FACTORS
+            active_worst_quality += adjustment;
+#else
             active_worst_quality = ambient_qp + adjustment;
+#endif
         }
     } else {
         // Set to worst_quality if buffer is below critical level.
@@ -2668,6 +2698,10 @@ static void av1_rc_update_rate_correction_factors(PictureParentControlSet *ppcs,
     // Work out a size correction factor.
     if (projected_size_based_on_q > FRAME_OVERHEAD_BITS)
         correction_factor = (int)((100 * (int64_t)ppcs->projected_frame_size) / projected_size_based_on_q);
+#if OPT_RTC_FACTORS
+    // Clamp correction factor to prevent anything too extreme
+    correction_factor = AOMMAX(correction_factor, 25);
+#endif
     rc->q_2_frame  = rc->q_1_frame;
     rc->q_1_frame  = ppcs->frm_hdr.quantization_params.base_q_idx; //cm->quant_params.base_qindex;
     rc->rc_2_frame = rc->rc_1_frame;
@@ -2706,7 +2740,11 @@ static void av1_rc_update_rate_correction_factors(PictureParentControlSet *ppcs,
             rc->rate_ratio_qdelta_adjustment = AOMMIN(rc->rate_ratio_qdelta_adjustment + 0.05, 0.25);
         }
     }
+#if OPT_RTC_FACTORS
+    if (correction_factor > 101) {
+#else
     if (correction_factor > 102) {
+#endif
         // We are not already at the worst allowable quality
         correction_factor      = (int)(100 + ((correction_factor - 100) * adjustment_limit));
         rate_correction_factor = (rate_correction_factor * correction_factor) / 100;
@@ -2715,7 +2753,14 @@ static void av1_rc_update_rate_correction_factors(PictureParentControlSet *ppcs,
             rate_correction_factor = MAX_BPB_FACTOR;
     } else if (correction_factor < 99) {
         // We are not already at the best allowable quality
-        correction_factor      = (int)(100 - ((100 - correction_factor) * adjustment_limit));
+#if OPT_RTC_FACTORS
+        double tmp_corr_fac = 100 / (double)correction_factor;
+        tmp_corr_fac        = (1.0 + ((tmp_corr_fac - 1.0) * adjustment_limit));
+        tmp_corr_fac        = 1.0 / tmp_corr_fac;
+        correction_factor   = (int)(100 * tmp_corr_fac);
+#else
+        correction_factor = (int)(100 - ((100 - correction_factor) * adjustment_limit));
+#endif
         rate_correction_factor = (rate_correction_factor * correction_factor) / 100;
 
         // Keep rate_correction_factor within limits
@@ -3627,12 +3672,22 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                 rc->rate_average_periodin_frames = 60;
             // limit the average period to MAX_RATE_AVG_PERIOD
             rc->rate_average_periodin_frames = MIN(rc->rate_average_periodin_frames, MAX_RATE_AVG_PERIOD);
+
+#if OPT_ME_DIST_IN_RC
+            // Store the avg me distortion
+            if (pcs->ppcs->slice_type != I_SLICE) {
+#else
             // Store the avg me distortion for base layer pictures only
             if (pcs->ppcs->temporal_layer_index == 0 && pcs->ppcs->slice_type != I_SLICE) {
+#endif
                 rc->prev_avg_base_me_dist = rc->cur_avg_base_me_dist;
                 uint64_t avg_me_dist      = 0;
                 for (int b64_idx = 0; b64_idx < pcs->ppcs->b64_total_count; ++b64_idx) {
+#if OPT_ME_DIST_IN_RC
+                    avg_me_dist += pcs->ppcs->me_64x64_distortion[b64_idx];
+#else
                     avg_me_dist += pcs->ppcs->rc_me_distortion[b64_idx];
+#endif
                 }
                 avg_me_dist /= pcs->ppcs->b64_total_count;
                 rc->cur_avg_base_me_dist = (uint32_t)avg_me_dist;
@@ -3957,9 +4012,11 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                 // adjust delta q res and normalize superblock delta q values to reduce signaling overhead
                 svt_av1_normalize_sb_delta_q(pcs);
             }
+#if !FIX_FRAMES_SINCE_KEY
             if (scs->static_config.rate_control_mode && !is_superres_recode_task) {
                 svt_aom_update_rc_counts(pcs->ppcs);
             }
+#endif
 
             // Derive a QP per 64x64 using ME distortions (to be used for lambda modulation only; not at Q/Q-1)
             if (scs->stats_based_sb_lambda_modulation)
@@ -4006,6 +4063,9 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                     if (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR)
                         svt_av1_twopass_postencode_update(ppcs);
                 }
+#if FIX_FRAMES_SINCE_KEY
+                svt_aom_update_rc_counts(ppcs);
+#endif
             }
             // Queue variables
             if (scs->static_config.max_bit_rate)

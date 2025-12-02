@@ -7552,7 +7552,12 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
     set_mds0_controls(ctx, pcs->mds0_level);
 #endif
     uint8_t lpd1_tx_level = 0;
+#if FIX_RATE_SPIKES
+    // rtc forced to use lvl 3 because using the more aggressive levels for only non-base pictures causes concentrated bit allocation for flat rtc
+    if (lpd1_level <= LPD1_LVL_2 || rtc_tune)
+#else
     if (lpd1_level <= LPD1_LVL_2)
+#endif
         lpd1_tx_level = 3;
     else {
         lpd1_tx_level = 4;
@@ -7682,10 +7687,12 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
     ctx->approx_inter_rate = 1;
 
     uint8_t pf_level = 1;
+#if !FIX_RATE_SPIKES
     if (lpd1_level <= LPD1_LVL_4)
         pf_level = 1;
     else
         pf_level = 2;
+#endif
     set_pf_controls(ctx, pf_level);
 
     uint8_t intra_level = 0;

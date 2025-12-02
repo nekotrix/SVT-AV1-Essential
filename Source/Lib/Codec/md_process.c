@@ -630,7 +630,12 @@ void svt_aom_reset_mode_decision(SequenceControlSet *scs, ModeDecisionContext *c
     }
     //each segment enherits the bypass encdec from the picture level
     ctx->bypass_encdec = pcs->pic_bypass_encdec;
+
+#if FIX_RATE_SPIKES
+    if (!rtc_tune && (pcs->enc_mode <= ENC_M11 || pcs->temporal_layer_index != 0))
+#else
     if (!rtc_tune || pcs->temporal_layer_index != 0)
+#endif
         ctx->rtc_use_N4_dct_dct_shortcut = 1;
     else
         ctx->rtc_use_N4_dct_dct_shortcut = 0;
