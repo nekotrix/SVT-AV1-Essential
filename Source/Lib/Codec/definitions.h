@@ -149,6 +149,10 @@ typedef struct MrpCtrls {
     // 2: on; when each ref list uses <=1 refs, further reduce the number of ref frame buffers because only
     // one base and one layer1 pic are added to the dpb at a time.
     uint8_t ld_reduce_ref_buffs;
+#if OPT_ENABLE_MRP_FLAT
+    // When flat rtc structure is used, this is the number of refs to use (from previous consecutive frames)
+    uint8_t flat_max_refs;
+#endif
 
 } MrpCtrls;
 typedef struct TfControls {

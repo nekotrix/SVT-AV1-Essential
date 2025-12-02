@@ -538,13 +538,21 @@ static EbErrorType load_default_buffer_configuration_settings(
         uint8_t max_refs = dpb_frames;
         // For special, known, RPS structures and ref frame counts, we can reduce the number of ref buffers
         if (scs->use_flat_ipp) {
+#if OPT_ENABLE_MRP_FLAT
+            max_refs = scs->mrp_ctrls.flat_max_refs;
+#else
             max_refs = 1;
+#endif
             // For flat IPP the previous frame is always used as a reference. Therefore, that picture does
             // not require a special buffer for use as a TF ref.
             if (low_delay_tf_frames)
                 low_delay_tf_frames -= 1;
         } else if (scs->mrp_ctrls.ld_reduce_ref_buffs == 1)
+#if OPT_RPS_MRP_4_REFS
+            max_refs = 4;
+#else
             max_refs = 5;
+#endif
         else if (scs->mrp_ctrls.ld_reduce_ref_buffs == 2)
             max_refs = 2;
 
@@ -3488,6 +3496,76 @@ static void set_mrp_ctrl(SequenceControlSet* scs, uint8_t mrp_level) {
         mrp_ctrl->pme_ref0_only               = 1;
         mrp_ctrl->use_best_references         = 3;
         break;
+#if OPT_ENABLE_MRP_FLAT
+    case 8:
+        mrp_ctrl->referencing_scheme          = 0;
+        mrp_ctrl->sc_base_ref_list0_count     = 2;
+        mrp_ctrl->sc_base_ref_list1_count     = 2;
+        mrp_ctrl->sc_non_base_ref_list0_count = 1;
+        mrp_ctrl->sc_non_base_ref_list1_count = 1;
+        mrp_ctrl->base_ref_list0_count        = 2;
+        mrp_ctrl->base_ref_list1_count        = 2;
+        mrp_ctrl->non_base_ref_list0_count    = 2;
+        mrp_ctrl->non_base_ref_list1_count    = 2;
+        mrp_ctrl->more_5L_refs                = 0;
+        mrp_ctrl->safe_limit_nref             = 2;
+        mrp_ctrl->safe_limit_zz_th            = 60000;
+        mrp_ctrl->only_l_bwd                  = 1;
+        mrp_ctrl->pme_ref0_only               = 1;
+        mrp_ctrl->use_best_references         = 3;
+        break;
+    case 9:
+        mrp_ctrl->referencing_scheme          = 0;
+        mrp_ctrl->sc_base_ref_list0_count     = 2;
+        mrp_ctrl->sc_base_ref_list1_count     = 2;
+        mrp_ctrl->sc_non_base_ref_list0_count = 1;
+        mrp_ctrl->sc_non_base_ref_list1_count = 1;
+        mrp_ctrl->base_ref_list0_count        = 3;
+        mrp_ctrl->base_ref_list1_count        = 2;
+        mrp_ctrl->non_base_ref_list0_count    = 1;
+        mrp_ctrl->non_base_ref_list1_count    = 1;
+        mrp_ctrl->more_5L_refs                = 0;
+        mrp_ctrl->safe_limit_nref             = 2;
+        mrp_ctrl->safe_limit_zz_th            = 60000;
+        mrp_ctrl->only_l_bwd                  = 1;
+        mrp_ctrl->pme_ref0_only               = 1;
+        mrp_ctrl->use_best_references         = 3;
+        break;
+    case 10:
+        mrp_ctrl->referencing_scheme          = 0;
+        mrp_ctrl->sc_base_ref_list0_count     = 2;
+        mrp_ctrl->sc_base_ref_list1_count     = 2;
+        mrp_ctrl->sc_non_base_ref_list0_count = 1;
+        mrp_ctrl->sc_non_base_ref_list1_count = 1;
+        mrp_ctrl->base_ref_list0_count        = 2;
+        mrp_ctrl->base_ref_list1_count        = 2;
+        mrp_ctrl->non_base_ref_list0_count    = 1;
+        mrp_ctrl->non_base_ref_list1_count    = 1;
+        mrp_ctrl->more_5L_refs                = 0;
+        mrp_ctrl->safe_limit_nref             = 2;
+        mrp_ctrl->safe_limit_zz_th            = 60000;
+        mrp_ctrl->only_l_bwd                  = 1;
+        mrp_ctrl->pme_ref0_only               = 1;
+        mrp_ctrl->use_best_references         = 3;
+        break;
+    case 11:
+        mrp_ctrl->referencing_scheme = 0;
+        mrp_ctrl->sc_base_ref_list0_count = 1;
+        mrp_ctrl->sc_base_ref_list1_count = 1;
+        mrp_ctrl->sc_non_base_ref_list0_count = 1;
+        mrp_ctrl->sc_non_base_ref_list1_count = 1;
+        mrp_ctrl->base_ref_list0_count = 1;
+        mrp_ctrl->base_ref_list1_count = 1;
+        mrp_ctrl->non_base_ref_list0_count = 1;
+        mrp_ctrl->non_base_ref_list1_count = 1;
+        mrp_ctrl->more_5L_refs = 0;
+        mrp_ctrl->safe_limit_nref = 0;
+        mrp_ctrl->safe_limit_zz_th = 0;
+        mrp_ctrl->only_l_bwd = 0;
+        mrp_ctrl->pme_ref0_only = 0;
+        mrp_ctrl->use_best_references = 0;
+        break;
+#else
     case 8:
         mrp_ctrl->referencing_scheme          = 0;
         mrp_ctrl->sc_base_ref_list0_count     = 2;
@@ -3539,6 +3617,7 @@ static void set_mrp_ctrl(SequenceControlSet* scs, uint8_t mrp_level) {
         mrp_ctrl->pme_ref0_only = 0;
         mrp_ctrl->use_best_references = 0;
         break;
+#endif
     default:
         assert(0);
         break;
@@ -3549,14 +3628,35 @@ static void set_mrp_ctrl(SequenceControlSet* scs, uint8_t mrp_level) {
         mrp_ctrl->sc_non_base_ref_list1_count = 0;
         mrp_ctrl->base_ref_list1_count = 0;
         mrp_ctrl->non_base_ref_list1_count = 0;
+#if OPT_ENABLE_MRP_FLAT
+        if (scs->use_flat_ipp) {
+            mrp_ctrl->referencing_scheme = 0;
+            mrp_ctrl->more_5L_refs = 0;
+            mrp_ctrl->safe_limit_nref = 0;
+            mrp_ctrl->only_l_bwd = 0;
+            mrp_ctrl->pme_ref0_only = 0;
+            mrp_ctrl->use_best_references = 0;
+        }
+#else
         mrp_ctrl->referencing_scheme = 0;
         mrp_ctrl->more_5L_refs                = 0;
         mrp_ctrl->safe_limit_nref             = 0;
         mrp_ctrl->only_l_bwd                  = 0;
         mrp_ctrl->pme_ref0_only               = 0;
         mrp_ctrl->use_best_references         = 0;
+#endif
     }
     if (scs->static_config.pred_structure == LOW_DELAY) {
+#if OPT_ENABLE_MRP_FLAT
+        if (scs->use_flat_ipp) {
+            const uint8_t max_sc_refs = MAX(MAX(scs->mrp_ctrls.sc_non_base_ref_list0_count, scs->mrp_ctrls.sc_non_base_ref_list1_count),
+                MAX(scs->mrp_ctrls.sc_base_ref_list0_count, scs->mrp_ctrls.sc_base_ref_list1_count));
+            const uint8_t max_nsc_refs = MAX(MAX(scs->mrp_ctrls.base_ref_list0_count, scs->mrp_ctrls.base_ref_list1_count),
+                MAX(scs->mrp_ctrls.non_base_ref_list0_count, scs->mrp_ctrls.non_base_ref_list1_count));
+            mrp_ctrl->flat_max_refs = scs->static_config.screen_content_mode == 2 ? MAX(max_sc_refs, max_nsc_refs) :
+                scs->static_config.screen_content_mode == 1 ? max_sc_refs : max_nsc_refs;
+        }
+#endif
         // If content type (SC/NSC) is known, can allocate refs based on settings, else consider worst-case
         if (scs->static_config.screen_content_mode == 1)
             mrp_ctrl->ld_reduce_ref_buffs =
@@ -4304,6 +4404,45 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         SVT_WARN("Scene Change is not optimal and may produce suboptimal keyframe placements\n");
     // MRP level
     uint8_t mrp_level;
+#if OPT_ENABLE_MRP_FLAT
+    if (scs->static_config.rtc) {
+        if (scs->static_config.enc_mode <= ENC_M9 || (!scs->use_flat_ipp && scs->static_config.enc_mode <= ENC_M10)) {
+            mrp_level = 6;
+        }
+        else if (scs->static_config.enc_mode <= ENC_M10) {
+            mrp_level = 8;
+        }
+        else if (!scs->use_flat_ipp && scs->static_config.enc_mode <= ENC_M11) {
+            mrp_level = 9;
+        }
+        else {
+            mrp_level = 0;
+        }
+    }
+    else {
+        if (scs->static_config.enc_mode <= ENC_MR) {
+            mrp_level = 1;
+        }
+        else if (scs->static_config.enc_mode <= ENC_M2) {
+            mrp_level = 2;
+        }
+        else if (scs->static_config.enc_mode <= ENC_M4) {
+            mrp_level = 4;
+        }
+        else if (scs->static_config.enc_mode <= ENC_M8)
+            mrp_level = 6;
+        else if (scs->static_config.enc_mode <= ENC_M9)
+            mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 7 : 9;
+        else {
+            if (scs->static_config.encoder_bit_depth == EB_EIGHT_BIT) {
+                mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 11 : 0;
+            }
+            else {
+                mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 7 : 0;
+            }
+        }
+    }
+#else
     if (scs->static_config.rtc) {
 
         if (scs->static_config.enc_mode <= ENC_M9) {
@@ -4347,6 +4486,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
                 mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 7 : 0;
             }
     }
+#endif
     set_mrp_ctrl(scs, mrp_level);
     scs->is_short_clip = scs->static_config.gop_constraint_rc ? 1 : 0; // set to 1 if multipass and less than 200 frames in resourcecordination
 #if FTR_DEPTH_REMOVAL_INTRA

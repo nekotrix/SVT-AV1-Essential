@@ -93,6 +93,8 @@ extern "C" {
 #define CLN_MDS0_DIST_LPD1          1 // Don't shift MDS0 variance in LPD1; use full lambda for variance
 #define CLN_MDS0_DIST_LPD0          1 // Don't shift MDS0 variance in LPD0
 #define FIX_10BIT_BYPASS_ED         1 // Use proper lambda during MD when bypassing encdec for 10bit
+#define OPT_RPS_MRP_4_REFS          1 // Reduce the number of reference pictures stored in LD
+#define OPT_ENABLE_MRP_FLAT         1 // Enable multiple reference frames to be used for flat prediction structure
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

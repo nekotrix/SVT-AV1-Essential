@@ -1682,6 +1682,35 @@ static void  av1_generate_rps_info(
     uint64_t* ref_poc_array = av1_rps->ref_poc_array;
 
     if (scs->use_flat_ipp) {
+#if OPT_ENABLE_MRP_FLAT
+        const uint8_t max_refs = scs->mrp_ctrls.flat_max_refs;
+        assert(max_refs <= 4);
+        uint8_t lay0_toggle = ctx->lay0_toggle;
+
+        // Use up to 4 previous frames as refs
+        const uint8_t pic0_idx = QUEUE_GET_PREVIOUS_SPOT(lay0_toggle, max_refs); // newest pic
+        const uint8_t pic1_idx = QUEUE_GET_PREVIOUS_SPOT(pic0_idx, max_refs);
+        const uint8_t pic2_idx = QUEUE_GET_PREVIOUS_SPOT(pic1_idx, max_refs);
+        const uint8_t pic3_idx = QUEUE_GET_PREVIOUS_SPOT(pic2_idx, max_refs);
+
+        // Only use the previous frames as ref
+        ref_dpb_index[LAST] = pic0_idx;
+        ref_dpb_index[LAST2] = pic1_idx;
+        ref_dpb_index[LAST3] = pic2_idx;
+        ref_dpb_index[GOLD] = pic3_idx;
+
+        ref_dpb_index[BWD] = ref_dpb_index[LAST];
+        ref_dpb_index[ALT2] = ref_dpb_index[LAST];
+        ref_dpb_index[ALT] = ref_dpb_index[LAST];
+
+        // Only max_refs DPB entries should be used, so fill in remaining entries to remove old pics (free up ref buffers)
+        av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle | (0xf0);
+        for (int i = 3; i >= max_refs; i--) {
+            av1_rps->refresh_frame_mask |= 1 << i;
+        }
+        //Layer0 toggle 0->1->2->3
+        ctx->lay0_toggle = circ_inc(max_refs, 1, ctx->lay0_toggle);
+#else
         // Only use the previous frame as ref
         ref_dpb_index[LAST] = 0;
         ref_dpb_index[LAST2] = ref_dpb_index[LAST];
@@ -1693,6 +1722,7 @@ static void  av1_generate_rps_info(
         ref_dpb_index[ALT] = ref_dpb_index[LAST];
 
         av1_rps->refresh_frame_mask = 0xFF;
+#endif
 
         update_ref_poc_array(ref_dpb_index, ref_poc_array, ctx->dpb);
         set_ref_list_counts(pcs, ctx);
@@ -1792,7 +1822,11 @@ static void  av1_generate_rps_info(
         const uint8_t  base2_idx = scs->mrp_ctrls.ld_reduce_ref_buffs == 2 ? 0 : lay0_toggle == 0 ? 2 : lay0_toggle == 1 ? 0 : 1; //the newest L0 picture in the DPB
 
         const uint8_t  lay1_0_idx = lay1_toggle == 0 ? LAY1_OFF + 0 : LAY1_OFF + 1; //the oldest L1 picture in the DPB
+#if OPT_RPS_MRP_4_REFS
+        const uint8_t  lay1_1_idx = scs->mrp_ctrls.ld_reduce_ref_buffs == 2 ? 1 : scs->mrp_ctrls.ld_reduce_ref_buffs == 1 ? LAY1_OFF : lay1_toggle == 0 ? LAY1_OFF + 1 : LAY1_OFF + 0; //the newest L1 picture in the DPB
+#else
         const uint8_t  lay1_1_idx = scs->mrp_ctrls.ld_reduce_ref_buffs == 2 ? 1 : lay1_toggle == 0 ? LAY1_OFF + 1 : LAY1_OFF + 0; //the newest L1 picture in the DPB
+#endif
         const uint8_t  lay2_idx = LAY2_OFF; //the newest L2 picture in the DPB
         const uint8_t  long_base_idx = 7;
         const uint16_t long_base_pic = 128;
@@ -1804,9 +1838,15 @@ static void  av1_generate_rps_info(
             ref_dpb_index[LAST3] = long_base_idx;
             ref_dpb_index[GOLD] = ref_dpb_index[LAST];
 
+#if OPT_RPS_MRP_4_REFS
+            ref_dpb_index[BWD] = ref_dpb_index[LAST];
+            ref_dpb_index[ALT2] = ref_dpb_index[LAST];
+            ref_dpb_index[ALT] = ref_dpb_index[LAST];
+#else
             ref_dpb_index[BWD] = base2_idx;
             ref_dpb_index[ALT2] = base1_idx;
             ref_dpb_index[ALT] = ref_dpb_index[BWD];
+#endif
 
             if (scs->mrp_ctrls.ld_reduce_ref_buffs == 2) {
                 // Only 2 DPB entries should be used, so fill in remaining entries to remove old pics (free up ref buffers)
@@ -1814,7 +1854,11 @@ static void  av1_generate_rps_info(
             }
             else if (scs->mrp_ctrls.ld_reduce_ref_buffs == 1) {
                 // Only 5 DPB entries should be used, so fill in remaining entries to remove old pics (free up ref buffers)
+#if OPT_RPS_MRP_4_REFS
+                av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle | (0xf0);
+#else
                 av1_rps->refresh_frame_mask = 1 << ctx->lay0_toggle | (0xe0);
+#endif
                 //Layer0 toggle 0->1->2
                 ctx->lay0_toggle = circ_inc(3, 1, ctx->lay0_toggle);
             }
@@ -1831,13 +1875,24 @@ static void  av1_generate_rps_info(
             ref_dpb_index[LAST3] = base1_idx;
             ref_dpb_index[GOLD] = ref_dpb_index[LAST];
 
+#if OPT_RPS_MRP_4_REFS
+            ref_dpb_index[BWD] = ref_dpb_index[LAST];
+            ref_dpb_index[ALT2] = ref_dpb_index[LAST];
+            ref_dpb_index[ALT] = ref_dpb_index[LAST];
+#else
             ref_dpb_index[BWD] = base0_idx;
             ref_dpb_index[ALT2] = ref_dpb_index[BWD];
             ref_dpb_index[ALT] = ref_dpb_index[BWD];
+#endif
 
             if (scs->mrp_ctrls.ld_reduce_ref_buffs == 2) {
                 av1_rps->refresh_frame_mask = 1 << 1;
             }
+#if OPT_RPS_MRP_4_REFS
+            else if (scs->mrp_ctrls.ld_reduce_ref_buffs == 1) {
+                av1_rps->refresh_frame_mask = 1 << LAY1_OFF;
+            }
+#endif
             else {
                 av1_rps->refresh_frame_mask = 1 << (LAY1_OFF + ctx->lay1_toggle);
                 // Layer1 toggle 3->4
@@ -1852,9 +1907,15 @@ static void  av1_generate_rps_info(
                 ref_dpb_index[LAST3] = base1_idx;
                 ref_dpb_index[GOLD] = ref_dpb_index[LAST];
 
+#if OPT_RPS_MRP_4_REFS
+                ref_dpb_index[BWD] = ref_dpb_index[LAST];
+                ref_dpb_index[ALT2] = ref_dpb_index[LAST];
+                ref_dpb_index[ALT] = ref_dpb_index[LAST];
+#else
                 ref_dpb_index[BWD] = lay1_0_idx;
                 ref_dpb_index[ALT2] = base0_idx;
                 ref_dpb_index[ALT] = ref_dpb_index[BWD];
+#endif
             }
             else if (pic_idx == 2) {
                 ref_dpb_index[LAST] = lay1_1_idx;
@@ -1862,9 +1923,15 @@ static void  av1_generate_rps_info(
                 ref_dpb_index[LAST3] = lay1_0_idx;
                 ref_dpb_index[GOLD] = ref_dpb_index[LAST];
 
+#if OPT_RPS_MRP_4_REFS
+                ref_dpb_index[BWD] = ref_dpb_index[LAST];
+                ref_dpb_index[ALT2] = ref_dpb_index[LAST];
+                ref_dpb_index[ALT] = ref_dpb_index[LAST];
+#else
                 ref_dpb_index[BWD] = base0_idx;
                 ref_dpb_index[ALT2] = ref_dpb_index[BWD];
                 ref_dpb_index[ALT] = ref_dpb_index[BWD];
+#endif
             }
             else
                 SVT_LOG("Error in GOp indexing\n");
