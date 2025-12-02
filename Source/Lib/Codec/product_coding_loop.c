@@ -2876,9 +2876,9 @@ static void read_refine_me_mvs(PictureControlSet *pcs, ModeDecisionContext *ctx)
                     FrameHeader   *frm_hdr = &pcs->ppcs->frm_hdr;
 #if CLN_MDS0_DIST_PD1
                     // Variance is computed for 8bit, so use 8bit lambda
-                    uint32_t       rdmult  = ctx->full_lambda_md[EB_8_BIT_MD];
+                    uint32_t rdmult = ctx->full_lambda_md[EB_8_BIT_MD];
 #else
-                    uint32_t       rdmult  = ctx->full_lambda_md[hbd_md ? EB_10_BIT_MD : EB_8_BIT_MD];
+                    uint32_t rdmult = ctx->full_lambda_md[hbd_md ? EB_10_BIT_MD : EB_8_BIT_MD];
 #endif
                     svt_init_mv_cost_params(
                         &mv_cost_params, ctx, &ctx->ref_mv, frm_hdr->quantization_params.base_q_idx, rdmult, hbd_md);

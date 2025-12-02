@@ -292,7 +292,9 @@ void superres_setup_child_pcs(SequenceControlSet *entry_scs_ptr, PictureParentCo
                                              (uint16_t)sb_index,
                                              child_pcs->enc_mode,
                                              entry_scs_ptr->static_config.rtc,
+#if !FIX_DISALLOW_8X8
                                              entry_scs_ptr->static_config.screen_content_mode,
+#endif
                                              entry_scs_ptr->max_block_cnt,
                                              entry_scs_ptr->allintra,
                                              entry_scs_ptr->input_resolution,
@@ -775,7 +777,9 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                                                      (uint16_t)sb_index,
                                                      child_pcs->enc_mode,
                                                      scs->static_config.rtc,
+#if !FIX_DISALLOW_8X8
                                                      scs->static_config.screen_content_mode,
+#endif
                                                      scs->max_block_cnt,
                                                      scs->allintra,
                                                      scs->input_resolution,

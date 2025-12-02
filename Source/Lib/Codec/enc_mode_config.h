@@ -62,12 +62,17 @@ bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base, bool allintra);
 #else
 bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base);
 #endif
+#if FIX_DISALLOW_8X8
+bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool allintra, bool rtc_tune, const uint16_t aligned_width,
+                              const uint16_t aligned_height);
+#else
 #if TUNE_STILL_IMAGE_0
 bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool allintra, bool rtc_tune, uint32_t screen_content_mode,
                               const uint16_t sb_size, const uint16_t aligned_width, const uint16_t aligned_height);
 #else
 bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool rtc_tune, uint32_t screen_content_mode, const uint16_t sb_size,
                               const uint16_t aligned_width, const uint16_t aligned_height);
+#endif
 #endif
 #if TUNE_RTC_RA_PRESETS
 uint8_t svt_aom_get_nsq_geom_level(bool allintra, ResolutionRange input_resolution, EncMode enc_mode,

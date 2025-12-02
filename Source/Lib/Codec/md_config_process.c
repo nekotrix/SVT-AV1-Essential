@@ -1163,10 +1163,12 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         // these cannot be controlled at the block level, so they are invoked even if only one segment is marked as lossless
         if (frm_hdr
                 ->coded_lossless /*|| (frm_hdr->segmentation_params.segmentation_enabled && has_lossless_segment)*/) {
-            pcs->mimic_only_tx_4x4                      = 1;
-            frm_hdr->tx_mode                            = TX_MODE_SELECT;
-            pcs->pic_depth_removal_level                = 0;
-            pcs->pic_depth_removal_level_rtc            = 0;
+            pcs->mimic_only_tx_4x4       = 1;
+            frm_hdr->tx_mode             = TX_MODE_SELECT;
+            pcs->pic_depth_removal_level = 0;
+#if !OPT_DR_RTC
+            pcs->pic_depth_removal_level_rtc = 0;
+#endif
             pcs->pic_block_based_depth_refinement_level = 0;
             pcs->pic_lpd0_lvl                           = 0;
             pcs->pic_lpd1_lvl                           = 0;

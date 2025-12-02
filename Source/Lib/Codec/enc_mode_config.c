@@ -2911,6 +2911,7 @@ static void set_obmc_controls(ModeDecisionContext *ctx, uint8_t obmc_mode) {
     default: obmc_ctrls->enabled = 0; break;
     }
 }
+#if !OPT_DR_RTC
 void set_depth_removal_level_controls_rtc(PictureControlSet *pcs, ModeDecisionContext *ctx) {
     DepthRemovalCtrls *depth_removal_ctrls = &ctx->depth_removal_ctrls;
     B64Geom           *b64_geom            = &pcs->ppcs->b64_geom[ctx->sb_index];
@@ -2995,7 +2996,29 @@ void set_depth_removal_level_controls_rtc(PictureControlSet *pcs, ModeDecisionCo
         ? depth_removal_ctrls->disallow_below_64x64
         : 0;
 }
+#endif
 
+#if FIX_DISALLOW_8X8
+// Return true if the passed dimensions require 8x8 blocks for conformance.
+// The function assumes the max block size is 64x64 because ISLICEs do not use 128x128 blocks,
+// even when enabled at the sequence level. The function is not NSQ aware.
+static bool dimensions_require_8x8(const uint16_t aligned_width, const uint16_t aligned_height) {
+    // start checking if 64x64 is allowed b/c we don't use 128x128 for ISLICE
+    const uint16_t start_bsize     = 64;
+    uint16_t       leftover_width  = (aligned_width % start_bsize);
+    uint16_t       leftover_height = (aligned_height % start_bsize);
+    for (uint16_t half_bsize = start_bsize >> 1; half_bsize >= 8; half_bsize >>= 1) {
+        // If allowable block size is found, don't require 8x8
+        if ((leftover_width == 0 || leftover_width > half_bsize) &&
+            (leftover_height == 0 || leftover_height > half_bsize))
+            return false;
+        leftover_width  = leftover_width % half_bsize;
+        leftover_height = leftover_height % half_bsize;
+    }
+    // No allowable block size from 16x16-64x64 was found; therefore, require 8x8
+    return true;
+}
+#endif
 static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                              uint8_t depth_removal_level) {
     DepthRemovalCtrls *depth_removal_ctrls = &ctx->depth_removal_ctrls;
@@ -3164,120 +3187,213 @@ static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisio
             dev_32x32_to_16x16_th                   = 0;
             qp_scale_factor                         = 1;
             break;
-        case 5:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 5: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_RTC
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 6;
+            disallow_below_32x32_cost_th_multiplier = 6;
+#else
+            disallow_below_16x16_cost_th_multiplier = 1;
+            disallow_below_32x32_cost_th_multiplier = 1;
+#endif
+#else
             disallow_below_16x16_cost_th_multiplier = 0;
             disallow_below_32x32_cost_th_multiplier = 0;
+#endif
             disallow_below_64x64_cost_th_multiplier = 0;
             dev_16x16_to_8x8_th                     = 40;
             dev_32x32_to_16x16_th                   = 0;
             qp_scale_factor                         = 1;
             break;
-        case 6:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 6: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_RTC
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 6;
+            disallow_below_32x32_cost_th_multiplier = 6;
+#else
+            disallow_below_16x16_cost_th_multiplier = 1;
+            disallow_below_32x32_cost_th_multiplier = 1;
+#endif
+#else
             disallow_below_16x16_cost_th_multiplier = 0;
             disallow_below_32x32_cost_th_multiplier = 0;
+#endif
             disallow_below_64x64_cost_th_multiplier = 0;
             dev_16x16_to_8x8_th                     = 50;
             dev_32x32_to_16x16_th                   = 25;
             qp_scale_factor                         = 1;
             break;
-        case 7:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 7: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_RTC
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 6;
+            disallow_below_32x32_cost_th_multiplier = 6;
+#else
+            disallow_below_16x16_cost_th_multiplier = 1;
+            disallow_below_32x32_cost_th_multiplier = 1;
+#endif
+#else
             disallow_below_16x16_cost_th_multiplier = 0;
             disallow_below_32x32_cost_th_multiplier = 0;
+#endif
             disallow_below_64x64_cost_th_multiplier = 0;
             dev_16x16_to_8x8_th                     = 50;
             dev_32x32_to_16x16_th                   = 25;
             qp_scale_factor                         = 2;
             break;
-        case 8:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 8: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 16;
+            disallow_below_32x32_cost_th_multiplier = 8;
+            disallow_below_64x64_cost_th_multiplier = 8;
+#else
             disallow_below_16x16_cost_th_multiplier = 4;
             disallow_below_32x32_cost_th_multiplier = 2;
             disallow_below_64x64_cost_th_multiplier = 2;
-            dev_16x16_to_8x8_th                     = 100;
-            dev_32x32_to_16x16_th                   = 50;
-            qp_scale_factor                         = 3;
+#endif
+            dev_16x16_to_8x8_th   = 100;
+            dev_32x32_to_16x16_th = 50;
+            qp_scale_factor       = 3;
             break;
-        case 9:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 9: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 32;
+            disallow_below_32x32_cost_th_multiplier = 8;
+            disallow_below_64x64_cost_th_multiplier = 8;
+#else
             disallow_below_16x16_cost_th_multiplier = 8;
             disallow_below_32x32_cost_th_multiplier = 2;
             disallow_below_64x64_cost_th_multiplier = 2;
-            dev_16x16_to_8x8_th                     = 100;
-            dev_32x32_to_16x16_th                   = 50;
-            qp_scale_factor                         = 3;
+#endif
+            dev_16x16_to_8x8_th   = 100;
+            dev_32x32_to_16x16_th = 50;
+            qp_scale_factor       = 3;
             break;
-        case 10:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 10: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 128;
+            disallow_below_32x32_cost_th_multiplier = 8;
+            disallow_below_64x64_cost_th_multiplier = 8;
+#else
             disallow_below_16x16_cost_th_multiplier = 32;
             disallow_below_32x32_cost_th_multiplier = 2;
             disallow_below_64x64_cost_th_multiplier = 2;
-            dev_16x16_to_8x8_th                     = 200;
-            dev_32x32_to_16x16_th                   = 75;
-            qp_scale_factor                         = 3;
+#endif
+            dev_16x16_to_8x8_th   = 200;
+            dev_32x32_to_16x16_th = 75;
+            qp_scale_factor       = 3;
             break;
-        case 11:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 11: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 128;
+            disallow_below_32x32_cost_th_multiplier = 8;
+            disallow_below_64x64_cost_th_multiplier = 8;
+#else
             disallow_below_16x16_cost_th_multiplier = 32;
             disallow_below_32x32_cost_th_multiplier = 2;
             disallow_below_64x64_cost_th_multiplier = 2;
-            dev_16x16_to_8x8_th                     = 250;
-            dev_32x32_to_16x16_th                   = 125;
-            qp_scale_factor                         = 3;
+#endif
+            dev_16x16_to_8x8_th   = 250;
+            dev_32x32_to_16x16_th = 125;
+            qp_scale_factor       = 3;
             break;
-        case 12:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 12: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 128;
+            disallow_below_32x32_cost_th_multiplier = 16;
+            disallow_below_64x64_cost_th_multiplier = 8;
+#else
             disallow_below_16x16_cost_th_multiplier = 32;
             disallow_below_32x32_cost_th_multiplier = 4;
             disallow_below_64x64_cost_th_multiplier = 2;
-            dev_16x16_to_8x8_th                     = 250;
-            dev_32x32_to_16x16_th                   = 150;
-            qp_scale_factor                         = 4;
+#endif
+            dev_16x16_to_8x8_th   = 250;
+            dev_32x32_to_16x16_th = 150;
+            qp_scale_factor       = 4;
             break;
-        case 13:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 13: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 256;
+            disallow_below_32x32_cost_th_multiplier = 16;
+            disallow_below_64x64_cost_th_multiplier = 8;
+#else
             disallow_below_16x16_cost_th_multiplier = 64;
             disallow_below_32x32_cost_th_multiplier = 4;
             disallow_below_64x64_cost_th_multiplier = 2;
-            dev_16x16_to_8x8_th                     = 250;
-            dev_32x32_to_16x16_th                   = 150;
-            qp_scale_factor                         = 4;
+#endif
+            dev_16x16_to_8x8_th   = 250;
+            dev_32x32_to_16x16_th = 150;
+            qp_scale_factor       = 4;
             break;
-        case 14:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 14: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 256;
+            disallow_below_32x32_cost_th_multiplier = 16;
+            disallow_below_64x64_cost_th_multiplier = 16;
+#else
             disallow_below_16x16_cost_th_multiplier = 64;
             disallow_below_32x32_cost_th_multiplier = 4;
             disallow_below_64x64_cost_th_multiplier = 4;
-            dev_16x16_to_8x8_th                     = 250;
-            dev_32x32_to_16x16_th                   = 150;
-            qp_scale_factor                         = 4;
+#endif
+            dev_16x16_to_8x8_th   = 250;
+            dev_32x32_to_16x16_th = 150;
+            qp_scale_factor       = 4;
             break;
-        case 15:
-            depth_removal_ctrls->enabled            = 1;
-            disallow_4x4_cost_th_multiplier         = 64;
+        case 15: depth_removal_ctrls->enabled = 1; disallow_4x4_cost_th_multiplier = 64;
+#if OPT_DR_COST_TH
+            disallow_below_16x16_cost_th_multiplier = 384;
+            disallow_below_32x32_cost_th_multiplier = 24;
+            disallow_below_64x64_cost_th_multiplier = 24;
+#else
             disallow_below_16x16_cost_th_multiplier = 96;
             disallow_below_32x32_cost_th_multiplier = 6;
             disallow_below_64x64_cost_th_multiplier = 6;
-            dev_16x16_to_8x8_th                     = 300;
-            dev_32x32_to_16x16_th                   = 200;
-            qp_scale_factor                         = 4;
+#endif
+            dev_16x16_to_8x8_th   = 300;
+            dev_32x32_to_16x16_th = 200;
+            qp_scale_factor       = 4;
             break;
         }
         if (depth_removal_ctrls->enabled) {
             SbGeom *sb_geom = &pcs->ppcs->sb_geom[ctx->sb_index];
 
+#if OPT_DR_T_INFO
+            // Use info from ref. frames (if available)
+            bool use_ref_info = true;
+            if (use_ref_info) {
+                const bool is_ref_l0_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_0, 0);
+                const bool is_ref_l1_avail = svt_aom_is_ref_same_size(pcs, REF_LIST_1, 0);
+
+                if (pcs->slice_type != I_SLICE && is_ref_l0_avail) {
+                    EbReferenceObject *ref_obj_l0 =
+                        (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
+
+                    uint8_t sb_min_sq_size = (uint8_t)~0;
+
+                    if (abs((int)(pcs->picture_number - ref_obj_l0->ref_poc)) <= 1) {
+                        sb_min_sq_size = ref_obj_l0->sb_min_sq_size[ctx->sb_index];
+                    }
+
+                    if (pcs->slice_type == B_SLICE && is_ref_l1_avail && pcs->ppcs->ref_list1_count_try) {
+                        EbReferenceObject *ref_obj_l1 =
+                            (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
+
+                        if (abs((int)(pcs->picture_number - ref_obj_l1->ref_poc)) <= 1) {
+                            sb_min_sq_size = MIN(sb_min_sq_size, ref_obj_l1->sb_min_sq_size[ctx->sb_index]);
+                        }
+                    }
+
+                    if (sb_min_sq_size != (uint8_t)~0) {
+                        if (sb_min_sq_size >= 64) {
+                            dev_32x32_to_16x16_th = dev_32x32_to_16x16_th + 5;
+                            dev_16x16_to_8x8_th   = dev_16x16_to_8x8_th + 20;
+                        } else if (sb_min_sq_size >= 32) {
+                            dev_16x16_to_8x8_th = dev_16x16_to_8x8_th + 15;
+                        }
+                    }
+                }
+            }
+#endif
             uint32_t dist_64, dist_32, dist_16, dist_8, me_8x8_cost_variance;
             if (pcs->scs->super_block_size == 64) {
                 dist_64              = pcs->ppcs->me_64x64_distortion[ctx->sb_index];
@@ -3307,6 +3423,17 @@ static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisio
             // dev_32x32_to_8x8_th = f(dev_32x32_to_16x16_th); a bit higher
             dev_32x32_to_8x8_th = (dev_32x32_to_16x16_th * ((1 << 2) + 1)) >> 2;
 
+#if OPT_DR_COST_TH
+            uint64_t disallow_below_16x16_cost_th = disallow_below_16x16_cost_th_multiplier
+                ? RDCOST(fast_lambda, cost_th_rate, (sb_size >> 3) * disallow_below_16x16_cost_th_multiplier)
+                : 0;
+            uint64_t disallow_below_32x32_cost_th = disallow_below_32x32_cost_th_multiplier
+                ? RDCOST(fast_lambda, cost_th_rate, (sb_size >> 3) * disallow_below_32x32_cost_th_multiplier)
+                : 0;
+            uint64_t disallow_below_64x64_cost_th = disallow_below_64x64_cost_th_multiplier
+                ? RDCOST(fast_lambda, cost_th_rate, (sb_size >> 3) * disallow_below_64x64_cost_th_multiplier)
+                : 0;
+#else
             uint64_t disallow_below_16x16_cost_th = disallow_below_16x16_cost_th_multiplier
                 ? RDCOST(fast_lambda, cost_th_rate, (sb_size >> 1) * disallow_below_16x16_cost_th_multiplier)
                 : 0;
@@ -3316,6 +3443,7 @@ static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisio
             uint64_t disallow_below_64x64_cost_th = disallow_below_64x64_cost_th_multiplier
                 ? RDCOST(fast_lambda, cost_th_rate, (sb_size >> 1) * disallow_below_64x64_cost_th_multiplier)
                 : 0;
+#endif
 
             uint64_t cost_64x64 = RDCOST(fast_lambda, 0, dist_64);
             uint64_t cost_32x32 = RDCOST(fast_lambda, 0, dist_32);
@@ -3344,11 +3472,18 @@ static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisio
                    (dev_32x32_to_16x16 < dev_32x32_to_16x16_th && dev_32x32_to_8x8 < dev_32x32_to_8x8_th))
                 : 0;
 
+#if FIX_DISALLOW_8X8
+            depth_removal_ctrls->disallow_below_16x16 = (!dimensions_require_8x8(sb_geom->width, sb_geom->height))
+                ? (depth_removal_ctrls->disallow_below_16x16 || cost_16x16 < disallow_below_16x16_cost_th ||
+                   dev_16x16_to_8x8 < dev_16x16_to_8x8_th)
+                : 0;
+#else
             depth_removal_ctrls->disallow_below_16x16 = (((sb_geom->width % 16) == 0 || (sb_geom->width % 16) > 8) &&
                                                          ((sb_geom->height % 16) == 0 || (sb_geom->height % 16) > 8))
                 ? (depth_removal_ctrls->disallow_below_16x16 || cost_16x16 < disallow_below_16x16_cost_th ||
                    dev_16x16_to_8x8 < dev_16x16_to_8x8_th)
                 : 0;
+#endif
             if (!ctx->disallow_4x4 && disallow_4x4_cost_th_multiplier) {
                 uint64_t disallow_4x4_cost_th = RDCOST(
                     fast_lambda, cost_th_rate, (sb_size >> 1) * disallow_4x4_cost_th_multiplier);
@@ -3778,10 +3913,10 @@ static void md_subpel_me_controls(ModeDecisionContext *ctx, uint8_t md_subpel_me
 #else
         md_subpel_me_ctrls->skip_zz_mv = rtc_tune ? 0 : 1;
 #endif
-        md_subpel_me_ctrls->min_blk_sz            = 4;
-        md_subpel_me_ctrls->mvp_th                = 12;
-        md_subpel_me_ctrls->hp_mv_th              = 32;
-        md_subpel_me_ctrls->bias_fp               = 110;
+        md_subpel_me_ctrls->min_blk_sz = 4;
+        md_subpel_me_ctrls->mvp_th     = 12;
+        md_subpel_me_ctrls->hp_mv_th   = 32;
+        md_subpel_me_ctrls->bias_fp    = 110;
         break;
     case 10:
         md_subpel_me_ctrls->enabled               = 1;
@@ -7303,8 +7438,10 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
     ctx->disallow_8x8 = svt_aom_get_disallow_8x8(enc_mode,
                                                  allintra,
                                                  rtc_tune,
+#if !FIX_DISALLOW_8X8
                                                  scs->static_config.screen_content_mode,
                                                  scs->super_block_size,
+#endif
                                                  b64_geom->width,
                                                  b64_geom->height);
 #else
@@ -7316,6 +7453,9 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
                                                  b64_geom->height);
 #endif
     ctx->disallow_4x4 = pcs->pic_disallow_4x4;
+#if OPT_DR_RTC
+    set_depth_removal_level_controls(pcs, ctx, pcs->pic_depth_removal_level);
+#else
     if (rtc_tune && !pcs->ppcs->sc_class1) {
         // RTC assumes SB 64x64 is used
         assert(scs->super_block_size == 64);
@@ -7323,6 +7463,7 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
     } else {
         set_depth_removal_level_controls(pcs, ctx, pcs->pic_depth_removal_level);
     }
+#endif
     if (rtc_tune) {
 #if TUNE_RTC_RA_PRESETS
         if ((!scs->use_flat_ipp && enc_mode <= ENC_M7) || (scs->use_flat_ipp && enc_mode <= ENC_M6))
@@ -8332,6 +8473,10 @@ Used by svt_aom_sig_deriv_enc_dec and memory allocation
 The aligned width/height can be either the picture width/height or the SB width/height. For memory
 allocation, we should use the picture width/height.
 */
+#if FIX_DISALLOW_8X8
+bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool allintra, bool rtc_tune, const uint16_t aligned_width,
+                              const uint16_t aligned_height) {
+#else
 #if TUNE_STILL_IMAGE_0
 bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool allintra, bool rtc_tune, uint32_t screen_content_mode,
                               const uint16_t sb_size, const uint16_t aligned_width, const uint16_t aligned_height) {
@@ -8339,11 +8484,17 @@ bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool allintra, bool rtc_tune, ui
 bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool rtc_tune, uint32_t screen_content_mode, const uint16_t sb_size,
                               const uint16_t aligned_width, const uint16_t aligned_height) {
 #endif
+#endif
+#if FIX_DISALLOW_8X8
+    if (dimensions_require_8x8(aligned_width, aligned_height))
+        return false;
+#else
     // If aligned picture dimensions result in an SB with width/height of 8, the picture will
     // require 8x8 blocks for conformance. When the width/height is <=8 larger block sizes will
     // be invalid.
     if (((aligned_width % sb_size) == 8) || ((aligned_height % sb_size) == 8))
         return false;
+#endif
 #if TUNE_STILL_IMAGE_0
     if (allintra) {
         return false;
@@ -8351,17 +8502,28 @@ bool svt_aom_get_disallow_8x8(EncMode enc_mode, bool rtc_tune, uint32_t screen_c
 #else
     if (rtc_tune) {
 #endif
+#if FIX_DISALLOW_8X8
+        if (enc_mode <= ENC_M10)
+            return false;
+        else
+            return true;
+#else
         if (screen_content_mode == 1) {
             if (enc_mode <= ENC_M10)
                 return false;
             else
                 return true;
         } else {
+#if OPT_B8
+            if (enc_mode <= ENC_M10)
+#else
             if (enc_mode <= ENC_M8)
+#endif
                 return false;
             else
                 return true;
         }
+#endif
     } else
         return false;
 }
@@ -10067,73 +10229,86 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         pcs->pic_depth_removal_level = 0;
     } else {
         // Set depth_removal_level_controls
-        if (sc_class1) {
-            if (enc_mode <= ENC_M6) {
+#if OPT_DR_RTC
+        if (rtc_tune) {
+            if (enc_mode <= ENC_M8) {
                 pcs->pic_depth_removal_level = 0;
-            } else if (enc_mode <= ENC_M9) {
-                pcs->pic_depth_removal_level = is_base ? 0 : 6;
             } else {
-                pcs->pic_depth_removal_level = is_base ? 5 : 14;
+                pcs->pic_depth_removal_level = 5;
             }
         } else {
-            if (enc_mode <= ENC_M2)
-                pcs->pic_depth_removal_level = 0;
-            else if (enc_mode <= ENC_M5) {
-                if (input_resolution <= INPUT_SIZE_360p_RANGE) {
-                    if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
-                        pcs->pic_depth_removal_level = is_base ? 1 : 2;
-                    else if (pcs->coeff_lvl == HIGH_LVL)
-                        pcs->pic_depth_removal_level = is_base ? 3 : 5;
-                    else
-                        pcs->pic_depth_removal_level = is_base ? 3 : 4;
-                } else if (input_resolution <= INPUT_SIZE_480p_RANGE) {
-                    if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
-                        pcs->pic_depth_removal_level = is_base ? 1 : 2;
-                    else if (pcs->coeff_lvl == HIGH_LVL)
-                        pcs->pic_depth_removal_level = is_base ? 3 : 6;
-                    else
-                        pcs->pic_depth_removal_level = is_base ? 3 : 5;
+#endif
+            if (sc_class1) {
+                if (enc_mode <= ENC_M6) {
+                    pcs->pic_depth_removal_level = 0;
+                } else if (enc_mode <= ENC_M9) {
+                    pcs->pic_depth_removal_level = is_base ? 0 : 6;
                 } else {
-                    if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
-                        pcs->pic_depth_removal_level = is_base ? 1 : 3;
-                    else if (pcs->coeff_lvl == HIGH_LVL)
-                        pcs->pic_depth_removal_level = is_base ? 4 : 8;
-                    else
-                        pcs->pic_depth_removal_level = is_base ? 4 : 7;
-                }
-            } else if (enc_mode <= ENC_M8) {
-                if (input_resolution <= INPUT_SIZE_360p_RANGE) {
-                    if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
-                        pcs->pic_depth_removal_level = 5;
-                    else if (pcs->coeff_lvl == HIGH_LVL)
-                        pcs->pic_depth_removal_level = is_base ? 5 : 6;
-                    else
-                        pcs->pic_depth_removal_level = 5;
-                } else if (input_resolution <= INPUT_SIZE_480p_RANGE) {
-                    if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
-                        pcs->pic_depth_removal_level = 6;
-                    else if (pcs->coeff_lvl == HIGH_LVL)
-                        pcs->pic_depth_removal_level = is_base ? 6 : 7;
-                    else
-                        pcs->pic_depth_removal_level = 6;
-                } else {
-                    if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
-                        pcs->pic_depth_removal_level = is_base ? 6 : 8;
-                    else if (pcs->coeff_lvl == HIGH_LVL)
-                        pcs->pic_depth_removal_level = is_base ? 6 : 11;
-                    else
-                        pcs->pic_depth_removal_level = is_base ? 6 : 9;
+                    pcs->pic_depth_removal_level = is_base ? 5 : 14;
                 }
             } else {
-                if (input_resolution <= INPUT_SIZE_360p_RANGE)
-                    pcs->pic_depth_removal_level = 7;
-                else if (input_resolution <= INPUT_SIZE_480p_RANGE)
-                    pcs->pic_depth_removal_level = is_base ? 9 : 11;
-                else
-                    pcs->pic_depth_removal_level = is_base ? 9 : 14;
+                if (enc_mode <= ENC_M2)
+                    pcs->pic_depth_removal_level = 0;
+                else if (enc_mode <= ENC_M5) {
+                    if (input_resolution <= INPUT_SIZE_360p_RANGE) {
+                        if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
+                            pcs->pic_depth_removal_level = is_base ? 1 : 2;
+                        else if (pcs->coeff_lvl == HIGH_LVL)
+                            pcs->pic_depth_removal_level = is_base ? 3 : 5;
+                        else
+                            pcs->pic_depth_removal_level = is_base ? 3 : 4;
+                    } else if (input_resolution <= INPUT_SIZE_480p_RANGE) {
+                        if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
+                            pcs->pic_depth_removal_level = is_base ? 1 : 2;
+                        else if (pcs->coeff_lvl == HIGH_LVL)
+                            pcs->pic_depth_removal_level = is_base ? 3 : 6;
+                        else
+                            pcs->pic_depth_removal_level = is_base ? 3 : 5;
+                    } else {
+                        if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
+                            pcs->pic_depth_removal_level = is_base ? 1 : 3;
+                        else if (pcs->coeff_lvl == HIGH_LVL)
+                            pcs->pic_depth_removal_level = is_base ? 4 : 8;
+                        else
+                            pcs->pic_depth_removal_level = is_base ? 4 : 7;
+                    }
+                } else if (enc_mode <= ENC_M8) {
+                    if (input_resolution <= INPUT_SIZE_360p_RANGE) {
+                        if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
+                            pcs->pic_depth_removal_level = 5;
+                        else if (pcs->coeff_lvl == HIGH_LVL)
+                            pcs->pic_depth_removal_level = is_base ? 5 : 6;
+                        else
+                            pcs->pic_depth_removal_level = 5;
+                    } else if (input_resolution <= INPUT_SIZE_480p_RANGE) {
+                        if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
+                            pcs->pic_depth_removal_level = 6;
+                        else if (pcs->coeff_lvl == HIGH_LVL)
+                            pcs->pic_depth_removal_level = is_base ? 6 : 7;
+                        else
+                            pcs->pic_depth_removal_level = 6;
+                    } else {
+                        if (pcs->coeff_lvl == VLOW_LVL || pcs->coeff_lvl == LOW_LVL)
+                            pcs->pic_depth_removal_level = is_base ? 6 : 8;
+                        else if (pcs->coeff_lvl == HIGH_LVL)
+                            pcs->pic_depth_removal_level = is_base ? 6 : 11;
+                        else
+                            pcs->pic_depth_removal_level = is_base ? 6 : 9;
+                    }
+                } else {
+                    if (input_resolution <= INPUT_SIZE_360p_RANGE)
+                        pcs->pic_depth_removal_level = 7;
+                    else if (input_resolution <= INPUT_SIZE_480p_RANGE)
+                        pcs->pic_depth_removal_level = is_base ? 9 : 11;
+                    else
+                        pcs->pic_depth_removal_level = is_base ? 9 : 14;
+                }
             }
+#if OPT_DR_RTC
         }
+#endif
     }
+#if !OPT_DR_RTC
     if (enc_mode <= ENC_M6)
         pcs->pic_depth_removal_level_rtc = 0;
     else if (enc_mode <= ENC_M9)
@@ -10142,7 +10317,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         pcs->pic_depth_removal_level_rtc = 1;
     else
         pcs->pic_depth_removal_level_rtc = 2;
-
+#endif
     if (sc_class1) {
         if (enc_mode <= ENC_M5) {
             pcs->pic_block_based_depth_refinement_level = 0;

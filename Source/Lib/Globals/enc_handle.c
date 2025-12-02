@@ -4264,8 +4264,10 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     bool disallow_8x8 = svt_aom_get_disallow_8x8(scs->static_config.enc_mode,
         allintra,
         scs->static_config.rtc,
+#if !FIX_DISALLOW_8X8
         scs->static_config.screen_content_mode,
         scs->super_block_size,
+#endif
         scs->max_input_luma_width,
         scs->max_input_luma_height);
 #else

@@ -560,6 +560,20 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     EB_ALLOC_PTR_ARRAY(object_ptr->sb_ptr_array, object_ptr->sb_total_count_unscaled);
 #if TUNE_STILL_IMAGE_0
     for (sb_index = 0; sb_index < all_sb; ++sb_index) {
+#if FIX_DISALLOW_8X8
+        EB_NEW(object_ptr->sb_ptr_array[sb_index],
+               svt_aom_largest_coding_unit_ctor,
+               (uint8_t)init_data_ptr->sb_size,
+               (uint16_t)(sb_origin_x * max_blk_size),
+               (uint16_t)(sb_origin_y * max_blk_size),
+               (uint16_t)sb_index,
+               init_data_ptr->enc_mode,
+               init_data_ptr->static_config.rtc,
+               init_data_ptr->init_max_block_cnt,
+               allintra,
+               init_data_ptr->input_resolution,
+               object_ptr);
+#else
         EB_NEW(object_ptr->sb_ptr_array[sb_index],
                svt_aom_largest_coding_unit_ctor,
                (uint8_t)init_data_ptr->sb_size,
@@ -573,6 +587,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                allintra,
                init_data_ptr->input_resolution,
                object_ptr);
+#endif
 #else
     for (sb_index = 0; sb_index < all_sb; ++sb_index) {
         EB_NEW(object_ptr->sb_ptr_array[sb_index],
@@ -1121,6 +1136,14 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     }
 
     object_ptr->disallow_4x4_all_frames = disallow_4x4;
+#if FIX_DISALLOW_8X8
+    disallow_8x8 = MIN(disallow_8x8,
+                       svt_aom_get_disallow_8x8(init_data_ptr->enc_mode,
+                                                allintra,
+                                                init_data_ptr->static_config.rtc,
+                                                init_data_ptr->picture_width,
+                                                init_data_ptr->picture_height));
+#else
 #if TUNE_STILL_IMAGE_0
     disallow_8x8 = MIN(disallow_8x8,
                        svt_aom_get_disallow_8x8(init_data_ptr->enc_mode,
@@ -1138,6 +1161,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                                                 init_data_ptr->sb_size,
                                                 init_data_ptr->picture_width,
                                                 init_data_ptr->picture_height));
+#endif
 #endif
     object_ptr->disallow_8x8_all_frames = disallow_8x8;
     /* If 4x4 blocks are disallowed for all frames, the the MI blocks only need to be allocated for

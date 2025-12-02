@@ -95,6 +95,13 @@ extern "C" {
 #define FIX_10BIT_BYPASS_ED         1 // Use proper lambda during MD when bypassing encdec for 10bit
 #define OPT_RPS_MRP_4_REFS          1 // Reduce the number of reference pictures stored in LD
 #define OPT_ENABLE_MRP_FLAT         1 // Enable multiple reference frames to be used for flat prediction structure
+#define OPT_DR_RTC                  1 // Unify depth-removal between rtc and non-rtc
+#if OPT_DR_RTC
+#define OPT_B8                      1 // b8 for up to M10
+#define OPT_DR_T_INFO               1 // Use collocated min blk size @ to modulate dr deviation-threshold
+#define OPT_DR_COST_TH              1 // Enhance the granularity of the dr cost-threshold multipliers
+#endif
+#define FIX_DISALLOW_8X8            1 // Fix when 8x8 are needed at pic boundaries
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

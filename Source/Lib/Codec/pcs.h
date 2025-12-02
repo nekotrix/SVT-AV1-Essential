@@ -318,7 +318,9 @@ typedef struct PictureControlSet {
     uint8_t pic_disallow_4x4; // disallow 4x4 at pic level
     // depth_removal_level signal at the picture level
     uint8_t pic_depth_removal_level;
+#if !OPT_DR_RTC
     uint8_t pic_depth_removal_level_rtc;
+#endif
     // block_based_depth_refinement_level signal set at the picture level
     uint8_t          pic_block_based_depth_refinement_level;
     uint8_t          pic_lpd0_lvl; // lpd0_lvl signal set at the picture level
