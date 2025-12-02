@@ -1050,9 +1050,13 @@ typedef struct ModeDecisionContext {
     MdSqMotionSearchCtrls  md_sq_me_ctrls;
     MdNsqMotionSearchCtrls md_nsq_me_ctrls;
     MdPmeCtrls             md_pme_ctrls;
-    uint8_t                md_subpel_me_level;
-    MdSubPelSearchCtrls    md_subpel_me_ctrls;
-    uint8_t                md_subpel_pme_level;
+#if !TUNE_RTC_RA_PRESETS
+    uint8_t md_subpel_me_level;
+#endif
+    MdSubPelSearchCtrls md_subpel_me_ctrls;
+#if !TUNE_RTC_RA_PRESETS
+    uint8_t md_subpel_pme_level;
+#endif
     MdSubPelSearchCtrls    md_subpel_pme_ctrls;
     PmeResults             pme_res[MAX_NUM_OF_REF_PIC_LIST][REF_LIST_MAX_DEPTH];
     ObmcControls           obmc_ctrls;

@@ -72,6 +72,11 @@ extern "C" {
 #define OPT_RECON_OPERATIONS        1 // Remove unnecessary reconstruction operations
 #define OPT_FD2_FD1_STILL_IMAGE     1 // Add fast-decode for still-image
 
+#define OPT_DEFAULT_6L              1 // Set 6L as default structure for most modes
+#define EN_M11_RA                   1 // Enable M11 for RA
+#define EN_FLAT_ALL_PRESETS         1 // Enable flat pred structure for all RTC presets
+#define TUNE_RTC_RA_PRESETS         1 // Preset tuning for RTC mode and RA
+
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

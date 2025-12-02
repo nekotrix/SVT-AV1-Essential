@@ -754,9 +754,11 @@ static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
     CdefSearchControls *cdef_ctrls = &pcs->ppcs->cdef_search_ctrls;
     if (cdef_ctrls->use_reference_cdef_fs) {
         if (pcs->slice_type != I_SLICE) {
-            const bool rtc_tune   = pcs->scs->static_config.rtc;
-            uint8_t    lowest_sg  = TOTAL_STRENGTHS - 1;
-            uint8_t    highest_sg = 0;
+#if !TUNE_RTC_RA_PRESETS
+            const bool rtc_tune = pcs->scs->static_config.rtc;
+#endif
+            uint8_t lowest_sg  = TOTAL_STRENGTHS - 1;
+            uint8_t highest_sg = 0;
             // Determine luma pred filter
             // Add filter from list0
             EbReferenceObject *ref_obj_l0 = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
@@ -776,6 +778,11 @@ static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
                         highest_sg = ref_obj_l1->ref_cdef_strengths[0][fs];
                 }
             }
+#if TUNE_RTC_RA_PRESETS
+            int8_t mid_filter     = MIN(63, MAX(0, (lowest_sg + highest_sg) / 2));
+            cdef_ctrls->pred_y_f  = mid_filter;
+            cdef_ctrls->pred_uv_f = 0;
+#else
             if (rtc_tune) {
                 int8_t mid_filter     = MIN(63, MAX(0, MAX(lowest_sg, highest_sg)));
                 cdef_ctrls->pred_y_f  = mid_filter;
@@ -785,6 +792,7 @@ static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
                 cdef_ctrls->pred_y_f  = mid_filter;
                 cdef_ctrls->pred_uv_f = 0;
             }
+#endif
             cdef_ctrls->first_pass_fs_num          = 0;
             cdef_ctrls->default_second_pass_fs_num = 0;
             // Set cdef to off if pred is.

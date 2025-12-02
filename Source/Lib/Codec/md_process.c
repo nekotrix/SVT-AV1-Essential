@@ -261,6 +261,13 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
 
     // Allocate buffer for inter-intra prediction
     uint8_t ii_allowed = 0;
+#if TUNE_RTC_RA_PRESETS
+    for (uint8_t transition_present = 0; transition_present < 2; transition_present++) {
+        if (ii_allowed)
+            break;
+        ii_allowed |= svt_aom_get_inter_intra_level(enc_mode, transition_present);
+    }
+#else
     for (uint8_t is_base = 0; is_base < 2; is_base++) {
         for (uint8_t transition_present = 0; transition_present < 2; transition_present++) {
             if (ii_allowed)
@@ -268,6 +275,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
             ii_allowed |= svt_aom_get_inter_intra_level(enc_mode, is_base, transition_present);
         }
     }
+#endif
     if (ii_allowed) {
         const uint8_t bits = ctx->hbd_md > EB_8_BIT_MD ? 2 : 1;
         // MAX block size for inter intra is 32x32

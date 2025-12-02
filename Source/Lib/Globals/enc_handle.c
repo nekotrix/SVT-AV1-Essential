@@ -1539,6 +1539,9 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         input_data.ac_bias = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.ac_bias;
         input_data.static_config = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config;
         input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
+#if TUNE_RTC_RA_PRESETS
+        input_data.use_flat_ipp = enc_handle_ptr->scs_instance_array[instance_index]->scs->use_flat_ipp;
+#endif
         EB_NEW(
             enc_handle_ptr->picture_parent_control_set_pool_ptr_array[instance_index],
             svt_system_resource_ctor,
@@ -1603,6 +1606,9 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
 
             input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc;
             input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
+#if TUNE_RTC_RA_PRESETS
+            input_data.use_flat_ipp = enc_handle_ptr->scs_instance_array[instance_index]->scs->use_flat_ipp;
+#endif
             EB_NEW(
                 enc_handle_ptr->enc_dec_pool_ptr_array[instance_index],
                 svt_system_resource_ctor,
@@ -1657,6 +1663,9 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
 
             input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc;
             input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
+#if TUNE_RTC_RA_PRESETS
+            input_data.use_flat_ipp = enc_handle_ptr->scs_instance_array[instance_index]->scs->use_flat_ipp;
+#endif
             EB_NEW(
                 enc_handle_ptr->picture_control_set_pool_ptr_array[instance_index],
                 svt_system_resource_ctor,
@@ -3277,12 +3286,21 @@ static void derive_tf_params(SequenceControlSet *scs) {
             !scs->static_config.rtc) {
             tf_level = 0;
         }
+#if TUNE_RTC_RA_PRESETS
+        else if ((!scs->use_flat_ipp && enc_mode <= ENC_M7) || (scs->use_flat_ipp && enc_mode <= ENC_M6)) {
+            tf_level = 1;
+        }
+        else if ((!scs->use_flat_ipp && enc_mode <= ENC_M8) || (scs->use_flat_ipp && enc_mode <= ENC_M7)) {
+            tf_level = 2;
+        }
+#else
         else if (enc_mode <= ENC_M7) {
             tf_level = 1;
         }
         else if (enc_mode <= ENC_M10) {
             tf_level = 2;
         }
+#endif
         else {
             tf_level = 0;
         }
@@ -4034,6 +4052,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     else
         if (scs->static_config.enc_mode <= ENC_MR)
             scs->super_block_size = 128;
+#if !TUNE_RTC_RA_PRESETS
         else if (scs->static_config.enc_mode <= ENC_M1) {
 
             if (scs->input_resolution <= INPUT_SIZE_480p_RANGE) {
@@ -4049,6 +4068,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
                     scs->super_block_size = 128;
             }
         }
+#endif
         else if (scs->static_config.enc_mode <= ENC_M5) {
             if (scs->static_config.qp <= 57)
                 scs->super_block_size = 64;
@@ -4097,20 +4117,27 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         SVT_WARN("Fwd key frame is only supported for hierarchical levels 4 at this point. Hierarchical levels are set to 4\n");
     }
     bool disallow_nsq = true;
+#if !TUNE_RTC_RA_PRESETS
     uint8_t nsq_geom_level;
+#endif
     uint8_t allow_HVA_HVB = 0;
     uint8_t allow_HV4 = 0;
     uint8_t h_v_only = 1;
     uint8_t  min_nsq_bsize = 0;
     uint8_t  no_8x4_4x8 = 1;
     uint8_t  no_16x8_8x16 = 1;
+#if !TUNE_RTC_RA_PRESETS
     for (uint8_t is_base = 0; is_base <= 1; is_base++) {
-            for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++)
-            {
+#endif
+            for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
+#if TUNE_RTC_RA_PRESETS
+                uint8_t nsq_geom_level = svt_aom_get_nsq_geom_level(allintra, scs->input_resolution, scs->static_config.enc_mode, coeff_lvl, scs->static_config.rtc);
+#else
 #if TUNE_STILL_IMAGE_0
                 nsq_geom_level = svt_aom_get_nsq_geom_level(allintra, scs->input_resolution, scs->static_config.enc_mode, is_base, coeff_lvl, scs->static_config.rtc);
 #else
                 nsq_geom_level = svt_aom_get_nsq_geom_level(scs->static_config.enc_mode, is_base, coeff_lvl, scs->static_config.rtc);
+#endif
 #endif
                 disallow_nsq = MIN(disallow_nsq, (nsq_geom_level == 0 ? 1 : 0));
                 uint8_t temp_allow_HVA_HVB = 0, temp_allow_HV4 = 0;
@@ -4121,7 +4148,9 @@ static void set_param_based_on_input(SequenceControlSet *scs)
                 no_8x4_4x8 = no_8x4_4x8 && min_nsq_bsize >= 8;
                 no_16x8_8x16 = no_16x8_8x16 && min_nsq_bsize >= 16;
             }
+#if !TUNE_RTC_RA_PRESETS
     }
+#endif
 
     bool disallow_4x4 = true;
     for (uint8_t is_islice = 0; is_islice <= 1; is_islice++)
@@ -4257,8 +4286,12 @@ static void set_param_based_on_input(SequenceControlSet *scs)
 
     if (scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR || scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR ||
         scs->input_resolution >= INPUT_SIZE_4K_RANGE ||
+#if TUNE_RTC_RA_PRESETS
+        scs->static_config.pred_structure == LOW_DELAY || scs->static_config.pass != ENC_SINGLE_PASS)
+#else
         scs->static_config.fast_decode !=0 ||
         scs->static_config.pred_structure == LOW_DELAY || scs->static_config.pass != ENC_SINGLE_PASS || scs->static_config.enc_mode >= ENC_M8)
+#endif
         scs->enable_dg = 0;
     else
         scs->enable_dg = scs->static_config.enable_dg;
@@ -4336,7 +4369,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     scs->stats_based_sb_lambda_modulation = 1;
 
     scs->low_latency_kf = (scs->static_config.rtc &&
+#if TUNE_RTC_RA_PRESETS
+        scs->static_config.enc_mode <= ENC_M6)
+#else
         scs->static_config.enc_mode <= ENC_M7)
+#endif
         ? 1
         : 0;
 
@@ -4385,11 +4422,18 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
             scs->static_config.enc_mode = ENC_M12;
         }
     }
+#if EN_M11_RA
+    else if (scs->static_config.enc_mode > ENC_M11) {
+        SVT_WARN("Preset M%d is mapped to M11.\n", scs->static_config.enc_mode);
+        scs->static_config.enc_mode = ENC_M11;
+    }
+#else
     else
     if (scs->static_config.enc_mode > ENC_M10) {
         SVT_WARN("Preset M%d is mapped to M10.\n", scs->static_config.enc_mode);
         scs->static_config.enc_mode = ENC_M10;
     }
+#endif
 
     EbInputResolution input_resolution;
     svt_aom_derive_input_resolution(
@@ -4513,6 +4557,11 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
 
     if (scs->static_config.rtc && scs->static_config.hierarchical_levels == 0) {
         scs->static_config.hierarchical_levels = HIERARCHICAL_LEVELS_AUTO;
+#if EN_FLAT_ALL_PRESETS
+        // Mimic flat prediction structure
+        scs->use_flat_ipp = 1;
+        SVT_WARN("Flat prediction structure for rtc is under development and is intended for debugging purposes only at this stage\n");
+#else
         if (scs->static_config.enc_mode > ENC_M10) {
             // Mimic flat prediction structure
             scs->use_flat_ipp = 1;
@@ -4521,6 +4570,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         else {
             SVT_WARN("Flat structure for rtc is supported only with presets M11 or M12, use default hierarchical_levels\n");
         }
+#endif
     }
     // Set the default hierarchical levels
     if (scs->static_config.hierarchical_levels == HIERARCHICAL_LEVELS_AUTO) {
@@ -4529,10 +4579,14 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
             2 :
             scs->static_config.pred_structure == LOW_DELAY ?
             3 :
-            scs->static_config.fast_decode != 0 ||
+#if OPT_DEFAULT_6L
+            scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR || scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR ||
+            (input_resolution >= INPUT_SIZE_4K_RANGE && scs->static_config.enc_mode >= ENC_M8) || input_resolution >= INPUT_SIZE_8K_RANGE
+#else
             scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR || scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR ||
             (input_resolution >= INPUT_SIZE_1080p_RANGE && scs->static_config.enc_mode >= ENC_M8) ||
             !(scs->static_config.enc_mode <= ENC_M8) || input_resolution >= INPUT_SIZE_8K_RANGE
+#endif
                 ? 4
                 : 5;
     }
