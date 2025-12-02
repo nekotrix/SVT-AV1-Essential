@@ -967,9 +967,11 @@ static void product_coding_loop_init_fast_loop(PictureControlSet *pcs, ModeDecis
 static void fast_loop_core_light_pd0(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs,
                                      ModeDecisionContext *ctx, EbPictureBufferDesc *input_pic,
                                      uint32_t input_origin_index, uint32_t cu_origin_index) {
-    ModeDecisionCandidate *cand     = cand_bf->cand;
-    EbPictureBufferDesc   *pred     = cand_bf->pred;
-    const bool             rtc_tune = pcs->scs->static_config.rtc;
+    ModeDecisionCandidate *cand = cand_bf->cand;
+    EbPictureBufferDesc   *pred = cand_bf->pred;
+#if !CLN_MDS0_DIST_LPD0
+    const bool rtc_tune = pcs->scs->static_config.rtc;
+#endif
 
     if (ctx->lpd0_ctrls.pd0_level == VERY_LIGHT_PD0) {
         MvReferenceFrame rf[2] = {cand->block_mi.ref_frame[0], cand->block_mi.ref_frame[1]};
@@ -990,6 +992,13 @@ static void fast_loop_core_light_pd0(ModeDecisionCandidateBuffer *cand_bf, Pictu
         svt_aom_use_scaled_rec_refs_if_needed(pcs, input_pic, ref_obj, &ref_pic, 0);
         const int32_t ref_origin_index = ref_pic->org_x + (ctx->blk_org_x + mv_x) +
             (ctx->blk_org_y + mv_y + ref_pic->org_y) * ref_pic->stride_y;
+#if CLN_MDS0_DIST_LPD0
+        const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
+        unsigned int            sse;
+        uint8_t                *pred_y = ref_pic->buffer_y + ref_origin_index;
+        uint8_t                *src_y  = input_pic->buffer_y + input_origin_index;
+        *(cand_bf->fast_cost)          = fn_ptr->vf(pred_y, ref_pic->stride_y, src_y, input_pic->stride_y, &sse);
+#else
         if (rtc_tune) {
             const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
             unsigned int            sse;
@@ -1022,6 +1031,7 @@ static void fast_loop_core_light_pd0(ModeDecisionCandidateBuffer *cand_bf, Pictu
                     << 1;
             }
         }
+#endif
     } else {
         // intrabc not allowed in light_pd0
         svt_product_prediction_fun_table_light_pd0[is_inter_mode(cand->block_mi.mode)](0, ctx, pcs, cand_bf);
@@ -1029,29 +1039,43 @@ static void fast_loop_core_light_pd0(ModeDecisionCandidateBuffer *cand_bf, Pictu
         unsigned int            sse;
         uint8_t                *pred_y = pred->buffer_y + cu_origin_index;
         uint8_t                *src_y  = input_pic->buffer_y + input_origin_index;
+#if CLN_MDS0_DIST_LPD0
+        *(cand_bf->fast_cost) = fn_ptr->vf(pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse);
+#else
         if (rtc_tune)
             *(cand_bf->fast_cost) = fn_ptr->vf(pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse) / 3;
         else
             *(cand_bf->fast_cost) = fn_ptr->vf(pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse) >> 2;
+#endif
     }
 }
 // Light PD1 fast loop core; assumes luma only, 8bit only, and that SSD is not used.
 static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs,
                                      ModeDecisionContext *ctx, EbPictureBufferDesc *input_pic, BlockLocation *loc) {
-    uint64_t       luma_fast_dist;
+    uint64_t luma_fast_dist;
+#if CLN_MDS0_DIST_LPD1
+    const uint32_t full_lambda = ctx->full_lambda_md[EB_8_BIT_MD];
+#else
     const uint32_t fast_lambda = ctx->fast_lambda_md[EB_8_BIT_MD];
+#endif
 
     ModeDecisionCandidate *cand = cand_bf->cand;
     EbPictureBufferDesc   *pred = cand_bf->pred;
 #if OPT_SKIP_CANDS_LPD1
+#if !CLN_MDS0_DIST_LPD1
     const bool rtc_tune = pcs->scs->static_config.rtc;
     const int  var_mult = rtc_tune ? 3 : ctx->lpd1_shift_mds0_dist ? 8 : 4;
+#endif
     // If not first candidate to be tested, take advantage of known info to skip current candidate
     if (ctx->mds0_best_cost != (uint64_t)~0) {
         if (is_intra_mode(cand->block_mi.mode) && ctx->cand_reduction_ctrls.cand_elimination_ctrls.enabled) {
+#if CLN_MDS0_DIST_LPD1
+            const uint32_t best_dist = ctx->cand_bf_ptr_array[ctx->mds0_best_idx]->luma_fast_dist;
+#else
             // The MDS0 distortion is reduced by a factor (the factor depends on the mode). The shortcut THs are based on the
             // unshifted variance, so multiply the best variance by the appropriate multiplier.
             const uint32_t best_dist = ctx->cand_bf_ptr_array[ctx->mds0_best_idx]->luma_fast_dist * var_mult;
+#endif
 
             // Use more aggressive dc_only_th at MDS0
             uint32_t th = cand->block_mi.mode != DC_PRED ? ctx->cand_reduction_ctrls.cand_elimination_ctrls.dc_only_th
@@ -1073,6 +1097,13 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
     unsigned int            sse;
     uint8_t                *pred_y = pred->buffer_y + loc->blk_origin_index;
     uint8_t                *src_y  = input_pic->buffer_y + loc->input_origin_index;
+#if CLN_MDS0_DIST_LPD1
+    cand_bf->luma_fast_dist = fn_ptr->vf(pred_y, pred->stride_y, src_y, input_pic->stride_y, &sse);
+    // Shift variance by 4 because we use full lambda in the cost (since variance is proportional to sse)
+    // and full lambda is set with the expectation the variance is a squared metric shifted by 4 (the same
+    // shift is applied to sse in the full loop)
+    luma_fast_dist = cand_bf->luma_fast_dist << 4;
+#else
 #if OPT_SKIP_CANDS_LPD1
     // The variance is shifted because fast_lambda is used, and variance is much larger than SAD (for which
     // fast_lambda was designed), so a scaling is needed to make the values closer.  3 was chosen empirically.
@@ -1096,6 +1127,7 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
             2;
     }
 #endif
+#endif
 #if OPT_LPD1_TX_SKIP
     // Set full_dist to sse because it's used by lpd1_bypass_tx_th to skip the TX
     cand_bf->full_dist = sse;
@@ -1103,7 +1135,11 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
     // If distortion cost is greater than the best cost, exit early. This candidate will never be
     // selected b/c only one candidate is sent to MDS3
     if (ctx->mds0_best_cost != (uint64_t)~0) {
+#if CLN_MDS0_DIST_LPD1
+        const uint64_t distortion_cost = RDCOST(full_lambda, 0, luma_fast_dist);
+#else
         const uint64_t distortion_cost = RDCOST(fast_lambda, 0, luma_fast_dist);
+#endif
         if (distortion_cost > ctx->mds0_best_cost) {
             *(cand_bf->fast_cost) = MAX_MODE_COST;
             return;
@@ -1116,8 +1152,13 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
         cand_bf->fast_luma_rate   = 0;
         cand_bf->fast_chroma_rate = 0;
     } else {
+#if CLN_MDS0_DIST_LPD1
+        *(cand_bf->fast_cost) = av1_product_fast_cost_func_table[is_inter_mode(cand->block_mi.mode)](
+            pcs, ctx, cand_bf, full_lambda, luma_fast_dist);
+#else
         *(cand_bf->fast_cost) = av1_product_fast_cost_func_table[is_inter_mode(cand->block_mi.mode)](
             pcs, ctx, cand_bf, fast_lambda, luma_fast_dist);
+#endif
     }
 }
 static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs, ModeDecisionContext *ctx,
@@ -2833,7 +2874,12 @@ static void read_refine_me_mvs(PictureControlSet *pcs, ModeDecisionContext *ctx)
 
                     MV_COST_PARAMS mv_cost_params;
                     FrameHeader   *frm_hdr = &pcs->ppcs->frm_hdr;
+#if CLN_MDS0_DIST_PD1
+                    // Variance is computed for 8bit, so use 8bit lambda
+                    uint32_t       rdmult  = ctx->full_lambda_md[EB_8_BIT_MD];
+#else
                     uint32_t       rdmult  = ctx->full_lambda_md[hbd_md ? EB_10_BIT_MD : EB_8_BIT_MD];
+#endif
                     svt_init_mv_cost_params(
                         &mv_cost_params, ctx, &ctx->ref_mv, frm_hdr->quantization_params.base_q_idx, rdmult, hbd_md);
                     Mv best_mv;
@@ -5846,6 +5892,7 @@ static void full_loop_core_light_pd0(PictureControlSet *pcs, ModeDecisionContext
     cand_bf->cnt_nz_coeff = cand_bf->eob.y[0];
     svt_aom_full_cost_light_pd0(ctx, cand_bf, y_full_distortion, full_lambda, &y_coeff_bits);
 }
+#if !FIX_10BIT_BYPASS_ED
 /*
   check if we need to do inverse transform and recon
 */
@@ -5871,6 +5918,7 @@ static uint8_t do_md_recon(PictureParentControlSet *pcs, ModeDecisionContext *ct
 
     return do_recon;
 }
+#endif
 extern const uint8_t  svt_aom_eb_av1_var_offs[MAX_SB_SIZE];
 static const uint16_t eb_av1_var_offs_hbd[MAX_SB_SIZE] = {
     512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512,
@@ -6311,7 +6359,11 @@ static void full_loop_core_light_pd1(PictureControlSet *pcs, ModeDecisionContext
 #else
     bool perform_tx = get_perform_tx_flag(pcs, ctx, cand_bf, cand);
 #endif
+#if FIX_10BIT_BYPASS_ED
+    const uint8_t recon_needed = svt_aom_do_md_recon(pcs->ppcs, ctx);
+#else
     const uint8_t recon_needed = do_md_recon(pcs->ppcs, ctx);
+#endif
 
     // If need 10bit prediction, perform luma compensation before TX
     if ((perform_tx || recon_needed) && ctx->hbd_md) {
@@ -7908,8 +7960,10 @@ static void md_encode_block_light_pd0(PictureControlSet *pcs, ModeDecisionContex
     const uint32_t   input_origin_index = (ctx->blk_org_y + input_pic->org_y) * input_pic->stride_y +
         (ctx->blk_org_x + input_pic->org_x);
     const uint32_t blk_origin_index = blk_geom->org_x + blk_geom->org_y * ctx->sb_size;
-    const bool     rtc_tune         = pcs->scs->static_config.rtc;
-    BlkStruct     *blk_ptr          = ctx->blk_ptr;
+#if !CLN_MDS0_DIST_LPD0
+    const bool rtc_tune = pcs->scs->static_config.rtc;
+#endif
+    BlkStruct *blk_ptr = ctx->blk_ptr;
     if (!ctx->skip_intra) {
         svt_aom_init_xd(pcs, ctx);
         ctx->mds_do_chroma      = false;
@@ -7939,9 +7993,15 @@ static void md_encode_block_light_pd0(PictureControlSet *pcs, ModeDecisionContex
         md_stage_0_light_pd0(pcs, ctx, fast_candidate_total_count, input_pic, input_origin_index, blk_origin_index);
 
     if (ctx->lpd0_ctrls.pd0_level == VERY_LIGHT_PD0) {
+#if CLN_MDS0_DIST_LPD0
+        uint32_t rate      = ctx->md_rate_est_ctx->partition_fac_bits[0][PARTITION_NONE];
+        uint64_t dist      = ctx->mds0_best_cost;
+        ctx->blk_ptr->cost = ctx->blk_ptr->default_cost = RDCOST(ctx->full_sb_lambda_md[EB_8_BIT_MD], rate, dist);
+#else
         uint32_t rate      = !rtc_tune ? ctx->md_rate_est_ctx->partition_fac_bits[0][PARTITION_NONE] : 0;
         uint64_t dist      = ctx->mds0_best_cost;
         ctx->blk_ptr->cost = ctx->blk_ptr->default_cost = RDCOST(ctx->full_lambda_md[EB_8_BIT_MD], rate, dist);
+#endif
     } else {
         ctx->md_stage = MD_STAGE_3;
         md_stage_3_light_pd0(pcs, ctx, input_pic, input_origin_index, blk_origin_index);
@@ -8552,13 +8612,21 @@ static void convert_md_recon_16bit_to_8bit(PictureControlSet *pcs, ModeDecisionC
 static INLINE int match_ref_frame_pair(const BlockModeInfo *mbmi, const MvReferenceFrame *ref_frames) {
     return ((ref_frames[0] == mbmi->ref_frame[0]) && (ref_frames[1] == mbmi->ref_frame[1]));
 }
+#if CLN_MDS0_DIST_LPD1
+static void lpd1_tx_shortcut_detector(ModeDecisionContext *ctx, ModeDecisionCandidateBuffer **cand_bf_ptr_array) {
+#else
 static void lpd1_tx_shortcut_detector(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                       ModeDecisionCandidateBuffer **cand_bf_ptr_array) {
+#endif
     const BlockGeom             *blk_geom           = ctx->blk_geom;
     const ModeDecisionCandidate *cand               = cand_bf_ptr_array[ctx->mds0_best_idx]->cand;
     const uint64_t               best_md_stage_dist = cand_bf_ptr_array[ctx->mds0_best_idx]->luma_fast_dist;
-    const uint32_t               th_normalizer      = blk_geom->bheight * blk_geom->bwidth * (pcs->picture_qp >> 1);
-    ctx->use_tx_shortcuts_mds3                      = (100 * best_md_stage_dist) <
+#if CLN_MDS0_DIST_LPD1
+    const uint32_t th_normalizer = blk_geom->bheight * blk_geom->bwidth * ctx->qp_index;
+#else
+    const uint32_t th_normalizer = blk_geom->bheight * blk_geom->bwidth * (pcs->picture_qp >> 1);
+#endif
+    ctx->use_tx_shortcuts_mds3 = (100 * best_md_stage_dist) <
         (ctx->lpd1_tx_ctrls.use_mds3_shortcuts_th * th_normalizer);
     ctx->lpd1_allow_skipping_tx = (100 * best_md_stage_dist) < (ctx->lpd1_tx_ctrls.skip_tx_th * th_normalizer);
 
@@ -8703,7 +8771,11 @@ static void md_encode_block_light_pd1(PictureControlSet *pcs, ModeDecisionContex
     ctx->mds0_best_idx  = 0;
     ctx->mds0_best_cost = (uint64_t)~0;
 
+#if FIX_10BIT_BYPASS_ED
+    uint8_t perform_md_recon = svt_aom_do_md_recon(pcs->ppcs, ctx);
+#else
     uint8_t perform_md_recon = do_md_recon(pcs->ppcs, ctx);
+#endif
 
     // If there is only a single candidate, skip compensation if transform will be skipped (unless compensation is needed for recon)
     if (fast_candidate_total_count > 1 || perform_md_recon || ctx->lpd1_skip_inter_tx_level < 2 ||
@@ -8712,7 +8784,11 @@ static void md_encode_block_light_pd1(PictureControlSet *pcs, ModeDecisionContex
             pcs, ctx, cand_bf_ptr_array_base, fast_cand_array, fast_candidate_total_count, input_pic, &loc);
 
         ctx->perform_mds1 = 0;
+#if CLN_MDS0_DIST_LPD1
+        lpd1_tx_shortcut_detector(ctx, cand_bf_ptr_array);
+#else
         lpd1_tx_shortcut_detector(pcs, ctx, cand_bf_ptr_array);
+#endif
         // Condition needed in order to avoid mismatch between recon flag ON/OFF when lpd1_skip_inter_tx_level == 2
         if (fast_candidate_total_count == 1 && ctx->lpd1_skip_inter_tx_level == 2 &&
             !is_intra_mode(fast_cand_array[0].block_mi.mode)) {
@@ -9260,8 +9336,13 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
                                             ctx);
     }
 
+#if FIX_10BIT_BYPASS_ED
+    const uint8_t org_hbd          = ctx->hbd_md;
+    const uint8_t perform_md_recon = svt_aom_do_md_recon(pcs->ppcs, ctx);
+#else
     uint8_t org_hbd          = ctx->hbd_md;
     uint8_t perform_md_recon = do_md_recon(pcs->ppcs, ctx);
+#endif
 
     // For 10bit content, when recon is not needed, hbd_md can stay =0,
     // and the 8bit prediction is used to produce the residual (with 8bit source).
@@ -9346,9 +9427,17 @@ static bool update_skip_nsq_based_on_split_rate(PictureControlSet *pcs, ModeDeci
     if (blk_geom->shape == PART_N || ctx->avail_blk_flag[blk_geom->sqi_mds] == false)
         return skip_nsq;
 
-    const uint32_t full_lambda       = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
-                                                   : ctx->full_sb_lambda_md[EB_8_BIT_MD];
-    uint32_t       nsq_split_cost_th = ctx->nsq_search_ctrls.nsq_split_cost_th;
+#if FIX_10BIT_BYPASS_ED
+    // if hbd_md is 0, we may still use 10bit lambda to generate final costs if we are bypassing encdec for 10bit content.
+    const bool     used_10bit_at_mds3 = (ctx->encoder_bit_depth > EB_EIGHT_BIT && ctx->bypass_encdec &&
+                                     ctx->pd_pass == PD_PASS_1 && svt_aom_do_md_recon(pcs->ppcs, ctx));
+    const uint32_t full_lambda        = ctx->hbd_md || used_10bit_at_mds3 ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
+                                                                          : ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#else
+    const uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
+                                             : ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#endif
+    uint32_t nsq_split_cost_th = ctx->nsq_search_ctrls.nsq_split_cost_th;
     // Get the rate cost of splitting into the current NSQ shape.
     // If the cost of the split rate is significant, then the shape is unlikely to be selected.
     if (nsq_split_cost_th) {
@@ -10182,8 +10271,16 @@ static void update_d1_data(PictureControlSet *pcs, ModeDecisionContext *ctx, uin
             nsq_cost_avail &= ctx->cost_avail[first_blk_idx + blk_it];
             tot_cost += ctx->md_blk_arr_nsq[first_blk_idx + blk_it].cost;
         }
+#if FIX_10BIT_BYPASS_ED
+        // if hbd_md is 0, we may still use 10bit lambda to generate final costs if we are bypassing encdec for 10bit content.
+        const bool     used_10bit_at_mds3 = (ctx->encoder_bit_depth > EB_EIGHT_BIT && ctx->bypass_encdec &&
+                                         ctx->pd_pass == PD_PASS_1 && svt_aom_do_md_recon(pcs->ppcs, ctx));
+        const uint32_t full_lambda        = ctx->hbd_md || used_10bit_at_mds3 ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
+                                                                              : ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#else
         uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD] : ctx->full_sb_lambda_md[EB_8_BIT_MD];
-        uint64_t part_cost   = svt_aom_partition_rate_cost(pcs->ppcs,
+#endif
+        uint64_t part_cost = svt_aom_partition_rate_cost(pcs->ppcs,
                                                          ctx,
                                                          blk_geom->sqi_mds,
                                                          from_shape_to_part[blk_geom->shape],

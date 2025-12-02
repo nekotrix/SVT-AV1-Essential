@@ -6437,6 +6437,78 @@ static void set_lpd1_tx_ctrls(ModeDecisionContext *ctx, uint8_t lpd1_tx_level) {
     Lpd1TxCtrls *ctrls = &ctx->lpd1_tx_ctrls;
 
     switch (lpd1_tx_level) {
+#if CLN_MDS0_DIST_LPD1
+    case 0:
+        ctrls->zero_y_coeff_exit            = 0;
+        ctrls->skip_nrst_nrst_luma_tx       = 0;
+        ctrls->skip_tx_th                   = 0;
+        ctrls->use_uv_shortcuts_on_y_coeffs = 0;
+
+        ctrls->use_mds3_shortcuts_th = 0;
+        ctrls->use_neighbour_info    = 0;
+        break;
+    case 1:
+        ctrls->zero_y_coeff_exit            = 1;
+        ctrls->chroma_detector_level        = 1;
+        ctrls->skip_nrst_nrst_luma_tx       = 0;
+        ctrls->skip_tx_th                   = 0;
+        ctrls->use_uv_shortcuts_on_y_coeffs = 1;
+
+        ctrls->use_mds3_shortcuts_th = 30;
+        ctrls->use_neighbour_info    = 0;
+        break;
+    case 2:
+        ctrls->zero_y_coeff_exit            = 1;
+        ctrls->chroma_detector_level        = 1;
+        ctrls->skip_nrst_nrst_luma_tx       = 1;
+        ctrls->skip_tx_th                   = 30;
+        ctrls->use_uv_shortcuts_on_y_coeffs = 1;
+
+        ctrls->use_mds3_shortcuts_th = 30;
+        ctrls->use_neighbour_info    = 0;
+        break;
+    case 3:
+        ctrls->zero_y_coeff_exit            = 1;
+        ctrls->chroma_detector_level        = 2;
+        ctrls->skip_nrst_nrst_luma_tx       = 1;
+        ctrls->skip_tx_th                   = 30;
+        ctrls->use_uv_shortcuts_on_y_coeffs = 1;
+
+        ctrls->use_mds3_shortcuts_th = 30;
+        ctrls->use_neighbour_info    = 0;
+        break;
+    case 4:
+        ctrls->zero_y_coeff_exit            = 1;
+        ctrls->chroma_detector_level        = 2;
+        ctrls->skip_nrst_nrst_luma_tx       = 1;
+        ctrls->skip_tx_th                   = 30;
+        ctrls->use_uv_shortcuts_on_y_coeffs = 1;
+
+        ctrls->use_mds3_shortcuts_th = 60;
+        ctrls->use_neighbour_info    = 1;
+        break;
+    case 5:
+        ctrls->zero_y_coeff_exit            = 1;
+        ctrls->chroma_detector_level        = 2;
+        ctrls->skip_nrst_nrst_luma_tx       = 1;
+        ctrls->skip_tx_th                   = 60;
+        ctrls->use_uv_shortcuts_on_y_coeffs = 1;
+
+        ctrls->use_mds3_shortcuts_th = 60;
+        ctrls->use_neighbour_info    = 2;
+        break;
+    case 6:
+        ctrls->zero_y_coeff_exit            = 1;
+        ctrls->chroma_detector_level        = 2;
+        ctrls->skip_nrst_nrst_luma_tx       = 1;
+        ctrls->skip_tx_th                   = 100;
+        ctrls->use_uv_shortcuts_on_y_coeffs = 1;
+
+        ctrls->use_mds3_shortcuts_th = 150;
+        ctrls->use_neighbour_info    = 2;
+        break;
+    default: assert(0); break;
+#else
     case 0:
         ctrls->zero_y_coeff_exit            = 0;
         ctrls->skip_nrst_nrst_luma_tx       = 0;
@@ -6507,6 +6579,7 @@ static void set_lpd1_tx_ctrls(ModeDecisionContext *ctx, uint8_t lpd1_tx_level) {
         ctrls->use_neighbour_info    = 2;
         break;
     default: assert(0); break;
+#endif
     }
 }
 static void set_cfl_ctrls(ModeDecisionContext *ctx, uint8_t cfl_level) {
@@ -7846,6 +7919,7 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
 #if !OPT_MD_SIGNALS
     ctx->d2_parent_bias = 995;
 #endif
+#if !CLN_MDS0_DIST_LPD1
     if (pcs->enc_mode <= ENC_M7)
         if (input_resolution <= INPUT_SIZE_480p_RANGE)
             ctx->lpd1_shift_mds0_dist = 1;
@@ -7853,6 +7927,7 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
             ctx->lpd1_shift_mds0_dist = 0;
     else
         ctx->lpd1_shift_mds0_dist = 1;
+#endif
     /* Set signals that have assumed values in the light-PD1 path (but need to be initialized as they may be checked) */
 
     // Use coeff rate and slit flag rate only (i.e. no fast rate)
@@ -10341,7 +10416,6 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     }
 
     pcs->lambda_weight = 0;
-
     if (pcs->scs->static_config.tune == TUNE_IQ) {
         // Adjust lambda weight towards more favorable still-picture performance (from 128 to 200),
         // with gradual ramp-down for the lowest and highest QPs

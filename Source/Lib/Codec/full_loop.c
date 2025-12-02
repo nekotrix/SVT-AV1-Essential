@@ -2423,14 +2423,49 @@ void svt_aom_full_loop_uv(PictureControlSet *pcs, ModeDecisionContext *ctx, Mode
         ++txb_itr;
     } while (txb_itr < tu_count);
 }
+#if FIX_10BIT_BYPASS_ED
+/*
+  check if we need to do inverse transform and recon
+*/
+uint8_t svt_aom_do_md_recon(PictureParentControlSet *pcs, ModeDecisionContext *ctx) {
+    const uint8_t encdec_bypass = ctx->bypass_encdec &&
+        (ctx->pd_pass == PD_PASS_1); // if enc dec is bypassed MD has to produce the final recon
+    const uint8_t need_md_rec_for_intra_pred = !ctx->skip_intra ||
+        ctx->inter_intra_comp_ctrls.enabled; // for intra prediction of current frame
+    const uint8_t need_md_rec_for_ref = (pcs->is_ref || pcs->scs->static_config.recon_enabled) &&
+        encdec_bypass; // for inter prediction of future frame or if recon is being output
+    const uint8_t need_md_rec_for_dlf_search  = pcs->dlf_ctrls.enabled; // for DLF levels
+    const uint8_t need_md_rec_for_cdef_search = pcs->cdef_search_ctrls.enabled &&
+        !pcs->cdef_search_ctrls.use_reference_cdef_fs; // CDEF search levels needing the recon samples
+    const uint8_t need_md_rec_for_restoration_search = pcs->enable_restoration; // any resoration search level
+    const uint8_t need_md_rec_for_quality            = (pcs->compute_psnr || pcs->compute_ssim) &&
+        (ctx->pd_pass == PD_PASS_1); // stat report needs recon samples for metrics
+    uint8_t do_recon;
+    if (need_md_rec_for_intra_pred || need_md_rec_for_ref || need_md_rec_for_dlf_search ||
+        need_md_rec_for_cdef_search || need_md_rec_for_restoration_search || need_md_rec_for_quality)
+        do_recon = 1;
+    else
+        do_recon = 0;
+
+    return do_recon;
+}
+#endif
 uint64_t svt_aom_d1_non_square_block_decision(PictureControlSet *pcs, ModeDecisionContext *ctx, uint32_t d1_block_itr) {
     //compute total cost for the whole block partition
     uint64_t tot_cost      = 0;
     uint32_t first_blk_idx = ctx->blk_ptr->mds_idx -
         (ctx->blk_geom->totns - 1); //index of first block in this partition
     uint32_t blk_it;
-    uint32_t full_lambda    = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD] : ctx->full_sb_lambda_md[EB_8_BIT_MD];
-    uint8_t  nsq_cost_avail = 1;
+#if FIX_10BIT_BYPASS_ED
+    // if hbd_md is 0, we may still use 10bit lambda to generate final costs if we are bypassing encdec for 10bit content.
+    const bool     used_10bit_at_mds3 = (ctx->encoder_bit_depth > EB_EIGHT_BIT && ctx->bypass_encdec &&
+                                     ctx->pd_pass == PD_PASS_1 && svt_aom_do_md_recon(pcs->ppcs, ctx));
+    const uint32_t full_lambda        = ctx->hbd_md || used_10bit_at_mds3 ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
+                                                                          : ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#else
+    uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD] : ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#endif
+    uint8_t nsq_cost_avail = 1;
     for (blk_it = 0; blk_it < ctx->blk_geom->totns; blk_it++) {
         // Don't apply check to first block because nsq_cost_avail must be set to 0 for disallowed blocks
         if (!pcs->ppcs->sb_geom[ctx->sb_index].block_is_allowed[first_blk_idx + blk_it] && blk_it)
@@ -2513,7 +2548,15 @@ static void compute_depth_costs(ModeDecisionContext *ctx, PictureParentControlSe
             ctx->md_blk_arr_nsq[curr_depth_blk0_mds].left_neighbor_partition;
         ctx->md_blk_arr_nsq[above_depth_mds].above_neighbor_partition =
             ctx->md_blk_arr_nsq[curr_depth_blk0_mds].above_neighbor_partition;
+#if FIX_10BIT_BYPASS_ED
+        // if hbd_md is 0, we may still use 10bit lambda to generate final costs if we are bypassing encdec for 10bit content.
+        const bool     used_10bit_at_mds3 = (ctx->encoder_bit_depth > EB_EIGHT_BIT && ctx->bypass_encdec &&
+                                         ctx->pd_pass == PD_PASS_1 && svt_aom_do_md_recon(pcs, ctx));
+        const uint32_t full_lambda        = ctx->hbd_md || used_10bit_at_mds3 ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
+                                                                              : ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#else
         uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD] : ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#endif
         const uint64_t above_split_rate = svt_aom_partition_rate_cost(
             pcs, ctx, above_depth_mds, PARTITION_SPLIT, full_lambda, pcs->use_accurate_part_ctx, ctx->md_rate_est_ctx);
 
@@ -2591,7 +2634,12 @@ void svt_aom_compute_depth_costs_md_skip_light_pd0(PictureParentControlSet *pcs,
         *curr_depth_cost  = 0;
         return;
     }
+#if FIX_10BIT_BYPASS_ED
+    // 8bit only for LPD0
+    uint32_t full_lambda = ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#else
     uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD] : ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#endif
 
     *curr_depth_cost = 0;
     // sum the previous ones
@@ -2623,7 +2671,15 @@ void svt_aom_compute_depth_costs_md_skip(ModeDecisionContext *ctx, PictureParent
         *curr_depth_cost  = 0;
         return;
     }
+#if FIX_10BIT_BYPASS_ED
+    // if hbd_md is 0, we may still use 10bit lambda to generate final costs if we are bypassing encdec for 10bit content.
+    const bool     used_10bit_at_mds3 = (ctx->encoder_bit_depth > EB_EIGHT_BIT && ctx->bypass_encdec &&
+                                     ctx->pd_pass == PD_PASS_1 && svt_aom_do_md_recon(pcs, ctx));
+    const uint32_t full_lambda        = ctx->hbd_md || used_10bit_at_mds3 ? ctx->full_sb_lambda_md[EB_10_BIT_MD]
+                                                                          : ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#else
     uint32_t full_lambda = ctx->hbd_md ? ctx->full_sb_lambda_md[EB_10_BIT_MD] : ctx->full_sb_lambda_md[EB_8_BIT_MD];
+#endif
 
     uint64_t above_split_rate = 0;
     *curr_depth_cost          = 0;

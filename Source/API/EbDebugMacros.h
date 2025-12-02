@@ -90,6 +90,9 @@ extern "C" {
 #define OPT_LPD0_RTC                1 // Unify LPD0-classifier between rtc and non-rtc
 #define OPT_RTC_VLPD0_DEPTH         1 // Enable depth early exit for VLPD0 in RTC M12. Aggressive tx shortcut level for RTC M12.
 #define CLN_UNUSED_SIGS             1 // Remove unused signals
+#define CLN_MDS0_DIST_LPD1          1 // Don't shift MDS0 variance in LPD1; use full lambda for variance
+#define CLN_MDS0_DIST_LPD0          1 // Don't shift MDS0 variance in LPD0
+#define FIX_10BIT_BYPASS_ED         1 // Use proper lambda during MD when bypassing encdec for 10bit
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
