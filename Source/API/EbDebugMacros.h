@@ -102,6 +102,8 @@ extern "C" {
 #define OPT_DR_COST_TH              1 // Enhance the granularity of the dr cost-threshold multipliers
 #endif
 #define FIX_DISALLOW_8X8            1 // Fix when 8x8 are needed at pic boundaries
+#define TUNE_RTC_RA_PRESETS_2       1 // Preset tuning for RTC mode and RA
+#define CLN_DLF_DEF                 1 // Clean dlf-level def
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

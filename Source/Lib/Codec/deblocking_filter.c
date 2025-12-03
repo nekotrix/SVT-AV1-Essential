@@ -1276,7 +1276,12 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
 
         if (!do_y) {
             lf->filter_level[0] = lf->filter_level[1] = 0;
+#if CLN_DLF_DEF
+        } else if (!pcs->temporal_layer_index || !pcs->ppcs->dlf_ctrls.use_ref_avg_y ||
+                   pcs->ppcs->tot_ref_frame_types == 0) {
+#else
         } else if (!pcs->ppcs->dlf_ctrls.use_ref_avg_y || pcs->ppcs->tot_ref_frame_types == 0) {
+#endif
             lf->filter_level[0] = lf->filter_level[1] = search_filter_level(srcBuffer,
                                                                             temp_lf_recon_buffer,
                                                                             pcs,
@@ -1317,7 +1322,12 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
             // chroma filtering not allowed if luma filters off
             lf->filter_level_u = 0;
             lf->filter_level_v = 0;
+#if CLN_DLF_DEF
+        } else if (pcs->temporal_layer_index && pcs->ppcs->dlf_ctrls.use_ref_avg_uv &&
+                   pcs->ppcs->tot_ref_frame_types > 0) {
+#else
         } else if (pcs->ppcs->dlf_ctrls.use_ref_avg_uv && pcs->ppcs->tot_ref_frame_types > 0) {
+#endif
             //use avg-ref for chroma
             lf->filter_level_u = last_frame_filter_level[2];
             lf->filter_level_v = last_frame_filter_level[3];

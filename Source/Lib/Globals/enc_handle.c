@@ -3298,7 +3298,11 @@ static void derive_tf_params(SequenceControlSet *scs) {
         else if ((!scs->use_flat_ipp && enc_mode <= ENC_M7) || (scs->use_flat_ipp && enc_mode <= ENC_M6)) {
             tf_level = 1;
         }
+#if TUNE_RTC_RA_PRESETS_2
+        else if ((!scs->use_flat_ipp && enc_mode <= ENC_M9) || (scs->use_flat_ipp && enc_mode <= ENC_M7)) {
+#else
         else if ((!scs->use_flat_ipp && enc_mode <= ENC_M8) || (scs->use_flat_ipp && enc_mode <= ENC_M7)) {
+#endif
             tf_level = 2;
         }
 #else
