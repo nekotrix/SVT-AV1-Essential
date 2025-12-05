@@ -1975,7 +1975,7 @@ static void svt_aom_set_dlf_controls(PictureParentControlSet *pcs, uint8_t dlf_l
 static void set_intrabc_level(PictureParentControlSet *pcs, SequenceControlSet *scs, uint8_t ibc_level) {
     IntraBCCtrls *intraBC_ctrls = &pcs->intraBC_ctrls;
 #if TUNE_STILL_IMAGE_1
-    uint8_t allow_4x4_blocks = !svt_aom_get_disallow_4x4(pcs->enc_mode, pcs->temporal_layer_index == 0, scs->allintra);
+    uint8_t allow_4x4_blocks = !svt_aom_get_disallow_4x4(pcs->enc_mode);
 #else
     uint8_t allow_4x4_blocks = !svt_aom_get_disallow_4x4(pcs->enc_mode, pcs->temporal_layer_index == 0);
 #endif
@@ -8550,25 +8550,11 @@ void svt_aom_sig_deriv_enc_dec(SequenceControlSet *scs, PictureControlSet *pcs, 
 Used by svt_aom_sig_deriv_enc_dec and memory allocation
 */
 #if TUNE_STILL_IMAGE_1
-bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base, bool allintra) {
+bool svt_aom_get_disallow_4x4(EncMode enc_mode) {
 #else
 bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base) {
 #endif
-    UNUSED(is_base);
-#if TUNE_STILL_IMAGE_1
-    if (allintra) {
-#if TUNE_STILL_IMAGE_2
-        if (enc_mode <= ENC_M2)
-#else
-        if (enc_mode <= ENC_M1)
-#endif
-            return false;
-        else
-            return true;
-    } else if (enc_mode <= ENC_M2)
-#else
     if (enc_mode <= ENC_M2)
-#endif
         return false;
     else
         return true;
@@ -10318,7 +10304,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
     disallow_4x4
     */
 #if TUNE_STILL_IMAGE_1
-    pcs->pic_disallow_4x4 = svt_aom_get_disallow_4x4(enc_mode, is_base, allintra);
+    pcs->pic_disallow_4x4 = svt_aom_get_disallow_4x4(enc_mode);
 #else
     pcs->pic_disallow_4x4 = svt_aom_get_disallow_4x4(enc_mode, is_base);
 #endif

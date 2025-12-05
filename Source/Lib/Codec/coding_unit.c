@@ -101,7 +101,7 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
     for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
         for (uint8_t is_base = 0; is_base <= 1; is_base++) {
 #if TUNE_STILL_IMAGE_1
-            disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(enc_mode, is_base, allintra));
+            disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(enc_mode));
 #else
             disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(enc_mode, is_base));
 #endif

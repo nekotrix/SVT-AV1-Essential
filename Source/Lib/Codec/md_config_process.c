@@ -338,7 +338,9 @@ void mdc_init_qp_update(PictureControlSet *pcs) {
     pcs->intra_coded_area = 0;
     pcs->skip_coded_area  = 0;
     pcs->hp_coded_area    = 0;
-
+#if OPT_CYCLIC_REFRESH
+    pcs->avg_cnt_zeromv = 0;
+#endif
     // TODO: do we need to update the GM fields?
     set_global_motion_field(pcs);
 
@@ -1001,6 +1003,9 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         pcs->intra_coded_area = 0;
         pcs->skip_coded_area  = 0;
         pcs->hp_coded_area    = 0;
+#if OPT_CR_CTRL
+        pcs->avg_cnt_zeromv = 0;
+#endif
         // Init block selection
 #if !CLN_MDC_FUNCS
         // Set reference sg ep

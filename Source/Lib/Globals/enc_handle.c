@@ -4260,7 +4260,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     for (uint8_t is_islice = 0; is_islice <= 1; is_islice++)
         for (uint8_t is_base = 0; is_base <= 1; is_base++)
 #if TUNE_STILL_IMAGE_1
-            disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode, is_base, allintra));
+            disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode));
 #else
             disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode, is_base));
 #endif
@@ -4706,7 +4706,6 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
 #if EN_FLAT_ALL_PRESETS
         // Mimic flat prediction structure
         scs->use_flat_ipp = 1;
-        SVT_WARN("Flat prediction structure for rtc is under development and is intended for debugging purposes only at this stage\n");
 #else
         if (scs->static_config.enc_mode > ENC_M10) {
             // Mimic flat prediction structure

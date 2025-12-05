@@ -127,6 +127,10 @@ typedef struct {
     int worst_quality;
     int best_quality;
 
+#if OPT_CR_CTRL
+    // Track amount of low motion in scene
+    int avg_frame_low_motion;
+#endif
     int64_t starting_buffer_level;
     int64_t optimal_buffer_level;
     int64_t maximum_buffer_size;

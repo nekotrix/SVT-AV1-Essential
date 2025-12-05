@@ -193,6 +193,9 @@ static void copy_statistics_to_ref_obj_ect(PictureControlSet *pcs, SequenceContr
     pcs->intra_coded_area = (100 * pcs->intra_coded_area) / (ppcs->aligned_width * ppcs->aligned_height);
     pcs->skip_coded_area  = (100 * pcs->skip_coded_area) / (ppcs->aligned_width * ppcs->aligned_height);
     pcs->hp_coded_area    = (100 * pcs->hp_coded_area) / (ppcs->aligned_width * ppcs->aligned_height);
+#if OPT_CR_CTRL
+    pcs->avg_cnt_zeromv = (100 * pcs->avg_cnt_zeromv) / (ppcs->aligned_width * ppcs->aligned_height);
+#endif
     if (pcs->slice_type == I_SLICE)
         pcs->intra_coded_area = 0;
     obj->intra_coded_area = (uint8_t)pcs->intra_coded_area;

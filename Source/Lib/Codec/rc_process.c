@@ -1128,8 +1128,13 @@ static const int rd_frame_type_factor[2][SVT_AV1_FRAME_UPDATE_TYPES] = {{150, 18
 int svt_aom_compute_rd_mult(PictureControlSet *pcs, uint8_t q_index, uint8_t me_q_index, uint8_t bit_depth) {
     FrameType frame_type = pcs->ppcs->frm_hdr.frame_type;
     // To set gf_update_type based on current TL vs. the max TL (e.g. for 5L, max TL is 4)
+#if FIX_LAMBDA_FLAT
+    uint8_t temporal_layer_index = pcs->scs->use_flat_ipp ? 0 : pcs->ppcs->temporal_layer_index;
+    uint8_t max_temporal_layer   = pcs->scs->use_flat_ipp ? 0 : pcs->ppcs->hierarchical_levels;
+#else
     uint8_t temporal_layer_index = pcs->ppcs->temporal_layer_index;
     uint8_t max_temporal_layer   = pcs->ppcs->hierarchical_levels;
+#endif
     // Always use q_index for the derivation of the initial rdmult (i.e. don't use me_q_index)
     int64_t rdmult = svt_aom_compute_rd_mult_based_on_qindex(bit_depth, pcs->ppcs->update_type, q_index);
     // Update rdmult based on the frame's position in the miniGOP
@@ -1170,8 +1175,13 @@ int svt_aom_compute_rd_mult(PictureControlSet *pcs, uint8_t q_index, uint8_t me_
 int svt_aom_compute_fast_lambda(PictureControlSet *pcs, uint8_t q_index, uint8_t me_q_index, uint8_t bit_depth) {
     FrameType frame_type = pcs->ppcs->frm_hdr.frame_type;
     // To set gf_update_type based on current TL vs. the max TL (e.g. for 5L, max TL is 4)
+#if FIX_LAMBDA_FLAT
+    uint8_t temporal_layer_index = pcs->scs->use_flat_ipp ? 0 : pcs->ppcs->temporal_layer_index;
+    uint8_t max_temporal_layer   = pcs->scs->use_flat_ipp ? 0 : pcs->ppcs->hierarchical_levels;
+#else
     uint8_t temporal_layer_index = pcs->ppcs->temporal_layer_index;
     uint8_t max_temporal_layer   = pcs->ppcs->hierarchical_levels;
+#endif
     // Always use q_index for the derivation of the initial rdmult (i.e. don't use me_q_index)
     int64_t rdmult = bit_depth == 8 ? av1_lambda_mode_decision8_bit_sad[q_index]
                                     : av1lambda_mode_decision10_bit_sad[q_index];
@@ -1357,6 +1367,9 @@ int svt_av1_cyclic_refresh_rc_bits_per_mb(PictureParentControlSet *ppcs, double 
 #define CR_SEGMENT_ID_BASE 0
 #define CR_SEGMENT_ID_BOOST1 1
 #define CR_SEGMENT_ID_BOOST2 2
+#if OPT_BOOST_MODULATION
+const int BOOST_MAX = 10;
+#endif
 // Maximum rate target ratio for setting segment delta-qp.
 #define CR_MAX_RATE_TARGET_RATIO 4.0
 static void cyclic_sb_qp_derivation(PictureControlSet *pcs) {
@@ -1386,10 +1399,16 @@ static void cyclic_sb_qp_derivation(PictureControlSet *pcs) {
     if (!ppcs->sc_class1 && cr->actual_num_seg2_sbs) {
         seg2_dist    = (seg2_dist / cr->actual_num_seg2_sbs);
         uint64_t dev = (avg_me_dist - seg2_dist) * 100 / avg_me_dist;
+#if OPT_BOOST_MODULATION
+        // Quadratic Scaling; boost = BOOST_MAX * (dev/100)^2
+        int boost = (BOOST_MAX * dev * dev) / (100 * 100); // = /10000
+        cr->rate_boost_fac += boost;
+#else
         if (dev > 75)
             cr->rate_boost_fac += 10;
         else if (dev > 50)
             cr->rate_boost_fac += 5;
+#endif
     }
     int delta1 = compute_deltaq(
         ppcs, rc, ppcs->frm_hdr.quantization_params.base_q_idx, cr->rate_ratio_qdelta, bit_depth);
@@ -1443,6 +1462,21 @@ void svt_aom_cyclic_refresh_init(PictureParentControlSet *ppcs) {
 
     cr->apply_cyclic_refresh = (ppcs->slice_type != I_SLICE &&
                                 (ppcs->scs->use_flat_ipp || ppcs->temporal_layer_index == 0));
+
+#if OPT_CR_CTRL
+    const int qp_thresh     = AOMMAX(16, rc->best_quality + 4);
+    const int qp_max_thresh = 118 * MAXQ >> 7;
+
+    if (rc->avg_frame_qindex[INTER_FRAME] > qp_max_thresh)
+        cr->apply_cyclic_refresh = 0;
+
+    if (rc->avg_frame_qindex[INTER_FRAME] < qp_thresh)
+        cr->apply_cyclic_refresh = 0;
+
+    if (rc->avg_frame_low_motion && rc->avg_frame_low_motion < 50)
+        cr->apply_cyclic_refresh = 0;
+#endif
+
     if (!cr->apply_cyclic_refresh)
         return;
 
@@ -1924,6 +1958,9 @@ static void av1_rc_init(SequenceControlSet *scs) {
     // current and previous average base layer ME distortion
     rc->cur_avg_base_me_dist  = 0;
     rc->prev_avg_base_me_dist = 0;
+#if OPT_CR_CTRL
+    rc->avg_frame_low_motion = 0;
+#endif
 }
 
 #define MIN_BOOST_COMBINE_FACTOR 4.0
@@ -2926,7 +2963,11 @@ static void av1_rc_postencode_update(PictureParentControlSet *ppcs) {
         rc->rolling_actual_bits = (int)ROUND_POWER_OF_TWO_64(rc->rolling_actual_bits * 3 + ppcs->projected_frame_size,
                                                              2);
     }
-
+#if OPT_CR_CTRL
+    rc->avg_frame_low_motion = (rc->avg_frame_low_motion == 0)
+        ? ppcs->child_pcs->avg_cnt_zeromv
+        : (3 * rc->avg_frame_low_motion + ppcs->child_pcs->avg_cnt_zeromv) / 4;
+#endif
     // Actual bits spent
     rc->total_actual_bits += ppcs->projected_frame_size;
     rc->total_target_bits += ppcs->frm_hdr.showable_frame ? rc->avg_frame_bandwidth : 0;

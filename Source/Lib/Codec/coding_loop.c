@@ -1857,6 +1857,17 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
                     if (hp)
                         ctx->tot_hp_coded_area += blk_geom->bwidth * blk_geom->bheight;
                 }
+#if OPT_CR_CTRL
+                bool is_zero_mv = 0;
+                if (blk_ptr->block_mi.mv[0].x < 8 && blk_ptr->block_mi.mv[0].y < 8)
+                    is_zero_mv = 1;
+                if (has_second_ref(&blk_ptr->block_mi)) {
+                    if (blk_ptr->block_mi.mv[1].x < 8 && blk_ptr->block_mi.mv[1].y < 8)
+                        is_zero_mv = 1;
+                }
+                if (is_zero_mv)
+                    ctx->tot_cnt_zero_mv += blk_geom->bwidth * blk_geom->bheight;
+#endif
                 if (blk_it == 0 && blk_ptr->block_mi.mode != NEWMV && blk_ptr->block_mi.mode != NEW_NEWMV) {
                     pcs->sb_64x64_mvp[sb_addr] = 1;
                 }

@@ -104,7 +104,12 @@ extern "C" {
 #define FIX_DISALLOW_8X8            1 // Fix when 8x8 are needed at pic boundaries
 #define TUNE_RTC_RA_PRESETS_2       1 // Preset tuning for RTC mode and RA
 #define CLN_DLF_DEF                 1 // Clean dlf-level def
-
+#define OPT_CYCLIC_REFRESH          1
+#if OPT_CYCLIC_REFRESH
+#define OPT_CR_CTRL                 1 // Use avg_frame_low_motion and avg_frame_qindex, reflecting stationary block, and average Q-index, from past frames, to decide whether to keep or disable cyclic-refresh for the current frame
+#define OPT_BOOST_MODULATION        1 // Replace the step-based rate_boost_fac logic by quadratic scaling, so the boost increases gradually with deviation rather than jumping at fixed thresholds
+#define FIX_LAMBDA_FLAT             1 // Use the the actual layer-index and hierarchical-level
+#endif
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

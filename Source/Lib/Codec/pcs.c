@@ -1130,9 +1130,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
         for (uint8_t is_base = 0; is_base <= 1; is_base++) {
 #if TUNE_STILL_IMAGE_1
-            disallow_4x4 = MIN(
-                disallow_4x4,
-                svt_aom_get_disallow_4x4(init_data_ptr->enc_mode, init_data_ptr->static_config.rtc, allintra));
+            disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(init_data_ptr->enc_mode));
 #else
             disallow_4x4 = MIN(disallow_4x4,
                                svt_aom_get_disallow_4x4(init_data_ptr->enc_mode, init_data_ptr->static_config.rtc));

@@ -2864,6 +2864,9 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
         ed_ctx->tot_intra_coded_area    = 0;
         ed_ctx->tot_skip_coded_area     = 0;
         ed_ctx->tot_hp_coded_area       = 0;
+#if OPT_CR_CTRL
+        ed_ctx->tot_cnt_zero_mv = 0;
+#endif
         // Bypass encdec for the first pass
         if (svt_aom_is_pic_skipped(pcs->ppcs)) {
             svt_release_object(pcs->ppcs->me_data_wrapper);
@@ -3202,6 +3205,9 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
             pcs->intra_coded_area += (uint32_t)ed_ctx->tot_intra_coded_area;
             pcs->skip_coded_area += (uint32_t)ed_ctx->tot_skip_coded_area;
             pcs->hp_coded_area += (uint32_t)ed_ctx->tot_hp_coded_area;
+#if OPT_CR_CTRL
+            pcs->avg_cnt_zeromv += (uint32_t)ed_ctx->tot_cnt_zero_mv;
+#endif
             // Accumulate block selection
             pcs->enc_dec_coded_sb_count += (uint32_t)ed_ctx->coded_sb_count;
             bool last_sb_flag = (pcs->sb_total_count == pcs->enc_dec_coded_sb_count);

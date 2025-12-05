@@ -63,7 +63,7 @@ uint8_t svt_aom_get_enable_restoration(EncMode enc_mode, int8_t config_enable_re
                                        uint8_t fast_decode, bool allintra, bool rtc_tune);
 void    svt_aom_set_dist_based_ref_pruning_controls(ModeDecisionContext *ctx, uint8_t dist_based_ref_pruning_level);
 #if TUNE_STILL_IMAGE_1
-bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base, bool allintra);
+bool svt_aom_get_disallow_4x4(EncMode enc_mode);
 #else
 bool svt_aom_get_disallow_4x4(EncMode enc_mode, uint8_t is_base);
 #endif

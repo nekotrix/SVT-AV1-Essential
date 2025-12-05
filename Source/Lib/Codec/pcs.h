@@ -189,8 +189,11 @@ typedef struct PictureControlSet {
     uint32_t          intra_coded_area;
     uint64_t          skip_coded_area;
     uint64_t          hp_coded_area;
-    uint32_t          tot_seg_searched_cdef;
-    EbHandle          cdef_search_mutex;
+#if OPT_CR_CTRL
+    uint64_t avg_cnt_zeromv;
+#endif
+    uint32_t tot_seg_searched_cdef;
+    EbHandle cdef_search_mutex;
 
     uint16_t cdef_segments_total_count;
     uint8_t  cdef_segments_column_count;
