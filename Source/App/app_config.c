@@ -882,7 +882,9 @@ ConfigDescription config_entry_specific[] = {
      "Optimize the encoding process for different desired outcomes [0 = VQ, 1 = PSNR, 2 = SSIM, 3 = IQ (Image "
      "Quality)], default is 1 [0-3]"},
     // MD Parameters
-    {SCREEN_CONTENT_TOKEN, "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive]"},
+    {SCREEN_CONTENT_TOKEN,
+     "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive, 3: content adaptive "
+     "(anti-alias aware)]"},
 #if CONFIG_ENABLE_FILM_GRAIN
     // Annex A parameters
     {FILM_GRAIN_TOKEN, "Enable film grain, default is 0 [0: off, 1-50: level of denoising for film grain]"},
