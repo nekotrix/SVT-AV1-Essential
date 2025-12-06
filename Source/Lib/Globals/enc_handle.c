@@ -5568,6 +5568,14 @@ EB_API EbErrorType svt_av1_enc_send_picture(
     EbBufferHeaderType   *app_hdr = p_buffer;
     enc_handle_ptr->frame_received = true;
 
+    if (enc_handle_ptr->scs_instance_array[0]->scs->static_config.avif && p_buffer->pts == 3) {
+        p_buffer->flags = EB_BUFFERFLAG_EOS;
+        p_buffer->pic_type = EB_AV1_INVALID_PICTURE;
+        enc_handle_ptr->eos_received = 1;
+        return_val = EB_ErrorBadParameter;
+        SVT_ERROR("AVIF flag is specified, but more than 3 frames were sent. This will not produce an AVIF image sequence (avis)!\n");
+    }
+
     // Exit the library if we detect an invalid API input buffer @ the previous library call
     if (enc_handle_ptr->is_prev_valid == false) {
         p_buffer->flags = EB_BUFFERFLAG_EOS;
