@@ -1188,7 +1188,7 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
         // it is to 0, so in practice let's choose between levels 0, 1 and 7 to keep it simple
         int32_t max_lf_sharpness;
 
-        if (frm_hdr->quantization_params.base_q_idx <= 120) {
+        if (frm_hdr->quantization_params.base_q_idx <= 112) {
             max_lf_sharpness = 7;
         } else if (frm_hdr->quantization_params.base_q_idx <= 160) {
             max_lf_sharpness = 1;
