@@ -4256,12 +4256,12 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     }
 #endif
 
+#if TUNE_STILL_IMAGE_1
+    bool disallow_4x4 = svt_aom_get_disallow_4x4(scs->static_config.enc_mode);
+#else
     bool disallow_4x4 = true;
     for (uint8_t is_islice = 0; is_islice <= 1; is_islice++)
         for (uint8_t is_base = 0; is_base <= 1; is_base++)
-#if TUNE_STILL_IMAGE_1
-            disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode));
-#else
             disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(scs->static_config.enc_mode, is_base));
 #endif
 #if TUNE_STILL_IMAGE_0

@@ -110,6 +110,8 @@ extern "C" {
 #define OPT_BOOST_MODULATION        1 // Replace the step-based rate_boost_fac logic by quadratic scaling, so the boost increases gradually with deviation rather than jumping at fixed thresholds
 #define FIX_LAMBDA_FLAT             1 // Use the the actual layer-index and hierarchical-level
 #endif
+#define OPT_RDOQ_RTC                1 // Use default lambda at RDOQ for RTC
+
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

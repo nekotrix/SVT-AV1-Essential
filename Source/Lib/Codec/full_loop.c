@@ -1099,6 +1099,9 @@ static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx,
     SequenceControlSet *scs      = pcs->scs;
     bool                allintra = scs->allintra;
 #endif
+#if OPT_RDOQ_RTC
+    bool rtc = scs->static_config.rtc;
+#endif
     int                    sharpness  = 0; // No Sharpness
     int                    fast_mode  = (ctx->rdoq_ctrls.eob_fast_y_inter && is_inter && !plane) ||
             (ctx->rdoq_ctrls.eob_fast_y_intra && !is_inter && !plane) ||
@@ -1147,9 +1150,14 @@ static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx,
         }
     }
 #if OPT_DEFAULT_LAMBDA_MULT
+#if OPT_RDOQ_RTC
+    const int64_t rdmult =
+        (((((int64_t)lambda * plane_rd_mult[allintra || rtc][is_inter][plane_type]) * rweight) / 100) + 2) >> rshift;
+#else
     const int64_t rdmult = (((((int64_t)lambda * plane_rd_mult[allintra][is_inter][plane_type]) * rweight) / 100) +
                             2) >>
         rshift;
+#endif
 #else
     const int64_t rdmult = (((((int64_t)lambda * plane_rd_mult[is_inter][plane_type]) * rweight) / 100) + 2) >> rshift;
 #endif
