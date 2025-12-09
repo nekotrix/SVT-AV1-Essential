@@ -3299,7 +3299,11 @@ static void derive_tf_params(SequenceControlSet *scs) {
             tf_level = 1;
         }
 #if TUNE_RTC_RA_PRESETS_2
+#if TUNE_RTC_3L
+        else if ((!scs->use_flat_ipp && enc_mode <= ENC_M8) || (scs->use_flat_ipp && enc_mode <= ENC_M7)) {
+#else
         else if ((!scs->use_flat_ipp && enc_mode <= ENC_M9) || (scs->use_flat_ipp && enc_mode <= ENC_M7)) {
+#endif
 #else
         else if ((!scs->use_flat_ipp && enc_mode <= ENC_M8) || (scs->use_flat_ipp && enc_mode <= ENC_M7)) {
 #endif
@@ -4412,13 +4416,23 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     uint8_t mrp_level;
 #if OPT_ENABLE_MRP_FLAT
     if (scs->static_config.rtc) {
+#if TUNE_RTC_FLAT
+        if (scs->static_config.enc_mode <= ENC_M8 || (!scs->use_flat_ipp && scs->static_config.enc_mode <= ENC_M10)) {
+#else
         if (scs->static_config.enc_mode <= ENC_M9 || (!scs->use_flat_ipp && scs->static_config.enc_mode <= ENC_M10)) {
+#endif
             mrp_level = 6;
         }
+#if !TUNE_RTC_FLAT
         else if (scs->static_config.enc_mode <= ENC_M10) {
             mrp_level = 8;
         }
+#endif
+#if TUNE_RTC_FLAT
+        else if ((scs->use_flat_ipp && scs->static_config.enc_mode <= ENC_M9) || (!scs->use_flat_ipp && scs->static_config.enc_mode <= ENC_M11)) {
+#else
         else if (!scs->use_flat_ipp && scs->static_config.enc_mode <= ENC_M11) {
+#endif
             mrp_level = 9;
         }
         else {

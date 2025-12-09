@@ -358,7 +358,11 @@ static void set_me_search_params(SequenceControlSet *scs, PictureParentControlSe
                     me_ctx->me_sa.sa_min = (SearchArea){16, 9};
                     me_ctx->me_sa.sa_max = (SearchArea){16, 9};
                 }
+#if TUNE_RTC_3L
+            } else if ((scs->use_flat_ipp && enc_mode <= ENC_M11) || (!scs->use_flat_ipp && enc_mode <= ENC_M10)) {
+#else
             } else if (enc_mode <= ENC_M11) {
+#endif
                 if (input_resolution < INPUT_SIZE_720p_RANGE) {
                     me_ctx->me_sa.sa_min = (SearchArea){12, 4};
                     me_ctx->me_sa.sa_max = (SearchArea){16, 9};
@@ -939,8 +943,12 @@ void svt_aom_sig_deriv_me(SequenceControlSet *scs, PictureParentControlSet *pcs,
 #if TUNE_RTC_RA_PRESETS
     else {
 #if TUNE_RTC_RA_PRESETS_2
+#if TUNE_RTC_3L
+        if ((!rtc_tune && enc_mode <= ENC_M7) || (enc_mode <= ENC_M8))
+#else
         if ((!rtc_tune && enc_mode <= ENC_M7) || (!scs->use_flat_ipp && rtc_tune && enc_mode <= ENC_M9) ||
             (rtc_tune && scs->use_flat_ipp && enc_mode <= ENC_M8))
+#endif
 #else
         if ((!rtc_tune && enc_mode <= ENC_M7) || (!scs->use_flat_ipp && rtc_tune && enc_mode <= ENC_M10) ||
             (rtc_tune && scs->use_flat_ipp && enc_mode <= ENC_M8))
@@ -1068,7 +1076,17 @@ void svt_aom_sig_deriv_me(SequenceControlSet *scs, PictureParentControlSet *pcs,
     else {
         if (enc_mode <= ENC_M2)
             me_ctx->me_early_exit_th = 0;
+#if TUNE_RTC_FLAT
+#if TUNE_RTC_3L
+        else if ((!rtc_tune && enc_mode <= ENC_M9) || (rtc_tune && !scs->use_flat_ipp && enc_mode <= ENC_M9) ||
+                 (rtc_tune && scs->use_flat_ipp && enc_mode <= ENC_M10))
+#else
+        else if ((!rtc_tune && enc_mode <= ENC_M9) || (rtc_tune && !scs->use_flat_ipp && enc_mode <= ENC_M8) ||
+                 (rtc_tune && scs->use_flat_ipp && enc_mode <= ENC_M10))
+#endif
+#else
         else if ((!rtc_tune && enc_mode <= ENC_M9) || (rtc_tune && enc_mode <= ENC_M8))
+#endif
             me_ctx->me_early_exit_th = BLOCK_SIZE_64 * BLOCK_SIZE_64 * 8;
         else
             me_ctx->me_early_exit_th = BLOCK_SIZE_64 * BLOCK_SIZE_64 * 12;
@@ -2111,7 +2129,11 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
     } else if (enc_mode <= ENC_MR) {
         pcs->enable_hme_level1_flag = 1;
         pcs->enable_hme_level2_flag = 1;
+#if TUNE_RTC_3L
+    } else if ((!scs->use_flat_ipp && enc_mode <= ENC_M12) || (scs->use_flat_ipp && enc_mode <= ENC_M11)) {
+#else
     } else if (enc_mode <= ENC_M11) {
+#endif
 #else
     } else if (enc_mode <= ENC_M4) {
         pcs->enable_hme_level1_flag = 1;
@@ -4875,7 +4897,12 @@ uint8_t svt_aom_get_nic_level(SequenceControlSet *scs, EncMode enc_mode, uint8_t
         nic_level = 6;
     else if (enc_mode <= ENC_M7)
         nic_level = 8;
+#if TUNE_RTC_3L
+    else if ((!rtc_tune && enc_mode <= ENC_M8) || (rtc_tune && !scs->use_flat_ipp && enc_mode <= ENC_M9) ||
+             (rtc_tune && scs->use_flat_ipp && enc_mode <= ENC_M8))
+#else
     else if (enc_mode <= ENC_M8)
+#endif
         nic_level = 9;
     else if (!rtc_tune && enc_mode <= ENC_M9)
         nic_level = 10;
@@ -7538,7 +7565,19 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
             if (pcs->slice_type != I_SLICE) {
                 int me_8x8 = pcs->ppcs->me_8x8_cost_variance[ctx->sb_index];
 #if TUNE_RTC_RA_PRESETS_2
+#if TUNE_RTC_FLAT
+#if TUNE_RTC_3L
+                int th = ((!scs->use_flat_ipp && enc_mode <= ENC_M10) || (scs->use_flat_ipp && enc_mode <= ENC_M11))
+                    ? 3 * ctx->qp_index
+                    : 3000;
+#else
+                int th = ((!scs->use_flat_ipp && enc_mode <= ENC_M9) || (scs->use_flat_ipp && enc_mode <= ENC_M11))
+                    ? 3 * ctx->qp_index
+                    : 3000;
+#endif
+#else
                 int th = (enc_mode <= ENC_M9) ? 3 * ctx->qp_index : 3000;
+#endif
 #else
 #if TUNE_RTC_RA_PRESETS
                 int th = ((!scs->use_flat_ipp && enc_mode <= ENC_M8) || (scs->use_flat_ipp && enc_mode <= ENC_M9))
@@ -7941,8 +7980,13 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
 #if TUNE_RTC_RA_PRESETS
     uint8_t me_subpel_level = 0;
     if (lpd1_level <= LPD1_LVL_0)
+#if TUNE_RTC_FLAT
+        if ((rtc_tune && !use_flat_ipp && enc_mode <= ENC_M10) || (rtc_tune && use_flat_ipp && enc_mode <= ENC_M11) ||
+            (!rtc_tune && enc_mode <= ENC_M11))
+#else
         if ((rtc_tune && !use_flat_ipp && enc_mode <= ENC_M10) || (rtc_tune && use_flat_ipp && enc_mode <= ENC_M9) ||
             (!rtc_tune && enc_mode <= ENC_M11))
+#endif
             me_subpel_level = input_resolution <= INPUT_SIZE_480p_RANGE ? 6
                 : input_resolution <= INPUT_SIZE_1080p_RANGE            ? 7
                                                                         : 10;
@@ -8020,7 +8064,11 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
 #if TUNE_RTC_RA_PRESETS
         if (pcs->enc_mode <= ENC_M8)
             ctx->lpd1_skip_inter_tx_level = 0;
+#if TUNE_RTC_FLAT
+        else if (pcs->enc_mode <= ENC_M10) {
+#else
         else if ((!use_flat_ipp && pcs->enc_mode <= ENC_M10) || (use_flat_ipp && pcs->enc_mode <= ENC_M9)) {
+#endif
             if (lpd1_level <= LPD1_LVL_2) {
                 ctx->lpd1_skip_inter_tx_level = 0;
             } else {
@@ -9187,12 +9235,32 @@ static void set_pic_lpd0_lvl(PictureControlSet *pcs, EncMode enc_mode) {
                     pcs->pic_lpd0_lvl = is_islice ? 1 : 3;
                 else
                     pcs->pic_lpd0_lvl = is_base ? 3 : 5;
+#if !TUNE_RTC_3L
+#if TUNE_RTC_FLAT
+#if TUNE_RTC_3L
+            } else if (enc_mode <= ENC_M8) {
+#else
+            } else if ((!pcs->scs->use_flat_ipp && enc_mode <= ENC_M9) ||
+                       (pcs->scs->use_flat_ipp && enc_mode <= ENC_M8)) {
+#endif
+#else
             } else if (enc_mode <= ENC_M9) {
+#endif
                 if (input_resolution <= INPUT_SIZE_360p_RANGE)
                     pcs->pic_lpd0_lvl = is_base ? 5 : 7;
                 else
                     pcs->pic_lpd0_lvl = is_base ? 3 : 5;
+#endif
+#if TUNE_RTC_FLAT
+#if TUNE_RTC_3L
+            } else if (enc_mode <= ENC_M11) {
+#else
+            } else if ((!pcs->scs->use_flat_ipp && enc_mode <= ENC_M10) ||
+                       (pcs->scs->use_flat_ipp && enc_mode <= ENC_M11)) {
+#endif
+#else
             } else if (enc_mode <= ENC_M10) {
+#endif
                 pcs->pic_lpd0_lvl = is_base ? 5 : 7;
             } else {
                 pcs->pic_lpd0_lvl = (is_islice || transition_present) ? 6 : 7;
@@ -9750,7 +9818,11 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         pcs->skip_intra = 0;
     else if (rtc_tune) {
 #if TUNE_RTC_RA_PRESETS
+#if TUNE_RTC_3L
+        if ((!scs->use_flat_ipp && enc_mode <= ENC_M11) || (scs->use_flat_ipp && enc_mode <= ENC_M10))
+#else
         if (enc_mode <= ENC_M10)
+#endif
 #else
         if (enc_mode <= ENC_M7)
 #endif
@@ -9865,8 +9937,17 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 #endif
         pcs->txt_level = is_base ? 2 : 5;
 #if TUNE_RTC_RA_PRESETS_2
+#if TUNE_RTC_FLAT
+#if TUNE_RTC_3L
+    else if ((!rtc_tune && enc_mode <= ENC_M10) || (rtc_tune && !scs->use_flat_ipp && enc_mode <= ENC_M10) ||
+             (rtc_tune && scs->use_flat_ipp && enc_mode <= ENC_M11))
+#else
+    else if ((!rtc_tune && enc_mode <= ENC_M10) || (rtc_tune && enc_mode <= ENC_M11))
+#endif
+#else
     else if ((!rtc_tune && enc_mode <= ENC_M10) || (rtc_tune && scs->use_flat_ipp && enc_mode <= ENC_M10) ||
              (rtc_tune && !scs->use_flat_ipp && enc_mode <= ENC_M11))
+#endif
 #else
     else if (enc_mode <= ENC_M10)
 #endif
@@ -9906,7 +9987,11 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
             pcs->tx_shortcut_level = 0;
 #if TUNE_RTC_RA_PRESETS
 #if TUNE_RTC_RA_PRESETS_2
+#if TUNE_RTC_3L
+        else if ((!scs->use_flat_ipp && enc_mode <= ENC_M9) || (scs->use_flat_ipp && enc_mode <= ENC_M11))
+#else
         else if ((!scs->use_flat_ipp && enc_mode <= ENC_M10) || (scs->use_flat_ipp && enc_mode <= ENC_M11))
+#endif
 #else
         else if (enc_mode <= ENC_M11)
 #endif
@@ -10358,7 +10443,11 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         // Set depth_removal_level_controls
 #if OPT_DR_RTC
         if (rtc_tune) {
+#if TUNE_RTC_FLAT
+            if ((!scs->use_flat_ipp && enc_mode <= ENC_M8) || (scs->use_flat_ipp && enc_mode <= ENC_M9)) {
+#else
             if (enc_mode <= ENC_M8) {
+#endif
                 pcs->pic_depth_removal_level = 0;
             } else {
                 pcs->pic_depth_removal_level = 5;
@@ -10618,18 +10707,24 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
             } else {
                 pcs->pic_lpd1_lvl = is_base ? 0 : 3;
             }
+#if TUNE_RTC_FLAT
+        } else if (enc_mode <= ENC_M10) {
+#else
         } else if ((!scs->use_flat_ipp && enc_mode <= ENC_M10) || (scs->use_flat_ipp && enc_mode <= ENC_M9)) {
+#endif
             if (input_resolution <= INPUT_SIZE_480p_RANGE) {
                 pcs->pic_lpd1_lvl = is_base ? 0 : is_not_last_layer ? 2 : 3;
             } else {
                 pcs->pic_lpd1_lvl = is_base ? 0 : 5;
             }
+#if !TUNE_RTC_FLAT
         } else if (enc_mode <= ENC_M10) {
             if (input_resolution <= INPUT_SIZE_480p_RANGE) {
                 pcs->pic_lpd1_lvl = is_islice ? 0 : is_base ? 1 : 3;
             } else {
                 pcs->pic_lpd1_lvl = is_base ? 0 : 5;
             }
+#endif
         } else if (enc_mode <= ENC_M11) {
             pcs->pic_lpd1_lvl = is_islice ? 0 : is_base ? 1 : 5;
         } else {
