@@ -137,7 +137,9 @@ def get_resolution(filename):
     result = subprocess.run(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
-    pattern = re.compile(r"(?P<width>\d+)x(?P<height>\d+)x(?P<fps_n>\d+)/(?P<fps_d>\d+)")
+    pattern = re.compile(
+        r"(?P<width>\d+)x(?P<height>\d+)x(?P<fps_n>\d+)/(?P<fps_d>\d+)"
+    )
     match = pattern.search(result.stdout.strip())
     if match:
         width = int(match.group("width"))

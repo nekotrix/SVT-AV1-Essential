@@ -650,9 +650,7 @@ def run_bd_rate_analysis(
     anchor_encoder, anchor_speed = _get_anchor_settings(per_image_df, settings)
 
     # Determine available quality metrics
-    available_metrics = [
-        metric for metric in quality_metrics if metric in per_image_df.columns
-    ]
+    available_metrics = _validate_rd_plot_data(per_image_df, quality_metrics)
 
     if not available_metrics:
         print("No quality metrics found in per-image data for BD-rate analysis")

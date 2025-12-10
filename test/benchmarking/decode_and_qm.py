@@ -89,6 +89,8 @@ class DecodeResult:
     ms_ssim: float | None
     vmaf: float | None
     vmaf_neg: float | None
+    vbv_delay_p50: float | None
+    vbv_delay_p95: float | None
 
 
 def decode_file(
@@ -183,6 +185,8 @@ def get_source_yuv_path(filename: str) -> str:
 
 
 def calculate_single_file_quality_metrics(
+    encoded_file: str,
+    quality: float,
     decoded_file: str,
     sub_dir_name: str,
 ) -> Dict[str, float]:
@@ -211,16 +215,16 @@ def calculate_single_file_quality_metrics(
     os.makedirs(conv_dir, exist_ok=True)
 
     # Create quality metrics calculator
-    allow_metrics = {"vmaf": False, "ssimulacra2": False, "ms_ssim": False}
+    allow_metrics = {}
     for m in config_manager.get_metrics().get("allowed_metrics", []):
         allow_metrics[m] = True
 
     need_png = False
     need_y4m = False
 
-    if allow_metrics["ssimulacra2"]:
+    if allow_metrics.get("ssimulacra2", False):
         need_png = True
-    if allow_metrics["vmaf"] or allow_metrics["ms_ssim"]:
+    if allow_metrics.get("vmaf", False) or allow_metrics.get("ms_ssim", False):
         need_y4m = not (ref_yuv_file and filename.endswith(".yuv"))
 
     dist_png_file = (
@@ -247,6 +251,8 @@ def calculate_single_file_quality_metrics(
 
     # Calculate metrics for this single file
     metrics = calculator.calculate_single_file_metrics(
+        encoded_file,
+        quality,
         ref_pxx_file,
         dist_png_file if os.path.exists(dist_png_file) else None,
         ref_y4m_file,
@@ -335,7 +341,7 @@ def execute_decode_job(task: DecodeTask) -> Tuple[DecodeTask, DecodeResult]:
     quality_metrics = {}
     if not DRY_RUN_MODE:
         quality_metrics = calculate_single_file_quality_metrics(
-            decoded_path, sub_dir_name
+            input_file, task.quality, decoded_path, sub_dir_name
         )
 
     # Build result dictionary with all quality metrics as separate columns
@@ -357,6 +363,8 @@ def execute_decode_job(task: DecodeTask) -> Tuple[DecodeTask, DecodeResult]:
         ms_ssim=quality_metrics.get("float_ms_ssim", None),
         vmaf=quality_metrics.get("vmaf", None),
         vmaf_neg=quality_metrics.get("vmaf_neg", None),
+        vbv_delay_p50=quality_metrics.get("vbv_delay_p50", None),
+        vbv_delay_p95=quality_metrics.get("vbv_delay_p95", None),
     )
 
     return task, result

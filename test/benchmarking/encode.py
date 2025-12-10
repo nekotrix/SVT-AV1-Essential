@@ -86,11 +86,7 @@ def encode_file(task: EncodeTask, output_dir: str) -> EncodeResult:
     extension: str = codec_settings["encode_extension"]
 
     width, height, fps = utils.get_file_desc(filename_without_extension)
-
-    if width and height and fps:
-        kbps = int(width * height * fps * 1.5 * 8 / (task.quality * 1000))
-    else:
-        kbps = 0
+    kbps = utils.quality_to_kbps(width, height, fps, task.quality)
 
     encoded_file: str = f"{filename_without_extension}.{extension}"
     encoded_path: str = os.path.join(output_dir, encoded_file)

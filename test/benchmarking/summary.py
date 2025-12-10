@@ -33,18 +33,6 @@ from analysis_and_plotting import create_per_image_rd_plots, run_bd_rate_analysi
 from config_manager import ConfigManager
 from data_readers import DataReaders
 
-QUALITY_METRICS = [
-    "SSIMULACRA2",
-    "psnr",
-    "psnr_y",
-    "psnr_cb",
-    "psnr_cr",
-    "ssim",
-    "ms_ssim",
-    "vmaf",
-    "vmaf_neg",
-]
-
 # Configurations will be loaded after parsing arguments
 config_manager = None
 PATHS = None
@@ -254,6 +242,11 @@ def run_analysis(per_image_data: pd.DataFrame, per_image_csv_path: str) -> None:
         per_image_data: DataFrame with per-image results
         per_image_csv_path: Path where the per-image CSV should be saved
     """
+
+    assert config_manager
+    allowed_codecs = config_manager.get_codecs().get("allowed_codecs", [])
+    per_image_data = per_image_data[per_image_data["encoder"].isin(allowed_codecs)]
+
     if per_image_data.empty:
         print("No per-image data available for analysis")
         return
@@ -263,14 +256,36 @@ def run_analysis(per_image_data: pd.DataFrame, per_image_csv_path: str) -> None:
     print(f"Per-image results saved to: {per_image_csv_path}")
 
     assert OUTPUT_DIR
-    assert config_manager
+
+    allowed_metrics = config_manager.get_metrics().get("allowed_metrics", [])
+    quality_metrics = []
+    stream_metrics = []
+    if "ssimulacra2" in allowed_metrics:
+        quality_metrics.append("SSIMULACRA2")
+    if "psnr" in allowed_metrics:
+        quality_metrics.append("psnr")
+        quality_metrics.append("psnr_y")
+        quality_metrics.append("psnr_cb")
+        quality_metrics.append("psnr_cr")
+    if "vmaf" in allowed_metrics:
+        quality_metrics.append("vmaf")
+        quality_metrics.append("vmaf_neg")
+    if "ssim" in allowed_metrics:
+        quality_metrics.append("ssim")
+    if "ms_ssim" in allowed_metrics:
+        quality_metrics.append("ms_ssim")
+    if "vbv" in allowed_metrics:
+        stream_metrics.append("vbv_delay_p95")
+        stream_metrics.append("vbv_delay_p50")
 
     # Create per-image RD plots using new analysis module
-    create_per_image_rd_plots(per_image_data, QUALITY_METRICS, OUTPUT_DIR)
+    create_per_image_rd_plots(
+        per_image_data, quality_metrics + stream_metrics, OUTPUT_DIR
+    )
 
     # Run BD-rate analysis using new analysis module if enabled
     run_bd_rate_analysis(
-        per_image_csv_path, QUALITY_METRICS, OUTPUT_DIR, config_manager.get_metrics()
+        per_image_csv_path, quality_metrics, OUTPUT_DIR, config_manager.get_metrics()
     )
 
 

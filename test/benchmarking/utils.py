@@ -64,6 +64,13 @@ def get_file_desc(fn):
     return None, None, None
 
 
+def quality_to_kbps(width, height, fps, quality):
+    if width and height and fps:
+        return int(width * height * fps * 1.5 * 8 / (quality * 1000))
+
+    return 0
+
+
 def get_original_file_name(filename):
     fn, ext = os.path.splitext(filename)
     pattern = re.compile(src_re)

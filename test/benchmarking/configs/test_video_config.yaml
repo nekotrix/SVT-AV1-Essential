@@ -15,7 +15,7 @@ codecs:
   allowed_codecs: ["libaom", "libaom_rtc", "svtav1", "svtav1_rtc"]
 
 metrics:
-  allowed_metrics: ["psnr"]
+  allowed_metrics: ["psnr", "vbv"]
   allow_bdrate: true  # Set to true to enable BDRate metrics by default
   anchor_encoder: "libaom"  # Encoder used to generate the reference for BDRate
   anchor_speed: 11

@@ -9,6 +9,8 @@
 # source code in the PATENTS file, you can obtain it at
 # https://www.aomedia.org/license/patent-license.
 
+import json
+import numpy as np
 import os
 
 import pathlib
@@ -30,6 +32,82 @@ class QualityMetric:
     @classmethod
     def get_name(cls) -> str:
         raise NotImplementedError("Subclasses must implement get_name()")
+
+
+class VbvMetric(QualityMetric):
+    def __init__(
+        self,
+        enc_file: str,
+        frame_rate: float,
+        target_bitrate_bps: float,
+        logger: Logger,
+        ffprobe_bin: str,
+        artifacts_path: str,
+    ):
+        super().__init__(enc_file, "")
+        self.frame_rate = frame_rate
+        self.target_bitrate_bps = target_bitrate_bps
+        self.ffprobe_bin = ffprobe_bin
+        self.artifacts_path = artifacts_path
+        self.logger = logger
+
+    def calculate(self) -> Optional[Dict[str, float]]:
+        msg = ""
+        try:
+            # Get stream information for frame rate and frame sizes
+            cmd_frames = [
+                "ffprobe",
+                "-v",
+                "quiet",
+                "-print_format",
+                "json",
+                "-show_streams",
+                "-show_entries",
+                "packet=size,pts_time",
+                "-select_streams",
+                "v:0",
+                self.ref_file,
+            ]
+
+            result = subprocess.run(
+                cmd_frames, capture_output=True, text=True, check=True
+            )
+            info = json.loads(result.stdout)
+
+            frame_sizes = [int(packet["size"]) for packet in info["packets"]]
+            frame_duration = 1.0 / self.frame_rate
+
+            vbv_delays = []
+            current_buffer = 0.0
+
+            for frame_size_bytes in frame_sizes:
+                bits_sent = self.target_bitrate_bps * frame_duration
+                current_buffer = max(
+                    current_buffer + frame_size_bytes * 8 - bits_sent, 0
+                )
+
+                delay_seconds = current_buffer / self.target_bitrate_bps
+                vbv_delays.append(delay_seconds * 1000)
+
+            stats = {
+                "vbv_delay_max": np.max(vbv_delays),
+                "vbv_delay_p95": np.percentile(vbv_delays, 95),
+                "vbv_delay_p50": np.percentile(vbv_delays, 50),
+                "vbv_delay_mean": np.mean(vbv_delays),
+            }
+            return stats
+
+        except subprocess.CalledProcessError as e:
+            msg = f"Error running ffprobe: {e}"
+        except (KeyError, json.JSONDecodeError) as e:
+            msg = f"Error parsing ffprobe output: {e}"
+
+        self.logger.error("Error calculating VBV: " + msg)
+        return None
+
+    @classmethod
+    def get_name(cls) -> str:
+        return "VBV"
 
 
 class SSIMULACRA2Metric(QualityMetric):
@@ -250,23 +328,38 @@ class QualityMetricsCalculator:
         self.binaries = binaries
         self.allow_metrics = allow_metrics
         self.aom_ctc_model = aom_ctc_model
-        self.metrics: List = []
+        self.metrics: Dict = {}
         self.artifacts_path = artifacts_path
         os.makedirs(self.artifacts_path, exist_ok=True)
 
+        if allow_metrics.get("vbv", False):
+            self.register_metric(
+                "vbv",
+                lambda src, fps, kbps: VbvMetric(
+                    src,
+                    fps,
+                    kbps * 1000,
+                    logger,
+                    binaries["ffprobe"],
+                    self.artifacts_path,
+                ),
+            )
+
         if allow_metrics.get("ssimulacra2", False):
             self.register_metric(
+                "ssimulacra2",
                 lambda src, test: SSIMULACRA2Metric(
                     src,
                     test,
                     logger,
                     binaries["ssimulacra2"],
                     self.artifacts_path,
-                )
+                ),
             )
 
         if allow_metrics.get("vmaf", False) or allow_metrics.get("ms_ssim", False):
             self.register_metric(
+                "vmaf",
                 lambda src, test: VMAFMetric(
                     src,
                     test,
@@ -274,27 +367,30 @@ class QualityMetricsCalculator:
                     binaries["vmaf"],
                     self.aom_ctc_model,
                     self.artifacts_path,
-                )
+                ),
             )
         elif allow_metrics.get("psnr", False):
             # special case if VMAF is not enabled, as it computes PSNR already
             self.register_metric(
+                "psnr",
                 lambda src, test: PSNRMetric(
                     src,
                     test,
                     logger,
                     binaries["vmaf"],
                     self.artifacts_path,
-                )
+                ),
             )
 
-    def register_metric(self, metric_factory):
-        self.metrics.append(metric_factory)
+    def register_metric(self, name, metric_factory):
+        self.metrics[name] = metric_factory
 
     def calculate_single_file_metrics(
         self,
-        ref_file: str,
-        distorted_file: str | None,
+        enc_file: str,
+        q_value: float,
+        ref_pxx_file: str,
+        distorted_pxx_file: str | None,
         ref_y4m_file: str,
         distorted_y4m_file: str | None,
         ref_yuv_file: str,
@@ -303,19 +399,31 @@ class QualityMetricsCalculator:
         """Calculate quality metrics for a single pair of files"""
         file_metrics: Dict[str, float] = {}
 
+        # Calculate VBV if encoded file is provided
+        if enc_file and self.allow_metrics.get("vbv", False) and "vbv" in self.metrics:
+            width, height, fps = utils.get_file_desc(enc_file)
+            kbps = utils.quality_to_kbps(width, height, fps, q_value)
+
+            metric_instance = self.metrics["vbv"](enc_file, fps, kbps)
+            value = metric_instance.calculate()
+            if isinstance(value, dict):
+                for sub_metric_name, sub_value in value.items():
+                    file_metrics[sub_metric_name] = sub_value
+
         # Calculate SSIMULACRA2 if PNG/PGM files are provided
         if (
-            distorted_file
-            and ref_file
-            and distorted_file.lower().endswith((".png", ".pgm"))
+            distorted_pxx_file
+            and ref_pxx_file
+            and distorted_pxx_file.lower().endswith((".png", ".pgm"))
             and self.allow_metrics.get("ssimulacra2", False)
+            and "ssimulacra2" in self.metrics
         ):
-            for metric_factory in self.metrics:
-                metric_instance = metric_factory(ref_file, distorted_file)
-                if metric_instance.get_name().lower() == "ssimulacra2":
-                    value = metric_instance.calculate()
-                    if value is not None:
-                        file_metrics[metric_instance.get_name().lower()] = value
+            metric_instance = self.metrics["ssimulacra2"](
+                ref_pxx_file, distorted_pxx_file
+            )
+            value = metric_instance.calculate()
+            if value is not None:
+                file_metrics[metric_instance.get_name().lower()] = value
 
         # Calculate VMAF/SSIM/MS-SSIM/PSNR if Y4M files are provided
         tmp_distorted_file = (
@@ -331,27 +439,25 @@ class QualityMetricsCalculator:
                 self.allow_metrics.get("vmaf", False)
                 or self.allow_metrics.get("ms_ssim", False)
             )
+            and "vmaf" in self.metrics
         ):
-            for metric_factory in self.metrics:
-                metric_instance = metric_factory(tmp_ref_file, tmp_distorted_file)
-                if metric_instance.get_name().lower() == "vmaf":
-                    value = metric_instance.calculate()
-                    if isinstance(value, dict):
-                        for sub_metric_name, sub_value in value.items():
-                            file_metrics[sub_metric_name] = sub_value
+            metric_instance = self.metrics["vmaf"](tmp_ref_file, tmp_distorted_file)
+            value = metric_instance.calculate()
+            if isinstance(value, dict):
+                for sub_metric_name, sub_value in value.items():
+                    file_metrics[sub_metric_name] = sub_value
         elif (
             tmp_distorted_file
             and tmp_ref_file
             and os.path.exists(tmp_distorted_file)
             and os.path.exists(tmp_ref_file)
             and self.allow_metrics.get("psnr", False)
+            and "psnr" in self.metrics
         ):
-            for metric_factory in self.metrics:
-                metric_instance = metric_factory(tmp_ref_file, tmp_distorted_file)
-                if metric_instance.get_name().lower() == "psnr":
-                    value = metric_instance.calculate()
-                    if isinstance(value, dict):
-                        for sub_metric_name, sub_value in value.items():
-                            file_metrics[sub_metric_name] = sub_value
+            metric_instance = self.metrics["psnr"](tmp_ref_file, tmp_distorted_file)
+            value = metric_instance.calculate()
+            if isinstance(value, dict):
+                for sub_metric_name, sub_value in value.items():
+                    file_metrics[sub_metric_name] = sub_value
 
         return file_metrics
