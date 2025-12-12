@@ -34,9 +34,20 @@ if [[ $OS_TYPE == "Darwin" ]]; then
     brew install cmake
     brew install ffmpeg
 
-    # install the internal features
-    curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh
-    zsh ~/Miniconda3-latest-MacOSX-arm64.sh -b -p ~/miniconda
+    if ! command -v conda > /dev/null 2>&1; then
+        # Install conda for MacOS
+        curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh
+        zsh Miniconda3-latest-MacOSX-arm64.sh -b -p ~/miniconda
+
+        # Add conda to PATH for current session
+        export PATH="$PATH:$HOME/miniconda/bin"
+
+        # Initialize conda for future sessions
+        ~/miniconda/bin/conda init zsh
+        echo "Conda installed. You may need to restart your shell or run 'source ~/.zshrc'"
+    else
+        echo "Conda is already installed, skipping"
+    fi
 
 elif [[ $OS_TYPE == "Linux" ]]; then
     echo "Detected Linux..."
