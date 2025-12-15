@@ -1789,8 +1789,21 @@ static void md_stage_0(PictureControlSet *pcs, ModeDecisionContext *ctx,
 
             ModeDecisionCandidateBuffer *cand_bf = cand_bf_ptr_array_base[highest_cost_index];
             ModeDecisionCandidate       *cand = cand_bf->cand = &fast_candidate_array[cand_idx];
-            cand->block_mi.tx_depth                           = 0;
-            cand->block_mi.interp_filters                     = default_interp_filter;
+#if OPT_INTRA_MODE_PRUNE
+            if (ctx->intra_ctrls.prune_using_best_mode && cand->cand_class == CAND_CLASS_0 && itr == 0) {
+                // If (V better than DC), then skip H
+                if (cand->block_mi.mode == H_PRED && best_reg_intra_mode == V_PRED) {
+                    continue;
+                }
+                // If DC better than H and better than V, then skip Smooth
+                if ((cand->block_mi.mode == SMOOTH_PRED || cand->block_mi.mode == SMOOTH_V_PRED ||
+                     cand->block_mi.mode == SMOOTH_H_PRED) &&
+                    best_reg_intra_mode == DC_PRED)
+                    continue;
+            }
+#endif
+            cand->block_mi.tx_depth       = 0;
+            cand->block_mi.interp_filters = default_interp_filter;
             // Check whether a candidate should be considered in the current iteration
             if (tot_itr > 1) {
                 if (!process_cand_itr(ctx, cand, itr, best_reg_intra_mode, best_reg_intra_cost, regular_intra_cost))
@@ -1814,7 +1827,14 @@ static void md_stage_0(PictureControlSet *pcs, ModeDecisionContext *ctx,
             if (*cand_bf->fast_cost < ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class]) {
                 ctx->mds0_best_cost_per_class[cand_bf->cand->cand_class] = *cand_bf->fast_cost;
             }
+#if OPT_INTRA_MODE_PRUNE
+            if (cand->cand_class == CAND_CLASS_0 && itr == 0 &&
+                cand->block_mi.filter_intra_mode == FILTER_INTRA_MODES &&
+                ((ctx->intra_ctrls.prune_using_best_mode && ctx->intra_ctrls.intra_mode_end >= H_PRED) ||
+                 tot_itr > 1)) {
+#else
             if (tot_itr > 1 && itr == 0 && cand->block_mi.filter_intra_mode == FILTER_INTRA_MODES) {
+#endif
                 regular_intra_cost[cand->block_mi.mode] = *cand_bf->fast_cost;
 
                 if (*cand_bf->fast_cost < best_reg_intra_cost) {

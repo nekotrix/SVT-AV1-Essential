@@ -122,6 +122,7 @@ extern "C" {
 
 #define OPT_OPERATIONS              1 // Remove useless operations
 #define OPT_LOW_FRQ_CAP             1 // Limit rdoq to a fixed low-frequency cut-off (DC + first AC coefficients) and skip rdoq on all higher frequencies (the cut-off skips the tail, but not the first AC ring + EOB logic)
+#define OPT_INTRA_MODE_PRUNE        1 // M7 to M10: Skip H when V outperforms DC, and skip Smooth when DC is better than both H and V
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

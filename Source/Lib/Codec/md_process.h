@@ -777,9 +777,12 @@ typedef struct IntraCtrls {
     uint8_t intra_mode_end;
     // 0: angular off; 1: angular full; 2/3: limit num. angular candidates; 4: H + V only
     uint8_t angular_pred_level;
-    int8_t  skip_angular_delta1_th;
-    int8_t  skip_angular_delta2_th;
-    int8_t  skip_angular_delta3_th;
+#if OPT_INTRA_MODE_PRUNE
+    uint8_t prune_using_best_mode;
+#endif
+    int8_t skip_angular_delta1_th;
+    int8_t skip_angular_delta2_th;
+    int8_t skip_angular_delta3_th;
 } IntraCtrls;
 typedef struct TxShortcutCtrls {
     // Skip TX at MDS3 if the prev MD stage gave 0 coeffs and MDS0 Distortion is less than the TH. 0 is off, lower is more aggressive
