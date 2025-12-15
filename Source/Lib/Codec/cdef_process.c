@@ -563,7 +563,7 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
         PictureParentControlSet *ppcs = pcs->ppcs;
         scs                           = pcs->scs;
 
-#if OPT_RECON_OPERATIONS
+#if OPT_RECON_OPERATIONS && !OPT_OPERATIONS
         const bool allintra = scs->allintra;
 #endif
 
@@ -584,7 +584,7 @@ void *svt_aom_cdef_kernel(void *input_ptr) {
             pcs->cdef_dist_dev = -1;
             if (scs->seq_header.cdef_level && pcs->ppcs->cdef_level) {
                 finish_cdef_search(pcs);
-#if OPT_RECON_OPERATIONS
+#if OPT_RECON_OPERATIONS && !OPT_OPERATIONS
                 if (ppcs->enable_restoration || (pcs->ppcs->is_ref && !allintra) || scs->static_config.recon_enabled) {
 #else
                 if (ppcs->enable_restoration || pcs->ppcs->is_ref || scs->static_config.recon_enabled) {

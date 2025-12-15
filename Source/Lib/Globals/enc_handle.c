@@ -1229,6 +1229,9 @@ static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instanc
         EbPictureBufferDescInitData       ref_pic_buf_desc_init_data;
         EbPictureBufferDescInitData       quart_pic_buf_desc_init_data;
         EbPictureBufferDescInitData       sixteenth_pic_buf_desc_init_data;
+#if OPT_OPERATIONS
+        const bool allintra = scs->allintra;
+#endif
         // PA Reference Picture Buffers
         // Currently, only Luma samples are needed in the PA
         ref_pic_buf_desc_init_data.max_width = scs->max_input_luma_width;
@@ -1255,7 +1258,11 @@ static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instanc
         quart_pic_buf_desc_init_data.max_height = scs->max_input_luma_height >> 1;
         quart_pic_buf_desc_init_data.bit_depth = EB_EIGHT_BIT;
         quart_pic_buf_desc_init_data.color_format = EB_YUV420;
+#if OPT_OPERATIONS
+        quart_pic_buf_desc_init_data.buffer_enable_mask = allintra ? 0 : PICTURE_BUFFER_DESC_LUMA_MASK;
+#else
         quart_pic_buf_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_LUMA_MASK;
+#endif
         quart_pic_buf_desc_init_data.left_padding = scs->b64_size >> 1;
         quart_pic_buf_desc_init_data.right_padding = scs->b64_size >> 1;
         quart_pic_buf_desc_init_data.top_padding = scs->b64_size >> 1;
@@ -1271,7 +1278,11 @@ static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instanc
         sixteenth_pic_buf_desc_init_data.max_height = scs->max_input_luma_height >> 2;
         sixteenth_pic_buf_desc_init_data.bit_depth = EB_EIGHT_BIT;
         sixteenth_pic_buf_desc_init_data.color_format = EB_YUV420;
+#if OPT_OPERATIONS
+        sixteenth_pic_buf_desc_init_data.buffer_enable_mask = allintra ? 0 : PICTURE_BUFFER_DESC_LUMA_MASK;
+#else
         sixteenth_pic_buf_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_LUMA_MASK;
+#endif
         sixteenth_pic_buf_desc_init_data.left_padding = scs->b64_size >> 2;
         sixteenth_pic_buf_desc_init_data.right_padding = scs->b64_size >> 2;
         sixteenth_pic_buf_desc_init_data.top_padding = scs->b64_size >> 2;
@@ -1541,13 +1552,22 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
 #endif
 
         input_data.calculate_variance = enc_handle_ptr->scs_instance_array[instance_index]->scs->calculate_variance;
-
+#if OPT_OPERATIONS
+        input_data.calc_hist = enc_handle_ptr->scs_instance_array[instance_index]->scs->calc_hist =
+            enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra == false && (
+                enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.scene_change_detection ||
+                enc_handle_ptr->scs_instance_array[instance_index]->scs->vq_ctrls.sharpness_ctrls.scene_transition ||
+                enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[0].enabled ||
+                enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[1].enabled ||
+                enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[2].enabled);
+#else
         input_data.calc_hist = enc_handle_ptr->scs_instance_array[instance_index]->scs->calc_hist =
             enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.scene_change_detection ||
             enc_handle_ptr->scs_instance_array[instance_index]->scs->vq_ctrls.sharpness_ctrls.scene_transition ||
             enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[0].enabled ||
             enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[1].enabled ||
             enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[2].enabled;
+#endif
         input_data.tpl_lad_mg = enc_handle_ptr->scs_instance_array[instance_index]->scs->tpl_lad_mg;
         input_data.input_resolution = enc_handle_ptr->scs_instance_array[instance_index]->scs->input_resolution;
         input_data.is_scale = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.superres_mode > SUPERRES_NONE ||
@@ -5094,7 +5114,11 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     // Variance Boost
     scs->static_config.enable_variance_boost = config_struct->enable_variance_boost;
     scs->static_config.variance_boost_strength = config_struct->variance_boost_strength;
+#if OPT_OPERATIONS_BIS
+    scs->static_config.variance_octile = scs->static_config.enable_variance_boost ? config_struct->variance_octile : 0;
+#else
     scs->static_config.variance_octile = config_struct->variance_octile;
+#endif
     scs->static_config.variance_boost_curve = config_struct->variance_boost_curve;
 
     // Temporal filtering strength

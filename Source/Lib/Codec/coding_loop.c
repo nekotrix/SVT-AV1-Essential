@@ -1763,19 +1763,28 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
     bool                 is_16bit = ctx->is_16bit;
     EbPictureBufferDesc *recon_buffer;
     ModeDecisionContext *md_ctx = ctx->md_ctx;
+#if OPT_OPERATIONS
+    const bool allintra = scs->allintra;
+#endif
 
     // Dereferencing early
     uint16_t       tile_idx = ctx->tile_index;
     const uint16_t tg_count = pcs->ppcs->tile_group_cols * pcs->ppcs->tile_group_rows;
 
     svt_aom_get_recon_pic(pcs, &recon_buffer, is_16bit);
-    ctx->coded_area_sb           = 0;
-    ctx->coded_area_sb_uv        = 0;
-    pcs->sb_intra[sb_addr]       = 0;
-    pcs->sb_skip[sb_addr]        = 1;
-    pcs->sb_64x64_mvp[sb_addr]   = 0;
-    pcs->sb_min_sq_size[sb_addr] = 128;
-    pcs->sb_max_sq_size[sb_addr] = 0;
+    ctx->coded_area_sb    = 0;
+    ctx->coded_area_sb_uv = 0;
+#if OPT_OPERATIONS
+    if (!allintra) {
+#endif
+        pcs->sb_intra[sb_addr]       = 0;
+        pcs->sb_skip[sb_addr]        = 1;
+        pcs->sb_64x64_mvp[sb_addr]   = 0;
+        pcs->sb_min_sq_size[sb_addr] = 128;
+        pcs->sb_max_sq_size[sb_addr] = 0;
+#if OPT_OPERATIONS
+    }
+#endif
     // CU Loop
     uint32_t final_blk_itr = 0;
     sb_ptr->final_blk_cnt  = 0;
@@ -1826,23 +1835,26 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
             ctx->blk_org_x = (uint16_t)(sb_org_x + blk_geom->org_x);
             ctx->blk_org_y = (uint16_t)(sb_org_y + blk_geom->org_y);
 
-            if (is_intra_mode(blk_ptr->block_mi.mode)) {
-                ctx->tot_intra_coded_area += blk_geom->bwidth * blk_geom->bheight;
-                pcs->sb_intra[sb_addr] = 1;
-            } else {
-                if (pcs->ppcs->frm_hdr.allow_high_precision_mv) {
-                    int hp = 0;
+#if OPT_OPERATIONS
+            if (!scs->allintra) {
+#endif
+                if (is_intra_mode(blk_ptr->block_mi.mode)) {
+                    ctx->tot_intra_coded_area += blk_geom->bwidth * blk_geom->bheight;
+                    pcs->sb_intra[sb_addr] = 1;
+                } else {
+                    if (pcs->ppcs->frm_hdr.allow_high_precision_mv) {
+                        int hp = 0;
 
-                    // unipred MV always stored in idx0
-                    if (blk_ptr->block_mi.mv[0].x % 2 != 0 || blk_ptr->block_mi.mv[0].y % 2 != 0)
-                        hp = 1;
-                    if (has_second_ref(&blk_ptr->block_mi)) {
-                        if (blk_ptr->block_mi.mv[1].x % 2 != 0 || blk_ptr->block_mi.mv[1].y % 2 != 0)
+                        // unipred MV always stored in idx0
+                        if (blk_ptr->block_mi.mv[0].x % 2 != 0 || blk_ptr->block_mi.mv[0].y % 2 != 0)
                             hp = 1;
+                        if (has_second_ref(&blk_ptr->block_mi)) {
+                            if (blk_ptr->block_mi.mv[1].x % 2 != 0 || blk_ptr->block_mi.mv[1].y % 2 != 0)
+                                hp = 1;
+                        }
+                        if (hp)
+                            ctx->tot_hp_coded_area += blk_geom->bwidth * blk_geom->bheight;
                     }
-                    if (hp)
-                        ctx->tot_hp_coded_area += blk_geom->bwidth * blk_geom->bheight;
-                }
 #if OPT_CR_CTRL
                 bool is_zero_mv = 0;
                 if (blk_ptr->block_mi.mv[0].x < 8 && blk_ptr->block_mi.mv[0].y < 8)
@@ -1857,7 +1869,7 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
                 if (blk_it == 0 && blk_ptr->block_mi.mode != NEWMV && blk_ptr->block_mi.mode != NEW_NEWMV) {
                     pcs->sb_64x64_mvp[sb_addr] = 1;
                 }
-            }
+                }
 
             if (blk_ptr->block_has_coeff == 0) {
                 ctx->tot_skip_coded_area += blk_geom->bwidth * blk_geom->bheight;
@@ -1866,6 +1878,9 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
             }
             pcs->sb_min_sq_size[sb_addr] = MIN(blk_geom->sq_size, pcs->sb_min_sq_size[sb_addr]);
             pcs->sb_max_sq_size[sb_addr] = MAX(blk_geom->sq_size, pcs->sb_max_sq_size[sb_addr]);
+#if OPT_OPERATIONS
+            }
+#endif
             svt_block_on_mutex(pcs->ppcs->pcs_total_rate_mutex);
             pcs->ppcs->pcs_total_rate += blk_ptr->total_rate;
             svt_release_mutex(pcs->ppcs->pcs_total_rate_mutex);

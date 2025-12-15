@@ -312,6 +312,9 @@ static EbErrorType compute_block_mean_compute_variance(
     uint32_t input_luma_origin_index) // input parameter, SB index, used to point to source/reference samples
 {
     EbErrorType return_error = EB_ErrorNone;
+#if OPT_OPERATIONS
+    const bool allintra = scs->allintra;
+#endif
 
     uint32_t block_index;
 
@@ -1108,6 +1111,13 @@ static EbErrorType compute_block_mean_compute_variance(
                                           mean_of32x32_squared_values_blocks[3]) >>
         2;
     // 8x8 variances
+#if OPT_OPERATIONS
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+    if (allintra || scs->static_config.aq_mode == 1 || scs->static_config.variance_octile) {
+#else
+    if (allintra || scs->static_config.enable_adaptive_quantization == 1 || scs->static_config.variance_octile) {
+#endif
+#else
 #if CLN_AQ_MODE
 #if SVT_AV1_CHECK_VERSION(4, 0, 0)
     if (scs->static_config.aq_mode == 1 || scs->static_config.variance_octile) {
@@ -1116,6 +1126,7 @@ static EbErrorType compute_block_mean_compute_variance(
 #endif
 #else
     if (scs->static_config.enable_adaptive_quantization == 1 || scs->static_config.variance_octile) {
+#endif
 #endif
         pcs->variance[sb_index][ME_TIER_ZERO_PU_8x8_0] = (uint16_t)((mean_of_8x8_squared_values_blocks[0] -
                                                                      (mean_of8x8_blocks[0] * mean_of8x8_blocks[0])) >>
@@ -2467,6 +2478,9 @@ void *svt_aom_picture_analysis_kernel(void *input_ptr) {
         in_results_ptr = (ResourceCoordinationResults *)in_results_wrapper_ptr->object_ptr;
         pcs            = (PictureParentControlSet *)in_results_ptr->pcs_wrapper->object_ptr;
         scs            = pcs->scs;
+#if OPT_OPERATIONS
+        const bool allintra = scs->allintra;
+#endif
 
         // Mariana : save enhanced picture ptr, move this from here
         pcs->enhanced_unscaled_pic                    = pcs->enhanced_pic;
@@ -2503,15 +2517,21 @@ void *svt_aom_picture_analysis_kernel(void *input_ptr) {
                 pa_ref_obj_                 = (EbPaReferenceObject *)pcs->pa_ref_pic_wrapper->object_ptr;
                 pa_ref_obj_->picture_number = pcs->picture_number;
                 input_padded_pic            = pa_ref_obj_->input_padded_pic;
+#if OPT_OPERATIONS
+                if (!allintra) {
+#endif
 
-                // 1/4 & 1/16 input picture downsampling through filtering
-                svt_aom_downsample_filtering_input_picture(pcs,
-                                                           input_padded_pic,
-                                                           pa_ref_obj_->quarter_downsampled_picture_ptr,
-                                                           pa_ref_obj_->sixteenth_downsampled_picture_ptr);
+                    // 1/4 & 1/16 input picture downsampling through filtering
+                    svt_aom_downsample_filtering_input_picture(pcs,
+                                                               input_padded_pic,
+                                                               pa_ref_obj_->quarter_downsampled_picture_ptr,
+                                                               pa_ref_obj_->sixteenth_downsampled_picture_ptr);
 
-                pcs->ds_pics.quarter_picture_ptr   = pa_ref_obj_->quarter_downsampled_picture_ptr;
-                pcs->ds_pics.sixteenth_picture_ptr = pa_ref_obj_->sixteenth_downsampled_picture_ptr;
+                    pcs->ds_pics.quarter_picture_ptr   = pa_ref_obj_->quarter_downsampled_picture_ptr;
+                    pcs->ds_pics.sixteenth_picture_ptr = pa_ref_obj_->sixteenth_downsampled_picture_ptr;
+#if OPT_OPERATIONS
+                }
+#endif
             }
             // Gathering statistics of input picture, including Variance Calculation, Histogram Bins
             {

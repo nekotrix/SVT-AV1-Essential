@@ -269,7 +269,7 @@ void *svt_aom_rest_kernel(void *input_ptr) {
         FrameHeader             *frm_hdr      = &ppcs->frm_hdr;
         bool                     is_16bit     = scs->is_16bit_pipeline;
         Av1Common               *cm           = ppcs->av1_cm;
-#if OPT_RECON_OPERATIONS
+#if OPT_RECON_OPERATIONS && !OPT_OPERATIONS
         const bool allintra = scs->allintra;
 #endif
         if (ppcs->enable_restoration && frm_hdr->allow_intrabc == 0) {
@@ -339,7 +339,7 @@ void *svt_aom_rest_kernel(void *input_ptr) {
                 rest_finish_search(pcs);
 
                 // Only need recon if REF pic or recon is output
-#if OPT_RECON_OPERATIONS
+#if OPT_RECON_OPERATIONS && !OPT_OPERATIONS
                 if ((ppcs->is_ref && !allintra) || scs->static_config.recon_enabled) {
 #else
                 if (ppcs->is_ref || scs->static_config.recon_enabled) {

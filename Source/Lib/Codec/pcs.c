@@ -547,12 +547,23 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                                                                   init_data_ptr->b64_size);
     object_ptr->b64_total_count       = picture_b64_width * picture_b64_height;
     object_ptr->init_b64_total_count  = object_ptr->b64_total_count;
+#if OPT_OPERATIONS
+    EB_MALLOC_ARRAY(object_ptr->sb_64x64_mvp, object_ptr->init_b64_total_count);
+    EB_MALLOC_ARRAY(object_ptr->b64_me_qindex, object_ptr->init_b64_total_count);
+    if (!allintra) {
+        EB_MALLOC_ARRAY(object_ptr->sb_intra, object_ptr->init_b64_total_count);
+        EB_MALLOC_ARRAY(object_ptr->sb_skip, object_ptr->init_b64_total_count);
+        EB_MALLOC_ARRAY(object_ptr->sb_min_sq_size, object_ptr->init_b64_total_count);
+        EB_MALLOC_ARRAY(object_ptr->sb_max_sq_size, object_ptr->init_b64_total_count);
+    }
+#else
     EB_MALLOC_ARRAY(object_ptr->sb_intra, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->sb_skip, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->sb_64x64_mvp, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->b64_me_qindex, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->sb_min_sq_size, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->sb_max_sq_size, object_ptr->init_b64_total_count);
+#endif
     sb_origin_x = 0;
     sb_origin_y = 0;
 
@@ -1324,7 +1335,10 @@ EbErrorType ppcs_update_param(PictureParentControlSet *ppcs) {
 static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *object_ptr, EbPtr object_init_data_ptr) {
     PictureControlSetInitData *init_data_ptr = (PictureControlSetInitData *)object_init_data_ptr;
 
-    EbErrorType    return_error  = EB_ErrorNone;
+    EbErrorType return_error = EB_ErrorNone;
+#if OPT_OPERATIONS
+    const bool allintra = init_data_ptr->allintra;
+#endif
     const uint16_t subsampling_x = (init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
     const uint16_t subsampling_y = (init_data_ptr->color_format >= EB_YUV422 ? 0 : 1);
 
@@ -1370,10 +1384,14 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
 
     if (init_data_ptr->calculate_variance) {
         uint8_t block_count;
+#if OPT_OPERATIONS
+        if (allintra || init_data_ptr->aq_mode == 1 || init_data_ptr->variance_octile)
+#else
 #if CLN_AQ_MODE
         if (init_data_ptr->aq_mode == 1 || init_data_ptr->variance_octile)
 #else
         if (init_data_ptr->enable_adaptive_quantization == 1 || init_data_ptr->variance_octile)
+#endif
 #endif
             block_count = 85;
         else
@@ -1537,6 +1555,9 @@ static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_d
 
     EbErrorType return_error = EB_ErrorNone;
     uint16_t    sb_index;
+#if OPT_OPERATIONS
+    const bool allintra = init_data_ptr->allintra;
+#endif
     object_ptr->dctor = me_dctor;
 
     const uint16_t picture_b64_width = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_width, init_data_ptr->b64_size);
@@ -1546,11 +1567,17 @@ static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_d
     object_ptr->b64_total_count       = sb_total_count;
     object_ptr->init_b64_total_count  = sb_total_count;
 
-    EB_ALLOC_PTR_ARRAY(object_ptr->me_results, sb_total_count);
+#if OPT_OPERATIONS
+    if (!allintra) {
+#endif
+        EB_ALLOC_PTR_ARRAY(object_ptr->me_results, sb_total_count);
 
-    for (sb_index = 0; sb_index < sb_total_count; ++sb_index) {
-        EB_NEW(object_ptr->me_results[sb_index], svt_aom_me_sb_results_ctor, init_data_ptr);
+        for (sb_index = 0; sb_index < sb_total_count; ++sb_index) {
+            EB_NEW(object_ptr->me_results[sb_index], svt_aom_me_sb_results_ctor, init_data_ptr);
+        }
+#if OPT_OPERATIONS
     }
+#endif
 #if !FIX_TUNE_SSIM_LAMBDA
     if (init_data_ptr->enable_tpl_la) {
         const uint16_t picture_width_in_mb  = (uint16_t)((init_data_ptr->picture_width + 15) / 16);

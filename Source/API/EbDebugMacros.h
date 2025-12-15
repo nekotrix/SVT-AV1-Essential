@@ -120,6 +120,8 @@ extern "C" {
 #define CLN_REMOVE_CHANNELS         1 // Remove multiple channels from app since each channel invokes separate library call anyway
 #define FIX_PIC_MGR_HANG            1 // Fix a hang in the picture manager process related to pic processing order
 
+#define OPT_OPERATIONS              1 // Remove useless operations
+
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL

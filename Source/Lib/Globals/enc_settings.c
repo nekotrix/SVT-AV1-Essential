@@ -1939,7 +1939,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+#if OPT_OPERATIONS
+    if (config->enable_variance_boost && (config->variance_octile < 1 || config->variance_octile > 8)) {
+#else
     if (config->variance_octile < 1 || config->variance_octile > 8) {
+#endif
         SVT_ERROR("Instance %u: Variance Boost octile must be between 1 and 8\n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
