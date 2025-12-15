@@ -417,7 +417,10 @@ typedef struct NsqPsqTxsCtrls {
 } NsqPsqTxsCtrls;
 typedef struct RdoqCtrls {
     uint8_t enabled;
-
+#if OPT_LOW_FRQ_CAP
+    // 0: do not use cut off div; >=1: limit rdoq to a fixed low-frequency cut-off (DC + first AC coefficients) and skip rdoq on all higher frequencies
+    uint16_t cut_off_div;
+#endif
     // 0: do not use eob_fast for luma inter; 1: use eob_fast for luma inter
     uint8_t eob_fast_y_inter;
     // 0: do not use eob_fast for luma intra; 1: use eob_fast for luma intra

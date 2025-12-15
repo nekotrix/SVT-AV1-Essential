@@ -1554,9 +1554,10 @@ static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_d
     PictureControlSetInitData *init_data_ptr = (PictureControlSetInitData *)object_init_data_ptr;
 
     EbErrorType return_error = EB_ErrorNone;
-    uint16_t    sb_index;
 #if OPT_OPERATIONS
     const bool allintra = init_data_ptr->allintra;
+#else
+    uint16_t sb_index;
 #endif
     object_ptr->dctor = me_dctor;
 
@@ -1572,7 +1573,7 @@ static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_d
 #endif
         EB_ALLOC_PTR_ARRAY(object_ptr->me_results, sb_total_count);
 
-        for (sb_index = 0; sb_index < sb_total_count; ++sb_index) {
+        for (uint16_t sb_index = 0; sb_index < sb_total_count; ++sb_index) {
             EB_NEW(object_ptr->me_results[sb_index], svt_aom_me_sb_results_ctor, init_data_ptr);
         }
 #if OPT_OPERATIONS

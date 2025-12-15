@@ -4108,8 +4108,10 @@ static void set_rdoq_controls(ModeDecisionContext *ctx, uint8_t rdoq_level, bool
 
     switch (rdoq_level) {
     case 0: rdoq_ctrls->enabled = 0; break;
-    case 1:
-        rdoq_ctrls->enabled          = 1;
+    case 1: rdoq_ctrls->enabled = 1;
+#if OPT_LOW_FRQ_CAP
+        rdoq_ctrls->cut_off_div = 0;
+#endif
         rdoq_ctrls->eob_fast_y_inter = 0;
         rdoq_ctrls->eob_fast_y_intra = 0;
 #if OPT_MD_SIGNALS
@@ -4127,8 +4129,22 @@ static void set_rdoq_controls(ModeDecisionContext *ctx, uint8_t rdoq_level, bool
         rdoq_ctrls->eob_th            = (uint8_t)~0;
         rdoq_ctrls->eob_fast_th       = (uint8_t)~0;
         break;
-    case 2:
-        rdoq_ctrls->enabled          = 1;
+    case 2: rdoq_ctrls->enabled = 1;
+#if OPT_LOW_FRQ_CAP
+        rdoq_ctrls->cut_off_div       = 4;
+        rdoq_ctrls->eob_fast_y_inter  = 0;
+        rdoq_ctrls->eob_fast_y_intra  = 0;
+        rdoq_ctrls->eob_fast_uv_inter = 0;
+        rdoq_ctrls->eob_fast_uv_intra = 0;
+        rdoq_ctrls->fp_q_y            = 1;
+        rdoq_ctrls->fp_q_uv           = 1;
+        rdoq_ctrls->satd_factor       = (uint8_t)~0;
+        rdoq_ctrls->early_exit_th     = 0;
+        rdoq_ctrls->skip_uv           = 0;
+        rdoq_ctrls->dct_dct_only      = 0;
+        rdoq_ctrls->eob_th            = (uint8_t)~0;
+        rdoq_ctrls->eob_fast_th       = (uint8_t)~0;
+#else
         rdoq_ctrls->eob_fast_y_inter = 0;
         rdoq_ctrls->eob_fast_y_intra = 0;
 #if OPT_MD_SIGNALS
@@ -4145,9 +4161,12 @@ static void set_rdoq_controls(ModeDecisionContext *ctx, uint8_t rdoq_level, bool
         rdoq_ctrls->dct_dct_only      = 0;
         rdoq_ctrls->eob_th            = (uint8_t)~0;
         rdoq_ctrls->eob_fast_th       = (uint8_t)~0;
+#endif
         break;
-    case 3:
-        rdoq_ctrls->enabled          = 1;
+    case 3: rdoq_ctrls->enabled = 1;
+#if OPT_LOW_FRQ_CAP
+        rdoq_ctrls->cut_off_div = 4;
+#endif
         rdoq_ctrls->eob_fast_y_inter = 0;
         rdoq_ctrls->eob_fast_y_intra = 0;
 #if OPT_MD_SIGNALS
@@ -4165,8 +4184,10 @@ static void set_rdoq_controls(ModeDecisionContext *ctx, uint8_t rdoq_level, bool
         rdoq_ctrls->eob_th            = (uint8_t)~0;
         rdoq_ctrls->eob_fast_th       = (uint8_t)~0;
         break;
-    case 4:
-        rdoq_ctrls->enabled          = 1;
+    case 4: rdoq_ctrls->enabled = 1;
+#if OPT_LOW_FRQ_CAP
+        rdoq_ctrls->cut_off_div = 4;
+#endif
         rdoq_ctrls->eob_fast_y_inter = 0;
         rdoq_ctrls->eob_fast_y_intra = 0;
 #if OPT_MD_SIGNALS
@@ -4184,8 +4205,10 @@ static void set_rdoq_controls(ModeDecisionContext *ctx, uint8_t rdoq_level, bool
         rdoq_ctrls->eob_th            = (uint8_t)~0;
         rdoq_ctrls->eob_fast_th       = 30;
         break;
-    case 5:
-        rdoq_ctrls->enabled          = 1;
+    case 5: rdoq_ctrls->enabled = 1;
+#if OPT_LOW_FRQ_CAP
+        rdoq_ctrls->cut_off_div = 4;
+#endif
         rdoq_ctrls->eob_fast_y_inter = 0;
         rdoq_ctrls->eob_fast_y_intra = 0;
 #if OPT_MD_SIGNALS
@@ -10015,10 +10038,17 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 #if TUNE_STILL_IMAGE_0 // pic rdoq level
     // Set RDOQ level
     if (allintra) {
+#if OPT_LOW_FRQ_CAP
+        if (enc_mode <= ENC_M11)
+            pcs->rdoq_level = 1;
+        else
+            pcs->rdoq_level = 2;
+#else
         if (enc_mode <= ENC_M11)
             pcs->rdoq_level = 1;
         else
             pcs->rdoq_level = 5;
+#endif
     } else if (rtc_tune) {
 #if TUNE_RTC_RA_PRESETS_2
         if ((!scs->use_flat_ipp && enc_mode <= ENC_M8) || (scs->use_flat_ipp && enc_mode <= ENC_M9))

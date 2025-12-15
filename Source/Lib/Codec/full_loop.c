@@ -1261,6 +1261,34 @@ static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx,
                     sharpness);
     }
 
+#if OPT_LOW_FRQ_CAP
+    int si_end = 1; // default: full RDOQ
+    if (ctx->rdoq_ctrls.cut_off_div) {
+        int area = (width * height) / ctx->rdoq_ctrls.cut_off_div;
+        si_end   = AOMMAX(1, *eob - area);
+    }
+#define UPDATE_COEFF_SIMPLE_CASE(tx_class_literal) \
+    case tx_class_literal:                         \
+        for (; si >= si_end; --si) {               \
+            update_coeff_simple(&accu_rate,        \
+                                si,                \
+                                *eob,              \
+                                tx_size,           \
+                                tx_class_literal,  \
+                                bwl,               \
+                                rdmult,            \
+                                shift,             \
+                                p->dequant_qtx,    \
+                                scan,              \
+                                txb_costs,         \
+                                coeff_ptr,         \
+                                qcoeff_ptr,        \
+                                dqcoeff_ptr,       \
+                                levels,            \
+                                qparam->iqmatrix); \
+        }                                          \
+        break;
+#else
 #define UPDATE_COEFF_SIMPLE_CASE(tx_class_literal) \
     case tx_class_literal:                         \
         for (; si >= 1; --si) {                    \
@@ -1282,6 +1310,7 @@ static void svt_av1_optimize_b(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                 qparam->iqmatrix); \
         }                                          \
         break;
+#endif
     switch (tx_class) {
         UPDATE_COEFF_SIMPLE_CASE(TX_CLASS_2D);
         UPDATE_COEFF_SIMPLE_CASE(TX_CLASS_HORIZ);
