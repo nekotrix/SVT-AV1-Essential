@@ -3920,7 +3920,7 @@ void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
             scs->qp_based_th_scaling_ctrls.cap_max_size_qp_based_th_scaling = 0;
 #endif
 #if OPT_LPD0_PER_BLK
-            scs->qp_based_th_scaling_ctrls.var_ski_sub_depth_qp_based_th_scaling = 0;
+            scs->qp_based_th_scaling_ctrls.var_skip_sub_depth_qp_based_th_scaling = 0;
 #endif
 #if TUNE_STILL_IMAGE_1
         } else if (scs->static_config.enc_mode <= ENC_M5) {
@@ -3944,7 +3944,7 @@ void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
             scs->qp_based_th_scaling_ctrls.cap_max_size_qp_based_th_scaling = 0;
 #endif
 #if OPT_LPD0_PER_BLK
-            scs->qp_based_th_scaling_ctrls.var_ski_sub_depth_qp_based_th_scaling = 0;
+            scs->qp_based_th_scaling_ctrls.var_skip_sub_depth_qp_based_th_scaling = 0;
 #endif
 #else
         if (scs->static_config.enc_mode <= ENC_M3) {
@@ -3977,7 +3977,7 @@ void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
             scs->qp_based_th_scaling_ctrls.cap_max_size_qp_based_th_scaling = 1;
 #endif
 #if OPT_LPD0_PER_BLK
-            scs->qp_based_th_scaling_ctrls.var_ski_sub_depth_qp_based_th_scaling = 1;
+            scs->qp_based_th_scaling_ctrls.var_skip_sub_depth_qp_based_th_scaling = 1;
 #endif
         }
     }
@@ -4000,7 +4000,7 @@ void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
             scs->qp_based_th_scaling_ctrls.cap_max_size_qp_based_th_scaling = 0;
 #endif
 #if OPT_LPD0_PER_BLK
-            scs->qp_based_th_scaling_ctrls.var_ski_sub_depth_qp_based_th_scaling = 0;
+            scs->qp_based_th_scaling_ctrls.var_skip_sub_depth_qp_based_th_scaling = 0;
 #endif
         } else {
             scs->qp_based_th_scaling_ctrls.tf_me_qp_based_th_scaling       = 1;
@@ -4020,7 +4020,7 @@ void set_qp_based_th_scaling_ctrls(SequenceControlSet *scs) {
             scs->qp_based_th_scaling_ctrls.cap_max_size_qp_based_th_scaling = 0;
 #endif
 #if OPT_LPD0_PER_BLK
-            scs->qp_based_th_scaling_ctrls.var_ski_sub_depth_qp_based_th_scaling = 0;
+            scs->qp_based_th_scaling_ctrls.var_skip_sub_depth_qp_based_th_scaling = 0;
 #endif
         }
     }
@@ -4220,10 +4220,14 @@ static void set_param_based_on_input(SequenceControlSet *scs)
 #endif
         if (scs->input_resolution <= INPUT_SIZE_1080p_RANGE) {
 #if TUNE_STILL_IMAGE_0
+#if TUNE_STILL_IMAGE
+            if (scs->static_config.enc_mode <= ENC_M0) {
+#else
 #if TUNE_STILL_IMAGE_1
             if (scs->static_config.enc_mode <= ENC_M3) {
 #else
             if (scs->static_config.enc_mode <= ENC_M8) {
+#endif
 #endif
                 scs->super_block_size = 128;
             }
@@ -4554,7 +4558,11 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         }
         else if (scs->static_config.enc_mode <= ENC_M8)
             mrp_level = 6;
+#if TUNE_M11_M10_RA
+        else if (scs->static_config.enc_mode <= ENC_M10)
+#else
         else if (scs->static_config.enc_mode <= ENC_M9)
+#endif
             mrp_level = scs->static_config.pred_structure == RANDOM_ACCESS ? 7 : 9;
         else {
             if (scs->static_config.encoder_bit_depth == EB_EIGHT_BIT) {
@@ -4851,7 +4859,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
             2 :
             scs->static_config.pred_structure == LOW_DELAY ?
             3 :
-#if OPT_DEFAULT_6L
+#if OPT_DEFAULT_6L && !OPT_REVERSE_6L_TO_5L
             scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR || scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_CBR ||
             (input_resolution >= INPUT_SIZE_4K_RANGE && scs->static_config.enc_mode >= ENC_M8) || input_resolution >= INPUT_SIZE_8K_RANGE
 #else
@@ -4982,9 +4990,16 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     scs->is_16bit_pipeline = ((config_struct->encoder_bit_depth) > EB_EIGHT_BIT) ? true: false;
     scs->subsampling_x = (scs->chroma_format_idc == EB_YUV444 ? 0 : 1);
     scs->subsampling_y = (scs->chroma_format_idc >= EB_YUV422 ? 0 : 1);
+#if DIS_SC_ALL_INTRA
+    // Force screen-content detection OFF when allintra
+    scs->static_config.screen_content_mode = scs->allintra
+        ? 0 :
+        config_struct->screen_content_mode;
+#else
     // Thresholds
     scs->static_config.screen_content_mode = config_struct->screen_content_mode;
 
+#endif
     // Annex A parameters
     scs->static_config.profile = config_struct->profile;
     scs->static_config.tier = config_struct->tier;

@@ -67,6 +67,20 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
     larget_coding_unit_ptr->index = sb_index;
     bool disallow_sub_8x8_nsq     = true;
     bool disallow_sub_16x16_nsq   = true;
+#if CLN_I_SCLICE_LOOPING
+    for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
+        const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(allintra, input_resolution, enc_mode, coeff_lvl, rtc);
+        // nsq_geom_lvl level 0 means NSQ shapes are disallowed so don't adjust based on the level
+        if (nsq_geom_lvl) {
+            uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
+            svt_aom_set_nsq_geom_ctrls(NULL, nsq_geom_lvl, &allow_HVA_HVB, &allow_HV4, &min_nsq_bsize);
+            if (min_nsq_bsize < 8)
+                disallow_sub_8x8_nsq = false;
+            if (min_nsq_bsize < 16)
+                disallow_sub_16x16_nsq = false;
+        }
+    }
+#else
 #if !TUNE_RTC_RA_PRESETS
     for (uint8_t is_base = 0; is_base <= 1; is_base++) {
 #endif
@@ -96,6 +110,7 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
         }
 #if !TUNE_RTC_RA_PRESETS
     }
+#endif
 #endif
 #if TUNE_STILL_IMAGE_1
     bool disallow_4x4 = svt_aom_get_disallow_4x4(enc_mode);

@@ -1555,7 +1555,9 @@ static void build_cand_block_array(SequenceControlSet *scs, PictureControlSet *p
         : ctx->disallow_4x4 ? 8
                             : 4;
 #if OPT_CAP_MAX_BLOCK_SIZE
-    int32_t max_sq_size = MIN(pcs->max_block_size, scs->static_config.max_tx_size);
+    int32_t max_sq_size = ctx->max_block_size;
+    if (scs->static_config.max_tx_size == 32)
+        max_sq_size = MIN(max_sq_size, 32);
 #endif
     // Safety check: Restrict min sq size so mode decision can always find at least one valid partition scheme
     min_sq_size = MIN(min_sq_size, scs->static_config.max_tx_size);
@@ -1980,7 +1982,9 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                             }
                         }
 #if OPT_CAP_MAX_BLOCK_SIZE
-                        int32_t max_sq_size = MIN(pcs->max_block_size, scs->static_config.max_tx_size);
+                        int32_t max_sq_size = ctx->max_block_size;
+                        if (scs->static_config.max_tx_size == 32)
+                            max_sq_size = MIN(max_sq_size, 32);
 
                         if (blk_geom->sq_size == max_sq_size)
                             s_depth = 0;
@@ -3072,11 +3076,10 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                         // Signal initialized here; if needed, will be set in md_encode_block before MDS3
                         md_ctx->need_hbd_comp_mds3 = 0;
 #if OPT_CAP_MAX_BLOCK_SIZE
-                        uint8_t skip_pd_pass_0 = (ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_64x64 &&
-                                                  (scs->super_block_size == 64 || pcs->max_block_size == 64)) ||
-                                (ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_32x32 && pcs->max_block_size == 32)
-                            ? 1
-                            : 0;
+                        bool skip_pd_pass_0 = (ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_64x64 &&
+                                               (scs->super_block_size == 64 || ed_ctx->md_ctx->max_block_size == 64)) ||
+                            (ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_32x32 &&
+                             ed_ctx->md_ctx->max_block_size == 32);
 #else
                         uint8_t skip_pd_pass_0 = (scs->super_block_size == 64 &&
                                                   ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_64x64)

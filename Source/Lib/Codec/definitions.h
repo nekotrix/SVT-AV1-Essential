@@ -1177,8 +1177,10 @@ typedef enum ATTRIBUTE_PACKED {
     INTRA_INVALID           = MB_MODE_COUNT, // For uv_mode in inter blocks
 } PredictionMode;
 #if OPT_MD_SIGNALS
+#if !OPT_INTRA_MODE_PRUNE
 #define MAX_INTRA_LEVEL 8
 static const uint8_t angular_pred_level[MAX_INTRA_LEVEL] = {0, 1, 2, 2, 3, 4, 4, 0};
+#endif
 #endif
 #define MAX_UPSAMPLE_SZ 16
 

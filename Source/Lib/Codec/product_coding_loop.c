@@ -52,12 +52,12 @@ void     aom_av1_set_ssim_rdmult(struct ModeDecisionContext *ctx, PictureControl
 
 extern IntraSize svt_aom_intra_unit[];
 #if OPT_PD0_SRC_SAMPLES
-const EbPredictionFunc svt_product_prediction_fun_table_light_pd0[2] = {svt_av1_intra_prediction,
-                                                                        svt_aom_inter_pu_prediction_av1_light_pd0};
-const EbPredictionFunc svt_product_prediction_fun_table_light_pd1[2] = {svt_av1_intra_prediction,
-                                                                        svt_aom_inter_pu_prediction_av1_light_pd1};
-const EbPredictionFunc svt_product_prediction_fun_table[2]           = {svt_av1_intra_prediction,
-                                                                        svt_aom_inter_pu_prediction_av1};
+static const EbPredictionFunc product_prediction_fun_table_light_pd0[2] = {svt_av1_intra_prediction,
+                                                                           svt_aom_inter_pu_prediction_av1_light_pd0};
+static const EbPredictionFunc product_prediction_fun_table_light_pd1[2] = {svt_av1_intra_prediction,
+                                                                           svt_aom_inter_pu_prediction_av1_light_pd1};
+static const EbPredictionFunc product_prediction_fun_table[2]           = {svt_av1_intra_prediction,
+                                                                           svt_aom_inter_pu_prediction_av1};
 #else
 
 const EbPredictionFunc svt_product_prediction_fun_table_light_pd0[2] = {svt_av1_intra_prediction_cl,
@@ -1042,7 +1042,7 @@ static void fast_loop_core_light_pd0(ModeDecisionCandidateBuffer *cand_bf, Pictu
 #endif
     } else {
         // intrabc not allowed in light_pd0
-        svt_product_prediction_fun_table_light_pd0[is_inter_mode(cand->block_mi.mode)](0, ctx, pcs, cand_bf);
+        product_prediction_fun_table_light_pd0[is_inter_mode(cand->block_mi.mode)](0, ctx, pcs, cand_bf);
         const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
         unsigned int            sse;
         uint8_t                *pred_y = pred->buffer_y + cu_origin_index;
@@ -1099,7 +1099,7 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
 #endif
     // Prediction
     ctx->uv_intra_comp_only = false;
-    svt_product_prediction_fun_table_light_pd1[is_inter_mode(cand->block_mi.mode)](0, ctx, pcs, cand_bf);
+    product_prediction_fun_table_light_pd1[is_inter_mode(cand->block_mi.mode)](0, ctx, pcs, cand_bf);
     // Distortion
     const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
     unsigned int            sse;
@@ -1373,7 +1373,7 @@ void fast_loop_core(ModeDecisionCandidateBuffer *cand_bf, PictureControlSet *pcs
 #endif
     // Prediction
     ctx->uv_intra_comp_only = false;
-    svt_product_prediction_fun_table[is_inter_mode(cand->block_mi.mode) || cand->block_mi.use_intrabc](
+    product_prediction_fun_table[is_inter_mode(cand->block_mi.mode) || cand->block_mi.use_intrabc](
         ctx->hbd_md, ctx, pcs, cand_bf);
 
 #if FTR_USE_HADAMARD_MDS0
@@ -3772,7 +3772,7 @@ static void cfl_prediction(PictureControlSet *pcs, ModeDecisionCandidateBuffer *
     if (non_cfl_uv_mode != UV_DC_PRED) {
         ctx->uv_intra_comp_only = true;
         assert(ctx->mds_do_chroma);
-        svt_product_prediction_fun_table[is_inter_mode(cand_bf->cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
+        product_prediction_fun_table[is_inter_mode(cand_bf->cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
     }
 
     // Compute AC component of CFL prediction
@@ -3857,8 +3857,7 @@ static void cfl_prediction(PictureControlSet *pcs, ModeDecisionCandidateBuffer *
         if (non_cfl_uv_mode != UV_DC_PRED) {
             ctx->uv_intra_comp_only = true;
             assert(ctx->mds_do_chroma);
-            svt_product_prediction_fun_table[is_inter_mode(cand_bf->cand->block_mi.mode)](
-                ctx->hbd_md, ctx, pcs, cand_bf);
+            product_prediction_fun_table[is_inter_mode(cand_bf->cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
         }
     }
 }
@@ -3926,7 +3925,7 @@ static void check_best_indepedant_cfl(PictureControlSet *pcs, EbPictureBufferDes
         *cr_coeff_bits = 0;
 
         assert(ctx->mds_do_chroma);
-        svt_product_prediction_fun_table[is_inter_mode(cand_bf->cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
+        product_prediction_fun_table[is_inter_mode(cand_bf->cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
         // Cb Residual
         svt_aom_residual_kernel(input_pic->buffer_cb,
                                 input_cb_origin_in_index,
@@ -6402,7 +6401,7 @@ static void full_loop_core_light_pd1(PictureControlSet *pcs, ModeDecisionContext
         ctx->md_stage           = MD_STAGE_0;
         ctx->mds_do_chroma      = false;
         ctx->uv_intra_comp_only = false;
-        svt_product_prediction_fun_table_light_pd1[is_inter_mode(cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
+        product_prediction_fun_table_light_pd1[is_inter_mode(cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
         ctx->md_stage           = MD_STAGE_3;
         ctx->uv_intra_comp_only = true;
         ctx->mds_do_chroma      = true;
@@ -6471,7 +6470,7 @@ static void full_loop_core_light_pd1(PictureControlSet *pcs, ModeDecisionContext
         if (!recon_needed)
             ctx->lpd1_chroma_comp = ctx->lpd1_tx_ctrls.chroma_detector_level <= 3 ? COMPONENT_CHROMA : chroma_component;
         //Chroma Prediction
-        svt_product_prediction_fun_table_light_pd1[is_inter_mode(cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
+        product_prediction_fun_table_light_pd1[is_inter_mode(cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
         // Perform additional check to detect complex chroma blocks
         if (ctx->lpd1_tx_ctrls.chroma_detector_level && ctx->lpd1_tx_ctrls.chroma_detector_level <= 3 &&
             ctx->chroma_complexity != COMPONENT_CHROMA &&
@@ -6508,8 +6507,7 @@ static void full_loop_core_light_pd1(PictureControlSet *pcs, ModeDecisionContext
         // Only need chroma pred if generating recon
         if (ctx->lpd1_chroma_comp > COMPONENT_LUMA) {
             //Chroma Prediction
-            svt_product_prediction_fun_table_light_pd1[is_inter_mode(cand->block_mi.mode)](
-                ctx->hbd_md, ctx, pcs, cand_bf);
+            product_prediction_fun_table_light_pd1[is_inter_mode(cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
         }
         cand_bf->u_has_coeff = cand_bf->v_has_coeff = 0;
         if (cand->skip_mode_allowed)
@@ -6671,7 +6669,7 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
         opt_non_translation_motion_mode(pcs, ctx, cand_bf, cand);
         if (ctx->mds_do_chroma || ctx->mds_do_ifs || cand_bf->valid_luma_pred == 0 || ctx->need_hbd_comp_mds3) {
             // Perform INTER prediction
-            svt_product_prediction_fun_table[1](ctx->hbd_md, ctx, pcs, cand_bf);
+            product_prediction_fun_table[1](ctx->hbd_md, ctx, pcs, cand_bf);
             cand_bf->valid_luma_pred = 1;
         }
     } else if (ctx->mds_do_chroma || ctx->need_hbd_comp_mds3) {
@@ -6681,7 +6679,7 @@ static void full_loop_core(PictureControlSet *pcs, ModeDecisionContext *ctx, Mod
         assert(cand_bf->valid_luma_pred);
         ctx->uv_intra_comp_only = ctx->need_hbd_comp_mds3 ? false : true;
         // Here, the mode is INTRA, but if intra_bc is used, must use inter prediction function
-        svt_product_prediction_fun_table[cand_bf->cand->block_mi.use_intrabc](ctx->hbd_md, ctx, pcs, cand_bf);
+        product_prediction_fun_table[cand_bf->cand->block_mi.use_intrabc](ctx->hbd_md, ctx, pcs, cand_bf);
     }
     // Initialize luma CBF
     cand_bf->y_has_coeff   = 0;
@@ -7271,7 +7269,7 @@ static void search_best_mds3_uv_mode(PictureControlSet *pcs, EbPictureBufferDesc
         ModeDecisionCandidateBuffer *cand_bf = ctx->cand_bf_ptr_array[uv_mode_count + start_full_buffer_index];
         ModeDecisionCandidate *cand = cand_bf->cand = &ctx->fast_cand_array[uv_mode_count + start_fast_buffer_index];
 
-        svt_product_prediction_fun_table[is_inter_mode(cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
+        product_prediction_fun_table[is_inter_mode(cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
 
         uint16_t cb_qindex                                       = ctx->qp_index;
         uint64_t cb_coeff_bits                                   = 0;
@@ -7474,7 +7472,7 @@ static void search_best_independent_uv_mode(PictureControlSet *pcs, EbPictureBuf
     for (unsigned int uv_mode_count = 0; uv_mode_count < uv_mode_total_count; uv_mode_count++) {
         ModeDecisionCandidateBuffer *cand_bf = ctx->cand_bf_ptr_array[uv_mode_count + start_full_buffer_index];
         cand_bf->cand                        = &ctx->fast_cand_array[uv_mode_count + start_fast_buffer_index];
-        svt_product_prediction_fun_table[is_inter_mode(cand_bf->cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
+        product_prediction_fun_table[is_inter_mode(cand_bf->cand->block_mi.mode)](ctx->hbd_md, ctx, pcs, cand_bf);
         uint32_t chroma_fast_distortion;
         if (!ctx->hbd_md) {
             const AomVarianceFnPtr *fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize_uv];
@@ -8033,7 +8031,7 @@ static void md_encode_block_light_pd0(PictureControlSet *pcs, ModeDecisionContex
         ModeDecisionCandidateBuffer *cand_bf = ctx->cand_bf_ptr_array[0];
         cand_bf->cand                        = &ctx->fast_cand_array[0];
         cand_bf->cand->block_mi.tx_depth     = 0;
-        svt_product_prediction_fun_table_light_pd0[is_inter_mode(cand_bf->cand->block_mi.mode)](0, ctx, pcs, cand_bf);
+        product_prediction_fun_table_light_pd0[is_inter_mode(cand_bf->cand->block_mi.mode)](0, ctx, pcs, cand_bf);
     } else
         md_stage_0_light_pd0(pcs, ctx, fast_candidate_total_count, input_pic, input_origin_index, blk_origin_index);
 
@@ -10480,7 +10478,7 @@ static bool var_skip_sub_depth(PictureControlSet *pcs, ModeDecisionContext *ctx)
     uint32_t coeff_perc            = (count_non_zero_coeffs * 100) / total_samples;
 
     uint32_t q_weight, q_weight_denom;
-    svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.var_ski_sub_depth_qp_based_th_scaling,
+    svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.var_skip_sub_depth_qp_based_th_scaling,
                                             &q_weight,
                                             &q_weight_denom,
                                             pcs->scs->static_config.qp);

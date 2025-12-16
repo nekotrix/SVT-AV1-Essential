@@ -1836,21 +1836,16 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
             ctx->blk_org_y = (uint16_t)(sb_org_y + blk_geom->org_y);
 
 #if OPT_OPERATIONS
-            if (!scs->allintra) {
+            if (!allintra) {
 #endif
                 if (is_intra_mode(blk_ptr->block_mi.mode)) {
                     ctx->tot_intra_coded_area += blk_geom->bwidth * blk_geom->bheight;
                     pcs->sb_intra[sb_addr] = 1;
                 } else {
                     if (pcs->ppcs->frm_hdr.allow_high_precision_mv) {
-                        int hp = 0;
-
-                        // unipred MV always stored in idx0
-                        if (blk_ptr->block_mi.mv[0].x % 2 != 0 || blk_ptr->block_mi.mv[0].y % 2 != 0)
-                            hp = 1;
-                        if (has_second_ref(&blk_ptr->block_mi)) {
-                            if (blk_ptr->block_mi.mv[1].x % 2 != 0 || blk_ptr->block_mi.mv[1].y % 2 != 0)
-                                hp = 1;
+                        bool hp = (blk_ptr->block_mi.mv[0].x % 2 != 0 || blk_ptr->block_mi.mv[0].y % 2 != 0);
+                        if (!hp && has_second_ref(&blk_ptr->block_mi)) {
+                            hp = (blk_ptr->block_mi.mv[1].x % 2 != 0 || blk_ptr->block_mi.mv[1].y % 2 != 0);
                         }
                         if (hp)
                             ctx->tot_hp_coded_area += blk_geom->bwidth * blk_geom->bheight;
