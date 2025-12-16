@@ -51,6 +51,14 @@ void     aom_av1_set_ssim_rdmult(struct ModeDecisionContext *ctx, PictureControl
                                  const int mi_col);
 
 extern IntraSize svt_aom_intra_unit[];
+#if OPT_PD0_SRC_SAMPLES
+const EbPredictionFunc svt_product_prediction_fun_table_light_pd0[2] = {svt_av1_intra_prediction,
+                                                                        svt_aom_inter_pu_prediction_av1_light_pd0};
+const EbPredictionFunc svt_product_prediction_fun_table_light_pd1[2] = {svt_av1_intra_prediction,
+                                                                        svt_aom_inter_pu_prediction_av1_light_pd1};
+const EbPredictionFunc svt_product_prediction_fun_table[2]           = {svt_av1_intra_prediction,
+                                                                        svt_aom_inter_pu_prediction_av1};
+#else
 
 const EbPredictionFunc svt_product_prediction_fun_table_light_pd0[2] = {svt_av1_intra_prediction_cl,
                                                                         svt_aom_inter_pu_prediction_av1_light_pd0};
@@ -58,7 +66,7 @@ const EbPredictionFunc svt_product_prediction_fun_table_light_pd1[2] = {svt_av1_
                                                                         svt_aom_inter_pu_prediction_av1_light_pd1};
 const EbPredictionFunc svt_product_prediction_fun_table[2]           = {svt_av1_intra_prediction_cl,
                                                                         svt_aom_inter_pu_prediction_av1};
-
+#endif
 static const EbFastCostFunc av1_product_fast_cost_func_table[2] = {
     svt_aom_intra_fast_cost, /*INTRA */
     svt_aom_inter_fast_cost /*INTER */
@@ -8002,6 +8010,19 @@ static void md_encode_block_light_pd0(PictureControlSet *pcs, ModeDecisionContex
 
     generate_md_stage_0_cand_light_pd0(ctx, &fast_candidate_total_count, pcs);
 
+#if OPT_PD0_SRC_SAMPLES
+    if (ctx->lpd0_use_src_samples) {
+        uint8_t *src_y = input_pic->buffer_y + input_origin_index;
+        svt_memcpy(ctx->recon_neigh_y->top_array + ctx->blk_org_x, src_y - input_pic->stride_y, ctx->blk_geom->bwidth);
+
+        for (uint32_t row_idx = 0; row_idx < ctx->blk_geom->bheight; ++row_idx) {
+            ctx->recon_neigh_y->left_array[ctx->blk_org_y + row_idx] = *(src_y + row_idx * input_pic->stride_y - 1);
+        }
+
+        ctx->recon_neigh_y->top_left_array[ctx->recon_neigh_y->max_pic_h + ctx->blk_org_x - ctx->blk_org_y] = *(
+            src_y - input_pic->stride_y - 1);
+    }
+#endif
     ctx->md_stage       = MD_STAGE_0;
     ctx->mds0_best_idx  = 0;
     ctx->mds0_best_cost = (uint64_t)~0;
@@ -8055,7 +8076,11 @@ static void md_encode_block_light_pd0(PictureControlSet *pcs, ModeDecisionContex
         ctx->blk_ptr->cnt_nz_coeff = ctx->cand_bf_ptr_array[ctx->mds0_best_idx]->cnt_nz_coeff;
     }
     // If intra is used, generate recon and copy to necessary buffers
+#if OPT_PD0_SRC_SAMPLES
+    if (!ctx->skip_intra && !ctx->lpd0_use_src_samples) {
+#else
     if (!ctx->skip_intra) {
+#endif
         uint32_t                     candidate_index = ctx->mds0_best_idx;
         ModeDecisionCandidateBuffer *cand_bf         = ctx->cand_bf_ptr_array[candidate_index];
 
@@ -10390,7 +10415,11 @@ static void update_d2_decision_light_pd0(PictureControlSet *pcs, ModeDecisionCon
         ctx->blk_geom->sqi_mds); //input is parent square
 
     // only needed to update recon
+#if OPT_PD0_SRC_SAMPLES
+    if (!ctx->skip_intra && !ctx->lpd0_use_src_samples && ctx->md_blk_arr_nsq[last_blk_index_mds].split_flag == false) {
+#else
     if (!ctx->skip_intra && ctx->md_blk_arr_nsq[last_blk_index_mds].split_flag == false) {
+#endif
         ctx->blk_geom  = get_blk_geom_mds(ctx->md_blk_arr_nsq[last_blk_index_mds].best_d1_blk);
         ctx->blk_org_x = ctx->sb_origin_x + ctx->blk_geom->org_x;
         ctx->blk_org_y = ctx->sb_origin_y + ctx->blk_geom->org_y;

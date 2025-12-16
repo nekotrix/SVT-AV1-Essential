@@ -7843,7 +7843,7 @@ void svt_aom_sig_deriv_enc_dec_light_pd0(SequenceControlSet *scs, PictureControl
     const Pd0Level           pd0_level = ctx->lpd0_ctrls.pd0_level;
     PictureParentControlSet *ppcs      = pcs->ppcs;
     const uint8_t            is_islice = pcs->slice_type == I_SLICE;
-#if OPT_LPD0_PER_BLK
+#if OPT_LPD0_PER_BLK || OPT_PD0_SRC_SAMPLES
     const bool allintra = scs->allintra;
 #endif
 
@@ -7946,6 +7946,12 @@ void svt_aom_sig_deriv_enc_dec_light_pd0(SequenceControlSet *scs, PictureControl
     ctx->d2_parent_bias = 1000;
 #if !TUNE_STILL_IMAGE_0
     set_mds0_controls(ctx, 2);
+#endif
+#if OPT_PD0_SRC_SAMPLES
+    if (allintra)
+        ctx->lpd0_use_src_samples = true;
+    else
+        ctx->lpd0_use_src_samples = false;
 #endif
 #if OPT_LPD0_PER_BLK
     uint8_t var_skip_sub_depth_lvl;

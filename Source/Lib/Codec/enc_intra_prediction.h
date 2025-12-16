@@ -23,11 +23,15 @@ extern "C" {
 struct ModeDecisionCandidateBuffer;
 struct ModeDecisionCandidate;
 
+#if OPT_PD0_SRC_SAMPLES
+EbErrorType svt_av1_intra_prediction(uint8_t hbd_md, struct ModeDecisionContext *ctx, PictureControlSet *pcs,
+                                     ModeDecisionCandidateBuffer *cand_bf);
+#else
 /////////..............................................//////////////////////////
 
 extern EbErrorType svt_av1_intra_prediction_cl(uint8_t hbd_md, struct ModeDecisionContext *ctx, PictureControlSet *pcs,
                                                ModeDecisionCandidateBuffer *cand_bf);
-
+#endif
 extern EbErrorType svt_aom_update_neighbor_samples_array_open_loop_mb(uint8_t use_top_righ_bottom_left,
                                                                       uint8_t update_top_neighbor, uint8_t *above_ref,
                                                                       uint8_t *left_ref, EbPictureBufferDesc *input_ptr,

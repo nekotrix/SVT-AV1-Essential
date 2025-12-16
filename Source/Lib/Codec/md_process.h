@@ -1180,9 +1180,14 @@ typedef struct ModeDecisionContext {
     bool fixed_partition;
     // Indicates whether only pred depth refinement is used in PD1 (set per frame) Per frame is
     // necessary because some shortcuts can only be taken if the whole frame uses pred depth only
-    bool      pic_pred_depth_only;
-    uint16_t  coded_area_sb;
-    uint16_t  coded_area_sb_uv;
+    bool     pic_pred_depth_only;
+    uint16_t coded_area_sb;
+    uint16_t coded_area_sb_uv;
+#if OPT_PD0_SRC_SAMPLES
+    // Use source samples instead of reconstructed samples for INTRA prediction of PD0 in I_SLICE
+    // to avoid inverse transform and neighbor array updates for reconstructed samples
+    bool lpd0_use_src_samples;
+#endif
     Lpd0Ctrls lpd0_ctrls;
     // 0 : Use regular PD0 1 : Use light PD0 path. Assumes one class, no NSQ, no 4x4, TXT off, TXS
     // off, PME off, etc. 2 : Use very light PD0 path: only mds0 (no transform path), no

@@ -126,6 +126,7 @@ extern "C" {
 #define OPT_DEPTH_REMOVAL           1 // M11 to M12: Use a QP-dependent variance threshold for depth-removal thresholds
 #define OPT_CAP_MAX_BLOCK_SIZE      1 // M10 to M12: Capped the max block size to 32 using a QP-dependent variance threshold
 #define OPT_LPD0_PER_BLK            1 // Skip sub-depth processing when the block is classified as non-edge
+#define OPT_PD0_SRC_SAMPLES         1 // Use source samples instead of reconstructed samples for INTRA prediction of PD0 in I_SLICE to avoid inverse transform and neighbor array updates for reconstructed samples
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
