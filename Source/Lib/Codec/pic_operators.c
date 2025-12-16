@@ -323,17 +323,11 @@ void svt_aom_generate_padding_compressed_10bit(
     EbByte temp_src_pic0 = src_pic + padding_width / 4 + padding_height * src_stride;
 
     for (uint32_t row = 0; row < original_src_height; row++) {
-        uint8_t left_pixel  = (temp_src_pic0[0] >> 6) & 0x03;
-        uint8_t right_pixel = temp_src_pic0[original_src_width / 4 - 1] & 0x03;
+        const uint8_t left_pixel  = (temp_src_pic0[0] >> 6) & 0x03;
+        const uint8_t right_pixel = temp_src_pic0[original_src_width / 4 - 1] & 0x03;
 
-        uint8_t new_left_byte = ((left_pixel << 6) & 0xC0) | ((left_pixel << 4) & 0x30) | ((left_pixel << 2) & 0x0C) |
-            left_pixel;
-        uint8_t new_right_byte = ((right_pixel << 6) & 0xC0) | ((right_pixel << 4) & 0x30) |
-            ((right_pixel << 2) & 0x0C) | right_pixel;
-
-        EB_MEMSET(temp_src_pic0 - padding_width / 4, new_left_byte, padding_width / 4);
-
-        EB_MEMSET(temp_src_pic0 + original_src_width / 4, new_right_byte, padding_width / 4);
+        EB_MEMSET(temp_src_pic0 - padding_width / 4, left_pixel * 0b01010101, padding_width / 4);
+        EB_MEMSET(temp_src_pic0 + original_src_width / 4, right_pixel * 0b01010101, padding_width / 4);
 
         temp_src_pic0 += src_stride;
     }

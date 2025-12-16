@@ -571,9 +571,10 @@ static SgrprojInfo search_selfguided_restoration(const uint8_t *dat8, int32_t wi
     //TODO: test the fixed based for fast decode and try to unify.
     int8_t start_ep, end_ep, ep_inc, do_refine;
     if (step < 16) {
-        int8_t mid_ep = sg_ref_frame_ep[0] < 0 && sg_ref_frame_ep[1] < 0
-            ? 0
-            : (sg_ref_frame_ep[0] + sg_ref_frame_ep[1]) / 2;
+        int8_t mid_ep = sg_ref_frame_ep[0] < 0 && sg_ref_frame_ep[1] < 0 ? 0
+            : sg_ref_frame_ep[1] < 0                                     ? sg_ref_frame_ep[0]
+            : sg_ref_frame_ep[0] < 0                                     ? sg_ref_frame_ep[1]
+                                     : (sg_ref_frame_ep[0] + sg_ref_frame_ep[1]) / 2;
 
         start_ep = sg_ref_frame_ep[0] < 0 && sg_ref_frame_ep[1] < 0 ? 0 : AOMMAX(0, mid_ep - step);
         end_ep   = sg_ref_frame_ep[0] < 0 && sg_ref_frame_ep[1] < 0 ? SGRPROJ_PARAMS

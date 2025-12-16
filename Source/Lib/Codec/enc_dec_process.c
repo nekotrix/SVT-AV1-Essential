@@ -2072,9 +2072,6 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
     if (pred_depth_only)
         ctx->pred_depth_only = 1;
 }
-void recode_loop_update_q(PictureParentControlSet *ppcs, int *const loop, int *const q, int *const q_low,
-                          int *const q_high, const int top_index, const int bottom_index, int *const undershoot_seen,
-                          int *const overshoot_seen, int *const low_cr_seen, const int loop_count);
 void svt_variance_adjust_qp(PictureControlSet *pcs);
 void svt_aom_sb_qp_derivation_tpl_la(PictureControlSet *pcs);
 #if CLN_MDC_FUNCS
@@ -2088,7 +2085,7 @@ static void recode_loop_decision_maker(PictureControlSet *pcs, SequenceControlSe
     PictureParentControlSet *ppcs    = pcs->ppcs;
     EncodeContext *const     enc_ctx = ppcs->scs->enc_ctx;
     RATE_CONTROL *const      rc      = &(enc_ctx->rc);
-    int32_t                  loop    = 0;
+    bool                     loop    = false;
     FrameHeader             *frm_hdr = &ppcs->frm_hdr;
     int32_t                  q       = frm_hdr->quantization_params.base_q_idx;
     if (ppcs->loop_count == 0) {
@@ -2111,9 +2108,9 @@ static void recode_loop_decision_maker(PictureControlSet *pcs, SequenceControlSe
 
     // Special case for overlay frame.
     if (loop && ppcs->is_overlay && ppcs->projected_frame_size < rc->max_frame_bandwidth) {
-        loop = 0;
+        loop = false;
     }
-    *do_recode = loop == 1;
+    *do_recode = loop;
 
     if (*do_recode) {
         ppcs->loop_count++;

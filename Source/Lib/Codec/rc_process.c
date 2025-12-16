@@ -3265,7 +3265,7 @@ static AOM_INLINE int get_regulated_q_undershoot(PictureParentControlSet *ppcs, 
 // This function works out whether we under- or over-shot
 // our bitrate target and adjusts q as appropriate.  Also decides whether
 // or not we should do another recode loop, indicated by *loop
-void recode_loop_update_q(PictureParentControlSet *ppcs, int *const loop, int *const q, int *const q_low,
+void recode_loop_update_q(PictureParentControlSet *ppcs, bool *const loop, int *const q, int *const q_low,
                           int *const q_high, const int top_index, const int bottom_index, int *const undershoot_seen,
                           int *const overshoot_seen, int *const low_cr_seen, const int loop_count) {
     SequenceControlSet *const   scs           = ppcs->scs;
@@ -3284,7 +3284,7 @@ void recode_loop_update_q(PictureParentControlSet *ppcs, int *const loop, int *c
     } else {
         ppcs->projected_frame_size = 0;
     }
-    *loop = 0;
+    *loop = false;
     if (scs->enc_ctx->recode_loop == ALLOW_RECODE_KFMAXBW && ppcs->frm_hdr.frame_type != KEY_FRAME) {
         // skip re-encode for inter frame when setting -recode-loop 1
         return;
@@ -3302,7 +3302,7 @@ void recode_loop_update_q(PictureParentControlSet *ppcs, int *const loop, int *c
                 *q                       = AOMMIN(AOMMIN(projected_q, *q + 32), rc->worst_quality);
                 *q_low                   = AOMMAX(*q, *q_low);
                 *q_high                  = AOMMAX(*q, *q_high);
-                *loop                    = 1;
+                *loop                    = true;
             }
         }
         if (*low_cr_seen)
@@ -3385,8 +3385,11 @@ void recode_loop_update_q(PictureParentControlSet *ppcs, int *const loop, int *c
 
     *q    = clamp_qindex(scs, *q);
     *loop = (*q != last_q);
-    // Used for capped CRF. Update the active worse quality based on the final assigned qindex
-    if (rc_cfg->mode == AOM_Q && scs->static_config.max_bit_rate && ppcs->temporal_layer_index == 0 &&
+    // Used for capped CRF. Update the active worse quality based on the final assigned qindex.
+    // cppcheck claims that `*loop == 0` is always true here, but that's a false positive based on the assumption that
+    // the recode_loop_test is true branch is not taken.
+    // cppcheck-suppress knownConditionTrueFalse
+    if (rc_cfg->mode == AOM_Q && scs->static_config.max_bit_rate && *loop == 0 && ppcs->temporal_layer_index == 0 &&
         ppcs->loop_count > 0) {
         if (ppcs->slice_type == I_SLICE)
             rc->active_worst_quality = get_kf_q_tpl(rc, *q, scs->static_config.encoder_bit_depth);

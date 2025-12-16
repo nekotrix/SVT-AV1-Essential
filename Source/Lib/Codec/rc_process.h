@@ -246,5 +246,8 @@ void svt_aom_lambda_assign(struct PictureControlSet *pcs, uint32_t *fast_lambda,
                            uint8_t bit_depth, uint16_t qp_index, bool multiply_lambda);
 struct PictureParentControlSet;
 void svt_aom_cyclic_refresh_init(struct PictureParentControlSet *ppcs);
+void recode_loop_update_q(struct PictureParentControlSet *ppcs, bool *const loop, int *const q, int *const q_low,
+                          int *const q_high, const int top_index, const int bottom_index, int *const undershoot_seen,
+                          int *const overshoot_seen, int *const low_cr_seen, const int loop_count);
 
 #endif // EbRateControl_h
