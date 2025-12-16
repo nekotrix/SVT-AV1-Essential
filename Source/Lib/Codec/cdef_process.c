@@ -327,13 +327,16 @@ static void cdef_seg_search(PictureControlSet *pcs, SequenceControlSet *scs, uin
         const int subsampling_y = (pli == 0) ? 0 : 1;
         xdec[pli]               = subsampling_x;
         ydec[pli]               = subsampling_y;
-        plane_bsize[pli]        = subsampling_y ? BLOCK_4X4 : BLOCK_8X8;
-        mi_wide_l2[pli]         = MI_SIZE_LOG2 - subsampling_x;
-        mi_high_l2[pli]         = MI_SIZE_LOG2 - subsampling_y;
-        src[pli]                = pcs->cdef_input_recon[pli];
-        ref[pli]                = pcs->cdef_input_source[pli];
-        stride_src[pli] = pli == 0 ? recon_pic->stride_y : (pli == 1 ? recon_pic->stride_cb : recon_pic->stride_cr);
-        stride_ref[pli] = pli == 0 ? input_pic->stride_y : (pli == 1 ? input_pic->stride_cb : input_pic->stride_cr);
+        // The checks are stubs for 4:2:2 and 4:4:4 support
+        // cppcheck-suppress knownConditionTrueFalse
+        plane_bsize[pli] = subsampling_y ? (subsampling_x ? BLOCK_4X4 : BLOCK_8X4)
+                                         : (subsampling_x ? BLOCK_4X8 : BLOCK_8X8);
+        mi_wide_l2[pli]  = MI_SIZE_LOG2 - subsampling_x;
+        mi_high_l2[pli]  = MI_SIZE_LOG2 - subsampling_y;
+        src[pli]         = pcs->cdef_input_recon[pli];
+        ref[pli]         = pcs->cdef_input_source[pli];
+        stride_src[pli]  = pli == 0 ? recon_pic->stride_y : (pli == 1 ? recon_pic->stride_cb : recon_pic->stride_cr);
+        stride_ref[pli]  = pli == 0 ? input_pic->stride_y : (pli == 1 ? input_pic->stride_cb : input_pic->stride_cr);
     }
 
     // Loop over all filter blocks (64x64)

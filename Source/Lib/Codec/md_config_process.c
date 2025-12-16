@@ -120,10 +120,15 @@ void svt_av1_build_quantizer(PictureParentControlSet *pcs, EbBitDepth bit_depth,
         int           diff          = q - pcs->frm_hdr.quantization_params.base_q_idx;
         const int32_t sharpness_val = pcs->scs->static_config.sharpness;
 
-        if (sharpness_val > 0 && diff < 0) {
-            int32_t offset = MAX(sharpness_val << 1, abs(diff));
-            qzbin_factor += -offset;
-            qrounding_factor += offset;
+        // cppcheck claims that the second condition is always false, giving the deduction that diff is always < 1.
+        // However, it bases it off `q=0` (and I presume it's deduction would also apply to `q=1`) and ignores the loop
+        // over all q's.
+        // cppcheck-suppress knownConditionTrueFalse
+        if ((sharpness_val > 0 && diff < 0) || (sharpness_val < 0 && diff > 0)) {
+            int32_t offset = sharpness_val > 0 ? MAX(sharpness_val << 1, abs(diff))
+                                               : MIN(abs(sharpness_val) << 1, diff);
+            qzbin_factor += (sharpness_val > 0) ? -offset : offset;
+            qrounding_factor += (sharpness_val > 0) ? offset : -offset;
             qzbin_factor     = CLIP3(1, 256, qzbin_factor);
             qrounding_factor = CLIP3(1, 256, qrounding_factor);
         }
@@ -780,7 +785,7 @@ static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
                 }
             }
 #if TUNE_RTC_RA_PRESETS
-            int8_t mid_filter     = MIN(63, MAX(0, (lowest_sg + highest_sg) / 2));
+            int8_t mid_filter     = MIN(63, (lowest_sg + highest_sg) / 2);
             cdef_ctrls->pred_y_f  = mid_filter;
             cdef_ctrls->pred_uv_f = 0;
 #else

@@ -367,8 +367,8 @@ static INLINE void aom_write_bit(AomWriter* w, int bit) {
     aom_write(w, bit, 128); // aom_prob_half
 }
 
-static INLINE void aom_write_literal(AomWriter* w, int data, int bits) {
-    for (int bit = bits - 1; bit >= 0; bit--) aom_write_bit(w, 1 & ((unsigned)data >> bit));
+static INLINE void aom_write_literal(AomWriter* w, unsigned data, int bits) {
+    for (int bit = bits - 1; bit >= 0; bit--) aom_write_bit(w, 1 & (data >> bit));
 }
 
 static INLINE void aom_write_cdf(AomWriter* w, int symb, const AomCdfProb* cdf, int nsymbs) {
