@@ -1554,11 +1554,16 @@ static void build_cand_block_array(SequenceControlSet *scs, PictureControlSet *p
         ? 16
         : ctx->disallow_4x4 ? 8
                             : 4;
+#if OPT_CAP_MAX_BLOCK_SIZE
+    int32_t max_sq_size = MIN(pcs->max_block_size, scs->static_config.max_tx_size);
+#endif
     // Safety check: Restrict min sq size so mode decision can always find at least one valid partition scheme
     min_sq_size = MIN(min_sq_size, scs->static_config.max_tx_size);
     while (blk_index < max_block_cnt) {
-        const BlockGeom *blk_geom    = get_blk_geom_mds(blk_index);
-        int32_t          max_sq_size = scs->static_config.max_tx_size == 32 ? 32 : blk_geom->sq_size;
+        const BlockGeom *blk_geom = get_blk_geom_mds(blk_index);
+#if !OPT_CAP_MAX_BLOCK_SIZE
+        int32_t max_sq_size = scs->static_config.max_tx_size == 32 ? 32 : blk_geom->sq_size;
+#endif
 
         assert(min_sq_size <= max_sq_size);
 
@@ -1974,6 +1979,14 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                                                                     : e_depth;
                             }
                         }
+#if OPT_CAP_MAX_BLOCK_SIZE
+                        int32_t max_sq_size = MIN(pcs->max_block_size, scs->static_config.max_tx_size);
+
+                        if (blk_geom->sq_size == max_sq_size)
+                            s_depth = 0;
+                        else if (s_depth == -2 && blk_geom->sq_size << 1 == max_sq_size)
+                            s_depth = -1;
+#endif
                         uint8_t sq_size_idx      = 7 - (uint8_t)svt_log2f((uint8_t)blk_geom->sq_size);
                         uint8_t add_parent_depth = 1;
                         uint8_t add_sub_depth    = 1;
@@ -2004,6 +2017,7 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                                 }
                             }
 
+#if !OPT_CAP_MAX_BLOCK_SIZE
                             if (scs->static_config.max_tx_size == 32) {
                                 // Don't test depths that result in blocks greater than 32x32
                                 switch (blk_geom->sq_size) {
@@ -2013,6 +2027,7 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                                 case 32: s_depth = MAX(0, s_depth); break;
                                 }
                             }
+#endif
 
                             int64_t s_th_offset = 0;
                             int64_t e_th_offset = 0;
@@ -3056,10 +3071,18 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                         ed_ctx->md_ctx->is_subres_safe = (uint8_t)~0;
                         // Signal initialized here; if needed, will be set in md_encode_block before MDS3
                         md_ctx->need_hbd_comp_mds3 = 0;
-                        uint8_t skip_pd_pass_0     = (scs->super_block_size == 64 &&
+#if OPT_CAP_MAX_BLOCK_SIZE
+                        uint8_t skip_pd_pass_0 = (ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_64x64 &&
+                                                  (scs->super_block_size == 64 || pcs->max_block_size == 64)) ||
+                                (ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_32x32 && pcs->max_block_size == 32)
+                            ? 1
+                            : 0;
+#else
+                        uint8_t skip_pd_pass_0 = (scs->super_block_size == 64 &&
                                                   ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_64x64)
-                                ? 1
-                                : 0;
+                            ? 1
+                            : 0;
+#endif
 
                         // If LPD0 is used, a more conservative level can be set for complex SBs
 #if OPT_LPD0_RTC

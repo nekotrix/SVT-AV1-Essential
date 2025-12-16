@@ -824,6 +824,15 @@ typedef struct SkipSubDepthCtrls {
     uint8_t coeff_perc;
 
 } SkipSubDepthCtrls;
+#if OPT_LPD0_PER_BLK
+typedef struct VarSkipSubDepthCtrls {
+    uint8_t  enabled;
+    uint32_t coeff_th;
+    uint8_t  min_size;
+    uint8_t  max_size;
+    uint32_t edge_th[4][3];
+} VarSkipSubDepthCtrls;
+#endif
 typedef struct FilterIntraCtrls {
     bool enabled;
     // Set the max filter intra mode to test. The max filter intra level will also depend on ctx->intra_ctrls.intra_mode_end.
@@ -1064,9 +1073,12 @@ typedef struct ModeDecisionContext {
     DepthRemovalCtrls    depth_removal_ctrls;
     DepthRefinementCtrls depth_refinement_ctrls;
     SkipSubDepthCtrls    skip_sub_depth_ctrls;
-    SubresCtrls          subres_ctrls;
-    uint8_t              is_subres_safe;
-    PfCtrls              pf_ctrls;
+#if OPT_LPD0_PER_BLK
+    VarSkipSubDepthCtrls var_skip_sub_depth_ctrls;
+#endif
+    SubresCtrls subres_ctrls;
+    uint8_t     is_subres_safe;
+    PfCtrls     pf_ctrls;
     // Control signals for MD sparse search (used for increasing ME search for active clips)
     MdSqMotionSearchCtrls  md_sq_me_ctrls;
     MdNsqMotionSearchCtrls md_nsq_me_ctrls;

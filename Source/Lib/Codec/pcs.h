@@ -319,6 +319,9 @@ typedef struct PictureControlSet {
     uint8_t dist_based_ang_intra_level;
 #endif
     uint8_t pic_disallow_4x4; // disallow 4x4 at pic level
+#if OPT_CAP_MAX_BLOCK_SIZE
+    uint8_t max_block_size;
+#endif
     // depth_removal_level signal at the picture level
     uint8_t pic_depth_removal_level;
 #if !OPT_DR_RTC

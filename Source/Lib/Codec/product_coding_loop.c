@@ -9962,6 +9962,40 @@ static void init_block_data(PictureControlSet *pcs, ModeDecisionContext *ctx, co
     if (pcs->ppcs->scs->super_block_size == 64 && blk_geom->bwidth == blk_geom->bheight && blk_geom->bsize > BLOCK_8X4)
         ctx->sb64_sq_no4xn_geom = 1;
 }
+#if OPT_LPD0_PER_BLK
+static const uint8_t var_log2_lut[4] = {6, 5, 4, 3};
+static const uint8_t var_grid_lut[4] = {1, 2, 4, 8};
+static const uint8_t var_base_lut[4] = {0, 1, 5, 21};
+
+static void get_blk_var_map(int block_size, int org_x, int org_y, int *blk_idx, int sub_idx[4]) {
+    // Map block size to level: 64->0, 32->1, 16->2, 8->3
+    const int lvl = 6 - svt_log2f(block_size);
+
+    // Parent block
+    const int shift = var_log2_lut[lvl];
+    const int grid  = var_grid_lut[lvl];
+    const int base  = var_base_lut[lvl];
+
+    const int gx = org_x >> shift;
+    const int gy = org_y >> shift;
+
+    *blk_idx = base + gy * grid + gx;
+
+    // Sub-blocks
+    const int sub_lvl   = lvl + 1;
+    const int sub_shift = var_log2_lut[sub_lvl];
+    const int sub_base  = var_base_lut[sub_lvl];
+    const int sub_grid  = var_grid_lut[sub_lvl];
+
+    const int sx = org_x >> sub_shift;
+    const int sy = org_y >> sub_shift;
+
+    sub_idx[0] = sub_base + (sy + 0) * sub_grid + (sx + 0);
+    sub_idx[1] = sub_base + (sy + 0) * sub_grid + (sx + 1);
+    sub_idx[2] = sub_base + (sy + 1) * sub_grid + (sx + 0);
+    sub_idx[3] = sub_base + (sy + 1) * sub_grid + (sx + 1);
+}
+#endif
 static void check_curr_to_parent_cost_light_pd0(SequenceControlSet *scs, PictureControlSet *pcs,
                                                 ModeDecisionContext *ctx, uint32_t *next_non_skip_blk_idx_mds,
                                                 bool *md_early_exit_sq) {
@@ -10384,6 +10418,57 @@ static void update_d2_decision(PictureControlSet *pcs, ModeDecisionContext *ctx)
     }
 }
 
+#if OPT_LPD0_PER_BLK
+// Use variance to determine if sub depths should be skipped. Returns true when sub depths should be skipped,
+// false when the sub depths should be tested.
+static bool var_skip_sub_depth(PictureControlSet *pcs, ModeDecisionContext *ctx) {
+    int blk_idx;
+    int sub_idx[4];
+
+    get_blk_var_map(ctx->blk_geom->sq_size, ctx->blk_geom->org_x, ctx->blk_geom->org_y, &blk_idx, sub_idx);
+
+    uint16_t *sb_var = pcs->ppcs->variance[ctx->sb_index];
+
+    uint32_t sub_var[4] = {sb_var[sub_idx[0]], sb_var[sub_idx[1]], sb_var[sub_idx[2]], sb_var[sub_idx[3]]};
+
+    uint32_t min_var = UINT32_MAX;
+    uint32_t max_var = 0;
+    uint32_t sum_var = 0;
+
+    for (int i = 0; i < 4; i++) {
+        uint32_t v = sub_var[i];
+        sum_var += v;
+        if (v < min_var)
+            min_var = v;
+        if (v > max_var)
+            max_var = v;
+    }
+
+    uint32_t spread_var = max_var - min_var;
+
+    uint32_t count_non_zero_coeffs = ctx->md_blk_arr_nsq[ctx->blk_geom->sqi_mds].cnt_nz_coeff;
+    uint32_t total_samples         = (ctx->blk_geom->sq_size * ctx->blk_geom->sq_size);
+    uint32_t coeff_perc            = (count_non_zero_coeffs * 100) / total_samples;
+
+    uint32_t q_weight, q_weight_denom;
+    svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.var_ski_sub_depth_qp_based_th_scaling,
+                                            &q_weight,
+                                            &q_weight_denom,
+                                            pcs->scs->static_config.qp);
+
+    uint8_t  th_idx  = 6 - svt_log2f(ctx->blk_geom->sq_size);
+    uint32_t abs_th  = ctx->var_skip_sub_depth_ctrls.edge_th[th_idx][0];
+    abs_th           = DIVIDE_AND_ROUND(abs_th * q_weight, q_weight_denom);
+    uint32_t rel_th  = ctx->var_skip_sub_depth_ctrls.edge_th[th_idx][1];
+    rel_th           = DIVIDE_AND_ROUND(rel_th * q_weight, q_weight_denom);
+    uint32_t peak_th = ctx->var_skip_sub_depth_ctrls.edge_th[th_idx][2];
+    peak_th          = DIVIDE_AND_ROUND(peak_th * q_weight, q_weight_denom);
+
+    const bool is_edge = coeff_perc > ctx->var_skip_sub_depth_ctrls.coeff_th &&
+        ((100 * spread_var) > (abs_th * sum_var)) && ((100 * max_var > rel_th * sum_var) && (spread_var > peak_th));
+    return !is_edge;
+}
+#endif
 static const uint8_t num_ns_per_shape[PART_S] = {1, 2, 2, 4, 4, 3, 3, 3, 3};
 
 // gives the index offset (relative to SQ block) of the given nsq shape
@@ -10457,6 +10542,16 @@ void svt_aom_mode_decision_sb_light_pd0(SequenceControlSet *scs, PictureControlS
         }
         // Only using SQ, so always at tot_d1_blocks
         update_d2_decision_light_pd0(pcs, ctx);
+#if OPT_LPD0_PER_BLK
+        if (ctx->var_skip_sub_depth_ctrls.enabled && ctx->md_blk_arr_nsq[ctx->blk_geom->sqi_mds].split_flag &&
+            ctx->avail_blk_flag[ctx->blk_geom->sqi_mds]) {
+            if (ctx->blk_geom->sq_size <= ctx->var_skip_sub_depth_ctrls.max_size &&
+                ctx->blk_geom->sq_size >= ctx->var_skip_sub_depth_ctrls.min_size && var_skip_sub_depth(pcs, ctx)) {
+                next_non_skip_blk_idx_mds = ctx->blk_geom->sqi_mds + ctx->blk_geom->ns_depth_offset;
+                md_early_exit_sq          = 1;
+            }
+        }
+#endif
     }
 }
 /*

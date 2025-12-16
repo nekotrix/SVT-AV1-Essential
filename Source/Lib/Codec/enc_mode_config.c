@@ -3114,25 +3114,40 @@ static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisio
         switch (depth_removal_level) {
         case 0: depth_removal_ctrls->enabled = 0; break;
 
-        case 1:
-            depth_removal_ctrls->enabled = 1;
-            base_var_th_b16              = 750;
-            base_var_th_b32              = 500;
-            base_var_th_b64              = 50;
+        case 1: depth_removal_ctrls->enabled = 1;
+#if OPT_DEPTH_REMOVAL
+            base_var_th_b16 = 2500;
+            base_var_th_b32 = 0;
+            base_var_th_b64 = 0;
+#else
+            base_var_th_b16 = 750;
+            base_var_th_b32 = 500;
+            base_var_th_b64 = 50;
+#endif
             break;
 #if TUNE_STILL_IMAGE_2
-        case 2:
-            depth_removal_ctrls->enabled = 1;
-            base_var_th_b16              = 1000;
-            base_var_th_b32              = 0;
-            base_var_th_b64              = 0;
+        case 2: depth_removal_ctrls->enabled = 1;
+#if OPT_DEPTH_REMOVAL
+            base_var_th_b16 = 7500;
+            base_var_th_b32 = 0;
+            base_var_th_b64 = 0;
+#else
+            base_var_th_b16 = 1000;
+            base_var_th_b32 = 0;
+            base_var_th_b64 = 0;
+#endif
             break;
 
-        case 3:
-            depth_removal_ctrls->enabled = 1;
-            base_var_th_b16              = (uint16_t)~0;
-            base_var_th_b32              = 0;
-            base_var_th_b64              = 0;
+        case 3: depth_removal_ctrls->enabled = 1;
+#if OPT_DEPTH_REMOVAL
+            base_var_th_b16 = 15000;
+            base_var_th_b32 = 200;
+            base_var_th_b64 = 0;
+#else
+            base_var_th_b16 = (uint16_t)~0;
+            base_var_th_b32 = 0;
+            base_var_th_b64 = 0;
+#endif
             break;
         }
 #else
@@ -3162,6 +3177,23 @@ static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisio
                 get_sb128_variance(pcs, ctx, &variance);
             }
 
+#if OPT_DEPTH_REMOVAL
+            uint32_t q_weight, q_weight_denom;
+            svt_aom_get_qp_based_th_scaling_factors(
+                pcs->scs->qp_based_th_scaling_ctrls.i_depth_removal_qp_based_th_scaling,
+                &q_weight,
+                &q_weight_denom,
+                pcs->scs->static_config.qp);
+            uint16_t var_th_b16 = base_var_th_b16 == (uint16_t)~0
+                ? base_var_th_b16
+                : DIVIDE_AND_ROUND(base_var_th_b16 * q_weight, q_weight_denom);
+            uint16_t var_th_b32 = base_var_th_b32 == (uint16_t)~0
+                ? base_var_th_b32
+                : DIVIDE_AND_ROUND(base_var_th_b32 * q_weight, q_weight_denom);
+            uint16_t var_th_b64 = base_var_th_b64 == (uint16_t)~0
+                ? base_var_th_b64
+                : DIVIDE_AND_ROUND(base_var_th_b64 * q_weight, q_weight_denom);
+#else
             uint16_t var_th_b16 = 0;
             uint16_t var_th_b32 = 0;
             uint16_t var_th_b64 = 0;
@@ -3176,8 +3208,13 @@ static void set_depth_removal_level_controls(PictureControlSet *pcs, ModeDecisio
             var_th_b16 = MIN((uint16_t)~0, ((uint32_t)base_var_th_b16 + (uint32_t)var_scale));
             var_th_b32 = MIN((uint16_t)~0, ((uint32_t)base_var_th_b32 + (uint32_t)var_scale));
             var_th_b64 = MIN((uint16_t)~0, ((uint32_t)base_var_th_b64 + (uint32_t)var_scale));
-
+#endif
+#if OPT_CAP_MAX_BLOCK_SIZE
+            depth_removal_ctrls->disallow_below_64x64 = (pcs->max_block_size >= 64 && sb_geom->width % 64 == 0 &&
+                                                         sb_geom->height % 64 == 0)
+#else
             depth_removal_ctrls->disallow_below_64x64 = (sb_geom->width % 64 == 0 && sb_geom->height % 64 == 0)
+#endif
                 ? (depth_removal_ctrls->disallow_below_64x64 || variance < var_th_b64)
                 : 0;
 
@@ -7386,6 +7423,41 @@ static void set_skip_sub_depth_ctrls(SkipSubDepthCtrls *skip_sub_depth_ctrls, ui
     default: assert(0); break;
     }
 }
+#if OPT_LPD0_PER_BLK
+static void set_var_skip_sub_depth_ctrls(VarSkipSubDepthCtrls *var_skip_sub_depth_ctrls,
+                                         uint8_t               var_skip_sub_depth_lvl) {
+    switch (var_skip_sub_depth_lvl) {
+    case 0: var_skip_sub_depth_ctrls->enabled = 0; break;
+
+    case 1:
+        var_skip_sub_depth_ctrls->enabled  = 1;
+        var_skip_sub_depth_ctrls->coeff_th = 40;
+        var_skip_sub_depth_ctrls->min_size = 16;
+        var_skip_sub_depth_ctrls->max_size = 16;
+        // b16
+        var_skip_sub_depth_ctrls->edge_th[2][0] = 100;
+        var_skip_sub_depth_ctrls->edge_th[2][1] = 150;
+        var_skip_sub_depth_ctrls->edge_th[2][2] = 2000;
+
+        break;
+    case 2:
+        var_skip_sub_depth_ctrls->enabled  = 1;
+        var_skip_sub_depth_ctrls->coeff_th = 40;
+        var_skip_sub_depth_ctrls->min_size = 16;
+        var_skip_sub_depth_ctrls->max_size = 32;
+        // b16
+        var_skip_sub_depth_ctrls->edge_th[2][0] = 100;
+        var_skip_sub_depth_ctrls->edge_th[2][1] = 150;
+        var_skip_sub_depth_ctrls->edge_th[2][2] = 2000;
+        // b32
+        var_skip_sub_depth_ctrls->edge_th[1][0] = 75;
+        var_skip_sub_depth_ctrls->edge_th[1][1] = 100;
+        var_skip_sub_depth_ctrls->edge_th[1][2] = 1500;
+        break;
+    default: assert(0); break;
+    }
+}
+#endif
 void set_block_based_depth_refinement_controls(ModeDecisionContext *ctx, uint8_t block_based_depth_refinement_level) {
     DepthRefinementCtrls *depth_refinement_ctrls = &ctx->depth_refinement_ctrls;
     switch (block_based_depth_refinement_level) {
@@ -7533,6 +7605,45 @@ void set_block_based_depth_refinement_controls(ModeDecisionContext *ctx, uint8_t
     case 9: depth_refinement_ctrls->mode = PD0_DEPTH_PRED_PART_ONLY; break;
     }
 }
+#if OPT_CAP_MAX_BLOCK_SIZE
+void get_max_block_size(PictureControlSet *pcs, ModeDecisionContext *ctx) {
+    EncMode enc_mode = pcs->enc_mode;
+    if (pcs->slice_type == I_SLICE) {
+        // Base threshold
+        uint16_t base_var_th_cap;
+        if (enc_mode <= ENC_M9)
+            base_var_th_cap = (uint16_t)~0;
+        else if (enc_mode <= ENC_M10)
+            base_var_th_cap = 7500;
+        else
+            base_var_th_cap = 15000;
+
+        // QP-based scaling
+        uint32_t q_weight, q_weight_denom;
+        svt_aom_get_qp_based_th_scaling_factors(pcs->scs->qp_based_th_scaling_ctrls.cap_max_size_qp_based_th_scaling,
+                                                &q_weight,
+                                                &q_weight_denom,
+                                                pcs->scs->static_config.qp);
+
+        uint16_t var_th_cap = (base_var_th_cap == (uint16_t)~0)
+            ? base_var_th_cap
+            : DIVIDE_AND_ROUND(base_var_th_cap * q_weight, q_weight_denom);
+
+        // Get variance
+        uint16_t variance;
+        if (pcs->scs->super_block_size == 64) {
+            variance = pcs->ppcs->variance[ctx->sb_index][ME_TIER_ZERO_PU_64x64];
+        } else {
+            get_sb128_variance(pcs, ctx, &variance);
+        }
+
+        // Set max block size
+        pcs->max_block_size = (variance <= var_th_cap) ? pcs->scs->super_block_size : pcs->scs->super_block_size >> 1;
+    } else {
+        pcs->max_block_size = pcs->scs->super_block_size;
+    }
+}
+#endif
 /*
  * Generate per-SB MD settings (do not change per-PD)
  */
@@ -7591,6 +7702,10 @@ void svt_aom_sig_deriv_enc_dec_common(SequenceControlSet *scs, PictureControlSet
                                                  b64_geom->height);
 #endif
     ctx->disallow_4x4 = pcs->pic_disallow_4x4;
+#if OPT_CAP_MAX_BLOCK_SIZE
+    // Set max block-size
+    get_max_block_size(pcs, ctx);
+#endif
 #if OPT_DR_RTC
     set_depth_removal_level_controls(pcs, ctx, pcs->pic_depth_removal_level);
 #else
@@ -7728,6 +7843,9 @@ void svt_aom_sig_deriv_enc_dec_light_pd0(SequenceControlSet *scs, PictureControl
     const Pd0Level           pd0_level = ctx->lpd0_ctrls.pd0_level;
     PictureParentControlSet *ppcs      = pcs->ppcs;
     const uint8_t            is_islice = pcs->slice_type == I_SLICE;
+#if OPT_LPD0_PER_BLK
+    const bool allintra = scs->allintra;
+#endif
 
     const uint8_t sc_class1         = ppcs->sc_class1;
     const bool    rtc_tune          = scs->static_config.rtc;
@@ -7828,6 +7946,18 @@ void svt_aom_sig_deriv_enc_dec_light_pd0(SequenceControlSet *scs, PictureControl
     ctx->d2_parent_bias = 1000;
 #if !TUNE_STILL_IMAGE_0
     set_mds0_controls(ctx, 2);
+#endif
+#if OPT_LPD0_PER_BLK
+    uint8_t var_skip_sub_depth_lvl;
+    if (allintra) {
+        if (pcs->enc_mode <= ENC_M11)
+            var_skip_sub_depth_lvl = 0;
+        else
+            var_skip_sub_depth_lvl = 1;
+    } else {
+        var_skip_sub_depth_lvl = 0;
+    }
+    set_var_skip_sub_depth_ctrls(&ctx->var_skip_sub_depth_ctrls, var_skip_sub_depth_lvl);
 #endif
     if (pd0_level == VERY_LIGHT_PD0)
         return;
@@ -10469,6 +10599,11 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 #else
         if (enc_mode <= ENC_M10) {
 #endif
+#if OPT_LPD0_PER_BLK
+        } else {
+            pcs->pic_depth_removal_level = 2;
+        }
+#else
 #if TUNE_STILL_IMAGE_2
         } else if (enc_mode <= ENC_M11) {
             pcs->pic_depth_removal_level = 2;
@@ -10482,6 +10617,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         } else {
             pcs->pic_depth_removal_level = 3;
         }
+#endif
     } else if (is_islice || transition_present) {
 #else
     // Depth-removal not supported for I_SLICE

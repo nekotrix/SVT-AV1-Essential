@@ -52,6 +52,15 @@ typedef struct QpBasedThScaling {
     bool nic_pruning_qp_based_th_scaling;
     bool pme_qp_based_th_scaling;
     bool txt_qp_based_th_scaling;
+#if OPT_DEPTH_REMOVAL
+    bool i_depth_removal_qp_based_th_scaling;
+#endif
+#if OPT_CAP_MAX_BLOCK_SIZE
+    bool cap_max_size_qp_based_th_scaling;
+#endif
+#if OPT_LPD0_PER_BLK
+    bool var_ski_sub_depth_qp_based_th_scaling;
+#endif
 } QpBasedThScaling;
 /************************************
      * Sequence Control Set

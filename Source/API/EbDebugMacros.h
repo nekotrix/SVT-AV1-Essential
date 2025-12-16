@@ -123,6 +123,9 @@ extern "C" {
 #define OPT_OPERATIONS              1 // Remove useless operations
 #define OPT_LOW_FRQ_CAP             1 // Limit rdoq to a fixed low-frequency cut-off (DC + first AC coefficients) and skip rdoq on all higher frequencies (the cut-off skips the tail, but not the first AC ring + EOB logic)
 #define OPT_INTRA_MODE_PRUNE        1 // M7 to M10: Skip H when V outperforms DC, and skip Smooth when DC is better than both H and V
+#define OPT_DEPTH_REMOVAL           1 // M11 to M12: Use a QP-dependent variance threshold for depth-removal thresholds
+#define OPT_CAP_MAX_BLOCK_SIZE      1 // M10 to M12: Capped the max block size to 32 using a QP-dependent variance threshold
+#define OPT_LPD0_PER_BLK            1 // Skip sub-depth processing when the block is classified as non-edge
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
