@@ -95,6 +95,29 @@ typedef struct OrderHintInfo {
 
 } OrderHintInfo;
 
+typedef struct EbTimingInfo {
+    /*!< Timing info present flag */
+    bool timing_info_present;
+
+    /*!< Number of time units of a clock operating at the frequency time_scale
+     * Hz that corresponds to one increment of a clock tick counter*/
+    uint32_t num_units_in_display_tick;
+
+    /*!< Number of time units that pass in one second*/
+    uint32_t time_scale;
+
+    /*!< Equal to 1 indicates that pictures should be displayed according to
+     * their output order with the number of ticks between two consecutive
+     * pictures specified by num_ticks_per_picture.*/
+    uint8_t equal_picture_interval;
+
+    /*!< Specifies the number of clock ticks corresponding to output time
+     * between two consecutive pictures in the output order.
+     * Range - [0 to (1 << 32) - 2]*/
+    uint32_t num_ticks_per_picture;
+
+} EbTimingInfo;
+
 typedef struct SeqHeader {
     /*!< Specifies the features that can be used in the coded video sequence */
     EbAv1SeqProfile seq_profile;

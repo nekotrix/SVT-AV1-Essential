@@ -231,29 +231,6 @@ typedef struct EbColorConfig {
     bool separate_uv_delta_q;
 } EbColorConfig;
 
-typedef struct EbTimingInfo {
-    /*!< Timing info present flag */
-    bool timing_info_present;
-
-    /*!< Number of time units of a clock operating at the frequency time_scale
-     * Hz that corresponds to one increment of a clock tick counter*/
-    uint32_t num_units_in_display_tick;
-
-    /*!< Number of time units that pass in one second*/
-    uint32_t time_scale;
-
-    /*!< Equal to 1 indicates that pictures should be displayed according to
-     * their output order with the number of ticks between two consecutive
-     * pictures specified by num_ticks_per_picture.*/
-    uint8_t equal_picture_interval;
-
-    /*!< Specifies the number of clock ticks corresponding to output time
-     * between two consecutive pictures in the output order.
-     * Range - [0 to (1 << 32) - 2]*/
-    uint32_t num_ticks_per_picture;
-
-} EbTimingInfo;
-
 // structure to be allocated at the sample application and passed to the library
 // on a per picture basis through the p_app_private field in the EbBufferHeaderType structure
 // this structure and the data inside would be casted, validated, then copied at the
