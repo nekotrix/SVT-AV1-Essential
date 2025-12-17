@@ -92,6 +92,11 @@ typedef struct EbPerformanceContext {
 
     uint64_t sum_qp;
 
+    double vbv_buffer_bits;
+    double vbv_delay_max_s;
+    double vbv_delay_sum_s;
+    int    vbv_delay_violations;
+
 } EbPerformanceContext;
 
 typedef struct MemMapFile {

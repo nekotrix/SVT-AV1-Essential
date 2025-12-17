@@ -824,75 +824,78 @@ void init_reader(EbConfig *app_cfg) {
 * Process Output STATISTICS Buffer
 ***************************************/
 void process_output_statistics_buffer(EbBufferHeaderType *header_ptr, EbConfig *app_cfg) {
-    uint32_t max_luma_value = (app_cfg->config.encoder_bit_depth == 8) ? 255 : 1023;
-    uint8_t  temporal_layer_index;
-    uint32_t avg_qp;
-    uint64_t picture_stream_size, luma_sse, cr_sse, cb_sse, picture_number, picture_qp;
-    double   luma_ssim, cr_ssim, cb_ssim;
-    double   temp_var, luma_psnr, cb_psnr, cr_psnr;
+    double   max_pix_value = (app_cfg->config.encoder_bit_depth == 8) ? 255 : 1023;
     uint32_t source_width  = app_cfg->config.source_width;
     uint32_t source_height = app_cfg->config.source_height;
+    uint32_t luma_size     = source_width * source_height;
+    uint32_t chroma_size   = source_width / 2 * source_height / 2;
 
-    picture_stream_size  = header_ptr->n_filled_len;
-    luma_sse             = header_ptr->luma_sse;
-    cr_sse               = header_ptr->cr_sse;
-    cb_sse               = header_ptr->cb_sse;
-    picture_number       = header_ptr->pts;
-    temporal_layer_index = header_ptr->temporal_layer_index;
-    picture_qp           = header_ptr->qp;
-    avg_qp               = header_ptr->avg_qp;
-    luma_ssim            = header_ptr->luma_ssim;
-    cr_ssim              = header_ptr->cr_ssim;
-    cb_ssim              = header_ptr->cb_ssim;
+    double max_sse = max_pix_value * max_pix_value * luma_size;
 
-    temp_var = (double)max_luma_value * max_luma_value * (source_width * source_height);
+    double luma_psnr = get_psnr((double)header_ptr->luma_sse, max_sse);
 
-    luma_psnr = get_psnr((double)luma_sse, temp_var);
+    max_sse = max_pix_value * max_pix_value * chroma_size;
 
-    temp_var = (double)max_luma_value * max_luma_value * (source_width / 2 * source_height / 2);
+    double cb_psnr = get_psnr((double)header_ptr->cb_sse, max_sse);
+    double cr_psnr = get_psnr((double)header_ptr->cr_sse, max_sse);
 
-    cb_psnr = get_psnr((double)cb_sse, temp_var);
+    EbPerformanceContext *ctx = &app_cfg->performance_context;
 
-    cr_psnr = get_psnr((double)cr_sse, temp_var);
+    ctx->sum_luma_psnr += luma_psnr;
+    ctx->sum_cr_psnr += cr_psnr;
+    ctx->sum_cb_psnr += cb_psnr;
 
-    app_cfg->performance_context.sum_luma_psnr += luma_psnr;
-    app_cfg->performance_context.sum_cr_psnr += cr_psnr;
-    app_cfg->performance_context.sum_cb_psnr += cb_psnr;
+    ctx->sum_luma_sse += header_ptr->luma_sse;
+    ctx->sum_cr_sse += header_ptr->cr_sse;
+    ctx->sum_cb_sse += header_ptr->cb_sse;
 
-    app_cfg->performance_context.sum_luma_sse += luma_sse;
-    app_cfg->performance_context.sum_cr_sse += cr_sse;
-    app_cfg->performance_context.sum_cb_sse += cb_sse;
+    ctx->sum_qp += header_ptr->qp;
+    ctx->sum_luma_ssim += header_ptr->luma_ssim;
+    ctx->sum_cr_ssim += header_ptr->cr_ssim;
+    ctx->sum_cb_ssim += header_ptr->cb_ssim;
 
-    app_cfg->performance_context.sum_qp += picture_qp;
-    app_cfg->performance_context.sum_luma_ssim += luma_ssim;
-    app_cfg->performance_context.sum_cr_ssim += cr_ssim;
-    app_cfg->performance_context.sum_cb_ssim += cb_ssim;
+    // VBV delays computation
+    double frame_duration = 1.0 * app_cfg->config.frame_rate_denominator / app_cfg->config.frame_rate_numerator;
+    double bits_sent      = frame_duration * app_cfg->config.target_bit_rate;
+    ctx->vbv_buffer_bits  = ctx->vbv_buffer_bits + header_ptr->n_filled_len * 8 - bits_sent;
+    if (ctx->vbv_buffer_bits < 0) {
+        // no underflows
+        ctx->vbv_buffer_bits = 0;
+    }
+    double vbv_delay_s = ctx->vbv_buffer_bits / app_cfg->config.target_bit_rate;
+    if (ctx->vbv_delay_max_s < vbv_delay_s) {
+        ctx->vbv_delay_max_s = vbv_delay_s;
+    }
+    ctx->vbv_delay_sum_s += vbv_delay_s;
+    if (vbv_delay_s > 0.5) {
+        ctx->vbv_delay_violations++;
+    }
 
     // Write statistic Data to file
     if (app_cfg->stat_file) {
         fprintf(app_cfg->stat_file,
-                "Picture Number: %4d\tTemporal Layer Index: %4d\t QP: %4d\t Average QP: %4d  [ "
-                "PSNR-Y: %.2f dB,\tPSNR-U: %.2f dB,\tPSNR-V: %.2f "
-                "dB,\tMSE-Y: %.2f,\tMSE-U: %.2f,\tMSE-V: %.2f,\t"
+                "Picture Number: %4d\tTL: %4d\t QP: %4u\t Average QP: %4u  [ "
+                "PSNR-Y: %.2f dB,\tPSNR-U: %.2f dB,\tPSNR-V: %.2f dB,\t"
+                "MSE-Y: %.2f,\tMSE-U: %.2f,\tMSE-V: %.2f,\t"
                 "SSIM-Y: %.5f,\tSSIM-U: %.5f,\tSSIM-V: %.5f"
-                " ]\t %6d bytes\n",
-                (int)picture_number,
-                (int)temporal_layer_index,
-                (int)picture_qp,
-                (int)avg_qp,
+                " ]\t %6d bytes\t VBV delay: %.3f s\n",
+                (int)header_ptr->pts,
+                (int)header_ptr->temporal_layer_index,
+                header_ptr->qp,
+                header_ptr->avg_qp,
                 luma_psnr,
                 cb_psnr,
                 cr_psnr,
-                (double)luma_sse / (source_width * source_height),
-                (double)cb_sse / (source_width / 2 * source_height / 2),
-                (double)cr_sse / (source_width / 2 * source_height / 2),
-                luma_ssim,
-                cb_ssim,
-                cr_ssim,
-                (int)picture_stream_size);
+                (double)header_ptr->luma_sse / luma_size,
+                (double)header_ptr->cb_sse / chroma_size,
+                (double)header_ptr->cr_sse / chroma_size,
+                header_ptr->luma_ssim,
+                header_ptr->cb_ssim,
+                header_ptr->cr_ssim,
+                (int)header_ptr->n_filled_len,
+                vbv_delay_s);
+        fflush(app_cfg->stat_file);
     }
-
-    return;
 }
 
 void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t *frame_count) {
