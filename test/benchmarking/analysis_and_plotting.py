@@ -610,7 +610,8 @@ def _create_unified_csv_files(
             index=["encoder", "speed"], columns=["quality_metric"], values="avg_bd_rate"
         )
         summary_avg_bd_rates_df["avg"] = summary_avg_bd_rates_df.drop(
-            columns=["psnr_cb", "psnr_cr"]
+            columns=["psnr_cb", "psnr_cr"],
+            errors="ignore",
         ).mean(axis=1)
         cols = ["encoder", "speed", "avg_encoding_time", "avg_decoding_time"]
         summary_avg_perf_df = unified_avg_bd_rates_df.drop_duplicates(

@@ -44,6 +44,7 @@ For completeness, the following snippet shows a more comprehensive set of fields
 
     settings:
         max_processes: 0                                    # 0 for auto scaling based on host configuration
+        remove_decoded_files: true                          # Removes decoded files to reduce storage required to run benchmark
 ```
 
 

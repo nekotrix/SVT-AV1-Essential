@@ -15,7 +15,7 @@ codecs:
   allowed_codecs: ["jpegli", "jpegli_progressive", "libaom", "svtav1", "svtav1_rtc", "libavif_aom", "libavif_svt"]
 
 metrics:
-  allowed_metrics: ["vmaf", "ssimulacra2", "ms_ssim"]
+  allowed_metrics: ["vmaf", "ssimulacra2", "ms_ssim", "ssim", "psnr"]
   allow_bdrate: true  # Set to true to enable BDRate metrics by default
   anchor_encoder: "jpegli"  # Encoder used to generate the reference for BDRate
   anchor_speed: 0
@@ -25,6 +25,7 @@ metrics:
 settings:
   dry_run: false
   max_processes: 0  # 0 for auto scaling based on host configuration
+  remove_decoded_files: true
 
 
 ###############################################################################
@@ -104,19 +105,16 @@ common_settings:
     jpegli:
       q_values: [50, 60, 70, 80, 90]  # useful quality range
       speed_values: [0]
-      monochrome: false
       input_extension: "png"
       passes: 0
     jpegli_progressive:
       q_values: [50, 60, 70, 80, 90]  # useful quality range
       speed_values: [0]
-      monochrome: false
       input_extension: "png"
       passes: 0
     jpegxl:
       q_values: [50, 60, 70, 80, 90]
       speed_values: [0]
-      monochrome: false
       input_extension: "png"
       passes: 0
   av1:
@@ -128,31 +126,26 @@ common_settings:
     libaom:
       qp_values: [5, 15, 23, 31, 39, 47]  # these are qps covering entire range of jpeg 50..90
       speed_values: [5, 8]
-      monochrome: false
       input_extension: "y4m"
       passes: 0
     svtav1:
       qp_values: [5, 15, 23, 31, 39, 47]  # these are qps covering entire range of jpeg 50..90
       speed_values: [5, 8]
-      monochrome: false
       input_extension: "y4m"
       passes: 0
     svtav1_rtc:
       qp_values: [5, 15, 23, 31, 39, 47]  # these are qps covering entire range of jpeg 50..90
       speed_values: [5, 8]
-      monochrome: false
       input_extension: "y4m"
       passes: 0
     libavif_aom:
       qp_values: [25, 38, 51, 63, 76, 92]  # match to av1 qp: quality = ((63 - qp) * 100 + 31) / 63
       speed_values: [5, 8]
-      monochrome: false
       input_extension: "y4m"
       passes: 0
     libavif_svt:
       qp_values: [25, 38, 51, 63, 76, 92]  # match to av1 qp: quality = ((63 - qp) * 100 + 31) / 63
       speed_values: [5, 8]
-      monochrome: false
       input_extension: "y4m"
       passes: 0
   av2:
@@ -163,7 +156,6 @@ common_settings:
       quality_param: "qp"
     av2:
       qp_values: [60, 85, 110, 135, 160, 185, 200, 215]
-      monochrome: false
       speed_values: [0]
       input_extension: "y4m"
 

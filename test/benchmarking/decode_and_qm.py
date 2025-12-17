@@ -261,6 +261,12 @@ def calculate_single_file_quality_metrics(
         dist_yuv_file if os.path.exists(dist_yuv_file) else None,
     )
 
+    if SETTINGS.get("remove_decoded_files", False):
+        utils.delete_file(dist_png_file)
+        utils.delete_file(dist_y4m_file)
+        utils.delete_file(dist_yuv_file)
+        utils.delete_file(decoded_file)
+
     return metrics
 
 

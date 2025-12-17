@@ -25,6 +25,7 @@ metrics:
 settings:
   dry_run: false
   max_processes: 0  # 0 for auto scaling based on host configuration
+  remove_decoded_files: true
 
 
 ###############################################################################
