@@ -1108,7 +1108,15 @@ static EbErrorType compute_block_mean_compute_variance(
                                           mean_of32x32_squared_values_blocks[3]) >>
         2;
     // 8x8 variances
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+    if (scs->static_config.aq_mode == 1 || scs->static_config.variance_octile) {
+#else
     if (scs->static_config.enable_adaptive_quantization == 1 || scs->static_config.variance_octile) {
+#endif
+#else
+    if (scs->static_config.enable_adaptive_quantization == 1 || scs->static_config.variance_octile) {
+#endif
         pcs->variance[sb_index][ME_TIER_ZERO_PU_8x8_0] = (uint16_t)((mean_of_8x8_squared_values_blocks[0] -
                                                                      (mean_of8x8_blocks[0] * mean_of8x8_blocks[0])) >>
                                                                     VARIANCE_PRECISION);

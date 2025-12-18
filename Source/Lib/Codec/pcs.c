@@ -1370,7 +1370,11 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
 
     if (init_data_ptr->calculate_variance) {
         uint8_t block_count;
+#if CLN_AQ_MODE
+        if (init_data_ptr->aq_mode == 1 || init_data_ptr->variance_octile)
+#else
         if (init_data_ptr->enable_adaptive_quantization == 1 || init_data_ptr->variance_octile)
+#endif
             block_count = 85;
         else
             block_count = 1;

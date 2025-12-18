@@ -1530,7 +1530,15 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
             NULL,
             svt_aom_get_tpl_group_level(1, enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enc_mode),
             input_data.picture_width, input_data.picture_height);
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+        input_data.aq_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.aq_mode;
+#else
+        input_data.aq_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enable_adaptive_quantization;
+#endif
+#else
         input_data.enable_adaptive_quantization = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enable_adaptive_quantization;
+#endif
 
         input_data.calculate_variance = enc_handle_ptr->scs_instance_array[instance_index]->scs->calculate_variance;
 
@@ -3967,7 +3975,15 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     scs->tpl = get_tpl(scs->static_config.pred_structure,
         scs->static_config.superres_mode,
         scs->static_config.resize_mode,
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+        scs->static_config.aq_mode,
+#else
         scs->static_config.enable_adaptive_quantization,
+#endif
+#else
+        scs->static_config.enable_adaptive_quantization,
+#endif
 #if TUNE_STILL_IMAGE_0
         allintra);
 #else
@@ -4224,7 +4240,15 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->static_config.enable_variance_boost = false;
         SVT_WARN("Variance Boost is incompatible with CBR rate control, disabling Variance Boost\n");
     }
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+    if (scs->static_config.enable_variance_boost && scs->static_config.aq_mode == 1) {
+#else
     if (scs->static_config.enable_variance_boost && scs->static_config.enable_adaptive_quantization == 1) {
+#endif
+#else
+    if (scs->static_config.enable_variance_boost && scs->static_config.enable_adaptive_quantization == 1) {
+#endif
         scs->static_config.enable_variance_boost = false;
         SVT_WARN("Variance AQ based on segmentation with Variance Boost not supported, disabling Variance Boost\n");
     }
@@ -4525,7 +4549,15 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     scs->is_short_clip = scs->static_config.gop_constraint_rc ? 1 : 0; // set to 1 if multipass and less than 200 frames in resourcecordination
 #if FTR_DEPTH_REMOVAL_INTRA
     if (allintra                                            ||
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+        scs->static_config.aq_mode == 1 ||
+#else
         scs->static_config.enable_adaptive_quantization == 1 ||
+#endif
+#else
+        scs->static_config.enable_adaptive_quantization == 1 ||
+#endif
 #else
     // Variance is required for scene change detection and segmentation-based quantization and subjective mode tf control
     if (scs->static_config.enable_adaptive_quantization == 1 ||
@@ -4782,6 +4814,37 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
 
     scs->static_config.target_bit_rate = config_struct->target_bit_rate;
     scs->static_config.max_bit_rate = config_struct->max_bit_rate;
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+    //TODO: check RC mode and set only when RC is enabled in the final version.
+    scs->static_config.aq_mode = scs->static_config.lossless
+        ? 0
+        : config_struct->aq_mode;
+
+    // TPL is disabled for allintra and LD encoding, and when aq_mode is 0
+    if (scs->static_config.max_bit_rate &&
+        (scs->static_config.aq_mode == 0 ||
+            scs->allintra ||
+            scs->static_config.pred_structure == LOW_DELAY)) {
+        scs->static_config.max_bit_rate = 0;
+        SVT_WARN("Maximum bit rate only supported with tpl on. max bit rate 0 is used instead.\n");
+    }
+#else
+    //TODO: check RC mode and set only when RC is enabled in the final version.
+    scs->static_config.enable_adaptive_quantization = scs->static_config.lossless
+        ? 0
+        : config_struct->enable_adaptive_quantization;
+
+    // TPL is disabled for allintra and LD encoding, and when aq_mode is 0
+    if (scs->static_config.max_bit_rate &&
+        (scs->static_config.enable_adaptive_quantization == 0 ||
+            scs->allintra ||
+            scs->static_config.pred_structure == LOW_DELAY)) {
+        scs->static_config.max_bit_rate = 0;
+        SVT_WARN("Maximum bit rate only supported with tpl on. max bit rate 0 is used instead.\n");
+    }
+#endif
+#else
 #if CLN_REMOVE_TPL_SIG
     //TODO: check RC mode and set only when RC is enabled in the final version.
     scs->static_config.enable_adaptive_quantization = scs->static_config.lossless
@@ -4801,6 +4864,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         scs->static_config.max_bit_rate = 0;
         SVT_WARN("Maximum bit rate only supported with tpl on. max bit rate 0 is used instead.\n");
     }
+#endif
 #endif
 
     scs->static_config.max_qp_allowed = scs->static_config.lossless
@@ -5736,11 +5800,27 @@ static EbErrorType validate_on_the_fly_settings(EbBufferHeaderType *input_ptr, S
                 SVT_ERROR("Resolution change on the fly is not supported when tiles are being used\n");
                 return EB_ErrorBadParameter;
             }
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+            else if (scs->static_config.aq_mode == 1) {
+                input_ptr->flags = EB_BUFFERFLAG_EOS;
+                SVT_ERROR("Resolution change on the fly is not supported for segment based adaptive quantization (--aq-mode == 1)\n");
+                return EB_ErrorBadParameter;
+            }
+#else
             else if (scs->static_config.enable_adaptive_quantization == 1) {
                 input_ptr->flags = EB_BUFFERFLAG_EOS;
                 SVT_ERROR("Resolution change on the fly is not supported for segment based adaptive quantization (--aq-mode == 1)\n");
                 return EB_ErrorBadParameter;
             }
+#endif
+#else
+            else if (scs->static_config.enable_adaptive_quantization == 1) {
+                input_ptr->flags = EB_BUFFERFLAG_EOS;
+                SVT_ERROR("Resolution change on the fly is not supported for segment based adaptive quantization (--aq-mode == 1)\n");
+                return EB_ErrorBadParameter;
+            }
+#endif
             else if (node_data->input_luma_width < 64) {
                 input_ptr->flags = EB_BUFFERFLAG_EOS;
                 SVT_ERROR("Resolution change on the fly is not supported for luma width less than 64\n");

@@ -1194,7 +1194,11 @@ typedef struct PictureControlSetInitData {
     uint8_t    ref_count_used_list0;
     uint8_t    ref_count_used_list1;
 
+#if CLN_AQ_MODE
+    uint8_t aq_mode;
+#else
     uint8_t enable_adaptive_quantization;
+#endif
     uint8_t calc_hist;
     uint8_t tpl_lad_mg;
     uint8_t final_pass_preset;

@@ -2139,7 +2139,15 @@ static void recode_loop_decision_maker(PictureControlSet *pcs, SequenceControlSe
         }
 
         // 2pass QPM with tpl_la
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+        if (scs->static_config.aq_mode == 2 && ppcs->tpl_ctrls.enable && ppcs->r0 != 0)
+#else
         if (scs->static_config.enable_adaptive_quantization == 2 && ppcs->tpl_ctrls.enable && ppcs->r0 != 0)
+#endif
+#else
+        if (scs->static_config.enable_adaptive_quantization == 2 && ppcs->tpl_ctrls.enable && ppcs->r0 != 0)
+#endif
             svt_aom_sb_qp_derivation_tpl_la(pcs);
 
         if (pcs->ppcs->frm_hdr.delta_q_params.delta_q_present && pcs->ppcs->frm_hdr.delta_q_params.delta_q_res != 1) {

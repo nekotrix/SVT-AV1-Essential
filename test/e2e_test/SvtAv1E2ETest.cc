@@ -157,7 +157,11 @@ static const std::vector<EncTestSetting> default_enc_settings = {
     {"ScreenToolTest1", {{"ScreenContentMode", "0"}}, default_test_vectors},
     {"ScreenToolTest2", {{"ScreenContentMode", "1"}, {"EncoderMode", "1"}}, screen_test_vectors},
 
+#if CLN_AQ_MODE
+    // test aq_mode, default is 2
+#else
     // test enable_adaptive_quantization, default is 0
+#endif
     {"AdapQTest1", {{"AdaptiveQuantization", "1"}}, default_test_vectors},
 
     // test enable_tf, default is 1;

@@ -181,9 +181,15 @@ typedef enum SvtAv1PredStructure {
 } SvtAv1PredStructure;
 #endif
 
+#if CLN_AQ_MODE
+/* Indicates what rate control mode is used.
+ * Currently, cqp is distinguised by setting aq_mode to 0
+ */
+#else
 /* Indicates what rate control mode is used.
  * Currently, cqp is distinguised by setting enable_adaptive_quantization to 0
  */
+#endif
 typedef enum SvtAv1RcMode {
     SVT_AV1_RC_MODE_CQP_OR_CRF = 0, // constant quantization parameter/constant rate factor
     SVT_AV1_RC_MODE_VBR        = 1, // variable bit rate
@@ -655,11 +661,29 @@ typedef struct EbSvtAv1EncConfiguration {
     * Default is 0. */
     uint32_t screen_content_mode;
 
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+    /* Adaptive quantization used within a frame.
+     *
+     * For rc_mode 0, setting this to:
+     * 0: use CQP mode
+     * 1: variance-based segmentation
+     * 2: CRF (per-frame QPs and per-SB delta-QPs derived using TPL) */
+    uint8_t aq_mode;
+#else
     /* Enable adaptive quantization within a frame using segmentation.
      *
      * For rate control mode 0, setting this to 0 will use CQP mode, else CRF mode will be used.
      * Default is 2. */
     uint8_t enable_adaptive_quantization;
+#endif
+#else
+    /* Enable adaptive quantization within a frame using segmentation.
+     *
+     * For rate control mode 0, setting this to 0 will use CQP mode, else CRF mode will be used.
+     * Default is 2. */
+    uint8_t enable_adaptive_quantization;
+#endif
 
     /**
      * @brief Enable use of ALT-REF (temporally filtered) frames.
