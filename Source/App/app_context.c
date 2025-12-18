@@ -406,8 +406,12 @@ static void deallocate_buffers(EbConfig *app_cfg) {
 /***********************************
  * Initialize Core & Component
  ***********************************/
+#if CLN_REMOVE_CHANNELS
+EbErrorType init_encoder(EbConfig *app_cfg) {
+#else
 EbErrorType init_encoder(EbConfig *app_cfg, uint32_t instance_idx) {
     app_cfg->instance_idx = (uint8_t)instance_idx;
+#endif
     // Initialize Port Activity Flags
     app_cfg->output_stream_port_active = APP_PortActive;
 
@@ -461,9 +465,14 @@ EbErrorType init_encoder(EbConfig *app_cfg, uint32_t instance_idx) {
 /***********************************
  * Deinit Components
  ***********************************/
+#if CLN_REMOVE_CHANNELS
+EbErrorType de_init_encoder(EbConfig *app_cfg) {
+    EbErrorType return_error = EB_ErrorNone;
+#else
 EbErrorType de_init_encoder(EbConfig *app_cfg, uint32_t instance_index) {
     EbErrorType return_error = EB_ErrorNone;
     (void)instance_index;
+#endif
 
     deallocate_buffers(app_cfg);
 

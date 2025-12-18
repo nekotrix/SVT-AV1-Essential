@@ -47,7 +47,9 @@ typedef enum EncPass {
 
 #define WARNING_LENGTH 100
 
+#if !CLN_REMOVE_CHANNELS
 #define MAX_CHANNEL_NUMBER 6U
+#endif
 #define MAX_NUM_TOKENS 210
 
 #ifdef _WIN32
@@ -184,8 +186,10 @@ typedef struct EbConfig {
     FILE         *roi_map_file;
     SvtAv1RoiMap *roi_map;
 
+#if !CLN_REMOVE_CHANNELS
     // Instance Index
     uint8_t instance_idx;
+#endif
 
     char *fgs_table_path;
 } EbConfig;
@@ -211,14 +215,25 @@ typedef struct EncApp {
 EbConfig *svt_config_ctor();
 void      svt_config_dtor(EbConfig *app_cfg);
 
-EbErrorType     enc_channel_ctor(EncChannel *c);
-void            enc_channel_dctor(EncChannel *c, uint32_t inst_cnt);
-EbErrorType     read_command_line(int32_t argc, char *const argv[], EncChannel *channels, uint32_t num_channels);
+EbErrorType enc_channel_ctor(EncChannel *c);
+#if CLN_REMOVE_CHANNELS
+void        enc_channel_dctor(EncChannel *c);
+EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *channel);
+#else
+void        enc_channel_dctor(EncChannel *c, uint32_t inst_cnt);
+EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *channels, uint32_t num_channels);
+#endif
 int             get_version(int argc, char *const argv[]);
 extern uint32_t get_help(int32_t argc, char *const argv[]);
 extern uint32_t get_color_help(int32_t argc, char *const argv[]);
+#if !CLN_REMOVE_CHANNELS
 extern uint32_t get_number_of_channels(int32_t argc, char *const argv[]);
-uint32_t        get_passes(int32_t argc, char *const argv[], EncPass enc_pass[MAX_ENC_PASS]);
-EbErrorType     handle_stats_file(EbConfig *app_cfg, EncPass pass, const SvtAv1FixedBuf *rc_stats_buffer,
-                                  uint32_t channel_number);
+#endif
+uint32_t get_passes(int32_t argc, char *const argv[], EncPass enc_pass[MAX_ENC_PASS]);
+#if CLN_REMOVE_CHANNELS
+EbErrorType handle_stats_file(EbConfig *app_cfg, EncPass pass, const SvtAv1FixedBuf *rc_stats_buffer);
+#else
+EbErrorType handle_stats_file(EbConfig *app_cfg, EncPass pass, const SvtAv1FixedBuf *rc_stats_buffer,
+                              uint32_t channel_number);
+#endif
 #endif //EbAppConfig_h

@@ -18,8 +18,12 @@
 /********************************
  * External Function
  ********************************/
+#if CLN_REMOVE_CHANNELS
+EbErrorType init_encoder(EbConfig* app_cfg);
+EbErrorType de_init_encoder(EbConfig* app_cfg);
+#else
 EbErrorType init_encoder(EbConfig *app_cfg, uint32_t instance_idx);
-
 EbErrorType de_init_encoder(EbConfig *app_cfg, uint32_t instance_index);
+#endif
 
 #endif // EbAppContext_h

@@ -734,6 +734,8 @@ typedef struct EbSvtAv1EncConfiguration {
 
     // End of individual tuning flags
 
+#if CLN_REMOVE_CHANNELS
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
     // Application Specific parameters
 
     /**
@@ -753,7 +755,28 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is 1.
      */
     uint32_t active_channel_count;
+#endif
+#else
+    // Application Specific parameters
 
+    /**
+     * @brief API signal for the library to know the channel ID (used for pinning to cores).
+     *
+     * Min value is 0.
+     * Max value is 0xFFFFFFFF.
+     * Default is 0.
+     */
+    uint32_t channel_id;
+
+    /**
+     * @brief API signal for the library to know the active number of channels being encoded simultaneously.
+     *
+     * Min value is 1.
+     * Max value is 0xFFFFFFFF.
+     * Default is 1.
+     */
+    uint32_t active_channel_count;
+#endif
     // Threads management
 
     /* The level of parallelism refers to how much parallelization the encoder will perform

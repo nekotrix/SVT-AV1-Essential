@@ -340,14 +340,6 @@ Linux Intra Enc Test:
         ./Bin/Release/SvtAv1EncApp --preset 8 --keyint $INTRA_PERIOD -i "$SVT_ENCTEST_FILENAME" -n 120 -b "test-${BRANCH:-pr}-$(uname)-intra${INTRA_PERIOD}-${SVT_ENCTEST_BITNESS}bit-m8.ivf"
       done
 
-Linux Multiple Channels Test:
-  extends: .linux-enc-test-base
-  script:
-    - ./Bin/Release/SvtAv1EncApp --preset 2 --keyint -1 -i "$SVT_ENCTEST_FILENAME" -n 17 -b "test-${BRANCH:-pr}-$(uname)-nch=1-${SVT_ENCTEST_BITNESS}bit-m2.ivf"
-    - ./Bin/Release/SvtAv1EncApp --preset 8 --keyint -1 -i "$SVT_ENCTEST_FILENAME" -n 120 -b "test-${BRANCH:-pr}-$(uname)-nch=1-${SVT_ENCTEST_BITNESS}bit-m8.ivf"
-    - ./Bin/Release/SvtAv1EncApp --nch 2 --preset 2 2 --keyint -1 -1 -i "$SVT_ENCTEST_FILENAME" "$SVT_ENCTEST_FILENAME" -n 17 17 -b "test-${BRANCH:-pr}-$(uname)-nch=2-1-${SVT_ENCTEST_BITNESS}bit-m2.ivf" "test-${BRANCH:-pr}-$(uname)-nch=2-2-${SVT_ENCTEST_BITNESS}bit-m2.ivf"
-    - ./Bin/Release/SvtAv1EncApp --nch 2 --preset 8 8 --keyint -1 -1 -i "$SVT_ENCTEST_FILENAME" "$SVT_ENCTEST_FILENAME" -n 120 120 -b "test-${BRANCH:-pr}-$(uname)-nch=2-1-${SVT_ENCTEST_BITNESS}bit-m8.ivf" "test-${BRANCH:-pr}-$(uname)-nch=2-2-${SVT_ENCTEST_BITNESS}bit-m8.ivf"
-
 Enc Default Diff test:
   extends: .common-ci-base
   stage: .post

@@ -210,11 +210,18 @@ EbErrorType read_y4m_header(EbConfig *cfg) {
         (instead of the encoder bit depth) and chroma format */
 
     if (strcmp("420", chroma)) {
+#if CLN_REMOVE_CHANNELS
+        fprintf(cfg->error_log_file,
+                "Error: %s chroma format not supported, only 420 is supported at this "
+                "time.\n",
+                chroma);
+#else
         fprintf(cfg->error_log_file,
                 "Error instance %u: %s chroma format not supported, only 420 is supported at this "
                 "time.\n",
                 cfg->config.channel_id + 1,
                 chroma);
+#endif
         return EB_ErrorBadParameter;
     }
 

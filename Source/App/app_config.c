@@ -40,7 +40,9 @@
 #define HELP_TOKEN "--help"
 #define COLORH_TOKEN "--color-help"
 #define VERSION_TOKEN "--version"
+#if !CLN_REMOVE_CHANNELS
 #define CHANNEL_NUMBER_TOKEN "--nch"
+#endif
 #define COMMAND_LINE_MAX_SIZE 2048
 #define CONFIG_FILE_TOKEN "-c"
 #define CONFIG_FILE_LONG_TOKEN "--config"
@@ -1347,6 +1349,16 @@ EbErrorType enc_channel_ctor(EncChannel *c) {
     return svt_av1_enc_init_handle(&c->app_cfg->svt_encoder_handle, &c->app_cfg->config);
 }
 
+#if CLN_REMOVE_CHANNELS
+void enc_channel_dctor(EncChannel *c) {
+    EbConfig *ctx = c->app_cfg;
+    if (ctx && ctx->svt_encoder_handle) {
+        svt_av1_enc_deinit(ctx->svt_encoder_handle);
+        de_init_encoder(ctx);
+    }
+    svt_config_dtor(c->app_cfg);
+}
+#else
 void enc_channel_dctor(EncChannel *c, uint32_t inst_cnt) {
     EbConfig *ctx = c->app_cfg;
     if (ctx && ctx->svt_encoder_handle) {
@@ -1355,6 +1367,7 @@ void enc_channel_dctor(EncChannel *c, uint32_t inst_cnt) {
     }
     svt_config_dtor(c->app_cfg);
 }
+#endif
 
 /**
  * @brief Find token and its argument
@@ -1451,6 +1464,21 @@ static char *read_word(FILE *fp) {
     return word;
 }
 
+#if CLN_REMOVE_CHANNELS
+static EbErrorType set_config_value(EbConfig *app_cfg, const char *word, const char *value) {
+    const ConfigEntry *entry = find_entry(word);
+    if (!entry) {
+        fprintf(stderr, "Error: Config File contains unknown token %s\n", word);
+        return EB_ErrorBadParameter;
+    }
+    const EbErrorType err = entry->scf(app_cfg, entry->token, value);
+    if (err != EB_ErrorNone) {
+        fprintf(stderr, "Error: Config File contains invalid value %s for token %s\n", value, word);
+        return EB_ErrorBadParameter;
+    }
+    return EB_ErrorNone;
+}
+#else
 static EbErrorType set_config_value(EbConfig *app_cfg, const char *word, const char *value, unsigned instance_idx) {
     const ConfigEntry *entry = find_entry(word);
     if (!entry) {
@@ -1468,10 +1496,44 @@ static EbErrorType set_config_value(EbConfig *app_cfg, const char *word, const c
     }
     return EB_ErrorNone;
 }
+#endif
 
 /**********************************
 * Read Config File
 **********************************/
+#if CLN_REMOVE_CHANNELS
+static EbErrorType read_config_file(EbConfig *app_cfg, const char *config_path) {
+    FILE *config_file;
+
+    // Open the config file
+    FOPEN(config_file, config_path, "rb");
+    if (!config_file) {
+        fprintf(stderr, "Error: Couldn't open Config File: %s\n", config_path);
+        return EB_ErrorBadParameter;
+    }
+
+    EbErrorType return_error = EB_ErrorNone;
+    char       *word         = NULL;
+    char       *value        = NULL;
+    while (return_error == EB_ErrorNone && (word = read_word(config_file))) {
+        value = read_word(config_file);
+        if (value && !strcmp(value, ":")) {
+            free(value);
+            value = read_word(config_file);
+        }
+        if (!value) {
+            fprintf(stderr, "Error: Config File: %s is missing a value for %s\n", config_path, word);
+            return_error = EB_ErrorBadParameter;
+            break;
+        }
+        return_error = set_config_value(app_cfg, word, value);
+    }
+    free(word);
+    free(value);
+    fclose(config_file);
+    return return_error;
+}
+#else
 static EbErrorType read_config_file(EbConfig *app_cfg, const char *config_path, uint32_t instance_idx) {
     FILE *config_file;
 
@@ -1507,6 +1569,7 @@ static EbErrorType read_config_file(EbConfig *app_cfg, const char *config_path, 
     fclose(config_file);
     return return_error;
 }
+#endif
 
 /* get config->rc_stats_buffer from config->input_stat_file */
 bool load_twopass_stats_in(EbConfig *cfg) {
@@ -1536,6 +1599,59 @@ bool load_twopass_stats_in(EbConfig *cfg) {
     }
     return config->rc_stats_buffer.buf != NULL;
 }
+#if CLN_REMOVE_CHANNELS
+EbErrorType handle_stats_file(EbConfig *app_cfg, EncPass enc_pass, const SvtAv1FixedBuf *rc_stats_buffer) {
+    switch (enc_pass) {
+    case ENC_SINGLE_PASS: {
+        const char *stats = app_cfg->stats ? app_cfg->stats : "svtav1_2pass.log";
+        if (app_cfg->config.pass == 1) {
+            if (!fopen_and_lock(&app_cfg->output_stat_file, stats, true)) {
+                fprintf(app_cfg->error_log_file, "Error: can't open stats file %s for write \n", stats);
+                return EB_ErrorBadParameter;
+            }
+        }
+        // Final pass
+        else if (app_cfg->config.pass == 2) {
+            if (!fopen_and_lock(&app_cfg->input_stat_file, stats, false)) {
+                fprintf(app_cfg->error_log_file, "Error: can't read stats file %s for read\n", stats);
+                return EB_ErrorBadParameter;
+            }
+            if (!load_twopass_stats_in(app_cfg)) {
+                fprintf(app_cfg->error_log_file, "Error: can't load file %s\n", stats);
+                return EB_ErrorBadParameter;
+            }
+        }
+        break;
+    }
+
+    case ENC_FIRST_PASS: {
+        // for combined two passes,
+        // we only ouptut first pass stats when user explicitly set the --stats
+        if (app_cfg->stats) {
+            if (!fopen_and_lock(&app_cfg->output_stat_file, app_cfg->stats, true)) {
+                fprintf(app_cfg->error_log_file, "Error: can't open stats file %s for write \n", app_cfg->stats);
+                return EB_ErrorBadParameter;
+            }
+        }
+        break;
+    }
+    case ENC_SECOND_PASS: {
+        if (!rc_stats_buffer->sz) {
+            fprintf(app_cfg->error_log_file, "Error: combined multi passes need stats in for the final pass\n");
+            return EB_ErrorBadParameter;
+        }
+        app_cfg->config.rc_stats_buffer = *rc_stats_buffer;
+        break;
+    }
+
+    default: {
+        assert(0);
+        break;
+    }
+    }
+    return EB_ErrorNone;
+}
+#else
 EbErrorType handle_stats_file(EbConfig *app_cfg, EncPass enc_pass, const SvtAv1FixedBuf *rc_stats_buffer,
                               uint32_t channel_number) {
     switch (enc_pass) {
@@ -1599,9 +1715,81 @@ EbErrorType handle_stats_file(EbConfig *app_cfg, EncPass enc_pass, const SvtAv1F
     }
     return EB_ErrorNone;
 }
+#endif
 /******************************************
 * Verify Settings
 ******************************************/
+#if CLN_REMOVE_CHANNELS
+static EbErrorType app_verify_config(EbConfig *app_cfg) {
+    EbErrorType return_error = EB_ErrorNone;
+
+    // Check Input File
+    if (app_cfg->input_file == NULL) {
+        fprintf(app_cfg->error_log_file, "Error: Invalid Input File\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (app_cfg->frames_to_be_encoded <= -1) {
+        fprintf(app_cfg->error_log_file, "Error: FrameToBeEncoded must be greater than 0\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (app_cfg->buffered_input == 0) {
+        fprintf(app_cfg->error_log_file, "Error: Buffered Input cannot be 0\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (app_cfg->buffered_input < -1) {
+        fprintf(app_cfg->error_log_file,
+                "Error: Invalid buffered_input. buffered_input must be -1 or greater "
+                "than or equal to 1\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (app_cfg->buffered_input != -1 && app_cfg->y4m_input) {
+        fprintf(app_cfg->error_log_file, "Error: Buffered input is currently not available with y4m inputs\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (app_cfg->buffered_input > app_cfg->frames_to_be_encoded) {
+        fprintf(app_cfg->error_log_file,
+                "Error: Invalid buffered_input. buffered_input must be less or equal "
+                "to the number of frames to be encoded\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (app_cfg->config.use_qp_file == true && app_cfg->qp_file == NULL) {
+        fprintf(app_cfg->error_log_file, "Error: Could not find QP file, UseQpFile is set to 1\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (app_cfg->injector > 1) {
+        fprintf(app_cfg->error_log_file, "Error: Invalid injector [0 - 1]\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (app_cfg->injector_frame_rate > 240 && app_cfg->injector) {
+        fprintf(app_cfg->error_log_file, "Error: The maximum allowed injector_frame_rate is 240 fps\n");
+        return_error = EB_ErrorBadParameter;
+    }
+    // Check that the injector frame_rate is non-zero
+    if (!app_cfg->injector_frame_rate && app_cfg->injector) {
+        fprintf(app_cfg->error_log_file, "Error: The injector frame rate should be greater than 0 fps \n");
+        return_error = EB_ErrorBadParameter;
+    }
+    if (app_cfg->config.frame_rate_numerator == 0 || app_cfg->config.frame_rate_denominator == 0) {
+        fprintf(app_cfg->error_log_file,
+                "Error: The frame_rate_numerator and frame_rate_denominator should be "
+                "greater than 0\n");
+        return_error = EB_ErrorBadParameter;
+    } else if (app_cfg->config.frame_rate_numerator / app_cfg->config.frame_rate_denominator > 240) {
+        fprintf(app_cfg->error_log_file, "Error: The maximum allowed frame_rate is 240 fps\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    return return_error;
+}
+#else
 static EbErrorType app_verify_config(EbConfig *app_cfg, uint32_t channel_number) {
     EbErrorType return_error = EB_ErrorNone;
 
@@ -1686,10 +1874,71 @@ static EbErrorType app_verify_config(EbConfig *app_cfg, uint32_t channel_number)
 
     return return_error;
 }
+#endif
 
 static const char *TOKEN_READ_MARKER  = "THIS_TOKEN_HAS_BEEN_READ";
 static const char *TOKEN_ERROR_MARKER = "THIS_TOKEN_HAS_ERROR";
 
+#if CLN_REMOVE_CHANNELS
+/**
+ * @brief Finds the arguments for a specific token
+ *
+ * @param argc argc from main()
+ * @param argv argv from main()
+ * @param token token to find
+ * @param configStr array of pointers to store the arguments into
+ * @param cmd_copy array of tokens based on splitting argv
+ * @param arg_copy array of arguments based on splitting argv
+ * @return true token was found and configStr was populated
+ * @return false token was not found and configStr was not populated
+ */
+// cppcheck-suppress constParameter
+static bool find_token_multiple_inputs(int argc, char *const argv[], const char *token, char *configStr,
+                                       const char *cmd_copy[MAX_NUM_TOKENS], const char *arg_copy[MAX_NUM_TOKENS]) {
+    bool return_error   = false;
+    bool has_duplicates = false;
+    // Loop over all the arguments
+    for (int i = 0; i < argc; ++i) {
+        if (strcmp(argv[i], token))
+            continue;
+        if (return_error)
+            has_duplicates = true;
+        return_error = true;
+        if (i + 1 >= argc) {
+            // if the token is at the end of the command line without arguments
+            // set sentinel value
+            strcpy_s(configStr, COMMAND_LINE_MAX_SIZE, " ");
+            return return_error;
+        }
+        cmd_copy[i] = TOKEN_READ_MARKER; // mark token as read
+
+        // consume arguments
+        const int j = i + 1;
+        if (j >= argc || cmd_copy[j]) {
+            // stop if we ran out of arguments or if we hit a token
+            strcpy_s(configStr, COMMAND_LINE_MAX_SIZE, " ");
+            continue;
+        }
+        strcpy_s(configStr, COMMAND_LINE_MAX_SIZE, argv[j]);
+        arg_copy[j] = TOKEN_READ_MARKER;
+    }
+
+    if (return_error && !strcmp(configStr, " ")) {
+        // if no argument was found, print an error message
+        // we don't support flip switches, so this will need to be changed if we ever do.
+        fprintf(stderr, "[SVT-Error]: No argument found for token `%s`\n", token);
+        strcpy_s(configStr, COMMAND_LINE_MAX_SIZE, TOKEN_ERROR_MARKER);
+    }
+
+    if (has_duplicates) {
+        fprintf(stderr, "\n[SVT-Warning]: Duplicate option %s specified, only `%s", token, token);
+        fprintf(stderr, " %s", configStr);
+        fprintf(stderr, "` will apply\n\n");
+    }
+
+    return return_error;
+}
+#else
 /**
  * @brief Finds the arguments for a specific token
  *
@@ -1751,6 +2000,7 @@ static bool find_token_multiple_inputs(unsigned nch, int argc, char *const argv[
 
     return return_error;
 }
+#endif
 
 static bool check_long(const ConfigDescription *cfg_entry, const ConfigDescription *cfg_entry_next) {
     return cfg_entry_next->desc && !strcmp(cfg_entry->desc, cfg_entry_next->desc);
@@ -1961,6 +2211,7 @@ uint32_t get_color_help(int32_t argc, char *const argv[]) {
     return 1;
 }
 
+#if !CLN_REMOVE_CHANNELS
 /******************************************************
 * Get the number of channels and validate it with input
 ******************************************************/
@@ -1978,6 +2229,7 @@ uint32_t get_number_of_channels(int32_t argc, char *const argv[]) {
     }
     return 1;
 }
+#endif
 
 static bool check_two_pass_conflicts(int32_t argc, char *const argv[]) {
     char        config_string[COMMAND_LINE_MAX_SIZE];
@@ -2226,9 +2478,11 @@ static bool warn_legacy_token(const char *const token) {
     return false;
 }
 
+#if !CLN_REMOVE_CHANNELS
 static void free_config_strings(unsigned nch, char *config_strings[MAX_CHANNEL_NUMBER]) {
     for (unsigned i = 0; i < nch; ++i) free(config_strings[i]);
 }
+#endif
 
 #if CONFIG_ENABLE_FILM_GRAIN
 static EbErrorType read_fgs_table(EbConfig *cfg) {
@@ -2377,6 +2631,214 @@ fail:
 /******************************************
 * Read Command Line
 ******************************************/
+#if CLN_REMOVE_CHANNELS
+EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *channel) {
+    EbErrorType return_error = EB_ErrorNone;
+    char        config_string[COMMAND_LINE_MAX_SIZE]; // for one input options
+    char       *config_strings; // for multiple input options
+    const char *cmd_copy[MAX_NUM_TOKENS]; // keep track of extra tokens
+    const char *arg_copy[MAX_NUM_TOKENS]; // keep track of extra arguments
+
+    config_strings = (char *)malloc(sizeof(char) * COMMAND_LINE_MAX_SIZE);
+    for (int i = 0; i < MAX_NUM_TOKENS; ++i) {
+        cmd_copy[i] = NULL;
+        arg_copy[i] = NULL;
+    }
+
+    // Copy tokens into a temp token buffer hosting all tokens that are passed through the command line
+    for (int32_t token_index = 0; token_index < argc; ++token_index) {
+#if FTR_SFRAME_QP
+        if (!is_negative_number(argv[token_index]) && !is_negative_number_in_list(argv[token_index])) {
+#else
+        if (!is_negative_number(argv[token_index])) {
+#endif // FTR_SFRAME_QP
+            if (argv[token_index][0] == '-' && argv[token_index][1] != '\0')
+                cmd_copy[token_index] = argv[token_index];
+            else if (token_index)
+                arg_copy[token_index] = argv[token_index];
+        }
+    }
+
+    // First handle --passes as a single argument options
+    find_token_multiple_inputs(argc, argv, PASSES_TOKEN, config_strings, cmd_copy, arg_copy);
+
+    /***************************************************************************************************/
+    /****************  Find configuration files tokens and call respective functions  ******************/
+    /***************************************************************************************************/
+    // Find the Config File Path in the command line
+    if (find_token_multiple_inputs(argc, argv, CONFIG_FILE_TOKEN, config_strings, cmd_copy, arg_copy)) {
+        // Parse the config file
+        channel->return_error = (EbErrorType)read_config_file(channel->app_cfg, config_strings);
+        return_error          = (EbErrorType)(return_error & channel->return_error);
+    } else if (find_token_multiple_inputs(argc, argv, CONFIG_FILE_LONG_TOKEN, config_strings, cmd_copy, arg_copy)) {
+        // Parse the config file
+        channel->return_error = (EbErrorType)read_config_file(channel->app_cfg, config_strings);
+        return_error          = (EbErrorType)(return_error & channel->return_error);
+    } else {
+        if (find_token(argc, argv, CONFIG_FILE_TOKEN, config_string) == 0) {
+            fprintf(stderr, "Error: Config File Token Not Found\n");
+            free(config_strings);
+            return EB_ErrorBadParameter;
+        }
+        return_error = EB_ErrorNone;
+    }
+
+    /********************************************************************************************************/
+    /***********   Find SINGLE_INPUT configuration parameter tokens and call respective functions  **********/
+    /********************************************************************************************************/
+
+    // Check tokens for invalid tokens
+    {
+        bool next_is_value = false;
+        for (char *const *indx = argv + 1; *indx; ++indx) {
+            // stop at --
+            if (!strcmp(*indx, "--"))
+                break;
+            // skip the token if the previous token was an argument
+            // assumes all of our tokens flip flop between being an argument and a value
+            if (next_is_value) {
+                next_is_value = false;
+                continue;
+            }
+            // Check removed tokens
+            if (warn_legacy_token(*indx)) {
+                free(config_strings);
+                return EB_ErrorBadParameter;
+            }
+            // exclude single letter tokens
+            if ((*indx)[0] == '-' && (*indx)[1] != '-' && (*indx)[2] != '\0') {
+                fprintf(stderr, "[SVT-Error]: single dash long tokens have been removed!\n");
+                free(config_strings);
+                return EB_ErrorBadParameter;
+            }
+            next_is_value = true;
+        }
+    }
+
+    // Parse command line for tokens
+    for (ConfigEntry *entry = config_entry; entry->token; ++entry) {
+        if (!find_token_multiple_inputs(argc, argv, entry->token, config_strings, cmd_copy, arg_copy))
+            continue;
+        if (!strcmp(TOKEN_ERROR_MARKER, config_strings)) {
+            free(config_strings);
+            return EB_ErrorBadParameter;
+        }
+        // When a token is found mark it as found in the temp token buffer
+        if (!strcmp(config_strings, " "))
+            break;
+        // Mark the value as found in the temp argument buffer
+        EbErrorType err       = (entry->scf)(channel->app_cfg, entry->token, config_strings);
+        channel->return_error = (EbErrorType)(channel->return_error | err);
+        return_error          = (EbErrorType)(return_error & channel->return_error);
+    }
+
+    /***************************************************************************************************/
+    /********************** Parse parameters from input file if in y4m format **************************/
+    /********************** overriding config file and command line inputs    **************************/
+    /***************************************************************************************************/
+    if (channel->app_cfg->y4m_input == true) {
+        int32_t ret_y4m = read_y4m_header(channel->app_cfg);
+        if (ret_y4m == EB_ErrorBadParameter) {
+            fprintf(stderr, "Error found when reading the y4m file parameters.\n");
+            free(config_strings);
+            return EB_ErrorBadParameter;
+        }
+    }
+
+#if CONFIG_ENABLE_FILM_GRAIN
+    EbConfig *cfg = channel->app_cfg;
+    if (cfg->fgs_table_path) {
+        if (cfg->config.film_grain_denoise_strength > 0) {
+            fprintf(stderr,
+                    "Warning: Both film-grain-denoise and fgs-table were specified\nfilm-grain-denoise will be "
+                    "disabled\n");
+            cfg->config.film_grain_denoise_strength = 0;
+        }
+        channel->return_error = read_fgs_table(cfg);
+        return_error          = (EbErrorType)(return_error & channel->return_error);
+    }
+#endif
+    /***************************************************************************************************/
+    /**************************************   Verify configuration parameters   ************************/
+    /***************************************************************************************************/
+    // Verify the config values
+    if (return_error == EB_ErrorNone) {
+        return_error = EB_ErrorBadParameter;
+        if (channel->return_error == EB_ErrorNone) {
+            EbConfig *app_cfg     = channel->app_cfg;
+            channel->return_error = app_verify_config(app_cfg);
+            // set inj_frame_rate to q16 format
+            if (channel->return_error == EB_ErrorNone && app_cfg->injector == 1)
+                app_cfg->injector_frame_rate <<= 16;
+
+            // Assuming no errors, add padding to width and height
+            if (channel->return_error == EB_ErrorNone) {
+                app_cfg->input_padded_width  = app_cfg->config.source_width;
+                app_cfg->input_padded_height = app_cfg->config.source_height;
+            }
+
+            const int32_t input_frame_count = compute_frames_to_be_encoded(app_cfg);
+            const bool    n_specified       = app_cfg->frames_to_be_encoded != 0;
+
+            // Assuming no errors, set the frames to be encoded to the number of frames in the input yuv
+            if (channel->return_error == EB_ErrorNone && !n_specified)
+                app_cfg->frames_to_be_encoded = input_frame_count - app_cfg->frames_to_be_skipped;
+
+            // For pipe input it is fine if we have -1 here (we will update on end of stream)
+            if (app_cfg->frames_to_be_encoded == -1 && app_cfg->input_file != stdin && !app_cfg->input_file_is_fifo) {
+                fprintf(app_cfg->error_log_file, "Error: Input yuv does not contain enough frames \n");
+                channel->return_error = EB_ErrorBadParameter;
+            }
+            if (input_frame_count != -1 && app_cfg->frames_to_be_skipped >= input_frame_count) {
+                fprintf(app_cfg->error_log_file,
+                        "Error: FramesToBeSkipped is greater than or equal to the "
+                        "number of frames detected\n");
+                channel->return_error = EB_ErrorBadParameter;
+            }
+            // Force the injector latency mode, and injector frame rate when speed control is on
+            if (channel->return_error == EB_ErrorNone && app_cfg->speed_control_flag == 1)
+                app_cfg->injector = 1;
+        }
+        return_error = (EbErrorType)(return_error & channel->return_error);
+    }
+
+    bool has_cmd_notread = false;
+    for (int i = 0; i < argc; ++i) {
+        if (cmd_copy[i] && strcmp(TOKEN_READ_MARKER, cmd_copy[i])) {
+            if (!has_cmd_notread)
+                fprintf(stderr, "Unprocessed tokens: ");
+            fprintf(stderr, "%s ", argv[i]);
+            has_cmd_notread = true;
+        }
+    }
+    if (has_cmd_notread) {
+        fprintf(stderr, "\n\n");
+        return_error = EB_ErrorBadParameter;
+    }
+    bool has_arg_notread = false;
+    bool maybe_token     = false;
+    for (int i = 0; i < argc; ++i) {
+        if (arg_copy[i] && strcmp(TOKEN_READ_MARKER, arg_copy[i])) {
+            if (!has_arg_notread)
+                fprintf(stderr, "Unprocessed arguments: ");
+            fprintf(stderr, "%s ", argv[i]);
+            maybe_token |= !!strchr(arg_copy[i], '-');
+            has_arg_notread = true;
+        }
+    }
+    if (maybe_token) {
+        fprintf(stderr, "\nMaybe missing spacing between tokens");
+    }
+    if (has_arg_notread) {
+        fprintf(stderr, "\n\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    free(config_strings);
+
+    return return_error;
+}
+#else
 EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *channels, uint32_t num_channels) {
     EbErrorType return_error = EB_ErrorNone;
     char        config_string[COMMAND_LINE_MAX_SIZE]; // for one input options
@@ -2611,3 +3073,4 @@ EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *chan
 
     return return_error;
 }
+#endif

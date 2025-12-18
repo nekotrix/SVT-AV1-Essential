@@ -4929,8 +4929,15 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     // Buffers - Hardcoded(Cleanup)
     scs->static_config.use_cpu_flags = config_struct->use_cpu_flags;
 
+#if CLN_REMOVE_CHANNELS
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
     scs->static_config.channel_id = config_struct->channel_id;
     scs->static_config.active_channel_count = config_struct->active_channel_count;
+#endif
+#else
+    scs->static_config.channel_id = config_struct->channel_id;
+    scs->static_config.active_channel_count = config_struct->active_channel_count;
+#endif
     scs->static_config.level_of_parallelism = config_struct->level_of_parallelism;
     if (scs->static_config.level_of_parallelism >= PARALLEL_LEVEL_COUNT) {
         SVT_WARN("Level of parallelism supports levels [0-%d]. Setting maximum parallelism level.\n", PARALLEL_LEVEL_COUNT - 1);

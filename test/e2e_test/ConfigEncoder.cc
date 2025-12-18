@@ -18,7 +18,11 @@ extern "C" {
 
 void set_enc_config(void *config_ptr, const char *name, const char *value) {
     EbConfig *app_cfg = (EbConfig *)config_ptr;
+#if CLN_REMOVE_CHANNELS
+    set_config_value(app_cfg, name, value);
+#else
     set_config_value(app_cfg, name, value, 0);
+#endif
 }
 
 bool set_default_config(EbSvtAv1EncConfiguration *config) {

@@ -16,7 +16,7 @@ The encoder parameters are listed in this table below along with their
 | **Configuration file parameter**   | **Command line**     | **Range**    | **Default**   | **Description**                                                                                                   |
 | ---------------------------------- | -------------------- | ------------ | ------------- | ----------------------------------------------------------------------------------------------------------------- |
 |                                    | --help               |              |               | Shows the command line options currently available                                                                |
-|                                    | --color-help         |              |               | Reproduces Appendix A.2 of the SVT-AV1 User Guide for AV1 metadata                                                                 |
+|                                    | --color-help         |              |               | Reproduces Appendix A.2 of the SVT-AV1 User Guide for AV1 metadata                                                |
 |                                    | --version            |              |               | Shows the version of the library that's linked to the library                                                     |
 | **InputFile**                      | -i                   | any string   | None          | Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe                                     |
 | **StreamFile**                     | -b                   | any string   | None          | Output compressed (ivf) file path, use `stdout` or `-` to write to pipe                                           |
@@ -29,7 +29,6 @@ The encoder parameters are listed in this table below along with their
 | **NoProgress**                     | --no-progress        | [0-1]        | 0             | Do not print out progress [1: `--progress 0`, 0: `--progress 1`]                                                  |
 | **EncoderMode**                    | --preset             | [-1-13]      | 8             | Encoder preset, presets < 0 are for debugging. Higher presets means faster encodes, but with a quality tradeoff   |
 | **SvtAv1Params**                   | --svtav1-params      | any string   | None          | Colon-separated list of `key=value` pairs of parameters with keys based on command line options without `--`      |
-|                                    | --nch                | [1-6]        | 1             | Number of channels (library instance) that will be instantiated                                                   |
 
 #### Usage of **SvtAv1Params**
 
