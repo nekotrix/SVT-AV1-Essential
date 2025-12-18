@@ -505,10 +505,26 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+#if CLN_REMOVE_SS_PIN
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
+    if (config->pin_threads != 0 /*default value*/) {
+        SVT_WARN(
+            "Instance %u: Pinned Execution option (--pin) is deprecated and will be removed in v4.0. Value is "
+            "ignored.\n",
+            channel_number + 1);
+    }
+    if (config->target_socket != -1 /*default value*/) {
+        SVT_WARN(
+            "Instance %u: Target Socket option (--ss) is deprecated and will be removed in v4.0. Value is ignored.\n",
+            channel_number + 1);
+    }
+#endif
+#else
     if (config->target_socket != -1 && config->target_socket != 0 && config->target_socket != 1) {
         SVT_ERROR("Instance %u: Invalid target_socket. target_socket must be [-1 - 1] \n", channel_number + 1);
         return_error = EB_ErrorBadParameter;
     }
+#endif
 
     // HBD mode decision
     if (scs->enable_hbd_mode_decision < (int8_t)(-1) || scs->enable_hbd_mode_decision > 2) {
@@ -1052,8 +1068,15 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
 
     // Channel info
     config_ptr->level_of_parallelism = 0;
-    config_ptr->pin_threads          = 0;
-    config_ptr->target_socket        = -1;
+#if CLN_REMOVE_SS_PIN
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
+    config_ptr->pin_threads   = 0;
+    config_ptr->target_socket = -1;
+#endif
+#else
+    config_ptr->pin_threads   = 0;
+    config_ptr->target_socket = -1;
+#endif
     config_ptr->channel_id           = 0;
     config_ptr->active_channel_count = 1;
 
@@ -2259,7 +2282,13 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"tier", &config_struct->tier},
         {"level", &config_struct->level},
         {"lp", &config_struct->level_of_parallelism},
+#if CLN_REMOVE_SS_PIN
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
         {"pin", &config_struct->pin_threads},
+#endif
+#else
+        {"pin", &config_struct->pin_threads},
+#endif
         {"fps-num", &config_struct->frame_rate_numerator},
         {"fps-denom", &config_struct->frame_rate_denominator},
         {"lookahead", &config_struct->look_ahead_distance},
@@ -2388,7 +2417,13 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"intra-period", &config_struct->intra_period_length},
         {"tile-rows", &config_struct->tile_rows},
         {"tile-columns", &config_struct->tile_columns},
+#if CLN_REMOVE_SS_PIN
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
         {"ss", &config_struct->target_socket},
+#endif
+#else
+        {"ss", &config_struct->target_socket},
+#endif
         {"sframe-dist", &config_struct->sframe_dist},
     };
     const size_t int_opts_size = sizeof(int_opts) / sizeof(int_opts[0]);

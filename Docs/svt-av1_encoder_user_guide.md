@@ -4,10 +4,6 @@ See also, the [list of all parameters](Parameters.md)
 
 # Scalable Video Technology for AV1 Encoder (SVT-AV1 Encoder) User Guide
 
-## Table of Contents
-
-__[TOC]__
-
 ## Introduction
 
 This document describes how to use the Scalable Video Technology for AV1

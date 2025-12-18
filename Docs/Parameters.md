@@ -73,8 +73,6 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **StatReport**                   | --enable-stat-report        | [0-1]                          | 0           | Calculates and outputs PSNR SSIM metrics at the end of encoding                                               |
 | **Asm**                          | --asm                       | [0-11, c-max]                  | max         | Limit assembly instruction set [c, mmx, sse, sse2, sse3, ssse3, sse4_1, sse4_2, avx, avx2, avx512, avx512icl, max] for x86 platforms, [c, neon, crc32, neon_dotprod, neon_i8mm, sve, sve2] for Arm platforms. |
 | **LevelOfParallelism**           | --lp                        | [0, 6]                         | 0           | Controls the number of threads to create and the number of picture buffers to allocate (higher level means more parallelism). 0 means choose level based on machine core count. Refer to Appendix A.1 |
-| **PinnedExecution**              | --pin                       | [0-core count of the machine]  | 0           | Pin the execution to the first N cores. [0: no pinning, N: number of cores to pin to]. Refer to Appendix A.1  |
-| **TargetSocket**                 | --ss                        | [-1,1]                         | -1          | Specifies which socket to run on, assumes a max of two equally-sized sockets. Refer to Appendix A.1           |
 | **FastDecode**                   | --fast-decode               | [0,2]                          | 0           | Tune settings to output bitstreams that can be decoded faster, [0 = OFF, 1,2 = levels for decode-targeted optimization (2 yields faster decoder speed)]. Defaults to 5 temporal layers structure but may override with --hierarchical-levels|
 | **Tune**                         | --tune                      | [0-3]                          | 1           | Optimize the encoding process for different desired outcomes [0 = VQ, 1 = PSNR, 2 = SSIM, 3 = IQ (Image Quality)]  |
 | **AdaptiveFilmGrain**            | --adaptive-film-grain       | [0,1]                          | 1           | Allows film grain synthesis to be sourced from different block sizes depending on resolution                  |
@@ -371,25 +369,19 @@ Other options such as updating the Bitrate and resolution during the encoding se
 
 ### 1. Thread management parameters
 
-`PinnedExecution` (`--pin`) and `TargetSocket` (`--ss`) parameters are used to
-manage thread affinity on Windows and Ubuntu OS. `LogicalProcessors` (`LogicalProcessors`
-is deprecated in v3.0 and replaced with `LevelOfParallelism`; henceforth, the
-documentation will refer to 'LevelOfParallelsim` instead) is used
-to specify how much parallelism is desired; higher levels will create more threads
-and process more pictures in parallel, leading to greater fps but larger memory use.
-These are some examples how you use them together.
-
-If `PinnedExecution` and `TargetSocket` are not set, threads are managed by
-OS thread scheduler. If `LevelOfParallelism` is not set, the amount of parallelism
-(threads/memory) will be decided by the encoder based on the machine's core count.
+`LevelOfParallelism` (previously `LogicalProcessors`, which was deprecated in v3.0
+and replaced with `LevelOfParallelism`) is used to specify how much parallelism is
+desired; higher levels will create more threads and process more pictures in
+parallel, leading to greater fps but larger memory use. If `LevelOfParallelism` is not
+set, the amount of parallelism (threads/memory) will be decided by the encoder based
+on the machine's core count.
 
 `SvtAv1EncApp.exe -i in.yuv -w 3840 -h 2160 --lp 4`
 
-If only `LevelOfParallelism` is set, the OS will determine which processors the job
-will run on. Threads may run on dual sockets. The --lp level does not indicate the
-number of threads targeted, nor does it constrain the encoder to run on a certain number of
-logical processors. The number of threads created and memory used is determined
-by settings in the code (see `load_default_buffer_configuration_settings`).
+The --lp level does not indicate the number of threads targeted, nor does it
+constrain the encoder to run on a certain number of logical processors. The
+number of threads created and memory used is determined by settings in the
+code (see `load_default_buffer_configuration_settings`).
 
 Parallelism is achieved in two ways:
 1. By creating new threads to process pictures and sub-picture blocks (e.g. superblocks)
@@ -401,35 +393,14 @@ and memory at each level. In CRF mode, levels 4 and higher will process extra mi
 as well, leading to higher speed, but much higher memory.  In low-delay mode, only one picture can be
 processed at once, so no extra pictures will be allocated.
 
-`SvtAv1EncApp.exe -i in.yuv -w 3840 -h 2160 --ss 1`
-
-If only `TargetSocket` is set, threads run on all the logical processors of
-socket 1. If '--lp' is not specified with '--ss' the number of threads would
-be decided by the encoder based on the number of available cores on the socket.
-
-`SvtAv1EncApp.exe -i in.yuv -w 3840 -h 2160 --lp 4 --ss 0`
-
-If both `LevelOfParallelism` and `TargetSocket` are set, threads run on socket 0. The number
-of threads created is set in the library, based on the desired level of parallelism.
 
 The `--pin` option allows the user to pin the execution to a specific number of cores, specifically,
 the first N cores, where N is the value passed with `--pin`. If '--lp' is not specified, the default
 parallelism will be based on the N cores available for the process to run, rather than all the cores
 on the machine. If '--lp' is specified, that level of parallelism will be used, regardless of N.
 
-This is an example on how to use `--lp` and `--pin` together.
-
-Setting `--lp 4` with `--pin 4` would restrict the encoder to work on cpu 0-3 and set
-the resource allocation to the amount of threads/memory associated with `--lp 4`. Using
-`--pin 0` with `--lp 4` would result in the same allocation of threads/memory but not
-restrict the encoder to run on cpu 0-3; in this case the encoder may use more than 4 cores
-due to the multi-threading nature of the encoder, but would at least allow for more multiple
-`--lp 4` encodes to run on the same machine without them being all restricted to run on
-cpu 0-3 or overflow the memory usage.
-
-To set cpu affinity beyond the first `--pin` cores, a cpu affinity
-utility such as `taskset` or `numactl` to control could be used to pin execution to
-desired threads.
+To set cpu affinity a cpu affinity utility such as `taskset` or `numactl` to control could be used
+to pin execution to desired threads.
 
 Example:
 

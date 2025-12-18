@@ -730,6 +730,8 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint32_t level_of_parallelism;
 
+#if CLN_REMOVE_SS_PIN
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
     /* Pin the execution of threads to the first N logical processors.
      * 0: unpinned
      * N: Pin threads to socket's first N processors
@@ -745,6 +747,24 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is -1. */
     int32_t target_socket;
+#endif
+#else
+    /* Pin the execution of threads to the first N logical processors.
+     * 0: unpinned
+     * N: Pin threads to socket's first N processors
+     * default 0 */
+    uint32_t pin_threads;
+
+    /* Target socket to run on. For dual socket systems, this can specify which
+     * socket the encoder runs on.
+     *
+     * -1 = Both Sockets.
+     *  0 = Socket 0.
+     *  1 = Socket 1.
+     *
+     * Default is -1. */
+    int32_t target_socket;
+#endif
 
     /* CPU FLAGS to limit assembly instruction set used by encoder.
     * Default is EB_CPU_FLAGS_ALL. */

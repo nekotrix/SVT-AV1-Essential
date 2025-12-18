@@ -75,6 +75,7 @@ void event_handler(int32_t dummy) {
     signal(SIGINT, SIG_DFL);
 }
 
+#if !CLN_REMOVE_SS_PIN
 void assign_app_thread_group(uint8_t target_socket) {
 #ifdef _WIN32
     if (GetActiveProcessorGroupCount() == 2) {
@@ -88,6 +89,7 @@ void assign_app_thread_group(uint8_t target_socket) {
     return;
 #endif
 }
+#endif
 
 typedef struct EncContext {
     uint32_t   num_channels;
@@ -190,9 +192,11 @@ static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, in
         fprintf(stderr, "Run %s --help for a list of options\n", argv[0]);
         return return_error;
     }
+#if !CLN_REMOVE_SS_PIN
     // Set main thread affinity
     if (enc_context->channels[0].app_cfg->config.target_socket != -1)
         assign_app_thread_group(enc_context->channels[0].app_cfg->config.target_socket);
+#endif
 
     // Init the Encoder
     for (uint32_t inst_cnt = 0; inst_cnt < num_channels; ++inst_cnt) {

@@ -54,6 +54,23 @@ extern EbHandle    svt_create_mutex(void);
 extern EbErrorType svt_release_mutex(EbHandle mutex_handle);
 extern EbErrorType svt_block_on_mutex(EbHandle mutex_handle);
 extern EbErrorType svt_destroy_mutex(EbHandle mutex_handle);
+#if CLN_REMOVE_SS_PIN
+#ifndef _WIN32
+#ifndef __USE_GNU
+#define __USE_GNU
+#endif
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <sched.h>
+#include <pthread.h>
+#endif
+#define EB_CREATE_THREAD(pointer, thread_function, thread_context)    \
+    do {                                                              \
+        pointer = svt_create_thread(thread_function, thread_context); \
+        EB_ADD_MEM(pointer, 1, EB_THREAD);                            \
+    } while (0)
+#else
 #ifdef _WIN32
 
 #define EB_CREATE_THREAD(pointer, thread_function, thread_context)               \
@@ -93,6 +110,7 @@ extern EbErrorType svt_destroy_mutex(EbHandle mutex_handle);
         pointer = svt_create_thread(thread_function, thread_context); \
         EB_ADD_MEM(pointer, 1, EB_THREAD);                            \
     } while (0)
+#endif
 #endif
 #endif
 #define EB_DESTROY_THREAD(pointer)                   \

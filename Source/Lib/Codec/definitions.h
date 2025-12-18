@@ -1431,8 +1431,6 @@ typedef enum ATTRIBUTE_PACKED {
 #define PRIMARY_REF_BITS 3
 #define PRIMARY_REF_NONE 7
 
-#define NUM_PING_PONG_BUFFERS 2
-
 #define MAX_NUM_TEMPORAL_LAYERS 8
 #define MAX_NUM_SPATIAL_LAYERS 4
 /* clang-format off */

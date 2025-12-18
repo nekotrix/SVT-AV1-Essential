@@ -101,6 +101,7 @@
 
 #define ENCODE_FIRST_PASS                               1
 
+#if !CLN_REMOVE_SS_PIN
 /**************************************
  * Globals
  **************************************/
@@ -117,6 +118,7 @@ typedef struct logicalProcessorGroup {
 } processorGroup;
 #define INITIAL_PROCESSOR_GROUP 16
 static processorGroup           *lp_group = NULL;
+#endif
 #endif
 uint8_t svt_aom_get_tpl_synthesizer_block_size(int8_t tpl_level, uint32_t picture_width, uint32_t picture_height);
 /* count number of refs in a steady state MG*/
@@ -185,6 +187,7 @@ static uint32_t get_num_processors() {
 #endif
 }
 
+#if !CLN_REMOVE_SS_PIN
 static EbErrorType init_thread_management_params() {
 #ifdef _WIN32
     // Initialize svt_aom_group_affinity structure with Current thread info
@@ -329,6 +332,7 @@ void svt_set_thread_management_parameters(EbSvtAv1EncConfiguration* config_ptr) 
     UNUSED(num_groups);
 #endif
 }
+#endif
 
 void svt_aom_asm_set_convolve_asm_table(void);
 void svt_aom_asm_set_convolve_hbd_asm_table(void);
@@ -436,6 +440,7 @@ static EbErrorType load_default_buffer_configuration_settings(
     SequenceControlSet       *scs) {
     EbErrorType           return_error = EB_ErrorNone;
     uint32_t core_count = get_num_processors();
+#if !CLN_REMOVE_SS_PIN
 #if defined(_WIN32) || defined(__linux__)
     if (scs->static_config.target_socket != -1)
         core_count /= num_groups;
@@ -445,6 +450,7 @@ static EbErrorType load_default_buffer_configuration_settings(
             core_count = scs->static_config.pin_threads;
         }
     }
+#endif
 
     uint32_t lp = scs->static_config.level_of_parallelism;
     if (lp == 0) {
@@ -1044,7 +1050,9 @@ static EbErrorType svt_enc_handle_ctor(
 {
     enc_handle_ptr->dctor = svt_enc_handle_dctor;
 
+#if !CLN_REMOVE_SS_PIN
     init_thread_management_params();
+#endif
 
     enc_handle_ptr->encode_instance_total_count                           = EB_EncodeInstancesTotalCount;
     enc_handle_ptr->compute_segments_total_count_array                    = EB_ComputeSegmentInitCount;
@@ -2245,9 +2253,11 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
     /************************************
     * Thread Handles
     ************************************/
+#if !CLN_REMOVE_SS_PIN
     EbSvtAv1EncConfiguration   *config_ptr = &enc_handle_ptr->scs_instance_array[0]->scs->static_config;
     if (config_ptr->pin_threads || config_ptr->target_socket != -1)
         svt_set_thread_management_parameters(config_ptr);
+#endif
 
     control_set_ptr = enc_handle_ptr->scs_instance_array[0]->scs;
 
@@ -2403,11 +2413,13 @@ EB_API EbErrorType svt_av1_enc_init_handle(
     svt_log_init();
 #endif
 
+#if !CLN_REMOVE_SS_PIN
     #if defined(__linux__)
         if(lp_group == NULL) {
             EB_MALLOC_ARRAY(lp_group, INITIAL_PROCESSOR_GROUP);
         }
     #endif
+#endif
 
     EB_MALLOC_OBJECT(*p_handle);
     // Init Component OS objects (threads, semaphores, etc.)
@@ -2454,8 +2466,10 @@ EB_API EbErrorType svt_av1_enc_deinit_handle(
         EbErrorType return_error = svt_av1_enc_component_de_init(svt_enc_component);
 
         EB_FREE(svt_enc_component);
+#if !CLN_REMOVE_SS_PIN
 #if  defined(__linux__)
         EB_FREE_ARRAY(lp_group);
+#endif
 #endif
         svt_decrease_component_count();
         return return_error;
@@ -4839,8 +4853,16 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         SVT_WARN("Level of parallelism does not correspond to a target number of processors to use. See Docs/Parameters.md for info.\n");
         scs->static_config.level_of_parallelism = PARALLEL_LEVEL_6;
     }
+#if CLN_REMOVE_SS_PIN
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
+    // Values are kept set here to give a warning if they are set to non-default values.
     scs->static_config.pin_threads = config_struct->pin_threads;
     scs->static_config.target_socket = config_struct->target_socket;
+#endif
+#else
+    scs->static_config.pin_threads = config_struct->pin_threads;
+    scs->static_config.target_socket = config_struct->target_socket;
+#endif
     scs->static_config.qp = config_struct->qp;
     scs->static_config.recon_enabled = config_struct->recon_enabled;
     scs->static_config.enable_tpl_la = config_struct->enable_tpl_la;

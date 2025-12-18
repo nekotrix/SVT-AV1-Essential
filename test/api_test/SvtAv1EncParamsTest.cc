@@ -303,9 +303,11 @@ PARAM_TEST(EncParamActiveChCountTest);
 DEFINE_PARAM_TEST_CLASS(EncParamLevelOfParallelismTest, level_of_parallelism);
 PARAM_TEST(EncParamLevelOfParallelismTest);
 
+#if !CLN_REMOVE_SS_PIN
 /** Test case for target_socket*/
 DEFINE_PARAM_TEST_CLASS(EncParamTargetSocketTest, target_socket);
 PARAM_TEST(EncParamTargetSocketTest);
+#endif
 
 /** Test case for recon_enabled*/
 DEFINE_PARAM_TEST_CLASS(EncParamReconEnabledTest, recon_enabled);

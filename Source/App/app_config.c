@@ -138,8 +138,15 @@
 #define INJECTOR_FRAMERATE_TOKEN "--inj-frm-rt" // no Eval
 #define ASM_TYPE_TOKEN "--asm"
 #define THREAD_MGMNT "--lp"
+#if CLN_REMOVE_SS_PIN
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
 #define PIN_TOKEN "--pin"
 #define TARGET_SOCKET "--ss"
+#endif
+#else
+#define PIN_TOKEN "--pin"
+#define TARGET_SOCKET "--ss"
+#endif
 
 //double dash
 #define PRESET_TOKEN "--preset"
@@ -723,12 +730,19 @@ ConfigDescription config_entry_global_options[] = {
     {THREAD_MGMNT,
      "Amount of parallelism to use. 0 means choose the level based on machine core count. Refer to Appendix A.1 "
      "of the user guide, default is 0 [0, 6]"},
+#if CLN_REMOVE_SS_PIN
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
+    {PIN_TOKEN, "Deprecated: To be removed in v4.0"},
+    {TARGET_SOCKET, "Deprecated: To be removed in v4.0"},
+#endif
+#else
     {PIN_TOKEN,
      "Pin the execution to the first N cores. Refer to Appendix "
      "A.1 of the user guide, default is 0 [0, core count of the machine]"},
     {TARGET_SOCKET,
      "Specifies which socket to run on, assumes a max of two sockets. Refer to Appendix A.1 of the "
      "user guide, default is -1 [-1, 0, -1]"},
+#endif
     // Termination
     {NULL, NULL}};
 
@@ -1051,8 +1065,15 @@ ConfigEntry config_entry[] = {
 
     //   Thread Management
     {THREAD_MGMNT, "LevelOfParallelism", set_cfg_generic_token},
+#if CLN_REMOVE_SS_PIN
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
     {PIN_TOKEN, "PinnedExecution", set_cfg_generic_token},
     {TARGET_SOCKET, "TargetSocket", set_cfg_generic_token},
+#endif
+#else
+    {PIN_TOKEN, "PinnedExecution", set_cfg_generic_token},
+    {TARGET_SOCKET, "TargetSocket", set_cfg_generic_token},
+#endif
 
     // Rate Control Options
     {RATE_CONTROL_ENABLE_TOKEN, "RateControlMode", set_cfg_generic_token},

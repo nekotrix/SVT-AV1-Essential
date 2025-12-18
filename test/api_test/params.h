@@ -824,6 +824,7 @@ static const vector<uint32_t> invalid_level_of_parallelism = {
     // ...
 };
 
+#if !CLN_REMOVE_SS_PIN
 /* Target socket to run on. For dual socket systems, this can specify which
  * socket the encoder runs on.
  *
@@ -843,6 +844,7 @@ static const vector<int32_t> valid_target_socket = {
 static const vector<int32_t> invalid_target_socket = {
     2,
 };
+#endif
 
 // Debug tools
 
