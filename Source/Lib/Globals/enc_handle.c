@@ -4564,10 +4564,12 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         scs->static_config.pred_structure = LOW_DELAY;
         SVT_WARN("Instance %u: Force low delay pred structure to be used for rtc.\n");
     }
+#if !CLN_REMOVE_TPL_SIG
     // Tpl is disabled in low delay applications
     if (scs->allintra || scs->static_config.pred_structure == LOW_DELAY) {
         config_struct->enable_tpl_la = 0;
     }
+#endif
     scs->enable_qp_scaling_flag = scs->allintra ? 0 : 1;
     // Set Picture Parameters for statistics gathering
     scs->picture_analysis_number_of_regions_per_width =
@@ -4780,10 +4782,26 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
 
     scs->static_config.target_bit_rate = config_struct->target_bit_rate;
     scs->static_config.max_bit_rate = config_struct->max_bit_rate;
+#if CLN_REMOVE_TPL_SIG
+    //TODO: check RC mode and set only when RC is enabled in the final version.
+    scs->static_config.enable_adaptive_quantization = scs->static_config.lossless
+        ? 0
+        : config_struct->enable_adaptive_quantization;
+
+    // TPL is disabled for allintra and LD encoding, and when aq_mode is 0
+    if (scs->static_config.max_bit_rate &&
+        (scs->static_config.enable_adaptive_quantization == 0 ||
+        scs->allintra ||
+            scs->static_config.pred_structure == LOW_DELAY)) {
+        scs->static_config.max_bit_rate = 0;
+        SVT_WARN("Maximum bit rate only supported with tpl on. max bit rate 0 is used instead.\n");
+    }
+#else
     if (config_struct->enable_tpl_la == 0 && scs->static_config.max_bit_rate) {
         scs->static_config.max_bit_rate = 0;
         SVT_WARN("Maximum bit rate only supported with tpl on. max bit rate 0 is used instead.\n");
     }
+#endif
 
     scs->static_config.max_qp_allowed = scs->static_config.lossless
         ? MIN_QP_VALUE
@@ -4818,11 +4836,13 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         scs->lap_rc = 1;
     else
         scs->lap_rc = 0;
+#if !CLN_REMOVE_TPL_SIG
     //Segmentation
     //TODO: check RC mode and set only when RC is enabled in the final version.
     scs->static_config.enable_adaptive_quantization = scs->static_config.lossless
         ? 0
         : config_struct->enable_adaptive_quantization;
+#endif
     // Misc
     scs->static_config.encoder_bit_depth = config_struct->encoder_bit_depth;
     scs->static_config.encoder_color_format = config_struct->encoder_color_format;
@@ -4865,7 +4885,13 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
 #endif
     scs->static_config.qp = config_struct->qp;
     scs->static_config.recon_enabled = config_struct->recon_enabled;
+#if CLN_REMOVE_TPL_SIG
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
     scs->static_config.enable_tpl_la = config_struct->enable_tpl_la;
+#endif
+#else
+    scs->static_config.enable_tpl_la = config_struct->enable_tpl_la;
+#endif
 #if !FIX_TUNE_SSIM_LAMBDA
     if (scs->static_config.enable_tpl_la != 1){
         scs->static_config.enable_tpl_la = 1;

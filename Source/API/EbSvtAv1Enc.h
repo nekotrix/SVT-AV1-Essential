@@ -623,11 +623,21 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default depends on rate control mode.*/
     uint32_t look_ahead_distance;
 
+#if CLN_REMOVE_TPL_SIG
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
     /* Enable TPL in look ahead
      * 0 = disable TPL in look ahead
      * 1 = enable TPL in look ahead
      * Default is 0  */
     uint8_t enable_tpl_la;
+#endif
+#else
+    /* Enable TPL in look ahead
+     * 0 = disable TPL in look ahead
+     * 1 = enable TPL in look ahead
+     * Default is 0  */
+    uint8_t enable_tpl_la;
+#endif
 
     /* recode_loop indicates the recode levels,
      * DISALLOW_RECODE = 0, No recode.

@@ -219,7 +219,9 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
                 scs->max_input_luma_height);
             config->enable_restoration_filtering = 0;
         }
+#if !CLN_REMOVE_TPL_SIG
         config->enable_tpl_la = 0;
+#endif
     }
 
     if ((scs->max_input_luma_width > scs->seq_header.max_frame_width) ||
@@ -505,6 +507,13 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+#if CLN_REMOVE_TPL_SIG
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
+    if (config->enable_tpl_la != 1 /*default value*/) {
+        SVT_WARN("Instance %u: enable_tpl_la will be removed in v4.0. Value is ignored.\n", channel_number + 1);
+    }
+#endif
+#endif
 #if CLN_REMOVE_SS_PIN
 #if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
     if (config->pin_threads != 0 /*default value*/) {
@@ -1017,10 +1026,16 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
 
     for (int i = 0; i < SVT_AV1_FRAME_UPDATE_TYPES; i++) config_ptr->lambda_scale_factors[i] = 128;
 
-    config_ptr->scene_change_detection       = 0;
-    config_ptr->rate_control_mode            = SVT_AV1_RC_MODE_CQP_OR_CRF;
-    config_ptr->look_ahead_distance          = (uint32_t)~0;
-    config_ptr->enable_tpl_la                = 1;
+    config_ptr->scene_change_detection = 0;
+    config_ptr->rate_control_mode      = SVT_AV1_RC_MODE_CQP_OR_CRF;
+    config_ptr->look_ahead_distance    = (uint32_t)~0;
+#if CLN_REMOVE_TPL_SIG
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
+    config_ptr->enable_tpl_la = 1;
+#endif
+#else
+    config_ptr->enable_tpl_la = 1;
+#endif
     config_ptr->target_bit_rate              = 2000513;
     config_ptr->max_bit_rate                 = 0;
     config_ptr->max_qp_allowed               = 63;
@@ -2321,7 +2336,13 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         uint8_t    *out;
     } uint8_opts[] = {
         {"pred-struct", &config_struct->pred_structure},
+#if CLN_REMOVE_TPL_SIG
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
         {"enable-tpl-la", &config_struct->enable_tpl_la},
+#endif
+#else
+        {"enable-tpl-la", &config_struct->enable_tpl_la},
+#endif
         {"aq-mode", &config_struct->enable_adaptive_quantization},
         {"superres-mode", &config_struct->superres_mode},
         {"superres-qthres", &config_struct->superres_qthres},

@@ -115,6 +115,7 @@ extern "C" {
 #define TUNE_RTC_3L                 1 // Preset tuning 3L for RTC
 
 #define CLN_REMOVE_SS_PIN           1 // Remove options to pin execution to certain cores/sockets (--ss/--pin)
+#define CLN_REMOVE_TPL_SIG          1 // Remove enable_tpl_la signal (it is not used)
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

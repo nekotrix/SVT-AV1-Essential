@@ -2716,8 +2716,10 @@ void svt_aom_sig_deriv_pre_analysis_pcs(PictureParentControlSet *pcs) {
     pcs->tf_enable_hme_level1_flag = 1;
     pcs->tf_enable_hme_level2_flag = 1;
 
+#if !CLN_REMOVE_TPL_SIG
     //if (scs->static_config.enable_tpl_la)
     //svt_aom_assert_err(pcs->is_720p_or_larger == (pcs->tpl_ctrls.synth_blk_size == 16), "TPL Synth Size Error");
+#endif
 }
 
 /******************************************************

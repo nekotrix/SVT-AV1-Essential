@@ -129,7 +129,13 @@
 #define BUFFER_INITIAL_SIZE_TOKEN "--buf-initial-sz"
 #define BUFFER_OPTIMAL_SIZE_TOKEN "--buf-optimal-sz"
 #define RECODE_LOOP_TOKEN "--recode-loop"
+#if CLN_REMOVE_TPL_SIG
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
 #define ENABLE_TPL_LA_TOKEN "--enable-tpl-la"
+#endif
+#else
+#define ENABLE_TPL_LA_TOKEN "--enable-tpl-la"
+#endif
 #define TILE_ROW_TOKEN "--tile-rows"
 #define TILE_COL_TOKEN "--tile-columns"
 
@@ -879,9 +885,15 @@ ConfigDescription config_entry_specific[] = {
     {CDEF_ENABLE_TOKEN, "Enable Constrained Directional Enhancement Filter, default is 1 [0-1]"},
     // RESTORATION
     {ENABLE_RESTORATION_TOKEN, "Enable loop restoration filter, default is 1 [0-1]"},
+#if CLN_REMOVE_TPL_SIG
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
+    {ENABLE_TPL_LA_TOKEN, "Deprecated: To be removed in v4.0"},
+#endif
+#else
     {ENABLE_TPL_LA_TOKEN,
      "Temporal Dependency model control, currently forced on library side, only applicable for "
      "CRF/CQP, default is 1 [0-1]"},
+#endif
     {MFMV_ENABLE_NEW_TOKEN, "Motion Field Motion Vector control, default is -1 [-1: auto, 0-1]"},
     {DG_ENABLE_NEW_TOKEN, "Dynamic GoP control, default is 1 [0-1]"},
     {FAST_DECODE_TOKEN, "Fast Decoder levels, default is 0 [0-2]"},
@@ -1137,7 +1149,13 @@ ConfigEntry config_entry[] = {
     {LOOP_FILTER_ENABLE, "LoopFilterEnable", set_cfg_generic_token},
     {CDEF_ENABLE_TOKEN, "CDEFLevel", set_cdef_enable},
     {ENABLE_RESTORATION_TOKEN, "EnableRestoration", set_cfg_generic_token},
+#if CLN_REMOVE_TPL_SIG
+#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
     {ENABLE_TPL_LA_TOKEN, "EnableTPLModel", set_cfg_generic_token},
+#endif
+#else
+    {ENABLE_TPL_LA_TOKEN, "EnableTPLModel", set_cfg_generic_token},
+#endif
     {MFMV_ENABLE_NEW_TOKEN, "Mfmv", set_cfg_generic_token},
     {DG_ENABLE_NEW_TOKEN, "EnableDg", set_cfg_generic_token},
     {FAST_DECODE_TOKEN, "FastDecode", set_cfg_generic_token},
