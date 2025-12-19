@@ -1363,7 +1363,7 @@ class SADTestBase16bit : public ::testing::Test {
     }
 
     void prepare_data() {
-        const int32_t mask = (1 << 16) - 1;
+        const int32_t mask = (1 << 10) - 1;
         SVTRandom rnd(0, mask);
         switch (test_pattern_) {
         case REF_MAX: {
@@ -1445,8 +1445,8 @@ class SADTestBase16bit : public ::testing::Test {
  * @brief Unit test for svt_aom_sad_16bit_kernel.
  *
  * Test strategy:
- *  This test case combines different width{4-64} x height{4-64} and different
- * test pattern(REF_MAX, SRC_MAX, RANDOM, UNALIGN). Check the result by compare
+ *  This test case combines different width{4-128} x height{4-128} and different
+ *  test pattern(REF_MAX, SRC_MAX, RANDOM, UNALIGN). Check the result by compare
  *  result from reference function and SIMD function.
  *
  *
@@ -1455,7 +1455,7 @@ class SADTestBase16bit : public ::testing::Test {
  *
  * Test cases:
  *  Width {4, 8, 16, 24, 32, 48, 64, 128} x height{ 4, 8, 16, 24, 32, 48, 64,
- * 128) Test vector pattern {REF_MAX, SRC_MAX, RANDOM, UNALIGN}
+ *  128) Test vector pattern {REF_MAX, SRC_MAX, RANDOM, UNALIGN}
  *
  */
 
@@ -1558,18 +1558,22 @@ class SADTestSubSample16bit
 };
 
 BlkSize TEST_BLOCK_SAD_SIZES[] = {
-    BlkSize(16, 10),   BlkSize(16, 5),   BlkSize(32, 10), BlkSize(32, 20),
-    BlkSize(64, 20),   BlkSize(64, 64),  BlkSize(64, 32), BlkSize(32, 64),
-    BlkSize(32, 32),   BlkSize(32, 16),  BlkSize(16, 32), BlkSize(16, 16),
-    BlkSize(16, 8),    BlkSize(8, 16),   BlkSize(8, 8),   BlkSize(8, 4),
-    BlkSize(4, 4),     BlkSize(4, 8),    BlkSize(4, 16),  BlkSize(16, 4),
-    BlkSize(8, 32),    BlkSize(32, 8),   BlkSize(16, 64), BlkSize(16, 128),
-    BlkSize(128, 128), BlkSize(64, 16),  BlkSize(24, 24), BlkSize(24, 16),
-    BlkSize(16, 24),   BlkSize(24, 8),   BlkSize(8, 24),  BlkSize(64, 24),
-    BlkSize(48, 24),   BlkSize(32, 24),  BlkSize(24, 32), BlkSize(48, 48),
-    BlkSize(48, 16),   BlkSize(48, 32),  BlkSize(16, 48), BlkSize(32, 48),
-    BlkSize(48, 64),   BlkSize(64, 48),  BlkSize(64, 48), BlkSize(128, 64),
-    BlkSize(64, 128),  BlkSize(128, 128)};
+    BlkSize(4, 4),    BlkSize(4, 8),    BlkSize(4, 16),   BlkSize(4, 24),
+    BlkSize(4, 32),   BlkSize(4, 48),   BlkSize(4, 64),   BlkSize(4, 128),
+    BlkSize(8, 4),    BlkSize(8, 8),    BlkSize(8, 16),   BlkSize(8, 24),
+    BlkSize(8, 32),   BlkSize(8, 48),   BlkSize(8, 64),   BlkSize(8, 128),
+    BlkSize(16, 4),   BlkSize(16, 8),   BlkSize(16, 16),  BlkSize(16, 24),
+    BlkSize(16, 32),  BlkSize(16, 48),  BlkSize(16, 64),  BlkSize(16, 128),
+    BlkSize(24, 4),   BlkSize(24, 8),   BlkSize(24, 16),  BlkSize(24, 24),
+    BlkSize(24, 32),  BlkSize(24, 48),  BlkSize(24, 64),  BlkSize(24, 128),
+    BlkSize(32, 4),   BlkSize(32, 8),   BlkSize(32, 16),  BlkSize(32, 24),
+    BlkSize(32, 32),  BlkSize(32, 48),  BlkSize(32, 64),  BlkSize(32, 128),
+    BlkSize(48, 4),   BlkSize(48, 8),   BlkSize(48, 16),  BlkSize(48, 24),
+    BlkSize(48, 32),  BlkSize(48, 48),  BlkSize(48, 64),  BlkSize(48, 128),
+    BlkSize(64, 4),   BlkSize(64, 8),   BlkSize(64, 16),  BlkSize(64, 24),
+    BlkSize(64, 32),  BlkSize(64, 48),  BlkSize(64, 64),  BlkSize(64, 128),
+    BlkSize(128, 4),  BlkSize(128, 8),  BlkSize(128, 16), BlkSize(128, 24),
+    BlkSize(128, 32), BlkSize(128, 48), BlkSize(128, 64), BlkSize(128, 128)};
 
 TEST_P(SADTestSubSample16bit, SADTestSubSample16bit) {
     test_sad_sizes(
