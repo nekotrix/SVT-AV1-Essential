@@ -19,6 +19,7 @@ extern "C" {
 #include <stdint.h>
 #include "EbSvtAv1.h"
 #include <stdlib.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdbool.h>
 /**
@@ -1129,6 +1130,47 @@ EB_API const char *svt_av1_get_version(void);
  * specified by the SVT_LOG_FILE environment variable or stderr
  */
 EB_API void svt_av1_print_version(void);
+
+/**
+ * @brief Log levels
+ *
+ * Defines the severity levels for logging messages.
+ */
+typedef enum {
+    SVT_AV1_LOG_ALL   = -1, /**< Log all messages */
+    SVT_AV1_LOG_FATAL = 0, /**< Fatal errors */
+    SVT_AV1_LOG_ERROR = 1, /**< Errors */
+    SVT_AV1_LOG_WARN  = 2, /**< Warnings */
+    SVT_AV1_LOG_INFO  = 3, /**< Informational messages */
+    SVT_AV1_LOG_DEBUG = 4, /**< Debug messages */
+} SvtAv1LogLevel;
+
+/**
+ * @brief Log callback function signature
+ *
+ * Applications can register a callback to intercept log messages from the encoder.
+ *
+ * @param[in] level   Severity level of the log message
+ * @param[in] context Opaque user-provided context pointer (may be NULL)
+ * @param[in] tag     Optional log tag (may be NULL)
+ * @param[in] fmt     printf-style format string
+ * @param[in] args    Variable argument list corresponding to the format string
+ */
+typedef void (*SvtAv1LogCallback)(SvtAv1LogLevel level, void *context, const char *tag, const char *fmt, va_list args);
+
+/**
+ * Register a callback for intercepting log messages.
+ *
+ * Applications can use this function to redirect log output to custom handlers. When a callback is registered, all log
+ * messages will be dispatched to the callback instead of the default stderr/file output. This will affect all
+ * instances and is a global setting. This should be called before svt_av1_enc_init_handle() as any calls to
+ * svt_av1_enc_init_handle() will finalize logging.
+ *
+ * @param[in] callback  Callback function pointer. Has no effect if NULL.
+ * @param[in] context   Opaque context pointer passed back to the callback. Typically application state or logging context.
+ *                      Ignored if callback is NULL.
+ */
+EB_API void svt_av1_set_log_callback(SvtAv1LogCallback callback, void *context);
 
 /* STEP 1: Call the library to construct a Component Handle.
      *

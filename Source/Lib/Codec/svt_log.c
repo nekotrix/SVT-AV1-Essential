@@ -9,6 +9,7 @@
 * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 #include "svt_log.h"
+#include "svt_threads.h"
 //for getenv and fopen on windows
 #if defined(_WIN32) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
@@ -19,53 +20,127 @@
 
 #if !CONFIG_LOG_QUIET
 
-static SvtLogLevel g_log_level;
-static FILE*       g_log_file;
-
-static void svt_log_set_level(SvtLogLevel level) { g_log_level = level; }
-
-static void svt_log_set_log_file(const char* file) {
-    if (file)
-        g_log_file = fopen(file, "w+");
-}
-
-void svt_log_init() {
-    const char* log   = getenv("SVT_LOG");
-    SvtLogLevel level = SVT_LOG_INFO;
-    if (log)
-        level = (SvtLogLevel)atoi(log);
-    svt_log_set_level(level);
-
-    if (!g_log_file) {
-        const char* file = getenv("SVT_LOG_FILE");
-        svt_log_set_log_file(file);
-    }
-}
-
-static const char* log_level_str(SvtLogLevel level) {
+static const char* log_level_str(SvtAv1LogLevel level) {
     switch (level) {
-    case SVT_LOG_FATAL: return "fatal";
-    case SVT_LOG_ERROR: return "error";
-    case SVT_LOG_WARN: return "warn";
-    case SVT_LOG_INFO: return "info";
-    case SVT_LOG_DEBUG: return "debug";
+    case SVT_AV1_LOG_FATAL: return "fatal";
+    case SVT_AV1_LOG_ERROR: return "error";
+    case SVT_AV1_LOG_WARN: return "warn";
+    case SVT_AV1_LOG_INFO: return "info";
+    case SVT_AV1_LOG_DEBUG: return "debug";
     default: return "unknown";
     }
 }
 
-void svt_log(SvtLogLevel level, const char* tag, const char* format, ...) {
-    if (level > g_log_level)
+struct DefaultCtx {
+    SvtAv1LogLevel level;
+    FILE*          file;
+};
+
+/**
+ * @brief Global logger structure
+ *
+ * Handles both default cases and custom loggers.
+ */
+static struct Logger {
+    SvtAv1LogCallback fn;
+    // If fn == default_logger, ctx is DefaultCtx*
+    void* ctx;
+}* g_logger;
+
+static void default_logger(SvtAv1LogLevel level, void* context, const char* tag, const char* fmt, va_list args) {
+    struct DefaultCtx* logger = context;
+    if (level > logger->level)
         return;
-
-    if (!g_log_file)
-        g_log_file = stderr;
-
     if (tag)
-        fprintf(g_log_file, "%s[%s]: ", tag, log_level_str(level));
+        fprintf(logger->file, "%s[%s]: ", tag, log_level_str(level));
+    vfprintf(logger->file, fmt, args);
+    fflush(logger->file);
+}
 
+static void logger_cleanup(void) {
+    if (g_logger->fn == default_logger) {
+        struct DefaultCtx* ctx = g_logger->ctx;
+        if (ctx->file && ctx->file != stderr)
+            fclose(ctx->file);
+        free(ctx);
+    }
+    free(g_logger);
+    g_logger = NULL;
+}
+
+// file scoped variable just to handle the init for a custom logger.
+// It's only ever read once.
+// Any writes after being read are ignored.
+static struct Logger custom_logger_input;
+
+static ONCE_ROUTINE(logger_create) {
+    g_logger = calloc(1, sizeof(*g_logger));
+    if (!g_logger) {
+        // Not sure what else to do here...
+        ONCE_ROUTINE_EPILOG;
+    }
+    struct Logger custom = custom_logger_input;
+
+    if (custom.fn && custom.fn != default_logger) {
+        // A custom logger was requested before initialization
+        *g_logger = custom;
+        atexit(logger_cleanup);
+        ONCE_ROUTINE_EPILOG;
+    }
+
+    // Default logger
+    struct DefaultCtx* ctx = calloc(1, sizeof(*ctx));
+    if (!ctx) {
+        free(g_logger);
+        g_logger = NULL;
+        ONCE_ROUTINE_EPILOG;
+    }
+    const char* log = getenv("SVT_LOG");
+    ctx->level      = SVT_AV1_LOG_INFO;
+    if (log) {
+        const int new_level = atoi(log);
+        if (new_level >= SVT_AV1_LOG_ALL && new_level <= SVT_AV1_LOG_DEBUG)
+            ctx->level = (SvtAv1LogLevel)new_level;
+    }
+
+    const char* file = getenv("SVT_LOG_FILE");
+    if (file)
+        ctx->file = fopen(file, "w+");
+    // If the file couldn't be opened, fall back to stderr
+    if (!ctx->file)
+        ctx->file = stderr;
+
+    g_logger->fn  = default_logger;
+    g_logger->ctx = ctx;
+    atexit(logger_cleanup);
+    ONCE_ROUTINE_EPILOG;
+}
+
+DEFINE_ONCE(g_logger_once);
+static struct Logger* get_logger() {
+    svt_run_once(&g_logger_once, logger_create);
+    return g_logger;
+}
+
+void svt_aom_log_set_callback(SvtAv1LogCallback callback, void* context) {
+    // We only want to allow using a custom context if a custom callback is provided.
+    // Otherwise the context for the default logger will be incorrect.
+    // This will still allow passing NULL for context in case the callback doesn't use it.
+    // Due to how the rest of the code is structured, this only takes effect once,
+    // and only if done before any logging happens.
+    if (callback) {
+        custom_logger_input.fn  = callback;
+        custom_logger_input.ctx = context;
+    }
+}
+
+void svt_log(SvtAv1LogLevel level, const char* tag, const char* format, ...) {
+    struct Logger* logger = get_logger();
+    if (!logger)
+        return;
     va_list args;
     va_start(args, format);
-    vfprintf(g_log_file, format, args);
+    logger->fn(level, logger->ctx, tag, format, args);
     va_end(args);
 }
 
