@@ -114,7 +114,7 @@ if -%1-==-- (
 ) else if /I "%1"=="ninja" (
     echo Generating Ninja files
     echo This is currently not officially supported
-    set "GENERATOR=Ninja"
+    set "GENERATOR=Ninja Multi-Config"
     shift
 ) else if /I "%1"=="msys" (
     echo Generating MSYS Makefiles
