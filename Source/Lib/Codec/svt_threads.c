@@ -107,6 +107,7 @@ static void check_set_prio(void) {
         goto end;
     }
     can_use_prio = true;
+    pthread_join(th, NULL);
 end:
     if ((ret = pthread_attr_destroy(&attr))) {
         SVT_WARN("Failed to destroy thread attributes: %s\n", strerror(ret));
