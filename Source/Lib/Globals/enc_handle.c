@@ -342,7 +342,7 @@ void svt_av1_init_me_luts(void);
 uint8_t svt_aom_get_tpl_group_level(uint8_t tpl, int8_t enc_mode);
 uint8_t svt_aom_set_tpl_group(PictureParentControlSet* pcs, uint8_t tpl_group_level, uint32_t source_width, uint32_t source_height);
 static void enc_switch_to_real_time(){
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
     if (!geteuid())
         (void)pthread_setschedparam(
             pthread_self(), SCHED_FIFO, &(struct sched_param){.sched_priority = 99});
