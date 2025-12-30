@@ -118,6 +118,7 @@ extern "C" {
 #define CLN_REMOVE_TPL_SIG          1 // Remove enable_tpl_la signal (it is not used)
 #define CLN_AQ_MODE                 1 // Rename enable_adaptive_quantization to aq_mode to reflect that it has more than 2 levels
 #define CLN_REMOVE_CHANNELS         1 // Remove multiple channels from app since each channel invokes separate library call anyway
+#define FIX_PIC_MGR_HANG            1 // Fix a hang in the picture manager process related to pic processing order
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
