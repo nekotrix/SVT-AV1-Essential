@@ -8,57 +8,35 @@
 * Media Patent License 1.0 was not distributed with this source code in the
 * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
-#include <stdint.h>
-#include <limits.h>
-
 #include "svt_malloc.h"
-#include "svt_threads.h"
+
 #define LOG_TAG "SvtMalloc"
 #include "svt_log.h"
-#include "utility.h"
 
 void svt_print_alloc_fail_impl(const char* file, int line) {
     SVT_FATAL("allocate memory failed, at %s:%d\n", file, line);
 }
 
 #ifdef DEBUG_MEMORY_USAGE
+#include <stdint.h>
+#include <limits.h>
+#include "definitions.h"
+#include "svt_threads.h"
 
 static EbHandle g_malloc_mutex;
 
 static void malloc_mutex_cleanup(void) { svt_destroy_mutex(g_malloc_mutex); }
-static void create_malloc_mutex(void) {
+static ONCE_ROUTINE(create_malloc_mutex) {
     g_malloc_mutex = svt_create_mutex();
     atexit(malloc_mutex_cleanup);
+    ONCE_ROUTINE_EPILOG;
 }
 
-#ifdef _WIN32
-
-#include <windows.h>
-
-static INIT_ONCE g_malloc_once = INIT_ONCE_STATIC_INIT;
-
-BOOL CALLBACK create_malloc_mutex_wrapper(PINIT_ONCE InitOnce, PVOID Parameter, PVOID* lpContext) {
-    (void)InitOnce;
-    (void)Parameter;
-    (void)lpContext;
-    create_malloc_mutex();
-    return true;
-}
-
+DEFINE_ONCE(g_malloc_once);
 static EbHandle get_malloc_mutex() {
-    InitOnceExecuteOnce(&g_malloc_once, create_malloc_mutex_wrapper, NULL, NULL);
+    svt_run_once(&g_malloc_once, create_malloc_mutex);
     return g_malloc_mutex;
 }
-#else
-#include <pthread.h>
-
-static pthread_once_t g_malloc_once = PTHREAD_ONCE_INIT;
-
-static EbHandle get_malloc_mutex() {
-    pthread_once(&g_malloc_once, create_malloc_mutex);
-    return g_malloc_mutex;
-}
-#endif // _WIN32
 
 // Simple hash function to speed up entry search
 // Takes the top half and bottom half of the pointer and adds them together.
@@ -190,8 +168,7 @@ static bool count_mem_entry(MemoryEntry* e, void* param) {
 static inline void get_memory_usage_and_scale(size_t amount, double* const usage, char* const scale) {
     static const char scales[] = {' ', 'K', 'M', 'G', 'T'};
     size_t            i        = 1;
-    for (; i < sizeof(scales) && amount >= (size_t)1 << (++i * 10);)
-        ;
+    for (; i < sizeof(scales) && amount >= (size_t)1 << (++i * 10););
     *scale = scales[--i];
     *usage = (double)amount / (double)((size_t)1 << (i * 10));
 }

@@ -12,8 +12,8 @@
 #define EbMalloc_h
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 
-#include "EbSvtAv1Enc.h"
 #include "definitions.h"
 
 #ifndef NDEBUG

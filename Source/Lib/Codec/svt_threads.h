@@ -156,6 +156,26 @@ EbErrorType svt_set_cond_var(CondVar *cond_var, int32_t newval);
 EbErrorType svt_wait_cond_var(CondVar *cond_var, int32_t input);
 EbErrorType svt_create_cond_var(CondVar *cond_var);
 
+// once related functions and macros
+#ifdef _WIN32
+typedef INIT_ONCE OnceType;
+#define ONCE_INIT INIT_ONCE_STATIC_INIT
+#define ONCE_ROUTINE(name) BOOL CALLBACK name(PINIT_ONCE InitOnce, PVOID Parameter, PVOID *lpContext)
+#define ONCE_ROUTINE_EPILOG \
+    do { return TRUE; } while (0)
+typedef PINIT_ONCE_FN OnceFn;
+#else
+typedef pthread_once_t OnceType;
+#define ONCE_INIT PTHREAD_ONCE_INIT
+#define ONCE_ROUTINE(name) void name(void)
+#define ONCE_ROUTINE_EPILOG \
+    do { return; } while (0)
+typedef void (*OnceFn)(void);
+#endif
+#define DEFINE_ONCE(once_control) static OnceType once_control = ONCE_INIT
+
+void svt_run_once(OnceType *once_control, OnceFn init_routine);
+
 #ifdef __cplusplus
 }
 #endif
