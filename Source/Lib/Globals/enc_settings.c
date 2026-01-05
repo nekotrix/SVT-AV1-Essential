@@ -570,11 +570,32 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
             config->fast_decode);
         return_error = EB_ErrorBadParameter;
     }
+#if FTR_TUNE_4
+    if (config->tune > TUNE_MS_SSIM) {
+        SVT_ERROR(
+            "Invalid tune flag [0 - 4, 0 for VQ, 1 for PSNR, 2 for SSIM, 3 for IQ, and 4 for MS_SSIM], your input: "
+            "%d\n",
+            config->tune);
+        return_error = EB_ErrorBadParameter;
+    }
+#else
     if (config->tune > TUNE_IQ) {
         SVT_ERROR("Invalid tune flag [0 - 3, 0 for VQ, 1 for PSNR, 2 for SSIM and 3 for IQ], your input: %d\n",
                   config->tune);
         return_error = EB_ErrorBadParameter;
     }
+#endif
+#if FTR_TUNE_4
+    if (config->tune == TUNE_SSIM || config->tune == TUNE_IQ || config->tune == TUNE_MS_SSIM) {
+        if (config->rate_control_mode != 0 || config->pred_structure != RANDOM_ACCESS) {
+            SVT_ERROR("tune %s only supports CRF rate control mode currently\n",
+                      config->tune == TUNE_SSIM     ? "SSIM"
+                          : config->tune == TUNE_IQ ? "IQ"
+                                                    : "MS_SSIM");
+            return_error = EB_ErrorBadParameter;
+        }
+    }
+#else
     if (config->tune == TUNE_SSIM || config->tune == TUNE_IQ) {
         if (config->rate_control_mode != 0 || config->pred_structure != RANDOM_ACCESS) {
             SVT_ERROR("tune %s only supports CRF rate control mode currently\n",
@@ -590,6 +611,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         }
 #endif
     }
+#endif
 
     if (config->superres_mode > SUPERRES_AUTO) {
         SVT_ERROR("invalid superres-mode %d, should be in the range [%d - %d]\n",
@@ -2234,6 +2256,18 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                 : config->encoder_color_format == EB_YUV444 ? "YUV444"
                                                             : "Unknown color format");
 
+#if FTR_TUNE_4
+        SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t\t: %d / %s / %s\n",
+                 config->enc_mode,
+                 config->tune == TUNE_VQ            ? "VQ"
+                     : config->tune == TUNE_PSNR    ? "PSNR"
+                     : config->tune == TUNE_SSIM    ? "SSIM"
+                     : config->tune == TUNE_MS_SSIM ? "MS_SSIM"
+                                                    : "IQ",
+                 config->pred_structure == LOW_DELAY           ? "low delay"
+                     : config->pred_structure == RANDOM_ACCESS ? "random access"
+                                                               : "Unknown pred structure");
+#else
         SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t\t: %d / %s / %s\n",
                  config->enc_mode,
                  config->tune == TUNE_VQ         ? "VQ"
@@ -2243,6 +2277,7 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                  config->pred_structure == LOW_DELAY           ? "low delay"
                      : config->pred_structure == RANDOM_ACCESS ? "random access"
                                                                : "Unknown pred structure");
+#endif
         SVT_INFO(
             "SVT [config]: gop size / mini-gop size / key-frame type \t\t\t: "
             "%d / %d / %s\n",

@@ -4143,8 +4143,11 @@ void  svt_aom_set_tuned_blk_lambda(struct ModeDecisionContext *ctx, PictureContr
 
     ctx->fast_lambda_md[EB_8_BIT_MD] = (uint32_t)((double)ctx->ed_ctx->pic_fast_lambda[EB_8_BIT_MD] * geom_mean_of_scale + 0.5);
     ctx->fast_lambda_md[EB_10_BIT_MD] = (uint32_t)((double)ctx->ed_ctx->pic_fast_lambda[EB_10_BIT_MD] * geom_mean_of_scale + 0.5);
-
+#if FTR_TUNE_4
+    if (ppcs->scs->static_config.tune == TUNE_SSIM || ppcs->scs->static_config.tune == TUNE_IQ || ppcs->scs->static_config.tune == TUNE_MS_SSIM) {
+#else
     if (ppcs->scs->static_config.tune == TUNE_SSIM || ppcs->scs->static_config.tune == TUNE_IQ) {
+#endif
         aom_av1_set_ssim_rdmult(ctx, pcs, mi_row, mi_col);
     }
 }

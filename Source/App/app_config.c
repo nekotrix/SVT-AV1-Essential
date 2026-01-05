@@ -905,10 +905,16 @@ ConfigDescription config_entry_specific[] = {
     {ENABLE_OVERLAYS,
      "Enable the insertion of overlayer pictures which will be used as an additional reference "
      "frame for the base layer picture, default is 0 [0-1]"},
-    // --- end: ALTREF_FILTERING_SUPPORT
+// --- end: ALTREF_FILTERING_SUPPORT
+#if FTR_TUNE_4
+    {TUNE_TOKEN,
+     "Optimize the encoding process for different desired outcomes [0 = VQ, 1 = PSNR, 2 = SSIM, 3 = IQ (Image "
+     "Quality)], 4 = MS_SSIM (MS_SSIM and SSIMULACRA2 optimized mode), default is 1 [0-4]"},
+#else
     {TUNE_TOKEN,
      "Optimize the encoding process for different desired outcomes [0 = VQ, 1 = PSNR, 2 = SSIM, 3 = IQ (Image "
      "Quality)], default is 1 [0-3]"},
+#endif
     // MD Parameters
     {SCREEN_CONTENT_TOKEN,
      "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive, 3: content adaptive "

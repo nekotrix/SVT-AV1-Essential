@@ -5219,8 +5219,21 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         scs->static_config.variance_boost_curve = 2;
         scs->static_config.max_tx_size = scs->static_config.qp <= 45 ? 32 : 64;
         scs->static_config.screen_content_mode = 3;
+    } 
+#if FTR_TUNE_4
+    else if (scs->static_config.tune == TUNE_MS_SSIM) {
+        SVT_WARN("Tune MS_SSIM overrides: sharpness, Var. Boost strength/curve, enable-qm and min/max level\n");
+        scs->static_config.enable_qm = 1;
+        scs->static_config.min_qm_level = 4;
+        scs->static_config.max_qm_level = 10;
+        scs->static_config.min_chroma_qm_level = 4;
+        scs->static_config.max_chroma_qm_level = 10;
+        scs->static_config.sharpness = 7;
+        scs->static_config.enable_variance_boost = 1;
+        scs->static_config.variance_boost_strength = 3;
+        scs->static_config.variance_boost_curve = 2;
     }
-
+#endif
     return;
 }
 

@@ -8759,7 +8759,12 @@ static void md_encode_block_light_pd1(PictureControlSet *pcs, ModeDecisionContex
     //Get the new lambda for current block
     if (pcs->ppcs->blk_lambda_tuning) {
         svt_aom_set_tuned_blk_lambda(ctx, pcs);
+#if FTR_TUNE_4
+    } else if (pcs->ppcs->scs->static_config.tune == TUNE_SSIM || pcs->ppcs->scs->static_config.tune == TUNE_IQ ||
+               pcs->ppcs->scs->static_config.tune == TUNE_MS_SSIM) {
+#else
     } else if (pcs->ppcs->scs->static_config.tune == TUNE_SSIM || pcs->ppcs->scs->static_config.tune == TUNE_IQ) {
+#endif
         int mi_row = ctx->blk_org_y / 4;
         int mi_col = ctx->blk_org_x / 4;
         aom_av1_set_ssim_rdmult(ctx, pcs, mi_row, mi_col);
@@ -9104,7 +9109,12 @@ static void md_encode_block(PictureControlSet *pcs, ModeDecisionContext *ctx, ui
     //Get the new lambda for current block
     if (pcs->ppcs->blk_lambda_tuning) {
         svt_aom_set_tuned_blk_lambda(ctx, pcs);
+#if FTR_TUNE_4
+    } else if (pcs->ppcs->scs->static_config.tune == TUNE_SSIM || pcs->ppcs->scs->static_config.tune == TUNE_IQ ||
+               pcs->ppcs->scs->static_config.tune == TUNE_MS_SSIM) {
+#else
     } else if (pcs->ppcs->scs->static_config.tune == TUNE_SSIM || pcs->ppcs->scs->static_config.tune == TUNE_IQ) {
+#endif
         int mi_row = ctx->blk_org_y / 4;
         int mi_col = ctx->blk_org_x / 4;
         aom_av1_set_ssim_rdmult(ctx, pcs, mi_row, mi_col);

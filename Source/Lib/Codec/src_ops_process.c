@@ -2296,7 +2296,12 @@ void *svt_aom_source_based_operations_kernel(void *input_ptr) {
             }
         }
         /*********************************************Picture-based operations**********************************************************/
+#if FTR_TUNE_4
+        if (scs->static_config.tune == TUNE_SSIM || scs->static_config.tune == TUNE_IQ ||
+            scs->static_config.tune == TUNE_MS_SSIM) {
+#else
         if (scs->static_config.tune == TUNE_SSIM || scs->static_config.tune == TUNE_IQ) {
+#endif
             aom_av1_set_mb_ssim_rdmult_scaling(pcs);
         }
         sbo_send_picture_out(context_ptr, pcs, false);

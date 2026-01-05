@@ -267,7 +267,12 @@ static void svt_av1_qm_init(PictureParentControlSet *pcs) {
         const int32_t base_qindex        = pcs->frm_hdr.quantization_params.base_q_idx;
 
         switch (pcs->scs->static_config.tune) {
+#if FTR_TUNE_4
         case TUNE_IQ:
+        case TUNE_MS_SSIM:
+#else
+        case TUNE_IQ:
+#endif
             pcs->frm_hdr.quantization_params.qm[AOM_PLANE_Y] = svt_av1_still_get_qmlevel(
                 base_qindex, min_qmlevel, max_qmlevel);
             pcs->frm_hdr.quantization_params.qm[AOM_PLANE_U] = svt_av1_still_get_qmlevel(
