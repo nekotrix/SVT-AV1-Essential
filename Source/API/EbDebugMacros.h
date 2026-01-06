@@ -153,6 +153,8 @@ extern "C" {
 #define TUNE_INTRABC_M6             1 // Adopt the M5 intrabc_level in M6.
 #define TUNE_M11_M10_RA             1 // Tune M11 and M10 for RA
 #define FTR_TUNE_4                  1 // New Tune mode towards MS-SSIM and SSIMULACRA2 Gains
+#define OPT_TUNE_SSIM_DELTA_QP      1 // Don't force SB-based delta-QP for tune SSIM (or tune IQ and tune MS_SSIM, although
+                                      // that has no effect because delta QP is enabled through variance boost anyway).
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

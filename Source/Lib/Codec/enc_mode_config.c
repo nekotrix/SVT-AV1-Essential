@@ -2531,13 +2531,14 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
     else if (enc_mode <= ENC_M7)
         cdef_search_level = is_base ? 5 : 6;
 #if TUNE_M11_M10_RA
-    else if (enc_mode <= ENC_M11)
+    else
+        cdef_search_level = 7;
 #else
     else if (enc_mode <= ENC_M10)
-#endif
         cdef_search_level = 7;
     else
         cdef_search_level = is_islice ? 5 : 8;
+#endif
 #else
             if (enc_mode <= ENC_M8)
                 cdef_search_level = is_base ? 5 : 6;
@@ -10588,18 +10589,10 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         pcs->cand_reduction_level = 0;
     else if (enc_mode <= ENC_M2)
         pcs->cand_reduction_level = is_base ? 0 : 1;
-    else if (enc_mode <= ENC_M7) {
+    else if (enc_mode <= ENC_M7)
         pcs->cand_reduction_level = 1;
-#if TUNE_RTC_RA_PRESETS
-    } else if (enc_mode <= ENC_M11) {
+    else
         pcs->cand_reduction_level = 2;
-    } else {
-        pcs->cand_reduction_level = 1;
-    }
-#else
-    } else
-        pcs->cand_reduction_level = 2;
-#endif
 
     if (scs->rc_stat_gen_pass_mode)
         pcs->cand_reduction_level = 6;
