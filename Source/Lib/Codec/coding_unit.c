@@ -67,7 +67,7 @@ EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr,
     larget_coding_unit_ptr->index = sb_index;
     bool disallow_sub_8x8_nsq     = true;
     bool disallow_sub_16x16_nsq   = true;
-#if CLN_I_SCLICE_LOOPING
+#if CLN_I_SLICE_LOOPING
     for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
         const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(allintra, input_resolution, enc_mode, coeff_lvl, rtc);
         // nsq_geom_lvl level 0 means NSQ shapes are disallowed so don't adjust based on the level

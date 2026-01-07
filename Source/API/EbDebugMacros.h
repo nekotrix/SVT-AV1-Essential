@@ -149,12 +149,13 @@ extern "C" {
 #define TUNE_INTRABC_FIX_SC_REG     1 // Reversing adoptions in intraBC to fix SC RA regression in M2-M5 compared to v3.1.2
 #define CLN_TXS_LVL                 1 // Cleaning the dlf_level kernels by seperating it into 2 sections: RTC/Else
 #define TUNE_INTRABC_LVL            1 // Tuning the intrabc_level to match the v3.1.0 levels
-#define CLN_I_SCLICE_LOOPING        1 // Removing the no-longer used is_islice looping.
+#define CLN_I_SLICE_LOOPING         1 // Removing the no-longer used is_islice looping.
 #define TUNE_INTRABC_M6             1 // Adopt the M5 intrabc_level in M6.
 #define TUNE_M11_M10_RA             1 // Tune M11 and M10 for RA
 #define FTR_TUNE_4                  1 // New Tune mode towards MS-SSIM and SSIMULACRA2 Gains
 #define OPT_TUNE_SSIM_DELTA_QP      1 // Don't force SB-based delta-QP for tune SSIM (or tune IQ and tune MS_SSIM, although
                                       // that has no effect because delta QP is enabled through variance boost anyway).
+#define FIX_M10_M11                 1 // Fix the M10/M11 settings for RA
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

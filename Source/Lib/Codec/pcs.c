@@ -1335,10 +1335,7 @@ EbErrorType ppcs_update_param(PictureParentControlSet *ppcs) {
 static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *object_ptr, EbPtr object_init_data_ptr) {
     PictureControlSetInitData *init_data_ptr = (PictureControlSetInitData *)object_init_data_ptr;
 
-    EbErrorType return_error = EB_ErrorNone;
-#if OPT_OPERATIONS
-    const bool allintra = init_data_ptr->allintra;
-#endif
+    EbErrorType    return_error  = EB_ErrorNone;
     const uint16_t subsampling_x = (init_data_ptr->color_format == EB_YUV444 ? 0 : 1);
     const uint16_t subsampling_y = (init_data_ptr->color_format >= EB_YUV422 ? 0 : 1);
 
@@ -1385,7 +1382,7 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
     if (init_data_ptr->calculate_variance) {
         uint8_t block_count;
 #if OPT_OPERATIONS
-        if (allintra || init_data_ptr->aq_mode == 1 || init_data_ptr->variance_octile)
+        if (init_data_ptr->allintra || init_data_ptr->aq_mode == 1 || init_data_ptr->variance_octile)
 #else
 #if CLN_AQ_MODE
         if (init_data_ptr->aq_mode == 1 || init_data_ptr->variance_octile)
@@ -1554,9 +1551,7 @@ static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_d
     PictureControlSetInitData *init_data_ptr = (PictureControlSetInitData *)object_init_data_ptr;
 
     EbErrorType return_error = EB_ErrorNone;
-#if OPT_OPERATIONS
-    const bool allintra = init_data_ptr->allintra;
-#else
+#if !OPT_OPERATIONS
     uint16_t sb_index;
 #endif
     object_ptr->dctor = me_dctor;
@@ -1569,7 +1564,7 @@ static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_d
     object_ptr->init_b64_total_count  = sb_total_count;
 
 #if OPT_OPERATIONS
-    if (!allintra) {
+    if (!init_data_ptr->allintra) {
 #endif
         EB_ALLOC_PTR_ARRAY(object_ptr->me_results, sb_total_count);
 

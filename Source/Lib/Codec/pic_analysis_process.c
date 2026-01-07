@@ -312,9 +312,6 @@ static EbErrorType compute_block_mean_compute_variance(
     uint32_t input_luma_origin_index) // input parameter, SB index, used to point to source/reference samples
 {
     EbErrorType return_error = EB_ErrorNone;
-#if OPT_OPERATIONS
-    const bool allintra = scs->allintra;
-#endif
 
     uint32_t block_index;
 
@@ -1113,9 +1110,9 @@ static EbErrorType compute_block_mean_compute_variance(
     // 8x8 variances
 #if OPT_OPERATIONS
 #if SVT_AV1_CHECK_VERSION(4, 0, 0)
-    if (allintra || scs->static_config.aq_mode == 1 || scs->static_config.variance_octile) {
+    if (scs->allintra || scs->static_config.aq_mode == 1 || scs->static_config.variance_octile) {
 #else
-    if (allintra || scs->static_config.enable_adaptive_quantization == 1 || scs->static_config.variance_octile) {
+    if (scs->allintra || scs->static_config.enable_adaptive_quantization == 1 || scs->static_config.variance_octile) {
 #endif
 #else
 #if CLN_AQ_MODE
@@ -2478,9 +2475,6 @@ void *svt_aom_picture_analysis_kernel(void *input_ptr) {
         in_results_ptr = (ResourceCoordinationResults *)in_results_wrapper_ptr->object_ptr;
         pcs            = (PictureParentControlSet *)in_results_ptr->pcs_wrapper->object_ptr;
         scs            = pcs->scs;
-#if OPT_OPERATIONS
-        const bool allintra = scs->allintra;
-#endif
 
         // Mariana : save enhanced picture ptr, move this from here
         pcs->enhanced_unscaled_pic                    = pcs->enhanced_pic;
@@ -2518,7 +2512,7 @@ void *svt_aom_picture_analysis_kernel(void *input_ptr) {
                 pa_ref_obj_->picture_number = pcs->picture_number;
                 input_padded_pic            = pa_ref_obj_->input_padded_pic;
 #if OPT_OPERATIONS
-                if (!allintra) {
+                if (!scs->allintra) {
 #endif
 
                     // 1/4 & 1/16 input picture downsampling through filtering

@@ -1879,12 +1879,24 @@ static uint8_t get_dlf_level(PictureControlSet *pcs, EncMode enc_mode, uint8_t i
             dlf_level = 6;
 #endif
             modulation_mode = 3;
+#if FIX_M10_M11 // dlf_level
+        } else if (enc_mode <= ENC_M9) {
+            dlf_level       = is_not_last_layer ? 6 : 0;
+            modulation_mode = 3;
+        } else if (enc_mode <= ENC_M11) {
+            if (pcs->coeff_lvl == HIGH_LVL)
+                dlf_level = is_base ? 6 : 0;
+            else
+                dlf_level = is_base ? 6 : is_not_last_layer ? 7 : 0;
+            modulation_mode = 3;
+#else
         } else if (enc_mode <= ENC_M10) {
             dlf_level       = is_not_last_layer ? 6 : 0;
             modulation_mode = 3;
         } else if (enc_mode <= ENC_M11) {
             dlf_level       = is_not_last_layer ? 7 : 0;
             modulation_mode = 3;
+#endif
         } else {
             dlf_level       = 0;
             modulation_mode = 3;
@@ -2606,11 +2618,18 @@ void svt_aom_sig_deriv_multi_processes(SequenceControlSet *scs, PictureParentCon
 #if TUNE_RTC_RA_PRESETS
         if (enc_mode <= ENC_M8)
             cdef_recon_level = 0;
+#if FIX_M10_M11 // cdef_recon_level
+        else if (enc_mode <= ENC_M9)
+            cdef_recon_level = 1;
+        else
+            cdef_recon_level = 2;
+#else
         else
 #if TUNE_RTC_RA_PRESETS_2
             cdef_recon_level = 1;
 #else
             cdef_recon_level = 2;
+#endif
 #endif
     } else if (fast_decode == 1) {
         cdef_recon_level = 1;
@@ -5260,6 +5279,10 @@ uint8_t svt_aom_get_nic_level(SequenceControlSet *scs, EncMode enc_mode, uint8_t
         nic_level = is_base ? 9 : 11;
 #else
         nic_level = 10;
+#endif
+#if FIX_M10_M11 // nic
+    else if (enc_mode <= ENC_M10)
+        nic_level = is_base ? 10 : 11;
 #endif
     else
         nic_level = 11;
@@ -8543,10 +8566,33 @@ void svt_aom_sig_deriv_enc_dec_light_pd1(PictureControlSet *pcs, ModeDecisionCon
     uint8_t rdoq_level = 0;
     if (pcs->rdoq_level) {
 #if OPT_LOW_FRQ_CAP //
+#if FIX_M10_M11 // rdoq
+        if (rtc_tune) {
+            if (lpd1_level <= LPD1_LVL_4)
+                rdoq_level = 1;
+            else
+                rdoq_level = 0;
+        } else {
+            if (enc_mode <= ENC_M9) {
+                if (lpd1_level <= LPD1_LVL_4)
+                    rdoq_level = 1;
+                else
+                    rdoq_level = 0;
+            } else {
+                if (lpd1_level <= LPD1_LVL_0)
+                    rdoq_level = 4;
+                else if (lpd1_level <= LPD1_LVL_4)
+                    rdoq_level = 5;
+                else
+                    rdoq_level = 0;
+            }
+        }
+#else
         if (lpd1_level <= LPD1_LVL_4)
             rdoq_level = 1;
         else
             rdoq_level = 0;
+#endif
 #else
         if (lpd1_level <= LPD1_LVL_0)
             rdoq_level = 4;
@@ -10740,10 +10786,19 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         if (enc_mode <= ENC_M2)
             pcs->tx_shortcut_level = 0;
 #if TUNE_RTC_RA_PRESETS
+#if FIX_M10_M11 // tx_shortcut_level
+        else if (enc_mode <= ENC_M9)
+            pcs->tx_shortcut_level = is_base ? 0 : 1;
+        else if (enc_mode <= ENC_M10)
+            pcs->tx_shortcut_level = is_base ? 1 : 2;
+        else
+            pcs->tx_shortcut_level = is_islice ? 1 : 3;
+#else
         else if (enc_mode <= ENC_M11)
             pcs->tx_shortcut_level = is_base ? 0 : 1;
         else
             pcs->tx_shortcut_level = is_islice ? 0 : 3;
+#endif
 #else
         else if (enc_mode <= ENC_M9)
             pcs->tx_shortcut_level = is_base ? 0 : 1;
@@ -10782,14 +10837,19 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 #if TUNE_M11_M10_RA
         if (enc_mode <= ENC_M10)
             pcs->rdoq_level = 1;
+#if FIX_M10_M11 // rdoq
+        else
+#else
         else if (enc_mode <= ENC_M11)
+#endif
             pcs->rdoq_level = 2;
 #else
         if (enc_mode <= ENC_M11)
             pcs->rdoq_level = 1;
 #endif
-        else
-            pcs->rdoq_level = is_islice ? 1 : 0;
+#if !FIX_M10_M11
+        else pcs->rdoq_level = is_islice ? 1 : 0;
+#endif
     }
     if (scs->low_latency_kf && is_islice)
         pcs->rdoq_level = 0;
@@ -10890,8 +10950,13 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 #endif
         pcs->cfl_level = is_base ? 2 : 0;
 #if TUNE_M10_CFL_RA
+#if FIX_M10_M11 // cfl
+    else if (!rtc_tune && enc_mode <= ENC_M10)
+        pcs->cfl_level = is_islice ? 2 : 0;
+#else
     else if (!rtc_tune && enc_mode <= ENC_M10)
         pcs->cfl_level = is_base ? 3 : 0;
+#endif
 #endif
 #if TUNE_M11_M10_RA
     else if (!rtc_tune && enc_mode <= ENC_M11)
@@ -11566,7 +11631,11 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 
     // r0-modulation
 #if TUNE_M11_M10_RA
+#if FIX_M10_M11 // depth-refine =  f(r0)
+    if (enc_mode <= ENC_M9) {
+#else
     if ((!rtc_tune && !allintra && enc_mode <= ENC_M10) || (enc_mode <= ENC_M9)) {
+#endif
 #else
     if (enc_mode <= ENC_M9) {
 #endif
