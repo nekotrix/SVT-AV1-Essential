@@ -1500,33 +1500,33 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
     for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index) {
         // The segment Width & Height Arrays are in units of SBs, not samples
         PictureControlSetInitData input_data;
-
-        input_data.picture_width = enc_handle_ptr->scs_instance_array[instance_index]->scs->max_input_luma_width;
-        input_data.picture_height = enc_handle_ptr->scs_instance_array[instance_index]->scs->max_input_luma_height;
-        input_data.left_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->left_padding;
-        input_data.right_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->right_padding;
-        input_data.top_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->top_padding;
-        input_data.bot_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->bot_padding;
+        SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[instance_index]->scs;
+        input_data.picture_width = scs->max_input_luma_width;
+        input_data.picture_height = scs->max_input_luma_height;
+        input_data.left_padding = scs->left_padding;
+        input_data.right_padding = scs->right_padding;
+        input_data.top_padding = scs->top_padding;
+        input_data.bot_padding = scs->bot_padding;
         input_data.color_format = color_format;
-        input_data.b64_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->b64_size;
-        input_data.enc_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enc_mode;
-        input_data.speed_control = (uint8_t)enc_handle_ptr->scs_instance_array[instance_index]->scs->speed_control_flag;
-        input_data.hbd_md = enc_handle_ptr->scs_instance_array[instance_index]->scs->enable_hbd_mode_decision;
-        input_data.bit_depth = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.encoder_bit_depth;
-        input_data.log2_tile_rows = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.tile_rows;
-        input_data.log2_tile_cols = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.tile_columns;
-        input_data.log2_sb_size = (enc_handle_ptr->scs_instance_array[instance_index]->scs->super_block_size == 128) ? 5 : 4;
-        input_data.is_16bit_pipeline = enc_handle_ptr->scs_instance_array[instance_index]->scs->is_16bit_pipeline;
-        input_data.non_m8_pad_w = enc_handle_ptr->scs_instance_array[instance_index]->scs->max_input_pad_right;
-        input_data.non_m8_pad_h = enc_handle_ptr->scs_instance_array[instance_index]->scs->max_input_pad_bottom;
-        input_data.enable_tpl_la = enc_handle_ptr->scs_instance_array[instance_index]->scs->tpl;
+        input_data.b64_size = scs->b64_size;
+        input_data.enc_mode = scs->static_config.enc_mode;
+        input_data.speed_control = (uint8_t)scs->speed_control_flag;
+        input_data.hbd_md = scs->enable_hbd_mode_decision;
+        input_data.bit_depth = scs->static_config.encoder_bit_depth;
+        input_data.log2_tile_rows = scs->static_config.tile_rows;
+        input_data.log2_tile_cols = scs->static_config.tile_columns;
+        input_data.log2_sb_size = (scs->super_block_size == 128) ? 5 : 4;
+        input_data.is_16bit_pipeline = scs->is_16bit_pipeline;
+        input_data.non_m8_pad_w = scs->max_input_pad_right;
+        input_data.non_m8_pad_h = scs->max_input_pad_bottom;
+        input_data.enable_tpl_la = scs->tpl;
 #if !CLN_REMOVE_OIS_FLAG
-        input_data.in_loop_ois = enc_handle_ptr->scs_instance_array[instance_index]->scs->in_loop_ois;
+        input_data.in_loop_ois = scs->in_loop_ois;
 #endif
-        input_data.enc_dec_segment_col = (uint16_t)enc_handle_ptr->scs_instance_array[instance_index]->scs->tpl_segment_col_count_array;
-        input_data.enc_dec_segment_row = (uint16_t)enc_handle_ptr->scs_instance_array[instance_index]->scs->tpl_segment_row_count_array;
-        input_data.final_pass_preset = enc_handle_ptr->scs_instance_array[instance_index]->scs->final_pass_preset;
-        input_data.rate_control_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rate_control_mode;
+        input_data.enc_dec_segment_col = (uint16_t)scs->tpl_segment_col_count_array;
+        input_data.enc_dec_segment_row = (uint16_t)scs->tpl_segment_row_count_array;
+        input_data.final_pass_preset = scs->final_pass_preset;
+        input_data.rate_control_mode = scs->static_config.rate_control_mode;
         MrpCtrls* mrp_ctrl = &(enc_handle_ptr->scs_instance_array[0]->scs->mrp_ctrls);
         input_data.ref_count_used_list0 =
             MAX(mrp_ctrl->sc_base_ref_list0_count,
@@ -1539,57 +1539,57 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
                     MAX(mrp_ctrl->sc_non_base_ref_list1_count, mrp_ctrl->non_base_ref_list1_count)));
         input_data.tpl_synth_size = svt_aom_set_tpl_group(
             NULL,
-            svt_aom_get_tpl_group_level(1, enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enc_mode),
+            svt_aom_get_tpl_group_level(1, scs->static_config.enc_mode),
             input_data.picture_width, input_data.picture_height);
 #if CLN_AQ_MODE
 #if SVT_AV1_CHECK_VERSION(4, 0, 0)
-        input_data.aq_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.aq_mode;
+        input_data.aq_mode = scs->static_config.aq_mode;
 #else
-        input_data.aq_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enable_adaptive_quantization;
+        input_data.aq_mode = scs->static_config.enable_adaptive_quantization;
 #endif
 #else
-        input_data.enable_adaptive_quantization = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enable_adaptive_quantization;
+        input_data.enable_adaptive_quantization = scs->static_config.enable_adaptive_quantization;
 #endif
 
-        input_data.calculate_variance = enc_handle_ptr->scs_instance_array[instance_index]->scs->calculate_variance;
+        input_data.calculate_variance = scs->calculate_variance;
 #if OPT_OPERATIONS
-        input_data.calc_hist = enc_handle_ptr->scs_instance_array[instance_index]->scs->calc_hist =
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra == false && (
-                enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.scene_change_detection ||
-                enc_handle_ptr->scs_instance_array[instance_index]->scs->vq_ctrls.sharpness_ctrls.scene_transition ||
-                enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[0].enabled ||
-                enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[1].enabled ||
-                enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[2].enabled);
+        input_data.calc_hist = scs->calc_hist =
+            scs->allintra == false && (
+                scs->static_config.scene_change_detection ||
+                scs->vq_ctrls.sharpness_ctrls.scene_transition ||
+                scs->tf_params_per_type[0].enabled ||
+                scs->tf_params_per_type[1].enabled ||
+                scs->tf_params_per_type[2].enabled);
 #else
-        input_data.calc_hist = enc_handle_ptr->scs_instance_array[instance_index]->scs->calc_hist =
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.scene_change_detection ||
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->vq_ctrls.sharpness_ctrls.scene_transition ||
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[0].enabled ||
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[1].enabled ||
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->tf_params_per_type[2].enabled;
+        input_data.calc_hist = scs->calc_hist =
+            scs->static_config.scene_change_detection ||
+            scs->vq_ctrls.sharpness_ctrls.scene_transition ||
+            scs->tf_params_per_type[0].enabled ||
+            scs->tf_params_per_type[1].enabled ||
+            scs->tf_params_per_type[2].enabled;
 #endif
-        input_data.tpl_lad_mg = enc_handle_ptr->scs_instance_array[instance_index]->scs->tpl_lad_mg;
-        input_data.input_resolution = enc_handle_ptr->scs_instance_array[instance_index]->scs->input_resolution;
-        input_data.is_scale = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.superres_mode > SUPERRES_NONE ||
-                              enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.resize_mode > RESIZE_NONE;
-        input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc;
-        input_data.enable_variance_boost = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enable_variance_boost;
-        input_data.variance_boost_strength = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.variance_boost_strength;
-        input_data.variance_octile = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.variance_octile;
-        input_data.tf_strength = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.tf_strength;
-        input_data.qp_scale_compress_strength = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.qp_scale_compress_strength;
-        input_data.adaptive_film_grain = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.adaptive_film_grain;
-        input_data.max_tx_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.max_tx_size;
-        input_data.ac_bias = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.ac_bias;
-        input_data.static_config = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config;
-        input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
+        input_data.tpl_lad_mg = scs->tpl_lad_mg;
+        input_data.input_resolution = scs->input_resolution;
+        input_data.is_scale = scs->static_config.superres_mode > SUPERRES_NONE ||
+                              scs->static_config.resize_mode > RESIZE_NONE;
+        input_data.rtc_tune = scs->static_config.rtc;
+        input_data.enable_variance_boost = scs->static_config.enable_variance_boost;
+        input_data.variance_boost_strength = scs->static_config.variance_boost_strength;
+        input_data.variance_octile = scs->static_config.variance_octile;
+        input_data.tf_strength = scs->static_config.tf_strength;
+        input_data.qp_scale_compress_strength = scs->static_config.qp_scale_compress_strength;
+        input_data.adaptive_film_grain = scs->static_config.adaptive_film_grain;
+        input_data.max_tx_size = scs->static_config.max_tx_size;
+        input_data.ac_bias = scs->static_config.ac_bias;
+        input_data.static_config = scs->static_config;
+        input_data.allintra = scs->allintra;
 #if TUNE_RTC_RA_PRESETS
-        input_data.use_flat_ipp = enc_handle_ptr->scs_instance_array[instance_index]->scs->use_flat_ipp;
+        input_data.use_flat_ipp = scs->use_flat_ipp;
 #endif
         EB_NEW(
             enc_handle_ptr->picture_parent_control_set_pool_ptr_array[instance_index],
             svt_system_resource_ctor,
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->picture_control_set_pool_init_count,//enc_handle_ptr->pcs_pool_total_count,
+            scs->picture_control_set_pool_init_count,//enc_handle_ptr->pcs_pool_total_count,
             1,
             0,
             svt_aom_picture_parent_control_set_creator,
@@ -1601,7 +1601,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         EB_NEW(
             enc_handle_ptr->me_pool_ptr_array[instance_index],
             svt_system_resource_ctor,
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->me_pool_init_count,
+            scs->me_pool_init_count,
             1,
             0,
             svt_aom_me_creator,
@@ -1620,43 +1620,44 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index) {
             // The segment Width & Height Arrays are in units of SBs, not samples
             PictureControlSetInitData input_data;
-            input_data.enc_dec_segment_col = (uint16_t)enc_handle_ptr->scs_instance_array[instance_index]->scs->enc_dec_segment_col_count_array;
-            input_data.enc_dec_segment_row = (uint16_t)enc_handle_ptr->scs_instance_array[instance_index]->scs->enc_dec_segment_row_count_array;
+            SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[instance_index]->scs;
+            input_data.enc_dec_segment_col = (uint16_t)scs->enc_dec_segment_col_count_array;
+            input_data.enc_dec_segment_row = (uint16_t)scs->enc_dec_segment_row_count_array;
 
-            input_data.picture_width = enc_handle_ptr->scs_instance_array[instance_index]->scs->max_input_luma_width;
-            input_data.picture_height = enc_handle_ptr->scs_instance_array[instance_index]->scs->max_input_luma_height;
-            input_data.left_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->left_padding;
-            input_data.right_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->right_padding;
-            input_data.top_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->top_padding;
-            input_data.bot_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->bot_padding;
-            input_data.bit_depth = enc_handle_ptr->scs_instance_array[instance_index]->scs->encoder_bit_depth;
+            input_data.picture_width = scs->max_input_luma_width;
+            input_data.picture_height = scs->max_input_luma_height;
+            input_data.left_padding = scs->left_padding;
+            input_data.right_padding = scs->right_padding;
+            input_data.top_padding = scs->top_padding;
+            input_data.bot_padding = scs->bot_padding;
+            input_data.bit_depth = scs->encoder_bit_depth;
             input_data.color_format = color_format;
-            input_data.b64_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->b64_size;
-            input_data.sb_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->super_block_size;
-            input_data.hbd_md = enc_handle_ptr->scs_instance_array[instance_index]->scs->enable_hbd_mode_decision;
-            input_data.mfmv = enc_handle_ptr->scs_instance_array[instance_index]->scs->mfmv_enabled;
+            input_data.b64_size = scs->b64_size;
+            input_data.sb_size = scs->super_block_size;
+            input_data.hbd_md = scs->enable_hbd_mode_decision;
+            input_data.mfmv = scs->mfmv_enabled;
             input_data.cfg_palette = enc_handle_ptr->scs_instance_array[0]->scs->static_config.screen_content_mode;
             //Jing: Get tile info from parent_pcs
             PictureParentControlSet *parent_pcs = (PictureParentControlSet *)enc_handle_ptr->picture_parent_control_set_pool_ptr_array[instance_index]->wrapper_ptr_pool[0]->object_ptr;
             input_data.tile_row_count = parent_pcs->av1_cm->tiles_info.tile_rows;
             input_data.tile_column_count = parent_pcs->av1_cm->tiles_info.tile_cols;
-            input_data.is_16bit_pipeline = enc_handle_ptr->scs_instance_array[instance_index]->scs->is_16bit_pipeline;
+            input_data.is_16bit_pipeline = scs->is_16bit_pipeline;
             input_data.av1_cm = parent_pcs->av1_cm;
-            input_data.enc_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enc_mode;
+            input_data.enc_mode = scs->static_config.enc_mode;
 
-            input_data.input_resolution = enc_handle_ptr->scs_instance_array[instance_index]->scs->input_resolution;
-            input_data.is_scale = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.superres_mode > SUPERRES_NONE ||
-                                  enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.resize_mode > RESIZE_NONE;
+            input_data.input_resolution = scs->input_resolution;
+            input_data.is_scale = scs->static_config.superres_mode > SUPERRES_NONE ||
+                                  scs->static_config.resize_mode > RESIZE_NONE;
 
-            input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc;
-            input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
+            input_data.rtc_tune = scs->static_config.rtc;
+            input_data.allintra = scs->allintra;
 #if TUNE_RTC_RA_PRESETS
-            input_data.use_flat_ipp = enc_handle_ptr->scs_instance_array[instance_index]->scs->use_flat_ipp;
+            input_data.use_flat_ipp = scs->use_flat_ipp;
 #endif
             EB_NEW(
                 enc_handle_ptr->enc_dec_pool_ptr_array[instance_index],
                 svt_system_resource_ctor,
-                enc_handle_ptr->scs_instance_array[instance_index]->scs->enc_dec_pool_init_count, //EB_PictureControlSetPoolInitCountChild,
+                scs->enc_dec_pool_init_count, //EB_PictureControlSetPoolInitCountChild,
                 1,
                 0,
                 svt_aom_recon_coef_creator,
@@ -1675,45 +1676,46 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index) {
             // The segment Width & Height Arrays are in units of SBs, not samples
             PictureControlSetInitData input_data;
-            input_data.enc_dec_segment_col = (uint16_t)enc_handle_ptr->scs_instance_array[instance_index]->scs->enc_dec_segment_col_count_array;
-            input_data.enc_dec_segment_row = (uint16_t)enc_handle_ptr->scs_instance_array[instance_index]->scs->enc_dec_segment_row_count_array;
+            SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[instance_index]->scs;
+            input_data.enc_dec_segment_col = (uint16_t)scs->enc_dec_segment_col_count_array;
+            input_data.enc_dec_segment_row = (uint16_t)scs->enc_dec_segment_row_count_array;
 
-            input_data.init_max_block_cnt = enc_handle_ptr->scs_instance_array[instance_index]->scs->max_block_cnt;
-            input_data.picture_width = enc_handle_ptr->scs_instance_array[instance_index]->scs->max_input_luma_width;
-            input_data.picture_height = enc_handle_ptr->scs_instance_array[instance_index]->scs->max_input_luma_height;
-            input_data.left_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->left_padding;
-            input_data.right_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->right_padding;
-            input_data.top_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->top_padding;
-            input_data.bot_padding = enc_handle_ptr->scs_instance_array[instance_index]->scs->bot_padding;
-            input_data.bit_depth = enc_handle_ptr->scs_instance_array[instance_index]->scs->encoder_bit_depth;
+            input_data.init_max_block_cnt = scs->max_block_cnt;
+            input_data.picture_width = scs->max_input_luma_width;
+            input_data.picture_height = scs->max_input_luma_height;
+            input_data.left_padding = scs->left_padding;
+            input_data.right_padding = scs->right_padding;
+            input_data.top_padding = scs->top_padding;
+            input_data.bot_padding = scs->bot_padding;
+            input_data.bit_depth = scs->encoder_bit_depth;
             input_data.color_format = color_format;
-            input_data.b64_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->b64_size;
-            input_data.sb_size = enc_handle_ptr->scs_instance_array[instance_index]->scs->super_block_size;
-            input_data.hbd_md = enc_handle_ptr->scs_instance_array[instance_index]->scs->enable_hbd_mode_decision;
-            input_data.mfmv = enc_handle_ptr->scs_instance_array[instance_index]->scs->mfmv_enabled;
+            input_data.b64_size = scs->b64_size;
+            input_data.sb_size = scs->super_block_size;
+            input_data.hbd_md = scs->enable_hbd_mode_decision;
+            input_data.mfmv = scs->mfmv_enabled;
             input_data.cfg_palette = enc_handle_ptr->scs_instance_array[0]->scs->static_config.screen_content_mode;
             //Jing: Get tile info from parent_pcs
             PictureParentControlSet *parent_pcs = (PictureParentControlSet *)enc_handle_ptr->picture_parent_control_set_pool_ptr_array[instance_index]->wrapper_ptr_pool[0]->object_ptr;
             input_data.tile_row_count = parent_pcs->av1_cm->tiles_info.tile_rows;
             input_data.tile_column_count = parent_pcs->av1_cm->tiles_info.tile_cols;
-            input_data.is_16bit_pipeline = enc_handle_ptr->scs_instance_array[instance_index]->scs->is_16bit_pipeline;
+            input_data.is_16bit_pipeline = scs->is_16bit_pipeline;
             input_data.av1_cm = parent_pcs->av1_cm;
-            input_data.enc_mode = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.enc_mode;
-            input_data.static_config = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config;
+            input_data.enc_mode = scs->static_config.enc_mode;
+            input_data.static_config = scs->static_config;
 
-            input_data.input_resolution = enc_handle_ptr->scs_instance_array[instance_index]->scs->input_resolution;
-            input_data.is_scale = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.superres_mode > SUPERRES_NONE ||
-                                  enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.resize_mode > RESIZE_NONE;
+            input_data.input_resolution = scs->input_resolution;
+            input_data.is_scale = scs->static_config.superres_mode > SUPERRES_NONE ||
+                                  scs->static_config.resize_mode > RESIZE_NONE;
 
-            input_data.rtc_tune = enc_handle_ptr->scs_instance_array[instance_index]->scs->static_config.rtc;
-            input_data.allintra = enc_handle_ptr->scs_instance_array[instance_index]->scs->allintra;
+            input_data.rtc_tune = scs->static_config.rtc;
+            input_data.allintra = scs->allintra;
 #if TUNE_RTC_RA_PRESETS
-            input_data.use_flat_ipp = enc_handle_ptr->scs_instance_array[instance_index]->scs->use_flat_ipp;
+            input_data.use_flat_ipp = scs->use_flat_ipp;
 #endif
             EB_NEW(
                 enc_handle_ptr->picture_control_set_pool_ptr_array[instance_index],
                 svt_system_resource_ctor,
-                enc_handle_ptr->scs_instance_array[instance_index]->scs->picture_control_set_pool_init_count_child, //EB_PictureControlSetPoolInitCountChild,
+                scs->picture_control_set_pool_init_count_child, //EB_PictureControlSetPoolInitCountChild,
                 1,
                 0,
                 svt_aom_picture_control_set_creator,
@@ -1745,14 +1747,14 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
     tpl_ports[TPL_INPUT_PORT_SOP].count = enc_handle_ptr->scs_instance_array[0]->scs->source_based_operations_process_init_count;
     tpl_ports[TPL_INPUT_PORT_TPL].count = enc_handle_ptr->scs_instance_array[0]->scs->tpl_disp_process_init_count;
     for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index) {
-
+        SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[instance_index]->scs;
         // Must always allocate mem b/c don't know if restoration is on or off at this point
         // The restoration assumes only 1 tile is used, so only allocate for 1 tile... see svt_av1_alloc_restoration_struct()
         PictureControlSet *pcs = (PictureControlSet *)enc_handle_ptr->picture_control_set_pool_ptr_array[instance_index]->wrapper_ptr_pool[0]->object_ptr;
-        enc_handle_ptr->scs_instance_array[instance_index]->scs->rest_units_per_tile = pcs->rst_info[0/*Y-plane*/].units_per_tile;
-        enc_handle_ptr->scs_instance_array[instance_index]->scs->b64_total_count = pcs->b64_total_count;
+        scs->rest_units_per_tile = pcs->rst_info[0/*Y-plane*/].units_per_tile;
+        scs->b64_total_count = pcs->b64_total_count;
         create_ref_buf_descs(enc_handle_ptr, instance_index);
-        if(enc_handle_ptr->scs_instance_array[instance_index]->scs->tpl)
+        if(scs->tpl)
         create_tpl_ref_buf_descs(enc_handle_ptr, instance_index);
 
         create_pa_ref_buf_descs(enc_handle_ptr, instance_index);
@@ -1762,11 +1764,11 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
             EB_NEW(
                 enc_handle_ptr->overlay_input_picture_pool_ptr_array[instance_index],
                 svt_system_resource_ctor,
-                enc_handle_ptr->scs_instance_array[instance_index]->scs->overlay_input_picture_buffer_init_count,
+                scs->overlay_input_picture_buffer_init_count,
                 1,
                 0,
                 svt_overlay_buffer_header_creator,
-                enc_handle_ptr->scs_instance_array[instance_index]->scs,
+                scs,
                 svt_input_buffer_header_destroyer);
             // Set the SequenceControlSet Overlay input Picture Pool Fifo Ptrs
             enc_handle_ptr->scs_instance_array[instance_index]->enc_ctx->overlay_input_picture_pool_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->overlay_input_picture_pool_ptr_array[instance_index], 0);
@@ -1821,11 +1823,12 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
     EB_ALLOC_PTR_ARRAY(enc_handle_ptr->output_stream_buffer_resource_ptr_array, enc_handle_ptr->encode_instance_total_count);
 
     for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index) {
+        SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[instance_index]->scs;
         EB_NEW(
             enc_handle_ptr->output_stream_buffer_resource_ptr_array[instance_index],
             svt_system_resource_ctor,
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->output_stream_buffer_fifo_init_count,
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->total_process_init_count,//EB_PacketizationProcessInitCount,
+            scs->output_stream_buffer_fifo_init_count,
+            scs->total_process_init_count,//EB_PacketizationProcessInitCount,
             1,
             svt_output_buffer_header_creator,
             &enc_handle_ptr->scs_instance_array[0]->scs->static_config,
@@ -1837,11 +1840,12 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         EB_ALLOC_PTR_ARRAY(enc_handle_ptr->output_recon_buffer_resource_ptr_array, enc_handle_ptr->encode_instance_total_count);
 
         for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index) {
+            SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[instance_index]->scs;
             EB_NEW(
                 enc_handle_ptr->output_recon_buffer_resource_ptr_array[instance_index],
                 svt_system_resource_ctor,
-                enc_handle_ptr->scs_instance_array[instance_index]->scs->output_recon_buffer_fifo_init_count,
-                enc_handle_ptr->scs_instance_array[instance_index]->scs->enc_dec_process_init_count,
+                scs->output_recon_buffer_fifo_init_count,
+                scs->enc_dec_process_init_count,
                 1,
                 svt_output_recon_buffer_header_creator,
                 enc_handle_ptr->scs_instance_array[0]->scs,
@@ -2123,7 +2127,6 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
     EB_ALLOC_PTR_ARRAY(enc_handle_ptr->picture_analysis_context_ptr_array, enc_handle_ptr->scs_instance_array[0]->scs->picture_analysis_process_init_count);
 
     for (process_index = 0; process_index < enc_handle_ptr->scs_instance_array[0]->scs->picture_analysis_process_init_count; ++process_index) {
-
         EB_NEW(
             enc_handle_ptr->picture_analysis_context_ptr_array[process_index],
             svt_aom_picture_analysis_context_ctor,
@@ -2133,14 +2136,12 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
 
     // Picture Decision Context
     {
-        // Initialize the various Picture types
-        instance_index = 0;
-
+SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[0]->scs;
         EB_NEW(
             enc_handle_ptr->picture_decision_context_ptr,
             svt_aom_picture_decision_context_ctor,
             enc_handle_ptr,
-            enc_handle_ptr->scs_instance_array[instance_index]->scs->calc_hist);
+            scs->calc_hist);
     }
 
     // Motion Analysis Context

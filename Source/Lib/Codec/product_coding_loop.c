@@ -10501,8 +10501,9 @@ static bool var_skip_sub_depth(PictureControlSet *pcs, ModeDecisionContext *ctx)
     uint32_t peak_th = ctx->var_skip_sub_depth_ctrls.edge_th[th_idx][2];
     peak_th          = DIVIDE_AND_ROUND(peak_th * q_weight, q_weight_denom);
 
-    const bool is_edge = coeff_perc > ctx->var_skip_sub_depth_ctrls.coeff_th &&
-        ((100 * spread_var) > (abs_th * sum_var)) && ((100 * max_var > rel_th * sum_var) && (spread_var > peak_th));
+    const bool is_edge = (coeff_perc > ctx->var_skip_sub_depth_ctrls.coeff_th) &&
+        (100 * spread_var > abs_th * sum_var) && (100 * max_var > rel_th * sum_var) && (spread_var > peak_th);
+
     return !is_edge;
 }
 #endif

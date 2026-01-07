@@ -156,6 +156,7 @@ extern "C" {
 #define OPT_TUNE_SSIM_DELTA_QP      1 // Don't force SB-based delta-QP for tune SSIM (or tune IQ and tune MS_SSIM, although
                                       // that has no effect because delta QP is enabled through variance boost anyway).
 #define FIX_M10_M11                 1 // Fix the M10/M11 settings for RA
+#define CLN_VAR_FUNC                1 // cleanup compute_block_mean_compute_variance
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

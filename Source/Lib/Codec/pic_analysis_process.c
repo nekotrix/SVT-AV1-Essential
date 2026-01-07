@@ -300,6 +300,152 @@ void svt_compute_interm_var_four8x8_c(uint8_t *input_samples, uint16_t input_str
         input_samples + block_index, input_stride, 8, 8);
 }
 
+#if CLN_VAR_FUNC
+/*******************************************
+* computes and stores the variance of the passed 64x64 block (and subblocks, if required)
+*******************************************/
+static void compute_b64_variance(SequenceControlSet *scs, PictureParentControlSet *pcs,
+                                 EbPictureBufferDesc *input_padded_pic, const uint32_t b64_idx,
+                                 const uint32_t input_luma_origin_index) {
+    uint64_t mean_of8x8_blocks[64];
+    uint64_t mean_of_8x8_squared_values_blocks[64];
+
+    uint64_t mean_of_16x16_blocks[16];
+    uint64_t mean_of16x16_squared_values_blocks[16];
+
+    uint64_t mean_of_32x32_blocks[4];
+    uint64_t mean_of32x32_squared_values_blocks[4];
+
+    uint64_t mean_of_64x64_blocks;
+    uint64_t mean_of64x64_squared_values_blocks;
+
+    const EbByte   buffer_y = input_padded_pic->buffer_y;
+    const uint16_t stride_y = input_padded_pic->stride_y;
+    if (scs->block_mean_calc_prec == BLOCK_MEAN_PREC_FULL) {
+        // Iterate over all 8x8 blocks and compute mean and mean squared
+        for (int blk_8x8_row = 0; blk_8x8_row < 8; blk_8x8_row++) {
+            int blk_offset = input_luma_origin_index + 8 * stride_y * blk_8x8_row;
+            for (int blk_8x8_col = 0; blk_8x8_col < 8; blk_8x8_col++) {
+                const int blk_8x8_idx          = 8 * blk_8x8_row + blk_8x8_col;
+                mean_of8x8_blocks[blk_8x8_idx] = svt_compute_mean_8x8(buffer_y + blk_offset, stride_y, 8, 8);
+                mean_of_8x8_squared_values_blocks[blk_8x8_idx] = svt_compute_mean_square_values_8x8(
+                    buffer_y + blk_offset, stride_y, 8, 8);
+                blk_offset += 8;
+            }
+        }
+    } else {
+        // Iterate over all 8x8 blocks and compute mean and mean squared
+        // Each interation loops over four 8x8 blocks (horizontally)
+        for (int blk_8x8_row = 0; blk_8x8_row < 8; blk_8x8_row++) {
+            int blk_offset = input_luma_origin_index + 8 * stride_y * blk_8x8_row;
+            for (int blk_8x8_col = 0; blk_8x8_col < 2; blk_8x8_col++) {
+                const int blk_8x8_idx = 8 * blk_8x8_row + 4 * blk_8x8_col;
+                svt_compute_interm_var_four8x8(buffer_y + blk_offset,
+                                               stride_y,
+                                               &mean_of8x8_blocks[blk_8x8_idx],
+                                               &mean_of_8x8_squared_values_blocks[blk_8x8_idx]);
+                blk_offset += 32; // 4 * 8x8 blocks
+            }
+        }
+    }
+
+    // 16x16
+    for (int blk_16x16_row = 0; blk_16x16_row < 4; blk_16x16_row++) {
+        for (int blk_16x16_col = 0; blk_16x16_col < 4; blk_16x16_col++) {
+            const int blk_16x16_idx             = 4 * blk_16x16_row + blk_16x16_col;
+            const int first_8x8_blk_idx         = 16 * blk_16x16_row + 2 * blk_16x16_col;
+            mean_of_16x16_blocks[blk_16x16_idx] = (mean_of8x8_blocks[first_8x8_blk_idx] +
+                                                   mean_of8x8_blocks[first_8x8_blk_idx + 1] +
+                                                   mean_of8x8_blocks[first_8x8_blk_idx + 8] +
+                                                   mean_of8x8_blocks[first_8x8_blk_idx + 9]) >>
+                2;
+            mean_of16x16_squared_values_blocks[blk_16x16_idx] =
+                (mean_of_8x8_squared_values_blocks[first_8x8_blk_idx] +
+                 mean_of_8x8_squared_values_blocks[first_8x8_blk_idx + 1] +
+                 mean_of_8x8_squared_values_blocks[first_8x8_blk_idx + 8] +
+                 mean_of_8x8_squared_values_blocks[first_8x8_blk_idx + 9]) >>
+                2;
+        }
+    }
+
+    // 32x32
+    for (int blk_32x32_row = 0; blk_32x32_row < 2; blk_32x32_row++) {
+        for (int blk_32x32_col = 0; blk_32x32_col < 2; blk_32x32_col++) {
+            const int blk_32x32_idx             = 2 * blk_32x32_row + blk_32x32_col;
+            const int first_16x16_blk_idx       = 8 * blk_32x32_row + 2 * blk_32x32_col;
+            mean_of_32x32_blocks[blk_32x32_idx] = (mean_of_16x16_blocks[first_16x16_blk_idx] +
+                                                   mean_of_16x16_blocks[first_16x16_blk_idx + 1] +
+                                                   mean_of_16x16_blocks[first_16x16_blk_idx + 4] +
+                                                   mean_of_16x16_blocks[first_16x16_blk_idx + 5]) >>
+                2;
+            mean_of32x32_squared_values_blocks[blk_32x32_idx] =
+                (mean_of16x16_squared_values_blocks[first_16x16_blk_idx] +
+                 mean_of16x16_squared_values_blocks[first_16x16_blk_idx + 1] +
+                 mean_of16x16_squared_values_blocks[first_16x16_blk_idx + 4] +
+                 mean_of16x16_squared_values_blocks[first_16x16_blk_idx + 5]) >>
+                2;
+        }
+    }
+
+    // 64x64
+    mean_of_64x64_blocks = (mean_of_32x32_blocks[0] + mean_of_32x32_blocks[1] + mean_of_32x32_blocks[2] +
+                            mean_of_32x32_blocks[3]) >>
+        2;
+    mean_of64x64_squared_values_blocks = (mean_of32x32_squared_values_blocks[0] +
+                                          mean_of32x32_squared_values_blocks[1] +
+                                          mean_of32x32_squared_values_blocks[2] +
+                                          mean_of32x32_squared_values_blocks[3]) >>
+        2;
+
+    uint16_t *sb_var = pcs->variance[b64_idx];
+#if OPT_OPERATIONS
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+    if (scs->allintra || scs->static_config.aq_mode == 1 || scs->static_config.variance_octile) {
+#else
+    if (scs->allintra || scs->static_config.enable_adaptive_quantization == 1 || scs->static_config.variance_octile) {
+#endif
+#else
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+    if (scs->static_config.aq_mode == 1 || scs->static_config.variance_octile) {
+#else
+    if (scs->static_config.enable_adaptive_quantization == 1 || scs->static_config.variance_octile) {
+#endif
+#else
+    if (scs->static_config.enable_adaptive_quantization == 1 || scs->static_config.variance_octile) {
+#endif
+#endif
+        // 8x8 variances
+        for (int blk_8x8_idx = 0, me_pu_idx = ME_TIER_ZERO_PU_8x8_0; blk_8x8_idx < 64; blk_8x8_idx++, me_pu_idx++) {
+            sb_var[me_pu_idx] = (uint16_t)((mean_of_8x8_squared_values_blocks[blk_8x8_idx] -
+                                            (mean_of8x8_blocks[blk_8x8_idx] * mean_of8x8_blocks[blk_8x8_idx])) >>
+                                           VARIANCE_PRECISION);
+        }
+
+        // 16x16 variances
+        for (int blk_16x16_idx = 0, me_pu_idx = ME_TIER_ZERO_PU_16x16_0; blk_16x16_idx < 16;
+             blk_16x16_idx++, me_pu_idx++) {
+            sb_var[me_pu_idx] = (uint16_t)((mean_of16x16_squared_values_blocks[blk_16x16_idx] -
+                                            (mean_of_16x16_blocks[blk_16x16_idx] *
+                                             mean_of_16x16_blocks[blk_16x16_idx])) >>
+                                           VARIANCE_PRECISION);
+        }
+
+        // 32x32 variances
+        for (int blk_32x32_idx = 0, me_pu_idx = ME_TIER_ZERO_PU_32x32_0; blk_32x32_idx < 4;
+             blk_32x32_idx++, me_pu_idx++) {
+            sb_var[me_pu_idx] = (uint16_t)((mean_of32x32_squared_values_blocks[blk_32x32_idx] -
+                                            (mean_of_32x32_blocks[blk_32x32_idx] *
+                                             mean_of_32x32_blocks[blk_32x32_idx])) >>
+                                           VARIANCE_PRECISION);
+        }
+    }
+    // 64x64 variance
+    sb_var[ME_TIER_ZERO_PU_64x64] = (uint16_t)((mean_of64x64_squared_values_blocks -
+                                                (mean_of_64x64_blocks * mean_of_64x64_blocks)) >>
+                                               VARIANCE_PRECISION);
+}
+#else
 /*******************************************
 * compute_block_mean_compute_variance
 *   computes the variance and the block mean of all CUs inside the tree block
@@ -1395,6 +1541,7 @@ static EbErrorType compute_block_mean_compute_variance(
 
     return return_error;
 }
+#endif
 
 #if CONFIG_ENABLE_FILM_GRAIN
 static int32_t apply_denoise_2d(SequenceControlSet *scs, PictureParentControlSet *pcs,
@@ -1566,7 +1713,11 @@ static void compute_picture_spatial_statistics(SequenceControlSet *scs, PictureP
         uint32_t input_luma_origin_index = (input_padded_pic->org_y + b64_origin_y) * input_padded_pic->stride_y +
             input_padded_pic->org_x + b64_origin_x;
 
+#if CLN_VAR_FUNC
+        compute_b64_variance(scs, pcs, input_padded_pic, b64_idx, input_luma_origin_index);
+#else
         compute_block_mean_compute_variance(scs, pcs, input_padded_pic, b64_idx, input_luma_origin_index);
+#endif
         pic_tot_variance += (pcs->variance[b64_idx][RASTER_SCAN_CU_INDEX_64x64]);
     }
 
