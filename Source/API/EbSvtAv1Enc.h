@@ -1074,9 +1074,15 @@ typedef struct EbSvtAv1EncConfiguration {
     bool adaptive_film_grain;
 
     /* @brief Limit transform sizes to the specified size
-     * 32: use transform sizes up to 64x64 pixels
-     * 64: use transform sizes up to 32x32 pixels
+     * 32: use transform sizes up to 32x32 pixels
+     * 64: use transform sizes up to 64x64 pixels
      * Default is 64
+     * Note: Setting the max transform size to 32 can be useful under some circumstances (e.g. still image coding),
+     * as it's the largest transform where all coefficients can be coded into the bitstream.
+     * In AV1, the transform size of 64 drops the highest 32 AC coefficients by design, effectively zeroing them upon
+     * decoding, which can cause certain visual features to look blurry.
+     * Forcing smaller tx sizes (i.e. 16, 8, 4) doesn't hold an inherent visual quality advantage over 32, so those
+     * aren't exposed as options.
      */
     uint8_t max_tx_size;
 
