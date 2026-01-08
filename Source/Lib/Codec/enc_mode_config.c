@@ -10382,6 +10382,9 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 #if FTR_DEPTH_REMOVAL_INTRA
     const bool allintra = scs->allintra;
 #endif
+#if FIX_M10_M11
+    const bool flat_rtc = rtc_tune && scs->use_flat_ipp;
+#endif
     //MFMV
     uint8_t mfmv_level = 0;
     if (is_islice || scs->mfmv_enabled == 0 || pcs->ppcs->frm_hdr.error_resilient_mode) {
@@ -10761,6 +10764,40 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
 #endif
     // Set the level for the txt shortcut feature
     // Any tx_shortcut_level having the chroma detector off in REF frames should be reserved for M13+
+#if FIX_M10_M11
+    pcs->tx_shortcut_level = 0;
+    if (allintra) { // allintra
+        if (enc_mode <= ENC_M2)
+            pcs->tx_shortcut_level = 0;
+        else if (enc_mode <= ENC_M11)
+            pcs->tx_shortcut_level = is_base ? 0 : 1;
+        else
+            pcs->tx_shortcut_level = is_islice ? 0 : 3;
+    } else if (flat_rtc) { // FLAT-RTC
+        if (enc_mode <= ENC_M7)
+            pcs->tx_shortcut_level = 0;
+        else if (enc_mode <= ENC_M11)
+            pcs->tx_shortcut_level = is_islice ? 0 : 3;
+        else
+            pcs->tx_shortcut_level = 3;
+    } else if (rtc_tune) { // Non-FLAT RTC
+        if (enc_mode <= ENC_M7)
+            pcs->tx_shortcut_level = 0;
+        else if (enc_mode <= ENC_M9)
+            pcs->tx_shortcut_level = is_islice ? 0 : 3;
+        else
+            pcs->tx_shortcut_level = 3;
+    } else {
+        if (enc_mode <= ENC_M2)
+            pcs->tx_shortcut_level = 0;
+        else if (enc_mode <= ENC_M9)
+            pcs->tx_shortcut_level = is_base ? 0 : 1;
+        else if (enc_mode <= ENC_M10)
+            pcs->tx_shortcut_level = is_base ? 1 : 2;
+        else
+            pcs->tx_shortcut_level = is_islice ? 1 : 3;
+    }
+#else
     pcs->tx_shortcut_level = 0;
     if (rtc_tune) {
         if (enc_mode <= ENC_M7)
@@ -10786,19 +10823,10 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
         if (enc_mode <= ENC_M2)
             pcs->tx_shortcut_level = 0;
 #if TUNE_RTC_RA_PRESETS
-#if FIX_M10_M11 // tx_shortcut_level
-        else if (enc_mode <= ENC_M9)
-            pcs->tx_shortcut_level = is_base ? 0 : 1;
-        else if (enc_mode <= ENC_M10)
-            pcs->tx_shortcut_level = is_base ? 1 : 2;
-        else
-            pcs->tx_shortcut_level = is_islice ? 1 : 3;
-#else
         else if (enc_mode <= ENC_M11)
             pcs->tx_shortcut_level = is_base ? 0 : 1;
         else
             pcs->tx_shortcut_level = is_islice ? 0 : 3;
-#endif
 #else
         else if (enc_mode <= ENC_M9)
             pcs->tx_shortcut_level = is_base ? 0 : 1;
@@ -10806,6 +10834,7 @@ void svt_aom_sig_deriv_mode_decision_config(SequenceControlSet *scs, PictureCont
             pcs->tx_shortcut_level = is_base ? 1 : 2;
 #endif
     }
+#endif
 #if TUNE_STILL_IMAGE_0 // pic rdoq level
     // Set RDOQ level
     if (allintra) {

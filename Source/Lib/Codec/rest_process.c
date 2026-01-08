@@ -69,11 +69,15 @@ static void rest_context_dctor(EbPtr p) {
  ******************************************************/
 EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
                                       EbPtr object_init_data_ptr, int index, int demux_index) {
-    const SequenceControlSet       *scs           = enc_handle_ptr->scs_instance_array[0]->scs;
+#if CLN_REMOVE_INSTANCE_IDX
+    const SequenceControlSet *scs = enc_handle_ptr->scs_instance->scs;
+#else
+    const SequenceControlSet *scs = enc_handle_ptr->scs_instance_array[0]->scs;
+#endif
     const EbSvtAv1EncConfiguration *config        = &scs->static_config;
     EbPictureBufferDescInitData    *init_data_ptr = (EbPictureBufferDescInitData *)object_init_data_ptr;
     RestContext                    *context_ptr;
-    bool                            allintra = scs->allintra;
+    const bool                      allintra = scs->allintra;
     EB_CALLOC_ARRAY(context_ptr, 1);
     thread_ctx->priv  = context_ptr;
     thread_ctx->dctor = rest_context_dctor;

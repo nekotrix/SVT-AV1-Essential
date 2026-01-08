@@ -79,8 +79,10 @@
  /**************************************
   * Defines
   **************************************/
+#if !CLN_REMOVE_INSTANCE_IDX
 #define EB_EncodeInstancesTotalCount                    1
 #define EB_ComputeSegmentInitCount                      1
+#endif
 // Config Set Initial Count
 #define EB_SequenceControlSetPoolInitCount              10
 // Process Instantiation Initial Counts
@@ -921,6 +923,57 @@ static void lib_svt_encoder_send_error_exit(
     EbPtr                    hComponent,
     uint32_t                 error_code);
 
+#if CLN_REMOVE_INSTANCE_IDX
+static void svt_enc_handle_stop_threads(EbEncHandle* enc_handle_ptr)
+{
+    SequenceControlSet* scs = enc_handle_ptr->scs_instance->scs;
+    // Resource Coordination
+    EB_DESTROY_THREAD(enc_handle_ptr->resource_coordination_thread_handle);
+    EB_DESTROY_THREAD_ARRAY(enc_handle_ptr->picture_analysis_thread_handle_array, scs->picture_analysis_process_init_count);
+
+    // Picture Decision
+    EB_DESTROY_THREAD(enc_handle_ptr->picture_decision_thread_handle);
+
+    // Motion Estimation
+    EB_DESTROY_THREAD_ARRAY(enc_handle_ptr->motion_estimation_thread_handle_array, scs->motion_estimation_process_init_count);
+
+    // Initial Rate Control
+    EB_DESTROY_THREAD(enc_handle_ptr->initial_rate_control_thread_handle);
+
+    // Source Based Oprations
+    EB_DESTROY_THREAD_ARRAY(enc_handle_ptr->source_based_operations_thread_handle_array, scs->source_based_operations_process_init_count);
+
+    // TPL dispenser ME
+    EB_DESTROY_THREAD_ARRAY(enc_handle_ptr->tpl_disp_thread_handle_array, scs->tpl_disp_process_init_count);
+
+    // Picture Manager
+    EB_DESTROY_THREAD(enc_handle_ptr->picture_manager_thread_handle);
+
+    // Rate Control
+    EB_DESTROY_THREAD(enc_handle_ptr->rate_control_thread_handle);
+
+    // Mode Decision Configuration Process
+    EB_DESTROY_THREAD_ARRAY(enc_handle_ptr->mode_decision_configuration_thread_handle_array, scs->mode_decision_configuration_process_init_count);
+
+    // EncDec Process
+    EB_DESTROY_THREAD_ARRAY(enc_handle_ptr->enc_dec_thread_handle_array, scs->enc_dec_process_init_count);
+
+    // Dlf Process
+    EB_DESTROY_THREAD_ARRAY(enc_handle_ptr->dlf_thread_handle_array, scs->dlf_process_init_count);
+
+    // Cdef Process
+    EB_DESTROY_THREAD_ARRAY(enc_handle_ptr->cdef_thread_handle_array, scs->cdef_process_init_count);
+
+    // Rest Process
+    EB_DESTROY_THREAD_ARRAY(enc_handle_ptr->rest_thread_handle_array, scs->rest_process_init_count);
+
+    // Entropy Coding Process
+    EB_DESTROY_THREAD_ARRAY(enc_handle_ptr->entropy_coding_thread_handle_array, scs->entropy_coding_process_init_count);
+
+    // Packetization
+    EB_DESTROY_THREAD(enc_handle_ptr->packetization_thread_handle);
+}
+#else
 static void svt_enc_handle_stop_threads(EbEncHandle *enc_handle_ptr)
 {
     SequenceControlSet*  control_set_ptr = enc_handle_ptr->scs_instance_array[0]->scs;
@@ -970,6 +1023,8 @@ static void svt_enc_handle_stop_threads(EbEncHandle *enc_handle_ptr)
     // Packetization
     EB_DESTROY_THREAD(enc_handle_ptr->packetization_thread_handle);
 }
+#endif
+
 /**********************************
 * Encoder Library Handle Deonstructor
 **********************************/
@@ -977,6 +1032,18 @@ static void svt_enc_handle_dctor(EbPtr p)
 {
     EbEncHandle *enc_handle_ptr = (EbEncHandle *)p;
     svt_enc_handle_stop_threads(enc_handle_ptr);
+#if CLN_REMOVE_INSTANCE_IDX
+    EB_FREE(enc_handle_ptr->app_callback_ptr);
+    EB_DELETE(enc_handle_ptr->scs_pool_ptr);
+    EB_DELETE(enc_handle_ptr->picture_parent_control_set_pool_ptr);
+    EB_DELETE(enc_handle_ptr->me_pool_ptr);
+    EB_DELETE(enc_handle_ptr->picture_control_set_pool_ptr);
+    EB_DELETE(enc_handle_ptr->enc_dec_pool_ptr);
+    EB_DELETE(enc_handle_ptr->pa_reference_picture_pool_ptr);
+    EB_DELETE(enc_handle_ptr->tpl_reference_picture_pool_ptr);
+    EB_DELETE(enc_handle_ptr->overlay_input_picture_pool_ptr);
+    EB_DELETE(enc_handle_ptr->reference_picture_pool_ptr);
+#else
     EB_FREE_PTR_ARRAY(enc_handle_ptr->app_callback_ptr_array, enc_handle_ptr->encode_instance_total_count);
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->scs_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->picture_parent_control_set_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
@@ -988,6 +1055,7 @@ static void svt_enc_handle_dctor(EbPtr p)
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->pa_reference_picture_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->tpl_reference_picture_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->overlay_input_picture_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
+#endif
     EB_DELETE(enc_handle_ptr->input_cmd_resource_ptr);
     EB_DELETE(enc_handle_ptr->input_y8b_buffer_resource_ptr);
 
@@ -1002,8 +1070,13 @@ static void svt_enc_handle_dctor(EbPtr p)
         }
     }
     EB_DELETE(enc_handle_ptr->input_buffer_resource_ptr);
+#if CLN_REMOVE_INSTANCE_IDX
+    EB_DELETE(enc_handle_ptr->output_stream_buffer_resource_ptr);
+    EB_DELETE(enc_handle_ptr->output_recon_buffer_resource_ptr);
+#else
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->output_stream_buffer_resource_ptr_array, enc_handle_ptr->encode_instance_total_count);
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->output_recon_buffer_resource_ptr_array, enc_handle_ptr->encode_instance_total_count);
+#endif
     EB_DELETE(enc_handle_ptr->resource_coordination_results_resource_ptr);
     EB_DELETE(enc_handle_ptr->picture_analysis_results_resource_ptr);
     EB_DELETE(enc_handle_ptr->picture_decision_results_resource_ptr);
@@ -1021,6 +1094,20 @@ static void svt_enc_handle_dctor(EbPtr p)
     EB_DELETE(enc_handle_ptr->entropy_coding_results_resource_ptr);
 
     EB_DELETE(enc_handle_ptr->resource_coordination_context_ptr);
+#if CLN_REMOVE_INSTANCE_IDX
+    SequenceControlSet* scs = enc_handle_ptr->scs_instance->scs;
+    EB_DELETE_PTR_ARRAY(enc_handle_ptr->picture_analysis_context_ptr_array, scs->picture_analysis_process_init_count);
+    EB_DELETE_PTR_ARRAY(enc_handle_ptr->motion_estimation_context_ptr_array, scs->motion_estimation_process_init_count);
+    EB_DELETE_PTR_ARRAY(enc_handle_ptr->tpl_disp_context_ptr_array, scs->tpl_disp_process_init_count);
+    EB_DELETE_PTR_ARRAY(enc_handle_ptr->source_based_operations_context_ptr_array, scs->source_based_operations_process_init_count);
+    EB_DELETE_PTR_ARRAY(enc_handle_ptr->mode_decision_configuration_context_ptr_array, scs->mode_decision_configuration_process_init_count);
+    EB_DELETE_PTR_ARRAY(enc_handle_ptr->enc_dec_context_ptr_array, scs->enc_dec_process_init_count);
+    EB_DELETE_PTR_ARRAY(enc_handle_ptr->dlf_context_ptr_array, scs->dlf_process_init_count);
+    EB_DELETE_PTR_ARRAY(enc_handle_ptr->cdef_context_ptr_array, scs->cdef_process_init_count);
+    EB_DELETE_PTR_ARRAY(enc_handle_ptr->rest_context_ptr_array, scs->rest_process_init_count);
+    EB_DELETE_PTR_ARRAY(enc_handle_ptr->entropy_coding_context_ptr_array, scs->entropy_coding_process_init_count);
+    EB_DELETE(enc_handle_ptr->scs_instance);
+#else
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->picture_analysis_context_ptr_array, enc_handle_ptr->scs_instance_array[0]->scs->picture_analysis_process_init_count);
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->motion_estimation_context_ptr_array, enc_handle_ptr->scs_instance_array[0]->scs->motion_estimation_process_init_count);
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->tpl_disp_context_ptr_array, enc_handle_ptr->scs_instance_array[0]->scs->tpl_disp_process_init_count);
@@ -1032,12 +1119,15 @@ static void svt_enc_handle_dctor(EbPtr p)
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->rest_context_ptr_array, enc_handle_ptr->scs_instance_array[0]->scs->rest_process_init_count);
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->entropy_coding_context_ptr_array, enc_handle_ptr->scs_instance_array[0]->scs->entropy_coding_process_init_count);
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->scs_instance_array, enc_handle_ptr->encode_instance_total_count);
+#endif
     EB_DELETE(enc_handle_ptr->picture_decision_context_ptr);
     EB_DELETE(enc_handle_ptr->initial_rate_control_context_ptr);
     EB_DELETE(enc_handle_ptr->picture_manager_context_ptr);
     EB_DELETE(enc_handle_ptr->rate_control_context_ptr);
     EB_DELETE(enc_handle_ptr->packetization_context_ptr);
+#if !CLN_REMOVE_INSTANCE_IDX
     EB_DELETE_PTR_ARRAY(enc_handle_ptr->reference_picture_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
+#endif
 
 }
 
@@ -1053,7 +1143,17 @@ static EbErrorType svt_enc_handle_ctor(
 #if !CLN_REMOVE_SS_PIN
     init_thread_management_params();
 #endif
+#if CLN_REMOVE_INSTANCE_IDX
+    // Initialize Callbacks
+    EB_MALLOC_OBJECT(enc_handle_ptr->app_callback_ptr);
+    enc_handle_ptr->app_callback_ptr->error_handler = lib_svt_encoder_send_error_exit;
+    enc_handle_ptr->app_callback_ptr->handle = ebHandlePtr;
 
+    // Config Set Count
+    enc_handle_ptr->scs_pool_total_count = EB_SequenceControlSetPoolInitCount;
+    // Initialize Sequence Control Set Instance
+    EB_NEW(enc_handle_ptr->scs_instance, svt_sequence_control_set_instance_ctor);
+#else
     enc_handle_ptr->encode_instance_total_count                           = EB_EncodeInstancesTotalCount;
     enc_handle_ptr->compute_segments_total_count_array                    = EB_ComputeSegmentInitCount;
     // Initialize Callbacks
@@ -1067,6 +1167,7 @@ static EbErrorType svt_enc_handle_ctor(
     // Initialize Sequence Control Set Instance Array
     EB_ALLOC_PTR_ARRAY(enc_handle_ptr->scs_instance_array, enc_handle_ptr->encode_instance_total_count);
     EB_NEW(enc_handle_ptr->scs_instance_array[0], svt_sequence_control_set_instance_ctor);
+#endif
 
     enc_handle_ptr->eos_received = false;
     enc_handle_ptr->eos_sent = false;
@@ -1222,6 +1323,217 @@ static EbErrorType rest_results_creator(
     return EB_ErrorNone;
 }
 
+#if CLN_REMOVE_INSTANCE_IDX
+static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr) {
+        SequenceControlSet* scs = enc_handle_ptr->scs_instance->scs;
+        EbPaReferenceObjectDescInitData   eb_pa_ref_obj_ect_desc_init_data_structure;
+        EbPictureBufferDescInitData       ref_pic_buf_desc_init_data;
+        EbPictureBufferDescInitData       quart_pic_buf_desc_init_data;
+        EbPictureBufferDescInitData       sixteenth_pic_buf_desc_init_data;
+#if OPT_OPERATIONS
+        const bool allintra = scs->allintra;
+#endif
+        // PA Reference Picture Buffers
+        // Currently, only Luma samples are needed in the PA
+        ref_pic_buf_desc_init_data.max_width = scs->max_input_luma_width;
+        ref_pic_buf_desc_init_data.max_height = scs->max_input_luma_height;
+        ref_pic_buf_desc_init_data.bit_depth = EB_EIGHT_BIT;
+        ref_pic_buf_desc_init_data.color_format = EB_YUV420; //use 420 for picture analysis
+        //No full-resolution pixel data is allocated for PA REF,
+        // it points directly to the Luma input samples of the app data
+        ref_pic_buf_desc_init_data.buffer_enable_mask = 0;
+
+
+        ref_pic_buf_desc_init_data.left_padding = scs->left_padding;
+        ref_pic_buf_desc_init_data.right_padding = scs->right_padding;
+        ref_pic_buf_desc_init_data.top_padding = scs->top_padding;
+        ref_pic_buf_desc_init_data.bot_padding = scs->bot_padding;
+        ref_pic_buf_desc_init_data.split_mode = false;
+        ref_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
+        ref_pic_buf_desc_init_data.mfmv                = 0;
+        ref_pic_buf_desc_init_data.is_16bit_pipeline   = false;
+        ref_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
+        ref_pic_buf_desc_init_data.sb_total_count      = scs->sb_total_count;
+
+        quart_pic_buf_desc_init_data.max_width = scs->max_input_luma_width >> 1;
+        quart_pic_buf_desc_init_data.max_height = scs->max_input_luma_height >> 1;
+        quart_pic_buf_desc_init_data.bit_depth = EB_EIGHT_BIT;
+        quart_pic_buf_desc_init_data.color_format = EB_YUV420;
+#if OPT_OPERATIONS
+        quart_pic_buf_desc_init_data.buffer_enable_mask = allintra ? 0 : PICTURE_BUFFER_DESC_LUMA_MASK;
+#else
+        quart_pic_buf_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_LUMA_MASK;
+#endif
+        quart_pic_buf_desc_init_data.left_padding = scs->b64_size >> 1;
+        quart_pic_buf_desc_init_data.right_padding = scs->b64_size >> 1;
+        quart_pic_buf_desc_init_data.top_padding = scs->b64_size >> 1;
+        quart_pic_buf_desc_init_data.bot_padding = scs->b64_size >> 1;
+        quart_pic_buf_desc_init_data.split_mode = false;
+        quart_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
+        quart_pic_buf_desc_init_data.mfmv                = 0;
+        quart_pic_buf_desc_init_data.is_16bit_pipeline   = false;
+        quart_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
+        quart_pic_buf_desc_init_data.sb_total_count      = scs->sb_total_count;
+
+        sixteenth_pic_buf_desc_init_data.max_width = scs->max_input_luma_width >> 2;
+        sixteenth_pic_buf_desc_init_data.max_height = scs->max_input_luma_height >> 2;
+        sixteenth_pic_buf_desc_init_data.bit_depth = EB_EIGHT_BIT;
+        sixteenth_pic_buf_desc_init_data.color_format = EB_YUV420;
+#if OPT_OPERATIONS
+        sixteenth_pic_buf_desc_init_data.buffer_enable_mask = allintra ? 0 : PICTURE_BUFFER_DESC_LUMA_MASK;
+#else
+        sixteenth_pic_buf_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_LUMA_MASK;
+#endif
+        sixteenth_pic_buf_desc_init_data.left_padding = scs->b64_size >> 2;
+        sixteenth_pic_buf_desc_init_data.right_padding = scs->b64_size >> 2;
+        sixteenth_pic_buf_desc_init_data.top_padding = scs->b64_size >> 2;
+        sixteenth_pic_buf_desc_init_data.bot_padding = scs->b64_size >> 2;
+        sixteenth_pic_buf_desc_init_data.split_mode = false;
+        sixteenth_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
+        sixteenth_pic_buf_desc_init_data.mfmv                = 0;
+        sixteenth_pic_buf_desc_init_data.is_16bit_pipeline   = false;
+        sixteenth_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
+        sixteenth_pic_buf_desc_init_data.sb_total_count      = scs->sb_total_count;
+
+        eb_pa_ref_obj_ect_desc_init_data_structure.reference_picture_desc_init_data = ref_pic_buf_desc_init_data;
+        eb_pa_ref_obj_ect_desc_init_data_structure.quarter_picture_desc_init_data = quart_pic_buf_desc_init_data;
+        eb_pa_ref_obj_ect_desc_init_data_structure.sixteenth_picture_desc_init_data = sixteenth_pic_buf_desc_init_data;
+        // Reference Picture Buffers
+        EB_NEW(enc_handle_ptr->pa_reference_picture_pool_ptr,
+            svt_system_resource_ctor,
+            scs->pa_reference_picture_buffer_init_count,
+            EB_PictureDecisionProcessInitCount,
+            0,
+            svt_pa_reference_object_creator,
+            &(eb_pa_ref_obj_ect_desc_init_data_structure),
+            NULL);
+        // Set the SequenceControlSet Picture Pool Fifo Ptrs
+        enc_handle_ptr->scs_instance->enc_ctx->pa_reference_picture_pool_fifo_ptr =
+            svt_system_resource_get_producer_fifo(enc_handle_ptr->pa_reference_picture_pool_ptr, 0);
+#if SRM_REPORT
+        enc_handle_ptr->scs_instance_array->enc_ctx->pa_reference_picture_pool_fifo_ptr->queue_ptr->log = 0;
+#endif
+        return 0;
+}
+
+static int create_tpl_ref_buf_descs(EbEncHandle *enc_handle_ptr) {
+    SequenceControlSet* scs = enc_handle_ptr->scs_instance->scs;
+    EbTplReferenceObjectDescInitData   eb_tpl_ref_obj_ect_desc_init_data_structure;
+    EbPictureBufferDescInitData       ref_pic_buf_desc_init_data;
+    // PA Reference Picture Buffers
+    // Currently, only Luma samples are needed in the PA
+    ref_pic_buf_desc_init_data.max_width = scs->max_input_luma_width;
+    ref_pic_buf_desc_init_data.max_height = scs->max_input_luma_height;
+    ref_pic_buf_desc_init_data.bit_depth = EB_EIGHT_BIT;
+    ref_pic_buf_desc_init_data.color_format = EB_YUV420; //use 420 for picture analysis
+
+    // Allocate one ref pic to be used in TPL
+    ref_pic_buf_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_Y_FLAG;
+
+    ref_pic_buf_desc_init_data.left_padding = TPL_PADX;// scs->left_padding;
+    ref_pic_buf_desc_init_data.right_padding = TPL_PADX;// scs->right_padding;
+    ref_pic_buf_desc_init_data.top_padding = TPL_PADY;// scs->top_padding;
+    ref_pic_buf_desc_init_data.bot_padding = TPL_PADY;// scs->bot_padding;
+    ref_pic_buf_desc_init_data.split_mode = false;
+    ref_pic_buf_desc_init_data.mfmv = 0;
+    ref_pic_buf_desc_init_data.is_16bit_pipeline = false;
+    ref_pic_buf_desc_init_data.enc_mode = scs->static_config.enc_mode;
+
+    ref_pic_buf_desc_init_data.rest_units_per_tile = 0;// rest not needed in tpl scs->rest_units_per_tile;
+    ref_pic_buf_desc_init_data.sb_total_count = scs->sb_total_count;
+
+    eb_tpl_ref_obj_ect_desc_init_data_structure.reference_picture_desc_init_data = ref_pic_buf_desc_init_data;
+
+    // Reference Picture Buffers
+    EB_NEW(enc_handle_ptr->tpl_reference_picture_pool_ptr,
+        svt_system_resource_ctor,
+        scs->tpl_reference_picture_buffer_init_count,
+        EB_PictureDecisionProcessInitCount,
+        0,
+        svt_tpl_reference_object_creator,
+        &(eb_tpl_ref_obj_ect_desc_init_data_structure),
+        NULL);
+    // Set the SequenceControlSet Picture Pool Fifo Ptrs
+    enc_handle_ptr->scs_instance->enc_ctx->tpl_reference_picture_pool_fifo_ptr =
+        svt_system_resource_get_producer_fifo(enc_handle_ptr->tpl_reference_picture_pool_ptr, 0);
+#if SRM_REPORT
+    enc_handle_ptr->scs_instance_array->enc_ctx->tpl_reference_picture_pool_fifo_ptr->queue_ptr->log = 0;
+#endif
+    return 0;
+}
+static int create_ref_buf_descs(EbEncHandle *enc_handle_ptr) {
+    EbReferenceObjectDescInitData     eb_ref_obj_ect_desc_init_data_structure;
+    EbPictureBufferDescInitData       ref_pic_buf_desc_init_data;
+    SequenceControlSet* scs = enc_handle_ptr->scs_instance->scs;
+    bool is_16bit = (bool)(scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
+    // Initialize the various Picture types
+    ref_pic_buf_desc_init_data.max_width = scs->max_input_luma_width;
+    ref_pic_buf_desc_init_data.max_height = scs->max_input_luma_height;
+    ref_pic_buf_desc_init_data.bit_depth = scs->encoder_bit_depth;
+    ref_pic_buf_desc_init_data.color_format = scs->static_config.encoder_color_format;
+    ref_pic_buf_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK;
+    ref_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
+    ref_pic_buf_desc_init_data.sb_total_count = scs->b64_total_count;
+    uint16_t padding = scs->super_block_size + 32;
+    if (scs->static_config.superres_mode > SUPERRES_NONE ||
+        scs->static_config.resize_mode > RESIZE_NONE) {
+        padding += scs->super_block_size;
+    }
+
+    ref_pic_buf_desc_init_data.left_padding = padding;
+    ref_pic_buf_desc_init_data.right_padding = padding;
+    ref_pic_buf_desc_init_data.top_padding = padding;
+    ref_pic_buf_desc_init_data.bot_padding = padding;
+    ref_pic_buf_desc_init_data.mfmv = scs->mfmv_enabled;
+    ref_pic_buf_desc_init_data.is_16bit_pipeline = scs->is_16bit_pipeline;
+    // Hsan: split_mode is set @ eb_reference_object_ctor() as both unpacked reference and packed reference are needed for a 10BIT input; unpacked reference @ MD, and packed reference @ EP
+
+    ref_pic_buf_desc_init_data.split_mode = false;
+    ref_pic_buf_desc_init_data.enc_mode = scs->static_config.enc_mode;
+    if (is_16bit)
+        ref_pic_buf_desc_init_data.bit_depth = EB_TEN_BIT;
+
+    eb_ref_obj_ect_desc_init_data_structure.reference_picture_desc_init_data = ref_pic_buf_desc_init_data;
+    eb_ref_obj_ect_desc_init_data_structure.hbd_md =
+        scs->enable_hbd_mode_decision;
+    eb_ref_obj_ect_desc_init_data_structure.static_config = &scs->static_config;
+    // Reference Picture Buffers
+    EB_NEW(
+            enc_handle_ptr->reference_picture_pool_ptr,
+            svt_system_resource_ctor,
+            scs->reference_picture_buffer_init_count,
+            EB_PictureManagerProcessInitCount,
+            0,
+            svt_reference_object_creator,
+            &(eb_ref_obj_ect_desc_init_data_structure),
+            NULL);
+
+    // Create reference list for Picture Manager
+    // When decode-order is not enforced at pic mgr, each reference picture must have an allocated reference buffer (for at least one mini-gop) so the
+    // list can be enough to hold only the reference buffers.  When decode-order is enforced, only 9 reference buffers are used, so the list must be at least 1 mini-gop
+    // otherwise ref_buffer_available_semaphore will block all required pics from being passed to pic mgr.
+    const uint32_t ref_pic_list_length = scs->enable_dec_order ? scs->pa_reference_picture_buffer_init_count : scs->reference_picture_buffer_init_count;
+    enc_handle_ptr->scs_instance->enc_ctx->ref_pic_list_length = ref_pic_list_length;
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->scs_instance->enc_ctx->ref_pic_list,
+        ref_pic_list_length);
+
+    for (uint32_t idx = 0; idx < ref_pic_list_length; ++idx) {
+        EB_NEW(enc_handle_ptr->scs_instance->enc_ctx->ref_pic_list[idx],
+            svt_aom_reference_queue_entry_ctor);
+    }
+    EB_CREATE_SEMAPHORE(scs->ref_buffer_available_semaphore,
+        ref_pic_list_length,
+        ref_pic_list_length);
+    enc_handle_ptr->scs_instance->enc_ctx->reference_picture_pool_fifo_ptr =
+        svt_system_resource_get_producer_fifo(enc_handle_ptr->reference_picture_pool_ptr, 0);
+
+#if SRM_REPORT
+    enc_handle_ptr->scs_instance_array->enc_ctx->reference_picture_pool_fifo_ptr->queue_ptr->log = 0;
+#endif
+
+    return 0;
+}
+#else
 static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instance_index)
 {
         SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[instance_index]->scs;
@@ -1434,6 +1746,7 @@ static int create_ref_buf_descs(EbEncHandle *enc_handle_ptr, uint32_t instance_i
 
     return 0;
 }
+#endif
 
 void init_fn_ptr(void);
 void svt_av1_init_wedge_masks(void);
@@ -1447,6 +1760,13 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         return EB_ErrorBadParameter;
     EbEncHandle *enc_handle_ptr = (EbEncHandle*)svt_enc_component->p_component_private;
     EbErrorType return_error = EB_ErrorNone;
+#if CLN_REMOVE_INSTANCE_IDX
+    SequenceControlSet* scs = enc_handle_ptr->scs_instance->scs;
+    EbColorFormat color_format = scs->static_config.encoder_color_format;
+
+    svt_aom_setup_common_rtcd_internal(scs->static_config.use_cpu_flags);
+    svt_aom_setup_rtcd_internal(scs->static_config.use_cpu_flags);
+#else
     uint32_t instance_index;
     uint32_t process_index;
     EbColorFormat color_format = enc_handle_ptr->scs_instance_array[0]->scs->static_config.encoder_color_format;
@@ -1454,6 +1774,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
 
     svt_aom_setup_common_rtcd_internal(enc_handle_ptr->scs_instance_array[0]->scs->static_config.use_cpu_flags);
     svt_aom_setup_rtcd_internal(enc_handle_ptr->scs_instance_array[0]->scs->static_config.use_cpu_flags);
+#endif
 
     svt_aom_asm_set_convolve_asm_table();
 
@@ -1462,6 +1783,18 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
     svt_aom_asm_set_convolve_hbd_asm_table();
 
     svt_aom_init_intra_predictors_internal();
+#if CLN_REMOVE_INSTANCE_IDX
+#ifdef MINIMAL_BUILD
+    if (svt_aom_blk_geom_mds == NULL) {
+        // NOTE: this must be re-allocated if configuration changes!
+        int max_block_count = scs->max_block_cnt;
+        svt_aom_blk_geom_mds = svt_aom_malloc(max_block_count * sizeof(svt_aom_blk_geom_mds[0]));
+        svt_aom_build_blk_geom(scs->svt_aom_geom_idx);
+    }
+#else
+    svt_aom_build_blk_geom(scs->svt_aom_geom_idx);
+#endif
+#else
 #ifdef MINIMAL_BUILD
     if (svt_aom_blk_geom_mds == NULL) {
         // NOTE: this must be re-allocated if configuration changes!
@@ -1472,6 +1805,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
 #else
     svt_aom_build_blk_geom(enc_handle_ptr->scs_instance_array[0]->scs->svt_aom_geom_idx);
 #endif
+#endif
 
     svt_av1_init_me_luts();
     init_fn_ptr();
@@ -1480,6 +1814,17 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
     /************************************
      * Sequence Control Set
      ************************************/
+#if CLN_REMOVE_INSTANCE_IDX // scs_pool_ptr_array
+    EB_NEW(
+        enc_handle_ptr->scs_pool_ptr,
+        svt_system_resource_ctor,
+        enc_handle_ptr->scs_pool_total_count,
+        1,
+        0,
+        svt_aom_scs_set_creator,
+        NULL,
+        NULL);
+#else
     EB_ALLOC_PTR_ARRAY(enc_handle_ptr->scs_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
     for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index) {
         EB_NEW(
@@ -1492,9 +1837,112 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
             NULL,
             NULL);
     }
+#endif
     /************************************
     * Picture Control Set: Parent
     ************************************/
+#if CLN_REMOVE_INSTANCE_IDX // picture_parent_control_set_pool_ptr_array & me_pool_ptr_array
+    {
+        // The segment Width & Height Arrays are in units of SBs, not samples
+        PictureControlSetInitData input_data;
+        input_data.picture_width = scs->max_input_luma_width;
+        input_data.picture_height = scs->max_input_luma_height;
+        input_data.left_padding = scs->left_padding;
+        input_data.right_padding = scs->right_padding;
+        input_data.top_padding = scs->top_padding;
+        input_data.bot_padding = scs->bot_padding;
+        input_data.color_format = color_format;
+        input_data.b64_size = scs->b64_size;
+        input_data.enc_mode = scs->static_config.enc_mode;
+        input_data.speed_control = (uint8_t)scs->speed_control_flag;
+        input_data.hbd_md = scs->enable_hbd_mode_decision;
+        input_data.bit_depth = scs->static_config.encoder_bit_depth;
+        input_data.log2_tile_rows = scs->static_config.tile_rows;
+        input_data.log2_tile_cols = scs->static_config.tile_columns;
+        input_data.log2_sb_size = (scs->super_block_size == 128) ? 5 : 4;
+        input_data.is_16bit_pipeline = scs->is_16bit_pipeline;
+        input_data.non_m8_pad_w = scs->max_input_pad_right;
+        input_data.non_m8_pad_h = scs->max_input_pad_bottom;
+        input_data.enable_tpl_la = scs->tpl;
+        input_data.enc_dec_segment_col = (uint16_t)scs->tpl_segment_col_count_array;
+        input_data.enc_dec_segment_row = (uint16_t)scs->tpl_segment_row_count_array;
+        input_data.final_pass_preset = scs->final_pass_preset;
+        input_data.rate_control_mode = scs->static_config.rate_control_mode;
+        MrpCtrls* mrp_ctrl = &(scs->mrp_ctrls);
+        input_data.ref_count_used_list0 =
+            MAX(mrp_ctrl->sc_base_ref_list0_count,
+                MAX(mrp_ctrl->base_ref_list0_count,
+                    MAX(mrp_ctrl->sc_non_base_ref_list0_count, mrp_ctrl->non_base_ref_list0_count)));
+
+        input_data.ref_count_used_list1 =
+            MAX(mrp_ctrl->sc_base_ref_list1_count,
+                MAX(mrp_ctrl->base_ref_list1_count,
+                    MAX(mrp_ctrl->sc_non_base_ref_list1_count, mrp_ctrl->non_base_ref_list1_count)));
+        input_data.tpl_synth_size = svt_aom_set_tpl_group(
+            NULL,
+            svt_aom_get_tpl_group_level(1, scs->static_config.enc_mode),
+            input_data.picture_width, input_data.picture_height);
+#if CLN_AQ_MODE
+#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+        input_data.aq_mode = scs->static_config.aq_mode;
+#else
+        input_data.aq_mode = scs->static_config.enable_adaptive_quantization;
+#endif
+#else
+        input_data.enable_adaptive_quantization = scs->static_config.enable_adaptive_quantization;
+#endif
+
+        input_data.calculate_variance = scs->calculate_variance;
+        input_data.calc_hist = scs->calc_hist =
+            scs->allintra == false && (
+                scs->static_config.scene_change_detection ||
+                scs->vq_ctrls.sharpness_ctrls.scene_transition ||
+                scs->tf_params_per_type[0].enabled ||
+                scs->tf_params_per_type[1].enabled ||
+                scs->tf_params_per_type[2].enabled);
+        input_data.tpl_lad_mg = scs->tpl_lad_mg;
+        input_data.input_resolution = scs->input_resolution;
+        input_data.is_scale = scs->static_config.superres_mode > SUPERRES_NONE ||
+            scs->static_config.resize_mode > RESIZE_NONE;
+        input_data.rtc_tune = scs->static_config.rtc;
+        input_data.enable_variance_boost = scs->static_config.enable_variance_boost;
+        input_data.variance_boost_strength = scs->static_config.variance_boost_strength;
+        input_data.variance_octile = scs->static_config.variance_octile;
+        input_data.tf_strength = scs->static_config.tf_strength;
+        input_data.qp_scale_compress_strength = scs->static_config.qp_scale_compress_strength;
+        input_data.adaptive_film_grain = scs->static_config.adaptive_film_grain;
+        input_data.max_tx_size = scs->static_config.max_tx_size;
+        input_data.ac_bias = scs->static_config.ac_bias;
+        input_data.static_config = scs->static_config;
+        input_data.allintra = scs->allintra;
+        input_data.use_flat_ipp = scs->use_flat_ipp;
+        EB_NEW(
+            enc_handle_ptr->picture_parent_control_set_pool_ptr,
+            svt_system_resource_ctor,
+            scs->picture_control_set_pool_init_count,//enc_handle_ptr->pcs_pool_total_count,
+            1,
+            0,
+            svt_aom_picture_parent_control_set_creator,
+            &input_data,
+            NULL);
+#if SRM_REPORT
+        enc_handle_ptr->picture_parent_control_set_pool_ptr_array->empty_queue->log = 0;
+#endif
+        EB_NEW(
+            enc_handle_ptr->me_pool_ptr,
+            svt_system_resource_ctor,
+            scs->me_pool_init_count,
+            1,
+            0,
+            svt_aom_me_creator,
+            &input_data,
+            NULL);
+#if SRM_REPORT
+        enc_handle_ptr->me_pool_ptr_array->empty_queue->log = 0;
+        dump_srm_content(enc_handle_ptr->me_pool_ptr_array, false);
+#endif
+    }
+#else
     EB_ALLOC_PTR_ARRAY(enc_handle_ptr->picture_parent_control_set_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
     EB_ALLOC_PTR_ARRAY(enc_handle_ptr->me_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
     for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index) {
@@ -1612,9 +2060,57 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         dump_srm_content(enc_handle_ptr->me_pool_ptr_array[instance_index], false);
 #endif
     }
+#endif
 
+#if CLN_REMOVE_INSTANCE_IDX // enc_dec_pool_ptr_array
+    /************************************
+    * Enc Dec
+    ************************************/
+    {
+        // The segment Width & Height Arrays are in units of SBs, not samples
+        PictureControlSetInitData input_data;
+        input_data.enc_dec_segment_col = (uint16_t)scs->enc_dec_segment_col_count_array;
+        input_data.enc_dec_segment_row = (uint16_t)scs->enc_dec_segment_row_count_array;
 
+        input_data.picture_width = scs->max_input_luma_width;
+        input_data.picture_height = scs->max_input_luma_height;
+        input_data.left_padding = scs->left_padding;
+        input_data.right_padding = scs->right_padding;
+        input_data.top_padding = scs->top_padding;
+        input_data.bot_padding = scs->bot_padding;
+        input_data.bit_depth = scs->encoder_bit_depth;
+        input_data.color_format = color_format;
+        input_data.b64_size = scs->b64_size;
+        input_data.sb_size = scs->super_block_size;
+        input_data.hbd_md = scs->enable_hbd_mode_decision;
+        input_data.mfmv = scs->mfmv_enabled;
+        input_data.cfg_palette = scs->static_config.screen_content_mode;
+        //Jing: Get tile info from parent_pcs
+        PictureParentControlSet* parent_pcs = (PictureParentControlSet*)enc_handle_ptr->picture_parent_control_set_pool_ptr->wrapper_ptr_pool[0]->object_ptr;
+        input_data.tile_row_count = parent_pcs->av1_cm->tiles_info.tile_rows;
+        input_data.tile_column_count = parent_pcs->av1_cm->tiles_info.tile_cols;
+        input_data.is_16bit_pipeline = scs->is_16bit_pipeline;
+        input_data.av1_cm = parent_pcs->av1_cm;
+        input_data.enc_mode = scs->static_config.enc_mode;
 
+        input_data.input_resolution = scs->input_resolution;
+        input_data.is_scale = scs->static_config.superres_mode > SUPERRES_NONE ||
+            scs->static_config.resize_mode > RESIZE_NONE;
+
+        input_data.rtc_tune = scs->static_config.rtc;
+        input_data.allintra = scs->allintra;
+        input_data.use_flat_ipp = scs->use_flat_ipp;
+        EB_NEW(
+            enc_handle_ptr->enc_dec_pool_ptr,
+            svt_system_resource_ctor,
+            scs->enc_dec_pool_init_count, //EB_PictureControlSetPoolInitCountChild,
+            1,
+            0,
+            svt_aom_recon_coef_creator,
+            &input_data,
+            NULL);
+    }
+#else
         EB_ALLOC_PTR_ARRAY(enc_handle_ptr->enc_dec_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
 
         for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index) {
@@ -1664,13 +2160,59 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
                 &input_data,
                 NULL);
         }
-
-
-
+#endif
 
         /************************************
         * Picture Control Set: Child
         ************************************/
+#if CLN_REMOVE_INSTANCE_IDX // picture_control_set_pool_ptr_array
+        {
+            // The segment Width & Height Arrays are in units of SBs, not samples
+            PictureControlSetInitData input_data;
+            input_data.enc_dec_segment_col = (uint16_t)scs->enc_dec_segment_col_count_array;
+            input_data.enc_dec_segment_row = (uint16_t)scs->enc_dec_segment_row_count_array;
+
+            input_data.init_max_block_cnt = scs->max_block_cnt;
+            input_data.picture_width = scs->max_input_luma_width;
+            input_data.picture_height = scs->max_input_luma_height;
+            input_data.left_padding = scs->left_padding;
+            input_data.right_padding = scs->right_padding;
+            input_data.top_padding = scs->top_padding;
+            input_data.bot_padding = scs->bot_padding;
+            input_data.bit_depth = scs->encoder_bit_depth;
+            input_data.color_format = color_format;
+            input_data.b64_size = scs->b64_size;
+            input_data.sb_size = scs->super_block_size;
+            input_data.hbd_md = scs->enable_hbd_mode_decision;
+            input_data.mfmv = scs->mfmv_enabled;
+            input_data.cfg_palette = scs->static_config.screen_content_mode;
+            //Jing: Get tile info from parent_pcs
+            PictureParentControlSet* parent_pcs = (PictureParentControlSet*)enc_handle_ptr->picture_parent_control_set_pool_ptr->wrapper_ptr_pool[0]->object_ptr;
+            input_data.tile_row_count = parent_pcs->av1_cm->tiles_info.tile_rows;
+            input_data.tile_column_count = parent_pcs->av1_cm->tiles_info.tile_cols;
+            input_data.is_16bit_pipeline = scs->is_16bit_pipeline;
+            input_data.av1_cm = parent_pcs->av1_cm;
+            input_data.enc_mode = scs->static_config.enc_mode;
+            input_data.static_config = scs->static_config;
+
+            input_data.input_resolution = scs->input_resolution;
+            input_data.is_scale = scs->static_config.superres_mode > SUPERRES_NONE ||
+                scs->static_config.resize_mode > RESIZE_NONE;
+
+            input_data.rtc_tune = scs->static_config.rtc;
+            input_data.allintra = scs->allintra;
+            input_data.use_flat_ipp = scs->use_flat_ipp;
+            EB_NEW(
+                enc_handle_ptr->picture_control_set_pool_ptr,
+                svt_system_resource_ctor,
+                scs->picture_control_set_pool_init_count_child, //EB_PictureControlSetPoolInitCountChild,
+                1,
+                0,
+                svt_aom_picture_control_set_creator,
+                &input_data,
+                NULL);
+        }
+#else
         EB_ALLOC_PTR_ARRAY(enc_handle_ptr->picture_control_set_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
 
         for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index) {
@@ -1722,11 +2264,52 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
                 &input_data,
                 NULL);
         }
+#endif
 
     /************************************
     * Picture Buffers
     ************************************/
+#if CLN_REMOVE_INSTANCE_IDX // ref pools (MD, TPL, PA, Overlay)
+    // Allocate Resource Arrays
+    pic_mgr_ports[PIC_MGR_INPUT_PORT_SOP].count = scs->source_based_operations_process_init_count;
+    pic_mgr_ports[PIC_MGR_INPUT_PORT_PACKETIZATION].count = EB_PacketizationProcessInitCount;
+    pic_mgr_ports[PIC_MGR_INPUT_PORT_REST].count = scs->rest_process_init_count;
+    // Rate Control
+    rate_control_ports[RATE_CONTROL_INPUT_PORT_INLME].count = EB_PictureManagerProcessInitCount;
+    rate_control_ports[RATE_CONTROL_INPUT_PORT_PACKETIZATION].count = EB_PacketizationProcessInitCount;
 
+    enc_dec_ports[ENCDEC_INPUT_PORT_MDC].count = scs->mode_decision_configuration_process_init_count;
+    enc_dec_ports[ENCDEC_INPUT_PORT_ENCDEC].count = scs->enc_dec_process_init_count;
+    tpl_ports[TPL_INPUT_PORT_SOP].count = scs->source_based_operations_process_init_count;
+    tpl_ports[TPL_INPUT_PORT_TPL].count = scs->tpl_disp_process_init_count;
+    {
+        // Must always allocate mem b/c don't know if restoration is on or off at this point
+        // The restoration assumes only 1 tile is used, so only allocate for 1 tile... see svt_av1_alloc_restoration_struct()
+        PictureControlSet* pcs = (PictureControlSet*)enc_handle_ptr->picture_control_set_pool_ptr->wrapper_ptr_pool[0]->object_ptr;
+        scs->rest_units_per_tile = pcs->rst_info[0/*Y-plane*/].units_per_tile;
+        scs->b64_total_count = pcs->b64_total_count;
+        create_ref_buf_descs(enc_handle_ptr);
+        if (scs->tpl)
+            create_tpl_ref_buf_descs(enc_handle_ptr);
+
+        create_pa_ref_buf_descs(enc_handle_ptr);
+
+        if (scs->static_config.enable_overlays) {
+            // Overlay Input Picture Buffers
+            EB_NEW(
+                enc_handle_ptr->overlay_input_picture_pool_ptr,
+                svt_system_resource_ctor,
+                scs->overlay_input_picture_buffer_init_count,
+                1,
+                0,
+                svt_overlay_buffer_header_creator,
+                scs,
+                svt_input_buffer_header_destroyer);
+            // Set the SequenceControlSet Overlay input Picture Pool Fifo Ptrs
+            enc_handle_ptr->scs_instance->enc_ctx->overlay_input_picture_pool_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->overlay_input_picture_pool_ptr, 0);
+        }
+    }
+#else
     // Allocate Resource Arrays
     EB_ALLOC_PTR_ARRAY(enc_handle_ptr->reference_picture_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
     EB_ALLOC_PTR_ARRAY(enc_handle_ptr->tpl_reference_picture_pool_ptr_array, enc_handle_ptr->encode_instance_total_count);
@@ -1774,11 +2357,310 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
             enc_handle_ptr->scs_instance_array[instance_index]->enc_ctx->overlay_input_picture_pool_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->overlay_input_picture_pool_ptr_array[instance_index], 0);
         }
     }
-
+#endif
     /************************************
     * System Resource Managers & Fifos
     ************************************/
+#if CLN_REMOVE_INSTANCE_IDX // SRMs and Fifos
+    //SRM to link App to Ress-Coordination via Input commands. an Input Command holds 2 picture buffers: y8bit and rest(uv8b + yuv2b)
+    EB_NEW(
+        enc_handle_ptr->input_cmd_resource_ptr,
+        svt_system_resource_ctor,
+        scs->resource_coordination_fifo_init_count,
+        1,
+        EB_ResourceCoordinationProcessInitCount,
+        svt_input_cmd_creator,
+        scs,
+        NULL);
+    enc_handle_ptr->input_cmd_producer_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->input_cmd_resource_ptr, 0);
 
+    //Picture Buffer SRM to hold (uv8b + yuv2b)
+    EB_NEW(
+        enc_handle_ptr->input_buffer_resource_ptr,
+        svt_system_resource_ctor,
+        scs->input_buffer_fifo_init_count,
+        1,
+        0, //1/2 SRM; no consumer FIFO
+        svt_input_buffer_header_creator,
+        scs,
+        svt_input_buffer_header_destroyer);
+    enc_handle_ptr->input_buffer_producer_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->input_buffer_resource_ptr, 0);
+
+    //Picture Buffer SRM to hold y8b to be shared by Pcs->enhanced and Pa_ref
+    EB_NEW(
+        enc_handle_ptr->input_y8b_buffer_resource_ptr,
+        svt_system_resource_ctor,
+        MAX(scs->input_buffer_fifo_init_count, scs->pa_reference_picture_buffer_init_count),
+        1,
+        0, //1/2 SRM; no consumer FIFO
+        svt_input_y8b_creator,
+        scs,
+        svt_input_y8b_destroyer);
+
+#if SRM_REPORT
+    enc_handle_ptr->input_y8b_buffer_resource_ptr->empty_queue->log = 1;
+#endif
+    enc_handle_ptr->input_y8b_buffer_producer_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->input_y8b_buffer_resource_ptr, 0);
+
+    // EbBufferHeaderType Output Stream
+    {
+        EB_NEW(
+            enc_handle_ptr->output_stream_buffer_resource_ptr,
+            svt_system_resource_ctor,
+            scs->output_stream_buffer_fifo_init_count,
+            scs->total_process_init_count,//EB_PacketizationProcessInitCount,
+            1,
+            svt_output_buffer_header_creator,
+            &scs->static_config,
+            svt_output_buffer_header_destroyer);
+    }
+    enc_handle_ptr->output_stream_buffer_consumer_fifo_ptr = svt_system_resource_get_consumer_fifo(enc_handle_ptr->output_stream_buffer_resource_ptr, 0);
+    if (scs->static_config.recon_enabled) {
+        // EbBufferHeaderType Output Recon
+        {
+            EB_NEW(
+                enc_handle_ptr->output_recon_buffer_resource_ptr,
+                svt_system_resource_ctor,
+                scs->output_recon_buffer_fifo_init_count,
+                scs->enc_dec_process_init_count,
+                1,
+                svt_output_recon_buffer_header_creator,
+                scs,
+                svt_output_recon_buffer_header_destroyer);
+        }
+        enc_handle_ptr->output_recon_buffer_consumer_fifo_ptr = svt_system_resource_get_consumer_fifo(enc_handle_ptr->output_recon_buffer_resource_ptr, 0);
+    }
+
+    // Resource Coordination Results
+    {
+        ResourceCoordinationResultInitData resource_coordination_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->resource_coordination_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->resource_coordination_fifo_init_count,
+            EB_ResourceCoordinationProcessInitCount,
+            scs->picture_analysis_process_init_count,
+            svt_aom_resource_coordination_result_creator,
+            &resource_coordination_result_init_data,
+            NULL);
+    }
+
+    // Picture Analysis Results
+    {
+        PictureAnalysisResultInitData picture_analysis_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->picture_analysis_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->picture_analysis_fifo_init_count,
+            scs->picture_analysis_process_init_count,
+            EB_PictureDecisionProcessInitCount,
+            svt_aom_picture_analysis_result_creator,
+            &picture_analysis_result_init_data,
+            NULL);
+    }
+
+    // Picture Decision Results
+    {
+        PictureDecisionResultInitData picture_decision_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->picture_decision_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->picture_decision_fifo_init_count,
+            EB_PictureDecisionProcessInitCount + 2,  // 1 for rate control, another 1 for packetization when superres recoding is on
+            scs->motion_estimation_process_init_count,
+            svt_aom_picture_decision_result_creator,
+            &picture_decision_result_init_data,
+            NULL);
+        EB_ALLOC_PTR_ARRAY(scs->enc_ctx->picture_decision_reorder_queue, scs->enc_ctx->picture_decision_reorder_queue_size);
+
+        for (uint32_t picture_index = 0; picture_index < scs->enc_ctx->picture_decision_reorder_queue_size; ++picture_index) {
+            EB_NEW(scs->enc_ctx->picture_decision_reorder_queue[picture_index],
+                svt_aom_picture_decision_reorder_entry_ctor,
+                picture_index);
+        }
+    }
+
+    // Motion Estimation Results
+    {
+        MotionEstimationResultsInitData motion_estimation_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->motion_estimation_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->motion_estimation_fifo_init_count,
+            scs->motion_estimation_process_init_count,
+            EB_InitialRateControlProcessInitCount,
+            svt_aom_motion_estimation_results_creator,
+            &motion_estimation_result_init_data,
+            NULL);
+    }
+
+
+    // Initial Rate Control Results
+    {
+        InitialRateControlResultInitData initial_rate_control_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->initial_rate_control_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->initial_rate_control_fifo_init_count,
+            EB_InitialRateControlProcessInitCount,
+            scs->source_based_operations_process_init_count,
+            svt_aom_initial_rate_control_results_creator,
+            &initial_rate_control_result_init_data,
+            NULL);
+    }
+
+    // Picture Demux Results
+    {
+        PictureResultInitData picture_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->picture_demux_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->picture_demux_fifo_init_count,
+            pic_mgr_port_total_count(),
+            EB_PictureManagerProcessInitCount,
+            svt_aom_picture_results_creator,
+            &picture_result_init_data,
+            NULL);
+
+        EB_ALLOC_PTR_ARRAY(scs->enc_ctx->pic_mgr_input_pic_list, scs->enc_ctx->pic_mgr_input_pic_list_size);
+
+        for (uint32_t picture_index = 0; picture_index < scs->enc_ctx->pic_mgr_input_pic_list_size; ++picture_index) {
+            EB_NEW(scs->enc_ctx->pic_mgr_input_pic_list[picture_index], svt_aom_input_queue_entry_ctor);
+        }
+    }
+
+    // TPL dispenser Results
+    {
+        EntropyCodingResultsInitData tpl_disp_result_init_data;
+        //TPL Dispenser tasks
+        EB_NEW(
+            enc_handle_ptr->tpl_disp_res_srm,
+            svt_system_resource_ctor,
+            scs->tpl_disp_fifo_init_count,
+            tpl_port_total_count(),
+            scs->tpl_disp_process_init_count,
+            tpl_disp_results_creator,
+            &tpl_disp_result_init_data,
+            NULL);
+    }
+
+    // Rate Control Tasks
+    {
+        RateControlTasksInitData rate_control_tasks_init_data;
+        EB_NEW(
+            enc_handle_ptr->rate_control_tasks_resource_ptr,
+            svt_system_resource_ctor,
+            scs->rate_control_tasks_fifo_init_count,
+            rate_control_port_total_count(),
+            EB_RateControlProcessInitCount,
+            svt_aom_rate_control_tasks_creator,
+            &rate_control_tasks_init_data,
+            NULL);
+    }
+
+    // Rate Control Results
+    {
+        RateControlResultsInitData rate_control_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->rate_control_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->rate_control_fifo_init_count,
+            EB_RateControlProcessInitCount,
+            scs->mode_decision_configuration_process_init_count,
+            svt_aom_rate_control_results_creator,
+            &rate_control_result_init_data,
+            NULL);
+    }
+    // EncDec Tasks
+    {
+        EncDecTasksInitData mode_decision_result_init_data;
+        mode_decision_result_init_data.enc_dec_segment_row_count = scs->enc_dec_segment_row_count_array;
+        EB_NEW(
+            enc_handle_ptr->enc_dec_tasks_resource_ptr,
+            svt_system_resource_ctor,
+            scs->mode_decision_configuration_fifo_init_count,
+            enc_dec_port_total_count(),
+            scs->enc_dec_process_init_count,
+            svt_aom_enc_dec_tasks_creator,
+            &mode_decision_result_init_data,
+            NULL);
+    }
+
+    // EncDec Results
+    {
+        EncDecResultsInitData enc_dec_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->enc_dec_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->enc_dec_fifo_init_count,
+            scs->enc_dec_process_init_count,
+            scs->dlf_process_init_count,
+            svt_aom_enc_dec_results_creator,
+            &enc_dec_result_init_data,
+            NULL);
+    }
+
+    //DLF results
+    {
+        EntropyCodingResultsInitData delf_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->dlf_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->dlf_fifo_init_count,
+            scs->dlf_process_init_count,
+            scs->cdef_process_init_count,
+            dlf_results_creator,
+            &delf_result_init_data,
+            NULL);
+    }
+    //CDEF results
+    {
+        EntropyCodingResultsInitData cdef_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->cdef_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->cdef_fifo_init_count,
+            scs->cdef_process_init_count,
+            scs->rest_process_init_count,
+            cdef_results_creator,
+            &cdef_result_init_data,
+            NULL);
+    }
+    //REST results
+    {
+        EntropyCodingResultsInitData rest_result_init_data;
+        EB_NEW(
+            enc_handle_ptr->rest_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->rest_fifo_init_count,
+            scs->rest_process_init_count,
+            scs->entropy_coding_process_init_count,
+            rest_results_creator,
+            &rest_result_init_data,
+            NULL);
+    }
+
+    // Entropy Coding Results
+    {
+        EntropyCodingResultsInitData entropy_coding_results_init_data;
+        EB_NEW(
+            enc_handle_ptr->entropy_coding_results_resource_ptr,
+            svt_system_resource_ctor,
+            scs->entropy_coding_fifo_init_count,
+            scs->entropy_coding_process_init_count,
+            EB_PacketizationProcessInitCount,
+            svt_aom_entropy_coding_results_creator,
+            &entropy_coding_results_init_data,
+            NULL);
+        EB_ALLOC_PTR_ARRAY(scs->enc_ctx->packetization_reorder_queue, scs->enc_ctx->packetization_reorder_queue_size);
+
+        for (uint32_t picture_index = 0; picture_index < scs->enc_ctx->packetization_reorder_queue_size; ++picture_index) {
+            EB_NEW(scs->enc_ctx->packetization_reorder_queue[picture_index],
+                svt_aom_packetization_reorder_entry_ctor,
+                picture_index);
+        }
+    }
+#else
     //SRM to link App to Ress-Coordination via Input commands. an Input Command holds 2 picture buffers: y8bit and rest(uv8b + yuv2b)
     EB_NEW(
         enc_handle_ptr->input_cmd_resource_ptr,
@@ -2099,11 +2981,18 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
                 picture_index);
         }
     }
-
+#endif
 
     /************************************
     * App Callbacks
     ************************************/
+#if CLN_REMOVE_INSTANCE_IDX // app_callback_ptr_array
+    enc_handle_ptr->scs_instance->enc_ctx->app_callback_ptr = enc_handle_ptr->app_callback_ptr;
+    // svt Output Buffer Fifo Ptrs
+    enc_handle_ptr->scs_instance->enc_ctx->stream_output_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->output_stream_buffer_resource_ptr, 0);
+    if (enc_handle_ptr->scs_instance->scs->static_config.recon_enabled)
+        enc_handle_ptr->scs_instance->enc_ctx->recon_output_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->output_recon_buffer_resource_ptr, 0);
+#else
     for (instance_index = 0; instance_index < enc_handle_ptr->encode_instance_total_count; ++instance_index)
         enc_handle_ptr->scs_instance_array[instance_index]->enc_ctx->app_callback_ptr = enc_handle_ptr->app_callback_ptr_array[instance_index];
     // svt Output Buffer Fifo Ptrs
@@ -2112,11 +3001,230 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         if (enc_handle_ptr->scs_instance_array[0]->scs->static_config.recon_enabled)
             enc_handle_ptr->scs_instance_array[instance_index]->enc_ctx->recon_output_fifo_ptr  = svt_system_resource_get_producer_fifo(enc_handle_ptr->output_recon_buffer_resource_ptr_array[instance_index], 0);
     }
+#endif
 
     /************************************
     * Contexts
     ************************************/
+#if CLN_REMOVE_INSTANCE_IDX // contexts
+    // Resource Coordination Context
+    EB_NEW(
+        enc_handle_ptr->resource_coordination_context_ptr,
+        svt_aom_resource_coordination_context_ctor,
+        enc_handle_ptr);
 
+    // Picture Analysis Context
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->picture_analysis_context_ptr_array, scs->picture_analysis_process_init_count);
+    for (uint32_t process_index = 0; process_index < scs->picture_analysis_process_init_count; process_index++) {
+        EB_NEW(
+            enc_handle_ptr->picture_analysis_context_ptr_array[process_index],
+            svt_aom_picture_analysis_context_ctor,
+            enc_handle_ptr,
+            process_index);
+    }
+
+    // Picture Decision Context
+    EB_NEW(
+        enc_handle_ptr->picture_decision_context_ptr,
+        svt_aom_picture_decision_context_ctor,
+        enc_handle_ptr,
+        scs->calc_hist);
+
+    // Motion Analysis Context
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->motion_estimation_context_ptr_array, scs->motion_estimation_process_init_count);
+    for (uint32_t process_index = 0; process_index < scs->motion_estimation_process_init_count; process_index++) {
+        EB_NEW(
+            enc_handle_ptr->motion_estimation_context_ptr_array[process_index],
+            svt_aom_motion_estimation_context_ctor,
+            enc_handle_ptr,
+            process_index);
+    }
+
+
+    // Initial Rate Control Context
+    EB_NEW(
+        enc_handle_ptr->initial_rate_control_context_ptr,
+        svt_aom_initial_rate_control_context_ctor,
+        enc_handle_ptr,
+        scs->picture_control_set_pool_init_count);
+
+    // Source Based Operations Context
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->source_based_operations_context_ptr_array, scs->source_based_operations_process_init_count);
+    for (uint32_t process_index = 0; process_index < scs->source_based_operations_process_init_count; process_index++) {
+        EB_NEW(
+            enc_handle_ptr->source_based_operations_context_ptr_array[process_index],
+            svt_aom_source_based_operations_context_ctor,
+            enc_handle_ptr,
+            tpl_port_lookup(TPL_INPUT_PORT_SOP, process_index),
+            pic_mgr_port_lookup(PIC_MGR_INPUT_PORT_SOP, process_index));
+    }
+
+    // TPL dispenser
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->tpl_disp_context_ptr_array, scs->tpl_disp_process_init_count);
+    for (uint32_t process_index = 0; process_index < scs->tpl_disp_process_init_count; process_index++) {
+        EB_NEW(
+            enc_handle_ptr->tpl_disp_context_ptr_array[process_index],
+            svt_aom_tpl_disp_context_ctor,
+            enc_handle_ptr,
+            process_index,
+            tpl_port_lookup(TPL_INPUT_PORT_TPL, process_index));
+    }
+
+    // Picture Manager Context
+    EB_NEW(
+        enc_handle_ptr->picture_manager_context_ptr,
+        svt_aom_picture_manager_context_ctor,
+        enc_handle_ptr,
+        rate_control_port_lookup(RATE_CONTROL_INPUT_PORT_INLME, 0), //Pic-Mgr uses the first Port
+        scs->picture_control_set_pool_init_count);
+
+    // Rate Control Context
+    EB_NEW(
+        enc_handle_ptr->rate_control_context_ptr,
+        svt_aom_rate_control_context_ctor,
+        enc_handle_ptr,
+        EB_PictureDecisionProcessInitCount);  // me_port_index
+
+    // Mode Decision Configuration Contexts
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->mode_decision_configuration_context_ptr_array, scs->mode_decision_configuration_process_init_count);
+    for (uint32_t process_index = 0; process_index < scs->mode_decision_configuration_process_init_count; process_index++) {
+        EB_NEW(
+            enc_handle_ptr->mode_decision_configuration_context_ptr_array[process_index],
+            svt_aom_mode_decision_configuration_context_ctor,
+            enc_handle_ptr,
+            process_index,
+            enc_dec_port_lookup(ENCDEC_INPUT_PORT_MDC, process_index));
+    }
+
+    // EncDec Contexts
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->enc_dec_context_ptr_array, scs->enc_dec_process_init_count);
+    for (uint32_t process_index = 0; process_index < scs->enc_dec_process_init_count; process_index++) {
+        EB_NEW(
+            enc_handle_ptr->enc_dec_context_ptr_array[process_index],
+            svt_aom_enc_dec_context_ctor,
+            enc_handle_ptr,
+            process_index,
+            enc_dec_port_lookup(ENCDEC_INPUT_PORT_ENCDEC, process_index));
+    }
+
+    // Dlf Contexts
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->dlf_context_ptr_array, scs->dlf_process_init_count);
+    for (uint32_t process_index = 0; process_index < scs->dlf_process_init_count; process_index++) {
+        EB_NEW(
+            enc_handle_ptr->dlf_context_ptr_array[process_index],
+            svt_aom_dlf_context_ctor,
+            enc_handle_ptr,
+            process_index);
+    }
+
+    //CDEF Contexts
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->cdef_context_ptr_array, scs->cdef_process_init_count);
+    for (uint32_t process_index = 0; process_index < scs->cdef_process_init_count; process_index++) {
+        EB_NEW(
+            enc_handle_ptr->cdef_context_ptr_array[process_index],
+            svt_aom_cdef_context_ctor,
+            enc_handle_ptr,
+            process_index);
+    }
+
+    //Rest Contexts
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->rest_context_ptr_array, scs->rest_process_init_count);
+    EbPictureBufferDescInitData input_data;
+    input_data.enc_mode = scs->static_config.enc_mode;
+    for (uint32_t process_index = 0; process_index < scs->rest_process_init_count; process_index++) {
+        EB_NEW(
+            enc_handle_ptr->rest_context_ptr_array[process_index],
+            svt_aom_rest_context_ctor,
+            enc_handle_ptr,
+            &input_data,
+            process_index,
+            pic_mgr_port_lookup(PIC_MGR_INPUT_PORT_REST, process_index));
+    }
+
+    // Entropy Coding Contexts
+    EB_ALLOC_PTR_ARRAY(enc_handle_ptr->entropy_coding_context_ptr_array, scs->entropy_coding_process_init_count);
+    for (uint32_t process_index = 0; process_index < scs->entropy_coding_process_init_count; process_index++) {
+        EB_NEW(
+            enc_handle_ptr->entropy_coding_context_ptr_array[process_index],
+            svt_aom_entropy_coding_context_ctor,
+            enc_handle_ptr,
+            process_index);
+    }
+
+    // Packetization Context
+    EB_NEW(
+        enc_handle_ptr->packetization_context_ptr,
+        svt_aom_packetization_context_ctor,
+        enc_handle_ptr,
+        rate_control_port_lookup(RATE_CONTROL_INPUT_PORT_PACKETIZATION, 0),
+        pic_mgr_port_lookup(PIC_MGR_INPUT_PORT_PACKETIZATION, 0),
+        EB_PictureDecisionProcessInitCount + EB_RateControlProcessInitCount);  // me_port_index
+
+    /************************************
+    * Thread Handles
+    ************************************/
+    // Resource Coordination
+    EB_CREATE_THREAD(enc_handle_ptr->resource_coordination_thread_handle, svt_aom_resource_coordination_kernel, enc_handle_ptr->resource_coordination_context_ptr);
+    EB_CREATE_THREAD_ARRAY(enc_handle_ptr->picture_analysis_thread_handle_array, scs->picture_analysis_process_init_count,
+        svt_aom_picture_analysis_kernel,
+        enc_handle_ptr->picture_analysis_context_ptr_array);
+
+    // Picture Decision
+    EB_CREATE_THREAD(enc_handle_ptr->picture_decision_thread_handle, svt_aom_picture_decision_kernel, enc_handle_ptr->picture_decision_context_ptr);
+
+    // Motion Estimation
+    EB_CREATE_THREAD_ARRAY(enc_handle_ptr->motion_estimation_thread_handle_array, scs->motion_estimation_process_init_count,
+        svt_aom_motion_estimation_kernel,
+        enc_handle_ptr->motion_estimation_context_ptr_array);
+
+    // Initial Rate Control
+    EB_CREATE_THREAD(enc_handle_ptr->initial_rate_control_thread_handle, svt_aom_initial_rate_control_kernel, enc_handle_ptr->initial_rate_control_context_ptr);
+
+    // Source Based Oprations
+    EB_CREATE_THREAD_ARRAY(enc_handle_ptr->source_based_operations_thread_handle_array, scs->source_based_operations_process_init_count,
+        svt_aom_source_based_operations_kernel,
+        enc_handle_ptr->source_based_operations_context_ptr_array);
+
+    // TPL dispenser
+    EB_CREATE_THREAD_ARRAY(enc_handle_ptr->tpl_disp_thread_handle_array, scs->tpl_disp_process_init_count,
+        svt_aom_tpl_disp_kernel,//TODOOMK
+        enc_handle_ptr->tpl_disp_context_ptr_array);
+    // Picture Manager
+    EB_CREATE_THREAD(enc_handle_ptr->picture_manager_thread_handle, svt_aom_picture_manager_kernel, enc_handle_ptr->picture_manager_context_ptr);
+    // Rate Control
+    EB_CREATE_THREAD(enc_handle_ptr->rate_control_thread_handle, svt_aom_rate_control_kernel, enc_handle_ptr->rate_control_context_ptr);
+
+    // Mode Decision Configuration Process
+    EB_CREATE_THREAD_ARRAY(enc_handle_ptr->mode_decision_configuration_thread_handle_array, scs->mode_decision_configuration_process_init_count,
+        svt_aom_mode_decision_configuration_kernel,
+        enc_handle_ptr->mode_decision_configuration_context_ptr_array);
+
+
+    // EncDec Process
+    EB_CREATE_THREAD_ARRAY(enc_handle_ptr->enc_dec_thread_handle_array, scs->enc_dec_process_init_count,
+        svt_aom_mode_decision_kernel,
+        enc_handle_ptr->enc_dec_context_ptr_array);
+
+    // Dlf Process
+    EB_CREATE_THREAD_ARRAY(enc_handle_ptr->dlf_thread_handle_array, scs->dlf_process_init_count,
+        svt_aom_dlf_kernel,
+        enc_handle_ptr->dlf_context_ptr_array);
+
+    // Cdef Process
+    EB_CREATE_THREAD_ARRAY(enc_handle_ptr->cdef_thread_handle_array, scs->cdef_process_init_count,
+        svt_aom_cdef_kernel,
+        enc_handle_ptr->cdef_context_ptr_array);
+
+    // Rest Process
+    EB_CREATE_THREAD_ARRAY(enc_handle_ptr->rest_thread_handle_array, scs->rest_process_init_count,
+        svt_aom_rest_kernel,
+        enc_handle_ptr->rest_context_ptr_array);
+
+    // Entropy Coding Process
+    EB_CREATE_THREAD_ARRAY(enc_handle_ptr->entropy_coding_thread_handle_array, scs->entropy_coding_process_init_count,
+        svt_aom_entropy_coding_kernel,
+        enc_handle_ptr->entropy_coding_context_ptr_array);
+#else
     // Resource Coordination Context
     EB_NEW(
         enc_handle_ptr->resource_coordination_context_ptr,
@@ -2351,7 +3459,7 @@ SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[0]->scs;
         EB_CREATE_THREAD_ARRAY(enc_handle_ptr->entropy_coding_thread_handle_array, control_set_ptr->entropy_coding_process_init_count,
             svt_aom_entropy_coding_kernel,
             enc_handle_ptr->entropy_coding_context_ptr_array);
-
+#endif
     // Packetization
     EB_CREATE_THREAD(enc_handle_ptr->packetization_thread_handle, svt_aom_packetization_kernel, enc_handle_ptr->packetization_context_ptr);
 
@@ -5256,6 +6364,31 @@ EB_API EbErrorType svt_av1_enc_set_parameter(
         return EB_ErrorBadParameter;
 
     EbEncHandle        *enc_handle  = (EbEncHandle*)svt_enc_component->p_component_private;
+#if CLN_REMOVE_INSTANCE_IDX
+    SequenceControlSet* scs = enc_handle->scs_instance->scs;
+    copy_api_from_app(scs, config_struct);
+
+    EbErrorType return_error = svt_av1_verify_settings(scs);
+
+    if (return_error == EB_ErrorBadParameter)
+        return EB_ErrorBadParameter;
+
+    if (scs->static_config.avif) {
+        scs->seq_header.still_picture = 1;
+        scs->seq_header.reduced_still_picture_header = 1;
+    }
+    set_param_based_on_input(scs);
+    // Initialize the Prediction Structure Group
+    EB_NO_THROW_NEW(
+        enc_handle->scs_instance->enc_ctx->prediction_structure_group_ptr,
+        svt_aom_prediction_structure_group_ctor);
+    if (!enc_handle->scs_instance->enc_ctx->prediction_structure_group_ptr) {
+        return EB_ErrorInsufficientResources;
+    }
+    return_error = load_default_buffer_configuration_settings(scs);
+
+    svt_av1_print_lib_params(scs);
+#else
     uint32_t              instance_index = 0;
     copy_api_from_app(
         enc_handle->scs_instance_array[instance_index]->scs,
@@ -5285,6 +6418,7 @@ EB_API EbErrorType svt_av1_enc_set_parameter(
 
     svt_av1_print_lib_params(
         enc_handle->scs_instance_array[instance_index]->scs);
+#endif
 
     // free frame scale events after copy to encoder
     if (config_struct->frame_scale_evts.resize_denoms) EB_FREE(config_struct->frame_scale_evts.resize_denoms);
@@ -5314,7 +6448,11 @@ EB_API EbErrorType svt_av1_enc_stream_header(
         return EB_ErrorBadParameter;
 
     EbEncHandle             *enc_handle  = (EbEncHandle*)svt_enc_component->p_component_private;
+#if CLN_REMOVE_INSTANCE_IDX
+    SequenceControlSet      *scs = enc_handle->scs_instance->scs;
+#else
     SequenceControlSet      *scs = enc_handle->scs_instance_array[0]->scs;
+#endif
     Bitstream                bitstream;
     OutputBitstreamUnit      output_bitstream;
     EbBufferHeaderType      *output_stream_buffer;
@@ -6020,7 +7158,12 @@ EB_API EbErrorType svt_av1_enc_send_picture(
     EbBufferHeaderType   *app_hdr = p_buffer;
     enc_handle_ptr->frame_received = true;
 
+#if CLN_REMOVE_INSTANCE_IDX
+    SequenceControlSet* scs = enc_handle_ptr->scs_instance->scs;
+    if (scs->static_config.avif && p_buffer->pts == 3) {
+#else
     if (enc_handle_ptr->scs_instance_array[0]->scs->static_config.avif && p_buffer->pts == 3) {
+#endif
         p_buffer->flags = EB_BUFFERFLAG_EOS;
         p_buffer->pic_type = EB_AV1_INVALID_PICTURE;
         enc_handle_ptr->eos_received = 1;
@@ -6043,13 +7186,22 @@ EB_API EbErrorType svt_av1_enc_send_picture(
         enc_handle_ptr->input_y8b_buffer_producer_fifo_ptr,
         &y8b_wrapper);
     // Update the input picture definitions: resolution of the sequence
+#if CLN_REMOVE_INSTANCE_IDX
+    if (validate_on_the_fly_settings(p_buffer,scs, enc_handle_ptr->scs_instance->config_mutex)) {
+#else
     if(validate_on_the_fly_settings(p_buffer, enc_handle_ptr->scs_instance_array[0]->scs, enc_handle_ptr->scs_instance_array[0]->config_mutex)){
+#endif
         return_val = EB_ErrorBadParameter;
         enc_handle_ptr->eos_received = 1;
     }
     // if resolution has changed, and the y8b_wrapper settings do not match scs settings, update y8b_wrapper settings
+#if CLN_REMOVE_INSTANCE_IDX
+    if (buffer_update_needed((EbBufferHeaderType*)y8b_wrapper->object_ptr, scs))
+        svt_input_y8b_update((EbBufferHeaderType*)y8b_wrapper->object_ptr, scs);
+#else
     if (buffer_update_needed((EbBufferHeaderType*)y8b_wrapper->object_ptr, enc_handle_ptr->scs_instance_array[0]->scs))
         svt_input_y8b_update((EbBufferHeaderType*)y8b_wrapper->object_ptr, enc_handle_ptr->scs_instance_array[0]->scs);
+#endif
     //set live count to 1 to be decremented at the end of the encode in RC
     svt_object_inc_live_count(y8b_wrapper, 1);
 
@@ -6059,8 +7211,13 @@ EB_API EbErrorType svt_av1_enc_send_picture(
         enc_handle_ptr->input_buffer_producer_fifo_ptr,
         &eb_wrapper_ptr);
     // if resolution has changed, and the input_buffer settings do not match scs settings, update input_buffer settings
+#if CLN_REMOVE_INSTANCE_IDX
+    if (buffer_update_needed((EbBufferHeaderType*)eb_wrapper_ptr->object_ptr, scs))
+        svt_input_buffer_header_update((EbBufferHeaderType*)eb_wrapper_ptr->object_ptr, scs, true);
+#else
     if (buffer_update_needed((EbBufferHeaderType*)eb_wrapper_ptr->object_ptr, enc_handle_ptr->scs_instance_array[0]->scs))
         svt_input_buffer_header_update((EbBufferHeaderType*)eb_wrapper_ptr->object_ptr, enc_handle_ptr->scs_instance_array[0]->scs, true);
+#endif
 
      //set live count to 1 to be decremented at the end of the encode in RC, and released
      //this would also allow low delay TF to retain pictures
@@ -6074,7 +7231,9 @@ EB_API EbErrorType svt_av1_enc_send_picture(
 
     // check whether the n_filled_len has enough samples to be processed
     EbPictureBufferDesc* input_pic = (EbPictureBufferDesc*)lib_y8b_hdr->p_buffer;
+#if !CLN_REMOVE_INSTANCE_IDX
     SequenceControlSet* scs = enc_handle_ptr->scs_instance_array[0]->scs;
+#endif
     EbSvtAv1EncConfiguration* config = &scs->static_config;
     bool is_16bit_input = (bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
 
@@ -6092,7 +7251,11 @@ EB_API EbErrorType svt_av1_enc_send_picture(
         // this operation is necessary to avoid a potential crash when processing an invalid input
         // the library will still process the current input and then exit
         memset_input_buffer(
+#if CLN_REMOVE_INSTANCE_IDX
+            scs,
+#else
             enc_handle_ptr->scs_instance_array[0]->scs,
+#endif
             lib_reg_hdr,
             lib_y8b_hdr,
             app_hdr,
@@ -6101,7 +7264,11 @@ EB_API EbErrorType svt_av1_enc_send_picture(
     }
     else {
         copy_input_buffer(
+#if CLN_REMOVE_INSTANCE_IDX
+            scs,
+#else
             enc_handle_ptr->scs_instance_array[0]->scs,
+#endif
             lib_reg_hdr,
             lib_y8b_hdr,
             app_hdr,
@@ -6161,7 +7328,11 @@ EB_API EbErrorType svt_av1_enc_get_packet(
     EbEncHandle          *enc_handle = (EbEncHandle*)svt_enc_component->p_component_private;
     EbObjectWrapper      *eb_wrapper_ptr = NULL;
     EbBufferHeaderType    *packet;
+#if CLN_REMOVE_INSTANCE_IDX
+    const EbSvtAv1EncConfiguration* cfg = &enc_handle->scs_instance->scs->static_config;
+#else
     const EbSvtAv1EncConfiguration* cfg = &enc_handle->scs_instance_array[0]->scs->static_config;
+#endif
 
     // check if the user is claiming that the last picture has been sent
     // without actually signalling it through svt_av1_enc_send_picture()
@@ -6225,7 +7396,11 @@ EB_API EbErrorType svt_av1_get_recon(
     EbEncHandle          *enc_handle = (EbEncHandle*)svt_enc_component->p_component_private;
     EbObjectWrapper      *eb_wrapper_ptr = NULL;
 
+#if CLN_REMOVE_INSTANCE_IDX
+    if (enc_handle->scs_instance->scs->static_config.recon_enabled) {
+#else
     if (enc_handle->scs_instance_array[0]->scs->static_config.recon_enabled) {
+#endif
         svt_get_full_object_non_blocking(
             enc_handle->output_recon_buffer_consumer_fifo_ptr,
             &eb_wrapper_ptr);
@@ -6626,7 +7801,11 @@ EB_API EbErrorType svt_av1_enc_get_stream_info(EbComponentType *    svt_enc_comp
         return EB_ErrorBadParameter;
     }
     EbEncHandle         *enc_handle = svt_enc_component->p_component_private;
+#if CLN_REMOVE_INSTANCE_IDX
+    EncodeContext* context = enc_handle->scs_instance->enc_ctx;
+#else
     EncodeContext*      context = enc_handle->scs_instance_array[0]->enc_ctx;
+#endif
     SvtAv1FixedBuf*     first_pass_stats = info;
     first_pass_stats->buf = context->stats_out.stat;
     first_pass_stats->sz = context->stats_out.size * sizeof(FIRSTPASS_STATS);

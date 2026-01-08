@@ -147,10 +147,17 @@ EbErrorType svt_aom_picture_manager_context_ctor(EbThreadContext *thread_ctx, co
         enc_handle_ptr->picture_demux_results_resource_ptr, 0);
     context_ptr->picture_manager_output_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->rate_control_tasks_resource_ptr, rate_control_index);
+#if CLN_REMOVE_INSTANCE_IDX
+    context_ptr->picture_control_set_fifo_ptr = svt_system_resource_get_producer_fifo(
+        enc_handle_ptr->picture_control_set_pool_ptr, 0); //The Child PCS Pool here
+    context_ptr->recon_coef_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->enc_dec_pool_ptr,
+                                                                             0); //The Child PCS Pool here
+#else
     context_ptr->picture_control_set_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->picture_control_set_pool_ptr_array[0], 0); //The Child PCS Pool here
     context_ptr->recon_coef_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->enc_dec_pool_ptr_array[0],
                                                                              0); //The Child PCS Pool here
+#endif
 
     context_ptr->consecutive_dec_order = 0;
     EB_MALLOC_ARRAY(context_ptr->started_pics_dec_order, ppcs_count);

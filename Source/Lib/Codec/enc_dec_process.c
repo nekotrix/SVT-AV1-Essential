@@ -66,9 +66,20 @@ static void enc_dec_context_dctor(EbPtr p) {
  * Enc Dec Context Constructor
  ******************************************************/
 EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr, int index,
-                                         int tasks_index)
+                                         int tasks_index) {
+#if CLN_REMOVE_INSTANCE_IDX
+    SequenceControlSet             *scs                      = enc_handle_ptr->scs_instance->scs;
+    const EbSvtAv1EncConfiguration *static_config            = &scs->static_config;
+    EbColorFormat                   color_format             = static_config->encoder_color_format;
+    int8_t                          enable_hbd_mode_decision = scs->enable_hbd_mode_decision;
 
-{
+    EncDecContext *ed_ctx;
+    EB_CALLOC_ARRAY(ed_ctx, 1);
+    thread_ctx->priv  = ed_ctx;
+    thread_ctx->dctor = enc_dec_context_dctor;
+
+    ed_ctx->is_16bit = scs->is_16bit_pipeline;
+#else
     SequenceControlSet             *scs           = enc_handle_ptr->scs_instance_array[0]->scs;
     const EbSvtAv1EncConfiguration *static_config = &scs->static_config;
     EbColorFormat                   color_format  = static_config->encoder_color_format;
@@ -80,6 +91,7 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
     thread_ctx->dctor = enc_dec_context_dctor;
 
     ed_ctx->is_16bit = enc_handle_ptr->scs_instance_array[0]->scs->is_16bit_pipeline;
+#endif
 
     // Input/Output System Resource Manager FIFOs
     ed_ctx->mode_decision_input_fifo_ptr = svt_system_resource_get_consumer_fifo(
@@ -107,6 +119,20 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
                    .color_format       = color_format,
                });
     // Mode Decision Context
+#if CLN_REMOVE_INSTANCE_IDX
+    EB_NEW(ed_ctx->md_ctx,
+           svt_aom_mode_decision_context_ctor,
+           scs,
+           color_format,
+           scs->super_block_size,
+           static_config->enc_mode,
+           scs->max_block_cnt,
+           static_config->encoder_bit_depth,
+           0,
+           0,
+           enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
+           scs->seq_qp_mod);
+#else
     EB_NEW(ed_ctx->md_ctx,
            svt_aom_mode_decision_context_ctor,
            enc_handle_ptr->scs_instance_array[0]->scs,
@@ -119,6 +145,7 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
            0,
            enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
            enc_handle_ptr->scs_instance_array[0]->scs->seq_qp_mod);
+#endif
 
     if (enable_hbd_mode_decision)
         ed_ctx->md_ctx->input_sample16bit_buffer = ed_ctx->input_sample16bit_buffer;

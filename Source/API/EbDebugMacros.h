@@ -157,6 +157,7 @@ extern "C" {
                                       // that has no effect because delta QP is enabled through variance boost anyway).
 #define FIX_M10_M11                 1 // Fix the M10/M11 settings for RA
 #define CLN_VAR_FUNC                1 // cleanup compute_block_mean_compute_variance
+#define CLN_REMOVE_INSTANCE_IDX     1 // Remove encode_instance_total_count which is always 1
 
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one

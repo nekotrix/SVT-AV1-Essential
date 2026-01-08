@@ -240,8 +240,12 @@ EbErrorType svt_aom_picture_decision_context_ctor(
         EB_CALLOC_2D(pd_ctx->ahd_running_avg, MAX_NUMBER_OF_REGIONS_IN_WIDTH * sizeof(uint32_t), MAX_NUMBER_OF_REGIONS_IN_HEIGHT * sizeof(uint32_t));
     }
     pd_ctx->reset_running_avg = true;
+#if CLN_REMOVE_INSTANCE_IDX
+    pd_ctx->me_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->me_pool_ptr, 0);
+#else
     pd_ctx->me_fifo_ptr = svt_system_resource_get_producer_fifo(
             enc_handle_ptr->me_pool_ptr_array[0], 0);
+#endif
 
 
     pd_ctx->mg_progress_id = 0;
