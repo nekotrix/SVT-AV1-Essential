@@ -54,6 +54,16 @@ static inline uint8x8_t load_u8_4x1(const uint8_t *p) {
     return ret;
 }
 
+static inline uint8x8_t load_unaligned_u8_4x1(const uint8_t *buf) {
+    uint32_t   a;
+    uint32x2_t a_u32;
+
+    memcpy(&a, buf, 4);
+    a_u32 = vdup_n_u32(0);
+    a_u32 = vset_lane_u32(a, a_u32, 0);
+    return vreinterpret_u8_u32(a_u32);
+}
+
 // Load two blocks of 32-bits into a single vector.
 static inline uint8x8_t load_u8x4_strided_x2(uint8_t *src, ptrdiff_t stride) {
     uint8x8_t ret = vdup_n_u8(0);

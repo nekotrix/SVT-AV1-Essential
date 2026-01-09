@@ -109,7 +109,7 @@ void svt_av1_filter_intra_predictor_neon_i8mm(uint8_t *dst, ptrdiff_t stride, Tx
     int c = 0;
     do {
         const uint8_t *ptr  = above + c - 1;
-        uint32_t       lo   = *(const uint32_t *)ptr;
+        uint32_t       lo   = ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | ((uint32_t)ptr[3] << 24);
         uint8x16_t     p_lo = vreinterpretq_u8_u32(vdupq_n_u32(lo));
 
         uint8x16x2_t hi;
@@ -130,7 +130,7 @@ void svt_av1_filter_intra_predictor_neon_i8mm(uint8_t *dst, ptrdiff_t stride, Tx
     int r = 2;
     while (r < bh) {
         const uint8_t *ptr  = dst - stride;
-        uint32_t       lo   = left[r - 1] | (ptr[0] << 8) | (ptr[1] << 16) | (ptr[2] << 24);
+        uint32_t       lo   = left[r - 1] | (ptr[0] << 8) | (ptr[1] << 16) | ((uint32_t)ptr[2] << 24);
         uint32_t       hi   = ptr[3] | (left[r] << 8) | (left[r + 1] << 16);
         uint8x16_t     p_lo = vreinterpretq_u8_u32(vdupq_n_u32(lo));
         uint8x16_t     p_hi = vreinterpretq_u8_u32(vdupq_n_u32(hi));
@@ -144,7 +144,8 @@ void svt_av1_filter_intra_predictor_neon_i8mm(uint8_t *dst, ptrdiff_t stride, Tx
         c = 4;
         while (c < bw) {
             ptr  = dst - stride + c - 1;
-            p_lo = vreinterpretq_u8_u32(vdupq_n_u32(*(const uint32_t *)ptr));
+            lo   = ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | ((uint32_t)ptr[3] << 24);
+            p_lo = vreinterpretq_u8_u32(vdupq_n_u32(lo));
 
             uint8x16x2_t hi_v;
             hi_v.val[0] = vdupq_n_u8(ptr[4]);

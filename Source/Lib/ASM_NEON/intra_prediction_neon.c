@@ -1393,7 +1393,7 @@ void svt_av1_filter_intra_predictor_neon(uint8_t *dst, ptrdiff_t stride, TxSize 
 
         int c = 0;
         do {
-            uint8x8_t s1234 = load_u8_4x1(above + c);
+            uint8x8_t s1234 = load_unaligned_u8_4x1(above + c);
             uint8x8_t s1    = vdup_lane_u8(s1234, 0);
             uint8x8_t s2    = vdup_lane_u8(s1234, 1);
             uint8x8_t s3    = vdup_lane_u8(s1234, 2);
