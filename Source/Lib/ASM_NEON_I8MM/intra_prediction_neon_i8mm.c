@@ -93,6 +93,12 @@ void svt_av1_filter_intra_predictor_neon_i8mm(uint8_t *dst, ptrdiff_t stride, Tx
                                               const uint8_t *left, int mode) {
     const int bw = tx_size_wide[tx_size];
     const int bh = tx_size_high[tx_size];
+
+    if ((bw == 4) || (bw == 8 && bh == 4) || (bw == 32)) {
+        svt_av1_filter_intra_predictor_neon(dst, stride, tx_size, above, left, mode);
+        return;
+    }
+
     assert(bw <= 32 && bh <= 32);
 
     const int8x16_t f01 = vld1q_s8(av1_filter_intra_taps_neon_i8mm[mode][0]);
