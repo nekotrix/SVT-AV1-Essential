@@ -259,45 +259,6 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
                                 2)) {
         bl.major = 6;
         bl.minor = 2;
-    } else if (does_level_match(scs->seq_header.max_frame_width,
-                                scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
-                                scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
-                                16384,
-                                8704,
-                                30.0,
-                                2)) {
-        bl.major = 7;
-        bl.minor = 0;
-    } else if (does_level_match(scs->seq_header.max_frame_width,
-                                scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
-                                scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
-                                16384,
-                                8704,
-                                60.0,
-                                2)) {
-        bl.major = 7;
-        bl.minor = 1;
-    } else if (does_level_match(scs->seq_header.max_frame_width,
-                                scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
-                                scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
-                                16384,
-                                8704,
-                                120.0,
-                                2)) {
-        bl.major = 7;
-        bl.minor = 2;
     }
     for (int32_t i = 0; i < MAX_NUM_OPERATING_POINTS; ++i) {
         scs->level[i]                               = bl;
