@@ -1156,7 +1156,7 @@ typedef enum {
  * @param[in] fmt     printf-style format string
  * @param[in] args    Variable argument list corresponding to the format string
  */
-typedef void (*SvtAv1LogCallback)(SvtAv1LogLevel level, void *context, const char *tag, const char *fmt, va_list args);
+typedef void (*SvtAv1LogCallback)(void *context, SvtAv1LogLevel level, const char *tag, const char *fmt, va_list args);
 
 /**
  * Register a callback for intercepting log messages.

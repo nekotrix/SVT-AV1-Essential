@@ -47,7 +47,7 @@ static struct Logger {
     void* ctx;
 }* g_logger;
 
-static void default_logger(SvtAv1LogLevel level, void* context, const char* tag, const char* fmt, va_list args) {
+static void default_logger(void* context, SvtAv1LogLevel level, const char* tag, const char* fmt, va_list args) {
     struct DefaultCtx* logger = context;
     if (level > logger->level)
         return;
@@ -140,7 +140,7 @@ void svt_log(SvtAv1LogLevel level, const char* tag, const char* format, ...) {
         return;
     va_list args;
     va_start(args, format);
-    logger->fn(level, logger->ctx, tag, format, args);
+    logger->fn(logger->ctx, level, tag, format, args);
     va_end(args);
 }
 
