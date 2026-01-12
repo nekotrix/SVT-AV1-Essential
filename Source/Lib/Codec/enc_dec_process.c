@@ -67,7 +67,6 @@ static void enc_dec_context_dctor(EbPtr p) {
  ******************************************************/
 EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr, int index,
                                          int tasks_index) {
-#if CLN_REMOVE_INSTANCE_IDX
     SequenceControlSet             *scs                      = enc_handle_ptr->scs_instance->scs;
     const EbSvtAv1EncConfiguration *static_config            = &scs->static_config;
     EbColorFormat                   color_format             = static_config->encoder_color_format;
@@ -79,19 +78,6 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
     thread_ctx->dctor = enc_dec_context_dctor;
 
     ed_ctx->is_16bit = scs->is_16bit_pipeline;
-#else
-    SequenceControlSet             *scs           = enc_handle_ptr->scs_instance_array[0]->scs;
-    const EbSvtAv1EncConfiguration *static_config = &scs->static_config;
-    EbColorFormat                   color_format  = static_config->encoder_color_format;
-    int8_t enable_hbd_mode_decision = enc_handle_ptr->scs_instance_array[0]->scs->enable_hbd_mode_decision;
-
-    EncDecContext *ed_ctx;
-    EB_CALLOC_ARRAY(ed_ctx, 1);
-    thread_ctx->priv  = ed_ctx;
-    thread_ctx->dctor = enc_dec_context_dctor;
-
-    ed_ctx->is_16bit = enc_handle_ptr->scs_instance_array[0]->scs->is_16bit_pipeline;
-#endif
 
     // Input/Output System Resource Manager FIFOs
     ed_ctx->mode_decision_input_fifo_ptr = svt_system_resource_get_consumer_fifo(
@@ -119,7 +105,6 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
                    .color_format       = color_format,
                });
     // Mode Decision Context
-#if CLN_REMOVE_INSTANCE_IDX
     EB_NEW(ed_ctx->md_ctx,
            svt_aom_mode_decision_context_ctor,
            scs,
@@ -132,20 +117,6 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
            0,
            enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
            scs->seq_qp_mod);
-#else
-    EB_NEW(ed_ctx->md_ctx,
-           svt_aom_mode_decision_context_ctor,
-           enc_handle_ptr->scs_instance_array[0]->scs,
-           color_format,
-           enc_handle_ptr->scs_instance_array[0]->scs->super_block_size,
-           static_config->enc_mode,
-           enc_handle_ptr->scs_instance_array[0]->scs->max_block_cnt,
-           static_config->encoder_bit_depth,
-           0,
-           0,
-           enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
-           enc_handle_ptr->scs_instance_array[0]->scs->seq_qp_mod);
-#endif
 
     if (enable_hbd_mode_decision)
         ed_ctx->md_ctx->input_sample16bit_buffer = ed_ctx->input_sample16bit_buffer;
@@ -1581,18 +1552,13 @@ static void build_cand_block_array(SequenceControlSet *scs, PictureControlSet *p
         ? 16
         : ctx->disallow_4x4 ? 8
                             : 4;
-#if OPT_CAP_MAX_BLOCK_SIZE
     int32_t max_sq_size = ctx->max_block_size;
     if (scs->static_config.max_tx_size == 32)
         max_sq_size = MIN(max_sq_size, 32);
-#endif
     // Safety check: Restrict min sq size so mode decision can always find at least one valid partition scheme
     min_sq_size = MIN(min_sq_size, scs->static_config.max_tx_size);
     while (blk_index < max_block_cnt) {
         const BlockGeom *blk_geom = get_blk_geom_mds(blk_index);
-#if !OPT_CAP_MAX_BLOCK_SIZE
-        int32_t max_sq_size = scs->static_config.max_tx_size == 32 ? 32 : blk_geom->sq_size;
-#endif
 
         assert(min_sq_size <= max_sq_size);
 
@@ -2008,7 +1974,6 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                                                                     : e_depth;
                             }
                         }
-#if OPT_CAP_MAX_BLOCK_SIZE
                         int32_t max_sq_size = ctx->max_block_size;
                         if (scs->static_config.max_tx_size == 32)
                             max_sq_size = MIN(max_sq_size, 32);
@@ -2017,7 +1982,6 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                             s_depth = 0;
                         else if (s_depth == -2 && blk_geom->sq_size << 1 == max_sq_size)
                             s_depth = -1;
-#endif
                         uint8_t sq_size_idx      = 7 - (uint8_t)svt_log2f((uint8_t)blk_geom->sq_size);
                         uint8_t add_parent_depth = 1;
                         uint8_t add_sub_depth    = 1;
@@ -2047,18 +2011,6 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
                                     e_depth = MIN(e_depth, 1);
                                 }
                             }
-
-#if !OPT_CAP_MAX_BLOCK_SIZE
-                            if (scs->static_config.max_tx_size == 32) {
-                                // Don't test depths that result in blocks greater than 32x32
-                                switch (blk_geom->sq_size) {
-                                case 4: s_depth = MAX(-3, s_depth); break;
-                                case 8: s_depth = MAX(-2, s_depth); break;
-                                case 16: s_depth = MAX(-1, s_depth); break;
-                                case 32: s_depth = MAX(0, s_depth); break;
-                                }
-                            }
-#endif
 
                             int64_t s_th_offset = 0;
                             int64_t e_th_offset = 0;
@@ -2120,11 +2072,7 @@ static void perform_pred_depth_refinement(SequenceControlSet *scs, PictureContro
 }
 void svt_variance_adjust_qp(PictureControlSet *pcs);
 void svt_aom_sb_qp_derivation_tpl_la(PictureControlSet *pcs);
-#if CLN_MDC_FUNCS
 void mdc_init_qp_update(PictureControlSet *pcs);
-#else
-void mode_decision_configuration_init_qp_update(PictureControlSet *pcs);
-#endif
 void svt_aom_init_enc_dec_segement(PictureParentControlSet *ppcs);
 
 static void recode_loop_decision_maker(PictureControlSet *pcs, SequenceControlSet *scs, bool *do_recode) {
@@ -2185,12 +2133,8 @@ static void recode_loop_decision_maker(PictureControlSet *pcs, SequenceControlSe
         }
 
         // 2pass QPM with tpl_la
-#if CLN_AQ_MODE
 #if SVT_AV1_CHECK_VERSION(4, 0, 0)
         if (scs->static_config.aq_mode == 2 && ppcs->tpl_ctrls.enable && ppcs->r0 != 0)
-#else
-        if (scs->static_config.enable_adaptive_quantization == 2 && ppcs->tpl_ctrls.enable && ppcs->r0 != 0)
-#endif
 #else
         if (scs->static_config.enable_adaptive_quantization == 2 && ppcs->tpl_ctrls.enable && ppcs->r0 != 0)
 #endif
@@ -2218,11 +2162,7 @@ static void exaustive_light_pd1_features(ModeDecisionContext *md_ctx, PicturePar
             md_ctx->spatial_sse_ctrls.level == SSSE_OFF && md_ctx->md_sq_me_ctrls.enabled == 0 &&
             md_ctx->md_pme_ctrls.enabled == 0 && md_ctx->txt_ctrls.enabled == 0 && md_ctx->unipred3x3_injection == 0 &&
             md_ctx->bipred3x3_ctrls.enabled == 0 && md_ctx->inter_comp_ctrls.tot_comp_types == 1 &&
-#if CLN_UNUSED_SIGS
             md_ctx->obmc_ctrls.enabled == 0 && md_ctx->filter_intra_ctrls.enabled == 0 &&
-#else
-            md_ctx->md_pic_obmc_level == 0 && md_ctx->filter_intra_ctrls.enabled == 0 &&
-#endif
             md_ctx->new_nearest_near_comb_injection == 0 && md_ctx->md_palette_level == 0 &&
             ppcs->gm_ctrls.enabled == 0 &&
             // If TXS enabled at picture level, there are necessary context updates that must be added to LPD1
@@ -2240,16 +2180,10 @@ static void exaustive_light_pd1_features(ModeDecisionContext *md_ctx, PicturePar
 }
 /* Light-PD1 classifier used when cost/coeff info is available.  If PD0 is skipped, or the trasnsform is
 not performed, a separate detector (lpd1_detector_skip_pd0) is used. */
-#if OPT_LPD1_RTC
 static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *md_ctx) {
-#else
-static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *md_ctx, bool rtc_tune) {
-#endif
     for (int pd1_lvl = LPD1_LEVELS - 1; pd1_lvl > REGULAR_PD1; pd1_lvl--) {
-#if OPT_LPD1_RTC
         if (pd1_lvl <= (md_ctx->pd1_lvl_refinement - 1))
             break;
-#endif
         if (md_ctx->lpd1_ctrls.pd1_level == pd1_lvl) {
             if (md_ctx->lpd1_ctrls.use_lpd1_detector[pd1_lvl]) {
                 // Use info from ref frames (if available)
@@ -2264,12 +2198,8 @@ static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *
                     if (pcs->ppcs->ref_list0_count_try && is_ref_l0_avail) {
                         EbReferenceObject *ref_obj_l0 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-#if OPT_LPD1_RTC
                         // flat ipp should not use hierarchical concept
                         if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index || pcs->scs->use_flat_ipp) {
-#else
-                        if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index) {
-#endif
                             l0_was_intra += ref_obj_l0->sb_intra[md_ctx->sb_index];
                             l0_refs++;
                         }
@@ -2282,12 +2212,8 @@ static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *
                     if (pcs->ppcs->ref_list1_count_try && is_ref_l1_avail) {
                         EbReferenceObject *ref_obj_l1 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-#if OPT_LPD1_RTC
                         // flat ipp should not use hierarchical concept
                         if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index || pcs->scs->use_flat_ipp) {
-#else
-                        if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index) {
-#endif
                             l1_was_intra += ref_obj_l1->sb_intra[md_ctx->sb_index];
                             l1_refs++;
                         }
@@ -2340,29 +2266,12 @@ static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *
                 }
 
                 if (pcs->slice_type != I_SLICE) {
-#if OPT_LPD1_RTC
                     /* me_8x8_cost_variance_th is shifted by 5 then mulitplied by 73 minus pic_qp.  Therefore, the TH must be less than
                         (((uint32_t)~0) >> 2) to avoid overflow issues from the multiplication. */
                     if (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] < (((uint32_t)~0) >> 2) &&
                         pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] >
                             (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >> 5) * (73 - pcs->picture_qp))
                         md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-#else
-                    // lpd1 needs to be optimized for low-delay so that all modes can use the RA version of this check
-                    if (rtc_tune) {
-                        if (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] < (((uint32_t)~0) >> 1) &&
-                            pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] >
-                                (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >> 5) * pcs->picture_qp)
-                            md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                    } else {
-                        /* me_8x8_cost_variance_th is shifted by 5 then mulitplied by 73 minus pic_qp.  Therefore, the TH must be less than
-                        (((uint32_t)~0) >> 2) to avoid overflow issues from the multiplication. */
-                        if (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] < (((uint32_t)~0) >> 2) &&
-                            pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] >
-                                (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >> 5) * (73 - pcs->picture_qp))
-                            md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                    }
-#endif
                 }
             }
         }
@@ -2371,34 +2280,13 @@ static void lpd1_detector_post_pd0(PictureControlSet *pcs, ModeDecisionContext *
 
 /* Light-PD1 classifier used when cost/coeff info is unavailable.  If PD0 is skipped, or the trasnsform is
 not performed, this detector is used (else lpd1_detector_post_pd0() is used). */
-#if OPT_LPD1_RTC
 static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *md_ctx, uint32_t pic_width_in_sb) {
-#else
-static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *md_ctx, uint32_t pic_width_in_sb,
-                                   bool rtc_tune) {
-    if (md_ctx->pd1_lvl_refinement) {
-        uint32_t me_8x8_cost_variance = pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index];
-        if (md_ctx->pd1_lvl_refinement == 2) {
-            if (pcs->temporal_layer_index > 0)
-                md_ctx->lpd1_ctrls.pd1_level = me_8x8_cost_variance < 3000 ? md_ctx->lpd1_ctrls.pd1_level
-                    : pcs->temporal_layer_index == 1 ? MAX(md_ctx->lpd1_ctrls.pd1_level - 2, REGULAR_PD1)
-                                                     : MAX(md_ctx->lpd1_ctrls.pd1_level - 1, REGULAR_PD1);
-        } else
-            md_ctx->lpd1_ctrls.pd1_level = me_8x8_cost_variance < 500 ? LPD1_LVL_2
-                : me_8x8_cost_variance < 3000                         ? LPD1_LVL_1
-                                                                      : REGULAR_PD1;
-
-        return;
-    }
-#endif
     const uint16_t left_sb_index = md_ctx->sb_index - 1;
     const uint16_t top_sb_index  = md_ctx->sb_index - (uint16_t)pic_width_in_sb;
 
     for (int pd1_lvl = LPD1_LEVELS - 1; pd1_lvl > REGULAR_PD1; pd1_lvl--) {
-#if OPT_LPD1_RTC
         if (pd1_lvl <= (md_ctx->pd1_lvl_refinement - 1))
             break;
-#endif
         if (md_ctx->lpd1_ctrls.pd1_level == pd1_lvl) {
             if (md_ctx->lpd1_ctrls.use_lpd1_detector[pd1_lvl]) {
                 // Use info from ref. frames (if available)
@@ -2416,12 +2304,8 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
                     if (pcs->ppcs->ref_list0_count_try && is_ref_l0_avail) {
                         EbReferenceObject *ref_obj_l0 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-#if OPT_LPD1_RTC
                         // flat ipp should not use hierarchical concept
                         if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index || pcs->scs->use_flat_ipp) {
-#else
-                        if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index) {
-#endif
                             if (ref_obj_l0->slice_type != I_SLICE) {
                                 if (ref_obj_l0->sb_intra[md_ctx->sb_index])
                                     score += 5;
@@ -2446,12 +2330,8 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
                     if (pcs->ppcs->ref_list1_count_try && is_ref_l1_avail) {
                         EbReferenceObject *ref_obj_l1 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-#if OPT_LPD1_RTC
                         // flat ipp should not use hierarchical concept
                         if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index || pcs->scs->use_flat_ipp) {
-#else
-                        if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index) {
-#endif
                             if (ref_obj_l1->slice_type != I_SLICE) {
                                 if (ref_obj_l1->sb_intra[md_ctx->sb_index])
                                     score += 5;
@@ -2485,31 +2365,12 @@ static void lpd1_detector_skip_pd0(PictureControlSet *pcs, ModeDecisionContext *
                             md_ctx->lpd1_ctrls.skip_pd0_edge_dist_th[pd1_lvl])
                             md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
 
-#if OPT_LPD1_RTC
                         /* me_8x8_cost_variance_th is shifted by 5 then mulitplied by 73 minus pic_qp.  Therefore, the TH must be less than
                             (((uint32_t)~0) >> 2) to avoid overflow issues from the multiplication. */
                         if (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] < (((uint32_t)~0) >> 2) &&
                             pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] >
                                 (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >> 5) * (73 - pcs->picture_qp))
                             md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-#else
-                        // lpd1 needs to be optimized for low-delay so that all modes can use the RA version of this check
-                        else if (rtc_tune) {
-                            /* me_8x8_cost_variance_th is shifted by 5 then mulitplied by the pic QP (max 63).  Therefore, the TH must be less than
-                            (((uint32_t)~0) >> 1) to avoid overflow issues from the multiplication. */
-                            if (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] < (((uint32_t)~0) >> 1) &&
-                                pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] >
-                                    (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >> 5) * pcs->picture_qp)
-                                md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                        } else {
-                            /* me_8x8_cost_variance_th is shifted by 5 then mulitplied by 73 minus pic_qp.  Therefore, the TH must be less than
-                            (((uint32_t)~0) >> 2) to avoid overflow issues from the multiplication. */
-                            if (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] < (((uint32_t)~0) >> 2) &&
-                                pcs->ppcs->me_8x8_cost_variance[md_ctx->sb_index] >
-                                    (md_ctx->lpd1_ctrls.me_8x8_cost_variance_th[pd1_lvl] >> 5) * (73 - pcs->picture_qp))
-                                md_ctx->lpd1_ctrls.pd1_level = pd1_lvl - 1;
-                        }
-#endif
                     } else {
                         if (md_ctx->lpd1_ctrls.skip_pd0_me_shift[pd1_lvl] != (uint16_t)~0 &&
                             pcs->ppcs->me_64x64_distortion[md_ctx->sb_index] >
@@ -2564,11 +2425,7 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
                     if (pcs->ppcs->ref_list0_count_try && is_ref_l0_avail) {
                         EbReferenceObject *ref_obj_l0 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-#if OPT_LPD0_RTC
                         if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index || pcs->scs->use_flat_ipp) {
-#else
-                        if (ref_obj_l0->tmp_layer_idx <= pcs->temporal_layer_index) {
-#endif
                             l0_was_intra += ref_obj_l0->sb_intra[md_ctx->sb_index];
                             l0_refs++;
                         }
@@ -2581,11 +2438,7 @@ static void lpd0_detector(PictureControlSet *pcs, ModeDecisionContext *md_ctx, u
                     if (pcs->ppcs->ref_list1_count_try && is_ref_l1_avail) {
                         EbReferenceObject *ref_obj_l1 =
                             (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-#if OPT_LPD0_RTC
                         if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index || pcs->scs->use_flat_ipp) {
-#else
-                        if (ref_obj_l1->tmp_layer_idx <= pcs->temporal_layer_index) {
-#endif
                             l1_was_intra += ref_obj_l1->sb_intra[md_ctx->sb_index];
                             l1_refs++;
                         }
@@ -2915,9 +2768,7 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
         ed_ctx->tot_intra_coded_area    = 0;
         ed_ctx->tot_skip_coded_area     = 0;
         ed_ctx->tot_hp_coded_area       = 0;
-#if OPT_CR_CTRL
-        ed_ctx->tot_cnt_zero_mv = 0;
-#endif
+        ed_ctx->tot_cnt_zero_mv         = 0;
         // Bypass encdec for the first pass
         if (svt_aom_is_pic_skipped(pcs->ppcs)) {
             svt_release_object(pcs->ppcs->me_data_wrapper);
@@ -2935,11 +2786,7 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                 // do as dorecode do
                 pcs->enc_dec_coded_sb_count = 0;
                 // re-init mode decision configuration for qp update for re-encode frame
-#if CLN_MDC_FUNCS
                 mdc_init_qp_update(pcs);
-#else
-                mode_decision_configuration_init_qp_update(pcs);
-#endif
                 // init segment for re-encode frame
                 svt_aom_init_enc_dec_segement(pcs->ppcs);
 
@@ -3102,31 +2949,17 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                         ed_ctx->md_ctx->is_subres_safe = (uint8_t)~0;
                         // Signal initialized here; if needed, will be set in md_encode_block before MDS3
                         md_ctx->need_hbd_comp_mds3 = 0;
-#if OPT_CAP_MAX_BLOCK_SIZE
-                        bool skip_pd_pass_0 = (ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_64x64 &&
+                        bool skip_pd_pass_0        = (ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_64x64 &&
                                                (scs->super_block_size == 64 || ed_ctx->md_ctx->max_block_size == 64)) ||
                             (ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_32x32 &&
                              ed_ctx->md_ctx->max_block_size == 32);
-#else
-                        uint8_t skip_pd_pass_0 = (scs->super_block_size == 64 &&
-                                                  ed_ctx->md_ctx->depth_removal_ctrls.disallow_below_64x64)
-                            ? 1
-                            : 0;
-#endif
 
                         // If LPD0 is used, a more conservative level can be set for complex SBs
-#if OPT_LPD0_RTC
                         const bool use_lpd0_classifier = !scs->static_config.rtc || pcs->ppcs->sc_class1 ||
                             pcs->enc_mode <= ENC_M9;
                         if (use_lpd0_classifier && md_ctx->lpd0_ctrls.pd0_level > REGULAR_PD0) {
                             lpd0_detector(pcs, md_ctx, pic_width_in_sb);
                         }
-#else
-                        const bool rtc_tune = scs->static_config.rtc;
-                        if (!(rtc_tune && !pcs->ppcs->sc_class1) && md_ctx->lpd0_ctrls.pd0_level > REGULAR_PD0) {
-                            lpd0_detector(pcs, md_ctx, pic_width_in_sb);
-                        }
-#endif
 
                         // PD0 is only skipped if there is a single depth to test
                         if (skip_pd_pass_0)
@@ -3193,11 +3026,7 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                             // This classifier is used for only pd0_level 0 and pd0_level 1
                             // where the cnt_nz_coeff is derived @ PD0
                             if (md_ctx->lpd0_ctrls.pd0_level < VERY_LIGHT_PD0)
-#if OPT_LPD1_RTC
                                 lpd1_detector_post_pd0(pcs, md_ctx);
-#else
-                                lpd1_detector_post_pd0(pcs, md_ctx, rtc_tune);
-#endif
                             // Force pred depth only for modes where that is not the default
                             if (md_ctx->lpd1_ctrls.pd1_level > REGULAR_PD1) {
                                 ed_ctx->md_ctx->depth_refinement_ctrls.mode = PD0_DEPTH_PRED_PART_ONLY;
@@ -3211,11 +3040,7 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                         // This classifier is used for the case PD0 is bypassed and for pd0_level 2
                         // where the cnt_nz_coeff is not derived @ PD0
                         if (skip_pd_pass_0 || md_ctx->lpd0_ctrls.pd0_level == VERY_LIGHT_PD0) {
-#if OPT_LPD1_RTC
                             lpd1_detector_skip_pd0(pcs, md_ctx, pic_width_in_sb);
-#else
-                            lpd1_detector_skip_pd0(pcs, md_ctx, pic_width_in_sb, rtc_tune);
-#endif
                         }
 
                         // Can only use light-PD1 under the following conditions
@@ -3263,9 +3088,7 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
             pcs->intra_coded_area += (uint32_t)ed_ctx->tot_intra_coded_area;
             pcs->skip_coded_area += (uint32_t)ed_ctx->tot_skip_coded_area;
             pcs->hp_coded_area += (uint32_t)ed_ctx->tot_hp_coded_area;
-#if OPT_CR_CTRL
             pcs->avg_cnt_zeromv += (uint32_t)ed_ctx->tot_cnt_zero_mv;
-#endif
             // Accumulate block selection
             pcs->enc_dec_coded_sb_count += (uint32_t)ed_ctx->coded_sb_count;
             bool last_sb_flag = (pcs->sb_total_count == pcs->enc_dec_coded_sb_count);
@@ -3295,11 +3118,7 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                     }
                     pcs->enc_dec_coded_sb_count = 0;
                     // re-init mode decision configuration for qp update for re-encode frame
-#if CLN_MDC_FUNCS
                     mdc_init_qp_update(pcs);
-#else
-                    mode_decision_configuration_init_qp_update(pcs);
-#endif
                     // init segment for re-encode frame
                     svt_aom_init_enc_dec_segement(pcs->ppcs);
                     EbObjectWrapper *enc_dec_re_encode_tasks_wrapper;

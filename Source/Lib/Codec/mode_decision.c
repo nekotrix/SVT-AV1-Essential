@@ -492,7 +492,6 @@ void svt_aom_choose_best_av1_mv_pred(ModeDecisionContext *ctx, MvReferenceFrame 
                                      uint8_t *bestDrlIndex, // output
                                      Mv       best_pred_mv[2] // output
 ) {
-#if OPT_RATE_EST_FAST
     if (ctx->shut_fast_rate) {
         return;
     }
@@ -502,7 +501,6 @@ void svt_aom_choose_best_av1_mv_pred(ModeDecisionContext *ctx, MvReferenceFrame 
         best_pred_mv[1] = ctx->ref_mv_stack[ref_frame][0].comp_mv;
         return;
     }
-#endif
     int16_t mv0x = mv0.x;
     int16_t mv0y = mv0.y;
     int16_t mv1x = mv1.x;
@@ -512,16 +510,11 @@ void svt_aom_choose_best_av1_mv_pred(ModeDecisionContext *ctx, MvReferenceFrame 
 
     struct MdRateEstimationContext *md_rate_est_ctx = ctx->md_rate_est_ctx;
     BlkStruct                      *blk_ptr         = ctx->blk_ptr;
-#if !OPT_RATE_EST_FAST
-    if (ctx->shut_fast_rate) {
-        return;
-    }
-#endif
-    uint8_t max_drl_index;
-    Mv      nearestmv[2] = {{{0}}, {{0}}};
-    Mv      nearmv[2];
-    Mv      ref_mv[2];
-    Mv      mv;
+    uint8_t                         max_drl_index;
+    Mv                              nearestmv[2] = {{{0}}, {{0}}};
+    Mv                              nearmv[2];
+    Mv                              ref_mv[2];
+    Mv                              mv;
 
     max_drl_index = svt_aom_get_max_drl_index(blk_ptr->av1xd->ref_mv_count[ref_frame], mode);
     // max_drl_index = 1;
@@ -3325,7 +3318,6 @@ static void inject_palette_candidates(PictureControlSet *pcs,
 
     return;
 }
-#if OPT_SKIP_CANDS_LPD1
 static INLINE void eliminate_candidate_based_on_pme_me_results(ModeDecisionContext* ctx, uint8_t* dc_cand_only_flag) {
     if (ctx->md_pme_dist != (uint32_t)~0 || ctx->md_me_dist != (uint32_t)~0) {
         uint32_t th = ctx->cand_reduction_ctrls.cand_elimination_ctrls.dc_only_th;
@@ -3335,21 +3327,6 @@ static INLINE void eliminate_candidate_based_on_pme_me_results(ModeDecisionConte
             *dc_cand_only_flag = 1;
     }
 }
-#else
-static INLINE void eliminate_candidate_based_on_pme_me_results(ModeDecisionContext *ctx,
-    uint8_t is_used_as_ref,
-    uint8_t *dc_cand_only_flag)
-{
-    uint32_t th = is_used_as_ref ? 10 : 200;
-    if (ctx->updated_enable_pme || ctx->md_subpel_me_ctrls.enabled) {
-        th = th * ctx->blk_geom->bheight * ctx->blk_geom->bwidth;
-        const uint32_t best_me_distotion = MIN(ctx->md_pme_dist, ctx->md_me_dist);
-        if (best_me_distotion < th) {
-            *dc_cand_only_flag = ctx->cand_reduction_ctrls.cand_elimination_ctrls.dc_only ? 1 : *dc_cand_only_flag;
-        }
-    }
-}
-#endif
 static bool valid_ref_frame_type(MvReferenceFrame rf[2], const MvReferenceFrame ref_frame_type_arr[], uint8_t tot_ref_frame_types) {
     // INTRA_FRAME is added in candidates sometimes, skip validation
     if (rf[0] == INTRA_FRAME)
@@ -3472,25 +3449,18 @@ void generate_md_stage_0_cand_light_pd1(
     // Reset duplicates variables
     ctx->injected_mv_count = 0;
     ctx->inject_new_me = 1;
-#if OPT_SKIP_CANDS_LPD1
     if (slice_type != I_SLICE) {
         inject_inter_candidates_light_pd1(
             pcs,
             ctx,
             &cand_total_cnt);
     }
-#endif
     //----------------------
     // Intra
     if (ctx->intra_ctrls.enable_intra && ctx->blk_geom->sq_size < 128) {
         uint8_t dc_cand_only_flag = (ctx->intra_ctrls.intra_mode_end == DC_PRED);
-#if OPT_SKIP_CANDS_LPD1
         if (ctx->cand_reduction_ctrls.cand_elimination_ctrls.enabled && !dc_cand_only_flag && ctx->md_me_dist != (uint32_t)~0) {
             uint32_t th = ctx->cand_reduction_ctrls.cand_elimination_ctrls.dc_only_th;
-#else
-        if (ctx->cand_reduction_ctrls.cand_elimination_ctrls.enabled && ctx->cand_reduction_ctrls.cand_elimination_ctrls.dc_only && !dc_cand_only_flag && ctx->md_subpel_me_ctrls.enabled) {
-            uint32_t th = pcs->ppcs->temporal_layer_index == 0 ? 10 : !pcs->ppcs->is_highest_layer ? 30 : 200;
-#endif
             th *= (ctx->blk_geom->bheight * ctx->blk_geom->bwidth);
             if (ctx->md_me_dist < th)
                 dc_cand_only_flag = 1;
@@ -3502,14 +3472,6 @@ void generate_md_stage_0_cand_light_pd1(
             &cand_total_cnt);
     }
 
-#if !OPT_SKIP_CANDS_LPD1
-    if (slice_type != I_SLICE) {
-            inject_inter_candidates_light_pd1(
-                pcs,
-                ctx,
-                &cand_total_cnt);
-    }
-#endif
     // For I_SLICE, DC is always injected, and therefore there is no a risk of no candidates @ md_syage_0()
     // For non I_SLICE, there is a risk of no candidates @ md_stage_0() because of the INTER candidates pruning techniques
     if (slice_type != I_SLICE && cand_total_cnt == 0) {
@@ -3541,9 +3503,6 @@ EbErrorType generate_md_stage_0_cand(
     uint8_t dc_cand_only_flag = ctx->intra_ctrls.enable_intra && (ctx->intra_ctrls.intra_mode_end == DC_PRED);
     if (ctx->cand_reduction_ctrls.cand_elimination_ctrls.enabled)
         eliminate_candidate_based_on_pme_me_results(ctx,
-#if !OPT_SKIP_CANDS_LPD1
-            !pcs->ppcs->is_highest_layer,
-#endif
             &dc_cand_only_flag);
     //----------------------
     // Intra
@@ -3838,7 +3797,6 @@ uint32_t svt_aom_product_full_mode_decision(
     ModeDecisionCandidateBuffer* cand_bf = buffer_ptr_array[lowest_cost_index];
     ModeDecisionCandidate* cand = cand_bf->cand;
     blk_ptr->total_rate = cand_bf->total_rate;
-#if FIX_TUNE_SSIM_LAMBDA
     if (!(ctx->pd_pass == PD_PASS_1 && ctx->fixed_partition)) {
         // When lambda tuning is on, lambda of each block is set separately, however at interdepth decision the sb lambda is used
         uint32_t full_lambda = ctx->hbd_md ?
@@ -3847,22 +3805,6 @@ uint32_t svt_aom_product_full_mode_decision(
         ctx->blk_ptr->cost =
             RDCOST(full_lambda, cand_bf->total_rate, cand_bf->full_dist);
         ctx->blk_ptr->default_cost = ctx->blk_ptr->cost;
-#else
-    if (!(ctx->pd_pass == PD_PASS_1 && ctx->fixed_partition)) {
-        if (ctx->blk_lambda_tuning) {
-            // When lambda tuning is on, lambda of each block is set separately, however at interdepth decision the sb lambda is used
-            uint32_t full_lambda = ctx->hbd_md ?
-                ctx->full_sb_lambda_md[EB_10_BIT_MD] :
-                ctx->full_sb_lambda_md[EB_8_BIT_MD];
-            ctx->blk_ptr->cost =
-                RDCOST(full_lambda, cand_bf->total_rate, cand_bf->full_dist);
-            ctx->blk_ptr->default_cost = ctx->blk_ptr->cost;
-        }
-        else {
-            ctx->blk_ptr->cost = *(cand_bf->full_cost);
-            ctx->blk_ptr->default_cost = *(cand_bf->full_cost);
-        }
-#endif
         ctx->blk_ptr->full_dist = cand_bf->full_dist;
     }
 
@@ -4032,10 +3974,6 @@ static int get_superblock_tpl_column_end(PictureParentControlSet* ppcs, int mi_c
 
 void aom_av1_set_ssim_rdmult(struct ModeDecisionContext *ctx, PictureControlSet *pcs,
                          const int mi_row, const int mi_col) {
-#if !FIX_TUNE_SSIM_LAMBDA
-  if (!pcs->ppcs->scs->static_config.enable_tpl_la) // tuning rdmult with SSIM requires TPL ME data
-    return;
-#endif
   const AV1_COMMON *const cm = pcs->ppcs->av1_cm;
   BlockSize bsize = ctx->blk_geom->bsize;
 
@@ -4048,29 +3986,17 @@ void aom_av1_set_ssim_rdmult(struct ModeDecisionContext *ctx, PictureControlSet 
   const int num_brows = (mi_size_high[bsize] + num_mi_h - 1) / num_mi_h;
   int row, col;
   double num_of_mi = 0.0;
-#if FIX_TUNE_SSIM_LAMBDA
   double geom_mean_of_scale = 1.0;
-#else
-  double geom_mean_of_scale = 0.0;
-#endif
   for (row = mi_row / num_mi_w;
        row < num_rows && row < mi_row / num_mi_w + num_brows; ++row) {
     for (col = mi_col / num_mi_h;
          col < num_cols && col < mi_col / num_mi_h + num_bcols; ++col) {
       const int index = row * num_cols + col;
-#if FIX_TUNE_SSIM_LAMBDA
       geom_mean_of_scale *= pcs->ppcs->pa_me_data->ssim_rdmult_scaling_factors[index];
-#else
-      geom_mean_of_scale += log(pcs->ppcs->pa_me_data->ssim_rdmult_scaling_factors[index]);
-#endif
       num_of_mi += 1.0;
     }
   }
-#if FIX_TUNE_SSIM_LAMBDA
   geom_mean_of_scale = pow(geom_mean_of_scale, (1.0 / num_of_mi));
-#else
-  geom_mean_of_scale = exp(geom_mean_of_scale / num_of_mi);
-#endif
   if (!pcs->ppcs->blk_lambda_tuning) {
       ctx->full_lambda_md[EB_8_BIT_MD] = (uint32_t)((double)ctx->ed_ctx->pic_full_lambda[EB_8_BIT_MD] * geom_mean_of_scale + 0.5);
       ctx->full_lambda_md[EB_10_BIT_MD] = (uint32_t)((double)ctx->ed_ctx->pic_full_lambda[EB_10_BIT_MD] * geom_mean_of_scale + 0.5);
@@ -4143,11 +4069,7 @@ void  svt_aom_set_tuned_blk_lambda(struct ModeDecisionContext *ctx, PictureContr
 
     ctx->fast_lambda_md[EB_8_BIT_MD] = (uint32_t)((double)ctx->ed_ctx->pic_fast_lambda[EB_8_BIT_MD] * geom_mean_of_scale + 0.5);
     ctx->fast_lambda_md[EB_10_BIT_MD] = (uint32_t)((double)ctx->ed_ctx->pic_fast_lambda[EB_10_BIT_MD] * geom_mean_of_scale + 0.5);
-#if FTR_TUNE_4
     if (ppcs->scs->static_config.tune == TUNE_SSIM || ppcs->scs->static_config.tune == TUNE_IQ || ppcs->scs->static_config.tune == TUNE_MS_SSIM) {
-#else
-    if (ppcs->scs->static_config.tune == TUNE_SSIM || ppcs->scs->static_config.tune == TUNE_IQ) {
-#endif
         aom_av1_set_ssim_rdmult(ctx, pcs, mi_row, mi_col);
     }
 }

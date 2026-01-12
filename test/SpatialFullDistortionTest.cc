@@ -499,7 +499,7 @@ class FullDistortionKernel32Bits
     FullDistortionKernel32Bits() : func_(GetParam()) {
     }
 
-    ~FullDistortionKernel32Bits(){};
+    ~FullDistortionKernel32Bits() {};
 
     void SetUp() {
         coeff_stride_ = svt_create_random_aligned_stride(MAX_SB_SIZE, 64);
@@ -596,7 +596,7 @@ class FullDistortionKernelCbfZero32Bits
     FullDistortionKernelCbfZero32Bits() : func_(GetParam()) {
     }
 
-    ~FullDistortionKernelCbfZero32Bits(){};
+    ~FullDistortionKernelCbfZero32Bits() {};
 
     void SetUp() {
         coeff_stride_ = svt_create_random_aligned_stride(MAX_SB_SIZE, 64);

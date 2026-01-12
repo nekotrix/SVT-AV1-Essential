@@ -218,7 +218,7 @@ extern const CodedBlockStats* svt_aom_get_coded_blk_stats(const uint32_t cu_idx)
 #define MEDIAN(a, b, c)                   ((a)>(b)?(a)>?(b)>?(b)::(a):(b)>?(a)>?(a)::(b))
 #define CLIP3(min_val, max_val, a) (((a) < (min_val)) ? (min_val) : (((a) > (max_val)) ? (max_val) : (a)))
 #define CLIP3EQ(min_val, max_val, a) (((a) <= (min_val)) ? (min_val) : (((a) >= (max_val)) ? (max_val) : (a)))
-#define BITDEPTH_MIDRANGE_VALUE(precision) (1 << ((precision)-1))
+#define BITDEPTH_MIDRANGE_VALUE(precision) (1 << ((precision) - 1))
 #define SWAP(a, b)                    \
     MULTI_LINE_MACRO_BEGIN(a) ^= (b); \
     (b) ^= (a);                       \
@@ -231,15 +231,15 @@ extern const CodedBlockStats* svt_aom_get_coded_blk_stats(const uint32_t cu_idx)
 #define POW2(x) (1 << (x))
 #define SIGN(a, b) (((a - b) < 0) ? (-1) : ((a - b) > 0) ? (1) : 0)
 #define ROUND(a) (a >= 0) ? (a + 1 / 2) : (a - 1 / 2);
-#define UNSIGNED_DEC(x)                                    \
-    MULTI_LINE_MACRO_BEGIN(x) = (((x) > 0) ? ((x)-1) : 0); \
+#define UNSIGNED_DEC(x)                                      \
+    MULTI_LINE_MACRO_BEGIN(x) = (((x) > 0) ? ((x) - 1) : 0); \
     MULTI_LINE_MACRO_END
 #define CIRCULAR_ADD(x, max) (((x) >= (max)) ? ((x) - (max)) : ((x) < 0) ? ((max) + (x)) : (x))
 #define CIRCULAR_ADD_UNSIGNED(x, max) (((x) >= (max)) ? ((x) - (max)) : (x))
-#define CEILING(x, base) ((((x) + (base)-1) / (base)) * (base))
+#define CEILING(x, base) ((((x) + (base) - 1) / (base)) * (base))
 #define POW2_CHECK(x) ((x) == ((x) & (-((int32_t)(x)))))
-#define ROUND_UP_MUL_8(x) ((x) + ((8 - ((x)&0x7)) & 0x7))
-#define ROUND_UP_MULT(x, mult) ((x) + (((mult) - ((x) & ((mult)-1))) & ((mult)-1)))
+#define ROUND_UP_MUL_8(x) ((x) + ((8 - ((x) & 0x7)) & 0x7))
+#define ROUND_UP_MULT(x, mult) ((x) + (((mult) - ((x) & ((mult) - 1))) & ((mult) - 1)))
 
 // rounds down to the next power of two
 #define FLOOR_POW2(x)                        \

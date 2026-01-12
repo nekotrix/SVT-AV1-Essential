@@ -321,15 +321,11 @@ EbErrorType svt_pa_reference_object_ctor(EbPaReferenceObject *pa_ref_obj_, EbPtr
     // Reference picture constructor
     EB_NEW(pa_ref_obj_->input_padded_pic, svt_picture_buffer_desc_ctor, (EbPtr)picture_buffer_desc_init_data_ptr);
     // Downsampled reference picture constructor
-#if OPT_OPERATIONS
     if (picture_buffer_desc_init_data_ptr[1].buffer_enable_mask)
-#endif
         EB_NEW(pa_ref_obj_->quarter_downsampled_picture_ptr,
                svt_picture_buffer_desc_ctor,
                (EbPtr)(picture_buffer_desc_init_data_ptr + 1));
-#if OPT_OPERATIONS
     if (picture_buffer_desc_init_data_ptr[2].buffer_enable_mask)
-#endif
         EB_NEW(pa_ref_obj_->sixteenth_downsampled_picture_ptr,
                svt_picture_buffer_desc_ctor,
                (EbPtr)(picture_buffer_desc_init_data_ptr + 2));

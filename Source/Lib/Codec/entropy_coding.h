@@ -27,9 +27,7 @@
 #include "md_process.h"
 #include "inter_prediction.h"
 #include "EbSvtAv1Metadata.h"
-#if FIX_EOB_COEF_CTX
 #include "common_utils.h"
-#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -95,7 +93,6 @@ static INLINE void set_dc_sign(int32_t *cul_level, int32_t dc_val) {
     else if (dc_val > 0)
         *cul_level += 2 << COEFF_CONTEXT_BITS;
 }
-#if FIX_EOB_COEF_CTX
 static const uint8_t eob_to_pos_small[33] = {
     0, 1, 2, // 0-2
     3, 3, // 3-4
@@ -138,7 +135,6 @@ static INLINE int get_eob_pos_token(const int eob, int *const extra) {
 
     return t;
 }
-#endif
 //**********************************************************************************************************//
 //encoder.h
 static INLINE int32_t get_ref_frame_map_idx(const PictureParentControlSet *pcs, MvReferenceFrame ref_frame) {

@@ -75,29 +75,8 @@ void event_handler(int32_t dummy) {
     signal(SIGINT, SIG_DFL);
 }
 
-#if !CLN_REMOVE_SS_PIN
-void assign_app_thread_group(uint8_t target_socket) {
-#ifdef _WIN32
-    if (GetActiveProcessorGroupCount() == 2) {
-        GROUP_AFFINITY svt_aom_group_affinity;
-        GetThreadGroupAffinity(GetCurrentThread(), &svt_aom_group_affinity);
-        svt_aom_group_affinity.Group = target_socket;
-        SetThreadGroupAffinity(GetCurrentThread(), &svt_aom_group_affinity, NULL);
-    }
-#else
-    (void)target_socket;
-    return;
-#endif
-}
-#endif
-
 typedef struct EncContext {
-#if CLN_REMOVE_CHANNELS
     EncChannel channel;
-#else
-    uint32_t   num_channels;
-    EncChannel channels[MAX_CHANNEL_NUMBER];
-#endif
     char*      warning[MAX_NUM_TOKENS];
     EncPass    enc_pass;
     int32_t    passes;
@@ -165,27 +144,12 @@ static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, in
 #endif
 
     memset(enc_context, 0, sizeof(*enc_context));
-#if !CLN_REMOVE_CHANNELS
-    uint32_t num_channels = get_number_of_channels(argc, argv);
-    if (num_channels == 0)
-        return EB_ErrorBadParameter;
-#endif
     enc_context->enc_pass = enc_pass;
     enc_context->passes   = passes;
 
-#if CLN_REMOVE_CHANNELS
     EbErrorType return_error = enc_channel_ctor(&enc_context->channel);
     if (return_error != EB_ErrorNone)
         return return_error;
-#else
-    EbErrorType return_error  = EB_ErrorNone;
-    enc_context->num_channels = num_channels;
-    for (uint32_t inst_cnt = 0; inst_cnt < num_channels; ++inst_cnt) {
-        return_error = enc_channel_ctor(enc_context->channels + inst_cnt);
-        if (return_error != EB_ErrorNone)
-            return return_error;
-    }
-#endif
 
     char** warning = enc_context->warning;
 
@@ -198,24 +162,14 @@ static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, in
     }
     // Process any command line options, including the configuration file
     // Read all configuration files.
-#if CLN_REMOVE_CHANNELS
     return_error = read_command_line(argc, argv, &enc_context->channel);
-#else
-    return_error = read_command_line(argc, argv, enc_context->channels, num_channels);
-#endif
     if (return_error != EB_ErrorNone) {
         fprintf(stderr, "Error in configuration, could not begin encoding! ... \n");
         fprintf(stderr, "Run %s --help for a list of options\n", argv[0]);
         return return_error;
     }
-#if !CLN_REMOVE_SS_PIN
-    // Set main thread affinity
-    if (enc_context->channels[0].app_cfg->config.target_socket != -1)
-        assign_app_thread_group(enc_context->channels[0].app_cfg->config.target_socket);
-#endif
 
     // Init the Encoder
-#if CLN_REMOVE_CHANNELS
     EncChannel* c = &enc_context->channel;
     if (c->return_error == EB_ErrorNone) {
         EbConfig* app_cfg = c->app_cfg;
@@ -261,82 +215,20 @@ static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, in
         return_error = (EbErrorType)(return_error | c->return_error);
     } else
         c->active = false;
-#else
-    for (uint32_t inst_cnt = 0; inst_cnt < num_channels; ++inst_cnt) {
-        EncChannel* c = enc_context->channels + inst_cnt;
-        if (c->return_error == EB_ErrorNone) {
-            EbConfig* app_cfg                    = c->app_cfg;
-            app_cfg->config.active_channel_count = num_channels;
-            app_cfg->config.channel_id           = inst_cnt;
-            app_cfg->config.recon_enabled        = app_cfg->recon_file ? true : false;
-
-            // set force_key_frames frames
-            if (app_cfg->config.force_key_frames) {
-                const double fps = (double)app_cfg->config.frame_rate_numerator /
-                    app_cfg->config.frame_rate_denominator;
-                struct forced_key_frames* forced_keyframes = &app_cfg->forced_keyframes;
-
-                for (size_t i = 0; i < forced_keyframes->count; ++i) {
-                    char*  p;
-                    double val = strtod(forced_keyframes->specifiers[i], &p);
-                    switch (*p) {
-                    case 'f':
-                    case 'F': break;
-                    case 's':
-                    case 'S':
-                    default: val *= fps; break;
-                    }
-                    forced_keyframes->frames[i] = (uint64_t)val;
-                }
-                qsort(forced_keyframes->frames,
-                      forced_keyframes->count,
-                      sizeof(forced_keyframes->frames[0]),
-                      compar_uint64);
-            }
-            init_memory_file_map(app_cfg);
-            init_reader(app_cfg);
-
-            app_svt_av1_get_time(&app_cfg->performance_context.lib_start_time[0],
-                                 &app_cfg->performance_context.lib_start_time[1]);
-            // Update pass
-            app_cfg->config.pass = passes == 1 ? app_cfg->config.pass // Single-Pass
-                                               : (int)enc_pass; // Multi-Pass
-
-            c->return_error = handle_stats_file(app_cfg, enc_pass, &enc_app->rc_twopasses_stats, num_channels);
-            if (c->return_error == EB_ErrorNone) {
-                c->return_error = init_encoder(app_cfg, inst_cnt);
-            }
-            return_error = (EbErrorType)(return_error | c->return_error);
-        } else
-            c->active = false;
-    }
-#endif
     return return_error;
 }
 
 static void enc_context_dctor(EncContext* enc_context) {
     // DeInit Encoder
-#if CLN_REMOVE_CHANNELS
     deinit_memory_file_map(enc_context->channel.app_cfg);
     enc_channel_dctor(&enc_context->channel);
-#else
-    for (int32_t inst_cnt = enc_context->num_channels - 1; inst_cnt >= 0; --inst_cnt) {
-        EncChannel* c = enc_context->channels + inst_cnt;
-        deinit_memory_file_map(c->app_cfg);
-        enc_channel_dctor(c, inst_cnt);
-    }
-#endif
 
     for (uint32_t warning_id = 0; warning_id < MAX_NUM_TOKENS; warning_id++) free(enc_context->warning[warning_id]);
 }
 
 double get_psnr(double sse, double max);
 
-static void print_summary_to_file(const EbConfig* app_cfg,
-#if !CLN_REMOVE_CHANNELS
-                                  uint32_t channel,
-#endif
-                                  FILE* f) {
+static void print_summary_to_file(const EbConfig* app_cfg, FILE* f) {
     if (!f) {
         return;
     }
@@ -348,11 +240,7 @@ static void print_summary_to_file(const EbConfig* app_cfg,
     double   frame_rate  = (double)cfg->frame_rate_numerator / cfg->frame_rate_denominator;
 
     double bitrate_kbps = ctx->byte_count * 8 * frame_rate / (app_cfg->frames_encoded * 1000);
-#if CLN_REMOVE_CHANNELS
     fprintf(f, "\nSUMMARY -----------------------------------------------------------------\n");
-#else
-    fprintf(f, "\nSUMMARY --------------------------------- Channel %u  --------------------------------\n", channel);
-#endif
     fprintf(f, "Total Frames\t\tFrame Rate\t\tByte Count\t\tBitrate\n");
     fprintf(f,
             "%12d\t\t%4.2f fps\t\t%10.0f\t\t%5.2f kbps\n",
@@ -393,7 +281,6 @@ static void print_summary_to_file(const EbConfig* app_cfg,
 }
 
 static void print_summary(const EncContext* const enc_context) {
-#if CLN_REMOVE_CHANNELS
     const EncChannel* const c = &enc_context->channel;
     if (c->exit_cond == APP_ExitConditionFinished && c->return_error == EB_ErrorNone &&
         (c->app_cfg->config.pass == 0 || c->app_cfg->config.pass == 2)) {
@@ -405,27 +292,11 @@ static void print_summary(const EncContext* const enc_context) {
 
         fflush(stdout);
     }
-#else
-    for (uint32_t inst_cnt = 0; inst_cnt < enc_context->num_channels; ++inst_cnt) {
-        const EncChannel* const c = &enc_context->channels[inst_cnt];
-        if (c->exit_cond == APP_ExitConditionFinished && c->return_error == EB_ErrorNone &&
-            (c->app_cfg->config.pass == 0 || c->app_cfg->config.pass == 2)) {
-#if LOG_ENC_DONE
-            tot_frames_done = (int)c->app_cfg->performance_context.frame_count;
-#endif
-            print_summary_to_file(c->app_cfg, inst_cnt + 1, c->app_cfg->stat_file);
-            print_summary_to_file(c->app_cfg, inst_cnt + 1, stderr);
-
-            fflush(stdout);
-        }
-    }
-#endif
     fprintf(stderr, "\n");
     fflush(stdout);
 }
 
 static void print_performance(const EncContext* const enc_context) {
-#if CLN_REMOVE_CHANNELS
     const EncChannel* c = &enc_context->channel;
     if (c->exit_cond == APP_ExitConditionFinished && c->return_error == EB_ErrorNone) {
         EbConfig* app_cfg = c->app_cfg;
@@ -448,40 +319,6 @@ static void print_performance(const EncContext* const enc_context) {
         fprintf(stderr, "Could not allocate enough memory\n");
     else
         fprintf(stderr, "Error encoding! Check error log file for more details...\n");
-#else
-    for (uint32_t inst_cnt = 0; inst_cnt < enc_context->num_channels; ++inst_cnt) {
-        const EncChannel* c = enc_context->channels + inst_cnt;
-        if (c->exit_cond == APP_ExitConditionFinished && c->return_error == EB_ErrorNone) {
-            EbConfig* app_cfg = c->app_cfg;
-            if (app_cfg->stop_encoder == false) {
-                if ((app_cfg->config.pass == 0 ||
-                     (app_cfg->config.pass == 2 && app_cfg->config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF) ||
-                     app_cfg->config.pass == 3)) {
-                    EbPerformanceContext* ctx = &app_cfg->performance_context;
-                    fprintf(stderr,
-                            "\nChannel %u\nFrames encoded:\t\t%u\nAverage Speed:\t\t%.3f fps\nTotal Encoding "
-                            "Time:\t%.0f ms\n"
-                            "Total Execution Time:\t%.0f ms\nAverage Latency:\t%.0f ms\nMax Latency:\t\t%u ms\n"
-                            "VBV violations:\t\t%d\nVBV avg delay:\t\t%.3f s\nVBV max delay:\t\t%.3f s\n",
-                            inst_cnt + 1,
-                            (uint32_t)ctx->frame_count,
-                            ctx->average_speed,
-                            ctx->total_encode_time * 1000,
-                            ctx->total_execution_time * 1000,
-                            ctx->average_latency,
-                            ctx->max_latency,
-                            ctx->vbv_delay_violations,
-                            ctx->vbv_delay_sum_s / ctx->frame_count,
-                            ctx->vbv_delay_max_s);
-                }
-            } else
-                fprintf(stderr, "\nChannel %u Encoding Interrupted\n", inst_cnt + 1);
-        } else if (c->return_error == EB_ErrorInsufficientResources)
-            fprintf(stderr, "Could not allocate enough memory for channel %u\n", inst_cnt + 1);
-        else
-            fprintf(stderr, "Error encoding at channel %u! Check error log file for more details ... \n", inst_cnt + 1);
-    }
-#endif
 }
 
 static void print_warnnings(const EncContext* const enc_context) {
@@ -496,16 +333,6 @@ static void print_warnnings(const EncContext* const enc_context) {
 
 static bool is_active(const EncChannel* c) { return c->active; }
 
-#if !CLN_REMOVE_CHANNELS
-static bool has_active_channel(const EncContext* const enc_context) {
-    // check if all channels are inactive
-    for (uint32_t inst_cnt = 0; inst_cnt < enc_context->num_channels; ++inst_cnt) {
-        if (is_active(enc_context->channels + inst_cnt))
-            return true;
-    }
-    return false;
-}
-#endif
 bool process_skip(EbConfig* app_cfg, EbBufferHeaderType* header_ptr);
 
 static void enc_channel_step(EncChannel* c, EncApp* enc_app, EncContext* enc_context) {
@@ -561,7 +388,6 @@ static void enc_channel_start(EncChannel* c) {
 static EbErrorType encode(EncApp* enc_app, EncContext* enc_context) {
     EbErrorType return_error = EB_ErrorNone;
 
-#if CLN_REMOVE_CHANNELS
     EncPass enc_pass = enc_context->enc_pass;
     // Start the Encoder
     enc_channel_start(&enc_context->channel);
@@ -569,25 +395,6 @@ static EbErrorType encode(EncApp* enc_app, EncContext* enc_context) {
     fprintf(stderr, "%sEncoding          ", get_pass_name(enc_pass));
 
     while (is_active(&enc_context->channel)) { enc_channel_step(&enc_context->channel, enc_app, enc_context); }
-#else
-    // Get num_channels
-    uint32_t num_channels = enc_context->num_channels;
-    EncPass  enc_pass     = enc_context->enc_pass;
-    // Start the Encoder
-    for (uint32_t inst_cnt = 0; inst_cnt < num_channels; ++inst_cnt)
-        enc_channel_start(enc_context->channels + inst_cnt);
-    print_warnnings(enc_context);
-    fprintf(stderr, "%sEncoding          ", get_pass_name(enc_pass));
-
-    while (has_active_channel(enc_context)) {
-        for (uint32_t inst_cnt = 0; inst_cnt < num_channels; ++inst_cnt) {
-            EncChannel* c = enc_context->channels + inst_cnt;
-            if (is_active(c)) {
-                enc_channel_step(c, enc_app, enc_context);
-            }
-        }
-    }
-#endif
     print_summary(enc_context);
     print_performance(enc_context);
     return return_error;

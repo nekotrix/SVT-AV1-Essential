@@ -385,7 +385,7 @@ typedef ::testing::tuple<BlockSize, AomSumSquaresI16Func> AomHSumSquaresParam;
 
 class AomSumSquaresTest : public ::testing::TestWithParam<AomHSumSquaresParam> {
   public:
-    AomSumSquaresTest() : rnd_(0, 255){};
+    AomSumSquaresTest() : rnd_(0, 255) {};
     virtual ~AomSumSquaresTest() {
     }
 

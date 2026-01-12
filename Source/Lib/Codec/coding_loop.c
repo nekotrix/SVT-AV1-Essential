@@ -373,12 +373,8 @@ static void av1_encode_loop(PictureControlSet *pcs, EncDecContext *ed_ctx, Super
         md_ctx->blk_org_y = ed_ctx->blk_org_y;
         //Get the new lambda for current block
         svt_aom_set_tuned_blk_lambda(md_ctx, pcs);
-#if FTR_TUNE_4
     } else if (pcs->ppcs->scs->static_config.tune == TUNE_SSIM || pcs->ppcs->scs->static_config.tune == TUNE_IQ ||
                pcs->ppcs->scs->static_config.tune == TUNE_MS_SSIM) {
-#else
-    } else if (pcs->ppcs->scs->static_config.tune == TUNE_SSIM || pcs->ppcs->scs->static_config.tune == TUNE_IQ) {
-#endif
         md_ctx->blk_geom  = ed_ctx->blk_geom;
         md_ctx->blk_org_x = ed_ctx->blk_org_x;
         md_ctx->blk_org_y = ed_ctx->blk_org_y;
@@ -1767,10 +1763,8 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
                                             EncDecContext *ctx) {
     bool                 is_16bit = ctx->is_16bit;
     EbPictureBufferDesc *recon_buffer;
-    ModeDecisionContext *md_ctx = ctx->md_ctx;
-#if OPT_OPERATIONS
-    const bool allintra = scs->allintra;
-#endif
+    ModeDecisionContext *md_ctx   = ctx->md_ctx;
+    const bool           allintra = scs->allintra;
 
     // Dereferencing early
     uint16_t       tile_idx = ctx->tile_index;
@@ -1779,17 +1773,13 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
     svt_aom_get_recon_pic(pcs, &recon_buffer, is_16bit);
     ctx->coded_area_sb    = 0;
     ctx->coded_area_sb_uv = 0;
-#if OPT_OPERATIONS
     if (!allintra) {
-#endif
         pcs->sb_intra[sb_addr]       = 0;
         pcs->sb_skip[sb_addr]        = 1;
         pcs->sb_64x64_mvp[sb_addr]   = 0;
         pcs->sb_min_sq_size[sb_addr] = 128;
         pcs->sb_max_sq_size[sb_addr] = 0;
-#if OPT_OPERATIONS
     }
-#endif
     // CU Loop
     uint32_t final_blk_itr = 0;
     sb_ptr->final_blk_cnt  = 0;
@@ -1840,9 +1830,7 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
             ctx->blk_org_x = (uint16_t)(sb_org_x + blk_geom->org_x);
             ctx->blk_org_y = (uint16_t)(sb_org_y + blk_geom->org_y);
 
-#if OPT_OPERATIONS
             if (!allintra) {
-#endif
                 if (is_intra_mode(blk_ptr->block_mi.mode)) {
                     ctx->tot_intra_coded_area += blk_geom->bwidth * blk_geom->bheight;
                     pcs->sb_intra[sb_addr] = 1;
@@ -1855,7 +1843,6 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
                         if (hp)
                             ctx->tot_hp_coded_area += blk_geom->bwidth * blk_geom->bheight;
                     }
-#if OPT_CR_CTRL
                     bool is_zero_mv = 0;
                     if (blk_ptr->block_mi.mv[0].x < 8 && blk_ptr->block_mi.mv[0].y < 8)
                         is_zero_mv = 1;
@@ -1865,7 +1852,6 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
                     }
                     if (is_zero_mv)
                         ctx->tot_cnt_zero_mv += blk_geom->bwidth * blk_geom->bheight;
-#endif
                     if (blk_it == 0 && blk_ptr->block_mi.mode != NEWMV && blk_ptr->block_mi.mode != NEW_NEWMV) {
                         pcs->sb_64x64_mvp[sb_addr] = 1;
                     }
@@ -1878,9 +1864,7 @@ EB_EXTERN EbErrorType svt_aom_encdec_update(SequenceControlSet *scs, PictureCont
                 }
                 pcs->sb_min_sq_size[sb_addr] = MIN(blk_geom->sq_size, pcs->sb_min_sq_size[sb_addr]);
                 pcs->sb_max_sq_size[sb_addr] = MAX(blk_geom->sq_size, pcs->sb_max_sq_size[sb_addr]);
-#if OPT_OPERATIONS
             }
-#endif
             svt_block_on_mutex(pcs->ppcs->pcs_total_rate_mutex);
             pcs->ppcs->pcs_total_rate += blk_ptr->total_rate;
             svt_release_mutex(pcs->ppcs->pcs_total_rate_mutex);

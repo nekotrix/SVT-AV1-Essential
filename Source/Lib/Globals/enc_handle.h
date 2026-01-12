@@ -29,27 +29,16 @@ struct _EbThreadContext {
  **************************************/
 struct _EbEncHandle {
     EbDctor dctor;
-#if !CLN_REMOVE_INSTANCE_IDX
-    // Encode Instances & Compute Segments
-    uint32_t encode_instance_total_count;
-    uint32_t compute_segments_total_count_array;
-#endif
     // Full Results Count
     uint32_t scs_pool_total_count;
     // Picture Buffer Count
     uint32_t ref_pic_pool_total_count;
 
     // Config Set Pool & Active Array
-#if CLN_REMOVE_INSTANCE_IDX
     EbSystemResource             *scs_pool_ptr;
     EbSequenceControlSetInstance *scs_instance;
-#else
-    EbSystemResource             **scs_pool_ptr_array; //*scs_pool_ptr
-    EbSequenceControlSetInstance **scs_instance_array;
-#endif
 
     // Full Results
-#if CLN_REMOVE_INSTANCE_IDX
     EbSystemResource *picture_control_set_pool_ptr;
 
     EbSystemResource *enc_dec_pool_ptr;
@@ -64,22 +53,6 @@ struct _EbEncHandle {
 
     // Overlay input picture
     EbSystemResource *overlay_input_picture_pool_ptr;
-#else
-    EbSystemResource **picture_control_set_pool_ptr_array;
-
-    EbSystemResource **enc_dec_pool_ptr_array;
-
-    //ParentControlSet
-    EbSystemResource **picture_parent_control_set_pool_ptr_array;
-    EbSystemResource **me_pool_ptr_array;
-    // Picture Buffers
-    EbSystemResource **reference_picture_pool_ptr_array;
-    EbSystemResource **tpl_reference_picture_pool_ptr_array;
-    EbSystemResource **pa_reference_picture_pool_ptr_array;
-
-    // Overlay input picture
-    EbSystemResource **overlay_input_picture_pool_ptr_array;
-#endif
 
     // Thread Handles
     EbHandle  resource_coordination_thread_handle;
@@ -122,36 +95,26 @@ struct _EbEncHandle {
     EbSystemResource *input_buffer_resource_ptr;
     EbSystemResource *input_y8b_buffer_resource_ptr;
     EbSystemResource *input_cmd_resource_ptr;
-#if CLN_REMOVE_INSTANCE_IDX
     EbSystemResource *output_stream_buffer_resource_ptr;
     EbSystemResource *output_recon_buffer_resource_ptr;
-#else
-    EbSystemResource **output_stream_buffer_resource_ptr_array;
-    EbSystemResource **output_recon_buffer_resource_ptr_array;
-    EbSystemResource **output_statistics_buffer_resource_ptr_array;
-#endif
-    EbSystemResource  *resource_coordination_results_resource_ptr;
-    EbSystemResource  *picture_analysis_results_resource_ptr;
-    EbSystemResource  *picture_decision_results_resource_ptr;
-    EbSystemResource  *motion_estimation_results_resource_ptr;
-    EbSystemResource  *initial_rate_control_results_resource_ptr;
-    EbSystemResource  *picture_demux_results_resource_ptr;
-    EbSystemResource  *tpl_disp_res_srm;
-    EbSystemResource  *rate_control_tasks_resource_ptr;
-    EbSystemResource  *rate_control_results_resource_ptr;
-    EbSystemResource  *enc_dec_tasks_resource_ptr;
-    EbSystemResource  *enc_dec_results_resource_ptr;
-    EbSystemResource  *entropy_coding_results_resource_ptr;
-    EbSystemResource  *dlf_results_resource_ptr;
-    EbSystemResource  *cdef_results_resource_ptr;
-    EbSystemResource  *rest_results_resource_ptr;
+    EbSystemResource *resource_coordination_results_resource_ptr;
+    EbSystemResource *picture_analysis_results_resource_ptr;
+    EbSystemResource *picture_decision_results_resource_ptr;
+    EbSystemResource *motion_estimation_results_resource_ptr;
+    EbSystemResource *initial_rate_control_results_resource_ptr;
+    EbSystemResource *picture_demux_results_resource_ptr;
+    EbSystemResource *tpl_disp_res_srm;
+    EbSystemResource *rate_control_tasks_resource_ptr;
+    EbSystemResource *rate_control_results_resource_ptr;
+    EbSystemResource *enc_dec_tasks_resource_ptr;
+    EbSystemResource *enc_dec_results_resource_ptr;
+    EbSystemResource *entropy_coding_results_resource_ptr;
+    EbSystemResource *dlf_results_resource_ptr;
+    EbSystemResource *cdef_results_resource_ptr;
+    EbSystemResource *rest_results_resource_ptr;
 
     // Callbacks
-#if CLN_REMOVE_INSTANCE_IDX
     EbCallback *app_callback_ptr;
-#else
-    EbCallback **app_callback_ptr_array;
-#endif
 
     EbFifo *input_buffer_producer_fifo_ptr;
     EbFifo *input_cmd_producer_fifo_ptr;

@@ -105,11 +105,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = scs->static_config.level % 10;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 512,
                                 288,
                                 30.0,
@@ -118,11 +114,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 704,
                                 396,
                                 30.0,
@@ -131,11 +123,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 1088,
                                 612,
                                 30.0,
@@ -144,11 +132,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 1376,
                                 774,
                                 30.0,
@@ -157,11 +141,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 2048,
                                 1152,
                                 30.0,
@@ -170,11 +150,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 2048,
                                 1152,
                                 60.0,
@@ -183,11 +159,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 4096,
                                 2176,
                                 30.0,
@@ -196,11 +168,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 4096,
                                 2176,
                                 60.0,
@@ -209,11 +177,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 4096,
                                 2176,
                                 120.0,
@@ -222,11 +186,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 2;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 8192,
                                 4352,
                                 30.0,
@@ -235,11 +195,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 0;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 8192,
                                 4352,
                                 60.0,
@@ -248,11 +204,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
         bl.minor = 1;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
-#if FIX_FPS_CALC
                                 scs->frame_rate,
-#else
-                                (scs->frame_rate >> 16),
-#endif
                                 8192,
                                 4352,
                                 120.0,
@@ -277,50 +229,6 @@ static void write_golomb(AomWriter *w, int32_t level) {
 
     for (int32_t i = length - 1; i >= 0; --i) aom_write_bit(w, (x >> i) & 0x01);
 }
-#if !FIX_EOB_COEF_CTX
-static const uint8_t eob_to_pos_small[33] = {
-    0, 1, 2, // 0-2
-    3, 3, // 3-4
-    4, 4, 4, 4, // 5-8
-    5, 5, 5, 5, 5, 5, 5, 5, // 9-16
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6 // 17-32
-};
-
-static const uint8_t eob_to_pos_large[17] = {
-    6, // place holder
-    7, // 33-64
-    8,
-    8, // 65-128
-    9,
-    9,
-    9,
-    9, // 129-256
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10, // 257-512
-    11 // 513-
-};
-
-static INLINE int16_t get_eob_pos_token(const int16_t eob, int16_t *const extra) {
-    int16_t t;
-
-    if (eob < 33)
-        t = eob_to_pos_small[eob];
-    else {
-        const int16_t e = MIN((eob - 1) >> 5, 16);
-        t               = eob_to_pos_large[e];
-    }
-
-    *extra = eob - eb_k_eob_group_start[t];
-
-    return t;
-}
-#endif
 /************************************************************************************************/
 // blockd.h
 
@@ -519,17 +427,10 @@ static int32_t av1_write_coeffs_txb_1d(PictureParentControlSet *ppcs, FRAME_CONT
     if (component_type == COMPONENT_LUMA) {
         av1_write_tx_type(ppcs, frame_context, mbmi, ec_writer, intraLumaDir, tx_type, tx_size);
     }
-#if FIX_EOB_COEF_CTX
     int       eob_extra;
     const int eob_pt         = get_eob_pos_token(eob, &eob_extra);
     const int eob_multi_size = txsize_log2_minus4[tx_size];
     const int eob_multi_ctx  = (tx_type_to_class[tx_type] == TX_CLASS_2D) ? 0 : 1;
-#else
-    int16_t       eob_extra;
-    const int16_t eob_pt         = get_eob_pos_token(eob, &eob_extra);
-    const int16_t eob_multi_size = txsize_log2_minus4[tx_size];
-    const int16_t eob_multi_ctx  = (tx_type_to_class[tx_type] == TX_CLASS_2D) ? 0 : 1;
-#endif
     switch (eob_multi_size) {
     case 0:
         aom_write_symbol(ec_writer, eob_pt - 1, frame_context->eob_flag_cdf16[component_type][eob_multi_ctx], 5);
@@ -553,13 +454,8 @@ static int32_t av1_write_coeffs_txb_1d(PictureParentControlSet *ppcs, FRAME_CONT
         aom_write_symbol(ec_writer, eob_pt - 1, frame_context->eob_flag_cdf1024[component_type][eob_multi_ctx], 11);
         break;
     }
-#if FIX_EOB_COEF_CTX
     const int eob_offset_bits = eb_k_eob_offset_bits[eob_pt];
-#else
-    const int16_t eob_offset_bits = eb_k_eob_offset_bits[eob_pt];
-#endif
     if (eob_offset_bits > 0) {
-#if FIX_EOB_COEF_CTX
         const int eob_ctx   = eob_pt - 3;
         int       eob_shift = eob_offset_bits - 1;
         int       bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
@@ -569,16 +465,6 @@ static int32_t av1_write_coeffs_txb_1d(PictureParentControlSet *ppcs, FRAME_CONT
             bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
             aom_write_bit(ec_writer, bit);
         }
-#else
-        int32_t eob_shift = eob_offset_bits - 1;
-        int32_t bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
-        aom_write_symbol(ec_writer, bit, frame_context->eob_extra_cdf[txs_ctx][component_type][eob_pt], 2);
-        for (int32_t i = 1; i < eob_offset_bits; i++) {
-            eob_shift = eob_offset_bits - 1 - i;
-            bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
-            aom_write_bit(ec_writer, bit);
-        }
-#endif
     }
 
     svt_av1_get_nz_map_contexts(levels, scan, eob, tx_size, tx_type_to_class[tx_type], coeff_contexts);

@@ -1130,9 +1130,8 @@ static const AomCdfProb av1_default_txb_skip_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][TX
       {AOM_CDF2(16384)},
       {AOM_CDF2(16384)},
       {AOM_CDF2(16384)}}}};
-#if FIX_EOB_COEF_CTX
 static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][PLANE_TYPES][EOB_COEF_CONTEXTS]
-                                                  [CDF_SIZE(2)] = {{{{
+                                                  [CDF_SIZE(2)]                                     = {{{{
                                                                          {AOM_CDF2(16961)},
                                                                          {AOM_CDF2(17223)},
                                                                          {AOM_CDF2(7621)},
@@ -1143,7 +1142,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(19069)},
                                                                          {AOM_CDF2(22525)},
                                                                          {AOM_CDF2(13377)},
@@ -1154,7 +1153,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(20401)},
                                                                          {AOM_CDF2(17025)},
                                                                          {AOM_CDF2(12845)},
@@ -1165,7 +1164,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(20681)},
                                                                          {AOM_CDF2(20701)},
                                                                          {AOM_CDF2(15250)},
@@ -1176,7 +1175,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(23905)},
                                                                          {AOM_CDF2(17194)},
                                                                          {AOM_CDF2(16170)},
@@ -1187,7 +1186,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(23959)},
                                                                          {AOM_CDF2(20799)},
                                                                          {AOM_CDF2(19021)},
@@ -1198,7 +1197,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(27399)},
                                                                          {AOM_CDF2(16327)},
                                                                          {AOM_CDF2(18071)},
@@ -1209,7 +1208,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(10150)},
                                                                          {AOM_CDF2(8805)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(24932)},
                                                                          {AOM_CDF2(20833)},
                                                                          {AOM_CDF2(12027)},
@@ -1220,7 +1219,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(13783)},
                                                                          {AOM_CDF2(28756)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(23406)},
                                                                          {AOM_CDF2(21845)},
                                                                          {AOM_CDF2(18432)},
@@ -1231,7 +1230,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(22395)},
                                                                          {AOM_CDF2(21370)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
@@ -1242,7 +1241,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }}},
-                                                                   {{{
+                                                                                                       {{{
                                                                          {AOM_CDF2(17471)},
                                                                          {AOM_CDF2(20223)},
                                                                          {AOM_CDF2(11357)},
@@ -1253,7 +1252,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(20335)},
                                                                          {AOM_CDF2(21667)},
                                                                          {AOM_CDF2(14818)},
@@ -1264,7 +1263,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(20430)},
                                                                          {AOM_CDF2(20662)},
                                                                          {AOM_CDF2(15367)},
@@ -1275,7 +1274,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(22117)},
                                                                          {AOM_CDF2(22028)},
                                                                          {AOM_CDF2(18650)},
@@ -1286,7 +1285,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(22409)},
                                                                          {AOM_CDF2(21012)},
                                                                          {AOM_CDF2(15650)},
@@ -1297,7 +1296,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(24220)},
                                                                          {AOM_CDF2(22480)},
                                                                          {AOM_CDF2(17737)},
@@ -1308,7 +1307,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(25991)},
                                                                          {AOM_CDF2(20314)},
                                                                          {AOM_CDF2(17731)},
@@ -1319,7 +1318,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(17549)},
                                                                          {AOM_CDF2(15630)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(26585)},
                                                                          {AOM_CDF2(21469)},
                                                                          {AOM_CDF2(20432)},
@@ -1330,7 +1329,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(22471)},
                                                                          {AOM_CDF2(28997)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(26605)},
                                                                          {AOM_CDF2(11304)},
                                                                          {AOM_CDF2(16726)},
@@ -1341,7 +1340,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(13469)},
                                                                          {AOM_CDF2(23084)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
@@ -1352,7 +1351,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }}},
-                                                                   {{{
+                                                                                                       {{{
                                                                          {AOM_CDF2(18983)},
                                                                          {AOM_CDF2(20512)},
                                                                          {AOM_CDF2(14885)},
@@ -1363,7 +1362,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(20090)},
                                                                          {AOM_CDF2(19444)},
                                                                          {AOM_CDF2(17286)},
@@ -1374,7 +1373,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(19139)},
                                                                          {AOM_CDF2(21487)},
                                                                          {AOM_CDF2(18959)},
@@ -1385,7 +1384,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(20536)},
                                                                          {AOM_CDF2(20664)},
                                                                          {AOM_CDF2(20625)},
@@ -1396,7 +1395,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(19833)},
                                                                          {AOM_CDF2(21502)},
                                                                          {AOM_CDF2(17485)},
@@ -1407,7 +1406,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(22041)},
                                                                          {AOM_CDF2(23434)},
                                                                          {AOM_CDF2(20001)},
@@ -1418,7 +1417,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(23312)},
                                                                          {AOM_CDF2(21607)},
                                                                          {AOM_CDF2(16526)},
@@ -1429,7 +1428,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16921)},
                                                                          {AOM_CDF2(17080)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(26579)},
                                                                          {AOM_CDF2(24910)},
                                                                          {AOM_CDF2(18637)},
@@ -1440,7 +1439,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(30198)},
                                                                          {AOM_CDF2(24721)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(26998)},
                                                                          {AOM_CDF2(16737)},
                                                                          {AOM_CDF2(17838)},
@@ -1451,7 +1450,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(15776)},
                                                                          {AOM_CDF2(22658)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
@@ -1462,7 +1461,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }}},
-                                                                   {{{
+                                                                                                       {{{
                                                                          {AOM_CDF2(20177)},
                                                                          {AOM_CDF2(20789)},
                                                                          {AOM_CDF2(20262)},
@@ -1473,7 +1472,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(21416)},
                                                                          {AOM_CDF2(20855)},
                                                                          {AOM_CDF2(23410)},
@@ -1484,7 +1483,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(20238)},
                                                                          {AOM_CDF2(21057)},
                                                                          {AOM_CDF2(19159)},
@@ -1495,7 +1494,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(20125)},
                                                                          {AOM_CDF2(20559)},
                                                                          {AOM_CDF2(21707)},
@@ -1506,7 +1505,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(19941)},
                                                                          {AOM_CDF2(20527)},
                                                                          {AOM_CDF2(21470)},
@@ -1517,7 +1516,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(22752)},
                                                                          {AOM_CDF2(25006)},
                                                                          {AOM_CDF2(22075)},
@@ -1528,7 +1527,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(21442)},
                                                                          {AOM_CDF2(22358)},
                                                                          {AOM_CDF2(18503)},
@@ -1539,7 +1538,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(19400)},
                                                                          {AOM_CDF2(10556)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(24648)},
                                                                          {AOM_CDF2(24949)},
                                                                          {AOM_CDF2(20708)},
@@ -1550,7 +1549,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(30365)},
                                                                          {AOM_CDF2(19253)},
                                                                      }},
-                                                                    {{
+                                                                                                        {{
                                                                          {AOM_CDF2(26064)},
                                                                          {AOM_CDF2(22098)},
                                                                          {AOM_CDF2(19613)},
@@ -1561,7 +1560,7 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(18989)},
                                                                          {AOM_CDF2(15513)},
                                                                      },
-                                                                     {
+                                                                                                         {
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
@@ -1572,170 +1571,6 @@ static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][P
                                                                          {AOM_CDF2(16384)},
                                                                          {AOM_CDF2(16384)},
                                                                      }}}};
-#else
-static const AomCdfProb av1_default_eob_extra_cdfs[TOKEN_CDF_Q_CTXS][TX_SIZES][PLANE_TYPES][EOB_COEF_CONTEXTS][CDF_SIZE(
-    2)] = {
-    {{{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16961)}, {AOM_CDF2(17223)}, {AOM_CDF2(7621)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(19069)}, {AOM_CDF2(22525)}, {AOM_CDF2(13377)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(20401)}, {AOM_CDF2(17025)}, {AOM_CDF2(12845)},
-       {AOM_CDF2(12873)}, {AOM_CDF2(14094)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(20681)}, {AOM_CDF2(20701)}, {AOM_CDF2(15250)},
-       {AOM_CDF2(15017)}, {AOM_CDF2(14928)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(23905)}, {AOM_CDF2(17194)}, {AOM_CDF2(16170)},
-       {AOM_CDF2(17695)}, {AOM_CDF2(13826)}, {AOM_CDF2(15810)}, {AOM_CDF2(12036)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(23959)}, {AOM_CDF2(20799)}, {AOM_CDF2(19021)},
-       {AOM_CDF2(16203)}, {AOM_CDF2(17886)}, {AOM_CDF2(14144)}, {AOM_CDF2(12010)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(27399)}, {AOM_CDF2(16327)}, {AOM_CDF2(18071)},
-       {AOM_CDF2(19584)}, {AOM_CDF2(20721)}, {AOM_CDF2(18432)}, {AOM_CDF2(19560)}, {AOM_CDF2(10150)}, {AOM_CDF2(8805)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(24932)}, {AOM_CDF2(20833)}, {AOM_CDF2(12027)},
-       {AOM_CDF2(16670)}, {AOM_CDF2(19914)}, {AOM_CDF2(15106)}, {AOM_CDF2(17662)}, {AOM_CDF2(13783)}, {AOM_CDF2(28756)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(23406)}, {AOM_CDF2(21845)}, {AOM_CDF2(18432)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(17096)}, {AOM_CDF2(12561)}, {AOM_CDF2(17320)}, {AOM_CDF2(22395)}, {AOM_CDF2(21370)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}}},
-    {{{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(17471)}, {AOM_CDF2(20223)}, {AOM_CDF2(11357)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(20335)}, {AOM_CDF2(21667)}, {AOM_CDF2(14818)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(20430)}, {AOM_CDF2(20662)}, {AOM_CDF2(15367)},
-       {AOM_CDF2(16970)}, {AOM_CDF2(14657)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(22117)}, {AOM_CDF2(22028)}, {AOM_CDF2(18650)},
-       {AOM_CDF2(16042)}, {AOM_CDF2(15885)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(22409)}, {AOM_CDF2(21012)}, {AOM_CDF2(15650)},
-       {AOM_CDF2(17395)}, {AOM_CDF2(15469)}, {AOM_CDF2(20205)}, {AOM_CDF2(19511)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(24220)}, {AOM_CDF2(22480)}, {AOM_CDF2(17737)},
-       {AOM_CDF2(18916)}, {AOM_CDF2(19268)}, {AOM_CDF2(18412)}, {AOM_CDF2(18844)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(25991)}, {AOM_CDF2(20314)}, {AOM_CDF2(17731)},
-       {AOM_CDF2(19678)}, {AOM_CDF2(18649)}, {AOM_CDF2(17307)}, {AOM_CDF2(21798)}, {AOM_CDF2(17549)}, {AOM_CDF2(15630)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(26585)}, {AOM_CDF2(21469)}, {AOM_CDF2(20432)},
-       {AOM_CDF2(17735)}, {AOM_CDF2(19280)}, {AOM_CDF2(15235)}, {AOM_CDF2(20297)}, {AOM_CDF2(22471)}, {AOM_CDF2(28997)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(26605)}, {AOM_CDF2(11304)}, {AOM_CDF2(16726)},
-       {AOM_CDF2(16560)}, {AOM_CDF2(20866)}, {AOM_CDF2(23524)}, {AOM_CDF2(19878)}, {AOM_CDF2(13469)}, {AOM_CDF2(23084)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}}},
-    {{{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(18983)}, {AOM_CDF2(20512)}, {AOM_CDF2(14885)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(20090)}, {AOM_CDF2(19444)}, {AOM_CDF2(17286)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(19139)}, {AOM_CDF2(21487)}, {AOM_CDF2(18959)},
-       {AOM_CDF2(20910)}, {AOM_CDF2(19089)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(20536)}, {AOM_CDF2(20664)}, {AOM_CDF2(20625)},
-       {AOM_CDF2(19123)}, {AOM_CDF2(14862)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(19833)}, {AOM_CDF2(21502)}, {AOM_CDF2(17485)},
-       {AOM_CDF2(20267)}, {AOM_CDF2(18353)}, {AOM_CDF2(23329)}, {AOM_CDF2(21478)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(22041)}, {AOM_CDF2(23434)}, {AOM_CDF2(20001)},
-       {AOM_CDF2(20554)}, {AOM_CDF2(20951)}, {AOM_CDF2(20145)}, {AOM_CDF2(15562)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(23312)}, {AOM_CDF2(21607)}, {AOM_CDF2(16526)},
-       {AOM_CDF2(18957)}, {AOM_CDF2(18034)}, {AOM_CDF2(18934)}, {AOM_CDF2(24247)}, {AOM_CDF2(16921)}, {AOM_CDF2(17080)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(26579)}, {AOM_CDF2(24910)}, {AOM_CDF2(18637)},
-       {AOM_CDF2(19800)}, {AOM_CDF2(20388)}, {AOM_CDF2(9887)},  {AOM_CDF2(15642)}, {AOM_CDF2(30198)}, {AOM_CDF2(24721)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(26998)}, {AOM_CDF2(16737)}, {AOM_CDF2(17838)},
-       {AOM_CDF2(18922)}, {AOM_CDF2(19515)}, {AOM_CDF2(18636)}, {AOM_CDF2(17333)}, {AOM_CDF2(15776)}, {AOM_CDF2(22658)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}}},
-    {{{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(20177)}, {AOM_CDF2(20789)}, {AOM_CDF2(20262)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(21416)}, {AOM_CDF2(20855)}, {AOM_CDF2(23410)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(20238)}, {AOM_CDF2(21057)}, {AOM_CDF2(19159)},
-       {AOM_CDF2(22337)}, {AOM_CDF2(20159)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(20125)}, {AOM_CDF2(20559)}, {AOM_CDF2(21707)},
-       {AOM_CDF2(22296)}, {AOM_CDF2(17333)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(19941)}, {AOM_CDF2(20527)}, {AOM_CDF2(21470)},
-       {AOM_CDF2(22487)}, {AOM_CDF2(19558)}, {AOM_CDF2(22354)}, {AOM_CDF2(20331)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(22752)}, {AOM_CDF2(25006)}, {AOM_CDF2(22075)},
-       {AOM_CDF2(21576)}, {AOM_CDF2(17740)}, {AOM_CDF2(21690)}, {AOM_CDF2(19211)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(21442)}, {AOM_CDF2(22358)}, {AOM_CDF2(18503)},
-       {AOM_CDF2(20291)}, {AOM_CDF2(19945)}, {AOM_CDF2(21294)}, {AOM_CDF2(21178)}, {AOM_CDF2(19400)}, {AOM_CDF2(10556)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(24648)}, {AOM_CDF2(24949)}, {AOM_CDF2(20708)},
-       {AOM_CDF2(23905)}, {AOM_CDF2(20501)}, {AOM_CDF2(9558)},  {AOM_CDF2(9423)},  {AOM_CDF2(30365)}, {AOM_CDF2(19253)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}},
-     {{{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(26064)}, {AOM_CDF2(22098)}, {AOM_CDF2(19613)},
-       {AOM_CDF2(20525)}, {AOM_CDF2(17595)}, {AOM_CDF2(16618)}, {AOM_CDF2(20497)}, {AOM_CDF2(18989)}, {AOM_CDF2(15513)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}},
-      {{AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)},
-       {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}, {AOM_CDF2(16384)}}}}};
-#endif
 static const AomCdfProb av1_default_eob_multi16_cdfs[TOKEN_CDF_Q_CTXS][PLANE_TYPES][2][CDF_SIZE(5)] = {
     {{{AOM_CDF5(840, 1039, 1980, 4895)}, {AOM_CDF5(370, 671, 1883, 4471)}},
      {{AOM_CDF5(3247, 4950, 9688, 14563)}, {AOM_CDF5(1904, 3354, 7763, 14647)}}},

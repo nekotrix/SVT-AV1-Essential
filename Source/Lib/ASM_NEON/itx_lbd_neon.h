@@ -25,7 +25,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define decl_itx_fn(name) void(name)(uint8_t * dst, ptrdiff_t dst_stride, int16_t * coeff, int eob)
+#define decl_itx_fn(name) void(name)(uint8_t *dst, ptrdiff_t dst_stride, int16_t *coeff, int eob)
 
 #define BF(x, suffix) svt_##x##_8bpc_##suffix
 

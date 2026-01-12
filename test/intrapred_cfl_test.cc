@@ -207,7 +207,7 @@ typedef ::testing::tuple<BlockSize, AomUpsampledPredFunc, int, int, int,
 class AomUpsampledPredTest
     : public ::testing::TestWithParam<AomUpsampledPredParam> {
   public:
-    AomUpsampledPredTest() : rnd_(0, 255){};
+    AomUpsampledPredTest() : rnd_(0, 255) {};
     virtual ~AomUpsampledPredTest() {
     }
 
@@ -336,7 +336,7 @@ typedef ::testing::tuple<BlockSize, CflLumaSubsamplingLbdFunc>
 class CflLumaSubsamplingLbdTest
     : public ::testing::TestWithParam<CflLumaSubsamplingLbdParam> {
   public:
-    CflLumaSubsamplingLbdTest() : rnd_(0, 255){};
+    CflLumaSubsamplingLbdTest() : rnd_(0, 255) {};
     virtual ~CflLumaSubsamplingLbdTest() {
     }
 
@@ -410,7 +410,7 @@ typedef ::testing::tuple<BlockSize, CflLumaSubsamplingHbdFunc>
 class CflLumaSubsamplingHbdTest
     : public ::testing::TestWithParam<CflLumaSubsamplingHbdParam> {
   public:
-    CflLumaSubsamplingHbdTest() : rnd_(0, 1023){};
+    CflLumaSubsamplingHbdTest() : rnd_(0, 1023) {};
     virtual ~CflLumaSubsamplingHbdTest() {
     }
 

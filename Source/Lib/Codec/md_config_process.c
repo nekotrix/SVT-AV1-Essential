@@ -267,12 +267,8 @@ static void svt_av1_qm_init(PictureParentControlSet *pcs) {
         const int32_t base_qindex        = pcs->frm_hdr.quantization_params.base_q_idx;
 
         switch (pcs->scs->static_config.tune) {
-#if FTR_TUNE_4
         case TUNE_IQ:
         case TUNE_MS_SSIM:
-#else
-        case TUNE_IQ:
-#endif
             pcs->frm_hdr.quantization_params.qm[AOM_PLANE_Y] = svt_av1_still_get_qmlevel(
                 base_qindex, min_qmlevel, max_qmlevel);
             pcs->frm_hdr.quantization_params.qm[AOM_PLANE_U] = svt_av1_still_get_qmlevel(
@@ -306,7 +302,6 @@ static void svt_av1_qm_init(PictureParentControlSet *pcs) {
 #endif
     }
 }
-#if CLN_MDC_FUNCS
 // Initialize the rate cost tables for the frame
 static void init_frame_rate_tables(PictureControlSet *pcs) {
     PictureParentControlSet *ppcs            = pcs->ppcs;
@@ -347,9 +342,7 @@ void mdc_init_qp_update(PictureControlSet *pcs) {
     pcs->intra_coded_area = 0;
     pcs->skip_coded_area  = 0;
     pcs->hp_coded_area    = 0;
-#if OPT_CYCLIC_REFRESH
-    pcs->avg_cnt_zeromv = 0;
-#endif
+    pcs->avg_cnt_zeromv   = 0;
     // TODO: do we need to update the GM fields?
     set_global_motion_field(pcs);
 
@@ -358,77 +351,6 @@ void mdc_init_qp_update(PictureControlSet *pcs) {
     // Initialize the frame rate estimation tables
     init_frame_rate_tables(pcs);
 }
-#else
-/******************************************************
-* Set the reference sg ep for a given picture
-******************************************************/
-static void set_reference_sg_ep(PictureControlSet *pcs) {
-    Av1Common         *cm = pcs->ppcs->av1_cm;
-    EbReferenceObject *ref_obj_l0, *ref_obj_l1;
-    memset(cm->sg_frame_ep_cnt, 0, SGRPROJ_PARAMS * sizeof(int32_t));
-    cm->sg_frame_ep = 0;
-
-    // NADER: set cm->sg_ref_frame_ep[0] = cm->sg_ref_frame_ep[1] = -1 to perform all iterations
-    switch (pcs->slice_type) {
-    case I_SLICE:
-        cm->sg_ref_frame_ep[0] = -1;
-        cm->sg_ref_frame_ep[1] = -1;
-        break;
-    case B_SLICE:
-        ref_obj_l0             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_0][0]->object_ptr;
-        cm->sg_ref_frame_ep[0] = ref_obj_l0->sg_frame_ep;
-        if (pcs->ppcs->ref_list1_count_try) {
-            ref_obj_l1             = (EbReferenceObject *)pcs->ref_pic_ptr_array[REF_LIST_1][0]->object_ptr;
-            cm->sg_ref_frame_ep[1] = ref_obj_l1->sg_frame_ep;
-        } else {
-            cm->sg_ref_frame_ep[1] = 0;
-        }
-        break;
-    default: SVT_LOG("SG: Not supported picture type"); break;
-    }
-}
-
-void mode_decision_configuration_init_qp_update(PictureControlSet *pcs) {
-    FrameHeader *frm_hdr  = &pcs->ppcs->frm_hdr;
-    pcs->intra_coded_area = 0;
-    pcs->skip_coded_area  = 0;
-    pcs->hp_coded_area    = 0;
-    // Init block selection
-    // Set reference sg ep
-    set_reference_sg_ep(pcs);
-    set_global_motion_field(pcs);
-
-    svt_av1_qm_init(pcs->ppcs);
-    MdRateEstimationContext *md_rate_est_ctx;
-
-    md_rate_est_ctx = pcs->md_rate_est_ctx;
-
-    if (frm_hdr->primary_ref_frame != PRIMARY_REF_NONE) {
-        const uint8_t primary_ref_frame = frm_hdr->primary_ref_frame;
-        // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
-        // Therefore, add 1 to the primary ref frame (e.g. LAST --> LAST_FRAME)
-        const uint8_t      list_idx = get_list_idx(primary_ref_frame + 1);
-        const uint8_t      ref_idx  = get_ref_frame_idx(primary_ref_frame + 1);
-        EbReferenceObject *ref      = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
-        memcpy(&pcs->md_frame_context, &ref->frame_context, sizeof(FRAME_CONTEXT));
-    } else {
-        svt_av1_default_coef_probs(&pcs->md_frame_context, frm_hdr->quantization_params.base_q_idx);
-        svt_aom_init_mode_probs(&pcs->md_frame_context);
-    }
-    // Initial Rate Estimation of the syntax elements
-    svt_aom_estimate_syntax_rate(md_rate_est_ctx,
-                                 pcs->slice_type == I_SLICE ? true : false,
-                                 pcs->ppcs->scs->seq_header.filter_intra_level,
-                                 pcs->ppcs->frm_hdr.allow_screen_content_tools,
-                                 pcs->ppcs->enable_restoration,
-                                 pcs->ppcs->frm_hdr.allow_intrabc,
-                                 &pcs->md_frame_context);
-    // Initial Rate Estimation of the Motion vectors
-    svt_aom_estimate_mv_rate(pcs, md_rate_est_ctx, &pcs->md_frame_context);
-    // Initial Rate Estimation of the quantized coefficients
-    svt_aom_estimate_coefficients_rate(md_rate_est_ctx, &pcs->md_frame_context);
-}
-#endif
 /******************************************************
  * Compute Tc, and Beta offsets for a given picture
  ******************************************************/
@@ -651,7 +573,6 @@ static void av1_setup_motion_field(Av1Common *cm, PictureControlSet *pcs) {
 }
 EbErrorType svt_av1_hash_table_create(HashTable *p_hash_table);
 int32_t     svt_aom_noise_log1p_fp16(int32_t noise_level_fp16);
-#if CLN_MDC_FUNCS
 static void generate_ibc_data(PictureControlSet *pcs) {
     if (!pcs->ppcs->frm_hdr.allow_intrabc)
         return;
@@ -706,7 +627,6 @@ static void generate_ibc_data(PictureControlSet *pcs) {
 
     svt_av1_init3smotion_compensation(&pcs->ss_cfg, pcs->ppcs->enhanced_pic->stride_y);
 }
-#endif
 /* Determine the frame complexity level (stored under pcs->coeff_lvl) based
 on the ME distortion and QP. */
 static void set_frame_coeff_lvl(PictureControlSet *pcs) {
@@ -765,9 +685,6 @@ static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
     CdefSearchControls *cdef_ctrls = &pcs->ppcs->cdef_search_ctrls;
     if (cdef_ctrls->use_reference_cdef_fs) {
         if (pcs->slice_type != I_SLICE) {
-#if !TUNE_RTC_RA_PRESETS
-            const bool rtc_tune = pcs->scs->static_config.rtc;
-#endif
             uint8_t lowest_sg  = TOTAL_STRENGTHS - 1;
             uint8_t highest_sg = 0;
             // Determine luma pred filter
@@ -789,21 +706,9 @@ static void update_cdef_filters_on_ref_info(PictureControlSet *pcs) {
                         highest_sg = ref_obj_l1->ref_cdef_strengths[0][fs];
                 }
             }
-#if TUNE_RTC_RA_PRESETS
-            int8_t mid_filter     = MIN(63, (lowest_sg + highest_sg) / 2);
-            cdef_ctrls->pred_y_f  = mid_filter;
-            cdef_ctrls->pred_uv_f = 0;
-#else
-            if (rtc_tune) {
-                int8_t mid_filter     = MIN(63, MAX(lowest_sg, highest_sg));
-                cdef_ctrls->pred_y_f  = mid_filter;
-                cdef_ctrls->pred_uv_f = 0;
-            } else {
-                int8_t mid_filter     = MIN(63, MAX(0, (lowest_sg + highest_sg) / 2));
-                cdef_ctrls->pred_y_f  = mid_filter;
-                cdef_ctrls->pred_uv_f = 0;
-            }
-#endif
+            int8_t mid_filter                      = MIN(63, (lowest_sg + highest_sg) / 2);
+            cdef_ctrls->pred_y_f                   = mid_filter;
+            cdef_ctrls->pred_uv_f                  = 0;
             cdef_ctrls->first_pass_fs_num          = 0;
             cdef_ctrls->default_second_pass_fs_num = 0;
             // Set cdef to off if pred is.
@@ -1012,108 +917,17 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         pcs->intra_coded_area = 0;
         pcs->skip_coded_area  = 0;
         pcs->hp_coded_area    = 0;
-#if OPT_CR_CTRL
-        pcs->avg_cnt_zeromv = 0;
-#endif
+        pcs->avg_cnt_zeromv   = 0;
         // Init block selection
-#if !CLN_MDC_FUNCS
-        // Set reference sg ep
-        set_reference_sg_ep(pcs);
-#endif
         set_global_motion_field(pcs);
 
         svt_av1_qm_init(pcs->ppcs);
-#if CLN_MDC_FUNCS
         // Initialize the rate estimation tables for the frame
         init_frame_rate_tables(pcs);
 
         // generate hash table for IBC, if enabled
         if (frm_hdr->allow_intrabc)
             generate_ibc_data(pcs);
-#else
-        MdRateEstimationContext *md_rate_est_ctx;
-
-        // QP
-        context_ptr->qp = pcs->picture_qp;
-
-        // QP Index
-        context_ptr->qp_index = (uint8_t)frm_hdr->quantization_params.base_q_idx;
-
-        md_rate_est_ctx = pcs->md_rate_est_ctx;
-        if (frm_hdr->primary_ref_frame != PRIMARY_REF_NONE) {
-            const uint8_t primary_ref_frame = frm_hdr->primary_ref_frame;
-            // primary ref stored as REF_FRAME_MINUS1, while get_list_idx/get_ref_frame_idx take arg of ref frame
-            // Therefore, add 1 to the primary ref frame (e.g. LAST --> LAST_FRAME)
-            const uint8_t      list_idx = get_list_idx(primary_ref_frame + 1);
-            const uint8_t      ref_idx  = get_ref_frame_idx(primary_ref_frame + 1);
-            EbReferenceObject *ref      = (EbReferenceObject *)pcs->ref_pic_ptr_array[list_idx][ref_idx]->object_ptr;
-            memcpy(&pcs->md_frame_context, &ref->frame_context, sizeof(FRAME_CONTEXT));
-        } else {
-            svt_av1_default_coef_probs(&pcs->md_frame_context, frm_hdr->quantization_params.base_q_idx);
-            svt_aom_init_mode_probs(&pcs->md_frame_context);
-        }
-        // Initial Rate Estimation of the syntax elements
-        svt_aom_estimate_syntax_rate(md_rate_est_ctx,
-                                     pcs->slice_type == I_SLICE ? true : false,
-                                     scs->seq_header.filter_intra_level,
-                                     pcs->ppcs->frm_hdr.allow_screen_content_tools,
-                                     pcs->ppcs->enable_restoration,
-                                     pcs->ppcs->frm_hdr.allow_intrabc,
-                                     &pcs->md_frame_context);
-        // Initial Rate Estimation of the Motion vectors
-        svt_aom_estimate_mv_rate(pcs, md_rate_est_ctx, &pcs->md_frame_context);
-        // Initial Rate Estimation of the quantized coefficients
-        svt_aom_estimate_coefficients_rate(md_rate_est_ctx, &pcs->md_frame_context);
-        if (frm_hdr->allow_intrabc) {
-            int            i;
-            int            speed = 1;
-            SpeedFeatures *sf    = &pcs->sf;
-
-            const int mesh_speed           = AOMMIN(speed, MAX_MESH_SPEED);
-            sf->exhaustive_searches_thresh = (1 << 25) << 1;
-
-            for (i = 0; i < MAX_MESH_STEP; ++i) {
-                sf->mesh_patterns[i].range    = good_quality_mesh_patterns[mesh_speed][i].range;
-                sf->mesh_patterns[i].interval = good_quality_mesh_patterns[mesh_speed][i].interval;
-            }
-
-            if (pcs->slice_type == I_SLICE) {
-                for (i = 0; i < MAX_MESH_STEP; ++i) {
-                    sf->mesh_patterns[i].range    = intrabc_mesh_patterns[mesh_speed][i].range;
-                    sf->mesh_patterns[i].interval = intrabc_mesh_patterns[mesh_speed][i].interval;
-                }
-            }
-
-            {
-                // add to hash table
-                const int pic_width  = pcs->ppcs->aligned_width;
-                const int pic_height = pcs->ppcs->aligned_height;
-
-                uint32_t *block_hash_values[2];
-                int       j;
-
-                for (j = 0; j < 2; j++) { EB_MALLOC_ARRAY_NO_CHECK(block_hash_values[j], pic_width * pic_height); }
-                svt_aom_rtime_alloc_svt_av1_hash_table_create(&pcs->hash_table);
-                Yv12BufferConfig cpi_source;
-                svt_aom_link_eb_to_aom_buffer_desc_8bit(pcs->ppcs->enhanced_pic, &cpi_source);
-                svt_av1_crc32c_calculator_init(&pcs->crc_calculator);
-                svt_av1_generate_block_2x2_hash_value(&cpi_source, block_hash_values[0], pcs);
-                uint8_t       src_idx     = 0;
-                const uint8_t max_sb_size = pcs->ppcs->intraBC_ctrls.max_block_size_hash;
-                for (int size = 4; size <= max_sb_size; size <<= 1, src_idx = !src_idx) {
-                    const uint8_t dst_idx = !src_idx;
-                    svt_av1_generate_block_hash_value(
-                        &cpi_source, size, block_hash_values[src_idx], block_hash_values[dst_idx], pcs);
-                    if (size != 4 || pcs->ppcs->intraBC_ctrls.hash_4x4_blocks)
-                        svt_aom_rtime_alloc_svt_av1_add_to_hash_map_by_row_with_precal_data(
-                            &pcs->hash_table, block_hash_values[dst_idx], pic_width, pic_height, size);
-                }
-                for (j = 0; j < 2; j++) { EB_FREE_ARRAY(block_hash_values[j]); }
-            }
-
-            svt_av1_init3smotion_compensation(&pcs->ss_cfg, pcs->ppcs->enhanced_pic->stride_y);
-        }
-#endif
         CdefSearchControls *cdef_ctrls = &pcs->ppcs->cdef_search_ctrls;
         const uint8_t       skip_perc  = pcs->ref_skip_percentage;
         if (me_based_cdef_skip(pcs) || (skip_perc > 75 && cdef_ctrls->use_skip_detector) ||
@@ -1175,12 +989,9 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
         // these cannot be controlled at the block level, so they are invoked even if only one segment is marked as lossless
         if (frm_hdr
                 ->coded_lossless /*|| (frm_hdr->segmentation_params.segmentation_enabled && has_lossless_segment)*/) {
-            pcs->mimic_only_tx_4x4       = 1;
-            frm_hdr->tx_mode             = TX_MODE_SELECT;
-            pcs->pic_depth_removal_level = 0;
-#if !OPT_DR_RTC
-            pcs->pic_depth_removal_level_rtc = 0;
-#endif
+            pcs->mimic_only_tx_4x4                      = 1;
+            frm_hdr->tx_mode                            = TX_MODE_SELECT;
+            pcs->pic_depth_removal_level                = 0;
             pcs->pic_block_based_depth_refinement_level = 0;
             pcs->pic_lpd0_lvl                           = 0;
             pcs->pic_lpd1_lvl                           = 0;

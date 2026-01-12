@@ -31,33 +31,18 @@
 #include "enc_mode_config.h"
 
 typedef struct ResourceCoordinationContext {
-    EbFifo *input_cmd_fifo_ptr;
-    EbFifo *resource_coordination_results_output_fifo_ptr;
-#if CLN_REMOVE_INSTANCE_IDX
+    EbFifo                       *input_cmd_fifo_ptr;
+    EbFifo                       *resource_coordination_results_output_fifo_ptr;
     EbFifo                       *picture_control_set_fifo_ptr;
     EbSequenceControlSetInstance *scs_instance;
     EbObjectWrapper              *scs_active;
     EbFifo                       *scs_empty_fifo_ptr;
     EbCallback                   *app_callback_ptr;
     uint64_t                      picture_number;
-#else
-    EbFifo                       **picture_control_set_fifo_ptr_array;
-    EbSequenceControlSetInstance **scs_instance_array;
-    EbObjectWrapper              **scs_active_array;
-    EbFifo                       **scs_empty_fifo_ptr_array;
-    EbCallback                   **app_callback_ptr_array;
-
-    // Compute Segments
-    uint32_t compute_segments_total_count_array;
-    uint32_t encode_instances_total_count;
-
-    // Picture Number Array
-    uint64_t *picture_number_array;
-#endif
-    uint64_t  average_enc_mod;
-    uint8_t   prev_enc_mod;
-    int8_t    prev_enc_mode_delta;
-    uint8_t   prev_change_cond;
+    uint64_t                      average_enc_mod;
+    uint8_t                       prev_enc_mod;
+    int8_t                        prev_enc_mode_delta;
+    uint8_t                       prev_change_cond;
 
     int64_t previous_mode_change_buffer;
     int64_t previous_mode_change_frame_in;
@@ -85,12 +70,6 @@ static void resource_coordination_context_dctor(EbPtr p) {
     EbThreadContext *thread_contxt_ptr = (EbThreadContext *)p;
     if (thread_contxt_ptr->priv) {
         ResourceCoordinationContext *obj = (ResourceCoordinationContext *)thread_contxt_ptr->priv;
-#if !CLN_REMOVE_INSTANCE_IDX
-        EB_FREE_ARRAY(obj->picture_number_array);
-        EB_FREE_ARRAY(obj->picture_control_set_fifo_ptr_array);
-        EB_FREE_ARRAY(obj->scs_active_array);
-        EB_FREE_ARRAY(obj->scs_empty_fifo_ptr_array);
-#endif
         EB_FREE_ARRAY(obj);
     }
 }
@@ -105,50 +84,22 @@ EbErrorType svt_aom_resource_coordination_context_ctor(EbThreadContext *thread_c
     thread_contxt_ptr->priv  = context_ptr;
     thread_contxt_ptr->dctor = resource_coordination_context_dctor;
 
-#if CLN_REMOVE_INSTANCE_IDX
     //ResourceCoordination works with ParentPCS
     context_ptr->picture_control_set_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->picture_parent_control_set_pool_ptr, 0);
-#else
-    EB_MALLOC_ARRAY(context_ptr->picture_control_set_fifo_ptr_array, enc_handle_ptr->encode_instance_total_count);
-    for (uint32_t i = 0; i < enc_handle_ptr->encode_instance_total_count; i++) {
-        //ResourceCoordination works with ParentPCS
-        context_ptr->picture_control_set_fifo_ptr_array[i] = svt_system_resource_get_producer_fifo(
-            enc_handle_ptr->picture_parent_control_set_pool_ptr_array[i], 0);
-    }
-#endif
     context_ptr->input_cmd_fifo_ptr = svt_system_resource_get_consumer_fifo(enc_handle_ptr->input_cmd_resource_ptr, 0);
     context_ptr->resource_coordination_results_output_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->resource_coordination_results_resource_ptr, 0);
-#if CLN_REMOVE_INSTANCE_IDX
-    context_ptr->scs_instance       = enc_handle_ptr->scs_instance;
-    context_ptr->scs_active         = NULL;
-    context_ptr->scs_empty_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->scs_pool_ptr, 0);
-    context_ptr->app_callback_ptr   = enc_handle_ptr->app_callback_ptr;
-    context_ptr->picture_number     = 0;
-#else
-    context_ptr->scs_instance_array = enc_handle_ptr->scs_instance_array;
-    // Allocate scs_active_array
-    EB_MALLOC_ARRAY(context_ptr->scs_active_array, enc_handle_ptr->encode_instance_total_count);
-
-    for (uint32_t i = 0; i < enc_handle_ptr->encode_instance_total_count; i++) { context_ptr->scs_active_array[i] = 0; }
-
-    EB_MALLOC_ARRAY(context_ptr->scs_empty_fifo_ptr_array, enc_handle_ptr->encode_instance_total_count);
-    for (uint32_t i = 0; i < enc_handle_ptr->encode_instance_total_count; i++) {
-        context_ptr->scs_empty_fifo_ptr_array[i] = svt_system_resource_get_producer_fifo(
-            enc_handle_ptr->scs_pool_ptr_array[i], 0);
-    }
-    context_ptr->app_callback_ptr_array             = enc_handle_ptr->app_callback_ptr_array;
-    context_ptr->compute_segments_total_count_array = enc_handle_ptr->compute_segments_total_count_array;
-    context_ptr->encode_instances_total_count       = enc_handle_ptr->encode_instance_total_count;
-
-    EB_CALLOC_ARRAY(context_ptr->picture_number_array, context_ptr->encode_instances_total_count);
-#endif
-    context_ptr->average_enc_mod                    = 0;
-    context_ptr->prev_enc_mod                       = 0;
-    context_ptr->prev_enc_mode_delta                = 0;
-    context_ptr->cur_speed                          = 0; // speed x 1000
-    context_ptr->previous_mode_change_buffer        = 0;
+    context_ptr->scs_instance                = enc_handle_ptr->scs_instance;
+    context_ptr->scs_active                  = NULL;
+    context_ptr->scs_empty_fifo_ptr          = svt_system_resource_get_producer_fifo(enc_handle_ptr->scs_pool_ptr, 0);
+    context_ptr->app_callback_ptr            = enc_handle_ptr->app_callback_ptr;
+    context_ptr->picture_number              = 0;
+    context_ptr->average_enc_mod             = 0;
+    context_ptr->prev_enc_mod                = 0;
+    context_ptr->prev_enc_mode_delta         = 0;
+    context_ptr->cur_speed                   = 0; // speed x 1000
+    context_ptr->previous_mode_change_buffer = 0;
     context_ptr->first_in_pic_arrived_time_seconds  = 0;
     context_ptr->first_in_pic_arrived_timeu_seconds = 0;
     context_ptr->previous_frame_in_check1           = 0;
@@ -729,7 +680,6 @@ static void update_new_param(SequenceControlSet *scs) {
     scs->chroma_height               = scs->max_input_luma_height >> subsampling_y;
     scs->static_config.source_width  = scs->max_input_luma_width;
     scs->static_config.source_height = scs->max_input_luma_height;
-#if FTR_SFRAME_POSI
     scs->seq_header.max_frame_width  = scs->static_config.forced_max_frame_width > 0
          ? scs->static_config.forced_max_frame_width
          : scs->static_config.sframe_dist > 0 || scs->static_config.sframe_posi.sframe_posis ? 16384
@@ -739,16 +689,6 @@ static void update_new_param(SequenceControlSet *scs) {
         : scs->static_config.sframe_dist > 0 || scs->static_config.sframe_posi.sframe_posis
         ? 8704
         : scs->max_input_luma_height;
-#else
-    scs->seq_header.max_frame_width  = scs->static_config.forced_max_frame_width > 0
-         ? scs->static_config.forced_max_frame_width
-         : scs->static_config.sframe_dist > 0 ? 16384
-                                              : scs->max_input_luma_width;
-    scs->seq_header.max_frame_height = scs->static_config.forced_max_frame_height > 0
-        ? scs->static_config.forced_max_frame_height
-        : scs->static_config.sframe_dist > 0 ? 8704
-                                             : scs->max_input_luma_height;
-#endif // FTR_SFRAME_POSI
 
     svt_aom_derive_input_resolution(&scs->input_resolution, scs->max_input_luma_width * scs->max_input_luma_height);
 
@@ -786,25 +726,18 @@ static void update_rate_info(ResourceCoordinationContext *ctx, EbBufferHeaderTyp
     EbPrivDataNode *node = (EbPrivDataNode *)input_ptr->p_app_private;
     while (node) {
         if (node->node_type == RATE_CHANGE_EVENT) {
-#if !OPT_RATE_ON_THE_FLY_NO_KF
-            if (input_ptr->pic_type == EB_AV1_KEY_PICTURE) {
-#endif
-                svt_aom_assert_err(node->size == sizeof(SvtAv1RateInfo) && node->data,
-                                   "invalide private data of type RATE_CHANGE_EVENT");
-                SvtAv1RateInfo *input_pic_def = (SvtAv1RateInfo *)node->data;
-                if (input_pic_def->seq_qp != 0)
-                    scs->static_config.qp = input_pic_def->seq_qp;
-                if (input_pic_def->target_bit_rate != 0)
-                    scs->static_config.target_bit_rate = input_pic_def->target_bit_rate;
-                ctx->seq_param_change = true;
-#if !OPT_RATE_ON_THE_FLY_NO_KF
-            }
-#endif
+            svt_aom_assert_err(node->size == sizeof(SvtAv1RateInfo) && node->data,
+                               "invalide private data of type RATE_CHANGE_EVENT");
+            SvtAv1RateInfo *input_pic_def = (SvtAv1RateInfo *)node->data;
+            if (input_pic_def->seq_qp != 0)
+                scs->static_config.qp = input_pic_def->seq_qp;
+            if (input_pic_def->target_bit_rate != 0)
+                scs->static_config.target_bit_rate = input_pic_def->target_bit_rate;
+            ctx->seq_param_change = true;
         }
         node = node->next;
     }
 }
-#if FTR_FRAME_RATE_ON_THE_FLY
 // Update the target rate, sequence QP...
 static void update_frame_rate_info(ResourceCoordinationContext *ctx, EbBufferHeaderType *input_ptr,
                                    SequenceControlSet *scs) {
@@ -816,19 +749,13 @@ static void update_frame_rate_info(ResourceCoordinationContext *ctx, EbBufferHea
             SvtAv1FrameRateInfo *input_pic_def        = (SvtAv1FrameRateInfo *)node->data;
             scs->static_config.frame_rate_numerator   = input_pic_def->frame_rate_numerator;
             scs->static_config.frame_rate_denominator = input_pic_def->frame_rate_denominator;
-#if FIX_FPS_CALC
-            scs->frame_rate = (double)scs->static_config.frame_rate_numerator /
+            scs->frame_rate                           = (double)scs->static_config.frame_rate_numerator /
                 (double)scs->static_config.frame_rate_denominator;
-#else
-            scs->frame_rate =
-                ((scs->static_config.frame_rate_numerator << 8) / (scs->static_config.frame_rate_denominator)) << 8;
-#endif
             ctx->seq_param_change = true;
         }
         node = node->next;
     }
 }
-#endif
 static void update_frame_event(PictureParentControlSet *pcs, uint64_t pic_num) {
     SequenceControlSet *scs  = pcs->scs;
     EbPrivDataNode     *node = (EbPrivDataNode *)pcs->input_ptr->p_app_private;
@@ -845,14 +772,12 @@ static void update_frame_event(PictureParentControlSet *pcs, uint64_t pic_num) {
             svt_aom_assert_err(node->size == sizeof(SvtAv1RoiMapEvt *) && node->data,
                                "invalide private data of type ROI_MAP_EVENT");
             scs->enc_ctx->roi_map_evt = (SvtAv1RoiMapEvt *)node->data;
-#if FTR_PER_FRAME_QUALITY
         } else if (node->node_type == COMPUTE_QUALITY_EVENT) {
             svt_aom_assert_err(node->size == sizeof(SvtAv1ComputeQualityInfo) && node->data,
                                "invalid private data of type COMPUTE_QUALITY_EVENT");
             SvtAv1ComputeQualityInfo *quality_info = (SvtAv1ComputeQualityInfo *)node->data;
             pcs->compute_psnr                      = pcs->compute_psnr || quality_info->compute_psnr;
             pcs->compute_ssim                      = pcs->compute_ssim || quality_info->compute_ssim;
-#endif
         }
         node = node->next;
     }
@@ -957,10 +882,6 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
     EbObjectWrapper *prev_pcs_wrapper_ptr = 0;
 
     for (;;) {
-#if !CLN_REMOVE_INSTANCE_IDX
-        // Tie instance_index to zero for now...
-        uint32_t instance_index = 0;
-#endif
         // Get the input command containing 2 input buffers: y8b & rest(uv8b+yuvbitInc)
         EB_GET_FULL_OBJECT(context_ptr->input_cmd_fifo_ptr, &eb_input_cmd_wrapper);
 
@@ -973,27 +894,17 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
         eb_input_ptr                    = (EbBufferHeaderType *)eb_input_wrapper_ptr->object_ptr;
 
         // Set the SequenceControlSet
-#if CLN_REMOVE_INSTANCE_IDX
         scs = context_ptr->scs_instance->scs;
-#else
-        scs = context_ptr->scs_instance_array[instance_index]->scs;
-#endif
         // Update the input picture definitions: resolution of the sequence
         update_input_pic_def(context_ptr, eb_input_ptr, scs);
         // Update the target rate
         update_rate_info(context_ptr, eb_input_ptr, scs);
-#if FTR_FRAME_RATE_ON_THE_FLY
         // Update the frame rate
         update_frame_rate_info(context_ptr, eb_input_ptr, scs);
-#endif
         // If config changes occured since the last picture began encoding, then
         //   prepare a new scs containing the new changes and update the state
         //   of the previous Active scs
-#if CLN_REMOVE_INSTANCE_IDX
         svt_block_on_mutex(context_ptr->scs_instance->config_mutex);
-#else
-        svt_block_on_mutex(context_ptr->scs_instance_array[instance_index]->config_mutex);
-#endif
         if (scs->enc_ctx->initial_picture || context_ptr->seq_param_change) {
             // Update picture width, picture height, cropping right offset, cropping bottom offset,
             // and conformance windows
@@ -1037,7 +948,6 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                     svt_aom_set_rc_param(scs);
             }
 
-#if CLN_REMOVE_INSTANCE_IDX
             // Copy previous Active SequenceControlSetPtr to a place holder
             prev_scs_wrapper = context_ptr->scs_active;
             // Get empty SequenceControlSet [BLOCKING]
@@ -1078,56 +988,9 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                                context_ptr->scs_instance->enc_ctx->initial_picture)
             ? 0
             : 1;
-#else
-            // Copy previous Active SequenceControlSetPtr to a place holder
-            prev_scs_wrapper = context_ptr->scs_active_array[instance_index];
-            // Get empty SequenceControlSet [BLOCKING]
-            svt_get_empty_object(context_ptr->scs_empty_fifo_ptr_array[instance_index],
-                                 &context_ptr->scs_active_array[instance_index]);
-
-            // Copy the contents of the active SequenceControlSet into the new empty SequenceControlSet
-            // if (scs->enc_ctx->initial_picture)
-            copy_sequence_control_set((SequenceControlSet *)context_ptr->scs_active_array[instance_index]->object_ptr,
-                                      context_ptr->scs_instance_array[instance_index]->scs);
-
-            // Disable releaseFlag of new SequenceControlSet
-            svt_object_release_disable(context_ptr->scs_active_array[instance_index]);
-
-            if (prev_scs_wrapper != NULL) {
-                // Enable releaseFlag of old SequenceControlSet
-                svt_object_release_enable(prev_scs_wrapper);
-
-                // Check to see if previous SequenceControlSet is already inactive, if true then release the SequenceControlSet
-                if (prev_scs_wrapper->live_count == 0) {
-                    svt_release_object(prev_scs_wrapper);
-                }
-            }
-        }
-        svt_release_mutex(context_ptr->scs_instance_array[instance_index]->config_mutex);
-        // Sequence Control Set is released by Rate Control after passing through MDC->MD->ENCDEC->Packetization->RateControl
-        //   and in the PictureManager
-        svt_object_inc_live_count( //EbObjectIncLiveCount(
-            context_ptr->scs_active_array[instance_index],
-            1);
-
-        // Set the current SequenceControlSet
-        scs = (SequenceControlSet *)context_ptr->scs_active_array[instance_index]->object_ptr;
-        // Since at this stage we do not know the prediction structure and the location of ALT_REF
-        // pictures, for every picture (except first picture), we allocate two: 1. original
-        // picture, 2. potential Overlay picture. In Picture Decision Process, where the overlay
-        // frames are known, they extra pictures are released
-        uint8_t has_overlay = (scs->static_config.enable_overlays == false ||
-                               context_ptr->scs_instance_array[instance_index]->enc_ctx->initial_picture)
-            ? 0
-            : 1;
-#endif
         for (uint8_t loop_index = 0; loop_index <= has_overlay && !end_of_sequence_flag; loop_index++) {
             // Get a New ParentPCS where we will hold the new input_picture
-#if CLN_REMOVE_INSTANCE_IDX
             svt_get_empty_object(context_ptr->picture_control_set_fifo_ptr, &pcs_wrapper);
-#else
-            svt_get_empty_object(context_ptr->picture_control_set_fifo_ptr_array[instance_index], &pcs_wrapper);
-#endif
 
             // Parent PCS is released by the Rate Control after passing through
             // MDC->MD->ENCDEC->Packetization
@@ -1174,11 +1037,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 pcs->is_overlay = 1;
                 // set the overlay_ppcs_ptr in the original (ALT_REF) ppcs to the current ppcs
                 EbObjectWrapper *alt_ref_picture_control_set_wrapper_ptr =
-#if CLN_REMOVE_INSTANCE_IDX
                     (context_ptr->scs_instance->enc_ctx->initial_picture)
-#else
-                    (context_ptr->scs_instance_array[instance_index]->enc_ctx->initial_picture)
-#endif
                     ? pcs_wrapper
                     : scs->enc_ctx->previous_picture_control_set_wrapper_ptr;
 
@@ -1193,12 +1052,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             pcs->enc_mode = scs->static_config.enc_mode;
 
             // Keep track of the previous input for the ZZ SADs computation
-            pcs->previous_picture_control_set_wrapper_ptr =
-#if CLN_REMOVE_INSTANCE_IDX
-                (context_ptr->scs_instance->enc_ctx->initial_picture)
-#else
-                (context_ptr->scs_instance_array[instance_index]->enc_ctx->initial_picture)
-#endif
+            pcs->previous_picture_control_set_wrapper_ptr = (context_ptr->scs_instance->enc_ctx->initial_picture)
                 ? pcs_wrapper
                 : scs->enc_ctx->previous_picture_control_set_wrapper_ptr;
             if (loop_index == 0)
@@ -1220,11 +1074,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             svt_av1_get_time(&pcs->start_time_seconds, &pcs->start_time_u_seconds);
             pcs->seq_param_changed = (context_ptr->seq_param_change) ? true : false;
             // set the scs wrapper to be released after the picture is done
-#if CLN_REMOVE_INSTANCE_IDX
             pcs->scs_wrapper = context_ptr->scs_active;
-#else
-            pcs->scs_wrapper = context_ptr->scs_active_array[instance_index];
-#endif
             // Reset seq_param_change and video_res_change to false
             context_ptr->seq_param_change = false;
             context_ptr->video_res_change = false;
@@ -1236,11 +1086,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             pcs->rc_reset_flag        = false;
             pcs->compute_psnr         = scs->static_config.stat_report;
             pcs->compute_ssim         = scs->static_config.stat_report;
-#if CLN_REMOVE_INSTANCE_IDX
             update_frame_event(pcs, context_ptr->picture_number);
-#else
-            update_frame_event(pcs, context_ptr->picture_number_array[instance_index]);
-#endif
             pcs->is_not_scaled = (scs->static_config.superres_mode == SUPERRES_NONE) &&
                 scs->static_config.resize_mode == RESIZE_NONE;
             if (loop_index == 1) {
@@ -1288,17 +1134,10 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             // Rate Control
 
             // Picture Stats
-#if CLN_REMOVE_INSTANCE_IDX
             if (loop_index == has_overlay || end_of_sequence_flag)
                 pcs->picture_number = context_ptr->picture_number++;
             else
                 pcs->picture_number = context_ptr->picture_number;
-#else
-            if (loop_index == has_overlay || end_of_sequence_flag)
-                pcs->picture_number = context_ptr->picture_number_array[instance_index]++;
-            else
-                pcs->picture_number = context_ptr->picture_number_array[instance_index];
-#endif
             if (scs->passes == 2 && !end_of_sequence_flag && scs->static_config.pass == ENC_SECOND_PASS &&
                 scs->static_config.rate_control_mode) {
                 pcs->stat_struct = (scs->twopass.stats_buf_ctx->stats_in_start + pcs->picture_number)->stat_struct;
@@ -1316,18 +1155,12 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 pcs->qp_on_the_fly = false;
                 pcs->picture_qp    = (uint8_t)scs->static_config.qp;
             }
-#if FTR_SFRAME_QP
             pcs->sframe_qp_offset = 0;
-#endif //FTR_SFRAME_QP
 
             // Initialize variables for calculating the average QP
-            pcs->tot_qindex        = 0;
-            pcs->valid_qindex_area = 0;
-#if FIX_FPS_CALC
-            pcs->ts_duration = (double)10000000 / scs->frame_rate;
-#else
-            pcs->ts_duration = (double)10000000 * (1 << 16) / scs->frame_rate;
-#endif
+            pcs->tot_qindex               = 0;
+            pcs->valid_qindex_area        = 0;
+            pcs->ts_duration              = (double)10000000 / scs->frame_rate;
             scs->enc_ctx->initial_picture = false;
             pcs->sframe_ref_pruned        = false;
 

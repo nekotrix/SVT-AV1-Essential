@@ -20,17 +20,13 @@ extern "C" {
     {                                                                                     \
         if (!(cond)) {                                                                    \
             (app_callback_ptr)->error_handler(((app_callback_ptr)->handle), (errorCode)); \
-            while (1)                                                                     \
-                ;                                                                         \
+            while (1);                                                                    \
         }                                                                                 \
     }
-#define CHECK_REPORT_ERROR_NC(app_callback_ptr, errorCode)                                \
-    {                                                                                     \
-        {                                                                                 \
-            (app_callback_ptr)->error_handler(((app_callback_ptr)->handle), (errorCode)); \
-            while (1)                                                                     \
-                ;                                                                         \
-        }                                                                                 \
+#define CHECK_REPORT_ERROR_NC(app_callback_ptr, errorCode)                          \
+    {{(app_callback_ptr)->error_handler(((app_callback_ptr)->handle), (errorCode)); \
+    while (1);                                                                      \
+    }                                                                               \
     }
 
 typedef enum ENCODER_ERROR_CODES {

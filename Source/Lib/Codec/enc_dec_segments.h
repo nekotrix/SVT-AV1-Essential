@@ -30,7 +30,7 @@ extern "C" {
 /**************************************
       * Macros
       **************************************/
-#define BAND_TOTAL_COUNT(sb_row_total_count, sb_col_total_count) ((sb_row_total_count) + (sb_col_total_count)-1)
+#define BAND_TOTAL_COUNT(sb_row_total_count, sb_col_total_count) ((sb_row_total_count) + (sb_col_total_count) - 1)
 #define ROW_INDEX(y_sb_index, segment_row_count, sb_row_total_count) \
     (((y_sb_index) * (segment_row_count)) / (sb_row_total_count))
 #define BAND_INDEX(x_sb_index, y_sb_index, segment_band_count, sb_band_total_count) \

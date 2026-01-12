@@ -154,7 +154,6 @@ static int32_t av1_transform_type_rate_estimation(struct ModeDecisionContext *ct
     }
     return 0;
 }
-#if FIX_EOB_COEF_CTX
 // Update the eob-related CDFs. Function assumes allow_update_cdf is true
 // as the only action of the function is to update the CDFs.
 static void update_eob_context(int eob, TxSize tx_size, TxClass tx_class, PlaneType plane, FRAME_CONTEXT *ec_ctx) {
@@ -203,147 +202,6 @@ int get_eob_cost(int eob, const LvMapEobCost *txb_eob_costs, const LvMapCoeffCos
     }
     return eob_cost;
 }
-#else
-static const int8_t eob_to_pos_small[33] = {
-    0, 1, 2, // 0-2
-    3, 3, // 3-4
-    4, 4, 4, 4, // 5-8
-    5, 5, 5, 5, 5, 5, 5, 5, // 9-16
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6 // 17-32
-};
-
-static const int8_t eob_to_pos_large[17] = {
-    6, // place holder
-    7, // 33-64
-    8,
-    8, // 65-128
-    9,
-    9,
-    9,
-    9, // 129-256
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10, // 257-512
-    11 // 513-
-};
-
-static INLINE int32_t get_eob_pos_token(const int32_t eob, int32_t *const extra) {
-    int32_t t;
-
-    if (eob < 33)
-        t = eob_to_pos_small[eob];
-    else {
-        const int32_t e = AOMMIN((eob - 1) >> 5, 16);
-        t               = eob_to_pos_large[e];
-    }
-
-    *extra = eob - eb_k_eob_group_start[t];
-
-    return t;
-}
-#define TX_SIZE TxSize
-void svt_av1_update_eob_context(int eob, TxSize tx_size, TxClass tx_class, PlaneType plane, FRAME_CONTEXT *ec_ctx,
-                                uint8_t allow_update_cdf) {
-    int          eob_extra;
-    const int    eob_pt  = get_eob_pos_token(eob, &eob_extra);
-    const TxSize txs_ctx = (TxSize)((txsize_sqr_map[tx_size] + txsize_sqr_up_map[tx_size] + 1) >> 1);
-    assert(txs_ctx < TX_SIZES);
-    const int eob_multi_size = txsize_log2_minus4[tx_size];
-    const int eob_multi_ctx  = (tx_class == TX_CLASS_2D) ? 0 : 1;
-
-    switch (eob_multi_size) {
-    case 0:
-#if CONFIG_ENTROPY_STATS
-        ++counts->eob_multi16[cdf_idx][plane][eob_multi_ctx][eob_pt - 1];
-#endif
-        if (allow_update_cdf)
-            update_cdf(ec_ctx->eob_flag_cdf16[plane][eob_multi_ctx], eob_pt - 1, 5);
-        break;
-    case 1:
-#if CONFIG_ENTROPY_STATS
-        ++counts->eob_multi32[cdf_idx][plane][eob_multi_ctx][eob_pt - 1];
-#endif
-        if (allow_update_cdf)
-            update_cdf(ec_ctx->eob_flag_cdf32[plane][eob_multi_ctx], eob_pt - 1, 6);
-        break;
-    case 2:
-#if CONFIG_ENTROPY_STATS
-        ++counts->eob_multi64[cdf_idx][plane][eob_multi_ctx][eob_pt - 1];
-#endif
-        if (allow_update_cdf)
-            update_cdf(ec_ctx->eob_flag_cdf64[plane][eob_multi_ctx], eob_pt - 1, 7);
-        break;
-    case 3:
-#if CONFIG_ENTROPY_STATS
-        ++counts->eob_multi128[cdf_idx][plane][eob_multi_ctx][eob_pt - 1];
-#endif
-        if (allow_update_cdf) {
-            update_cdf(ec_ctx->eob_flag_cdf128[plane][eob_multi_ctx], eob_pt - 1, 8);
-        }
-        break;
-    case 4:
-#if CONFIG_ENTROPY_STATS
-        ++counts->eob_multi256[cdf_idx][plane][eob_multi_ctx][eob_pt - 1];
-#endif
-        if (allow_update_cdf) {
-            update_cdf(ec_ctx->eob_flag_cdf256[plane][eob_multi_ctx], eob_pt - 1, 9);
-        }
-        break;
-    case 5:
-#if CONFIG_ENTROPY_STATS
-        ++counts->eob_multi512[cdf_idx][plane][eob_multi_ctx][eob_pt - 1];
-#endif
-        if (allow_update_cdf) {
-            update_cdf(ec_ctx->eob_flag_cdf512[plane][eob_multi_ctx], eob_pt - 1, 10);
-        }
-        break;
-    case 6:
-    default:
-#if CONFIG_ENTROPY_STATS
-        ++counts->eob_multi1024[cdf_idx][plane][eob_multi_ctx][eob_pt - 1];
-#endif
-        if (allow_update_cdf) {
-            update_cdf(ec_ctx->eob_flag_cdf1024[plane][eob_multi_ctx], eob_pt - 1, 11);
-        }
-        break;
-    }
-
-    const int16_t eob_offset_bits = eb_k_eob_offset_bits[eob_pt];
-    if (eob_offset_bits > 0) {
-        int eob_shift = eob_offset_bits - 1;
-        int bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
-#if CONFIG_ENTROPY_STATS
-        counts->eob_extra[cdf_idx][txs_ctx][plane][eob_pt][bit]++;
-#endif // CONFIG_ENTROPY_STATS
-        if (allow_update_cdf)
-            update_cdf(ec_ctx->eob_extra_cdf[txs_ctx][plane][eob_pt], bit, 2);
-    }
-}
-// Transform end of block bit estimation
-static int get_eob_cost(int eob, const LvMapEobCost *txb_eob_costs, const LvMapCoeffCost *txb_costs, TxClass tx_class) {
-    int       eob_extra;
-    const int eob_pt        = get_eob_pos_token(eob, &eob_extra);
-    int       eob_cost      = 0;
-    const int eob_multi_ctx = (tx_class == TX_CLASS_2D) ? 0 : 1;
-    eob_cost                = txb_eob_costs->eob_cost[eob_multi_ctx][eob_pt - 1];
-
-    if (eb_k_eob_offset_bits[eob_pt] > 0) {
-        const int eob_ctx   = eob_pt - 3;
-        const int eob_shift = eb_k_eob_offset_bits[eob_pt] - 1;
-        const int bit       = (eob_extra & (1 << eob_shift)) ? 1 : 0;
-        eob_cost += txb_costs->eob_extra_cost[eob_ctx][bit];
-        const int offset_bits = eb_k_eob_offset_bits[eob_pt];
-        if (offset_bits > 1)
-            eob_cost += av1_cost_literal(offset_bits - 1);
-    }
-    return eob_cost;
-}
-#endif
 static INLINE int32_t av1_cost_skip_txb(struct ModeDecisionContext *ctx, uint8_t allow_update_cdf,
                                         FRAME_CONTEXT *ec_ctx, TxSize transform_size, PlaneType plane_type,
                                         int16_t txb_skip_ctx) {
@@ -530,16 +388,9 @@ uint64_t svt_av1_cost_coeffs_txb(struct ModeDecisionContext *ctx, uint8_t allow_
                                                                            reduced_transform_set_flag);
 
     // Transform eob bit estimation
-#if FIX_EOB_COEF_CTX
     cost += get_eob_cost(eob, eob_bits, coeff_costs, tx_class);
     if (allow_update_cdf)
         update_eob_context(eob, transform_size, tx_class, plane_type, ec_ctx);
-#else
-    int32_t eob_cost = get_eob_cost(eob, eob_bits, coeff_costs, tx_class);
-    cost += eob_cost;
-    if (allow_update_cdf)
-        svt_av1_update_eob_context(eob, transform_size, tx_class, plane_type, ec_ctx, allow_update_cdf);
-#endif
     // Transform non-zero coeff bit estimation
     svt_av1_get_nz_map_contexts(levels,
                                 scan,
@@ -1019,9 +870,7 @@ static uint64_t av1_inter_fast_cost_light(struct ModeDecisionContext *ctx, BlkSt
     const uint8_t        is_compound         = is_inter_compound_mode(cand->block_mi.mode);
     const uint32_t       mode_context        = svt_aom_mode_context_analyzer(ctx->inter_mode_ctx[ref_frame_type], rf);
     uint64_t             reference_picture_bits_num = 0;
-#if OPT_RATE_EST_FAST
     if (ctx->approx_inter_rate < 2)
-#endif
         reference_picture_bits_num = ctx->estimate_ref_frames_num_bits[ref_frame_type];
     if (is_compound) {
         assert(INTER_COMPOUND_OFFSET(inter_mode) < INTER_COMPOUND_MODES);

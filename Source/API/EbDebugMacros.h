@@ -34,131 +34,6 @@
 extern "C" {
 #endif // __cplusplus
 
-#define FTR_FRAME_RATE_ON_THE_FLY   1 // Add ability to change frame rate on the fly (without inserting keyframe)
-#define OPT_RATE_ON_THE_FLY_NO_KF   1 // Add ability to change bitrate on the fly without inserting keyframe
-#define FTR_PER_FRAME_QUALITY       1 // Add ability to compute quality for specific frame
-#define FTR_SFRAME_FLEX             1 // Add S-Frame Flexible ARF Mode
-#if FTR_SFRAME_FLEX
-#define FTR_SFRAME_POSI             1 // Add parameter to allow user insert S-Frames by picture number
-#if FTR_SFRAME_POSI
-#define FTR_SFRAME_QP               1 // Add parameter to allow user set QP of S-Frame
-#define FTR_SFRAME_DEC_POSI         1 // New S-Frame mode to insert S-Frames at specific position in decode order
-#endif // FTR_SFRAME_POSI
-#endif // FTR_SFRAME_FLEX
-#define FIX_TUNE_SSIM               1 // Fix SSIM mode
-#define RFCTR_PARSE_LIST            1 // Refactor parameter parsing list and support the range of int8 and uint8
-#define FIX_QUEUE_DEADLOCK          1 // Use min-heap instead of queue to manage out-of-order decode orders
-#define FIX_INTRA_BLUR_QP62         1 // Intra lambda-weight tuning for INTRA frames at high QPs (>=62) to reduce blurriness
-#define FIX_FPS_CALC                1 // Fix frame-rate derivation to handle < 1 fps
-
-#define CLN_MDC_FUNCS               1 // Clean-up unused MDC functions and variables
-#define CLN_RECON_FUNC              1 // Clean-up MD recon function
-#define CLN_REMOVE_OIS_FLAG         1 // Clean-up OIS functions and variables
-#define FIX_EOB_COEF_CTX            1 // Fix the number of contexts used for signaling the EOB
-#define FIX_IND_UV_SEARCH_TX        1 // Set MD stage to 0 for independent chroma search to prevent using uninit'd data to skip TX
-#define FIX_CHROMA_SKIP             1 // Properly update chroma settings when chroma is skipped
-#define CLN_MOVE_CHROMA_CHECK       1 // Move chroma complexity check inside MD stage check for PD1
-#define CLN_MDS0_DIST_PD1           1 // Fix fast-cost derivation
-#define FTR_STILL_IMAGE_UP_TO_M12   1 // Still-image up to M12
-#define FTR_DEPTH_REMOVAL_INTRA     1 // Add support for variance-based depth removal for INTRA frames to speed up still-image processing
-#define TUNE_STILL_IMAGE_0          1 // Perform a first round of tuning for still-image
-#define OPT_MD_SIGNALS              1 // Clean up INTRA-level derivation, fix PD0/PD1 interactions, and adaptively set the intra-edge-filter flag
-#define FIX_TUNE_SSIM_LAMBDA        1 // Fix SSIM mode lambda: fix per-SB lambda for balanced inter-depth decisions, and use default factors when deriving the lambda scaling factors
-#define TUNE_STILL_IMAGE_1          1 // Perform a second round of tuning for still-image
-#define OPT_DEFAULT_LAMBDA_MULT     1 // Use default lambda at RDOQ
-#define FTR_USE_HADAMARD_MDS0       1 // Use Hadamard at mds0
-#define TUNE_STILL_IMAGE_2          1 // Perform a third round of tuning for still-image
-#define OPT_SSIM_METRIC             1 // Remove SSIM distortion calculations for INTRA frames
-#define OPT_RECON_OPERATIONS        1 // Remove unnecessary reconstruction operations
-#define OPT_FD2_FD1_STILL_IMAGE     1 // Add fast-decode for still-image
-
-#define OPT_DEFAULT_6L              1 // Set 6L as default structure for most modes
-#define EN_M11_RA                   1 // Enable M11 for RA
-#define EN_FLAT_ALL_PRESETS         1 // Enable flat pred structure for all RTC presets
-#define TUNE_RTC_RA_PRESETS         1 // Preset tuning for RTC mode and RA
-#define CLN_ME_SCALING              1 // Remove min ME search area scaling based on non-zero framerate (which is always true)
-#define OPT_RTC_FACTORS             1 // Use same RTC CBR factors as libaom
-#define FIX_FRAMES_SINCE_KEY        1 // align to libaom count
-#define OPT_ME_DIST_IN_RC           1 // Use 64x64 ME distortion for adjust_q_cbr_flat; update at every frame
-#define FIX_RATE_SPIKES             1 // Fix bit allocation behaviour that causes every 4th frame to be huge in flat pred structure
-#define OPT_LPD1_RTC                1 // Simplify and improve LPD1 for RTC
-#define OPT_REMOVE_ENH_BASE         1 // Remove LD enhanced base frame
-#define OPT_SUBPEL_TH               1 // Optimize subpel skipping equation
-#define OPT_SKIP_CANDS_LPD1         1 // Optimize how candidates are skipped in lpd1
-#define OPT_RATE_EST_FAST           1 // bypass some rate estimation steps for speed
-#define OPT_LPD1_TX_SKIP            1 // Optimize LPD1 TX skipping based on full cost estimate
-#define OPT_LPD0_RTC                1 // Unify LPD0-classifier between rtc and non-rtc
-#define OPT_RTC_VLPD0_DEPTH         1 // Enable depth early exit for VLPD0 in RTC M12. Aggressive tx shortcut level for RTC M12.
-#define CLN_UNUSED_SIGS             1 // Remove unused signals
-#define CLN_MDS0_DIST_LPD1          1 // Don't shift MDS0 variance in LPD1; use full lambda for variance
-#define CLN_MDS0_DIST_LPD0          1 // Don't shift MDS0 variance in LPD0
-#define FIX_10BIT_BYPASS_ED         1 // Use proper lambda during MD when bypassing encdec for 10bit
-#define OPT_RPS_MRP_4_REFS          1 // Reduce the number of reference pictures stored in LD
-#define OPT_ENABLE_MRP_FLAT         1 // Enable multiple reference frames to be used for flat prediction structure
-#define OPT_DR_RTC                  1 // Unify depth-removal between rtc and non-rtc
-#if OPT_DR_RTC
-#define OPT_B8                      1 // b8 for up to M10
-#define OPT_DR_T_INFO               1 // Use collocated min blk size @ to modulate dr deviation-threshold
-#define OPT_DR_COST_TH              1 // Enhance the granularity of the dr cost-threshold multipliers
-#endif
-#define FIX_DISALLOW_8X8            1 // Fix when 8x8 are needed at pic boundaries
-#define TUNE_RTC_RA_PRESETS_2       1 // Preset tuning for RTC mode and RA
-#define CLN_DLF_DEF                 1 // Clean dlf-level def
-#define OPT_CYCLIC_REFRESH          1
-#if OPT_CYCLIC_REFRESH
-#define OPT_CR_CTRL                 1 // Use avg_frame_low_motion and avg_frame_qindex, reflecting stationary block, and average Q-index, from past frames, to decide whether to keep or disable cyclic-refresh for the current frame
-#define OPT_BOOST_MODULATION        1 // Replace the step-based rate_boost_fac logic by quadratic scaling, so the boost increases gradually with deviation rather than jumping at fixed thresholds
-#define FIX_LAMBDA_FLAT             1 // Use the the actual layer-index and hierarchical-level
-#endif
-#define OPT_RDOQ_RTC                1 // Use default lambda at RDOQ for RTC
-#define TUNE_RTC_FLAT               1 // Preset tuning flat for RTC
-#define TUNE_RTC_3L                 1 // Preset tuning 3L for RTC
-
-#define CLN_REMOVE_SS_PIN           1 // Remove options to pin execution to certain cores/sockets (--ss/--pin)
-#define CLN_REMOVE_TPL_SIG          1 // Remove enable_tpl_la signal (it is not used)
-#define CLN_AQ_MODE                 1 // Rename enable_adaptive_quantization to aq_mode to reflect that it has more than 2 levels
-#define CLN_REMOVE_CHANNELS         1 // Remove multiple channels from app since each channel invokes separate library call anyway
-#define FIX_PIC_MGR_HANG            1 // Fix a hang in the picture manager process related to pic processing order
-
-#define OPT_OPERATIONS              1 // Remove useless operations
-#define OPT_LOW_FRQ_CAP             1 // Limit rdoq to a fixed low-frequency cut-off (DC + first AC coefficients) and skip rdoq on all higher frequencies (the cut-off skips the tail, but not the first AC ring + EOB logic)
-#define OPT_INTRA_MODE_PRUNE        1 // Skip H when V outperforms DC, and skip Smooth when DC is better than both H and V
-#define OPT_DEPTH_REMOVAL           1 // Use a QP-dependent variance threshold for depth-removal thresholds
-#define OPT_CAP_MAX_BLOCK_SIZE      1 // Capped the max block size to 32 using a QP-dependent variance threshold
-#define OPT_LPD0_PER_BLK            1 // Skip sub-depth processing when the block is classified as non-edge
-#define OPT_PD0_SRC_SAMPLES         1 // Use source samples instead of reconstructed samples for INTRA prediction of PD0 in I_SLICE to avoid inverse transform and neighbor array updates for reconstructed samples
-#define TUNE_STILL_IMAGE            1 // Tune still image presets
-#define TUNE_M7_M8_STILL_IMAGE      1 // Tune M7 and M8 for still image
-#define OPT_FD1_FD2_STILL_IMAGE     1 // optimize M10, M11, and M12 FD1 and FD2 in still-image mode
-#define DIS_SC_ALL_INTRA            1 // Force screen-content detection OFF when allintra
-#define OPT_CHROMA_CFL_LVLS         1 // reverse chroma and cfl levels for M4/M5 and M7-M9 to match v3.1.2 levels.
-#define TUNE_M9_M10_STILL_IMAGE     1 // Tune M9 and M10 for still image
-#define TUNE_M12_M4_STILL_IMAGE     1 // Tune M12 to M4 for still image
-#define TUNE_M1_STILL_IMAGE         1 // Tune M1 for still image
-#define CLN_DLF_LVL                 1 // Cleaning the dlf_level kernels by seperating it into 3 sections: RTC FLAT/RTC Non-FLAT/Else
-#define CLN_NIC_LVL                 1 // Cleaning the dlf_level kernels by seperating it into 3 sections: RTC FLAT/RTC Non-FLAT/Else
-#define TUNE_M7_RA_FIX_REG          1 // Reversing adoptions to fix M7 RA regression compared to v3.1.0
-#define TUNE_M8_RA_FIX_REG          1 // Reversing adoptions to fix M8 RA regression compared to v3.1.0
-#define TUNE_M9_RA_FIX_REG          1 // Reversing adoptions to fix M9 RA regression compared to v3.1.0
-#define OPT_REVERSE_6L_TO_5L        1 // Reversing OPT_DEFAULT_6L macro
-#define TUNE_RA_M7_ME_SA            1 // Adopting the M6 me_sa level in M7 RA
-#define TUNE_M12_M11_STILL_IMAGE    1 // Tune M12 and M11 for still-image
-#define TUNE_DLF_FIX_ONION_RING     1 // Fix onion ring in DLF
-#define TUNE_M10_CFL_RA             1 // Tune M10 cfl level for RA to minimize chroma loss
-#define TUNE_TXS_M8_VMAF_OPT        1 // VMAF-oriented TXS tuning for M8
-#define TUNE_INTRABC_FIX_SC_REG     1 // Reversing adoptions in intraBC to fix SC RA regression in M2-M5 compared to v3.1.2
-#define CLN_TXS_LVL                 1 // Cleaning the dlf_level kernels by seperating it into 2 sections: RTC/Else
-#define TUNE_INTRABC_LVL            1 // Tuning the intrabc_level to match the v3.1.0 levels
-#define CLN_I_SLICE_LOOPING         1 // Removing the no-longer used is_islice looping.
-#define TUNE_INTRABC_M6             1 // Adopt the M5 intrabc_level in M6.
-#define TUNE_M11_M10_RA             1 // Tune M11 and M10 for RA
-#define FTR_TUNE_4                  1 // New Tune mode towards MS-SSIM and SSIMULACRA2 Gains
-#define OPT_TUNE_SSIM_DELTA_QP      1 // Don't force SB-based delta-QP for tune SSIM (or tune IQ and tune MS_SSIM, although
-                                      // that has no effect because delta QP is enabled through variance boost anyway).
-#define FIX_M10_M11                 1 // Fix the M10/M11 settings for RA
-#define CLN_VAR_FUNC                1 // cleanup compute_block_mean_compute_variance
-#define CLN_REMOVE_INSTANCE_IDX     1 // Remove encode_instance_total_count which is always 1
-
 //FOR DEBUGGING - Do not remove
 #define LOG_ENC_DONE            0 // log encoder job one
 #define DEBUG_TPL               0 // Prints to debug TPL
@@ -176,12 +51,8 @@ extern "C" {
 #define FTR_KF_ON_FLY_SAMPLE         0 // Sample code to signal KF
 #define FTR_RES_ON_FLY_SAMPLE        0 // Sample functions to change the resolution on the fly
 #define FTR_RATE_ON_FLY_SAMPLE       0 // Sample functions to change bit rate
-#if FTR_FRAME_RATE_ON_THE_FLY
 #define FTR_FRAME_RATE_ON_FLY_SAMPLE 0 // Sample functions to change frame rate
-#endif
-#if FTR_PER_FRAME_QUALITY
 #define FTR_PER_FRAME_QUALITY_SAMPLE 0 // Sample functions to compute PSNR per frame
-#endif
 #endif
 // Super-resolution debugging code
 #define DEBUG_SCALING           0

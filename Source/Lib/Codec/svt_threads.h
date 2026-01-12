@@ -54,7 +54,6 @@ extern EbHandle    svt_create_mutex(void);
 extern EbErrorType svt_release_mutex(EbHandle mutex_handle);
 extern EbErrorType svt_block_on_mutex(EbHandle mutex_handle);
 extern EbErrorType svt_destroy_mutex(EbHandle mutex_handle);
-#if CLN_REMOVE_SS_PIN
 #ifndef _WIN32
 #ifndef __USE_GNU
 #define __USE_GNU
@@ -70,49 +69,6 @@ extern EbErrorType svt_destroy_mutex(EbHandle mutex_handle);
         pointer = svt_create_thread(thread_function, thread_context); \
         EB_ADD_MEM(pointer, 1, EB_THREAD);                            \
     } while (0)
-#else
-#ifdef _WIN32
-
-#define EB_CREATE_THREAD(pointer, thread_function, thread_context)               \
-    do {                                                                         \
-        pointer = svt_create_thread(thread_function, thread_context);            \
-        EB_ADD_MEM(pointer, 1, EB_THREAD);                                       \
-        if (svt_aom_group_affinity_enabled) {                                    \
-            if (num_groups == 1)                                                 \
-                SetThreadAffinityMask(pointer, svt_aom_group_affinity.Mask);     \
-            else if (num_groups == 2 && alternate_groups) {                      \
-                svt_aom_group_affinity.Group = 1 - svt_aom_group_affinity.Group; \
-                SetThreadGroupAffinity(pointer, &svt_aom_group_affinity, NULL);  \
-            } else if (num_groups == 2 && !alternate_groups)                     \
-                SetThreadGroupAffinity(pointer, &svt_aom_group_affinity, NULL);  \
-        }                                                                        \
-    } while (0)
-
-#else
-#ifndef __USE_GNU
-#define __USE_GNU
-#endif
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-#include <sched.h>
-#include <pthread.h>
-#if defined(__linux__) && !defined(__ANDROID__)
-#define EB_CREATE_THREAD(pointer, thread_function, thread_context)                                   \
-    do {                                                                                             \
-        pointer = svt_create_thread(thread_function, thread_context);                                \
-        EB_ADD_MEM(pointer, 1, EB_THREAD);                                                           \
-        pthread_setaffinity_np(*((pthread_t *)pointer), sizeof(cpu_set_t), &svt_aom_group_affinity); \
-    } while (0)
-#else
-#define EB_CREATE_THREAD(pointer, thread_function, thread_context)    \
-    do {                                                              \
-        pointer = svt_create_thread(thread_function, thread_context); \
-        EB_ADD_MEM(pointer, 1, EB_THREAD);                            \
-    } while (0)
-#endif
-#endif
-#endif
 #define EB_DESTROY_THREAD(pointer)                   \
     do {                                             \
         if (pointer) {                               \

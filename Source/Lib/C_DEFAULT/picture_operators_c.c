@@ -165,7 +165,7 @@ void svt_aom_hadamard_8x8_c(const int16_t* src_diff, ptrdiff_t src_stride, int32
     int16_t* tmp_buf = &buffer[0];
     for (idx = 0; idx < 8; ++idx) {
         hadamard_col8(src_diff, src_stride, tmp_buf); // src_diff: 9 bit
-            // dynamic range [-255, 255]
+        // dynamic range [-255, 255]
         tmp_buf += 8;
         ++src_diff;
     }

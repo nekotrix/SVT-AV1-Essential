@@ -28,15 +28,11 @@ static void svt_sequence_control_set_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->b64_geom);
     free_sb_geoms(obj->sb_geom);
     free_scale_evts(&obj->static_config.frame_scale_evts);
-#if FTR_SFRAME_QP
     EB_FREE_ARRAY(obj->static_config.sframe_posi.sframe_qps);
     EB_FREE_ARRAY(obj->static_config.sframe_posi.sframe_qp_offsets);
     obj->static_config.sframe_posi.sframe_qp_num = 0;
-#endif // FTR_SFRAME_QP
-#if FTR_SFRAME_POSI
     EB_FREE_ARRAY(obj->static_config.sframe_posi.sframe_posis);
     obj->static_config.sframe_posi.sframe_num = 0;
-#endif // FTR_SFRAME_POSI
 }
 /**************************************************************************************************
     General notes on how Sequence Control Sets (SCS) are used.
@@ -195,7 +191,6 @@ EbErrorType copy_sequence_control_set(SequenceControlSet *dst, SequenceControlSe
                src->static_config.frame_scale_evts.resize_denoms,
                sizeof(int32_t) * src->static_config.frame_scale_evts.evt_num);
     }
-#if FTR_SFRAME_POSI
     if (src->static_config.sframe_posi.sframe_posis) {
         EB_MALLOC(dst->static_config.sframe_posi.sframe_posis,
                   sizeof(uint64_t) * src->static_config.sframe_posi.sframe_num);
@@ -203,8 +198,6 @@ EbErrorType copy_sequence_control_set(SequenceControlSet *dst, SequenceControlSe
                src->static_config.sframe_posi.sframe_posis,
                sizeof(uint64_t) * src->static_config.sframe_posi.sframe_num);
     }
-#endif // FTR_SFRAME_POSI
-#if FTR_SFRAME_QP
     if (src->static_config.sframe_posi.sframe_qps) {
         EB_MALLOC(dst->static_config.sframe_posi.sframe_qps,
                   sizeof(src->static_config.sframe_posi.sframe_qps[0]) * src->static_config.sframe_posi.sframe_qp_num);
@@ -221,7 +214,6 @@ EbErrorType copy_sequence_control_set(SequenceControlSet *dst, SequenceControlSe
             src->static_config.sframe_posi.sframe_qp_offsets,
             sizeof(src->static_config.sframe_posi.sframe_qp_offsets[0]) * src->static_config.sframe_posi.sframe_qp_num);
     }
-#endif // FTR_SFRAME_QP
 
     // Continue this process for all other pointers within the struct...
 

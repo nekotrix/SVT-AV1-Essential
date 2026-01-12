@@ -131,7 +131,10 @@ static const vector<uint32_t> default_hierarchical_levels = {
 };
 static const vector<uint32_t> valid_hierarchical_levels = {3, 4, 5};
 static const vector<uint32_t> invalid_hierarchical_levels = {
-    0, 1, 2, 6,  // ...
+    0,
+    1,
+    2,
+    6,  // ...
 };
 
 /* Prediction structure used to construct GOP. There are two main structures
@@ -170,10 +173,27 @@ static const vector<uint32_t> default_source_width = {
     0,
 };
 static const vector<uint32_t> valid_source_width = {
-    64, 320, 640, 800, 1280, 1920, 2560, 3840, 4096,  // ...
+    64,
+    320,
+    640,
+    800,
+    1280,
+    1920,
+    2560,
+    3840,
+    4096,  // ...
 };
 static const vector<uint32_t> invalid_source_width = {
-    0, 1, 2, 4, 8, 16, 32, 63, 65, 4097,  // ...
+    0,
+    1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    63,
+    65,
+    4097,  // ...
 };
 
 /* The height of input source in units of picture luma pixels.
@@ -183,10 +203,26 @@ static const vector<uint32_t> default_source_height = {
     0,
 };
 static const vector<uint32_t> valid_source_height = {
-    64, 240, 480, 720, 1080, 1440, 1600, 2160,  // ...
+    64,
+    240,
+    480,
+    720,
+    1080,
+    1440,
+    1600,
+    2160,  // ...
 };
 static const vector<uint32_t> invalid_source_height = {
-    0, 1, 2, 4, 8, 16, 32, 63, 65, 2161,  // ...
+    0,
+    1,
+    2,
+    4,
+    8,
+    16,
+    32,
+    63,
+    65,
+    2161,  // ...
 };
 
 // TODO: follwoing two parameters should be a combination test
@@ -260,7 +296,10 @@ static const vector<uint32_t> valid_encoder_bit_depth = {
     10,  // 10 bit.
 };
 static const vector<uint32_t> invalid_encoder_bit_depth = {
-    0, 1, 2, 11,  // ...
+    0,
+    1,
+    2,
+    11,  // ...
 };
 
 /* Offline packing of the 2bits: requires two bits packed input.
@@ -274,7 +313,8 @@ static const vector<uint32_t> valid_compressed_ten_bit_format = {
     // 1, Not supported in this version
 };
 static const vector<uint32_t> invalid_compressed_ten_bit_format = {
-    2, 10,  // ...
+    2,
+    10,  // ...
 };
 
 /* Number of frames of sequence to be encoded. If number of frames is greater
@@ -288,7 +328,12 @@ static const vector<uint64_t> default_frames_to_be_encoded = {
     0,
 };
 static const vector<uint64_t> valid_frames_to_be_encoded = {
-    0, 1, 10, 100, 10000, (uint64_t)0xFFFFFFFFFFFFFFFF,  // ...
+    0,
+    1,
+    10,
+    100,
+    10000,
+    (uint64_t)0xFFFFFFFFFFFFFFFF,  // ...
 };
 static const vector<uint64_t> invalid_frames_to_be_encoded = {
     // none
@@ -481,10 +526,22 @@ static const vector<uint32_t> default_search_area_width = {
     16,  // 0,
 };
 static const vector<uint32_t> valid_search_area_width = {
-    1, 2, 3, 4, 8, 10, 16, 32, 64, 128, 256,  // ...
+    1,
+    2,
+    3,
+    4,
+    8,
+    10,
+    16,
+    32,
+    64,
+    128,
+    256,  // ...
 };
 static const vector<uint32_t> invalid_search_area_width = {
-    0, 257, 1000,  // ...
+    0,
+    257,
+    1000,  // ...
 };
 
 /* Number of search positions in the vertical direction.
@@ -494,10 +551,22 @@ static const vector<uint32_t> default_search_area_height = {
     7,  // 0,
 };
 static const vector<uint32_t> valid_search_area_height = {
-    1, 2, 3, 4, 8, 10, 16, 32, 64, 128, 256,  // ...
+    1,
+    2,
+    3,
+    4,
+    8,
+    10,
+    16,
+    32,
+    64,
+    128,
+    256,  // ...
 };
 static const vector<uint32_t> invalid_search_area_height = {
-    0, 257, 1000,  // ...
+    0,
+    257,
+    1000,  // ...
 };
 
 // MD Parameters
@@ -735,52 +804,6 @@ static const vector<EbCpuFlags> valid_use_cpu_flags = {
 };
 static const vector<EbCpuFlags> invalid_use_cpu_flags = {EB_CPU_FLAGS_INVALID};
 
-#if !CLN_REMOVE_CHANNELS
-// Application Specific parameters
-/**
- * @brief API signal for the library to know the channel ID (used for pinning to
- * cores)
- *
- */
-static const vector<uint32_t> default_channel_id = {
-    0,
-};
-static const vector<uint32_t> valid_channel_id = {
-    0,
-    1,
-    2,
-    3,
-    10,
-    100,
-    0xFFFFFFFF,
-};
-static const vector<uint32_t> invalid_channel_id = {
-    // none
-};
-
-/**
- * @brief API signal for the library to know the active number of channels being
- * encoded simultaneously
- *
- */
-static const vector<uint32_t> default_active_channel_count = {
-    1,
-};
-static const vector<uint32_t> valid_active_channel_count = {
-    1,
-    2,
-    3,
-    10,
-    100,
-    0xFFFFFFFF,
-};
-static const vector<uint32_t> invalid_active_channel_count = {
-    /* active_channel_count override in code
-    0,
-    */
-};
-#endif
-
 /* Flag to enable the Speed Control functionality to achieve the real-time
  * encoding speed defined by dynamically changing the encoding preset to meet
  * the average speed defined in injectorFrameRate. When this parameter is set
@@ -825,28 +848,6 @@ static const vector<uint32_t> valid_level_of_parallelism = {
 static const vector<uint32_t> invalid_level_of_parallelism = {
     // ...
 };
-
-#if !CLN_REMOVE_SS_PIN
-/* Target socket to run on. For dual socket systems, this can specify which
- * socket the encoder runs on.
- *
- * -1 = Both Sockets.
- *  0 = Socket 0.
- *  1 = Socket 1.
- *
- * Default is -1. */
-static const vector<int32_t> default_target_socket = {
-    -1,
-};
-static const vector<int32_t> valid_target_socket = {
-    -1,
-    0,
-    1,
-};
-static const vector<int32_t> invalid_target_socket = {
-    2,
-};
-#endif
 
 // Debug tools
 

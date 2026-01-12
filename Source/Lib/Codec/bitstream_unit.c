@@ -22,14 +22,14 @@
 #endif
 
 static void output_bitstream_unit_dctor(EbPtr p) {
-    OutputBitstreamUnit *obj = (OutputBitstreamUnit *)p;
+    OutputBitstreamUnit* obj = (OutputBitstreamUnit*)p;
     EB_FREE_ARRAY(obj->buffer_begin_av1);
 }
 
 /**********************************
  * Constructor
  **********************************/
-EbErrorType svt_aom_output_bitstream_unit_ctor(OutputBitstreamUnit *bitstream_ptr, uint32_t buffer_size) {
+EbErrorType svt_aom_output_bitstream_unit_ctor(OutputBitstreamUnit* bitstream_ptr, uint32_t buffer_size) {
     bitstream_ptr->dctor = output_bitstream_unit_dctor;
     if (buffer_size) {
         bitstream_ptr->size = buffer_size;
@@ -47,7 +47,7 @@ EbErrorType svt_aom_output_bitstream_unit_ctor(OutputBitstreamUnit *bitstream_pt
 /**********************************
  * Reset Bitstream
  **********************************/
-EbErrorType svt_aom_output_bitstream_reset(OutputBitstreamUnit *bitstream_ptr) {
+EbErrorType svt_aom_output_bitstream_reset(OutputBitstreamUnit* bitstream_ptr) {
     EbErrorType return_error = EB_ErrorNone;
 
     // Reset the write ptr to the beginning of the buffer

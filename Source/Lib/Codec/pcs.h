@@ -189,11 +189,9 @@ typedef struct PictureControlSet {
     uint32_t          intra_coded_area;
     uint64_t          skip_coded_area;
     uint64_t          hp_coded_area;
-#if OPT_CR_CTRL
-    uint64_t avg_cnt_zeromv;
-#endif
-    uint32_t tot_seg_searched_cdef;
-    EbHandle cdef_search_mutex;
+    uint64_t          avg_cnt_zeromv;
+    uint32_t          tot_seg_searched_cdef;
+    EbHandle          cdef_search_mutex;
 
     uint16_t cdef_segments_total_count;
     uint8_t  cdef_segments_column_count;
@@ -313,17 +311,12 @@ typedef struct PictureControlSet {
     uint8_t md_nsq_mv_search_level;
     uint8_t md_pme_level;
     uint8_t mds0_level;
-#if OPT_MD_SIGNALS
     uint8_t rdoq_level;
     uint8_t intra_level;
     uint8_t dist_based_ang_intra_level;
-#endif
     uint8_t pic_disallow_4x4; // disallow 4x4 at pic level
     // depth_removal_level signal at the picture level
     uint8_t pic_depth_removal_level;
-#if !OPT_DR_RTC
-    uint8_t pic_depth_removal_level_rtc;
-#endif
     // block_based_depth_refinement_level signal set at the picture level
     uint8_t          pic_block_based_depth_refinement_level;
     uint8_t          pic_lpd0_lvl; // lpd0_lvl signal set at the picture level
@@ -367,14 +360,9 @@ typedef struct PictureControlSet {
     uint64_t avg_me_clpx;
     uint64_t min_me_clpx;
     uint64_t max_me_clpx;
-#if OPT_RATE_EST_FAST
     // use approximate rate for inter cost (set at pic-level b/c some pic-level initializations will
     // be removed)
     // 0: off, 1: on, 2: on (more aggressive)
-#else
-    // use approximate rate for inter cost (set at pic-level b/c some pic-level initializations will
-    // be removed)
-#endif
     uint8_t  approx_inter_rate;
     uint8_t  skip_intra;
     uint16_t lambda_weight;
@@ -424,17 +412,14 @@ typedef struct TileGroupInfo {
     uint16_t tile_group_tile_end_y;
 } TileGroupInfo;
 typedef struct MotionEstimationData {
-    EbDctor        dctor;
-    MeSbResults  **me_results;
-    uint16_t       b64_total_count;
-    uint16_t       init_b64_total_count;
-    uint8_t        max_cand; // total max me candidates given the active references
-    uint8_t        max_refs; // total max active references
-    uint8_t        max_l0; // max active refs in L0
-#if !CLN_REMOVE_OIS_FLAG
-    OisMbResults **ois_mb_results;
-#endif
-    TplStats **tpl_stats;
+    EbDctor       dctor;
+    MeSbResults **me_results;
+    uint16_t      b64_total_count;
+    uint16_t      init_b64_total_count;
+    uint8_t       max_cand; // total max me candidates given the active references
+    uint8_t       max_refs; // total max active references
+    uint8_t       max_l0; // max active refs in L0
+    TplStats    **tpl_stats;
 
     TplSrcStats *tpl_src_stats_buffer; // tpl src based stats
 
@@ -1089,12 +1074,6 @@ typedef struct PictureParentControlSet {
     struct PictureParentControlSet *gf_group[MAX_TPL_GROUP_SIZE];
     StatStruct                      stat_struct;
     CyclicRefresh                   cyclic_refresh;
-#if !OPT_REMOVE_ENH_BASE
-    bool ld_enhanced_base_frame; // enhanced periodic base layer frames used in LD
-#endif
-#if !TUNE_RTC_RA_PRESETS
-    bool update_ref_count; // Update ref count
-#endif
     bool                            use_accurate_part_ctx;
     uint16_t                        max_can_count;
     uint8_t                         enable_me_8x8;
@@ -1127,10 +1106,8 @@ typedef struct PictureParentControlSet {
     bool     is_startup_gop;
     uint32_t ahd_error;
 
-    bool sframe_ref_pruned;
-#if FTR_SFRAME_QP
+    bool   sframe_ref_pruned;
     int8_t sframe_qp_offset;
-#endif // FTR_SFRAME_QP
 } PictureParentControlSet;
 
 typedef struct TplDispResults {
@@ -1185,20 +1162,13 @@ typedef struct PictureControlSetInitData {
     uint16_t   non_m8_pad_h;
     uint8_t    enable_tpl_la;
     uint8_t    tpl_synth_size;
-#if !CLN_REMOVE_OIS_FLAG
-    uint8_t in_loop_ois;
-#endif
     uint32_t   rate_control_mode;
     Av1Common *av1_cm;
     uint16_t   init_max_block_cnt;
     uint8_t    ref_count_used_list0;
     uint8_t    ref_count_used_list1;
 
-#if CLN_AQ_MODE
     uint8_t aq_mode;
-#else
-    uint8_t enable_adaptive_quantization;
-#endif
     uint8_t calc_hist;
     uint8_t tpl_lad_mg;
     uint8_t final_pass_preset;
@@ -1215,9 +1185,7 @@ typedef struct PictureControlSetInitData {
     bool    adaptive_film_grain;
     uint8_t max_tx_size;
     double  ac_bias;
-#if TUNE_RTC_RA_PRESETS
-    bool use_flat_ipp;
-#endif
+    bool    use_flat_ipp;
 } PictureControlSetInitData;
 
 /**************************************

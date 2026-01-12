@@ -10489,13 +10489,13 @@ static INLINE void write_buffer_16x16_N4(const __m128i *res, int32_t *output) {
     }
     for (; i < 8; i++) {
         _mm_storeu_si128((__m128i *)(output + (++fact) * 16), zero);
-        _mm_storeu_si128((__m128i *)(output + (fact)*16 + 4), zero);
-        _mm_storeu_si128((__m128i *)(output + (fact)*16 + 8), zero);
-        _mm_storeu_si128((__m128i *)(output + (fact)*16 + 12), zero);
+        _mm_storeu_si128((__m128i *)(output + (fact) * 16 + 4), zero);
+        _mm_storeu_si128((__m128i *)(output + (fact) * 16 + 8), zero);
+        _mm_storeu_si128((__m128i *)(output + (fact) * 16 + 12), zero);
         _mm_storeu_si128((__m128i *)(output + (++fact) * 16), zero);
-        _mm_storeu_si128((__m128i *)(output + (fact)*16 + 4), zero);
-        _mm_storeu_si128((__m128i *)(output + (fact)*16 + 8), zero);
-        _mm_storeu_si128((__m128i *)(output + (fact)*16 + 12), zero);
+        _mm_storeu_si128((__m128i *)(output + (fact) * 16 + 4), zero);
+        _mm_storeu_si128((__m128i *)(output + (fact) * 16 + 8), zero);
+        _mm_storeu_si128((__m128i *)(output + (fact) * 16 + 12), zero);
     }
 }
 

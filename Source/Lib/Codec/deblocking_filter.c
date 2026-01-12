@@ -1183,11 +1183,7 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
     lf->sharpness_level                    = sharpness_val;
     if (frm_hdr->frame_type == KEY_FRAME && pcs->scs->static_config.tune == TUNE_VQ)
         lf->sharpness_level = MIN(7, sharpness_val + 2);
-#if FTR_TUNE_4
     else if (pcs->scs->static_config.tune == TUNE_IQ || pcs->scs->static_config.tune == TUNE_MS_SSIM) {
-#else
-    else if (pcs->scs->static_config.tune == TUNE_IQ) {
-#endif
         // Loop filter sharpness levels are highly nonlinear. Visually, lf sharpness 1 is closer to 7 than
         // it is to 0, so in practice let's choose between levels 0, 1 and 7 to keep it simple
         int32_t max_lf_sharpness;
@@ -1280,12 +1276,8 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
 
         if (!do_y) {
             lf->filter_level[0] = lf->filter_level[1] = 0;
-#if CLN_DLF_DEF
         } else if (!pcs->temporal_layer_index || !pcs->ppcs->dlf_ctrls.use_ref_avg_y ||
                    pcs->ppcs->tot_ref_frame_types == 0) {
-#else
-        } else if (!pcs->ppcs->dlf_ctrls.use_ref_avg_y || pcs->ppcs->tot_ref_frame_types == 0) {
-#endif
             lf->filter_level[0] = lf->filter_level[1] = search_filter_level(srcBuffer,
                                                                             temp_lf_recon_buffer,
                                                                             pcs,
@@ -1326,12 +1318,8 @@ EbErrorType svt_av1_pick_filter_level(EbPictureBufferDesc *srcBuffer, // source 
             // chroma filtering not allowed if luma filters off
             lf->filter_level_u = 0;
             lf->filter_level_v = 0;
-#if CLN_DLF_DEF
         } else if (pcs->temporal_layer_index && pcs->ppcs->dlf_ctrls.use_ref_avg_uv &&
                    pcs->ppcs->tot_ref_frame_types > 0) {
-#else
-        } else if (pcs->ppcs->dlf_ctrls.use_ref_avg_uv && pcs->ppcs->tot_ref_frame_types > 0) {
-#endif
             //use avg-ref for chroma
             lf->filter_level_u = last_frame_filter_level[2];
             lf->filter_level_v = last_frame_filter_level[3];

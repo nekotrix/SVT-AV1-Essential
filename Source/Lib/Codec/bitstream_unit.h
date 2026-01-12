@@ -35,16 +35,16 @@ extern "C" {
 typedef struct OutputBitstreamUnit {
     EbDctor  dctor;
     uint32_t size; // allocated buffer size
-    uint8_t *buffer_begin_av1; // the byte buffer
-    uint8_t *buffer_av1; // the byte buffer
+    uint8_t* buffer_begin_av1; // the byte buffer
+    uint8_t* buffer_av1; // the byte buffer
 } OutputBitstreamUnit;
 
 /**********************************
      * Extern Function Declarations
      **********************************/
-extern EbErrorType svt_aom_output_bitstream_unit_ctor(OutputBitstreamUnit *bitstream_ptr, uint32_t buffer_size);
+extern EbErrorType svt_aom_output_bitstream_unit_ctor(OutputBitstreamUnit* bitstream_ptr, uint32_t buffer_size);
 
-extern EbErrorType svt_aom_output_bitstream_reset(OutputBitstreamUnit *bitstream_ptr);
+extern EbErrorType svt_aom_output_bitstream_reset(OutputBitstreamUnit* bitstream_ptr);
 
 /********************************************************************************************************************************/
 /********************************************************************************************************************************/
@@ -104,10 +104,10 @@ static INLINE int32_t get_msb(uint32_t n) {
 extern uint32_t svt_aom_od_divu_small_consts[OD_DIVU_DMAX][2];
 
 /*Translate unsigned division by small divisors into multiplications.*/
-#define OD_DIVU_SMALL(_x, _d)                                               \
-    ((uint32_t)((svt_aom_od_divu_small_consts[(_d)-1][0] * (uint64_t)(_x) + \
-                 svt_aom_od_divu_small_consts[(_d)-1][1]) >>                \
-                32) >>                                                      \
+#define OD_DIVU_SMALL(_x, _d)                                                 \
+    ((uint32_t)((svt_aom_od_divu_small_consts[(_d) - 1][0] * (uint64_t)(_x) + \
+                 svt_aom_od_divu_small_consts[(_d) - 1][1]) >>                \
+                32) >>                                                        \
      (OD_ILOG_NZ(_d) - 1))
 
 #define OD_DIVU(_x, _d) (((_d) < OD_DIVU_DMAX) ? (OD_DIVU_SMALL((_x), (_d))) : ((_x) / (_d)))

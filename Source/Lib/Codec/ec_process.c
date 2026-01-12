@@ -37,12 +37,7 @@ EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, con
     thread_ctx->priv  = context_ptr;
     thread_ctx->dctor = rest_context_dctor;
 
-#if CLN_REMOVE_INSTANCE_IDX
     context_ptr->is_16bit = (bool)(enc_handle_ptr->scs_instance->scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
-#else
-    context_ptr->is_16bit = (bool)(enc_handle_ptr->scs_instance_array[0]->scs->static_config.encoder_bit_depth >
-                                   EB_EIGHT_BIT);
-#endif
 
     // Input/Output System Resource Manager FIFOs
     context_ptr->enc_dec_input_fifo_ptr = svt_system_resource_get_consumer_fifo(

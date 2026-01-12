@@ -102,16 +102,8 @@ EbErrorType svt_aom_me_sb_results_ctor(MeSbResults *obj_ptr, PictureControlSetIn
     EbInputResolution resolution;
     svt_aom_derive_input_resolution(&resolution, init_data_ptr->picture_width * init_data_ptr->picture_height);
     uint8_t number_of_pus = svt_aom_get_enable_me_16x16(init_data_ptr->enc_mode)
-#if TUNE_RTC_RA_PRESETS_2
         ? svt_aom_get_enable_me_8x8(
               init_data_ptr->enc_mode, resolution, init_data_ptr->static_config.rtc, init_data_ptr->use_flat_ipp)
-#else
-#if TUNE_RTC_RA_PRESETS
-        ? svt_aom_get_enable_me_8x8(init_data_ptr->enc_mode, resolution, init_data_ptr->use_flat_ipp)
-#else
-        ? svt_aom_get_enable_me_8x8(init_data_ptr->enc_mode, init_data_ptr->rtc_tune, resolution)
-#endif
-#endif
             ? SQUARE_PU_COUNT
             : MAX_SB64_PU_COUNT_NO_8X8
         : MAX_SB64_PU_COUNT_WO_16X16;
@@ -450,9 +442,7 @@ EbErrorType pcs_update_param(PictureControlSet *pcs) {
 static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr object_init_data_ptr) {
     PictureControlSetInitData *init_data_ptr = (PictureControlSetInitData *)object_init_data_ptr;
 
-#if TUNE_STILL_IMAGE_0
     const bool allintra = init_data_ptr->allintra;
-#endif
 
     EbPictureBufferDescInitData coeff_buffer_desc_init_data;
 
@@ -504,12 +494,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                                        init_data_ptr->static_config.enable_restoration_filtering,
                                        init_data_ptr->input_resolution,
                                        init_data_ptr->static_config.fast_decode,
-#if TUNE_STILL_IMAGE_0
                                        allintra,
-#else
-                                       init_data_ptr->static_config.avif,
-                                       init_data_ptr->allintra,
-#endif
                                        init_data_ptr->rtc_tune)) {
         set_restoration_unit_size(
             init_data_ptr->picture_width, init_data_ptr->picture_height, 1, 1, object_ptr->rst_info);
@@ -547,7 +532,6 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                                                                   init_data_ptr->b64_size);
     object_ptr->b64_total_count       = picture_b64_width * picture_b64_height;
     object_ptr->init_b64_total_count  = object_ptr->b64_total_count;
-#if OPT_OPERATIONS
     EB_MALLOC_ARRAY(object_ptr->sb_64x64_mvp, object_ptr->init_b64_total_count);
     EB_MALLOC_ARRAY(object_ptr->b64_me_qindex, object_ptr->init_b64_total_count);
     if (!allintra) {
@@ -556,14 +540,6 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
         EB_MALLOC_ARRAY(object_ptr->sb_min_sq_size, object_ptr->init_b64_total_count);
         EB_MALLOC_ARRAY(object_ptr->sb_max_sq_size, object_ptr->init_b64_total_count);
     }
-#else
-    EB_MALLOC_ARRAY(object_ptr->sb_intra, object_ptr->init_b64_total_count);
-    EB_MALLOC_ARRAY(object_ptr->sb_skip, object_ptr->init_b64_total_count);
-    EB_MALLOC_ARRAY(object_ptr->sb_64x64_mvp, object_ptr->init_b64_total_count);
-    EB_MALLOC_ARRAY(object_ptr->b64_me_qindex, object_ptr->init_b64_total_count);
-    EB_MALLOC_ARRAY(object_ptr->sb_min_sq_size, object_ptr->init_b64_total_count);
-    EB_MALLOC_ARRAY(object_ptr->sb_max_sq_size, object_ptr->init_b64_total_count);
-#endif
     sb_origin_x = 0;
     sb_origin_y = 0;
 
@@ -574,9 +550,7 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     object_ptr->sb_total_count          = all_sb;
     object_ptr->sb_total_count_unscaled = all_sb;
     EB_ALLOC_PTR_ARRAY(object_ptr->sb_ptr_array, object_ptr->sb_total_count_unscaled);
-#if TUNE_STILL_IMAGE_0
     for (sb_index = 0; sb_index < all_sb; ++sb_index) {
-#if FIX_DISALLOW_8X8
         EB_NEW(object_ptr->sb_ptr_array[sb_index],
                svt_aom_largest_coding_unit_ctor,
                (uint8_t)init_data_ptr->sb_size,
@@ -589,35 +563,6 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
                allintra,
                init_data_ptr->input_resolution,
                object_ptr);
-#else
-        EB_NEW(object_ptr->sb_ptr_array[sb_index],
-               svt_aom_largest_coding_unit_ctor,
-               (uint8_t)init_data_ptr->sb_size,
-               (uint16_t)(sb_origin_x * max_blk_size),
-               (uint16_t)(sb_origin_y * max_blk_size),
-               (uint16_t)sb_index,
-               init_data_ptr->enc_mode,
-               init_data_ptr->static_config.rtc,
-               init_data_ptr->static_config.screen_content_mode,
-               init_data_ptr->init_max_block_cnt,
-               allintra,
-               init_data_ptr->input_resolution,
-               object_ptr);
-#endif
-#else
-    for (sb_index = 0; sb_index < all_sb; ++sb_index) {
-        EB_NEW(object_ptr->sb_ptr_array[sb_index],
-               svt_aom_largest_coding_unit_ctor,
-               (uint8_t)init_data_ptr->sb_size,
-               (uint16_t)(sb_origin_x * max_blk_size),
-               (uint16_t)(sb_origin_y * max_blk_size),
-               (uint16_t)sb_index,
-               init_data_ptr->enc_mode,
-               init_data_ptr->static_config.rtc,
-               init_data_ptr->static_config.screen_content_mode,
-               init_data_ptr->init_max_block_cnt,
-               object_ptr);
-#endif
         // Increment the Order in coding order (Raster Scan Order)
         sb_origin_y = (sb_origin_x == picture_sb_w - 1) ? sb_origin_y + 1 : sb_origin_y;
         sb_origin_x = (sb_origin_x == picture_sb_w - 1) ? 0 : sb_origin_x + 1;
@@ -1103,80 +1048,34 @@ static EbErrorType picture_control_set_ctor(PictureControlSet *object_ptr, EbPtr
     // If NSQ is allowed, then may need a 4x4 MI grid because 8x8 NSQ shapes will require 4x4 granularity
     bool disallow_4x4 = true;
     bool disallow_8x8 = true;
-#if !TUNE_RTC_RA_PRESETS
-    for (uint8_t is_base = 0; is_base <= 1; is_base++) {
-        for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
-#endif
-            for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
-                if (!disallow_4x4 && !disallow_8x8)
-                    break;
-#if TUNE_STILL_IMAGE_0
-                const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(allintra,
-                                                                        init_data_ptr->input_resolution,
-                                                                        init_data_ptr->enc_mode,
-#if !TUNE_RTC_RA_PRESETS
-                                                                        is_base,
-#endif
-                                                                        coeff_lvl,
-                                                                        init_data_ptr->static_config.rtc);
-#else
-        const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(
-            init_data_ptr->enc_mode, is_base, coeff_lvl, init_data_ptr->static_config.rtc);
-#endif
-                // nsq_geom_lvl level 0 means NSQ shapes are disallowed so don't adjust based on the level
-                if (nsq_geom_lvl) {
-                    uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
-                    svt_aom_set_nsq_geom_ctrls(NULL, nsq_geom_lvl, &allow_HVA_HVB, &allow_HV4, &min_nsq_bsize);
-                    if (min_nsq_bsize < 8 || (min_nsq_bsize < 16 && allow_HV4))
-                        disallow_4x4 = false;
-                    if (min_nsq_bsize < 16 || (min_nsq_bsize < 32 && allow_HV4))
-                        disallow_8x8 = false;
-                }
-            }
-#if !TUNE_RTC_RA_PRESETS
+    for (uint8_t coeff_lvl = 0; coeff_lvl <= HIGH_LVL + 1; coeff_lvl++) {
+        if (!disallow_4x4 && !disallow_8x8)
+            break;
+        const uint8_t nsq_geom_lvl = svt_aom_get_nsq_geom_level(allintra,
+                                                                init_data_ptr->input_resolution,
+                                                                init_data_ptr->enc_mode,
+                                                                coeff_lvl,
+                                                                init_data_ptr->static_config.rtc);
+        // nsq_geom_lvl level 0 means NSQ shapes are disallowed so don't adjust based on the level
+        if (nsq_geom_lvl) {
+            uint8_t allow_HVA_HVB, allow_HV4, min_nsq_bsize;
+            svt_aom_set_nsq_geom_ctrls(NULL, nsq_geom_lvl, &allow_HVA_HVB, &allow_HV4, &min_nsq_bsize);
+            if (min_nsq_bsize < 8 || (min_nsq_bsize < 16 && allow_HV4))
+                disallow_4x4 = false;
+            if (min_nsq_bsize < 16 || (min_nsq_bsize < 32 && allow_HV4))
+                disallow_8x8 = false;
         }
     }
-#endif
 
-#if TUNE_STILL_IMAGE_1
     disallow_4x4 = MIN(disallow_4x4, svt_aom_get_disallow_4x4(init_data_ptr->enc_mode));
-#else
-    for (uint8_t is_islice = 0; is_islice <= 1; is_islice++) {
-        for (uint8_t is_base = 0; is_base <= 1; is_base++) {
-            disallow_4x4 = MIN(disallow_4x4,
-                               svt_aom_get_disallow_4x4(init_data_ptr->enc_mode, init_data_ptr->static_config.rtc));
-        }
-    }
-#endif
 
     object_ptr->disallow_4x4_all_frames = disallow_4x4;
-#if FIX_DISALLOW_8X8
-    disallow_8x8 = MIN(disallow_8x8,
+    disallow_8x8                        = MIN(disallow_8x8,
                        svt_aom_get_disallow_8x8(init_data_ptr->enc_mode,
                                                 allintra,
                                                 init_data_ptr->static_config.rtc,
                                                 init_data_ptr->picture_width,
                                                 init_data_ptr->picture_height));
-#else
-#if TUNE_STILL_IMAGE_0
-    disallow_8x8 = MIN(disallow_8x8,
-                       svt_aom_get_disallow_8x8(init_data_ptr->enc_mode,
-                                                allintra,
-                                                init_data_ptr->static_config.rtc,
-                                                init_data_ptr->static_config.screen_content_mode,
-                                                init_data_ptr->sb_size,
-                                                init_data_ptr->picture_width,
-                                                init_data_ptr->picture_height));
-#else
-    disallow_8x8 = MIN(disallow_8x8,
-                       svt_aom_get_disallow_8x8(init_data_ptr->enc_mode,
-                                                init_data_ptr->static_config.rtc,
-                                                init_data_ptr->static_config.screen_content_mode,
-                                                init_data_ptr->sb_size,
-                                                init_data_ptr->picture_width,
-                                                init_data_ptr->picture_height));
-#endif
-#endif
     object_ptr->disallow_8x8_all_frames = disallow_8x8;
     /* If 4x4 blocks are disallowed for all frames, the the MI blocks only need to be allocated for
     8x8 blocks.  The mi_grid will still be 4x4 so that the data can be accessed the same way throughout
@@ -1381,15 +1280,7 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
 
     if (init_data_ptr->calculate_variance) {
         uint8_t block_count;
-#if OPT_OPERATIONS
         if (init_data_ptr->allintra || init_data_ptr->aq_mode == 1 || init_data_ptr->variance_octile)
-#else
-#if CLN_AQ_MODE
-        if (init_data_ptr->aq_mode == 1 || init_data_ptr->variance_octile)
-#else
-        if (init_data_ptr->enable_adaptive_quantization == 1 || init_data_ptr->variance_octile)
-#endif
-#endif
             block_count = 85;
         else
             block_count = 1;
@@ -1504,16 +1395,8 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
 
     // 8x8 can only be used if 16x16 is enabled
     object_ptr->enable_me_8x8 = object_ptr->enable_me_16x16
-#if TUNE_RTC_RA_PRESETS_2
         ? svt_aom_get_enable_me_8x8(
               init_data_ptr->enc_mode, resolution, init_data_ptr->static_config.rtc, init_data_ptr->use_flat_ipp)
-#else
-#if TUNE_RTC_RA_PRESETS
-        ? svt_aom_get_enable_me_8x8(init_data_ptr->enc_mode, resolution, init_data_ptr->use_flat_ipp)
-#else
-        ? svt_aom_get_enable_me_8x8(init_data_ptr->enc_mode, init_data_ptr->rtc_tune, resolution)
-#endif
-#endif
         : 0;
     EB_NEW(object_ptr->dg_detector, svt_aom_dg_detector_seg_ctor);
     return return_error;
@@ -1521,10 +1404,6 @@ static EbErrorType picture_parent_control_set_ctor(PictureParentControlSet *obje
 static void me_dctor(EbPtr p) {
     MotionEstimationData *obj = (MotionEstimationData *)p;
     EB_DELETE_PTR_ARRAY(obj->me_results, obj->init_b64_total_count);
-#if !CLN_REMOVE_OIS_FLAG
-    if (obj->ois_mb_results)
-        EB_FREE_2D(obj->ois_mb_results);
-#endif
     if (obj->tpl_stats)
         EB_FREE_2D(obj->tpl_stats);
     if (obj->tpl_beta)
@@ -1551,10 +1430,7 @@ static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_d
     PictureControlSetInitData *init_data_ptr = (PictureControlSetInitData *)object_init_data_ptr;
 
     EbErrorType return_error = EB_ErrorNone;
-#if !OPT_OPERATIONS
-    uint16_t sb_index;
-#endif
-    object_ptr->dctor = me_dctor;
+    object_ptr->dctor        = me_dctor;
 
     const uint16_t picture_b64_width = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_width, init_data_ptr->b64_size);
     const uint16_t picture_b64_height = (uint16_t)DIVIDE_AND_CEIL(init_data_ptr->picture_height,
@@ -1563,240 +1439,213 @@ static EbErrorType me_ctor(MotionEstimationData *object_ptr, EbPtr object_init_d
     object_ptr->b64_total_count       = sb_total_count;
     object_ptr->init_b64_total_count  = sb_total_count;
 
-#if OPT_OPERATIONS
     if (!init_data_ptr->allintra) {
-#endif
         EB_ALLOC_PTR_ARRAY(object_ptr->me_results, sb_total_count);
 
         for (uint16_t sb_index = 0; sb_index < sb_total_count; ++sb_index) {
             EB_NEW(object_ptr->me_results[sb_index], svt_aom_me_sb_results_ctor, init_data_ptr);
         }
-#if OPT_OPERATIONS
     }
-#endif
-#if !FIX_TUNE_SSIM_LAMBDA
+    uint16_t adaptive_picture_width_in_mb  = (uint16_t)((init_data_ptr->picture_width + 15) / 16);
+    uint16_t adaptive_picture_height_in_mb = (uint16_t)((init_data_ptr->picture_height + 15) / 16);
+    if (init_data_ptr->static_config.tune == TUNE_SSIM || init_data_ptr->static_config.tune == TUNE_IQ ||
+        init_data_ptr->static_config.tune == TUNE_MS_SSIM) {
+        EB_MALLOC_ARRAY(object_ptr->ssim_rdmult_scaling_factors,
+                        adaptive_picture_width_in_mb * adaptive_picture_height_in_mb);
+    } else {
+        object_ptr->ssim_rdmult_scaling_factors = NULL;
+    }
     if (init_data_ptr->enable_tpl_la) {
         const uint16_t picture_width_in_mb  = (uint16_t)((init_data_ptr->picture_width + 15) / 16);
         const uint16_t picture_height_in_mb = (uint16_t)((init_data_ptr->picture_height + 15) / 16);
-#endif
-        uint16_t adaptive_picture_width_in_mb  = (uint16_t)((init_data_ptr->picture_width + 15) / 16);
-        uint16_t adaptive_picture_height_in_mb = (uint16_t)((init_data_ptr->picture_height + 15) / 16);
-#if FTR_TUNE_4
-        if (init_data_ptr->static_config.tune == TUNE_SSIM || init_data_ptr->static_config.tune == TUNE_IQ ||
-            init_data_ptr->static_config.tune == TUNE_MS_SSIM) {
-#else
-    if (init_data_ptr->static_config.tune == TUNE_SSIM || init_data_ptr->static_config.tune == TUNE_IQ) {
-#endif
-            EB_MALLOC_ARRAY(object_ptr->ssim_rdmult_scaling_factors,
-                            adaptive_picture_width_in_mb * adaptive_picture_height_in_mb);
-        } else {
-            object_ptr->ssim_rdmult_scaling_factors = NULL;
+        if (init_data_ptr->tpl_synth_size == 8) {
+            adaptive_picture_width_in_mb  = adaptive_picture_width_in_mb << 1;
+            adaptive_picture_height_in_mb = adaptive_picture_height_in_mb << 1;
+        } else if (init_data_ptr->tpl_synth_size == 32) {
+            adaptive_picture_width_in_mb  = (uint16_t)((init_data_ptr->picture_width + 31) / 32);
+            adaptive_picture_height_in_mb = (uint16_t)((init_data_ptr->picture_height + 31) / 32);
         }
-#if FIX_TUNE_SSIM_LAMBDA
-        if (init_data_ptr->enable_tpl_la) {
-            const uint16_t picture_width_in_mb  = (uint16_t)((init_data_ptr->picture_width + 15) / 16);
-            const uint16_t picture_height_in_mb = (uint16_t)((init_data_ptr->picture_height + 15) / 16);
-#endif
-            if (init_data_ptr->tpl_synth_size == 8) {
-                adaptive_picture_width_in_mb  = adaptive_picture_width_in_mb << 1;
-                adaptive_picture_height_in_mb = adaptive_picture_height_in_mb << 1;
-            } else if (init_data_ptr->tpl_synth_size == 32) {
-                adaptive_picture_width_in_mb  = (uint16_t)((init_data_ptr->picture_width + 31) / 32);
-                adaptive_picture_height_in_mb = (uint16_t)((init_data_ptr->picture_height + 31) / 32);
-            }
-#if !CLN_REMOVE_OIS_FLAG
-            if (init_data_ptr->in_loop_ois == 0)
-                EB_MALLOC_2D(object_ptr->ois_mb_results, (uint32_t)(picture_width_in_mb * picture_height_in_mb), 1);
-            else
-                object_ptr->ois_mb_results = NULL;
-#endif
-            EB_MALLOC_2D(
-                object_ptr->tpl_stats, (uint32_t)((adaptive_picture_width_in_mb) * (adaptive_picture_height_in_mb)), 1);
-            if (init_data_ptr->tpl_lad_mg > 0)
-                EB_MALLOC_ARRAY(object_ptr->tpl_src_stats_buffer,
-                                (uint32_t)picture_width_in_mb * (uint32_t)picture_height_in_mb);
-            else
-                object_ptr->tpl_src_stats_buffer = NULL;
-            EB_MALLOC_ARRAY(object_ptr->tpl_beta, sb_total_count);
-            EB_MALLOC_ARRAY(object_ptr->tpl_rdmult_scaling_factors,
-                            adaptive_picture_width_in_mb * adaptive_picture_height_in_mb);
-            EB_MALLOC_ARRAY(object_ptr->tpl_sb_rdmult_scaling_factors,
-                            adaptive_picture_width_in_mb * adaptive_picture_height_in_mb);
-        } else {
-#if !CLN_REMOVE_OIS_FLAG
-            object_ptr->ois_mb_results = NULL;
-#endif
-            object_ptr->tpl_stats                     = NULL;
-            object_ptr->tpl_beta                      = NULL;
-            object_ptr->tpl_rdmult_scaling_factors    = NULL;
-            object_ptr->tpl_sb_rdmult_scaling_factors = NULL;
-            object_ptr->tpl_src_stats_buffer          = NULL;
-#if !FIX_TUNE_SSIM_LAMBDA
-            object_ptr->ssim_rdmult_scaling_factors = NULL;
-#endif
+        EB_MALLOC_2D(
+            object_ptr->tpl_stats, (uint32_t)((adaptive_picture_width_in_mb) * (adaptive_picture_height_in_mb)), 1);
+        if (init_data_ptr->tpl_lad_mg > 0)
+            EB_MALLOC_ARRAY(object_ptr->tpl_src_stats_buffer,
+                            (uint32_t)picture_width_in_mb * (uint32_t)picture_height_in_mb);
+        else
+            object_ptr->tpl_src_stats_buffer = NULL;
+        EB_MALLOC_ARRAY(object_ptr->tpl_beta, sb_total_count);
+        EB_MALLOC_ARRAY(object_ptr->tpl_rdmult_scaling_factors,
+                        adaptive_picture_width_in_mb * adaptive_picture_height_in_mb);
+        EB_MALLOC_ARRAY(object_ptr->tpl_sb_rdmult_scaling_factors,
+                        adaptive_picture_width_in_mb * adaptive_picture_height_in_mb);
+    } else {
+        object_ptr->tpl_stats                     = NULL;
+        object_ptr->tpl_beta                      = NULL;
+        object_ptr->tpl_rdmult_scaling_factors    = NULL;
+        object_ptr->tpl_sb_rdmult_scaling_factors = NULL;
+        object_ptr->tpl_src_stats_buffer          = NULL;
+    }
+    return return_error;
+}
+
+EbErrorType b64_geom_init(SequenceControlSet *scs, uint16_t width, uint16_t height, B64Geom **b64_geoms) {
+    EbErrorType return_error = EB_ErrorNone;
+
+    uint8_t  b64_size           = scs->b64_size;
+    uint16_t picture_b64_width  = DIVIDE_AND_CEIL(width, b64_size);
+    uint16_t picture_b64_height = DIVIDE_AND_CEIL(height, b64_size);
+
+    EB_FREE_ARRAY(*b64_geoms);
+    EB_MALLOC_ARRAY(*b64_geoms, picture_b64_width * picture_b64_height);
+
+    for (int b64_idx = 0; b64_idx < picture_b64_width * picture_b64_height; ++b64_idx) {
+        B64Geom *b64_geom         = &(*b64_geoms)[b64_idx];
+        uint16_t horizontal_index = (uint16_t)(b64_idx % picture_b64_width);
+        uint16_t vertical_index   = (uint16_t)(b64_idx / picture_b64_width);
+        b64_geom->org_x           = horizontal_index * b64_size;
+        b64_geom->org_y           = vertical_index * b64_size;
+        b64_geom->width           = (uint8_t)MIN(width - b64_geom->org_x, b64_size);
+        b64_geom->height          = (uint8_t)MIN(height - b64_geom->org_y, b64_size);
+        b64_geom->is_complete_b64 = (b64_geom->width == b64_size && b64_geom->height == b64_size) ? 1 : 0;
+
+        // b64_geom->raster_scan_blk_validity is only used when this condition is true:
+        // if (scs->in_loop_ois == 0 && pcs->tpl_ctrls.enable)
+        // while today scs->in_loop_ois is always set to 1 in set_param_based_on_input()
+        for (int i = RASTER_SCAN_CU_INDEX_64x64; i <= RASTER_SCAN_CU_INDEX_8x8_63; i++) {
+            b64_geom->raster_scan_blk_validity[i] =
+                ((b64_geom->org_x + raster_scan_blk_x[i] + raster_scan_blk_size[i] > width) ||
+                 (b64_geom->org_y + raster_scan_blk_y[i] + raster_scan_blk_size[i] > height))
+                ? false
+                : true;
         }
-        return return_error;
     }
 
-    EbErrorType b64_geom_init(SequenceControlSet * scs, uint16_t width, uint16_t height, B64Geom **b64_geoms) {
-        EbErrorType return_error = EB_ErrorNone;
+    return return_error;
+}
 
-        uint8_t  b64_size           = scs->b64_size;
-        uint16_t picture_b64_width  = DIVIDE_AND_CEIL(width, b64_size);
-        uint16_t picture_b64_height = DIVIDE_AND_CEIL(height, b64_size);
+#define NUM_BLOCK_IS_ALLOWED(w, h) ((w) + (h) - 1 + 1)
 
-        EB_FREE_ARRAY(*b64_geoms);
-        EB_MALLOC_ARRAY(*b64_geoms, picture_b64_width * picture_b64_height);
+EbErrorType alloc_sb_geoms(SbGeom **geom, int width, int height, int num_blocks) {
+    SbGeom *tmp;
+    EB_MALLOC_ARRAY(tmp, width * height);
+    // allocate 1 for complete blocks and (width + height - 1) for edges
+    EB_MALLOC_ARRAY(tmp[0].block_is_allowed, NUM_BLOCK_IS_ALLOWED(width, height) * num_blocks);
 
-        for (int b64_idx = 0; b64_idx < picture_b64_width * picture_b64_height; ++b64_idx) {
-            B64Geom *b64_geom         = &(*b64_geoms)[b64_idx];
-            uint16_t horizontal_index = (uint16_t)(b64_idx % picture_b64_width);
-            uint16_t vertical_index   = (uint16_t)(b64_idx / picture_b64_width);
-            b64_geom->org_x           = horizontal_index * b64_size;
-            b64_geom->org_y           = vertical_index * b64_size;
-            b64_geom->width           = (uint8_t)MIN(width - b64_geom->org_x, b64_size);
-            b64_geom->height          = (uint8_t)MIN(height - b64_geom->org_y, b64_size);
-            b64_geom->is_complete_b64 = (b64_geom->width == b64_size && b64_geom->height == b64_size) ? 1 : 0;
+    // buffer is allocated on first entry, other SBs are pointing into that buffer
+    // [ complete_block, right_edge[0], ..., right_edge[N], bottom_edge[0], ..., bottom_edge[M-1]]
+    int right_edge_idx  = 1;
+    int bottom_edge_idx = right_edge_idx + height;
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < width; i++) {
+            if (i == 0 && j == 0) {
+                // first block must point to buffer start, so we don't leak
+            } else if (i == width - 1) {
+                tmp[width * j + i].block_is_allowed = tmp[0].block_is_allowed + num_blocks * (j + right_edge_idx);
+            } else if (j == height - 1) {
+                tmp[width * j + i].block_is_allowed = tmp[0].block_is_allowed + num_blocks * (i + bottom_edge_idx);
+            } else {
+                // complete blocks all point to same buffer
+                tmp[width * j + i].block_is_allowed = tmp[0].block_is_allowed;
+            }
+        }
+    }
 
-            // b64_geom->raster_scan_blk_validity is only used when this condition is true:
-            // if (scs->in_loop_ois == 0 && pcs->tpl_ctrls.enable)
-            // while today scs->in_loop_ois is always set to 1 in set_param_based_on_input()
-            for (int i = RASTER_SCAN_CU_INDEX_64x64; i <= RASTER_SCAN_CU_INDEX_8x8_63; i++) {
-                b64_geom->raster_scan_blk_validity[i] =
-                    ((b64_geom->org_x + raster_scan_blk_x[i] + raster_scan_blk_size[i] > width) ||
-                     (b64_geom->org_y + raster_scan_blk_y[i] + raster_scan_blk_size[i] > height))
+    *geom = tmp;
+
+    return EB_ErrorNone;
+}
+
+void free_sb_geoms(SbGeom *geom) {
+    if (geom) {
+        EB_FREE_ARRAY(geom[0].block_is_allowed);
+        EB_FREE_ARRAY(geom);
+    }
+}
+
+void copy_sb_geoms(SbGeom *dst_geom, SbGeom *src_geom, uint16_t width, uint16_t height, int num_blocks) {
+    memcpy(dst_geom[0].block_is_allowed,
+           src_geom[0].block_is_allowed,
+           sizeof(dst_geom[0].block_is_allowed[0]) * NUM_BLOCK_IS_ALLOWED(width, height) * num_blocks);
+    for (int i = 0; i < width * height; i++) {
+        // preserve dynamic pointer
+        bool *block_is_allowed       = dst_geom[i].block_is_allowed;
+        dst_geom[i]                  = src_geom[i];
+        dst_geom[i].block_is_allowed = block_is_allowed;
+    }
+}
+
+EbErrorType sb_geom_init(SequenceControlSet *scs, uint16_t width, uint16_t height, SbGeom **sb_geoms) {
+    uint16_t picture_sb_width  = DIVIDE_AND_CEIL(width, scs->sb_size);
+    uint16_t picture_sb_height = DIVIDE_AND_CEIL(height, scs->sb_size);
+    uint16_t max_block_count   = scs->max_block_cnt;
+
+    free_sb_geoms(*sb_geoms);
+    EbErrorType ret = alloc_sb_geoms(sb_geoms, picture_sb_width, picture_sb_height, max_block_count);
+    if (ret != EB_ErrorNone) {
+        return ret;
+    }
+
+    for (int sb_index = 0; sb_index < picture_sb_width * picture_sb_height; ++sb_index) {
+        SbGeom  *sb_geom        = &(*sb_geoms)[sb_index];
+        uint16_t hor_index      = sb_index % picture_sb_width;
+        uint16_t ver_index      = sb_index / picture_sb_width;
+        sb_geom->org_x          = hor_index * scs->sb_size;
+        sb_geom->org_y          = ver_index * scs->sb_size;
+        sb_geom->width          = (uint8_t)MIN(width - sb_geom->org_x, scs->sb_size);
+        sb_geom->height         = (uint8_t)MIN(height - sb_geom->org_y, scs->sb_size);
+        sb_geom->is_complete_sb = (sb_geom->width == scs->sb_size && sb_geom->height == scs->sb_size) ? 1 : 0;
+
+        if (sb_index == 0 || hor_index == picture_sb_width - 1 || ver_index == picture_sb_height - 1) {
+            // we only should process these blocks
+        } else {
+            // rest of blocks must be complete and hence have same availability as (0,0) block
+            assert(sb_geom->is_complete_sb);
+        }
+
+        for (int md_scan_block_index = 0; md_scan_block_index < max_block_count; md_scan_block_index++) {
+            const BlockGeom *blk_geom    = get_blk_geom_mds(md_scan_block_index);
+            const BlockGeom *sq_blk_geom = get_blk_geom_mds(blk_geom->sqi_mds);
+            if (scs->over_boundary_block_mode == 1) {
+                uint8_t has_rows = (sb_geom->org_y + sq_blk_geom->org_y + sq_blk_geom->bheight / 2 < height);
+                uint8_t has_cols = (sb_geom->org_x + sq_blk_geom->org_x + sq_blk_geom->bwidth / 2 < width);
+
+                // See AV1 spec section 5.11.4 for allowable blocks
+                sb_geom->block_is_allowed[md_scan_block_index] = false;
+                if (sb_geom->org_x + blk_geom->org_x < width && sb_geom->org_y + blk_geom->org_y < height) {
+                    if ((has_rows || blk_geom->shape == PART_H) && (has_cols || blk_geom->shape == PART_V)) {
+                        sb_geom->block_is_allowed[md_scan_block_index] = true;
+                    }
+                }
+            } else {
+                if (blk_geom->shape != PART_N)
+                    blk_geom = sq_blk_geom;
+
+                sb_geom->block_is_allowed[md_scan_block_index] =
+                    ((sb_geom->org_x + blk_geom->org_x + blk_geom->bwidth > width) ||
+                     (sb_geom->org_y + blk_geom->org_y + blk_geom->bheight > height))
                     ? false
                     : true;
             }
         }
-
-        return return_error;
     }
 
-#define NUM_BLOCK_IS_ALLOWED(w, h) ((w) + (h) - 1 + 1)
+    return EB_ErrorNone;
+}
 
-    EbErrorType alloc_sb_geoms(SbGeom * *geom, int width, int height, int num_blocks) {
-        SbGeom *tmp;
-        EB_MALLOC_ARRAY(tmp, width * height);
-        // allocate 1 for complete blocks and (width + height - 1) for edges
-        EB_MALLOC_ARRAY(tmp[0].block_is_allowed, NUM_BLOCK_IS_ALLOWED(width, height) * num_blocks);
+EbErrorType svt_aom_picture_parent_control_set_creator(EbPtr *object_dbl_ptr, EbPtr object_init_data_ptr) {
+    PictureParentControlSet *obj;
 
-        // buffer is allocated on first entry, other SBs are pointing into that buffer
-        // [ complete_block, right_edge[0], ..., right_edge[N], bottom_edge[0], ..., bottom_edge[M-1]]
-        int right_edge_idx  = 1;
-        int bottom_edge_idx = right_edge_idx + height;
-        for (int j = 0; j < height; j++) {
-            for (int i = 0; i < width; i++) {
-                if (i == 0 && j == 0) {
-                    // first block must point to buffer start, so we don't leak
-                } else if (i == width - 1) {
-                    tmp[width * j + i].block_is_allowed = tmp[0].block_is_allowed + num_blocks * (j + right_edge_idx);
-                } else if (j == height - 1) {
-                    tmp[width * j + i].block_is_allowed = tmp[0].block_is_allowed + num_blocks * (i + bottom_edge_idx);
-                } else {
-                    // complete blocks all point to same buffer
-                    tmp[width * j + i].block_is_allowed = tmp[0].block_is_allowed;
-                }
-            }
-        }
+    *object_dbl_ptr = NULL;
+    EB_NEW(obj, picture_parent_control_set_ctor, object_init_data_ptr);
+    *object_dbl_ptr = obj;
 
-        *geom = tmp;
+    return EB_ErrorNone;
+}
+EbErrorType svt_aom_me_creator(EbPtr *object_dbl_ptr, EbPtr object_init_data_ptr) {
+    MotionEstimationData *obj;
 
-        return EB_ErrorNone;
-    }
+    *object_dbl_ptr = NULL;
+    EB_NEW(obj, me_ctor, object_init_data_ptr);
+    *object_dbl_ptr = obj;
 
-    void free_sb_geoms(SbGeom * geom) {
-        if (geom) {
-            EB_FREE_ARRAY(geom[0].block_is_allowed);
-            EB_FREE_ARRAY(geom);
-        }
-    }
-
-    void copy_sb_geoms(SbGeom * dst_geom, SbGeom * src_geom, uint16_t width, uint16_t height, int num_blocks) {
-        memcpy(dst_geom[0].block_is_allowed,
-               src_geom[0].block_is_allowed,
-               sizeof(dst_geom[0].block_is_allowed[0]) * NUM_BLOCK_IS_ALLOWED(width, height) * num_blocks);
-        for (int i = 0; i < width * height; i++) {
-            // preserve dynamic pointer
-            bool *block_is_allowed       = dst_geom[i].block_is_allowed;
-            dst_geom[i]                  = src_geom[i];
-            dst_geom[i].block_is_allowed = block_is_allowed;
-        }
-    }
-
-    EbErrorType sb_geom_init(SequenceControlSet * scs, uint16_t width, uint16_t height, SbGeom **sb_geoms) {
-        uint16_t picture_sb_width  = DIVIDE_AND_CEIL(width, scs->sb_size);
-        uint16_t picture_sb_height = DIVIDE_AND_CEIL(height, scs->sb_size);
-        uint16_t max_block_count   = scs->max_block_cnt;
-
-        free_sb_geoms(*sb_geoms);
-        EbErrorType ret = alloc_sb_geoms(sb_geoms, picture_sb_width, picture_sb_height, max_block_count);
-        if (ret != EB_ErrorNone) {
-            return ret;
-        }
-
-        for (int sb_index = 0; sb_index < picture_sb_width * picture_sb_height; ++sb_index) {
-            SbGeom  *sb_geom        = &(*sb_geoms)[sb_index];
-            uint16_t hor_index      = sb_index % picture_sb_width;
-            uint16_t ver_index      = sb_index / picture_sb_width;
-            sb_geom->org_x          = hor_index * scs->sb_size;
-            sb_geom->org_y          = ver_index * scs->sb_size;
-            sb_geom->width          = (uint8_t)MIN(width - sb_geom->org_x, scs->sb_size);
-            sb_geom->height         = (uint8_t)MIN(height - sb_geom->org_y, scs->sb_size);
-            sb_geom->is_complete_sb = (sb_geom->width == scs->sb_size && sb_geom->height == scs->sb_size) ? 1 : 0;
-
-            if (sb_index == 0 || hor_index == picture_sb_width - 1 || ver_index == picture_sb_height - 1) {
-                // we only should process these blocks
-            } else {
-                // rest of blocks must be complete and hence have same availability as (0,0) block
-                assert(sb_geom->is_complete_sb);
-            }
-
-            for (int md_scan_block_index = 0; md_scan_block_index < max_block_count; md_scan_block_index++) {
-                const BlockGeom *blk_geom    = get_blk_geom_mds(md_scan_block_index);
-                const BlockGeom *sq_blk_geom = get_blk_geom_mds(blk_geom->sqi_mds);
-                if (scs->over_boundary_block_mode == 1) {
-                    uint8_t has_rows = (sb_geom->org_y + sq_blk_geom->org_y + sq_blk_geom->bheight / 2 < height);
-                    uint8_t has_cols = (sb_geom->org_x + sq_blk_geom->org_x + sq_blk_geom->bwidth / 2 < width);
-
-                    // See AV1 spec section 5.11.4 for allowable blocks
-                    sb_geom->block_is_allowed[md_scan_block_index] = false;
-                    if (sb_geom->org_x + blk_geom->org_x < width && sb_geom->org_y + blk_geom->org_y < height) {
-                        if ((has_rows || blk_geom->shape == PART_H) && (has_cols || blk_geom->shape == PART_V)) {
-                            sb_geom->block_is_allowed[md_scan_block_index] = true;
-                        }
-                    }
-                } else {
-                    if (blk_geom->shape != PART_N)
-                        blk_geom = sq_blk_geom;
-
-                    sb_geom->block_is_allowed[md_scan_block_index] =
-                        ((sb_geom->org_x + blk_geom->org_x + blk_geom->bwidth > width) ||
-                         (sb_geom->org_y + blk_geom->org_y + blk_geom->bheight > height))
-                        ? false
-                        : true;
-                }
-            }
-        }
-
-        return EB_ErrorNone;
-    }
-
-    EbErrorType svt_aom_picture_parent_control_set_creator(EbPtr * object_dbl_ptr, EbPtr object_init_data_ptr) {
-        PictureParentControlSet *obj;
-
-        *object_dbl_ptr = NULL;
-        EB_NEW(obj, picture_parent_control_set_ctor, object_init_data_ptr);
-        *object_dbl_ptr = obj;
-
-        return EB_ErrorNone;
-    }
-    EbErrorType svt_aom_me_creator(EbPtr * object_dbl_ptr, EbPtr object_init_data_ptr) {
-        MotionEstimationData *obj;
-
-        *object_dbl_ptr = NULL;
-        EB_NEW(obj, me_ctor, object_init_data_ptr);
-        *object_dbl_ptr = obj;
-
-        return EB_ErrorNone;
-    }
+    return EB_ErrorNone;
+}

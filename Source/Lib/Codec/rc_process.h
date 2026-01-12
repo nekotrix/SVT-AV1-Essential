@@ -25,10 +25,6 @@
 #define SAD_CLIP_COEFF 5
 // 88 + 3*16*8
 #define SLICE_HEADER_BITS_NUM 104
-#if !FIX_FPS_CALC
-#define RC_PRECISION 16
-#define RC_PRECISION_OFFSET (1 << (RC_PRECISION - 1))
-#endif
 #define RC_PRINTS 0
 #define ADAPTIVE_PERCENTAGE 1
 
@@ -127,10 +123,8 @@ typedef struct {
     int worst_quality;
     int best_quality;
 
-#if OPT_CR_CTRL
     // Track amount of low motion in scene
-    int avg_frame_low_motion;
-#endif
+    int     avg_frame_low_motion;
     int64_t starting_buffer_level;
     int64_t optimal_buffer_level;
     int64_t maximum_buffer_size;

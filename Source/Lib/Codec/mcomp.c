@@ -622,16 +622,10 @@ int svt_av1_find_best_sub_pixel_tree_pruned(void *ictx, MacroBlockD *xd, const s
 
     if (early_neigh_check_exit)
         return besterr;
-#if OPT_SUBPEL_TH
     const uint64_t th_normalizer = (uint64_t)(((var_params->w * var_params->h) << 5) *
                                               (uint64_t)ms_params->abs_th_mult);
     if ((uint64_t)qp * besterr < th_normalizer)
         return besterr;
-#else
-    uint64_t th_normalizer = (((var_params->w * var_params->h) >> 3) * ms_params->abs_th_mult * (qp >> 1));
-    if (besterr < th_normalizer)
-        return besterr;
-#endif
     // How many steps to take. A round of 0 means fullpel search only, 1 means
     // half-pel, and so on.
     const int round = AOMMIN(FULL_PEL - forced_stop, 3 - !allow_hp);
@@ -639,7 +633,6 @@ int svt_av1_find_best_sub_pixel_tree_pruned(void *ictx, MacroBlockD *xd, const s
     // If forced_stop is FULL_PEL, return.
     if (!round)
         return besterr;
-#if OPT_SUBPEL_TH
     // Exit subpel search if the variance of the full-pel predicted samples is low (i.e. where likely interpolation will not modify the integer samples)
     if (ms_params->pred_variance_th) {
         const MSBuffers   *ms_buffers = &var_params->ms_buffers;
@@ -651,17 +644,6 @@ int svt_av1_find_best_sub_pixel_tree_pruned(void *ictx, MacroBlockD *xd, const s
         if (block_var < ms_params->pred_variance_th)
             return besterr;
     }
-#else
-    // Exit subpel search if the variance of the full-pel predicted samples is low (i.e. where likely interpolation will not modify the integer samples)
-    const MSBuffers   *ms_buffers = &var_params->ms_buffers;
-    const uint8_t     *ref        = svt_get_buf_from_mv(ms_buffers->ref, *bestmv);
-    unsigned int       sse;
-    const unsigned int var = var_params->vfp->vf(ref, ms_buffers->ref->stride, svt_aom_eb_av1_var_offs, 0, &sse);
-    int                block_var = ROUND_POWER_OF_TWO(var, eb_num_pels_log2_lookup[bsize]);
-
-    if (block_var < ms_params->pred_variance_th)
-        return besterr;
-#endif
     if (ms_params->skip_diag_refinement >= 4) {
         org_error = 0;
     } else {
@@ -740,7 +722,6 @@ int svt_av1_find_best_sub_pixel_tree(void *ictx, MacroBlockD *xd, const struct A
     }
     if (early_neigh_check_exit)
         return besterr;
-#if OPT_SUBPEL_TH
     const uint64_t th_normalizer = (uint64_t)(((var_params->w * var_params->h) << 5) *
                                               (uint64_t)ms_params->abs_th_mult);
     if ((uint64_t)qp * besterr < th_normalizer)
@@ -760,23 +741,6 @@ int svt_av1_find_best_sub_pixel_tree(void *ictx, MacroBlockD *xd, const struct A
         if (block_var < ms_params->pred_variance_th)
             return besterr;
     }
-#else
-    // Exit subpel search if the variance of the full-pel predicted samples is low (i.e. where likely interpolation will not modify the integer samples)
-    const MSBuffers   *ms_buffers = &var_params->ms_buffers;
-    const uint8_t     *ref        = svt_get_buf_from_mv(ms_buffers->ref, *bestmv);
-    unsigned int       sse;
-    const unsigned int var       = var_params->vfp->vf(ref, ms_buffers->ref->stride, svt_aom_eb_av1_var_offs, 0, &sse);
-    int                block_var = ROUND_POWER_OF_TWO(var, eb_num_pels_log2_lookup[bsize]);
-
-    if (block_var < ms_params->pred_variance_th)
-        return besterr;
-    uint64_t th_normalizer = (((var_params->w * var_params->h) >> 2) * ms_params->abs_th_mult * (qp >> 1));
-    if (besterr < th_normalizer)
-        return besterr;
-    // If forced_stop is FULL_PEL, return.
-    if (!round)
-        return besterr;
-#endif
     for (int iter = 0; iter < round; ++iter) {
         Mv iter_center_mv = *bestmv;
         Mv diag_step;

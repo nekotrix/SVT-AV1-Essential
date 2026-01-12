@@ -417,23 +417,12 @@ static int av1_calc_iframe_target_size_one_pass_cbr(PictureParentControlSet *pcs
     EncodeContext      *enc_ctx = scs->enc_ctx;
     RATE_CONTROL *const rc      = &enc_ctx->rc;
     int                 target;
-#if !OPT_RTC_FACTORS
-    const int w = 3;
-#endif
     if (pcs->picture_number == 0) {
-#if OPT_RTC_FACTORS
         target = ((rc->starting_buffer_level / 2) > INT_MAX) ? INT_MAX : (int)(rc->starting_buffer_level / 2);
-#else
-        target = ((rc->starting_buffer_level / 2) > INT_MAX) ? INT_MAX : (int)(rc->starting_buffer_level * w / 4);
-#endif
     } else {
-        int kf_boost = 32;
-#if FIX_FPS_CALC
+        int    kf_boost  = 32;
         double framerate = scs->new_framerate;
-#else
-        double framerate = scs->double_frame_rate; //cpi->framerate;
-#endif
-        kf_boost = AOMMAX(kf_boost, (int)(2 * framerate - 16));
+        kf_boost         = AOMMAX(kf_boost, (int)(2 * framerate - 16));
         if (rc->frames_since_key < framerate / 2) {
             kf_boost = (int)(kf_boost * rc->frames_since_key / (framerate / 2));
         }
@@ -658,11 +647,7 @@ static void lap_rc_init(PictureParentControlSet *pcs, FIRSTPASS_STATS this_frame
     }
 
     twopass->modified_error_left = modified_error_total;
-#if FIX_FPS_CALC
     twopass->bits_left += (int64_t)(num_stats * (scs->static_config.target_bit_rate / scs->new_framerate));
-#else
-    twopass->bits_left += (int64_t)(num_stats * (scs->static_config.target_bit_rate / scs->double_frame_rate));
-#endif
     reset_fpf_position(twopass, start_position);
 }
 /*!\brief calculating group_error for lap_rc
@@ -793,22 +778,14 @@ static void kf_group_rate_assingment(PictureParentControlSet *pcs, FIRSTPASS_STA
         // For 1 PASS VBR, as the lookahead is moving, the bits left is recalculated for the next KF. The second term is added again as it is part of look ahead of the next KF
         twopass->bits_left -= (twopass->kf_group_bits +
                                (int64_t)(((int64_t)pcs->frames_in_sw - (int64_t)rc->frames_to_key) *
-#if FIX_FPS_CALC
                                          (scs->static_config.target_bit_rate / scs->new_framerate)));
-#else
-                                         (scs->static_config.target_bit_rate / scs->double_frame_rate)));
-#endif
     else
         twopass->bits_left = AOMMAX(twopass->bits_left - twopass->kf_group_bits, 0);
     if (scs->lap_rc) {
         // In the case of single pass based on LAP, frames to  key may have an
         // inaccurate value, and hence should be clipped to an appropriate
         // interval.
-#if FIX_FPS_CALC
         frames_to_key_clipped = (int)(MAX_KF_BITS_INTERVAL_SINGLE_PASS * scs->new_framerate);
-#else
-        frames_to_key_clipped = (int)(MAX_KF_BITS_INTERVAL_SINGLE_PASS * scs->double_frame_rate);
-#endif
         // This variable calculates the bits allocated to kf_group with a clipped
         // frames_to_key.
         if (rc->frames_to_key > frames_to_key_clipped) {
@@ -998,13 +975,8 @@ static void dynamic_resize_one_pass_cbr(PictureParentControlSet *ppcs) {
     // Step 3: calculate dynamic resize state
     // Resize based on average buffer underflow and QP over some window.
     // Ignore samples close to key frame, since QP is usually high after key.
-#if FIX_FPS_CALC
     if (rc->frames_since_key > scs->new_framerate) {
         const int32_t window = AOMMIN(30, (int32_t)(2 * scs->new_framerate));
-#else
-    if (rc->frames_since_key > scs->double_frame_rate) {
-        const int32_t window = AOMMIN(30, (int32_t)(2 * scs->double_frame_rate));
-#endif
         rc->resize_avg_qp += rc->last_q[INTER_FRAME];
         if (rc->buffer_level < (int32_t)(30 * rc->optimal_buffer_level / 100))
             ++rc->resize_buffer_underflow;
@@ -1156,12 +1128,7 @@ static void av1_rc_update_framerate(SequenceControlSet *scs /*, int width, int h
     int                 vbr_max_bits;
     const int           MBs = frame_info->num_mbs; // av1_get_MBs(width, height);
 
-    rc->avg_frame_bandwidth = (int)(scs->static_config.target_bit_rate /*oxcf->target_bandwidth*/ /
-#if FIX_FPS_CALC
-                                    scs->new_framerate);
-#else
-                                    scs->double_frame_rate);
-#endif
+    rc->avg_frame_bandwidth = (int)(scs->static_config.target_bit_rate /*oxcf->target_bandwidth*/ / scs->new_framerate);
     // A maximum bitrate for a frame is defined.
     // The baseline for this aligns with HW implementations that
     // can support decode of 1080P content up to a bitrate of MAX_MB_RATE bits
@@ -1169,26 +1136,16 @@ static void av1_rc_update_framerate(SequenceControlSet *scs /*, int width, int h
     // a very high rate is given on the command line or the the rate cannnot
     // be acheived because of a user specificed max q (e.g. when the user
     // specifies lossless encode.
-    vbr_max_bits = (int)(((int64_t)rc->avg_frame_bandwidth * enc_ctx->two_pass_cfg.vbrmax_section) / 100);
-#if OPT_RTC_FACTORS
-    vbr_max_bits = AOMMIN(vbr_max_bits, INT_MAX);
-#endif
+    vbr_max_bits            = (int)(((int64_t)rc->avg_frame_bandwidth * enc_ctx->two_pass_cfg.vbrmax_section) / 100);
+    vbr_max_bits            = AOMMIN(vbr_max_bits, INT_MAX);
     rc->max_frame_bandwidth = AOMMAX(AOMMAX((MBs * MAX_MB_RATE), MAXRATE_1080P), vbr_max_bits);
 }
 
 // from aom encoder.c
-#if FIX_FPS_CALC
 void svt_av1_new_framerate(SequenceControlSet *scs, double framerate) {
     scs->new_framerate = framerate < 0.1 ? 30 : framerate;
     av1_rc_update_framerate(scs);
 }
-#else
-void svt_av1_new_framerate(SequenceControlSet *scs, double framerate) {
-    //cpi->framerate = framerate < 0.1 ? 30 : framerate;
-    scs->double_frame_rate = framerate < 0.1 ? 30 : framerate;
-    av1_rc_update_framerate(scs /*, scs->seq_header.max_frame_width, scs->seq_header.max_frame_height*/);
-}
-#endif
 void svt_aom_set_rc_param(SequenceControlSet *scs) {
     EncodeContext *enc_ctx    = scs->enc_ctx;
     FrameInfo     *frame_info = &enc_ctx->frame_info;
@@ -1548,26 +1505,19 @@ int svt_aom_kf_low         = 400;
  *  spent bits in the sliding window
  ******************************************************/
 void svt_aom_crf_assign_max_rate(PictureParentControlSet *ppcs) {
-    SequenceControlSet *scs     = ppcs->scs;
-    EncodeContext      *enc_ctx = scs->enc_ctx;
-    RATE_CONTROL *const rc      = &enc_ctx->rc;
-#if !FIX_FPS_CALC
-    uint32_t frame_rate = ((scs->frame_rate + (1 << (RC_PRECISION - 1))) >> RC_PRECISION);
-#endif
-    int     frames_in_sw        = (int)rc->rate_average_periodin_frames;
-    int64_t spent_bits_sw       = 0, available_bit_sw;
-    int     coded_frames_num_sw = 0;
+    SequenceControlSet *scs                 = ppcs->scs;
+    EncodeContext      *enc_ctx             = scs->enc_ctx;
+    RATE_CONTROL *const rc                  = &enc_ctx->rc;
+    int                 frames_in_sw        = (int)rc->rate_average_periodin_frames;
+    int64_t             spent_bits_sw       = 0, available_bit_sw;
+    int                 coded_frames_num_sw = 0;
     // Find the start and the end of the sliding window
     int32_t start_index = ((ppcs->picture_number / frames_in_sw) * frames_in_sw) % CODED_FRAMES_STAT_QUEUE_MAX_DEPTH;
     int32_t end_index   = start_index + frames_in_sw;
     frames_in_sw        = (scs->passes > 1)
                ? MIN(end_index, (int32_t)scs->twopass.stats_buf_ctx->total_stats->count) - start_index
                : frames_in_sw;
-#if FIX_FPS_CALC
     int64_t max_bits_sw = (int64_t)(scs->static_config.max_bit_rate * ((double)frames_in_sw / scs->frame_rate));
-#else
-    int64_t max_bits_sw = (int64_t)scs->static_config.max_bit_rate * (int32_t)frames_in_sw / frame_rate;
-#endif
     max_bits_sw += (max_bits_sw * scs->static_config.mbr_over_shoot_pct / 100);
 
     // Loop over the sliding window and calculated the spent bits

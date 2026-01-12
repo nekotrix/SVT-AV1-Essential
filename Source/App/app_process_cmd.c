@@ -257,37 +257,22 @@ static EbErrorType test_update_rate_info(uint64_t pic_num, EbBufferHeaderType *h
         data = (SvtAv1RateInfo *)malloc(sizeof(SvtAv1RateInfo));
         memset(data, 0, sizeof(SvtAv1RateInfo));
         data->target_bit_rate = 2000;
-#if !OPT_RATE_ON_THE_FLY_NO_KF
-        header_ptr->pic_type = EB_AV1_KEY_PICTURE;
-#endif
     } else if (pic_num % (4 * interval) == 0) {
         data = (SvtAv1RateInfo *)malloc(sizeof(SvtAv1RateInfo));
         memset(data, 0, sizeof(SvtAv1RateInfo));
         data->target_bit_rate = 300;
-#if !OPT_RATE_ON_THE_FLY_NO_KF
-        header_ptr->pic_type = EB_AV1_KEY_PICTURE;
-#endif
     } else if (pic_num % (3 * interval) == 0) {
         data = (SvtAv1RateInfo *)malloc(sizeof(SvtAv1RateInfo));
         memset(data, 0, sizeof(SvtAv1RateInfo));
         data->target_bit_rate = 500;
-#if !OPT_RATE_ON_THE_FLY_NO_KF
-        header_ptr->pic_type = EB_AV1_KEY_PICTURE;
-#endif
     } else if (pic_num % (2 * interval) == 0) {
         data = (SvtAv1RateInfo *)malloc(sizeof(SvtAv1RateInfo));
         memset(data, 0, sizeof(SvtAv1RateInfo));
         data->target_bit_rate = 1000;
-#if !OPT_RATE_ON_THE_FLY_NO_KF
-        header_ptr->pic_type = EB_AV1_KEY_PICTURE;
-#endif
     } else if (pic_num % interval == 0) {
         data = (SvtAv1RateInfo *)malloc(sizeof(SvtAv1RateInfo));
         memset(data, 0, sizeof(SvtAv1RateInfo));
         data->target_bit_rate = 200;
-#if !OPT_RATE_ON_THE_FLY_NO_KF
-        header_ptr->pic_type = EB_AV1_KEY_PICTURE;
-#endif
     } else {
         return EB_ErrorNone;
     }

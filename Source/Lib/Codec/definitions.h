@@ -149,10 +149,8 @@ typedef struct MrpCtrls {
     // 2: on; when each ref list uses <=1 refs, further reduce the number of ref frame buffers because only
     // one base and one layer1 pic are added to the dpb at a time.
     uint8_t ld_reduce_ref_buffs;
-#if OPT_ENABLE_MRP_FLAT
     // When flat rtc structure is used, this is the number of refs to use (from previous consecutive frames)
     uint8_t flat_max_refs;
-#endif
 
 } MrpCtrls;
 typedef struct TfControls {
@@ -483,7 +481,7 @@ typedef int16_t InterpKernel[SUBPEL_TAPS];
 #define ROUND_POWER_OF_TWO_SIGNED_64(value, n) \
     (((value) < 0) ? -ROUND_POWER_OF_TWO_64(-(value), (n)) : ROUND_POWER_OF_TWO_64((value), (n)))
 
-#define IS_POWER_OF_TWO(x) (((x) & ((x)-1)) == 0)
+#define IS_POWER_OF_TWO(x) (((x) & ((x) - 1)) == 0)
 
 #ifdef __cplusplus
 #define EB_EXTERN extern "C"
@@ -1176,12 +1174,6 @@ typedef enum ATTRIBUTE_PACKED {
     INTRA_MODES             = PAETH_PRED + 1, // PAETH_PRED has to be the last intra mode.
     INTRA_INVALID           = MB_MODE_COUNT, // For uv_mode in inter blocks
 } PredictionMode;
-#if OPT_MD_SIGNALS
-#if !OPT_INTRA_MODE_PRUNE
-#define MAX_INTRA_LEVEL 8
-static const uint8_t angular_pred_level[MAX_INTRA_LEVEL] = {0, 1, 2, 2, 3, 4, 4, 0};
-#endif
-#endif
 #define MAX_UPSAMPLE_SZ 16
 
 typedef enum ATTRIBUTE_PACKED {
@@ -1979,12 +1971,8 @@ typedef enum Tune {
     TUNE_VQ   = 0, // Visual Quality (video)
     TUNE_PSNR = 1, // Average of (PSNR, SSIM, VMAF)
     TUNE_SSIM = 2, // SSIM-optimized
-#if FTR_TUNE_4
     TUNE_IQ   = 3, // Image Quality
     TUNE_MS_SSIM = 4 // MS_SSIM and SSIMULACRA2 optimized
-#else
-    TUNE_IQ   = 3
-#endif
 
 } Tune;
 

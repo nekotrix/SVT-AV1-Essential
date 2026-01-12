@@ -1206,9 +1206,9 @@ static INLINE void write_buffer_16x16(const __m256i *res, int32_t *output) {
     int32_t fact = -1, index = -1;
     for (int32_t i = 0; i < 8; i++) {
         _mm256_storeu_si256((__m256i *)(output + (++fact) * 16), res[++index]);
-        _mm256_storeu_si256((__m256i *)(output + (fact)*16 + 8), res[++index]);
+        _mm256_storeu_si256((__m256i *)(output + (fact) * 16 + 8), res[++index]);
         _mm256_storeu_si256((__m256i *)(output + (++fact) * 16), res[++index]);
-        _mm256_storeu_si256((__m256i *)(output + (fact)*16 + 8), res[++index]);
+        _mm256_storeu_si256((__m256i *)(output + (fact) * 16 + 8), res[++index]);
     }
 }
 
@@ -10096,9 +10096,9 @@ static INLINE void write_buffer_16x16_N4(const __m256i *res, int32_t *output) {
     }
     for (; i < 8; i++) {
         _mm256_storeu_si256((__m256i *)(output + (++fact) * 16), zero);
-        _mm256_storeu_si256((__m256i *)(output + (fact)*16 + 8), zero);
+        _mm256_storeu_si256((__m256i *)(output + (fact) * 16 + 8), zero);
         _mm256_storeu_si256((__m256i *)(output + (++fact) * 16), zero);
-        _mm256_storeu_si256((__m256i *)(output + (fact)*16 + 8), zero);
+        _mm256_storeu_si256((__m256i *)(output + (fact) * 16 + 8), zero);
     }
 }
 

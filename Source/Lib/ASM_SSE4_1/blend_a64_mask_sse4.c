@@ -356,7 +356,7 @@ static void blend_a64_mask_sx_sy_w16n_sse4_1(uint8_t *dst, uint32_t dst_stride, 
 void svt_aom_blend_a64_mask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0, uint32_t src0_stride,
                                    const uint8_t *src1, uint32_t src1_stride, const uint8_t *mask, uint32_t mask_stride,
                                    int w, int h, int subx, int suby) {
-    typedef void (*BlendFn)(uint8_t * dst,
+    typedef void (*BlendFn)(uint8_t       *dst,
                             uint32_t       dst_stride,
                             const uint8_t *src0,
                             uint32_t       src0_stride,
@@ -745,7 +745,7 @@ void svt_aom_highbd_blend_a64_mask_8bit_sse4_1(uint8_t *dst_8, uint32_t dst_stri
                                                uint32_t src0_stride, const uint8_t *src1_8, uint32_t src1_stride,
                                                const uint8_t *mask, uint32_t mask_stride, int w, int h, int subx,
                                                int suby, int bd) {
-    typedef void (*BlendFn)(uint16_t * dst,
+    typedef void (*BlendFn)(uint16_t       *dst,
                             uint32_t        dst_stride,
                             const uint16_t *src0,
                             uint32_t        src0_stride,
@@ -869,7 +869,7 @@ static void blend_a64_vmask_w16n_sse4_1(uint8_t *dst, uint32_t dst_stride, const
 
 void svt_aom_blend_a64_vmask_sse4_1(uint8_t *dst, uint32_t dst_stride, const uint8_t *src0, uint32_t src0_stride,
                                     const uint8_t *src1, uint32_t src1_stride, const uint8_t *mask, int w, int h) {
-    typedef void (*BlendFn)(uint8_t * dst,
+    typedef void (*BlendFn)(uint8_t       *dst,
                             uint32_t       dst_stride,
                             const uint8_t *src0,
                             uint32_t       src0_stride,
@@ -992,7 +992,7 @@ void svt_aom_highbd_blend_a64_mask_16bit_sse4_1(uint16_t *dst, uint32_t dst_stri
                                                 uint32_t src0_stride, const uint16_t *src1, uint32_t src1_stride,
                                                 const uint8_t *mask, uint32_t mask_stride, int w, int h, int subw,
                                                 int subh, int bd) {
-    typedef void (*BlendFn)(uint16_t * dst,
+    typedef void (*BlendFn)(uint16_t       *dst,
                             uint32_t        dst_stride,
                             const uint16_t *src0,
                             uint32_t        src0_stride,
@@ -1060,7 +1060,7 @@ void svt_aom_highbd_blend_a64_hmask_16bit_sse4_1(uint16_t *dst, uint32_t dst_str
 void svt_aom_highbd_blend_a64_vmask_16bit_sse4_1(uint16_t *dst, uint32_t dst_stride, const uint16_t *src0,
                                                  uint32_t src0_stride, const uint16_t *src1, uint32_t src1_stride,
                                                  const uint8_t *mask, int w, int h, int bd) {
-    typedef void (*BlendFn)(uint16_t * dst,
+    typedef void (*BlendFn)(uint16_t       *dst,
                             uint32_t        dst_stride,
                             const uint16_t *src0,
                             uint32_t        src0_stride,

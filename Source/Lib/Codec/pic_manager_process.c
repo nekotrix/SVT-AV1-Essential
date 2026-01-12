@@ -55,7 +55,6 @@ static EbErrorType rtime_alloc_palette_tokens(SequenceControlSet *scs, PictureCo
     }
     return EB_ErrorNone;
 }
-#if FIX_QUEUE_DEADLOCK
 // Min-Heap Utilities
 
 // Swap two elements in the heap
@@ -119,7 +118,6 @@ static inline bool heap_push(uint64_t *heap, int *count_io, int capacity, uint64
     *count_io = count + 1;
     return true;
 }
-#endif
 
 extern MvReferenceFrame svt_get_ref_frame_type(uint8_t list, uint8_t ref_idx);
 
@@ -147,27 +145,15 @@ EbErrorType svt_aom_picture_manager_context_ctor(EbThreadContext *thread_ctx, co
         enc_handle_ptr->picture_demux_results_resource_ptr, 0);
     context_ptr->picture_manager_output_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->rate_control_tasks_resource_ptr, rate_control_index);
-#if CLN_REMOVE_INSTANCE_IDX
     context_ptr->picture_control_set_fifo_ptr = svt_system_resource_get_producer_fifo(
         enc_handle_ptr->picture_control_set_pool_ptr, 0); //The Child PCS Pool here
     context_ptr->recon_coef_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->enc_dec_pool_ptr,
                                                                              0); //The Child PCS Pool here
-#else
-    context_ptr->picture_control_set_fifo_ptr = svt_system_resource_get_producer_fifo(
-        enc_handle_ptr->picture_control_set_pool_ptr_array[0], 0); //The Child PCS Pool here
-    context_ptr->recon_coef_fifo_ptr = svt_system_resource_get_producer_fifo(enc_handle_ptr->enc_dec_pool_ptr_array[0],
-                                                                             0); //The Child PCS Pool here
-#endif
 
     context_ptr->consecutive_dec_order = 0;
     EB_MALLOC_ARRAY(context_ptr->started_pics_dec_order, ppcs_count);
-    context_ptr->started_pics_dec_order_size = ppcs_count;
-#if FIX_QUEUE_DEADLOCK
+    context_ptr->started_pics_dec_order_size  = ppcs_count;
     context_ptr->started_pics_dec_order_count = 0;
-#else
-    context_ptr->started_pics_dec_order_head_idx = 0;
-    context_ptr->started_pics_dec_order_tail_idx = 0;
-#endif
     return EB_ErrorNone;
 }
 
@@ -289,7 +275,6 @@ void superres_setup_child_pcs(SequenceControlSet *entry_scs_ptr, PictureParentCo
         uint16_t sb_index;
         uint16_t sb_origin_x = 0;
         uint16_t sb_origin_y = 0;
-#if TUNE_STILL_IMAGE_0
         for (sb_index = 0; sb_index < child_pcs->sb_total_count; ++sb_index) {
             svt_aom_largest_coding_unit_dctor(child_pcs->sb_ptr_array[sb_index]);
             svt_aom_largest_coding_unit_ctor(child_pcs->sb_ptr_array[sb_index],
@@ -299,27 +284,10 @@ void superres_setup_child_pcs(SequenceControlSet *entry_scs_ptr, PictureParentCo
                                              (uint16_t)sb_index,
                                              child_pcs->enc_mode,
                                              entry_scs_ptr->static_config.rtc,
-#if !FIX_DISALLOW_8X8
-                                             entry_scs_ptr->static_config.screen_content_mode,
-#endif
                                              entry_scs_ptr->max_block_cnt,
                                              entry_scs_ptr->allintra,
                                              entry_scs_ptr->input_resolution,
                                              child_pcs);
-#else
-        for (sb_index = 0; sb_index < child_pcs->sb_total_count; ++sb_index) {
-            svt_aom_largest_coding_unit_dctor(child_pcs->sb_ptr_array[sb_index]);
-            svt_aom_largest_coding_unit_ctor(child_pcs->sb_ptr_array[sb_index],
-                                             (uint8_t)entry_scs_ptr->sb_size,
-                                             (uint16_t)(sb_origin_x * entry_scs_ptr->sb_size),
-                                             (uint16_t)(sb_origin_y * entry_scs_ptr->sb_size),
-                                             (uint16_t)sb_index,
-                                             child_pcs->enc_mode,
-                                             entry_scs_ptr->static_config.rtc,
-                                             entry_scs_ptr->static_config.screen_content_mode,
-                                             entry_scs_ptr->max_block_cnt,
-                                             child_pcs);
-#endif
             // Increment the Order in coding order (Raster Scan Order)
             sb_origin_y = (sb_origin_x == pic_width_in_sb - 1) ? sb_origin_y + 1 : sb_origin_y;
             sb_origin_x = (sb_origin_x == pic_width_in_sb - 1) ? 0 : sb_origin_x + 1;
@@ -687,7 +655,6 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
             child_pcs->enc_dec_coded_sb_count = 0;
             child_pcs->hbd_md                 = entry_ppcs->hbd_md;
             context_ptr->pmgr_dec_order       = child_pcs->ppcs->decode_order;
-#if FIX_QUEUE_DEADLOCK
             // Update consecutive_dec_order using the min-heap of pending decode orders.
             // When the next expected picture arrives, consecutive_dec_order is advanced
             // and any immediately following orders are popped from the heap.
@@ -698,7 +665,6 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
             if (entry_ppcs->decode_order == context_ptr->consecutive_dec_order + 1) {
                 // Next expected picture arrived
                 context_ptr->consecutive_dec_order++;
-#if FIX_PIC_MGR_HANG
                 // If we update the consecutive_dec_order, then we should check all pictures in the pic_mgr_input_pic_list
                 // to see if they can be started. This is necessary to avoid a hang. Consider the case where picture B is
                 // stored in pic_mgr_input_pic_list in a spot after picture A. It is possible that picture B could be started
@@ -709,7 +675,6 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 // based on decode order, in which case re-iterating through the list would not be necessary, as the previously
                 // described scenario could not happen.
                 input_list_idx = 0;
-#endif
                 // Consume consecutive values already waiting in the heap
                 while (*heap_n > 0 && heap_min(decode_order_heap, *heap_n) == context_ptr->consecutive_dec_order + 1) {
                     heap_pop_min(decode_order_heap, heap_n);
@@ -720,44 +685,6 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 heap_push(
                     decode_order_heap, heap_n, context_ptr->started_pics_dec_order_size, entry_ppcs->decode_order);
             }
-#else
-            // Update the consecutive decode order count, if this picture is the next
-            // picture in decode order. Otherwise, add the picture to the
-            // started_pics_dec_order list so the consecutive decode order count can be
-            // properly updated later.
-            if (entry_ppcs->decode_order == context_ptr->consecutive_dec_order + 1) {
-                context_ptr->consecutive_dec_order++;
-
-                if (context_ptr->started_pics_dec_order_head_idx != context_ptr->started_pics_dec_order_tail_idx) {
-                    for (int idx = context_ptr->started_pics_dec_order_head_idx;
-                         idx != context_ptr->started_pics_dec_order_tail_idx;) {
-                        if (context_ptr->started_pics_dec_order[idx] == context_ptr->consecutive_dec_order + 1) {
-                            context_ptr->consecutive_dec_order++;
-                            idx = context_ptr->started_pics_dec_order_head_idx;
-                        } else {
-                            idx = (idx == context_ptr->started_pics_dec_order_size - 1) ? 0 : idx + 1;
-                        }
-                    }
-
-                    /* clang-format off */
-                    while (context_ptr->started_pics_dec_order_head_idx != context_ptr->started_pics_dec_order_tail_idx &&
-                        context_ptr->started_pics_dec_order[context_ptr->started_pics_dec_order_head_idx] <= context_ptr->consecutive_dec_order) {
-                        context_ptr->started_pics_dec_order_head_idx =
-                            (context_ptr->started_pics_dec_order_head_idx == context_ptr->started_pics_dec_order_size - 1)
-                            ? 0
-                            : context_ptr->started_pics_dec_order_head_idx + 1;
-                    }
-                    /* clang-format on */
-                }
-            } else if (entry_ppcs->decode_order > 0) {
-                context_ptr->started_pics_dec_order[context_ptr->started_pics_dec_order_tail_idx] =
-                    entry_ppcs->decode_order;
-                context_ptr->started_pics_dec_order_tail_idx = (context_ptr->started_pics_dec_order_tail_idx ==
-                                                                context_ptr->started_pics_dec_order_size - 1)
-                    ? 0
-                    : context_ptr->started_pics_dec_order_tail_idx + 1;
-            }
-#endif
             // 3.make all  init for ChildPCS
             uint16_t pic_width_in_sb = (entry_ppcs->aligned_width + entry_scs_ptr->sb_size - 1) /
                 entry_scs_ptr->sb_size;
@@ -784,7 +711,6 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 uint16_t sb_index;
                 uint16_t sb_origin_x = 0;
                 uint16_t sb_origin_y = 0;
-#if TUNE_STILL_IMAGE_0
                 for (sb_index = 0; sb_index < child_pcs->sb_total_count; ++sb_index) {
                     svt_aom_largest_coding_unit_dctor(child_pcs->sb_ptr_array[sb_index]);
                     svt_aom_largest_coding_unit_ctor(child_pcs->sb_ptr_array[sb_index],
@@ -794,27 +720,10 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                                                      (uint16_t)sb_index,
                                                      child_pcs->enc_mode,
                                                      scs->static_config.rtc,
-#if !FIX_DISALLOW_8X8
-                                                     scs->static_config.screen_content_mode,
-#endif
                                                      scs->max_block_cnt,
                                                      scs->allintra,
                                                      scs->input_resolution,
                                                      child_pcs);
-#else
-                for (sb_index = 0; sb_index < child_pcs->sb_total_count; ++sb_index) {
-                    svt_aom_largest_coding_unit_dctor(child_pcs->sb_ptr_array[sb_index]);
-                    svt_aom_largest_coding_unit_ctor(child_pcs->sb_ptr_array[sb_index],
-                                                     (uint8_t)scs->sb_size,
-                                                     (uint16_t)(sb_origin_x * scs->sb_size),
-                                                     (uint16_t)(sb_origin_y * scs->sb_size),
-                                                     (uint16_t)sb_index,
-                                                     child_pcs->enc_mode,
-                                                     scs->static_config.rtc,
-                                                     scs->static_config.screen_content_mode,
-                                                     scs->max_block_cnt,
-                                                     child_pcs);
-#endif
                     // Increment the Order in coding order (Raster Scan Order)
                     sb_origin_y = (sb_origin_x == pic_width_in_sb - 1) ? sb_origin_y + 1 : sb_origin_y;
                     sb_origin_x = (sb_origin_x == pic_width_in_sb - 1) ? 0 : sb_origin_x + 1;

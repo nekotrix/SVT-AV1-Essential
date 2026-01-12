@@ -119,17 +119,11 @@ static void mode_decision_context_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->mdc_sb_array.split_flag);
     EB_FREE_ARRAY(obj->mdc_sb_array.refined_split_flag);
     EB_FREE_ARRAY(obj->mdc_sb_array.consider_block);
-#if FIX_TUNE_SSIM
     for (uint32_t txt_itr = 0; txt_itr < TX_TYPES; ++txt_itr) {
         EB_DELETE(obj->recon_coeff_ptr[txt_itr]);
         EB_DELETE(obj->recon_ptr[txt_itr]);
         EB_DELETE(obj->quant_coeff_ptr[txt_itr]);
     }
-#else
-    EB_DELETE(obj->tx_search_recon_coeff_ptr);
-    EB_DELETE(obj->tx_search_recon_ptr);
-    EB_DELETE(obj->tx_search_quant_coeff_ptr);
-#endif
     EB_DELETE(obj->tx_coeffs);
     EB_DELETE(obj->scratch_prediction_ptr);
     EB_DELETE(obj->temp_residual);
@@ -209,13 +203,8 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     // If independent chroma search is used, need to allocate additional 84 candidate buffers
     bool is_chroma_mode_0 = false;
     for (uint8_t is_i_slice = 0; is_i_slice < 2; is_i_slice++) {
-#if TUNE_STILL_IMAGE_0
         is_chroma_mode_0 = svt_aom_set_chroma_controls(
                                NULL, svt_aom_get_chroma_level(enc_mode, is_i_slice, allintra)) == CHROMA_MODE_0;
-#else
-        is_chroma_mode_0 = svt_aom_set_chroma_controls(NULL, svt_aom_get_chroma_level(enc_mode, is_i_slice)) ==
-            CHROMA_MODE_0;
-#endif
         if (is_chroma_mode_0)
             break;
     }
@@ -235,12 +224,8 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
             for (uint8_t is_base = 0; is_base < 2; is_base++) {
                 if (use_update_cdf)
                     break;
-#if TUNE_STILL_IMAGE_0
                 use_update_cdf |= svt_aom_get_update_cdf_level(
                     enc_mode, is_islice, is_base, sc_class1, input_resolution, allintra);
-#else
-                use_update_cdf |= svt_aom_get_update_cdf_level(enc_mode, is_islice, is_base, sc_class1);
-#endif
             }
         }
     }
@@ -261,21 +246,11 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
 
     // Allocate buffer for inter-intra prediction
     uint8_t ii_allowed = 0;
-#if TUNE_RTC_RA_PRESETS
     for (uint8_t transition_present = 0; transition_present < 2; transition_present++) {
         if (ii_allowed)
             break;
         ii_allowed |= svt_aom_get_inter_intra_level(enc_mode, transition_present);
     }
-#else
-    for (uint8_t is_base = 0; is_base < 2; is_base++) {
-        for (uint8_t transition_present = 0; transition_present < 2; transition_present++) {
-            if (ii_allowed)
-                break;
-            ii_allowed |= svt_aom_get_inter_intra_level(enc_mode, is_base, transition_present);
-        }
-    }
-#endif
     if (ii_allowed) {
         const uint8_t bits = ctx->hbd_md > EB_8_BIT_MD ? 2 : 1;
         // MAX block size for inter intra is 32x32
@@ -460,7 +435,6 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     thirty_two_width_picture_buffer_desc_init_data.top_padding        = 0;
     thirty_two_width_picture_buffer_desc_init_data.bot_padding        = 0;
     thirty_two_width_picture_buffer_desc_init_data.split_mode         = false;
-#if FIX_TUNE_SSIM
     for (uint32_t txt_itr = 0; txt_itr < TX_TYPES; ++txt_itr) {
         EB_NEW(ctx->recon_coeff_ptr[txt_itr],
                svt_picture_buffer_desc_ctor,
@@ -470,16 +444,6 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
                svt_picture_buffer_desc_ctor,
                (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
     }
-#else
-    // Allocate temporary buffers used in TXT search
-    EB_NEW(ctx->tx_search_recon_coeff_ptr,
-           svt_picture_buffer_desc_ctor,
-           (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
-    EB_NEW(ctx->tx_search_recon_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&picture_buffer_desc_init_data);
-    EB_NEW(ctx->tx_search_quant_coeff_ptr,
-           svt_picture_buffer_desc_ctor,
-           (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
-#endif
     EB_NEW(ctx->tx_coeffs, svt_picture_buffer_desc_ctor, (EbPtr)&thirty_two_width_picture_buffer_desc_init_data);
     EB_NEW(ctx->scratch_prediction_ptr, svt_picture_buffer_desc_ctor, (EbPtr)&picture_buffer_desc_init_data);
     EbPictureBufferDescInitData double_width_picture_buffer_desc_init_data;
@@ -631,11 +595,7 @@ void svt_aom_reset_mode_decision(SequenceControlSet *scs, ModeDecisionContext *c
     //each segment enherits the bypass encdec from the picture level
     ctx->bypass_encdec = pcs->pic_bypass_encdec;
 
-#if FIX_RATE_SPIKES
     if (!rtc_tune && (pcs->enc_mode <= ENC_M11 || pcs->temporal_layer_index != 0))
-#else
-    if (!rtc_tune || pcs->temporal_layer_index != 0)
-#endif
         ctx->rtc_use_N4_dct_dct_shortcut = 1;
     else
         ctx->rtc_use_N4_dct_dct_shortcut = 0;

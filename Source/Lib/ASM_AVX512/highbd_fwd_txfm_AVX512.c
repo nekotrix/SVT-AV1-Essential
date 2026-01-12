@@ -102,7 +102,7 @@ static INLINE void write_buffer_16x16(const __m512i *res, int32_t *output) {
     int32_t fact = -1, index = -1;
     for (int32_t i = 0; i < 8; i++) {
         _mm512_storeu_si512((__m512i *)(output + (++fact) * 32), res[++index]);
-        _mm512_storeu_si512((__m512i *)(output + (fact)*32 + 16), res[++index]);
+        _mm512_storeu_si512((__m512i *)(output + (fact) * 32 + 16), res[++index]);
     }
 }
 
