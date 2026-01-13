@@ -1442,7 +1442,14 @@ typedef enum ATTRIBUTE_PACKED {
 MAX_NUM_TEMPORAL_LAYERS * MAX_NUM_SPATIAL_LAYERS
 
 static INLINE int32_t is_valid_seq_level_idx(uint8_t seq_level_idx) {
-    return seq_level_idx < 24 || seq_level_idx == 31;
+    return seq_level_idx == 31 ||
+        (seq_level_idx < 24 &&
+        // The following levels are currently undefined.
+        seq_level_idx != 2 && seq_level_idx != 3 &&
+        seq_level_idx != 6 && seq_level_idx != 7 &&
+        seq_level_idx != 10 && seq_level_idx != 11 &&
+        seq_level_idx != 20 && seq_level_idx != 21 &&
+        seq_level_idx != 22 && seq_level_idx != 23);
 }
 
 typedef enum
