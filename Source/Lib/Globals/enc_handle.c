@@ -1054,7 +1054,6 @@ static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr) {
         ref_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
         ref_pic_buf_desc_init_data.mfmv                = 0;
         ref_pic_buf_desc_init_data.is_16bit_pipeline   = false;
-        ref_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
         ref_pic_buf_desc_init_data.sb_total_count      = scs->sb_total_count;
 
         quart_pic_buf_desc_init_data.max_width = scs->max_input_luma_width >> 1;
@@ -1070,7 +1069,6 @@ static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr) {
         quart_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
         quart_pic_buf_desc_init_data.mfmv                = 0;
         quart_pic_buf_desc_init_data.is_16bit_pipeline   = false;
-        quart_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
         quart_pic_buf_desc_init_data.sb_total_count      = scs->sb_total_count;
 
         sixteenth_pic_buf_desc_init_data.max_width = scs->max_input_luma_width >> 2;
@@ -1086,7 +1084,6 @@ static int create_pa_ref_buf_descs(EbEncHandle *enc_handle_ptr) {
         sixteenth_pic_buf_desc_init_data.rest_units_per_tile = scs->rest_units_per_tile;
         sixteenth_pic_buf_desc_init_data.mfmv                = 0;
         sixteenth_pic_buf_desc_init_data.is_16bit_pipeline   = false;
-        sixteenth_pic_buf_desc_init_data.enc_mode            = scs->static_config.enc_mode;
         sixteenth_pic_buf_desc_init_data.sb_total_count      = scs->sb_total_count;
 
         eb_pa_ref_obj_ect_desc_init_data_structure.reference_picture_desc_init_data = ref_pic_buf_desc_init_data;
@@ -1131,7 +1128,6 @@ static int create_tpl_ref_buf_descs(EbEncHandle *enc_handle_ptr) {
     ref_pic_buf_desc_init_data.split_mode = false;
     ref_pic_buf_desc_init_data.mfmv = 0;
     ref_pic_buf_desc_init_data.is_16bit_pipeline = false;
-    ref_pic_buf_desc_init_data.enc_mode = scs->static_config.enc_mode;
 
     ref_pic_buf_desc_init_data.rest_units_per_tile = 0;// rest not needed in tpl scs->rest_units_per_tile;
     ref_pic_buf_desc_init_data.sb_total_count = scs->sb_total_count;
@@ -1183,7 +1179,6 @@ static int create_ref_buf_descs(EbEncHandle *enc_handle_ptr) {
     // Hsan: split_mode is set @ eb_reference_object_ctor() as both unpacked reference and packed reference are needed for a 10BIT input; unpacked reference @ MD, and packed reference @ EP
 
     ref_pic_buf_desc_init_data.split_mode = false;
-    ref_pic_buf_desc_init_data.enc_mode = scs->static_config.enc_mode;
     if (is_16bit)
         ref_pic_buf_desc_init_data.bit_depth = EB_TEN_BIT;
 
@@ -1956,14 +1951,11 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
 
     //Rest Contexts
     EB_ALLOC_PTR_ARRAY(enc_handle_ptr->rest_context_ptr_array, scs->rest_process_init_count);
-    EbPictureBufferDescInitData input_data;
-    input_data.enc_mode = scs->static_config.enc_mode;
     for (uint32_t process_index = 0; process_index < scs->rest_process_init_count; process_index++) {
         EB_NEW(
             enc_handle_ptr->rest_context_ptr_array[process_index],
             svt_aom_rest_context_ctor,
             enc_handle_ptr,
-            &input_data,
             process_index,
             pic_mgr_port_lookup(PIC_MGR_INPUT_PORT_REST, process_index));
     }

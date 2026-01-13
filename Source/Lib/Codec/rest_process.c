@@ -67,11 +67,10 @@ static void rest_context_dctor(EbPtr p) {
 /******************************************************
  * Rest Context Constructor
  ******************************************************/
-EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr,
-                                      EbPtr object_init_data_ptr, int index, int demux_index) {
-    const SequenceControlSet       *scs           = enc_handle_ptr->scs_instance->scs;
-    const EbSvtAv1EncConfiguration *config        = &scs->static_config;
-    EbPictureBufferDescInitData    *init_data_ptr = (EbPictureBufferDescInitData *)object_init_data_ptr;
+EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHandle *enc_handle_ptr, int index,
+                                      int demux_index) {
+    const SequenceControlSet       *scs    = enc_handle_ptr->scs_instance->scs;
+    const EbSvtAv1EncConfiguration *config = &scs->static_config;
     RestContext                    *context_ptr;
     const bool                      allintra = scs->allintra;
     EB_CALLOC_ARRAY(context_ptr, 1);
@@ -87,12 +86,12 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
         enc_handle_ptr->picture_demux_results_resource_ptr, demux_index);
 
     bool is_16bit = scs->is_16bit_pipeline;
-    if (svt_aom_get_enable_restoration(init_data_ptr->enc_mode,
+    if (svt_aom_get_enable_restoration(config->enc_mode,
                                        config->enable_restoration_filtering,
                                        scs->input_resolution,
                                        config->fast_decode,
                                        allintra,
-                                       scs->static_config.rtc)) {
+                                       config->rtc)) {
         EbPictureBufferDescInitData init_data;
 
         init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK;
@@ -118,7 +117,7 @@ EbErrorType svt_aom_rest_context_ctor(EbThreadContext *thread_ctx, const EbEncHa
                 context_ptr->org_rec_frame->bit_depth = EB_EIGHT_BIT;
         }
         context_ptr->rst_tmpbuf = NULL;
-        if (svt_aom_get_enable_sg(init_data_ptr->enc_mode, scs->input_resolution, config->fast_decode, allintra))
+        if (svt_aom_get_enable_sg(config->enc_mode, scs->input_resolution, config->fast_decode, allintra))
             EB_MALLOC_ALIGNED(context_ptr->rst_tmpbuf, RESTORATION_TMPBUF_SIZE);
     }
 

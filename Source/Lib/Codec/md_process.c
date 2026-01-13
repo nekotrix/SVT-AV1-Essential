@@ -433,6 +433,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     picture_buffer_desc_init_data.top_padding        = 0;
     picture_buffer_desc_init_data.bot_padding        = 0;
     picture_buffer_desc_init_data.split_mode         = false;
+    picture_buffer_desc_init_data.is_16bit_pipeline  = false;
 
     thirty_two_width_picture_buffer_desc_init_data.max_width          = sb_size;
     thirty_two_width_picture_buffer_desc_init_data.max_height         = sb_size;
@@ -444,6 +445,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     thirty_two_width_picture_buffer_desc_init_data.top_padding        = 0;
     thirty_two_width_picture_buffer_desc_init_data.bot_padding        = 0;
     thirty_two_width_picture_buffer_desc_init_data.split_mode         = false;
+    thirty_two_width_picture_buffer_desc_init_data.is_16bit_pipeline  = false;
     for (uint32_t txt_itr = 0; txt_itr < TX_TYPES; ++txt_itr) {
         EB_NEW(ctx->recon_coeff_ptr[txt_itr],
                svt_picture_buffer_desc_ctor,
@@ -466,6 +468,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     double_width_picture_buffer_desc_init_data.top_padding        = 0;
     double_width_picture_buffer_desc_init_data.bot_padding        = 0;
     double_width_picture_buffer_desc_init_data.split_mode         = false;
+    double_width_picture_buffer_desc_init_data.is_16bit_pipeline  = false;
 
     // The temp_recon_ptr and temp_residual will be shared by all candidates
     // If you want to do something with residual or recon, you need to create one
