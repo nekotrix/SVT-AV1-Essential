@@ -25,9 +25,9 @@ extern "C" {
 struct SvtMetadataArray;
 
 // API Version
-#define SVT_AV1_VERSION_MAJOR 3
-#define SVT_AV1_VERSION_MINOR 1
-#define SVT_AV1_VERSION_PATCHLEVEL 2
+#define SVT_AV1_VERSION_MAJOR 4
+#define SVT_AV1_VERSION_MINOR 0
+#define SVT_AV1_VERSION_PATCHLEVEL 0
 
 #define SVT_AV1_CHECK_VERSION(major, minor, patch)                                                               \
     (SVT_AV1_VERSION_MAJOR > (major) || (SVT_AV1_VERSION_MAJOR == (major) && SVT_AV1_VERSION_MINOR > (minor)) || \
@@ -391,11 +391,6 @@ typedef uint64_t EbCpuFlags;
 #define EB_CPU_FLAGS_AVX512F (1 << 9)
 #define EB_CPU_FLAGS_AVX512CD (1 << 10)
 #define EB_CPU_FLAGS_AVX512DQ (1 << 11)
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0)
-// Deprecated as they were never used.
-#define EB_CPU_FLAGS_AVX512ER (1 << 12)
-#define EB_CPU_FLAGS_AVX512PF (1 << 13)
-#endif
 #define EB_CPU_FLAGS_AVX512BW (1 << 14)
 #define EB_CPU_FLAGS_AVX512VL (1 << 15)
 // AVX512 extensions supported on Icelake and later (Zen 4 and later on AMD)

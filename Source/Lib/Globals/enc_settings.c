@@ -195,7 +195,6 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     // This check will stay in place until restoration filtering can handle these dimensions
     if ((scs->max_input_luma_width >= 4 && scs->max_input_luma_width < 64) ||
         (scs->max_input_luma_height >= 4 && scs->max_input_luma_height < 64)) {
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
         if (config->aq_mode != 0) {
             SVT_WARN("AQ mode %i is unsupported with source dimensions (%i / %i), setting AQ mode to 0\n",
                      config->aq_mode,
@@ -203,15 +202,6 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
                      scs->max_input_luma_height);
             config->aq_mode = 0;
         }
-#else
-        if (config->enable_adaptive_quantization != 0) {
-            SVT_WARN("AQ mode %i is unsupported with source dimensions (%i / %i), setting AQ mode to 0\n",
-                     config->enable_adaptive_quantization,
-                     scs->max_input_luma_width,
-                     scs->max_input_luma_height);
-            config->enable_adaptive_quantization = 0;
-        }
-#endif
         if (config->enable_restoration_filtering != 0) {
             SVT_WARN(
                 "Restoration Filtering is unsupported with source dimensions (%i / %i), disabling "
@@ -253,11 +243,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     }
 
     if (config->qp > MAX_QP_VALUE) {
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
         SVT_ERROR("%s must be [0 - %d]\n", config->aq_mode ? "CRF" : "QP", MAX_QP_VALUE);
-#else
-        SVT_ERROR("%s must be [0 - %d]\n", config->enable_adaptive_quantization ? "CRF" : "QP", MAX_QP_VALUE);
-#endif
         return_error = EB_ErrorBadParameter;
     }
 
@@ -432,17 +418,10 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
     if (scs->static_config.aq_mode > 2) {
         SVT_ERROR("Invalid adaptive quantization (AQ) mode. AQ mode must be [0-2]\n");
         return_error = EB_ErrorBadParameter;
     }
-#else
-    if (scs->static_config.enable_adaptive_quantization > 2) {
-        SVT_ERROR("Invalid enable_adaptive_quantization. enable_adaptive_quantization must be [0-2]\n");
-        return_error = EB_ErrorBadParameter;
-    }
-#endif
 
     if ((config->encoder_bit_depth != 8) && (config->encoder_bit_depth != 10)) {
         SVT_ERROR("Encoder Bit Depth shall be only 8 or 10 \n");
@@ -487,22 +466,6 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
 #endif
         return_error = EB_ErrorBadParameter;
     }
-
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-    if (config->enable_tpl_la != 1 /*default value*/) {
-        SVT_WARN("enable_tpl_la will be removed in v4.0. Value is ignored.\n");
-    }
-#endif
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-    if (config->pin_threads != 0 /*default value*/) {
-        SVT_WARN(
-            "Pinned Execution option (--pin) is deprecated and will be removed in v4.0. Value is "
-            "ignored.\n");
-    }
-    if (config->target_socket != -1 /*default value*/) {
-        SVT_WARN("Target Socket option (--ss) is deprecated and will be removed in v4.0. Value is ignored.\n");
-    }
-#endif
 
     // HBD mode decision
     if (scs->enable_hbd_mode_decision < (int8_t)(-1) || scs->enable_hbd_mode_decision > 2) {
@@ -668,11 +631,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
     if (config->aq_mode == 0 && config->rate_control_mode) {
-#else
-    if (config->enable_adaptive_quantization == 0 && config->rate_control_mode) {
-#endif
         SVT_ERROR("Adaptive quantization can not be turned OFF when RC ON\n");
         return_error = EB_ErrorBadParameter;
     }
@@ -708,11 +667,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     }
 
     /* Warnings about the use of features that are incomplete */
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
     if (config->aq_mode == 1) {
-#else
-    if (config->enable_adaptive_quantization == 1) {
-#endif
         SVT_WARN(
             "The adaptive quantization mode using segmentation is at a support level "
             "only to be available for demos, experimentation, and further development uses and "
@@ -923,21 +878,14 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
 
     for (int i = 0; i < SVT_AV1_FRAME_UPDATE_TYPES; i++) config_ptr->lambda_scale_factors[i] = 128;
 
-    config_ptr->scene_change_detection = 0;
-    config_ptr->rate_control_mode      = SVT_AV1_RC_MODE_CQP_OR_CRF;
-    config_ptr->look_ahead_distance    = (uint32_t)~0;
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-    config_ptr->enable_tpl_la = 1;
-#endif
-    config_ptr->target_bit_rate = 2000513;
-    config_ptr->max_bit_rate    = 0;
-    config_ptr->max_qp_allowed  = 63;
-    config_ptr->min_qp_allowed  = MIN_QP_AUTO;
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
-    config_ptr->aq_mode = 2;
-#else
-    config_ptr->enable_adaptive_quantization = 2;
-#endif
+    config_ptr->scene_change_detection       = 0;
+    config_ptr->rate_control_mode            = SVT_AV1_RC_MODE_CQP_OR_CRF;
+    config_ptr->look_ahead_distance          = (uint32_t)~0;
+    config_ptr->target_bit_rate              = 2000513;
+    config_ptr->max_bit_rate                 = 0;
+    config_ptr->max_qp_allowed               = 63;
+    config_ptr->min_qp_allowed               = MIN_QP_AUTO;
+    config_ptr->aq_mode                      = 2;
     config_ptr->enc_mode                     = ENC_M8;
     config_ptr->intra_period_length          = -2;
     config_ptr->multiply_keyint              = false;
@@ -980,14 +928,6 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
 
     // Channel info
     config_ptr->level_of_parallelism = 0;
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-    config_ptr->pin_threads   = 0;
-    config_ptr->target_socket = -1;
-#endif
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-    config_ptr->channel_id           = 0;
-    config_ptr->active_channel_count = 1;
-#endif
 
     // Debug info
     config_ptr->recon_enabled = 0;
@@ -1164,7 +1104,6 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
             }
         }
         if (config->rate_control_mode != SVT_AV1_RC_MODE_CBR) {
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
             if (!config->enable_variance_boost) {
                 SVT_INFO("SVT [config]: AQ mode / Variance Boost \t\t\t\t\t: %d / %d\n",
                          config->aq_mode,
@@ -1176,19 +1115,6 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                          config->variance_octile,
                          config->variance_boost_curve);
             }
-#else
-            if (!config->enable_variance_boost) {
-                SVT_INFO("SVT [config]: AQ mode / Variance Boost \t\t\t\t\t: %d / %d\n",
-                         config->enable_adaptive_quantization,
-                         config->enable_variance_boost);
-            } else {
-                SVT_INFO("SVT [config]: AQ mode / Variance Boost strength / octile / curve \t\t: %d / %d / %d / %d\n",
-                         config->enable_adaptive_quantization,
-                         config->variance_boost_strength,
-                         config->variance_octile,
-                         config->variance_boost_curve);
-            }
-#endif
         }
 
         if (config->film_grain_denoise_strength != 0) {
@@ -1479,13 +1405,9 @@ static EbErrorType str_to_crf(const char *nptr, EbSvtAv1EncConfiguration *config
     uint32_t qp                         = AOMMIN(MAX_QP_VALUE, (uint32_t)crf);
     uint32_t extended_crf_qindex_offset = extended_q_index - qp * 4;
 
-    config_struct->qp                = qp;
-    config_struct->rate_control_mode = SVT_AV1_RC_MODE_CQP_OR_CRF;
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
-    config_struct->aq_mode = 2;
-#else
-    config_struct->enable_adaptive_quantization = 2;
-#endif
+    config_struct->qp                         = qp;
+    config_struct->rate_control_mode          = SVT_AV1_RC_MODE_CQP_OR_CRF;
+    config_struct->aq_mode                    = 2;
     config_struct->extended_crf_qindex_offset = extended_crf_qindex_offset;
 
     return EB_ErrorNone;
@@ -2026,13 +1948,8 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
     if (!strcmp(name, "crf"))
         return str_to_crf(value, config_struct);
 
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
     if (!strcmp(name, "rc"))
         return str_to_rc_mode(value, &config_struct->rate_control_mode, &config_struct->aq_mode);
-#else
-    if (!strcmp(name, "rc"))
-        return str_to_rc_mode(value, &config_struct->rate_control_mode, &config_struct->enable_adaptive_quantization);
-#endif
 
     // custom enum fields
     if (!strcmp(name, "profile"))
@@ -2112,9 +2029,6 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"tier", &config_struct->tier},
         {"level", &config_struct->level},
         {"lp", &config_struct->level_of_parallelism},
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-        {"pin", &config_struct->pin_threads},
-#endif
         {"fps-num", &config_struct->frame_rate_numerator},
         {"fps-denom", &config_struct->frame_rate_denominator},
         {"lookahead", &config_struct->look_ahead_distance},
@@ -2147,14 +2061,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         uint8_t    *out;
     } uint8_opts[] = {
         {"pred-struct", &config_struct->pred_structure},
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-        {"enable-tpl-la", &config_struct->enable_tpl_la},
-#endif
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
         {"aq-mode", &config_struct->aq_mode},
-#else
-        {"aq-mode", &config_struct->enable_adaptive_quantization},
-#endif
         {"superres-mode", &config_struct->superres_mode},
         {"superres-qthres", &config_struct->superres_qthres},
         {"superres-kf-qthres", &config_struct->superres_kf_qthres},
@@ -2249,9 +2156,6 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"intra-period", &config_struct->intra_period_length},
         {"tile-rows", &config_struct->tile_rows},
         {"tile-columns", &config_struct->tile_columns},
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-        {"ss", &config_struct->target_socket},
-#endif
         {"sframe-dist", &config_struct->sframe_dist},
     };
     const size_t int_opts_size = sizeof(int_opts) / sizeof(int_opts[0]);

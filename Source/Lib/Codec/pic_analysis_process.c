@@ -397,11 +397,7 @@ static void compute_b64_variance(SequenceControlSet *scs, PictureParentControlSe
         2;
 
     uint16_t *sb_var = pcs->variance[b64_idx];
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
     if (scs->allintra || scs->static_config.aq_mode == 1 || scs->static_config.variance_octile) {
-#else
-    if (scs->allintra || scs->static_config.enable_adaptive_quantization == 1 || scs->static_config.variance_octile) {
-#endif
         // 8x8 variances
         for (int blk_8x8_idx = 0, me_pu_idx = ME_TIER_ZERO_PU_8x8_0; blk_8x8_idx < 64; blk_8x8_idx++, me_pu_idx++) {
             sb_var[me_pu_idx] = (uint16_t)((mean_of_8x8_squared_values_blocks[blk_8x8_idx] -

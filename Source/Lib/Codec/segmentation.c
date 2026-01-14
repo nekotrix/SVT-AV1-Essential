@@ -218,12 +218,8 @@ void svt_aom_setup_segmentation(PictureControlSet *pcs, SequenceControlSet *scs)
         roi_map_setup_segmentation(pcs, scs);
         return;
     }
-    SegmentationParams *segmentation_params = &pcs->ppcs->frm_hdr.segmentation_params;
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
+    SegmentationParams *segmentation_params   = &pcs->ppcs->frm_hdr.segmentation_params;
     segmentation_params->segmentation_enabled = (bool)(scs->static_config.aq_mode == 1);
-#else
-    segmentation_params->segmentation_enabled = (bool)(scs->static_config.enable_adaptive_quantization == 1);
-#endif
     if (segmentation_params->segmentation_enabled) {
         segmentation_params->segmentation_update_data =
             1; //always updating for now. Need to set this based on actual deltas

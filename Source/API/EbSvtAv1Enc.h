@@ -29,7 +29,7 @@ extern "C" {
  * has been modified, and reset anytime the major API version has
  * been changed. Used to keep track if a field has been added or not.
  */
-#define SVT_AV1_ENC_ABI_VERSION 1
+#define SVT_AV1_ENC_ABI_VERSION 0
 #define HIERARCHICAL_LEVELS_AUTO ((uint32_t)(~0))
 #define MAX_HIERARCHICAL_LEVEL 6
 #define REF_LIST_MAX_DEPTH 4
@@ -164,19 +164,6 @@ typedef enum EbSFrameMode {
     SFRAME_DEC_POSI_BASE =
         4, /**< If the considered frame in decode order is not an altref frame, modify the mini-GOP structure to promote its previous frame to an altref frame, and set the next altref to an S-Frame */
 } EbSFrameMode;
-
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-/* Do not use the values in SvtAv1PredStructure. Use PredStructure (in definitions.h) instead.
- * SvtAv1PredStructure will be deprecated in v4.0.
- */
-typedef enum SvtAv1PredStructure {
-    SVT_AV1_PRED_LOW_DELAY_P   = 0, // No longer active
-    SVT_AV1_PRED_LOW_DELAY_B   = 1,
-    SVT_AV1_PRED_RANDOM_ACCESS = 2,
-    SVT_AV1_PRED_TOTAL_COUNT   = 3,
-    SVT_AV1_PRED_INVALID       = 0xFF,
-} SvtAv1PredStructure;
-#endif
 
 /* Indicates what rate control mode is used.
  * Currently, cqp is distinguised by setting aq_mode to 0
@@ -620,14 +607,6 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default depends on rate control mode.*/
     uint32_t look_ahead_distance;
 
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-    /* Enable TPL in look ahead
-     * 0 = disable TPL in look ahead
-     * 1 = enable TPL in look ahead
-     * Default is 0  */
-    uint8_t enable_tpl_la;
-#endif
-
     /* recode_loop indicates the recode levels,
      * DISALLOW_RECODE = 0, No recode.
      * ALLOW_RECODE_KFMAXBW = 1, Allow recode for KF and exceeding maximum frame bandwidth.
@@ -644,7 +623,6 @@ typedef struct EbSvtAv1EncConfiguration {
     * Default is 0. */
     uint32_t screen_content_mode;
 
-#if SVT_AV1_CHECK_VERSION(4, 0, 0)
     /* Adaptive quantization used within a frame.
      *
      * For rc_mode 0, setting this to:
@@ -652,13 +630,6 @@ typedef struct EbSvtAv1EncConfiguration {
      * 1: variance-based segmentation
      * 2: CRF (per-frame QPs and per-SB delta-QPs derived using TPL) */
     uint8_t aq_mode;
-#else
-    /* Enable adaptive quantization within a frame using segmentation.
-     *
-     * For rate control mode 0, setting this to 0 will use CQP mode, else CRF mode will be used.
-     * Default is 2. */
-    uint8_t enable_adaptive_quantization;
-#endif
 
     /**
      * @brief Enable use of ALT-REF (temporally filtered) frames.
@@ -698,38 +669,13 @@ typedef struct EbSvtAv1EncConfiguration {
     * values are from EbSFrameMode
     * SFRAME_STRICT_ARF: the considered frame will be made into an S-Frame only if it is an altref frame
     * SFRAME_NEAREST_ARF: if the considered frame is not an altref frame, the next altref frame will be made into an S-Frame
-#if FTR_SFRAME_FLEX
     * SFRAME_FLEXIBLE_ARF: if the considered frame is not an altref frame, modify the mini-GOP structure to promote it to an altref frame
-#endif // FTR_SFRAME_FLEX
-#if FTR_SFRAME_DEC_POSI
     * SFRAME_DEC_POSI: if the considered frame in decode order is not an altref frame, modify the mini-GOP structure to promote its previous frame to an altref frame, and set the next altref to an S-Frame
-#endif // FTR_SFRAME_DEC_POSI
     */
     EbSFrameMode sframe_mode;
 
     // End of individual tuning flags
 
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-    // Application Specific parameters
-
-    /**
-     * @brief API signal for the library to know the channel ID (used for pinning to cores).
-     *
-     * Min value is 0.
-     * Max value is 0xFFFFFFFF.
-     * Default is 0.
-     */
-    uint32_t channel_id;
-
-    /**
-     * @brief API signal for the library to know the active number of channels being encoded simultaneously.
-     *
-     * Min value is 1.
-     * Max value is 0xFFFFFFFF.
-     * Default is 1.
-     */
-    uint32_t active_channel_count;
-#endif
     // Threads management
 
     /* The level of parallelism refers to how much parallelization the encoder will perform
@@ -739,24 +685,6 @@ typedef struct EbSvtAv1EncConfiguration {
      * will map to the highest level.
      */
     uint32_t level_of_parallelism;
-
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-    /* Pin the execution of threads to the first N logical processors.
-     * 0: unpinned
-     * N: Pin threads to socket's first N processors
-     * default 0 */
-    uint32_t pin_threads;
-
-    /* Target socket to run on. For dual socket systems, this can specify which
-     * socket the encoder runs on.
-     *
-     * -1 = Both Sockets.
-     *  0 = Socket 0.
-     *  1 = Socket 1.
-     *
-     * Default is -1. */
-    int32_t target_socket;
-#endif
 
     /* CPU FLAGS to limit assembly instruction set used by encoder.
     * Default is EB_CPU_FLAGS_ALL. */
@@ -1035,14 +963,9 @@ typedef struct EbSvtAv1EncConfiguration {
      double ac_bias;
 
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
-    uint8_t padding[128 - (sizeof(uint8_t) * 5)
-        - (sizeof(bool) * 2)
-        - sizeof(double)
-        - sizeof(SvtAv1SFramePositions)
-        - sizeof(uint8_t)
-        - sizeof(int8_t)
+    uint8_t padding[128
     ];
-     // clang-format on
+    // clang-format on
 } EbSvtAv1EncConfiguration;
 
 /**

@@ -172,11 +172,7 @@ static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, in
     // Init the Encoder
     EncChannel* c = &enc_context->channel;
     if (c->return_error == EB_ErrorNone) {
-        EbConfig* app_cfg = c->app_cfg;
-#if !SVT_AV1_CHECK_VERSION(4, 0, 0) // to be deprecated in v4.0
-        app_cfg->config.active_channel_count = 1;
-        app_cfg->config.channel_id           = 0;
-#endif
+        EbConfig* app_cfg             = c->app_cfg;
         app_cfg->config.recon_enabled = app_cfg->recon_file ? true : false;
 
         // set force_key_frames frames
