@@ -442,6 +442,7 @@ void SequenceHeaderParser::input_obu_data(const uint8_t *obu_data,
     seg_header.enable_masked_compound = 0;
     seg_header.enable_intra_edge_filter = 0;
     seg_header.filter_intra_level = 0;
+    seg_header.decoder_model_info.buffer_delay_length_minus_1 = 0;
 
     if (svt_get_sequence_info(obu_data, size, &seg_header) == EB_ErrorNone) {
         profile_ = seg_header.seq_profile;
