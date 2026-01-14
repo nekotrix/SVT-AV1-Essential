@@ -1,5 +1,80 @@
 # Changelog
 
+## [4.0.0] - 2026-01-13
+
+API updates
+
+- Added support for setting a custom global logger for library consumers (!2570, !2579)
+- Cleaned up public API headers including removal of deprecated macros, structs, and fields (!2565, !2568)
+  - Additionally cleaned up anything marked using `SVT_AV1_CHECK_VERSION()`.
+- Added ability to calculate per-frame PSNR and SSIM metrics (!2521)
+- Allow sending more than 1 but less than 4 frames with avif mode (This is not for AVIF image sequence, but for encoding an alpha layer) (!2551, !2560)
+
+Encoder
+
+- Added dynamic delta q res switching (SVT-AV1-PSY, !2484, !2504)
+- Added new or ported Arm optimizations for various functions (!2478, !2486, !2479, !2497, !2495, !2516, !2519, !2493, !2529, !2531, !2530, !2540, !2541, !2548, !2555, !2553)
+- New s-frame QP and QP-offset options (!2477)
+- New s-frame mode for setting s-frames at specific positions in decode order (!2523, !2534)
+- Ported over intraBC hash search optimizations from libaom (SVT-AV1-PSY, !2491)
+- Added togglable adaptive film grain (SVT-AV1-PSY, !2496)
+- Added SIMD optimization for memcpy and memset functions for Neon (!2498)
+- Added an Image Quality (IQ) tune (SVT-AV1-PSY, !2489, !2514, !2562, !2561)
+- Added an option to allow restricting selection of block transforms (SVT-AV1-PSY, !2507, !2576)
+- Reduced runtime memory usage for RTC mode (!2505)
+- Added extended quarter-step CRF support (SVT-AV1-PSY, !2503, !2522)
+- Added `--scm 3` for better screen content detection (SVT-AV1-PSY, !2494, !2559)
+- Added CMake configuration file for finding SVT-AV1 package (!2517, !2537)
+- Visually improved the detailed progress mode output (SVT-AV1-PSY, !2511)
+- Added AC Bias (SVT-AV1-PSY, !2513, !2574)
+- Tune lambda-weights for intra frames with high QPs (!2543)
+- Still image algorithmic and performance improvements (!2552, !2567)
+- RTC mode optimization and preset tuning for all modes (!2558)
+
+Cleanups, bug fixes, and Documentation
+
+In addition to the cleanups mentioned in the API section,
+
+- Code specific cleanup for slimmer binary sizes (!2476)
+- Minor CMake build related fixes (!2501)
+- Fixed RTC build with unit tests (!2499)
+- Changed tune value from integer to enum for better readability (!2506)
+- Fixed an issue with the encoder hanging when given an input with a height of 24 pixels or less (!2518)
+- Fixed compilation warnings for GCC 15 with Arm (!2525)
+- Fixed a bug that results in encoding an invalid bitstream when using rtc with a high QP value (!2502)
+- Added CI coverage for compiling FFmpeg on macOS Arm (!2536)
+- Fixed a hang with VBR encoding (#2300, !2535)
+- Reject inputs with an FPS less than 1 as unsupported, removed `--fps` argument (#2305, !2542, !2546)
+- Fixed a hang when using recon output with low delay mode (#2315, !2544)
+- Fixed an encoder crash when using RTC with resolutions not divisible by 16 and presets >= 11 (#2301, !2547)
+- Added a python based testing framework for comparing codec performance and quality (!2532, !2550, !2556, !2563, !2564, !2566)
+- Addressed a partial amount of cppcheck warnings from the version bundled with Ubuntu 24.04 (!2512)
+- Fixed a CMake issue when using build.bat and Ninja on Windows (!2569)
+- Fixed some compilation and linking issues with Emscripten (!2571)
+- Fixed a hang caused by changes in !2452 (#2318, !2572)
+- Fixed bitstream level tier compliance with AV1 specification (#2332, !2577, !2581, !2587)
+- Removed in-tree gstreamer pluigin (!2586)
+- Unit test bug fixes (!2500, !2527, !2549, !2573, !2575)
+- General code cleanup and bugfixes (!2524, !2510, !2520, !2528, !2538, !2557, !2582, !2584)
+- General documentation and console output changes (!2515, !2508, !2533, !2545, !2554, #2583)
+
+Arm Improvements
+
+For this changelog, the merge requests are only listed here if they included performance impacts in their descriptions. Please refer to the specific MR for more details.
+
+- [Add Neon impl. of apply_zz_based_temporal_filter_planewise_medium functions](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2478)
+- [Optimize svt_aom_quantize_b_neon function](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2486)
+- [[AArch64] Add SVE implementation of svt_aom_get_final_filtered_pixels](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2479)
+- [Optimize the Neon implementation of svt_enc_msb_un_pack2d](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2497)
+- [Optimize svt_search_one_dual_neon function](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2495)
+- [[AArch64] Optimize svt_compute_cul_level](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2516)
+- [Optimize the Neon implementation of dr_prediction_z1/z2](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2519)
+- [[aarch64] Replace redundant loads with load+vext in SAD kernels](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2493)
+- [[AArch64] Optimize svt_aom_convolve8*](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2531)
+- [Add Neon I8MM implementation svt_av1_filter_intra_predictor](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2530)
+- [Optimize Armv8.0 Neon impl of filter_intra_predictor_neon](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2555)
+- [Optimize Neon (Armv8.0), Neon I8MM, SVE implementations of av1_warp_affine](https://gitlab.com/AOMediaCodec/SVT-AV1/-/merge_requests/2553)
+
 ## [3.1.2] - 2025-8-24
 
 Fix missing version bump
