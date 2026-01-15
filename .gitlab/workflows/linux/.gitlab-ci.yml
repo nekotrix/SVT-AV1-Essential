@@ -435,6 +435,8 @@ Linux Gstreamer (Static):
         ! svtav1enc \
         ! webmmux \
         ! filesink location=akiyo.mkv
+  needs:
+    - Linux (GCC 11, Static)
 
 Linux libavif (Static):
   extends: .linux-test-base
@@ -472,6 +474,8 @@ Linux libavif (Static):
       -DAVIF_LIBYUV=OFF #Remove this token once upgraded to Ubuntu 22
     - cmake --build libavif-build --config Release --target install
     - valgrind --error-exitcode=1 --track-origins=yes --suppressions=/usr/lib/valgrind/debian.supp -- avifenc -c svt -d 8 -y 420 -r limited -j 2 ./Docs/img/me_fig_new.png out.avif
+  needs:
+    - Linux (GCC 11, Static)
 
 Linux FFmpeg (n7.1, Static):
   extends: .linux-test-base
