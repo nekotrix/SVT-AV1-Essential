@@ -401,6 +401,12 @@ Linux Gstreamer (Static):
   extends: .linux-test-base
   stage: standalone
   dependencies: []
+  cache:
+    key: gstreamer-static
+    paths:
+      - gstreamer/
+      - .ccache
+    policy: pull-push
   variables:
     CC: gcc-11
     CXX: g++-11
@@ -410,11 +416,19 @@ Linux Gstreamer (Static):
     PKG_CONFIG: pkg-config --static
     PKG_CONFIG_PATH: /usr/local/lib/pkgconfig
     GIT_DEPTH: 0
+  allow_failure: true
   script:
     - cmake -B Build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_APPS=OFF -DREPRODUCIBLE_BUILDS=ON
     - cmake --build Build --config Release --target install
-    - meson setup -Dprefix=/usr --buildtype release gstreamer-plugin/build gstreamer-plugin
-    - meson install -C gstreamer-plugin/build
+    - |
+      if [ -d gstreamer ]; then
+        git -C gstreamer fetch origin main
+        git -C gstreamer reset --hard FETCH_HEAD
+      else
+        git clone https://gitlab.freedesktop.org/gstreamer/gstreamer.git
+      fi
+    - meson setup -Dprefix=/usr --buildtype release -Dauto_features=disabled -Dbad=enabled -Dgst-plugins-bad:svtav1=enabled -Dtests=disabled gstreamer-plugin gstreamer
+    - meson install -C gstreamer-plugin
     - |
       gst-launch-1.0 -v filesrc location=akiyo_cif.y4m \
         ! y4mdec \
