@@ -525,3 +525,48 @@ ffmpeg -y -i in.mp4 \
   out.mp4
 # chroma-sample-position needs to be repeated because it currently isn't set ffmpeg's side
 ```
+
+## Appendix A Psychovisual Parameters
+
+### `--max-tx-size [32,64]`
+`--max-tx-size` allows the encoder to restrict selection of blocks transform sizes up to a maximum size. Valid values are 32 and 64.
+In the AV1 standard, 64-pt transforms have the last 32 highest-frequency coefficients zeroed out during encoding, which means coded blocks can look visually blurry, especially when encoding fine noise-like textures.
+PSNR and SSIM-based RDO metrics don't seem to detect this blurriness, so this setting combats this issue by not allowing 64-pt transforms to be considered in the first place. The result is an overall increase in output quality consistency, especially for still images in the medium to high quality range.
+
+### `--qp-scale-compress-strength [0-3]`
+`--qp-scale-compress-strength` is meant to improve spatio-temporal quality and by design, overall quality consistency. Of course, you trade off mean (average quality) to stddev (consistency).
+The stronger the algorithm strength, the more consistent quality is from keyframe to reference/bidirectional reference frames and other frame types.
+In exchange however, the fewer the opportunities frames can be used as references because they're relatively lower quality than the child frames. Thus, it brings down average performance in most cases (except for one case described further below).
+This parameter allows advanced users to switch between four levels of quantizer compression, compressing quantizer values across all hierarchical/temporal layers inside of a mini GOP.
+
+- **0** disables the feature, the default value.
+
+- **1** is `--qp-scale-compress-strength`, conservatively reducing the QP range used by the encoder. Useful for increasing visual consistency at almost all quality levels with next to no cost.
+
+- **2** is `--qp-scale-compress-strength`, reducing the QP range used by the encoder further. This is useful at higher quality levels where restricting the QP range across layers is more important.
+
+- **3** is `--qp-scale-compress-strength`, is the upper limit that was found useful for general-purpose (not Target Quality) encoding. This is useful at maximum fidelity expectations or when the set CRF/QP is very low. In the latter scenario, the feature can actually improve fidelity.
+
+### `--adaptive-film-grain [0,1]`
+When enabled, the `--adaptive-film-grain` parameter adaptively varies the film grain blocksize based on the resolution of the input video. This often greatly improves the consistency of film grain in the output video, reducing grain patterns.
+Adaptive film grain is enabled by default.
+
+### `--tf-strength [0-4]`
+`--tf-strength` is a parameter that allows users to configure the strength of temporal filtering on alternate reference frames, with an offset for keyframes if using Tune 0 (VQ). Based on the material, this can be perceptually salient.
+
+### `--enable-tf 2`
+`--enable-tf 2` enables experimental adaptive TF strength modulation based on 64x64 block error. This is not always perceptually or metrically salient, but it should provide feature parity with aomenc.
+
+### `--ac-bias [0.0-8.0]`
+`--ac-bias` is an energy-preserving psycho-visual metric that helps increase subjective quality of video. This metric is based on the difference of the "energy" (SATD - SAD) of the source and reconstituted encoded blocks, similar to x264 and x265's implementation. Alternatively, a more lightweight rate adjustment mechanism based on total block "energy" (sum of transformed AC block coefficients) used by the Fast-PD0 and Fast-PD1 code paths is provided.
+
+- **Moderate values** (1.0-1.5) help retain sharpness and acuity of textures and scenes with complex motion.
+
+- **High values** (4.0-6.0, together with disabling temporal filtering and CDEF) can dramatically improve film grain and noise retention.
+
+### `--luminance-qp-bias [0-100]`
+When enabled, the `--luminance-qp-bias` parameter enables frame-level luma bias to improve quality in dark scenes by adjusting frame-level QP based on average luminance across each frame.
+
+### `--sharpness [-7-7]`
+The `--sharpness` parameter allows users to manually configure deblocking loop filter sharpness, and it also affects rate control. It is used in Tune 3 (IQ) and Tune 4 (MS_SSIM), which is designed for still image compression; that being said, it still may be useful for perceptual fidelity in video.
+By default, sharpness is set to 0.
