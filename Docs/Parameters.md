@@ -526,7 +526,7 @@ ffmpeg -y -i in.mp4 \
 # chroma-sample-position needs to be repeated because it currently isn't set ffmpeg's side
 ```
 
-## Appendix A Psychovisual Parameters
+## Appendix B Psychovisual Parameters
 
 ### `--max-tx-size [32,64]`
 `--max-tx-size` allows the encoder to restrict selection of blocks transform sizes up to a maximum size. Valid values are 32 and 64.
