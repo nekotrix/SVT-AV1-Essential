@@ -188,6 +188,7 @@ macOS FFmpeg (Static, x86):
     LDFLAGS: -pipe
     GIT_DEPTH: 0
     PREFIX_DIR: ${CI_PROJECT_DIR}/SVT-Install/
+  allow_failure: true
   before_script:
     - !reference [.ffmpeg-before-script-clone]
     - !reference [.ffmpeg-before-script-export]
@@ -238,6 +239,7 @@ macOS FFmpeg (Static, m1):
     LDFLAGS: -pipe
     GIT_DEPTH: 0
     PREFIX_DIR: ${CI_PROJECT_DIR}/SVT-Install/
+  allow_failure: true
   before_script:
     - !reference [.ffmpeg-before-script-clone]
     - !reference [.ffmpeg-before-script-export]

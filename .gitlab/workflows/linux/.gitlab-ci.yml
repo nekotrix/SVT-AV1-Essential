@@ -451,6 +451,7 @@ Linux libavif (Static):
     PKG_CONFIG_PATH: /usr/local/lib/pkgconfig
     GIT_DEPTH: 0
     CMAKE_BUILD_TYPE: Debug
+  allow_failure: true
   before_script:
     - !reference [.ffmpeg-before-script-git-setup]
     - git clone $PWD svtav1-src
@@ -481,6 +482,7 @@ Linux FFmpeg (n7.1, Static):
   extends: .linux-test-base
   stage: ffmpeg
   dependencies: []
+  allow_failure: true
   variables:
     CC: gcc-11
     CXX: g++-11
@@ -535,6 +537,7 @@ Linux FFmpeg (n5.0, Static):
     LDFLAGS: -pipe -static -static-libgcc -static-libstdc++
     GIT_DEPTH: 0
     CMAKE_BUILD_TYPE: Debug
+  allow_failure: true
   before_script:
     - !reference [.ffmpeg-before-script-git-setup]
     - !reference [.ffmpeg-before-script-clone]

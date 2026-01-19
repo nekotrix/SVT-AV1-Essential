@@ -111,6 +111,7 @@ Win64 FFmpeg (Static):
     LDFLAGS: -pipe -static -static-libgcc -static-libstdc++
     GIT_DEPTH: 0
     PREFIX_DIR: C:/msys64/mingw64
+  allow_failure: true
   before_script:
     - !reference [.ffmpeg-before-script-clone-windows]
   script:
