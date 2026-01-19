@@ -113,7 +113,9 @@ Win64 FFmpeg (Static):
     PREFIX_DIR: C:/msys64/mingw64
   allow_failure: true
   before_script:
+    - !reference [.ffmpeg-before-script-git-setup]
     - !reference [.ffmpeg-before-script-clone-windows]
+    - time git -C ffmpeg-src am -3 "$PWD/.gitlab/workflows/linux/0001-avcodec-libsvtav1-rename-aq_mode-for-v4.0.0.patch"
   script:
     # SVT-AV1
     - |

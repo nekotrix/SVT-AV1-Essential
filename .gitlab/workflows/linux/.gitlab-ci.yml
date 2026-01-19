@@ -456,6 +456,8 @@ Linux libavif (Static):
     - !reference [.ffmpeg-before-script-git-setup]
     - git clone $PWD svtav1-src
     - git clone https://github.com/AOMediaCodec/libavif.git libavif-src
+    - git -C libavif-src am "$PWD/.gitlab/workflows/linux/0001-Set-SVT-AV1-s-avif-option-for-v4.0.0-or-later.patch"
+    - git -C libavif-src am "$PWD/.gitlab/workflows/linux/0002-svt-av1-fix-aq_mode.patch"
     - git clone https://code.videolan.org/videolan/dav1d.git dav1d-src
     - !reference [.ffmpeg-before-script-export]
     - apt update && apt install -yyy libpng-dev libjpeg-dev
@@ -495,7 +497,8 @@ Linux FFmpeg (n7.1, Static):
     - !reference [.ffmpeg-before-script-git-setup]
     - !reference [.ffmpeg-before-script-clone]
     - git -C ffmpeg-src checkout n7.1
-    - git -C ffmpeg-src apply $PWD/.gitlab/workflows/linux/ffmpeg_n7_fix.patch
+    - git -C ffmpeg-src am -3 "$PWD/.gitlab/workflows/linux/0001-avcodec-libsvtav1-unbreak-build-with-latest-svtav1.patch"
+    - git -C ffmpeg-src am -3 "$PWD/.gitlab/workflows/linux/0001-avcodec-libsvtav1-rename-aq_mode-for-v4.0.0.patch"
     - !reference [.ffmpeg-before-script-export]
   script:
     - !reference [.ffmpeg-svtav1-script]
@@ -543,7 +546,8 @@ Linux FFmpeg (n5.0, Static):
     - !reference [.ffmpeg-before-script-clone]
     - git -C ffmpeg-src checkout n5.0
     - git -C ffmpeg-src am -3 "$PWD/ffmpeg_plugin/n5.0/"*.patch
-    - git -C ffmpeg-src apply $PWD/.gitlab/workflows/linux/ffmpeg_n5_fix.patch
+    - git -C ffmpeg-src am -3 "$PWD/.gitlab/workflows/linux/0001-avcodec-libsvtav1-unbreak-build-with-latest-svtav1.patch"
+    - git -C ffmpeg-src am -3 "$PWD/.gitlab/workflows/linux/0001-avcodec-libsvtav1-rename-aq_mode-for-v4.0.0.patch"
     - !reference [.ffmpeg-before-script-export]
   script:
     - !reference [.ffmpeg-svtav1-script]
