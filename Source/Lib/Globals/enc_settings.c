@@ -23,6 +23,7 @@
 #include "EbSvtAv1Enc.h"
 #include "EbSvtAv1Metadata.h"
 #include "enc_settings.h"
+#include "entropy_coding.h"
 
 #include "svt_log.h"
 #include "utility.h"
@@ -229,9 +230,26 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
-    if (config->level != 0 && (config->level < 20 || config->level > 73)) {
-        SVT_ERROR("Level must be in the range of [2.0-7.3]\n");
-        return_error = EB_ErrorBadParameter;
+    if (config->level != 0) {
+        BitstreamLevel bl;
+        bl.major = scs->static_config.level / 10;
+        bl.minor = scs->static_config.level % 10;
+        // Defined AV1 levels only have major versions 2-7 and minor versions 0-3
+        if (bl.minor > LEVEL_MINOR_MAX || bl.major < LEVEL_MAJOR_MIN || bl.major > LEVEL_MAJOR_MAX) {
+            SVT_ERROR("Invalid or undefined level specified: %d.%d. See AV1 spec Annex A for defined levels.\n",
+                      bl.major,
+                      bl.minor);
+            return_error = EB_ErrorBadParameter;
+        } else {
+            // Some levels in the allowable range are undefined by the spec.
+            const uint8_t seq_level_idx = major_minor_to_seq_level_idx(bl);
+            if (!is_valid_seq_level_idx(seq_level_idx)) {
+                SVT_ERROR("Invalid or undefined level specified: %d.%d. See AV1 spec Annex A for defined levels.\n",
+                          bl.major,
+                          bl.minor);
+                return_error = EB_ErrorBadParameter;
+            }
+        }
     }
 
     if (config->qp > MAX_QP_VALUE) {

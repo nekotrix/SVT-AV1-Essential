@@ -101,7 +101,7 @@ static void set_bitstream_level_tier(SequenceControlSet *scs) {
 
     BitstreamLevel bl = {9, 3};
     if (scs->static_config.level) {
-        bl.major = scs->static_config.level / 10 % 10;
+        bl.major = scs->static_config.level / 10;
         bl.minor = scs->static_config.level % 10;
     } else if (does_level_match(scs->seq_header.max_frame_width,
                                 scs->seq_header.max_frame_height,
