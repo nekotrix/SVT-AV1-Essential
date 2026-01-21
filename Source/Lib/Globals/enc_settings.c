@@ -232,9 +232,9 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
 
     if (config->level != 0) {
         BitstreamLevel bl;
-        bl.major = scs->static_config.level / 10;
-        bl.minor = scs->static_config.level % 10;
-        // Defined AV1 levels only have major versions 2-7 and minor versions 0-3
+        bl.major = config->level / 10;
+        bl.minor = config->level % 10;
+        // Defined AV1 levels only have major versions 2-9 and minor versions 0-3
         if (bl.minor > LEVEL_MINOR_MAX || bl.major < LEVEL_MAJOR_MIN || bl.major > LEVEL_MAJOR_MAX) {
             SVT_ERROR("Invalid or undefined level specified: %d.%d. See AV1 spec Annex A for defined levels.\n",
                       bl.major,
