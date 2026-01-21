@@ -5170,7 +5170,7 @@ EB_API EbErrorType svt_av1_enc_send_picture(
     enc_handle_ptr->frame_received = true;
 
     SequenceControlSet* scs = enc_handle_ptr->scs_instance->scs;
-    if (scs->static_config.avif && p_buffer->pts == 3) {
+    if (scs->static_config.avif && (p_buffer->flags & EB_BUFFERFLAG_EOS) != EB_BUFFERFLAG_EOS && p_buffer->pts == 3) {
         p_buffer->flags = EB_BUFFERFLAG_EOS;
         p_buffer->pic_type = EB_AV1_INVALID_PICTURE;
         enc_handle_ptr->eos_received = 1;
