@@ -7620,13 +7620,16 @@ static void md_encode_block_light_pd0(PictureControlSet *pcs, ModeDecisionContex
         ctx->blk_ptr->cost = ctx->blk_ptr->default_cost = *(ctx->cand_bf_ptr_array[ctx->mds0_best_idx]->full_cost);
     }
     assert(ctx->lpd1_ctrls.pd1_level < LPD1_LEVELS);
+
+    // Save info needed for depth refinement and/or LPD1
+    blk_ptr->block_mi.mode = ctx->cand_bf_ptr_array[ctx->mds0_best_idx]->cand->block_mi.mode;
+
     // Save info used by depth refinemetn and the light-PD1 detector (detector uses 64x64 block info only)
     if (ctx->lpd0_ctrls.pd0_level != VERY_LIGHT_PD0) {
         // Save info needed only for LPD1 detector
         if (ctx->lpd1_ctrls.pd1_level > REGULAR_PD1 && ctx->lpd1_ctrls.use_lpd1_detector[ctx->lpd1_ctrls.pd1_level] &&
             blk_geom->sq_size == 64) {
             ModeDecisionCandidate *cand = ctx->cand_bf_ptr_array[ctx->mds0_best_idx]->cand;
-            blk_ptr->block_mi.mode      = cand->block_mi.mode;
             if (is_inter_mode(cand->block_mi.mode)) {
                 blk_ptr->block_mi.ref_frame[0] = cand->block_mi.ref_frame[0];
                 blk_ptr->block_mi.ref_frame[1] = cand->block_mi.ref_frame[1];
@@ -7649,7 +7652,6 @@ static void md_encode_block_light_pd0(PictureControlSet *pcs, ModeDecisionContex
         // Update the variables needed for recon
         cand_bf->cand->transform_type[0] = DCT_DCT;
         ctx->blk_ptr->y_has_coeff        = cand_bf->y_has_coeff;
-        blk_ptr->block_mi.mode           = cand_bf->cand->block_mi.mode;
         // generate recon
         av1_perform_inverse_transform_recon(pcs, ctx, cand_bf, ctx->blk_geom);
 
