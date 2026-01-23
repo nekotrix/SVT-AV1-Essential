@@ -641,7 +641,7 @@ typedef struct EbSvtAv1EncConfiguration {
 
     bool enable_overlays;
     /**
-     * @brief Tune for a particular metric; 0: VQ, 1: PSNR, 2: SSIM.
+     * @brief Tune for a particular metric; 0: VQ, 1: PSNR, 2: SSIM, 3: IQ (Image Quality), 4: MS-SSIM.
      *
      * Default is 1.
      */
