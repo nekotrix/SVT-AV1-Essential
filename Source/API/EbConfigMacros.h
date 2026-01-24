@@ -22,6 +22,10 @@
 
 // clang-format off
 
+#ifndef RTC_BUILD
+#define RTC_BUILD 0
+#endif
+
 #if RTC_BUILD
 #define CONFIG_LOG_QUIET                    1
 
