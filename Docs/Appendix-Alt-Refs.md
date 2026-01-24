@@ -190,8 +190,8 @@ structure. For example, the list of pictures is stored in the
 ```temp_filt_pcs_list``` pointer array.
 
 For purposes of quality metrics computation, the original source picture
-is stored in ```save_enhanced_picture_ptr``` and
-```save_enhanced_picture_bit_inc_ptr``` (for high bit-depth content)
+is stored in ```save_source_picture_ptr``` and
+```save_source_picture_bit_inc_ptr``` (for high bit-depth content)
 located in the PCS.
 
 Due to the fact that HME is open-loop, which means it operates on the
