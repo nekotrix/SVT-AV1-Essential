@@ -78,3 +78,42 @@ Static analysis (cppcheck):
         -ithird_party \
         --cppcheck-build-dir=.cppcheck \
         --suppress=unusedFunction > /dev/null
+
+# Checks to make sure the version defined in project() matches the version in the public header and the pkg-config file.
+Version consistency:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: never
+    - if: $NIGHTLY == null && $WEEKEND == null
+  stage: check
+  image: registry.gitlab.com/aomediacodec/aom-testing/ubuntu2404
+  cache:
+    key: cppcheck
+    paths:
+      - .cppcheck
+    policy: pull-push
+  script:
+    - cmake -B Build -DCMAKE_BUILD_TYPE=Release
+    - pkg_config_version=$(pkg-config --modversion Build/SvtAv1Enc.pc)
+    - cmake_version=$(grep 'PROJECT_VERSION:' Build/CMakeCache.txt | cut -d '=' -f2)
+    - |
+      header_version=$(
+      cc -E -P -x c -I Source/API/ - <<'eof' | tail -n 1
+      #include <EbSvtAv1.h>
+      #define concat(a, b, c) a ## . ## b ## . ## c
+      #define concat2(a, b, c) concat(a, b, c)
+      concat2(SVT_AV1_VERSION_MAJOR, SVT_AV1_VERSION_MINOR, SVT_AV1_VERSION_PATCHLEVEL)
+      eof
+      )
+    - |
+      if [ "$pkg_config_version" != "$cmake_version" ] || [ "$pkg_config_version" != "$header_version" ]; then
+        cat <<EOF
+      Version mismatch detected:
+      pkg-config version: $pkg_config_version
+      CMake version:      $cmake_version
+      Header version:     $header_version
+      EOF
+        exit 1
+      else
+        echo "Version consistency check passed: $pkg_config_version"
+      fi
