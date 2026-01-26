@@ -1692,7 +1692,6 @@ void svt_aom_scale_rec_references(PictureControlSet *pcs, EbPictureBufferDesc *i
                                          0); // is_2bcompress
 
                     ref_object->downscaled_picture_number[sr_denom_idx][resize_denom_idx] = ref_picture_number;
-                    //printf("rescaled reference picture %d\n", (int)ref_picture_number);
                 }
 
                 svt_release_mutex(ref_object->resize_mutex[sr_denom_idx][resize_denom_idx]);

@@ -609,29 +609,6 @@ static INLINE void highbd_down2_symeven_w8_mid_part_avx2(const uint16_t *const i
             _mm_storeu_si128((__m128i *)optr, m128_sum8);
         }
 
-        // DEBUG: compare with c
-        /*{
-            const int16_t *filter = svt_aom_av1_down2_symeven_half_filter;
-            const int      filter_len_half = 4;
-            const int      bd              = 10;
-            uint16_t      *input              = in + 3;
-            uint16_t       output[8];
-            uint16_t      *optr_c = output;
-
-            for (int i = 0; i < 16; i += 2) {
-                int sum = (1 << (FILTER_BITS - 1));
-                for (int j = 0; j < filter_len_half; ++j) {
-                    sum += (input[i - j] + input[AOMMIN(i + 1 + j, length - 1)]) * filter[j];
-                }
-                sum >>= FILTER_BITS;
-                *optr_c++ = clip_pixel_highbd(sum, bd);
-            }
-
-            if (memcmp(output, optr, 8 * sizeof(uint16_t)) != 0) {
-                fprintf(stderr, "mismatch\n");
-            }
-        }*/
-
         optr += steps;
         i += steps * 2;
         in += steps * 2;

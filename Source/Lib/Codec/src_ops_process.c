@@ -1225,28 +1225,14 @@ static bool assign_tpl_segments(EncDecSegments *segmentPtr, uint16_t *segmentInO
         taskPtr->input_type = TPL_TASKS_CONTINUE;
         ++segmentPtr->row_array[0].current_seg_index;
         continue_processing_flag = true;
-
-        // fprintf(trace, "Start  Pic: %u Seg: %u\n",
-        //     (unsigned) ((PictureControlSet*) taskPtr->pcs_wrapper->object_ptr)->picture_number,
-        //     *segmentInOutIndex);
-
         break;
 
     case TPL_TASKS_ENCDEC_INPUT:
-
-        // Setup row_segment_index to release the in_progress token
-        //row_segment_index = taskPtr->encDecSegmentRowArray[0];
-
         // Start on the assigned row immediately
         *segmentInOutIndex  = segmentPtr->row_array[taskPtr->enc_dec_segment_row].current_seg_index;
         taskPtr->input_type = TPL_TASKS_CONTINUE;
         ++segmentPtr->row_array[taskPtr->enc_dec_segment_row].current_seg_index;
         continue_processing_flag = true;
-
-        // fprintf(trace, "Start  Pic: %u Seg: %u\n",
-        //     (unsigned) ((PictureControlSet*) taskPtr->pcs_wrapper->object_ptr)->picture_number,
-        //     *segmentInOutIndex);
-
         break;
 
     case TPL_TASKS_CONTINUE:
@@ -1269,10 +1255,6 @@ static bool assign_tpl_segments(EncDecSegments *segmentPtr, uint16_t *segmentInO
                 ++segmentPtr->row_array[row_segment_index].current_seg_index;
                 self_assigned            = true;
                 continue_processing_flag = true;
-
-                // fprintf(trace, "Start  Pic: %u Seg: %u\n",
-                //     (unsigned) ((PictureControlSet*)
-                //     taskPtr->pcs_wrapper->object_ptr)->picture_number, *segmentInOutIndex);
             }
 
             svt_release_mutex(segmentPtr->row_array[row_segment_index].assignment_mutex);
@@ -1292,10 +1274,6 @@ static bool assign_tpl_segments(EncDecSegments *segmentPtr, uint16_t *segmentInO
                     *segmentInOutIndex = segmentPtr->row_array[row_segment_index + 1].current_seg_index;
                     ++segmentPtr->row_array[row_segment_index + 1].current_seg_index;
                     continue_processing_flag = true;
-
-                    // fprintf(trace, "Start  Pic: %u Seg: %u\n",
-                    //     (unsigned) ((PictureControlSet*)
-                    //     taskPtr->pcs_wrapper->object_ptr)->picture_number, *segmentInOutIndex);
                 }
             }
             svt_release_mutex(segmentPtr->row_array[row_segment_index + 1].assignment_mutex);

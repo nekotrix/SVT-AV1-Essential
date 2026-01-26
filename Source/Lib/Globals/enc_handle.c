@@ -3859,7 +3859,6 @@ static void set_param_based_on_input(SequenceControlSet *scs)
             scs->max_block_cnt = 1101;
         }
     }
-    //printf("\n\nGEOM:%i \n", scs->svt_aom_geom_idx);
     // Configure the padding
     scs->left_padding = BLOCK_SIZE_64 + 4;
     scs->top_padding = BLOCK_SIZE_64 + 4;

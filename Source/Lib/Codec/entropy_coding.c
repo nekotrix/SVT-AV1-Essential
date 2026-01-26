@@ -241,8 +241,6 @@ void svt_aom_get_txb_ctx(PictureControlSet *pcs, const int32_t plane,
     uint32_t dc_sign_lvl_coeff_top_neighbor_idx = get_neighbor_array_unit_top_index(dc_sign_level_coeff_neighbor_array,
                                                                                     blk_org_x);
 
-    //printf("blk_org_y = %d, blk_org_x = %d\n", blk_org_y, blk_org_x);
-
     static const int8_t signs[3] = {0, -1, 1};
     int32_t             txb_w_unit;
     int32_t             txb_h_unit;

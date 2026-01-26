@@ -118,7 +118,6 @@ class FrameQueueFile : public FrameQueue {
             ((uint64_t)actual_size) > ((time_stamp + 1) * frame_size_)) {
             int ret = fseeko(recon_file_, time_stamp * frame_size_, 0);
             if (ret != 0) {
-                // printf("Error in fseeko  returnVal %i\n", ret);
                 return nullptr;
             }
             new_frame = get_empty_frame();
@@ -231,9 +230,6 @@ class RefQueue : public ICompareQueue, FrameQueueBuffer {
             const VideoFrame *p = frame_vec_.back();
             frame_vec_.pop_back();
             if (p) {
-                // printf("Reference queue still remain frames when
-                // delete(%u)\n",
-                //       (uint32_t)p->timestamp);
                 delete p;
             }
         }

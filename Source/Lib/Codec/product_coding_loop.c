@@ -1766,7 +1766,6 @@ static void md_full_pel_search_large_lbd(MV_COST_PARAMS *mv_cost_params, ModeDec
 
     if (search_area_width & 7) {
         uint32_t cost;
-        printf("Error 1\n");
         for (int32_t refinement_pos_y = search_position_start_y; refinement_pos_y <= search_position_end_y;
              refinement_pos_y         = refinement_pos_y + sparse_search_step) {
             int32_t refinement_pos_x = search_position_start_x + (search_area_width & 0xfffffff8);

@@ -3791,9 +3791,7 @@ static void low_delay_store_tf_pictures(
 {
     const uint32_t mg_size = 1 << (IS_SFRAME_FLEXIBLE_INSERT(scs->static_config.sframe_mode) ? (uint32_t)ctx->sframe_hier_lvls : scs->static_config.hierarchical_levels);
     const uint32_t tot_past = scs->tf_params_per_type[1].max_num_past_pics;
-    if (pcs->temporal_layer_index != 0 && pcs->pic_idx_in_mg + 1 + tot_past >= mg_size)
-    {
-        //printf("Store:%lld \n", pcs->picture_number);
+    if (pcs->temporal_layer_index != 0 && pcs->pic_idx_in_mg + 1 + tot_past >= mg_size) {
         //store this picture to be used for TF-ing upcoming base
         ctx->tf_pic_array[ctx->tf_pic_arr_cnt++] = pcs;
 
@@ -3815,7 +3813,6 @@ static void low_delay_release_tf_pictures(
     for (uint32_t pic_it = 0; pic_it < ctx->tf_pic_arr_cnt; pic_it++) {
 
         PictureParentControlSet *past_pcs = ctx->tf_pic_array[pic_it];
-        //printf("                   Release:%lld \n", past_pcs->picture_number);
 
         svt_release_object(past_pcs->input_pic_wrapper);
 
@@ -3949,7 +3946,6 @@ static void send_picture_out(
             pcs->me_data_wrapper = me_wrapper;
             pcs->pa_me_data = (MotionEstimationData *)me_wrapper->object_ptr;
             me_update_param(pcs->pa_me_data, scs);
-            //printf("[%ld]: Got me data [NORMAL] %p\n", pcs->picture_number, pcs->pa_me_data);
         }
 
 

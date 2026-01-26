@@ -250,17 +250,11 @@ static bool assign_enc_dec_segments(EncDecSegments *segmentPtr, uint16_t *segmen
 
     uint32_t self_assigned = false;
 
-    //static FILE *trace = 0;
-    //
-    //if(trace == 0) {
-    //    trace = fopen("seg-trace.txt","w");
-    //}
-
     switch (taskPtr->input_type) {
     case ENCDEC_TASKS_MDC_INPUT:
 
         // The entire picture is provided by the MDC process, so
-        //   no logic is necessary to clear input dependencies.
+        // no logic is necessary to clear input dependencies.
         // Reset enc_dec segments
         for (uint32_t row_index = 0; row_index < segmentPtr->segment_row_count; ++row_index) {
             segmentPtr->row_array[row_index].current_seg_index = segmentPtr->row_array[row_index].starting_seg_index;
@@ -271,32 +265,17 @@ static bool assign_enc_dec_segments(EncDecSegments *segmentPtr, uint16_t *segmen
         taskPtr->input_type = ENCDEC_TASKS_CONTINUE;
         ++segmentPtr->row_array[0].current_seg_index;
         continue_processing_flag = true;
-
-        // fprintf(trace, "Start  Pic: %u Seg: %u\n",
-        //     (unsigned) ((PictureControlSet*) taskPtr->pcs_wrapper->object_ptr)->picture_number,
-        //     *segmentInOutIndex);
-
         break;
 
     case ENCDEC_TASKS_ENCDEC_INPUT:
-
-        // Setup row_segment_index to release the in_progress token
-        //row_segment_index = taskPtr->encDecSegmentRowArray[0];
-
         // Start on the assigned row immediately
         *segmentInOutIndex  = segmentPtr->row_array[taskPtr->enc_dec_segment_row].current_seg_index;
         taskPtr->input_type = ENCDEC_TASKS_CONTINUE;
         ++segmentPtr->row_array[taskPtr->enc_dec_segment_row].current_seg_index;
         continue_processing_flag = true;
-
-        // fprintf(trace, "Start  Pic: %u Seg: %u\n",
-        //     (unsigned) ((PictureControlSet*) taskPtr->pcs_wrapper->object_ptr)->picture_number,
-        //     *segmentInOutIndex);
-
         break;
 
     case ENCDEC_TASKS_CONTINUE:
-
         // Update the Dependency List for Right and Bottom Neighbors
         segment_index     = *segmentInOutIndex;
         row_segment_index = segment_index / segmentPtr->segment_band_count;
@@ -315,10 +294,6 @@ static bool assign_enc_dec_segments(EncDecSegments *segmentPtr, uint16_t *segmen
                 ++segmentPtr->row_array[row_segment_index].current_seg_index;
                 self_assigned            = true;
                 continue_processing_flag = true;
-
-                // fprintf(trace, "Start  Pic: %u Seg: %u\n",
-                //     (unsigned) ((PictureControlSet*)
-                //     taskPtr->pcs_wrapper->object_ptr)->picture_number, *segmentInOutIndex);
             }
 
             svt_release_mutex(segmentPtr->row_array[row_segment_index].assignment_mutex);
@@ -338,10 +313,6 @@ static bool assign_enc_dec_segments(EncDecSegments *segmentPtr, uint16_t *segmen
                     *segmentInOutIndex = segmentPtr->row_array[row_segment_index + 1].current_seg_index;
                     ++segmentPtr->row_array[row_segment_index + 1].current_seg_index;
                     continue_processing_flag = true;
-
-                    // fprintf(trace, "Start  Pic: %u Seg: %u\n",
-                    //     (unsigned) ((PictureControlSet*)
-                    //     taskPtr->pcs_wrapper->object_ptr)->picture_number, *segmentInOutIndex);
                 }
             }
             svt_release_mutex(segmentPtr->row_array[row_segment_index + 1].assignment_mutex);
@@ -2862,14 +2833,9 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                         sb_ptr = ed_ctx->md_ctx->sb_ptr = pcs->sb_ptr_array[sb_index];
                         sb_origin_x                     = (x_sb_index + tile_group_x_sb_start) << sb_size_log2;
                         sb_origin_y                     = (y_sb_index + tile_group_y_sb_start) << sb_size_log2;
-                        //printf("[%ld]:ED sb index %d, (%d, %d), encoded total sb count %d, ctx coded sb count %d\n",
-                        //        pcs->picture_number,
-                        //        sb_index, sb_origin_x, sb_origin_y,
-                        //        pcs->enc_dec_coded_sb_count,
-                        //        context_ptr->coded_sb_count);
-                        ed_ctx->tile_index          = sb_ptr->tile_info.tile_rs_index;
-                        ed_ctx->md_ctx->tile_index  = sb_ptr->tile_info.tile_rs_index;
-                        ed_ctx->md_ctx->sb_origin_x = sb_origin_x;
+                        ed_ctx->tile_index              = sb_ptr->tile_info.tile_rs_index;
+                        ed_ctx->md_ctx->tile_index      = sb_ptr->tile_info.tile_rs_index;
+                        ed_ctx->md_ctx->sb_origin_x     = sb_origin_x;
                         ed_ctx->md_ctx->sb_origin_y = sb_origin_y;
                         mdc_ptr                     = &(ed_ctx->md_ctx->mdc_sb_array);
                         ed_ctx->sb_index            = sb_index;

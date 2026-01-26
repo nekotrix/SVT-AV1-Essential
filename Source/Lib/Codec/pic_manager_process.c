@@ -869,8 +869,6 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
             rc_tasks->pcs_wrapper      = child_pcs->c_pcs_wrapper_ptr;
             rc_tasks->task_type        = RC_INPUT;
 
-            // printf("picMgr sending:%x \n", rc_tasks->pcs_wrapper);
-
             // Post the Full Results Object
             svt_post_full_object(out_results_wrapper);
             // Remove the Input Entry from the Input Queue

@@ -37,7 +37,6 @@ static INLINE int16_t signed_char_clamp_high(int32_t t, int32_t bd) {
 uint8_t svt_aom_get_filter_level_delta_lf(FrameHeader *frm_hdr, const int32_t dir_idx, int32_t plane,
                                           int32_t *sb_delta_lf, uint8_t seg_id, PredictionMode pred_mode,
                                           MvReferenceFrame ref_frame_0) {
-    //printf("ERROR[AN]: delta_lf_present not supported yet\n");
     int32_t delta_lf = -1;
     if (frm_hdr->delta_lf_params.delta_lf_multi) {
         const int32_t delta_lf_idx = delta_lf_id_lut[plane][dir_idx];
