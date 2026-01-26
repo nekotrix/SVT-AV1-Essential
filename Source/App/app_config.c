@@ -780,7 +780,7 @@ ConfigDescription config_entry_rc[] = {
 #endif
     {ROI_MAP_FILE_TOKEN, "Enable Region Of Interest and specify a picture based QP Offset map file, default is off"},
     // TF Strength
-    {TF_STRENGTH_FILTER_TOKEN, "[PSY] Adjust temporal filtering strength, default is 3 [0-4]"},
+    {TF_STRENGTH_FILTER_TOKEN, "Adjust temporal filtering strength, default is 3 [0-4]"},
     // Frame-level luminance-based QP bias
     {LUMINANCE_QP_BIAS_TOKEN, "Adjusts a frame's QP based on its average luma value, default is 0 [0-100]"},
     // Sharpness
@@ -914,7 +914,7 @@ ConfigDescription config_entry_specific[] = {
 
 ConfigDescription config_entry_color_description[] = {
     // Color description help
-    {COLORH_TOKEN, "[PSY] Metadata help from user guide Appendix A.2"},
+    {COLORH_TOKEN, "Metadata help from user guide Appendix A.2"},
     // Color description
     {COLOR_PRIMARIES_NEW_TOKEN, "Color primaries, refer to --color-help. Default is 2 [0-12, 22]"},
     {TRANSFER_CHARACTERISTICS_NEW_TOKEN, "Transfer characteristics, refer to --color-help. Default is 2 [0-22]"},
