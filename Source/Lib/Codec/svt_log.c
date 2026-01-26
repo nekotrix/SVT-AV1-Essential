@@ -8,12 +8,12 @@
 * Media Patent License 1.0 was not distributed with this source code in the
 * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
-#include "svt_log.h"
-#include "svt_threads.h"
-//for getenv and fopen on windows
+//for getenv on windows
 #if defined(_WIN32) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+#include "svt_log.h"
+#include "svt_threads.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>

@@ -9,6 +9,10 @@
 * PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 */
 
+//for fscanf on windows
+#if defined(_WIN32) && !defined(_CRT_SECURE_NO_WARNINGS)
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +33,6 @@
 #endif
 
 #include "app_output_ivf.h"
-
 #if !defined(_WIN32) || !defined(HAVE_STRNLEN_S)
 #include "third_party/safestringlib/safe_str_lib.h"
 #endif
@@ -411,13 +414,7 @@ static EbErrorType set_cfg_fgs_table_path(EbConfig *cfg, const char *token, cons
         return ret;
     fclose(file);
 
-#ifdef _WIN32
-    cfg->fgs_table_path = _strdup(value);
-#else
-    cfg->fgs_table_path = strdup(value);
-#endif
-
-    return EB_ErrorNone;
+    return str_to_str(value, &cfg->fgs_table_path, token);
 }
 #endif
 static EbErrorType set_two_pass_stats(EbConfig *cfg, const char *token, const char *value) {
