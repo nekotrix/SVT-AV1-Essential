@@ -411,7 +411,11 @@ static EbErrorType set_cfg_fgs_table_path(EbConfig *cfg, const char *token, cons
         return ret;
     fclose(file);
 
+#ifdef _WIN32
+    cfg->fgs_table_path = _strdup(value);
+#else
     cfg->fgs_table_path = strdup(value);
+#endif
 
     return EB_ErrorNone;
 }

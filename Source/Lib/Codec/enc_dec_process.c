@@ -2836,9 +2836,9 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                         ed_ctx->tile_index              = sb_ptr->tile_info.tile_rs_index;
                         ed_ctx->md_ctx->tile_index      = sb_ptr->tile_info.tile_rs_index;
                         ed_ctx->md_ctx->sb_origin_x     = sb_origin_x;
-                        ed_ctx->md_ctx->sb_origin_y = sb_origin_y;
-                        mdc_ptr                     = &(ed_ctx->md_ctx->mdc_sb_array);
-                        ed_ctx->sb_index            = sb_index;
+                        ed_ctx->md_ctx->sb_origin_y     = sb_origin_y;
+                        mdc_ptr                         = &(ed_ctx->md_ctx->mdc_sb_array);
+                        ed_ctx->sb_index                = sb_index;
                         if (pcs->cdf_ctrl.enabled) {
                             if (scs->pic_based_rate_est && scs->enc_dec_segment_row_count_array == 1 &&
                                 scs->enc_dec_segment_col_count_array == 1) {

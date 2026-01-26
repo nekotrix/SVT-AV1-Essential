@@ -987,7 +987,7 @@ static void fast_loop_core_light_pd1(ModeDecisionCandidateBuffer *cand_bf, Pictu
     // If not first candidate to be tested, take advantage of known info to skip current candidate
     if (ctx->mds0_best_cost != (uint64_t)~0) {
         if (is_intra_mode(cand->block_mi.mode) && ctx->cand_reduction_ctrls.cand_elimination_ctrls.enabled) {
-            const uint32_t best_dist = ctx->cand_bf_ptr_array[ctx->mds0_best_idx]->luma_fast_dist;
+            const uint64_t best_dist = ctx->cand_bf_ptr_array[ctx->mds0_best_idx]->luma_fast_dist;
 
             // Use more aggressive dc_only_th at MDS0
             uint32_t th = cand->block_mi.mode != DC_PRED ? ctx->cand_reduction_ctrls.cand_elimination_ctrls.dc_only_th
@@ -1086,7 +1086,7 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer *cand_bf, PictureCon
             uint64_t simple_translation_cost                 = *(cand_bf->fast_cost);
             uint64_t simple_translation_fast_luma_rate       = cand_bf->fast_luma_rate;
             uint64_t simple_translation_fast_chroma_rate     = cand_bf->fast_chroma_rate;
-            uint32_t simple_translation_luma_fast_distortion = cand_bf->luma_fast_dist;
+            uint64_t simple_translation_luma_fast_distortion = cand_bf->luma_fast_dist;
             // Modify the motion-mode
             cand->block_mi.motion_mode = OBMC_CAUSAL;
 

@@ -1380,7 +1380,7 @@ static void cyclic_sb_qp_derivation(PictureControlSet *pcs) {
         seg2_dist    = (seg2_dist / cr->actual_num_seg2_sbs);
         uint64_t dev = (avg_me_dist - seg2_dist) * 100 / avg_me_dist;
         // Quadratic Scaling; boost = BOOST_MAX * (dev/100)^2
-        int boost = (BOOST_MAX * dev * dev) / (100 * 100); // = /10000
+        int boost = (int)((BOOST_MAX * dev * dev) / (100 * 100)); // = /10000
         cr->rate_boost_fac += boost;
     }
     int delta1 = compute_deltaq(
@@ -2899,8 +2899,8 @@ static void av1_rc_postencode_update(PictureParentControlSet *ppcs) {
                                                              2);
     }
     rc->avg_frame_low_motion = (rc->avg_frame_low_motion == 0)
-        ? ppcs->child_pcs->avg_cnt_zeromv
-        : (3 * rc->avg_frame_low_motion + ppcs->child_pcs->avg_cnt_zeromv) / 4;
+        ? (int)(ppcs->child_pcs->avg_cnt_zeromv)
+        : (int)((3 * rc->avg_frame_low_motion + ppcs->child_pcs->avg_cnt_zeromv) / 4);
     // Actual bits spent
     rc->total_actual_bits += ppcs->projected_frame_size;
     rc->total_target_bits += ppcs->frm_hdr.showable_frame ? rc->avg_frame_bandwidth : 0;
@@ -3723,7 +3723,9 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
 
                             // Testing revealed that limiting the max qindex offset to up the half the distance (i.e. 28 / 56)
                             // between MAX_Q_INDEX and the current qindex is enough to achieve desired file size targets
-                            qindex += ((MAX_Q_INDEX - qindex) * scs->static_config.extended_crf_qindex_offset) / 56.0;
+                            qindex += (int32_t)(((MAX_Q_INDEX - qindex) *
+                                                 scs->static_config.extended_crf_qindex_offset) /
+                                                56.0);
                             qindex = clamp_qindex(scs, qindex);
 
                             frm_hdr->quantization_params.base_q_idx = qindex;

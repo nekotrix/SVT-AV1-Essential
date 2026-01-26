@@ -95,6 +95,7 @@ static ONCE_ROUTINE(logger_create) {
         g_logger = NULL;
         ONCE_ROUTINE_EPILOG;
     }
+
     const char* log = getenv("SVT_LOG");
     ctx->level      = SVT_AV1_LOG_INFO;
     if (log) {
@@ -105,7 +106,7 @@ static ONCE_ROUTINE(logger_create) {
 
     const char* file = getenv("SVT_LOG_FILE");
     if (file)
-        ctx->file = fopen(file, "w+");
+        FOPEN(ctx->file, file, "w+");
     // If the file couldn't be opened, fall back to stderr
     if (!ctx->file)
         ctx->file = stderr;

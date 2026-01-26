@@ -94,11 +94,11 @@ int64_t svt_aom_highbd_get_sse(const uint8_t *a, int32_t a_stride, const uint8_t
     const int32_t dh  = height % 16;
     uint32_t      sse = 0;
     if (dw > 0) {
-        sse = highbd_variance(&a[width - dw], a_stride, &b[width - dw], b_stride, dw, height);
+        sse = (uint32_t)highbd_variance(&a[width - dw], a_stride, &b[width - dw], b_stride, dw, height);
         total_sse += sse;
     }
     if (dh > 0) {
-        sse = highbd_variance(
+        sse = (uint32_t)highbd_variance(
             &a[(height - dh) * a_stride], a_stride, &b[(height - dh) * b_stride], b_stride, width - dw, dh);
         total_sse += sse;
     }

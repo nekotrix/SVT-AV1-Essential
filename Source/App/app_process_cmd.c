@@ -998,7 +998,7 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
             case 2: {
                 // Detailed progress variables
                 const double ete         = app_cfg->performance_context.total_encode_time;
-                const int    ete_r       = round(ete);
+                const int    ete_r       = (int)round(ete);
                 const int    ete_hours   = ete_r / 3600;
                 const int    ete_minutes = (ete_r - (ete_hours * 3600)) / 60;
                 const int    ete_seconds = ete_r - (ete_hours * 3600) - (ete_minutes * 60);
@@ -1021,7 +1021,7 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
                 } else {
                     const double eta = (app_cfg->performance_context.total_encode_time / *frame_count) *
                         (app_cfg->frames_to_be_encoded - *frame_count);
-                    const int    eta_r       = round(eta);
+                    const int    eta_r       = (int)round(eta);
                     const int    eta_hours   = eta_r / 3600;
                     const int    eta_minutes = (eta_r - (eta_hours * 3600)) / 60;
                     const int    eta_seconds = eta_r - (eta_hours * 3600) - (eta_minutes * 60);

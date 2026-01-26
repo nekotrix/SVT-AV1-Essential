@@ -4154,7 +4154,7 @@ static void update_sframe_ref_order_hint(PictureParentControlSet *ppcs, PictureD
     if (ppcs->pred_structure == LOW_DELAY) {
         for (int32_t i = 0; i < REF_FRAMES; i++) {
             // dpd_order_hint should be updated with relative postion of key frame
-            ppcs->dpb_order_hint[i] = pd_ctx->ref_order_hint[i] - pd_ctx->key_poc;
+            ppcs->dpb_order_hint[i] = (uint32_t)(pd_ctx->ref_order_hint[i] - pd_ctx->key_poc);
         }
     }
     else {
@@ -4516,7 +4516,7 @@ static uint32_t get_pic_idx_in_mg(SequenceControlSet* scs, PictureParentControlS
         // In S-Frame flexible insertion mode, hierarchical levels are adjusted based on the S-Frame position.
         // Picture indices in the low-delay mini-GOP are calculated from the last saved ARF.
         if (IS_SFRAME_FLEXIBLE_INSERT(scs->static_config.sframe_mode)) {
-            pic_idx_in_mg = distance_to_last_idr > ctx->sframe_last_arf ? distance_to_last_idr - ctx->sframe_last_arf - 1 : 0;
+            pic_idx_in_mg = distance_to_last_idr > ctx->sframe_last_arf ? (uint32_t)(distance_to_last_idr - ctx->sframe_last_arf - 1) : 0;
         }
         pcs->frame_offset = distance_to_last_idr;
     }

@@ -1247,7 +1247,7 @@ static const double search_area_multipliers[3][5] = {
      { 1.0, 1.0, 2.0, 2.5, 3.5 }  /* boost=3 */
 };
 
-static void apply_me_sa_boost(int16_t *width, int16_t *height, int hme_sad, int sc_class_me_boost) {
+static void apply_me_sa_boost(int16_t *width, int16_t *height, uint64_t hme_sad, int sc_class_me_boost) {
 
     int index;
     if (hme_sad > 4 * 64 * 64) {
