@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.1] - 2026-01-27
+
+Bug fixes and documentation
+
+- Fixed a missing version bump for shared library and pkg-config (!2593)
+  - This is now tied to the CMake project version and should not happen again.
+  - Added a CI check to verify this going forward (!2594)
+- Fixed tf-strength's default value in the help output (!2595)
+- Cleaned up some old debug prints and fixed some Windows build warnings (!2596)
+- Fixed bug in incorrect plane selection in quantize_inv_quantize (!2597)
+
 ## [4.0.0] - 2026-01-13
 
 API updates
