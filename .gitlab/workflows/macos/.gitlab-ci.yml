@@ -191,7 +191,6 @@ macOS FFmpeg (Static, x86):
   allow_failure: true
   before_script:
     - !reference [.ffmpeg-before-script-clone]
-    - git -C ffmpeg-src am -3 "$PWD/.gitlab/workflows/linux/0001-avcodec-libsvtav1-rename-aq_mode-for-v4.0.0.patch"
     - !reference [.ffmpeg-before-script-export]
   script:
     - !reference [.ffmpeg-svtav1-script]
@@ -243,7 +242,6 @@ macOS FFmpeg (Static, m1):
   allow_failure: true
   before_script:
     - !reference [.ffmpeg-before-script-clone]
-    - git -C ffmpeg-src am -3 "$PWD/.gitlab/workflows/linux/0001-avcodec-libsvtav1-rename-aq_mode-for-v4.0.0.patch"
     - !reference [.ffmpeg-before-script-export]
   script:
     - !reference [.ffmpeg-svtav1-script]
