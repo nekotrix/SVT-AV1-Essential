@@ -10,6 +10,7 @@ Bug fixes and documentation
 - Fixed tf-strength's default value in the help output (!2595)
 - Cleaned up some old debug prints and fixed some Windows build warnings (!2596)
 - Fixed bug in incorrect plane selection in quantize_inv_quantize (!2597)
+- Fixed hang caused by incorrect update of looping variable in pic_manager_process (!2600)
 
 ## [4.0.0] - 2026-01-13
 
