@@ -522,9 +522,14 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
             continue;
         }
 
+        // When consecutive decode order is updated, we should recheck all available pictures to see if they
+        // can be started. Rechecking all pictures avoids a hang.
+        bool restart_list = false;
         // Check all pics in the input queue and start all ready pictures.  Mark entry as null (invalid) after started.
-        for (uint32_t input_list_idx = 0; input_list_idx < enc_ctx->pic_mgr_input_pic_list_size; input_list_idx++) {
-            input_entry = enc_ctx->pic_mgr_input_pic_list[input_list_idx];
+        for (uint32_t input_list_idx = 0; input_list_idx < enc_ctx->pic_mgr_input_pic_list_size;
+             input_list_idx          = restart_list ? 0 : input_list_idx + 1) {
+            restart_list = false;
+            input_entry  = enc_ctx->pic_mgr_input_pic_list[input_list_idx];
 
             // If list entry invalid/unavailable, check next entry
             if (input_entry->input_object_ptr == NULL)
@@ -674,7 +679,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 // required by picture A to start. An alternative solution to prevent the hang would be to order pic_mgr_input_pic_list
                 // based on decode order, in which case re-iterating through the list would not be necessary, as the previously
                 // described scenario could not happen.
-                input_list_idx = 0;
+                restart_list = true;
                 // Consume consecutive values already waiting in the heap
                 while (*heap_n > 0 && heap_min(decode_order_heap, *heap_n) == context_ptr->consecutive_dec_order + 1) {
                     heap_pop_min(decode_order_heap, heap_n);
