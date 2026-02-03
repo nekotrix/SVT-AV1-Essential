@@ -1810,7 +1810,12 @@ static void get_max_min_pd0_depths(SequenceControlSet *scs, PictureControlSet *p
     while (blk_index < scs->max_block_cnt) {
         const BlockGeom *blk_geom = get_blk_geom_mds(blk_index);
         // if the parent square is inside inject this block
-        const uint8_t is_blk_allowed = pcs->slice_type != I_SLICE ? 1 : (blk_geom->sq_size < 128) ? 1 : 0;
+        const uint8_t is_blk_allowed = (ctx->sb_origin_x + blk_geom->org_x >= pcs->ppcs->aligned_width ||
+                                        ctx->sb_origin_y + blk_geom->org_y >= pcs->ppcs->aligned_height)
+            ? 0
+            : pcs->slice_type != I_SLICE ? 1
+            : (blk_geom->sq_size < 128)  ? 1
+                                         : 0;
 
         // derive split_flag
         const bool split_flag = ctx->md_blk_arr_nsq[blk_index].split_flag;
