@@ -1432,7 +1432,7 @@ ConfigEntry config_entry[] = {
 /**********************************
  * Constructor
  **********************************/
-EbConfig *svt_config_ctor() {
+EbConfig *svt_config_ctor(bool color) {
     EbConfig *app_cfg = (EbConfig *)calloc(1, sizeof(EbConfig));
     if (!app_cfg)
         return NULL;
@@ -1449,6 +1449,7 @@ EbConfig *svt_config_ctor() {
 #ifdef LIBHDR10PLUS_RS_FOUND
     app_cfg->hdr10plus_json = NULL;
 #endif
+    app_cfg->color = color;
 
     return app_cfg;
 }
@@ -1529,8 +1530,8 @@ void svt_config_dtor(EbConfig *app_cfg) {
     free(app_cfg);
     return;
 }
-EbErrorType enc_channel_ctor(EncChannel *c) {
-    c->app_cfg = svt_config_ctor();
+EbErrorType enc_channel_ctor(EncChannel *c, bool color) {
+    c->app_cfg = svt_config_ctor(color);
     if (!c->app_cfg)
         return EB_ErrorInsufficientResources;
 
