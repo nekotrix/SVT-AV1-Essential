@@ -27,6 +27,7 @@ The encoder parameters are listed in this table below along with their
 | **PredStructFile**                 | --pred-struct-file   | any string   | None          | Manual prediction structure file path                                                                             |
 | **Progress**                       | --progress           | [0-2]        | 1             | Verbosity of the output [0: no progress is printed, 1: default output, 2: detailed output]                        |
 | **NoProgress**                     | --no-progress        | [0-1]        | 0             | Do not print out progress [1: `--progress 0`, 0: `--progress 1`]                                                  |
+| **HideBanner**                     | --hide-banner        | [0-1]        | 0             | Do not print out encoder parameters [0: params are printed (Default), 1: no param is printed]                     |
 | **EncoderMode**                    | --preset             | [-1-13]      | 4             | Encoder preset. Higher presets means faster encodes, but with a quality tradeoff                                  |
 | **Speed**                          | --speed              | any string   | Null          | Encoder speed (overrides preset): slower, slow, medium, fast, faster. Default is slow below 1080p else medium.    |
 | **SvtAv1Params**                   | --svtav1-params      | any string   | None          | Colon-separated list of `key=value` pairs of parameters with keys based on command line options without `--`      |

@@ -210,6 +210,7 @@
 #define AUTO_TILING_TOKEN "--auto-tiling"
 #define SPEED_TOKEN "--speed"
 #define QUALITY_TOKEN "--quality"
+#define HIDE_BANNER_TOKEN "--hide-banner"
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -640,6 +641,8 @@ ConfigDescription config_entry_options[] = {
 
     {PROGRESS_TOKEN,
      "Verbosity of the output, default is 1 [0: no progress is printed, 1: basic progress, 2: detailed progress]"},
+    {HIDE_BANNER_TOKEN,
+     "Do not print out encoder parameters [0: params are printed (Default), 1: no param is printed]"},
 
     {SPEED_TOKEN,
      "Encoder speed. Overrides the preset parameter. "
@@ -838,6 +841,8 @@ ConfigDescription fconfig_entry_options[] = {
     {PROGRESS_TOKEN, "Verbosity of the output, default is 1 [0: no progress is printed, 1: basic progress, 2: detailed progress]"},
     {NO_PROGRESS_TOKEN,
      "Do not print out progress, default is 0 [1: `" PROGRESS_TOKEN " 0`, 0: `" PROGRESS_TOKEN " 1`]"},
+    {HIDE_BANNER_TOKEN,
+     "Do not print out encoder parameters [0: params are printed (Default), 1: no param is printed]"},
 
     {PRESET_TOKEN,
      "Encoder preset, presets < 0 are for debugging. Higher presets means faster encodes, but with "
@@ -1171,6 +1176,7 @@ ConfigEntry config_entry[] = {
     {STAT_FILE_TOKEN, "StatFile", set_cfg_stat_file},
     {PROGRESS_TOKEN, "Progress", set_progress},
     {NO_PROGRESS_TOKEN, "NoProgress", set_no_progress},
+    {HIDE_BANNER_TOKEN, "HideBanner", set_cfg_generic_token},
     {PRESET_TOKEN, "EncoderMode", set_cfg_generic_token},
     {SVTAV1_PARAMS, "SvtAv1Params", parse_svtav1_params},
 

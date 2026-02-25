@@ -1013,10 +1013,16 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is false.
      */
     bool low_memory;
+
+    /* @brief do not print encoder parameters
+     *
+     * Default is false.
+     */
+    bool hide_banner;
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128
-        - (sizeof(bool) * 2)
+        - (sizeof(bool) * 3)
         - sizeof(SpeedPreset)
         - sizeof(QualityPreset)
     ];
