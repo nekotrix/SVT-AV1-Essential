@@ -1338,6 +1338,10 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
         input_data.ac_bias = scs->static_config.ac_bias;
         input_data.auto_tiling = scs->static_config.auto_tiling;
         input_data.low_memory = scs->static_config.low_memory;
+        input_data.noise_norm_strength = scs->static_config.noise_norm_strength;
+        input_data.sharp_tx = scs->static_config.sharp_tx;
+        input_data.tx_bias = scs->static_config.tx_bias;
+        input_data.complex_hvs = scs->static_config.complex_hvs;
         input_data.static_config = scs->static_config;
         input_data.allintra = scs->allintra;
         input_data.use_flat_ipp = scs->use_flat_ipp;
@@ -2996,6 +3000,31 @@ static void derive_vq_params(SequenceControlSet* scs) {
         vq_ctrl->sharpness_ctrls.restoration      = 0;
         vq_ctrl->sharpness_ctrls.rdoq             = 0;
     }
+
+    switch (scs->static_config.noise_adaptive_filtering) {
+        case 0:
+            vq_ctrl->sharpness_ctrls.cdef = 0;
+            vq_ctrl->sharpness_ctrls.restoration = 0;
+            break;
+        case 1:
+            vq_ctrl->sharpness_ctrls.cdef = 1;
+            vq_ctrl->sharpness_ctrls.restoration = 1;
+            break;
+        case 2:
+            // No override; honor tune defaults
+            break;
+        case 3:
+            vq_ctrl->sharpness_ctrls.cdef = 1;
+            vq_ctrl->sharpness_ctrls.restoration = 0;
+            break;
+        case 4:
+            vq_ctrl->sharpness_ctrls.cdef = 0;
+            vq_ctrl->sharpness_ctrls.restoration = 1;
+            break;
+        default:
+            break;
+    }
+
     // Do not use scene_transition if LD or 1st pass or middle pass
     if (scs->static_config.pred_structure != RANDOM_ACCESS || scs->static_config.pass == ENC_FIRST_PASS)
         vq_ctrl->sharpness_ctrls.scene_transition = 0;
@@ -3791,6 +3820,14 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     if (scs->static_config.variance_boost_strength >= 4) {
         SVT_WARN("Aggressive Variance Boost strength used. This is a curve that's only useful under specific situations. Use with caution!\n");
     }
+    if (scs->static_config.cdef_level != 0 && scs->static_config.alt_cdef > 1 && !(scs->static_config.pred_structure == LOW_DELAY)) {
+        SVT_WARN("CDEF level is set to 1, or full CDEF decision, when alt-cdef is >= 2\n");
+        scs->static_config.cdef_level = 1;
+    }
+    if (scs->static_config.enable_dlf_flag != 0 && scs->static_config.alt_dlf > 1 && !(scs->static_config.pred_structure == LOW_DELAY)) {
+        SVT_WARN("DLF level is set to 1, or full DLF decision, when alt-dlf is >= 2\n");
+        scs->static_config.enable_dlf_flag = 3;
+    }
     if (scs->static_config.max_tx_size == 32 && scs->static_config.qp >= 25 && scs->static_config.tune != 3) {
         SVT_WARN("Restricting transform sizes to a max of 32x32 might reduce coding efficiency at low to medium fidelity settings. Use with caution!\n");
     }
@@ -4479,6 +4516,26 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     scs->static_config.ac_bias = config_struct->ac_bias;
 
     scs->static_config.hide_banner = config_struct->hide_banner;
+
+    // Noise normalization strength
+    scs->static_config.noise_norm_strength = config_struct->noise_norm_strength;
+
+    // Sharp TX
+    scs->static_config.sharp_tx = config_struct->sharp_tx;
+
+    // TX bias
+    scs->static_config.tx_bias = config_struct->tx_bias;
+
+    // Complex HVS
+    scs->static_config.complex_hvs = config_struct->complex_hvs;
+
+    // Noise adaptive filtering
+    scs->static_config.noise_adaptive_filtering = config_struct->noise_adaptive_filtering;
+
+    // Alt CDEF & DLF
+    scs->static_config.alt_cdef = config_struct->alt_cdef;
+    scs->static_config.alt_dlf = config_struct->alt_dlf;
+
 
     // Override settings for Still IQ tune
     if (scs->static_config.tune == TUNE_IQ) {
@@ -5526,8 +5583,10 @@ EB_API void svt_av1_print_version(void) {
     SVT_INFO("-------------------------------------------\n");
     SVT_INFO("SVT [version]:\tSVT-AV1-Essential Encoder Lib %s\n", SVT_AV1_CVS_VERSION);
     const char *compiler =
-#if defined(__clang__)
+#if defined(__clang__) && defined(__apple_build_version__)
     __VERSION__ "\t"
+#elif defined(__clang__)
+    "Clang " CONVERT_TO_STR_COMPILE_TIME(__clang_major__) "." CONVERT_TO_STR_COMPILE_TIME(__clang_minor__) "." CONVERT_TO_STR_COMPILE_TIME(__clang_patchlevel__) "\t"
 #elif defined(__GNUC__)
     "GCC " __VERSION__ "\t"
 #elif defined( _MSC_VER ) && (_MSC_VER >= 1930)

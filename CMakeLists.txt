@@ -50,10 +50,10 @@ int main(void) {}
 " HAVE_ARM_PLATFORM)
 
 option(COMPILE_C_ONLY "Compile only C code with no simds (autodetect, default off for x86)" OFF)
-option(MINIMAL_BUILD "Enable minimal build" OFF)
-if(MINIMAL_BUILD)
-    add_definitions(-DMINIMAL_BUILD=1)
-endif()
+#option(MINIMAL_BUILD "Enable minimal build" OFF)
+#if(MINIMAL_BUILD)
+#    add_definitions(-DMINIMAL_BUILD=1)
+#endif()
 
 option(LOG_QUIET "Disable all logging from encoder" OFF)
 if(LOG_QUIET)
@@ -219,9 +219,13 @@ else()
 endif()
 
 # Always build with -fPIC
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_C_STANDARD 99)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_POSITION_INDEPENDENT_CODE OFF)
+if(WIN32)
+    set(CMAKE_C_STANDARD 17)
+else()
+    set(CMAKE_C_STANDARD 23)
+endif()
+set(CMAKE_CXX_STANDARD 23)
 
 # BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to
 # make it prominent in the GUI.
@@ -323,7 +327,7 @@ if(UNIX)
             set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols -c <TARGET>")
         endif()
     elseif(NOT EMSCRIPTEN)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z noexecstack -z relro -z now")
+        #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z noexecstack -z relro -z now")
     endif()
 endif()
 
@@ -425,29 +429,29 @@ else()
     if(MINGW)
         check_flags_add(C -mxsave -fno-asynchronous-unwind-tables)
     else()
-        check_both_flags_add(-fstack-protector-strong)
+        #check_both_flags_add(-fstack-protector-strong)
         if(NOT EMSCRIPTEN)
             check_both_flags_add(PREPEND -fno-stack-clash-protection)
         endif()
     endif()
-    check_both_flags_add(-mno-avx)
+    #check_both_flags_add(-mno-avx)
 endif()
 
-if(CMAKE_C_FLAGS MATCHES "-O" AND NOT CMAKE_C_FLAGS MATCHES "-O0" AND NOT MINGW)
-    add_definitions(-D_FORTIFY_SOURCE=2)
-endif()
+#if(CMAKE_C_FLAGS MATCHES "-O" AND NOT CMAKE_C_FLAGS MATCHES "-O0" AND NOT MINGW)
+#    add_definitions(-D_FORTIFY_SOURCE=2)
+#endif()
 
-if(CMAKE_ASM_NASM_OBJECT_FORMAT MATCHES "win")
-    set(CMAKE_ASM_NASM_FLAGS_DEBUG "${CMAKE_ASM_NASM_FLAGS_DEBUG} -gcv8")
-elseif(CMAKE_ASM_NASM_COMPILER MATCHES "nasm")
-    set(CMAKE_ASM_NASM_FLAGS_DEBUG "${CMAKE_ASM_NASM_FLAGS_DEBUG} -gdwarf")
-elseif(CMAKE_ASM_NASM_COMPILER MATCHES "yasm")
-    if(CMAKE_ASM_NASM_OBJECT_FORMAT MATCHES "macho")
-        set(CMAKE_ASM_NASM_FLAGS_DEBUG "${CMAKE_ASM_NASM_FLAGS_DEBUG} -gnull")
-    else()
-        set(CMAKE_ASM_NASM_FLAGS_DEBUG "${CMAKE_ASM_NASM_FLAGS_DEBUG} -gdwarf2")
-    endif()
-endif()
+#if(CMAKE_ASM_NASM_OBJECT_FORMAT MATCHES "win")
+#    set(CMAKE_ASM_NASM_FLAGS_DEBUG "${CMAKE_ASM_NASM_FLAGS_DEBUG} -gcv8")
+#elseif(CMAKE_ASM_NASM_COMPILER MATCHES "nasm")
+#    set(CMAKE_ASM_NASM_FLAGS_DEBUG "${CMAKE_ASM_NASM_FLAGS_DEBUG} -gdwarf")
+#elseif(CMAKE_ASM_NASM_COMPILER MATCHES "yasm")
+#    if(CMAKE_ASM_NASM_OBJECT_FORMAT MATCHES "macho")
+#        set(CMAKE_ASM_NASM_FLAGS_DEBUG "${CMAKE_ASM_NASM_FLAGS_DEBUG} -gnull")
+#    else()
+#        set(CMAKE_ASM_NASM_FLAGS_DEBUG "${CMAKE_ASM_NASM_FLAGS_DEBUG} -gdwarf2")
+#    endif()
+#endif()
 
 include(CheckSymbolExists)
 include(CheckCCompilerFlag)
@@ -639,6 +643,95 @@ add_subdirectory(Source/Lib)
 if(BUILD_APPS)
     add_subdirectory(Source/App)
 endif()
+
+option(EXT_LIB_STATIC "Force linking with static libraries for external dependencies" OFF)
+set(SUFFIX "")
+if(EXT_LIB_STATIC)
+  set(SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+else()
+  set(SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+endif()
+
+option(USE_FFMS2 "Enable FFMS2 support (Install FFMS2 first)" OFF)
+if(USE_FFMS2)
+    find_package(PkgConfig)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(PC_FFMS2 ffms2 QUIET)
+
+        if(NOT PC_FFMS2_FOUND)
+            message(WARNING "FFMS2 not found, building without FFMS2 support")
+            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=0)
+        else()
+            set(FFMS2_LIBRARY_DIR ${PC_FFMS2_LIBRARY_DIRS})
+            set(FFMS2_INCLUDE_DIR ${PC_FFMS2_INCLUDE_DIRS})
+
+            if(EXT_LIB_STATIC)
+                # link static ffms2 which is c++ libraies
+                set_target_properties(SvtAv1EncApp PROPERTIES LINKER_LANGUAGE CXX)
+                # need this for static build
+                target_compile_definitions(SvtAv1EncApp PRIVATE FFMS_STATIC)
+                set(FFMS2_REQUIRED_LIBRARIES ${PC_FFMS2_STATIC_LIBRARIES})
+
+                if(NOT MSVC AND CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+                    # suffix hack not work in msys2
+                    if(MINGW)
+                        set(FFMS2_LIBRARY ${FFMS2_REQUIRED_LIBRARIES})
+                        if (NOT BUILD_SHARED_LIBS AND EXT_LIB_STATIC)
+                            message(WARNING "FFMS2 static building is not guaranteed here.")
+                            # try to build static
+                            # hack because adding in normal ways does not work
+                            target_link_libraries(SvtAv1EncApp -static)
+                        endif()
+                    else()
+                        foreach(BASE ${FFMS2_REQUIRED_LIBRARIES})
+                            list(APPEND FFMS2_LIBRARY "-l${BASE}${SUFFIX}")
+                        endforeach()
+                    endif()
+                else()
+                    foreach(BASE ${FFMS2_REQUIRED_LIBRARIES})
+                        list(APPEND FFMS2_LIBRARY "${BASE}${SUFFIX}")
+                    endforeach()
+                endif()
+            else()
+                find_library(FFMS2_LIBRARY
+                    NAMES ffms2 libffms2
+                    PATHS
+                        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ffms2/lib
+                )
+            endif()
+
+            message(STATUS "Found FFMS2: ${FFMS2_LIBRARY}")
+            target_include_directories(SvtAv1EncApp PRIVATE ${FFMS2_INCLUDE_DIR})
+            target_link_libraries(SvtAv1EncApp ${FFMS2_LIBRARY})
+            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=1)
+            target_link_directories(SvtAv1EncApp PRIVATE ${FFMS2_LIBRARY_DIR})
+        endif()
+    else()
+        message(WARNING "PkgConfig not found; disabled static building with dovi, hdr10plus or FFMS2.")
+        find_path(FFMS2_INCLUDE_DIR
+            NAMES ffms.h
+            PATHS
+                ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ffms2/include
+        )
+
+        find_library(FFMS2_LIBRARY
+            NAMES ffms2 libffms2
+            PATHS
+                ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ffms2/lib
+        )
+
+        if(FFMS2_INCLUDE_DIR AND FFMS2_LIBRARY)
+            message(STATUS "Found FFMS2: ${FFMS2_LIBRARY}")
+            target_include_directories(SvtAv1EncApp PRIVATE ${FFMS2_INCLUDE_DIR})
+            target_link_libraries(SvtAv1EncApp ${FFMS2_LIBRARY})
+            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=1)
+        else()
+            message(WARNING "FFMS2 not found, building without FFMS2 support")
+            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=0)
+        endif()
+    endif()
+endif()
+
 if(SVT_AV1_PGO)
     string(REPLACE ";" "::" SVT_AV1_PGO_CUSTOM_VIDEOS "${SVT_AV1_PGO_CUSTOM_VIDEOS}")
 
@@ -654,7 +747,7 @@ if(SVT_AV1_PGO)
 
     if(CMAKE_C_COMPILER_ID MATCHES "Clang")
         # We want unprofiled code optimised for speed, not size, so we mark the profiling data as "sparse".
-        set(PROFILE_MERGE_CMD sh -c "${LLVM_PROFDATA} merge --sparse=true *.profraw -o default.profdata")
+        set(PROFILE_MERGE_CMD sh -c "cd ${SVT_AV1_PGO_DIR} && ${LLVM_PROFDATA} merge --sparse=true *.profraw -o default.profdata")
     else()
         # Do nothing. GCC has no profile merging step.
         set(PROFILE_MERGE_CMD)

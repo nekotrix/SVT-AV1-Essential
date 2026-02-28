@@ -96,6 +96,7 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **AdaptiveFilmGrain**            | --adaptive-film-grain       | [0,1]                          | 1           | Allows film grain synthesis to be sourced from different block sizes depending on resolution                  |
 | **MaxTxSize**                    | --max-tx-size               | [32,64]                        | 64          | Restricts use of block transform sizes to the specified value                                                 |
 | **LowMemory**                    | --low-memory                | [0-1]                          | 0           | Specifies whether to use params which reduce RAM consumption with potential efficiency and speed trade-offs   |
+| **NoiseNormStrength**            |  --noise-norm-strength      | [0-4]                          | 0           | Selectively boost AC coefficients to improve fine detail retention in certain circumstances                   |
 
 ## Rate Control Options
 
@@ -119,6 +120,11 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **QpScaleCompressStrength**      | --qp-scale-compress-strength     | [0-8]      | 1           | Sets the QP compression strength resulting in less quality variation across frames in a mini-gop [0: off, 1: default, 8: maximum]                    |
 | **AutoTiling**                   | --auto-tiling                    | [0-1]      | 1           | Automatically sets tiles appropriate for the source input resolution [0: off (manual), 1: on (automatic)]                                            |
 | **AcBias**                       | --ac-bias                        | [0.0-8.0]  | 0.0         | Sets the strength of the internal RD metric to bias toward high-frequency error (helps with texture preservation and film grain retention)           |
+| **SharpTX**                      | --sharp-tx                       | [0-1]      | 0           | Activation of sharp transform optimizations for higher fidelity encoding (with slightly higher chances of artifacting)                               |
+| **TxBias**                       | --tx-bias                        | [0-3]      | 0           | Transform size/type bias mode [0: disabled, 1: full, 2: transform size only, 3: interpolation filter only]                                           |
+| **COMPLEXHVS**                   | --complex-hvs                    | [0-1]      | 0           | Activation of highest complexity HVS model (0: default behavior, 1: enable highest complexity HVS model)                                             |
+| **NoiseAdaptiveFiltering**       | --noise-adaptive-filtering       | [0-4]      | 2           | Controls noise detection which disables CDEF/restoration when noise level is high enough [0: off, 1: on (for both CDEF and restoration), 2: default tune behavior, 3: on (CDEF only), 4: on (restoration only)] |
+| **AltCDEF**                      | --enable-alt-cdef                | [0-3]      | 0           | Enable alternative CDEF biases                                                                                                                       |
 | **UseFixedQIndexOffsets**        | --use-fixed-qindex-offsets       | [0-2]      | 0           | Overwrite the encoder default hierarchical layer based QP assignment and use fixed Q index offsets                                                   |
 | **KeyFrameQIndexOffset**         | --key-frame-qindex-offset        | [-64-63]   | 0           | Overwrite the encoder default keyframe Q index assignment                                                                                            |
 | **KeyFrameChromaQIndexOffset**   | --key-frame-chroma-qindex-offset | [-64-63]   | 0           | Overwrite the encoder default chroma keyframe Q index assignment                                                                                     |

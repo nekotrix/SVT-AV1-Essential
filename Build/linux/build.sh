@@ -117,6 +117,8 @@ For each enable-*, there is a disable-* option, and vice versa.
     minimal-build
     --rtc-build,        Do RTC build, ie reduced feature set
     rtc-build
+    --use-ffms2,        Enable FFMS2 support (Install FFMS2 first)
+    use-ffms2
     --log-quiet,        Do not log anything from the core encoder
     log-quiet
 
@@ -360,6 +362,7 @@ parse_options() {
         verbose) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DCMAKE_VERBOSE_MAKEFILE=1" && shift ;;
         minimal-build) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DMINIMAL_BUILD=ON" && shift ;;
         rtc-build) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DRTC_BUILD=ON" && shift ;;
+        use-ffms2) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DUSE_FFMS2=ON" && shift ;;
         log-quiet) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DLOG_QUIET=ON" && shift ;;
         ext-lib-static) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DEXT_LIB_STATIC=ON" && shift ;;
         *) print_message "Unknown option: $1" && shift ;;
@@ -406,6 +409,7 @@ else
             verbose) parse_options verbose && shift ;;
             minimal-build) parse_options minimal-build && shift ;;
             rtc-build) parse_options rtc-build && shift ;;
+            use-ffms2) parse_options use-ffms2 && shift ;;
             log-quiet) parse_options log-quiet && shift ;;
             ext-lib-static) parse_options ext-lib-static && shift ;;
             asm | bindir | cc | cxx | gen | jobs | pgo-dir | pgo-videos | prefix | sanitizer | target_system | android-ndk)
@@ -532,6 +536,7 @@ else
             verbose) parse_options verbose && shift ;;
             minimal-build) parse_options minimal-build && shift ;;
             rtc-build) parse_options rtc-build && shift ;;
+            use-ffms2) parse_options use-ffms2 && shift ;;
             log-quiet) parse_options log-quiet && shift ;;
             ext-lib-static) parse_options ext-lib-static && shift ;;
             end) ${IN_SCRIPT:-false} && exit ;;

@@ -182,6 +182,7 @@ void svt_aom_hadamard_8x8_c(const int16_t* src_diff, ptrdiff_t src_stride, int32
     for (idx = 0; idx < 64; ++idx) coeff[idx] = (int32_t)buffer2[idx];
 }
 
+
 static void hadamard_highbd_col8_first_pass(const int16_t* src_diff, ptrdiff_t src_stride, int16_t* coeff) {
     int16_t b0 = src_diff[0 * src_stride] + src_diff[1 * src_stride];
     int16_t b1 = src_diff[0 * src_stride] - src_diff[1 * src_stride];

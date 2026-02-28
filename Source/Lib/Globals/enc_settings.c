@@ -866,6 +866,46 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+    if (config->ac_bias > 8.0 || config->ac_bias < 0.0) {
+        SVT_ERROR("AC bias strength must be between 0.0 and 8.0\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->noise_norm_strength > 4) {
+        SVT_ERROR("Noise normalization strength must be between 0 and 4\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->sharp_tx > 1) {
+        SVT_ERROR("sharp-tx must be either 0 and 1\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->tx_bias > 3) {
+        SVT_ERROR("TX bias must be between 0 and 3\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->complex_hvs > 1) {
+        SVT_ERROR("complex-hvs must be between 0 and 1\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->noise_adaptive_filtering > 4) {
+        SVT_ERROR("noise-adaptive-filtering must be between 0 and 4\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->alt_cdef > 3) {
+        SVT_ERROR("enable-alt-cdef must be between 0 and 3\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->alt_dlf > 3) {
+        SVT_ERROR("enable-alt-dlf must be between 0 and 3\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
     return return_error;
 }
 
@@ -992,9 +1032,9 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
 
     // Quant Matrices (QM)
     config_ptr->enable_qm           = 1;
-    config_ptr->min_qm_level        = 0;
+    config_ptr->min_qm_level        = 2;
     config_ptr->max_qm_level        = 15;
-    config_ptr->min_chroma_qm_level = 0;
+    config_ptr->min_chroma_qm_level = 4;
     config_ptr->max_chroma_qm_level = 15;
 
     config_ptr->startup_mg_size                   = 0;
@@ -1008,7 +1048,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->enable_variance_boost             = true;
     config_ptr->variance_boost_strength           = 1;
     config_ptr->variance_octile                   = 4;
-    config_ptr->tf_strength                       = 1;
+    config_ptr->tf_strength                       = 0;
     config_ptr->variance_boost_curve              = 0;
     config_ptr->luminance_qp_bias                 = 10;
     config_ptr->sharpness                         = 1;
@@ -1022,15 +1062,22 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->sframe_posi.sframe_qp_offsets     = NULL;
     config_ptr->sframe_qp                         = 0;
     config_ptr->sframe_qp_offset                  = 0;
-    config_ptr->adaptive_film_grain               = true;
+    config_ptr->adaptive_film_grain               = false;
     config_ptr->max_tx_size                       = 64;
     config_ptr->extended_crf_qindex_offset        = 0;
-    config_ptr->ac_bias                           = 0.0;
+    config_ptr->ac_bias                           = 0.25;
     config_ptr->auto_tiling                       = true;
     config_ptr->speed                             = SPEED_UNKNOWN;
     config_ptr->quality                           = QUALITY_UNKNOWN;
     config_ptr->low_memory                        = false;
     config_ptr->hide_banner                       = false;
+    config_ptr->noise_norm_strength               = 0;
+    config_ptr->sharp_tx                          = 0;
+    config_ptr->tx_bias                           = 0;
+    config_ptr->complex_hvs                       = 0;
+    config_ptr->noise_adaptive_filtering          = 2;
+    config_ptr->alt_cdef                          = 1;
+    config_ptr->alt_dlf                           = 0;
     return return_error;
 }
 
@@ -1047,6 +1094,97 @@ static const char *level_to_str(unsigned in) {
     static char ret[313];
     snprintf(ret, 313, "%.1f", in / 10.0);
     return ret;
+}
+
+static const char *color_primaries_to_str(EbColorPrimaries primaries) {
+    const struct {
+        const char      *name;
+        EbColorPrimaries primaries;
+    } color_primaries[] = {
+        {"bt709", EB_CICP_CP_BT_709},
+        {"bt470m", EB_CICP_CP_BT_470_M},
+        {"bt470bg", EB_CICP_CP_BT_470_B_G},
+        {"bt601", EB_CICP_CP_BT_601},
+        {"smpte240", EB_CICP_CP_SMPTE_240},
+        {"film", EB_CICP_CP_GENERIC_FILM},
+        {"bt2020", EB_CICP_CP_BT_2020},
+        {"xyz", EB_CICP_CP_XYZ},
+        {"smpte431", EB_CICP_CP_SMPTE_431},
+        {"smpte432", EB_CICP_CP_SMPTE_432},
+        {"ebu3213", EB_CICP_CP_EBU_3213},
+    };
+    const size_t color_primaries_size = sizeof(color_primaries) / sizeof(color_primaries[0]);
+
+    for (size_t i = 0; i < color_primaries_size; i++) {
+        if (primaries == color_primaries[i].primaries) {
+            return color_primaries[i].name;
+        }
+    }
+
+    return "unknown";
+}
+
+static const char *transfer_characteristics_to_str(EbTransferCharacteristics tfc) {
+    const struct {
+        const char               *name;
+        EbTransferCharacteristics tfc;
+    } transfer_characteristics[] = {
+        {"bt709", EB_CICP_TC_BT_709},
+        {"bt470m", EB_CICP_TC_BT_470_M},
+        {"bt470bg", EB_CICP_TC_BT_470_B_G},
+        {"bt601", EB_CICP_TC_BT_601},
+        {"smpte240", EB_CICP_TC_SMPTE_240},
+        {"linear", EB_CICP_TC_LINEAR},
+        {"log100", EB_CICP_TC_LOG_100},
+        {"log100-sqrt10", EB_CICP_TC_LOG_100_SQRT10},
+        {"iec61966", EB_CICP_TC_IEC_61966},
+        {"bt1361", EB_CICP_TC_BT_1361},
+        {"srgb", EB_CICP_TC_SRGB},
+        {"bt2020-10", EB_CICP_TC_BT_2020_10_BIT},
+        {"bt2020-12", EB_CICP_TC_BT_2020_12_BIT},
+        {"smpte2084", EB_CICP_TC_SMPTE_2084},
+        {"smpte428", EB_CICP_TC_SMPTE_428},
+        {"hlg", EB_CICP_TC_HLG},
+    };
+    const size_t transfer_characteristics_size = sizeof(transfer_characteristics) / sizeof(transfer_characteristics[0]);
+
+    for (size_t i = 0; i < transfer_characteristics_size; i++) {
+        if (tfc == transfer_characteristics[i].tfc) {
+            return transfer_characteristics[i].name;
+        }
+    }
+
+    return "unknown";
+}
+
+static const char *matrix_coefficients_to_str(EbMatrixCoefficients coeff) {
+    const struct {
+        const char          *name;
+        EbMatrixCoefficients coeff;
+    } matrix_coefficients[] = {
+        {"identity", EB_CICP_MC_IDENTITY},
+        {"bt709", EB_CICP_MC_BT_709},
+        {"fcc", EB_CICP_MC_FCC},
+        {"bt470bg", EB_CICP_MC_BT_470_B_G},
+        {"bt601", EB_CICP_MC_BT_601},
+        {"smpte240", EB_CICP_MC_SMPTE_240},
+        {"ycgco", EB_CICP_MC_SMPTE_YCGCO},
+        {"bt2020-ncl", EB_CICP_MC_BT_2020_NCL},
+        {"bt2020-cl", EB_CICP_MC_BT_2020_CL},
+        {"smpte2085", EB_CICP_MC_SMPTE_2085},
+        {"chroma-ncl", EB_CICP_MC_CHROMAT_NCL},
+        {"chroma-cl", EB_CICP_MC_CHROMAT_CL},
+        {"ictcp", EB_CICP_MC_ICTCP},
+    };
+    const size_t matrix_coefficients_size = sizeof(matrix_coefficients) / sizeof(matrix_coefficients[0]);
+
+    for (size_t i = 0; i < matrix_coefficients_size; i++) {
+        if (coeff == matrix_coefficients[i].coeff) {
+            return matrix_coefficients[i].name;
+        }
+    }
+
+    return "unknown";
 }
 
 static double get_extended_crf(EbSvtAv1EncConfiguration *config_ptr) {
@@ -1076,14 +1214,21 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
             config->frame_rate_numerator,
             config->frame_rate_denominator);
         SVT_INFO(
-            "SVT [config]: bit-depth / color format \t\t\t\t: %d / "
-            "%s\n",
+            "SVT [config]: bit-depth / color format / hdr \t\t\t: %d / "
+            "%s / %d\n",
             config->encoder_bit_depth,
             config->encoder_color_format == EB_YUV400       ? "YUV400"
                 : config->encoder_color_format == EB_YUV420 ? "YUV420"
                 : config->encoder_color_format == EB_YUV422 ? "YUV422"
                 : config->encoder_color_format == EB_YUV444 ? "YUV444"
-                                                            : "Unknown color format");
+                                                            : "Unknown color format",
+            (config->content_light_level.max_cll != 0 || config->mastering_display.max_luma != 0)); // reintroduce enable-hdr param?
+
+        SVT_INFO(
+            "SVT [config]: color primaries / transfer characts / matrix coeffs \t: %s / %s / %s \n",
+            matrix_coefficients_to_str(config->matrix_coefficients),
+            color_primaries_to_str(config->color_primaries),
+            transfer_characteristics_to_str(config->transfer_characteristics));
 
         if (scs->static_config.speed != SPEED_UNKNOWN || (scs->static_config.speed == SPEED_UNKNOWN &&
             config->enc_mode == ENC_M5 &&
@@ -1220,10 +1365,20 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
         }
 
         if (config->film_grain_denoise_strength != 0) {
-            SVT_INFO("SVT [config]: film grain synth / denoising / level \t\t\t: %d / %d / %d\n",
-                     1,
-                     config->film_grain_denoise_apply,
-                     config->film_grain_denoise_strength);
+            if (config->adaptive_film_grain) {
+                SVT_INFO(
+                    "SVT [config]: film grain synth / denoising / level / adaptive \t: %d / %d / %d / True\n",
+                    1,
+                    config->film_grain_denoise_apply,
+                    config->film_grain_denoise_strength);
+            } else {
+                SVT_INFO(
+                    "SVT [config]: film grain synth / denoising / level / adaptive \t: %d / %d / %d / "
+                    "False\n",
+                    1,
+                    config->film_grain_denoise_apply,
+                    config->film_grain_denoise_strength);
+            }
         }
         SVT_INFO("SVT [config]: auto tiling / columns / rows \t\t\t\t: %d / %d / %d\n",
                  config->auto_tiling,
@@ -1241,8 +1396,24 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
 
         SVT_INFO("SVT [config]: QP scale compress strength \t\t\t\t: %d\n", config->qp_scale_compress_strength);
 
-        if (config->ac_bias) {
-            SVT_INFO("SVT [config]: AC Bias Strength \t\t\t\t\t: %.2f\n", config->ac_bias);
+        if (config->ac_bias || config->tx_bias) {
+            SVT_INFO("SVT [config]: AC Bias Strength / TX Bias \t\t\t\t: %.2f / %s\n",
+                     config->ac_bias,
+                     config->tx_bias == 1
+                         ? "full"
+                         : (config->tx_bias == 2 ? "size only" : (config->tx_bias == 3 ? "interp. only" : "off")));
+        }
+
+        if (config->noise_norm_strength > 0) {
+            SVT_INFO("SVT [config]: Noise Normalization Strength \t\t\t\t: %d\n", config->noise_norm_strength);
+        }
+
+        if (config->cdef_level != 0 && config->alt_cdef) {
+            SVT_INFO("SVT [config]: Alternative CDEF Bias \t\t\t\t\t: %d\n", config->alt_cdef);
+        }
+
+        if (config->enable_dlf_flag != 0 && config->alt_dlf) {
+            SVT_INFO("SVT [config]: Alternative DLF Bias \t\t\t\t\t: %d\n", config->alt_dlf);
         }
     }
 #if DEBUG_BUFFERS
@@ -2238,6 +2409,13 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"enable-tf", &config_struct->enable_tf},
         {"tf-strength", &config_struct->tf_strength},
         {"max-tx-size", &config_struct->max_tx_size},
+        {"noise-norm-strength", &config_struct->noise_norm_strength},
+        {"sharp-tx", &config_struct->sharp_tx},
+        {"tx-bias", &config_struct->tx_bias},
+        {"complex-hvs", &config_struct->complex_hvs},
+        {"noise-adaptive-filtering", &config_struct->noise_adaptive_filtering},
+        {"enable-alt-cdef", &config_struct->alt_cdef},
+        {"enable-alt-dlf", &config_struct->alt_dlf},
     };
     const size_t uint8_opts_size = sizeof(uint8_opts) / sizeof(uint8_opts[0]);
 
