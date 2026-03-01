@@ -56,6 +56,7 @@
 #include "rc_results.h"
 #include "definitions.h"
 #include "metadata_handle.h"
+#include "photon_noise.h"
 
 #include "pack_unpack_c.h"
 #include "enc_mode_config.h"
@@ -98,6 +99,15 @@
 
 #define ENCODE_FIRST_PASS                               1
 
+/**************************************
+ * Globals
+ **************************************/
+#ifdef _WIN32
+static uint8_t                   svt_aom_group_affinity_enabled = 0;
+static GROUP_AFFINITY            svt_aom_group_affinity;
+#elif defined(__linux__)
+static cpu_set_t                 svt_aom_group_affinity;
+#endif
 uint8_t svt_aom_get_tpl_synthesizer_block_size(int8_t tpl_level, uint32_t picture_width, uint32_t picture_height);
 /* count number of refs in a steady state MG*/
 static uint16_t get_num_refs_in_one_mg(uint32_t hierarchical_levels, uint32_t referencing_scheme) {
@@ -165,6 +175,31 @@ static uint32_t get_num_processors() {
 #endif
 }
 
+#ifdef _WIN32
+uint64_t get_affinity_mask(uint32_t lpnum) {
+    uint64_t mask = 0x1;
+    for (uint32_t i = lpnum - 1; i > 0; i--)
+        mask += (uint64_t)1 << i;
+    return mask;
+}
+#endif
+
+void svt_set_thread_management_parameters(EbSvtAv1EncConfiguration* config_ptr) {
+#ifdef _WIN32
+    svt_aom_group_affinity_enabled = 1;
+    const uint32_t num_logical_processors = get_num_processors();
+    const uint32_t lps = config_ptr->pin_threads < num_logical_processors ? config_ptr->pin_threads : num_logical_processors;
+    svt_aom_group_affinity.Mask = get_affinity_mask(lps);
+#elif defined(__linux__)
+    uint32_t num_logical_processors = get_num_processors();
+    CPU_ZERO(&svt_aom_group_affinity);
+    const uint32_t lps = config_ptr->pin_threads < num_logical_processors ? config_ptr->pin_threads : num_logical_processors;
+    for (uint32_t i = 0; i < lps; i++)
+        CPU_SET(i, &svt_aom_group_affinity);
+#else
+    UNUSED(config_ptr);
+#endif
+}
 
 void svt_aom_asm_set_convolve_asm_table(void);
 void svt_aom_asm_set_convolve_hbd_asm_table(void);
@@ -272,7 +307,11 @@ static EbErrorType load_default_buffer_configuration_settings(
     SequenceControlSet       *scs) {
     EbErrorType           return_error = EB_ErrorNone;
     uint32_t core_count = get_num_processors();
-
+    if (scs->static_config.pin_threads) {
+        if (scs->static_config.pin_threads < core_count) {
+            core_count = scs->static_config.pin_threads;
+        }
+    }
     uint32_t lp = scs->static_config.level_of_parallelism;
     if (lp == 0) {
         // In the default config (lp == 0) the core count will determine the
@@ -1979,6 +2018,9 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType *svt_enc_component)
     /************************************
     * Thread Handles
     ************************************/
+    EbSvtAv1EncConfiguration   *config_ptr = &enc_handle_ptr->scs_instance->scs->static_config;
+    if (config_ptr->pin_threads)
+        svt_set_thread_management_parameters(config_ptr);
     // Resource Coordination
     EB_CREATE_THREAD(enc_handle_ptr->resource_coordination_thread_handle, svt_aom_resource_coordination_kernel, enc_handle_ptr->resource_coordination_context_ptr);
     EB_CREATE_THREAD_ARRAY(enc_handle_ptr->picture_analysis_thread_handle_array, scs->picture_analysis_process_init_count,
@@ -3835,6 +3877,27 @@ static void set_param_based_on_input(SequenceControlSet *scs)
         scs->static_config.hierarchical_levels = 4;
         SVT_WARN("Fwd key frame is only supported for hierarchical levels 4 at this point. Hierarchical levels are set to 4\n");
     }
+    if (scs->static_config.photon_noise_iso > 0) {
+        // Check if film-grain is also enabled (should be disabled if fgs_table is present)
+        if (scs->static_config.film_grain_denoise_strength > 0) {
+            SVT_WARN("Both film-grain and photon-noise were specified; film-grain will be disabled\n");
+            scs->static_config.film_grain_denoise_strength = 0;
+        }
+        // Check if fgs_table is present
+        if (scs->static_config.fgs_table) {
+            SVT_WARN("Both photon-noise and fgs-table were specified; photon-noise will be disabled\n");
+            scs->static_config.photon_noise_iso = 0;
+        } else {
+            if (scs->static_config.transfer_characteristics == EB_CICP_TC_UNSPECIFIED) {
+                SVT_WARN("Transfer characteristics is not specified, photon noise will be defaulting to BT.709\n");
+            }
+            svt_av1_generate_photon_noise_table(&scs->static_config);
+        }
+    } else {
+        if (scs->static_config.enable_photon_noise_chroma == 1) {
+            SVT_WARN("Photon noise chroma signal is going to be ignored when photon noise level is 0.\n");
+        }
+    }
     bool disallow_nsq = true;
     uint8_t allow_HVA_HVB = 0;
     uint8_t allow_HV4 = 0;
@@ -4186,6 +4249,8 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     }
     scs->seq_header.film_grain_params_present = (uint8_t)(scs->static_config.film_grain_denoise_strength>0);
     scs->static_config.fgs_table = config_struct->fgs_table;
+    scs->static_config.photon_noise_iso = config_struct->photon_noise_iso;
+    scs->static_config.enable_photon_noise_chroma = config_struct->enable_photon_noise_chroma;
 
     // MD Parameters
     scs->enable_hbd_mode_decision = config_struct->encoder_bit_depth > 8 ? DEFAULT : 0;
@@ -4366,7 +4431,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         SVT_WARN("Level of parallelism does not correspond to a target number of processors to use. See Docs/Parameters.md for info.\n");
         scs->static_config.level_of_parallelism = PARALLEL_LEVEL_6;
     }
-
+    scs->static_config.pin_threads = config_struct->pin_threads;
     scs->static_config.recon_enabled = config_struct->recon_enabled;
 
     // Extract frame rate from Numerator and Denominator if not 0
@@ -4443,6 +4508,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     scs->static_config.transfer_characteristics = config_struct->transfer_characteristics;
     scs->static_config.matrix_coefficients = config_struct->matrix_coefficients;
     scs->static_config.color_range = config_struct->color_range;
+    scs->static_config.color_range_provided = config_struct->color_range_provided;
     scs->static_config.chroma_sample_position = config_struct->chroma_sample_position;
     scs->static_config.mastering_display = config_struct->mastering_display;
     scs->static_config.content_light_level = config_struct->content_light_level;
