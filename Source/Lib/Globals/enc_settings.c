@@ -914,6 +914,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("enable-alt-dlf must be between 0 and 3\n");
         return_error = EB_ErrorBadParameter;
     }
+    
+    if (config->webm > 1 || config->webm < -1) {
+        SVT_ERROR("The WebM parameter can only have a value of 0 or 1\n");
+        return_error = EB_ErrorBadParameter;
+    }
 
     return return_error;
 }
@@ -1091,6 +1096,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->noise_adaptive_filtering          = 2;
     config_ptr->alt_cdef                          = 1;
     config_ptr->alt_dlf                           = 0;
+    config_ptr->webm                              = DEFAULT;
     return return_error;
 }
 
@@ -2523,6 +2529,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"tile-rows", &config_struct->tile_rows},
         {"tile-columns", &config_struct->tile_columns},
         {"sframe-dist", &config_struct->sframe_dist},
+        {"webm", &config_struct->webm},
     };
     const size_t int_opts_size = sizeof(int_opts) / sizeof(int_opts[0]);
 

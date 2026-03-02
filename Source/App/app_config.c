@@ -231,6 +231,7 @@
 #define NOISE_ADAPTIVE_FILTERING_TOKEN "--noise-adaptive-filtering"
 #define ALT_CDEF_TOKEN "--enable-alt-cdef"
 #define ALT_DLF_TOKEN "--enable-alt-dlf"
+#define WRITE_WEBM_TOKEN "--webm"
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
     case EB_ErrorNone: return EB_ErrorNone;
@@ -426,6 +427,14 @@ static EbErrorType set_cfg_stream_file(EbConfig *cfg, const char *token, const c
         cfg->bitstream_file = stdout;
         return EB_ErrorNone;
     }
+#if CONFIG_WEBM_IO
+    //fprintf(stderr, "webm: %d\n", cfg->config.webm);
+    cfg->write_webm = cfg->config.webm ? true : false;
+    //fprintf(stderr, "write_webm: %d\n", cfg->write_webm);
+#else
+    if (cfg->config.webm > 0)
+        fputs("Warning: This build does not have WebM IO support, falling back to IVF\n", stderr);
+#endif
     return open_file(&cfg->bitstream_file, token, value, "wb");
 }
 static EbErrorType set_cfg_error_file(EbConfig *cfg, const char *token, const char *value) {
@@ -704,6 +713,8 @@ ConfigDescription config_entry_options[] = {
     {INPUT_FILE_LONG_TOKEN,
      "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
 
+    {WRITE_WEBM_TOKEN,
+     "Output WebM instead of IVF (default when WebM IO is enabled)"},
     {OUTPUT_BITSTREAM_TOKEN,
      "Output compressed (ivf) file path, use `stdout` or `-` to write to pipe"},
     {OUTPUT_BITSTREAM_LONG_TOKEN,
@@ -907,6 +918,8 @@ ConfigDescription fconfig_entry_options[] = {
     {INPUT_FILE_LONG_TOKEN, "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
     {ALLOW_MMAP_FILE_TOKEN, "Allow memory mapping for regular input file. Performance is platform dependent"},
 
+    {WRITE_WEBM_TOKEN,
+     "Output WebM instead of IVF (default when WebM IO is enabled)"},
     {OUTPUT_BITSTREAM_TOKEN, "Output compressed (ivf) file path, use `stdout` or `-` to write to pipe"},
     {OUTPUT_BITSTREAM_LONG_TOKEN, "Output compressed (ivf) file path, use `stdout` or `-` to write to pipe"},
 
@@ -1283,6 +1296,7 @@ ConfigEntry config_entry[] = {
     {INPUT_FILE_TOKEN, "InputFile", set_cfg_input_file},
     {INPUT_FILE_LONG_TOKEN, "InputFile", set_cfg_input_file},
     {ALLOW_MMAP_FILE_TOKEN, "AllowMmapFile", set_allow_mmap_file},
+    {WRITE_WEBM_TOKEN, "WebM", set_cfg_generic_token}, // needs to be placed before set_cfg_stream_file!!
     {OUTPUT_BITSTREAM_TOKEN, "StreamFile", set_cfg_stream_file},
     {OUTPUT_BITSTREAM_LONG_TOKEN, "StreamFile", set_cfg_stream_file},
     {ERROR_FILE_TOKEN, "ErrorFile", set_cfg_error_file},
@@ -1561,8 +1575,13 @@ void svt_config_dtor(EbConfig *app_cfg) {
     }
 
     if (app_cfg->bitstream_file) {
-        if (!fseek(app_cfg->bitstream_file, 0, SEEK_SET))
-            write_ivf_stream_header(app_cfg, app_cfg->frames_encoded);
+#ifdef CONFIG_WEBM_IO
+        if (!app_cfg->write_webm)
+#endif
+        {
+            if (!fseek(app_cfg->bitstream_file, 0, SEEK_SET))
+                write_ivf_stream_header(app_cfg, app_cfg->frames_encoded);
+        }
         fclose(app_cfg->bitstream_file);
         app_cfg->bitstream_file = NULL;
     }
@@ -1867,6 +1886,54 @@ EbErrorType handle_stats_file(EbConfig *app_cfg, EncPass enc_pass, const SvtAv1F
     }
     }
     return EB_ErrorNone;
+}
+static EbErrorType set_default_output_path(EbConfig *cfg) {
+    if (cfg->bitstream_file || !cfg->input_file_path)
+        return EB_ErrorNone; // already set or no input to derive from
+
+    const char *input = cfg->input_file_path;
+
+    // find last dot to strip extension
+    const char *last_dot   = strrchr(input, '.');
+    const char *last_slash = strrchr(input, '/');
+#ifdef _WIN32
+    const char *last_bslash = strrchr(input, '\\');
+    if (last_bslash > last_slash) last_slash = last_bslash;
+#endif
+    // only strip extension if dot is after the last separator
+    size_t base_len = (last_dot && last_dot > last_slash)
+                      ? (size_t)(last_dot - input)
+                      : strlen(input);
+
+#ifdef CONFIG_WEBM_IO
+    const char *ext = cfg->config.webm ? "_essential.webm" : "_essential.ivf";
+#else
+    const char *ext = "_essential.ivf";
+#endif
+
+    fputs("No output provided: file path automatically derived from the input\n", stderr);
+
+    size_t total = base_len + strlen(ext) + 1;
+    char *out_path = malloc(total);
+    if (!out_path)
+        return EB_ErrorInsufficientResources;
+
+    memcpy(out_path, input, base_len);
+    strcpy(out_path + base_len, ext);
+
+    EbErrorType err = open_file(&cfg->bitstream_file, "--output", out_path, "wb");
+    free(out_path);
+
+#ifdef CONFIG_WEBM_IO
+    //fprintf(stderr, "webm: %d\n", cfg->config.webm);
+    cfg->write_webm = cfg->config.webm ? true : false;
+    //fprintf(stderr, "write_webm: %d\n", cfg->write_webm);
+#else
+    if (cfg->config.webm > 0)
+        fputs("Warning: This build does not have WebM IO support, falling back to IVF\n", stderr);
+#endif
+
+    return err;
 }
 /******************************************
 * Verify Settings
@@ -2627,7 +2694,10 @@ EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *chan
     char       *config_strings; // for multiple input options
     const char *cmd_copy[MAX_NUM_TOKENS]; // keep track of extra tokens
     const char *arg_copy[MAX_NUM_TOKENS]; // keep track of extra arguments
-
+#ifdef CONFIG_WEBM_IO
+    channel->app_cfg->argc = argc;
+    channel->app_cfg->argv = (const char **)argv;
+#endif
     config_strings = (char *)malloc(sizeof(char) * COMMAND_LINE_MAX_SIZE);
     for (int i = 0; i < MAX_NUM_TOKENS; ++i) {
         cmd_copy[i] = NULL;
@@ -2760,6 +2830,7 @@ EbErrorType read_command_line(int32_t argc, char *const argv[], EncChannel *chan
             if (channel->return_error == EB_ErrorNone) {
                 app_cfg->input_padded_width  = app_cfg->config.source_width;
                 app_cfg->input_padded_height = app_cfg->config.source_height;
+                channel->return_error = set_default_output_path(app_cfg);
             }
 
             const int32_t input_frame_count = compute_frames_to_be_encoded(app_cfg);

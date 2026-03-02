@@ -30,6 +30,10 @@
 #define ftello _ftelli64
 #endif
 
+#ifdef CONFIG_WEBM_IO
+#include "third_party/webm/webmenc.h"
+#endif
+
 // Define Cross-Platform 64-bit fseek() and ftell()
 /** The AppExitConditionType type is used to define the App main loop exit
 conditions.
@@ -209,6 +213,12 @@ typedef struct EbConfig {
     void *ffms_video_source;
     void *ffms_index;
     int   ffms_track_num;
+#ifdef CONFIG_WEBM_IO
+    bool                     write_webm;        // Enable WebM output
+    struct WebmOutputContext webm_ctx;          // WebM context
+    int          argc;
+    const char **argv;
+#endif
 } EbConfig;
 
 typedef struct EncChannel {

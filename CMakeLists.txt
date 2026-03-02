@@ -732,6 +732,32 @@ if(USE_FFMS2)
     endif()
 endif()
 
+option(USE_WEBM_IO "Enable WebM output support" OFF)
+if(USE_WEBM_IO)
+    set(LIBWEBM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/webm/libwebm)
+
+    if(EXISTS ${LIBWEBM_DIR}/mkvmuxer/mkvmuxer.cc)
+        add_library(webm STATIC
+            ${LIBWEBM_DIR}/mkvmuxer/mkvmuxer.cc
+            ${LIBWEBM_DIR}/mkvmuxer/mkvmuxerutil.cc
+            ${LIBWEBM_DIR}/mkvmuxer/mkvwriter.cc
+        )
+        target_include_directories(webm PUBLIC ${LIBWEBM_DIR})
+
+        target_sources(SvtAv1EncApp PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/third_party/webm/webmenc.cc
+            ${CMAKE_CURRENT_SOURCE_DIR}/third_party/webm/av1_config.c
+        )
+        target_include_directories(SvtAv1EncApp PRIVATE ${LIBWEBM_DIR})
+        set_target_properties(webm PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+        target_link_libraries(SvtAv1EncApp webm)
+        target_compile_definitions(SvtAv1EncApp PRIVATE CONFIG_WEBM_IO=1)
+        message(STATUS "WebM support enabled")
+    else()
+        message(WARNING "libwebm sources not found at ${LIBWEBM_DIR}, building without WebM support")
+    endif()
+endif()
+
 if(SVT_AV1_PGO)
     string(REPLACE ";" "::" SVT_AV1_PGO_CUSTOM_VIDEOS "${SVT_AV1_PGO_CUSTOM_VIDEOS}")
 
