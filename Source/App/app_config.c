@@ -841,7 +841,7 @@ ConfigDescription config_entry_specific[] = {
     {FAST_DECODE_TOKEN, "Fast Decoder levels, default is 0 [0-2]"},
     // --- start: ALTREF_FILTERING_SUPPORT
     {ENABLE_TF_TOKEN,
-     "Enable ALT-REF (temporally filtered) frames, default is 1 [0-2]"},
+     "Enable ALT-REF (temporally filtered) frames, default is 1 [0-3]"},
 
     {ENABLE_OVERLAYS,
      "Enable the insertion of overlayer pictures which will be used as an additional reference "
@@ -1156,7 +1156,7 @@ ConfigDescription fconfig_entry_specific[] = {
     {DG_ENABLE_NEW_TOKEN, "Dynamic GoP control, default is 0 [0-1]"},
     {FAST_DECODE_TOKEN, "Fast Decoder levels, default is 0 [0-2]"},
     // --- start: ALTREF_FILTERING_SUPPORT
-    {ENABLE_TF_TOKEN, "Enable ALT-REF (temporally filtered) frames, default is 1 [0-2]"},
+    {ENABLE_TF_TOKEN, "Enable ALT-REF (temporally filtered) frames, default is 1 [0-3]"},
 
     {ENABLE_OVERLAYS,
      "Enable the insertion of overlayer pictures which will be used as an additional reference "
@@ -1271,7 +1271,7 @@ ConfigDescription fconfig_entry_psychovisual[] = {
     {VARIANCE_BOOST_CURVE_TOKEN,
      "Curve for Variance Boost, default is 0, or 3 if encoding PQ transfer content [0-3]"},
     // Adaptive film grain
-    {ADAPTIVE_FILM_GRAIN_TOKEN, "Adapts film grain blocksize based on video resolution, default is 1 [0-1]"},
+    {ADAPTIVE_FILM_GRAIN_TOKEN, "Adapts film grain blocksize based on video resolution, default is 0 [0-1]"},
     // Max TX size
     {MAX_TX_SIZE_TOKEN, "Limits the allowed transform sizes to the specified, default is 64 [32,64]"},
     // AC-Bias

@@ -3842,6 +3842,23 @@ static void mctf_frame(
             scs,
             pcs,
             pd_ctx);
+    if (!pcs->tf_ctrls.enabled && scs->static_config.enable_tf == 3) {
+        // Fallback: use appropriate TF params for frames that don't have TF enabled
+        int tf_type_index = MIN(pcs->temporal_layer_index, 2); // Cap at L2 params
+        if (tf_type_index == 0 && pcs->slice_type != I_SLICE) {
+            tf_type_index = 1; // Use BASE params for non-I frames at temporal layer 0
+        }
+        
+        // Copy the TF parameters
+        pcs->tf_ctrls = scs->tf_params_per_type[tf_type_index];
+        pcs->tf_ctrls.enabled = 1;
+        
+        // Reduce window size for higher temporal layers to avoid reference issues
+        if (pcs->temporal_layer_index > 2) {
+            pcs->tf_ctrls.num_past_pics = 1;
+            pcs->tf_ctrls.num_future_pics = 1;
+        }
+    }
     if (pcs->tf_ctrls.enabled) {
         derive_tf_window_params(
             scs,
