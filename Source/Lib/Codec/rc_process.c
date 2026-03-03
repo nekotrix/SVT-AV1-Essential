@@ -40,6 +40,22 @@
 #include "src_ops_process.h"
 #include "enc_mode_config.h"
 
+// Helper function to find the active zone for a given frame
+static void get_zone_quality_for_frame(const QualityZone* zones, int num_zones, uint64_t frame_number, int* base_qp,
+                                       int* quarter_index) {
+    if (!zones || num_zones == 0) {
+        return; // No zone active
+    }
+
+    for (int i = 0; i < num_zones; i++) {
+        if (frame_number >= zones[i].start_frame && frame_number <= zones[i].end_frame) {
+            *base_qp       = zones[i].zone_baseq;
+            *quarter_index = zones[i].zone_qsidx;
+            return;
+        }
+    }
+}
+
 // Specifies the weights of the ref frame in calculating qindex of non base layer frames
 static const int non_base_qindex_weight_ref[EB_MAX_TEMPORAL_LAYERS] = {100, 100, 100, 100, 100, 100};
 // Specifies the weights of the worst quality in calculating qindex of non base layer frames
@@ -3729,7 +3745,21 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                         frm_hdr->quantization_params.base_q_idx = scs_qindex;
 
                     } else {
+                        int32_t zone_qindex = -1;
+                        int     zone_baseq  = -1;
+                        int     zone_qsidx  = -1;
                         if (scs->enable_qp_scaling_flag) {
+                            if (scs->static_config.zones) {
+                                get_zone_quality_for_frame(scs->static_config.parsed_zones,
+                                                           scs->static_config.num_zones,
+                                                           pcs->picture_number,
+                                                           &zone_baseq,
+                                                           &zone_qsidx);
+                                if (zone_baseq >= 0) {
+                                    zone_baseq  = clamp_qp(scs, zone_baseq);
+                                    zone_qindex = clamp_qindex(scs, quantizer_to_qindex[zone_baseq] + zone_qsidx);
+                                }
+                            }
                             // if there are need enough pictures in the LAD/SlidingWindow, the adaptive QP scaling is not used
                             int32_t new_qindex;
                             // if CRF
@@ -3738,9 +3768,9 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                                     rc->active_worst_quality = scs_qindex;
                                     av1_rc_init(scs);
                                 }
-                                new_qindex = crf_qindex_calc(pcs, rc, rc->active_worst_quality);
+                                new_qindex = crf_qindex_calc(pcs, rc, (zone_qindex >= 0) ? zone_qindex : rc->active_worst_quality);
                             } else // if CQP
-                                new_qindex = cqp_qindex_calc(pcs, scs_qindex);
+                                new_qindex = cqp_qindex_calc(pcs, (zone_qindex >= 0) ? zone_qindex : scs_qindex);
                             frm_hdr->quantization_params.base_q_idx = clamp_qindex(scs, new_qindex);
                         } else {
                             frm_hdr->quantization_params.base_q_idx = clamp_qindex(scs, scs_qindex);
@@ -3763,7 +3793,18 @@ void *svt_aom_rate_control_kernel(void *input_ptr) {
                         }
 
                         // Extended CRF range (63.25 - 70), add offset to all temporal layers to compress QP scaling
-                        if (scs->static_config.qp == MAX_QP_VALUE && scs->static_config.extended_crf_qindex_offset) {
+                        if (scs->static_config.zones && zone_baseq == MAX_QP_VALUE && zone_qsidx > 0) {
+                            int32_t qindex = frm_hdr->quantization_params.base_q_idx;
+
+                            // Testing revealed that limiting the max qindex offset to up the half the distance (i.e. 28 / 56)
+                            // between MAX_Q_INDEX and the current qindex is enough to achieve desired file size targets
+                            qindex += (int32_t)(((MAX_Q_INDEX - qindex) *
+                                                 zone_qsidx) /
+                                                56.0);
+                            qindex = clamp_qindex(scs, qindex);
+
+                            frm_hdr->quantization_params.base_q_idx = qindex;
+                        } else if (scs->static_config.qp == MAX_QP_VALUE && scs->static_config.extended_crf_qindex_offset) {
                             int32_t qindex = frm_hdr->quantization_params.base_q_idx;
 
                             // Testing revealed that limiting the max qindex offset to up the half the distance (i.e. 28 / 56)

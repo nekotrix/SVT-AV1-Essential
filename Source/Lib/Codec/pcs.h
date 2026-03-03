@@ -1187,6 +1187,8 @@ typedef struct PictureControlSetInitData {
     uint8_t max_tx_size;
     double  ac_bias;
     bool    use_flat_ipp;
+    QualityZone* zones;
+    uint16_t     num_zones;
     bool    auto_tiling;
     bool    low_memory;
     bool    hide_banner;
