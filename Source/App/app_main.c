@@ -220,10 +220,11 @@ static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, in
 
 static void enc_context_dctor(EncContext* enc_context) {
     // DeInit Encoder
+    EncChannel* c = &enc_context->channel;
 #if !HAVE_FFMS2
     deinit_memory_file_map(c->app_cfg);
 #endif
-    enc_channel_dctor(&enc_context->channel);
+    enc_channel_dctor(c);
 
     for (uint32_t warning_id = 0; warning_id < MAX_NUM_TOKENS; warning_id++) free(enc_context->warning[warning_id]);
 }
