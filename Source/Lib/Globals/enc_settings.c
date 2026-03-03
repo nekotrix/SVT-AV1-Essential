@@ -1318,10 +1318,17 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                         : config->pred_structure == RANDOM_ACCESS ? "RA"
                                                                   : "Unknown pred structure");
         }
-        SVT_INFO("SVT [config]: lp / hierarchical level / low memory \t\t\t: %d / %d / %d\n",
-                 config->level_of_parallelism,
-                 config->hierarchical_levels,
-                 config->low_memory);
+        if (config->level_of_parallelism) {
+            SVT_INFO("SVT [config]: lp / hierarchical level / low memory \t\t\t: %d / %d / %d\n",
+                    config->level_of_parallelism,
+                    config->hierarchical_levels,
+                    config->low_memory);
+        } else {
+            SVT_INFO("SVT [config]: lp / hierarchical level / low memory \t\t\t: %s / %d / %d\n",
+                    "auto",
+                    config->hierarchical_levels,
+                    config->low_memory);
+        }
         SVT_INFO(
             "SVT [config]: max / min gop size / mini-gop size / type \t\t: "
             "%d / %d / %d / %s\n",

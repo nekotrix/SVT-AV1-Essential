@@ -242,7 +242,7 @@ static void print_summary_to_file(const EbConfig* app_cfg, FILE* f) {
     double   frame_rate  = (double)cfg->frame_rate_numerator / cfg->frame_rate_denominator;
 
     double bitrate_kbps = ctx->byte_count * 8 * frame_rate / (app_cfg->frames_encoded * 1000);
-    fprintf(f, "\nSUMMARY -----------------------------------------------------------------\n");
+    fprintf(f, "\nSUMMARY -----------------------------------------------------------------------------\n");
     fprintf(f, "Total Frames\t\tFrame Rate\t\tByte Count\t\tBitrate\n");
     fprintf(f,
             "%12d\t\t%4.2f fps\t\t%10.0f\t\t%5.2f kbps\n",
@@ -307,14 +307,11 @@ static void print_performance(const EncContext* const enc_context) {
                  (app_cfg->config.pass == 2 && app_cfg->config.rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF) ||
                  app_cfg->config.pass == 3))
                 fprintf(stderr,
-                        "\nAverage Speed:\t\t%.3f fps\nTotal Encoding Time:\t%.0f "
-                        "ms\nTotal Execution Time:\t%.0f ms\nAverage Latency:\t%.0f ms\nMax "
-                        "Latency:\t\t%u ms\n",
+                        "Average Speed:\t\t%.3f fps\nTotal Encoding Time:\t%.0f "
+                        "ms\nTotal Execution Time:\t%.0f ms\n",
                         app_cfg->performance_context.average_speed,
                         app_cfg->performance_context.total_encode_time * 1000,
-                        app_cfg->performance_context.total_execution_time * 1000,
-                        app_cfg->performance_context.average_latency,
-                        (uint32_t)(app_cfg->performance_context.max_latency));
+                        app_cfg->performance_context.total_execution_time * 1000);
         } else
             fprintf(stderr, "\nEncoding Interrupted\n");
     } else if (c->return_error == EB_ErrorInsufficientResources)

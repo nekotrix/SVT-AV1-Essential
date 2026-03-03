@@ -126,7 +126,7 @@ int write_webm_stream_header(EbConfig *app_cfg,
 
     const char *svt_version = svt_av1_get_version();
     char version[128];
-    snprintf(version, sizeof(version), "SVT-AV1-Essential %s", svt_version);
+    snprintf(version, sizeof(version), "SVT-AV1-Essential %s (Pre-release)", svt_version);
 
     char *enc_settings = NULL;
     if (app_cfg->argc > 0 && app_cfg->argv)
