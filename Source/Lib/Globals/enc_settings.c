@@ -260,12 +260,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Hierarchical Levels supported [0-5]\n");
         return_error = EB_ErrorBadParameter;
     }
-    if ((config->intra_period_length < -1 || config->intra_period_length > 2 * ((1 << 30) - 1)) &&
+    if ((config->intra_period_length < -2 || config->intra_period_length > 2 * ((1 << 30) - 1)) &&
         config->rate_control_mode == SVT_AV1_RC_MODE_CQP_OR_CRF) {
-        SVT_ERROR("The intra period must be [-1, 2^31-2]\n");
+        SVT_ERROR("The intra period must be [-2, 2^31-2]\n");
         return_error = EB_ErrorBadParameter;
     }
-    if ((config->intra_period_length <= 0) && config->rate_control_mode == SVT_AV1_RC_MODE_VBR) {
+    if ((config->intra_period_length < 0) && config->rate_control_mode == SVT_AV1_RC_MODE_VBR) {
         SVT_ERROR("The intra period must be > 0 for RateControlMode %d\n", config->rate_control_mode);
         return_error = EB_ErrorBadParameter;
     }
@@ -275,8 +275,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
     if (config->scene_change_detection != 0) {
-        if ((config->min_intra_period_length > config->intra_period_length) || (config->intra_period_length < 0 &&
-            config->min_intra_period_length > 0)) {
+        if ((config->min_intra_period_length > config->intra_period_length && config->intra_period_length >= 0)
+            || (config->intra_period_length < 0 && config->min_intra_period_length > 0)) {
             SVT_ERROR("The minimum intra period must be lower than "
                 "the maximum intra period. \n");
             return_error = EB_ErrorBadParameter;
@@ -623,9 +623,9 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
-    if (config->rate_control_mode == SVT_AV1_RC_MODE_VBR && config->intra_period_length == 0) {
+    if (config->rate_control_mode == SVT_AV1_RC_MODE_VBR && config->intra_period_length == -1) {
         SVT_ERROR(
-            "keyint = 0 is not supported for modes other than CRF rate control "
+            "keyint = -1 is not supported for modes other than CRF rate control "
             "encoding modes.\n");
         return_error = EB_ErrorBadParameter;
     }
@@ -983,7 +983,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->min_qp_allowed               = MIN_QP_AUTO;
     config_ptr->aq_mode                      = 2;
     config_ptr->enc_mode                     = DEFAULT_MODE;
-    config_ptr->intra_period_length          = -1;
+    config_ptr->intra_period_length          = -2;
     config_ptr->min_intra_period_length      = -1;
     config_ptr->multiply_keyint              = false;
     config_ptr->intra_refresh_type           = 2;
@@ -1332,8 +1332,7 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
         SVT_INFO(
             "SVT [config]: max / min gop size / mini-gop size / type \t\t: "
             "%d / %d / %d / %s\n",
-            config->intra_period_length <= 1 ? config->intra_period_length 
-                : config->intra_period_length + 1,
+            config->intra_period_length + 1,
             config->min_intra_period_length <= 1 ? config->min_intra_period_length 
                 : config->min_intra_period_length + 1,
             (1 << config->hierarchical_levels),
@@ -1425,11 +1424,11 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
         }
         if (config->rate_control_mode != SVT_AV1_RC_MODE_CBR) {
             if (!config->enable_variance_boost) {
-                SVT_INFO("SVT [config]: AQ mode / variance boost \t\t\t\t: %d / %d\n",
+                SVT_INFO("SVT [config]: AQ mode / Variance Boost \t\t\t\t: %d / %d\n",
                          config->aq_mode,
                          config->enable_variance_boost);
             } else {
-                SVT_INFO("SVT [config]: AQ mode / variance boost strength / octile / curve \t: %d / %d / %d / %d\n",
+                SVT_INFO("SVT [config]: AQ mode / Variance Boost strength / octile / curve \t: %d / %d / %d / %d\n",
                          config->aq_mode,
                          config->variance_boost_strength,
                          config->variance_octile,
@@ -1498,7 +1497,7 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
         SVT_INFO("SVT [config]: QP scale compress strength \t\t\t\t: %d\n", config->qp_scale_compress_strength);
 
         if (config->ac_bias || config->tx_bias) {
-            SVT_INFO("SVT [config]: AC bias strength / TX bias / sharp TX optimization \t: %.2f / %s / %d\n",
+            SVT_INFO("SVT [config]: AC Bias strength / TX Bias / sharp TX optimization \t: %.2f / %s / %d\n",
                      config->ac_bias,
                      config->tx_bias == 1
                          ? "full"
@@ -1506,16 +1505,14 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                      config->sharp_tx);
         }
 
-        if (config->noise_norm_strength > 0 || config->noise_adaptive_filtering) {
-            SVT_INFO("SVT [config]: noise normalization strength / adaptive filtering \t: %d / %s\n",
-                config->noise_norm_strength,
-                config->noise_adaptive_filtering == 0 ? "CDEF/Restoration off (0)" :
-                config->noise_adaptive_filtering == 1 ? "CDEF/Restoration on (1)" :
-                config->noise_adaptive_filtering == 2 ? "default tune (2)" :
-                config->noise_adaptive_filtering == 3 ? "CDEF only (3)" :
-                config->noise_adaptive_filtering == 4 ? "Restoration only (4)" :
-                                                        "unknown");
-        }            
+        SVT_INFO("SVT [config]: noise normalization strength / adaptive filtering \t: %d / %s\n",
+            config->noise_norm_strength,
+            config->noise_adaptive_filtering == 0 ? "CDEF/Restoration off (0)" :
+            config->noise_adaptive_filtering == 1 ? "CDEF/Restoration on (1)" :
+            config->noise_adaptive_filtering == 2 ? "default tune (2)" :
+            config->noise_adaptive_filtering == 3 ? "CDEF only (3)" :
+            config->noise_adaptive_filtering == 4 ? "Restoration only (4)" :
+                                                    "unknown");
         
         if (config->complex_hvs == 1 || config->distortion_bias_preset != 0) {
             SVT_INFO("SVT [config]: highest complexity HVS model / distortion bias preset \t: %d / %d\n",
@@ -1796,7 +1793,7 @@ static EbErrorType str_to_keyint(const char *nptr, int32_t *out, bool *multi) {
     char      *suff;
     const long keyint = strtol(nptr, &suff, 0);
 
-    if (keyint > INT32_MAX || keyint < -1)
+    if (keyint > INT32_MAX || keyint < -2)
         return EB_ErrorBadParameter;
 
     switch (*suff) {
@@ -1807,7 +1804,7 @@ static EbErrorType str_to_keyint(const char *nptr, int32_t *out, bool *multi) {
         break;
     case '\0':
         *multi = false;
-        *out   = keyint <=1 ? keyint : keyint - 1;
+        *out   = keyint < 0 ? keyint : keyint - 1;
         break;
     default:
         // else leave as untouched, we have an invalid keyint

@@ -4528,12 +4528,12 @@ static uint32_t get_pic_idx_in_mg(SequenceControlSet* scs, PictureParentControlS
     else {
         uint64_t distance_to_last_idr = pcs->picture_number - scs->enc_ctx->last_idr_picture;
         // For low delay P or low delay b case, get the the picture_index by mini_gop size
-        if (scs->static_config.intra_period_length > 0) {
+        if (scs->static_config.intra_period_length >= 0) {
             pic_idx_in_mg = (distance_to_last_idr == 0) ? 0 :
                 (uint32_t)(((distance_to_last_idr - 1) % (scs->static_config.intra_period_length + 1)) % pcs->pred_struct_ptr->pred_struct_entry_count);
         }
         else {
-            // intra-period=0 case, no gop
+            // intra-period=-1 case, no gop
             pic_idx_in_mg = (distance_to_last_idr == 0) ? 0 :
                 (uint32_t)((distance_to_last_idr - 1) % pcs->pred_struct_ptr->pred_struct_entry_count);
         }
@@ -5067,7 +5067,7 @@ void* svt_aom_picture_decision_kernel(void *input_ptr) {
                 pcs->cra_flag = false;
             }
             // If an #IntraPeriodLength has passed since the last Intra, then introduce a CRA or IDR based on Intra Refresh type
-            else if (scs->static_config.intra_period_length > 1) {
+            else if (scs->static_config.intra_period_length != -1) {
 
                 pcs->cra_flag =
                     (scs->static_config.intra_refresh_type != SVT_AV1_FWDKF_REFRESH) ?

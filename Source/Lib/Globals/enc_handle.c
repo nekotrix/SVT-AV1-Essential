@@ -4440,7 +4440,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     if (scs->static_config.frame_rate_numerator != 0 && scs->static_config.frame_rate_denominator != 0)
         scs->frame_rate = (double)scs->static_config.frame_rate_numerator / (double)scs->static_config.frame_rate_denominator;
     // Get Default Intra Period if not specified
-    if (scs->static_config.intra_period_length == -1) {
+    if (scs->static_config.intra_period_length == -2) {
         scs->static_config.intra_period_length = compute_default_intra_period(scs);
         scs->allintra = (scs->static_config.intra_period_length == 0 || scs->static_config.avif);
     }
@@ -4450,7 +4450,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         scs->static_config.intra_period_length =
             (int32_t)(fps * scs->static_config.intra_period_length);
     }
-    if (scs->static_config.intra_period_length == 0)
+    if (scs->static_config.intra_period_length == -1 || scs->allintra)
         scs->static_config.min_intra_period_length = 0;
     else {
         if (scs->static_config.min_intra_period_length == -1)
@@ -4661,7 +4661,7 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         scs->static_config.alt_cdef = 2;
     }
     else if (scs->static_config.distortion_bias_preset == 4) {
-        SVT_WARN("Distortion bias preset 4 hard sets: --tune 0 --qm-min 6 --qm-max 10 --chroma-qm-min 8 --enable-tf 0 --enable-cdef 0 --enable-restoration 0 --ac-bias 4 --noise-norm-strength 1 --tx-bias 1\n");
+        SVT_WARN("Distortion bias preset 4 hard sets: --tune 0 --qm-min 6 --qm-max 10 --variance-boost-strength 2 --variance-octile 5 --chroma-qm-min 8 --enable-tf 0 --enable-cdef 0 --enable-restoration 0 --ac-bias 4 --noise-norm-strength 1 --tx-bias 1\n");
         SVT_WARN("Distortion bias presets serve illustrative purposes. It is recommended to tweak the settings around your preferred preset for better results\n");
         SVT_WARN("With higher Distortion bias presets and high CRFs, it is recommended to up the film-grain/photon-noise strength for a more consistent picture\n");
         SVT_WARN(
@@ -4671,6 +4671,8 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         scs->static_config.min_qm_level = 6;
         scs->static_config.max_qm_level = 10;
         scs->static_config.min_chroma_qm_level = 8;
+        scs->static_config.variance_boost_strength = 2;
+        scs->static_config.variance_octile = 5;
         scs->static_config.noise_norm_strength = 1;
         scs->static_config.tx_bias = 1;
         /* Inspired by SVT-AV1-HDR's tune grain*/

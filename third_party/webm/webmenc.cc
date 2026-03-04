@@ -94,7 +94,7 @@ int write_webm_file_header(struct WebmOutputContext *webm_ctx,
         return -1;
     }
 
-    info->set_timecode_scale(1000000);  // 1ms in ns
+    info->set_timecode_scale(1000); // cfg->timebase_den ?
     std::string writing_app = "SVT-AV1-Essential";
     info->set_writing_app(writing_app.c_str());
 

@@ -818,7 +818,7 @@ ConfigDescription config_entry_rc[] = {
 
 ConfigDescription config_entry_intra_refresh[] = {
     {KEYINT_TOKEN,
-     "Max GOP size (frames), default is -1 [-1: ~5 seconds, 0: \"infinite\" and only applicable for "
+     "Max GOP size (frames), default is -2 [-2: ~5 seconds, -1: \"infinite\" and only applicable for "
      "CRF]"},
     {MIN_KEYINT_TOKEN,
      "Min GOP size (frames), default is -1 [-1: multiple of the mini-gop length (automatic), "
@@ -916,11 +916,11 @@ ConfigDescription config_entry_psychovisual[] = {
     {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 1 [1-4]"},
     {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 4 [1-8]"},
     // AC-Bias
-    {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.0 [0.0-8.0]"},
+    {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.25 [0.0-8.0]"},
     // Alt CDEF
     {ALT_CDEF_TOKEN,
      "Enable alternative CDEF biases."
-     "Default is 1 [0-3]."},
+     "Default is 0 [0-3]."},
     {ALT_DLF_TOKEN,
      "Enable alternative DLF biases."
      "Default is 0 [0-3]."},
@@ -1136,7 +1136,7 @@ ConfigDescription fconfig_entry_2p[] = {
 
 ConfigDescription fconfig_entry_intra_refresh[] = {
     {KEYINT_TOKEN,
-     "Max GOP size (frames), default is -1 [-1: ~5 seconds, 0: \"infinite\" and only applicable for "
+     "Max GOP size (frames), default is -2 [-2: ~5 seconds, -1: \"infinite\" and only applicable for "
      "CRF]"},
     {MIN_KEYINT_TOKEN,
      "Min GOP size (frames), default is -1 [-1: multiple of the mini-gop length (automatic), "
@@ -1295,7 +1295,7 @@ ConfigDescription fconfig_entry_psychovisual[] = {
     // Max TX size
     {MAX_TX_SIZE_TOKEN, "Limits the allowed transform sizes to the specified, default is 64 [32,64]"},
     // AC-Bias
-    {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.0 [0.0-8.0]"},
+    {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.25 [0.0-8.0]"},
     // Sharp-tx
     {SHARP_TX_TOKEN, "Sharp transform optimization, default is 0 [0-1]"},
     // TX bias
@@ -1310,7 +1310,7 @@ ConfigDescription fconfig_entry_psychovisual[] = {
     // Alt CDEF
     {ALT_CDEF_TOKEN,
      "Enable alternative CDEF biases."
-     "Default is 1 [0-3]."},
+     "Default is 0 [0-3]."},
     {ALT_DLF_TOKEN,
      "Enable alternative DLF biases."
      "Default is 0 [0-3]."},
@@ -2432,8 +2432,8 @@ uint32_t get_passes(int32_t argc, char *const argv[], EncPass enc_pass[MAX_ENC_P
         ip = c.multiply_keyint && c.intra_period_length > 0 ? max_keyint : c.intra_period_length;
         if (!is_keyint)
             fputs("[SVT-Warning]: --intra-period is deprecated for --keyint\n", stderr);
-        if ((ip < -1 || ip > max_keyint) && rc_mode == 0) {
-            fprintf(stderr, "[SVT-Error]: The intra period must be [-1, 2^31-2], input %d\n", ip);
+        if ((ip < -2 || ip > max_keyint) && rc_mode == 0) {
+            fprintf(stderr, "[SVT-Error]: The intra period must be [-2, 2^31-2], input %d\n", ip);
             return 0;
         }
         if ((ip < 0) && rc_mode == 1) {

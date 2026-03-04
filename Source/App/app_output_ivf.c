@@ -108,7 +108,7 @@ static const uint8_t *find_sequence_header_obu(const uint8_t *buf, size_t sz,
 int write_webm_stream_header(EbConfig *app_cfg,
                              const uint8_t *buf, size_t buf_sz) {
     app_cfg->webm_ctx.stream    = app_cfg->bitstream_file;
-    app_cfg->webm_ctx.last_pts_ns = 0;
+    app_cfg->webm_ctx.last_pts_ns = -1;
 
     size_t         seq_obu_sz = 0;
     const uint8_t *seq_obu    = find_sequence_header_obu(buf, buf_sz, &seq_obu_sz);

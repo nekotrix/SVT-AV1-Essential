@@ -249,10 +249,10 @@ typedef struct EbSvtAv1EncConfiguration {
      * with hierarchical_levels = 3 and open GOP you could use 319, 279, 159
      * for 60, 50, or 30 respectively.
      *
-     *  0 = no intra update.
-     * -1 = auto.
+     * -1 = no intra update.
+     * -2 = auto.
      *
-     * Default is -1. */
+     * Default is -2. */
     int32_t intra_period_length;
 
     /* The min intra period defines the interval of frames before which a new

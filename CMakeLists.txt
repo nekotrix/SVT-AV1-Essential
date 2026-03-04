@@ -751,6 +751,10 @@ if(USE_WEBM_IO)
         )
         target_include_directories(webm PUBLIC ${LIBWEBM_DIR})
 
+        if(WIN32)
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        endif()
+
         target_sources(SvtAv1EncApp PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/third_party/webm/webmenc.cc
             ${CMAKE_CURRENT_SOURCE_DIR}/third_party/webm/av1_config.c
