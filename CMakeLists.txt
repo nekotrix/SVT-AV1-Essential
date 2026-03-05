@@ -654,6 +654,10 @@ endif()
 
 option(USE_FFMS2 "Enable FFMS2 support (Install FFMS2 first)" OFF)
 if(USE_FFMS2)
+    # link static ffms2 which is c++ libraies 
+    # it is fine even if program not link ffms2
+    # it does not affect anything but final linker language invoke
+    set_target_properties(SvtAv1EncApp PROPERTIES LINKER_LANGUAGE CXX)
     find_package(PkgConfig)
     if(PkgConfig_FOUND)
         pkg_check_modules(PC_FFMS2 ffms2 QUIET)
@@ -665,39 +669,23 @@ if(USE_FFMS2)
             set(FFMS2_LIBRARY_DIR ${PC_FFMS2_LIBRARY_DIRS})
             set(FFMS2_INCLUDE_DIR ${PC_FFMS2_INCLUDE_DIRS})
 
+            if (WIN32 AND NOT MINGW)
+                message(WARNING "FFMS2 static and shared building is not guaranteed here.")
+            endif()
+
             if(EXT_LIB_STATIC)
-                # link static ffms2 which is c++ libraies
-                set_target_properties(SvtAv1EncApp PROPERTIES LINKER_LANGUAGE CXX)
                 # need this for static build
                 target_compile_definitions(SvtAv1EncApp PRIVATE FFMS_STATIC)
                 set(FFMS2_REQUIRED_LIBRARIES ${PC_FFMS2_STATIC_LIBRARIES})
-
-                if(NOT MSVC AND CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
-                    # suffix hack not work in msys2
-                    if(MINGW)
-                        set(FFMS2_LIBRARY ${FFMS2_REQUIRED_LIBRARIES})
-                        if (NOT BUILD_SHARED_LIBS AND EXT_LIB_STATIC)
-                            message(WARNING "FFMS2 static building is not guaranteed here.")
-                            # try to build static
-                            # hack because adding in normal ways does not work
-                            target_link_libraries(SvtAv1EncApp -static)
-                        endif()
-                    else()
-                        foreach(BASE ${FFMS2_REQUIRED_LIBRARIES})
-                            list(APPEND FFMS2_LIBRARY "-l${BASE}${SUFFIX}")
-                        endforeach()
-                    endif()
-                else()
-                    foreach(BASE ${FFMS2_REQUIRED_LIBRARIES})
-                        list(APPEND FFMS2_LIBRARY "${BASE}${SUFFIX}")
-                    endforeach()
-                endif()
+                
+                foreach(BASE ${FFMS2_REQUIRED_LIBRARIES})
+                    list(APPEND FFMS2_LIBRARY "${BASE}${SUFFIX}")
+                endforeach()
             else()
-                find_library(FFMS2_LIBRARY
-                    NAMES ffms2 libffms2
-                    PATHS
-                        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ffms2/lib
-                )
+                set(FFMS2_REQUIRED_LIBRARIES ${PC_FFMS2_LIBRARIES})
+                foreach(BASE ${FFMS2_REQUIRED_LIBRARIES})
+                    list(APPEND FFMS2_LIBRARY "${BASE}${SUFFIX}")
+                endforeach()
             endif()
 
             message(STATUS "Found FFMS2: ${FFMS2_LIBRARY}")
