@@ -220,6 +220,7 @@
 #define ADAPTIVE_FILM_GRAIN_TOKEN "--adaptive-film-grain"
 #define MAX_TX_SIZE_TOKEN "--max-tx-size"
 #define AC_BIAS_TOKEN "--ac-bias"
+#define ZONES_TOKEN "--zones"
 #define AUTO_TILING_TOKEN "--auto-tiling"
 #define SPEED_TOKEN "--speed"
 #define QUALITY_TOKEN "--quality"
@@ -574,6 +575,21 @@ err:
     free(fkf.specifiers);
     return EB_ErrorBadParameter;
 }
+static EbErrorType set_cfg_quality_zones(EbConfig* cfg, const char* token, const char* value) {
+    (void)token;
+
+    if (!value) {
+        return svt_av1_enc_parse_parameter(&cfg->config, "zones", "");
+    }
+
+    EbErrorType err = svt_av1_enc_parse_parameter(&cfg->config, "zones", value);
+    if (err != EB_ErrorNone) {
+        fprintf(stderr, "Error: Failed to parse quality zones from config file: %s\n", value);
+        return err;
+    }
+
+    return EB_ErrorNone;
+}
 static EbErrorType set_no_progress(EbConfig *cfg, const char *token, const char *value) {
     (void)token;
     switch (value ? *value : '1') {
@@ -797,6 +813,8 @@ ConfigDescription config_entry_rc[] = {
     // QP scale compress strength
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN,
      "QP scale compress strength, default is 1 [0-8]"},
+    // Zones
+    {ZONES_TOKEN, "CRF/CQP zones, format: start,end,quality;start,end,quality;..., default is no zones"},
     // Termination
     {NULL, NULL}};
 
@@ -1099,6 +1117,8 @@ ConfigDescription fconfig_entry_rc[] = {
     {SHARPNESS_TOKEN, "Bias towards decreased/increased sharpness, default is 1 [-7 to 7]"},
     // QP scale compress strength
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 1 [0-8]"},
+    // Zones
+    {ZONES_TOKEN, "CRF/CQP zones, format: start,end,quality;start,end,quality;..., default is no zones"},
     // Noise normalization strength
     {NOISE_NORM_STRENGTH_TOKEN, "Noise normalization strength, default is 0 [0-4]"},
     // Termination
@@ -1526,6 +1546,8 @@ ConfigEntry config_entry[] = {
 
     // AC-bias strength
     {AC_BIAS_TOKEN, "AcBias", set_cfg_generic_token},
+
+    {ZONES_TOKEN, "Zones", set_cfg_quality_zones},
 
     // Auto tiling
     {AUTO_TILING_TOKEN, "AutoTiling", set_cfg_generic_token},

@@ -1100,6 +1100,9 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->max_tx_size                       = 64;
     config_ptr->extended_crf_qindex_offset        = 0;
     config_ptr->ac_bias                           = 0.25;
+    config_ptr->zones                             = NULL;
+    config_ptr->parsed_zones                      = NULL;
+    config_ptr->num_zones                         = 0;
     config_ptr->auto_tiling                       = true;
     config_ptr->speed                             = SPEED_UNKNOWN;
     config_ptr->quality                           = QUALITY_UNKNOWN;
@@ -2348,7 +2351,82 @@ static EbErrorType str_to_sframe_qp_offset(const char *nptr, SvtAv1SFramePositio
         if (!strcmp(name, par))                                                                           \
             return svt_aom_parse_##opt(&config_struct->opt, value) ? EB_ErrorNone : EB_ErrorBadParameter; \
     } while (0)
+static EbErrorType parse_zones_string(const char* zones_str, QualityZone** zones_out, uint16_t* num_zones_out) {
+    if (!zones_str || strlen(zones_str) == 0) {
+        *zones_out     = NULL;
+        *num_zones_out = 0;
+        return EB_ErrorNone;
+    }
 
+    // Count semicolons to determine number of zones
+    int zone_count = 1;
+    for (const char* p = zones_str; *p; p++) {
+        if (*p == ';') {
+            zone_count++;
+        }
+    }
+
+    // Allocate memory for zones
+    QualityZone* zones = (QualityZone*)malloc(zone_count * sizeof(QualityZone));
+    if (!zones) {
+        return EB_ErrorInsufficientResources;
+    }
+
+    // Parse zones
+    char* zones_copy = strdup(zones_str);
+    if (!zones_copy) {
+        free(zones);
+        return EB_ErrorInsufficientResources;
+    }
+
+    char* zone_token   = strtok(zones_copy, ";");
+    int   parsed_zones = 0;
+
+    while (zone_token && parsed_zones < zone_count) {
+        unsigned long long start, end;
+        double             quality;
+        int                base_q, qs_index;
+
+        if (sscanf(zone_token, "%llu,%llu,%lf", &start, &end, &quality) != 3) {
+            free(zones);
+            free(zones_copy);
+            return EB_ErrorBadParameter;
+        } else {
+            quality  = round(quality * 4.0);
+            base_q   = (int)quality / 4;
+            qs_index = (int)quality % 4;
+        }
+
+        // Validate zone parameters
+        if (start > end) {
+            SVT_ERROR("Invalid zone: start frame (%llu) > end frame (%llu)\n", start, end);
+            free(zones);
+            free(zones_copy);
+            return EB_ErrorBadParameter;
+        }
+
+        if (base_q < 0 || base_q > 70) {
+            SVT_ERROR("Invalid quality value (%d) in zone, must be 0-70\n", quality);
+            free(zones);
+            free(zones_copy);
+            return EB_ErrorBadParameter;
+        }
+
+        zones[parsed_zones].start_frame = start;
+        zones[parsed_zones].end_frame   = end;
+        zones[parsed_zones].zone_baseq  = base_q;
+        zones[parsed_zones].zone_qsidx  = qs_index;
+        parsed_zones++;
+
+        zone_token = strtok(NULL, ";");
+    }
+
+    free(zones_copy);
+
+    *zones_out     = zones;
+    *num_zones_out = parsed_zones;
+    return EB_ErrorNone;
+}
 EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_struct, const char *name,
                                                const char *value) {
     if (config_struct == NULL || name == NULL || value == NULL)
@@ -2458,6 +2536,52 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
     if (!strcmp(name, "sframe-qp-offset"))
         return str_to_sframe_qp_offset(value, &config_struct->sframe_posi, &config_struct->sframe_qp_offset);
 
+    if (!strcmp(name, "zones")) {
+        if (config_struct->zones) {
+            free(config_struct->zones);
+            if (config_struct->parsed_zones) {
+                free(config_struct->parsed_zones);
+                config_struct->parsed_zones = NULL;
+            }
+        }
+        config_struct->zones = strdup(value);
+
+        // Parse zones immediately
+        EbErrorType err = parse_zones_string(
+            config_struct->zones, &config_struct->parsed_zones, &config_struct->num_zones);
+        if (err != EB_ErrorNone) {
+            SVT_ERROR("Failed to parse zones parameter: %s\n", value);
+            return err;
+        }
+
+        // Print parsed zones for verification
+        if (config_struct->num_zones > 0) {
+            if (config_struct->num_zones == 1) {
+                SVT_INFO("Parsed %d zone:\n", config_struct->num_zones);
+            } else if (config_struct->num_zones > 1) {
+                SVT_INFO("Parsed %d zones:\n", config_struct->num_zones);
+            }
+            for (int i = 0; i < config_struct->num_zones; i++) {
+                if (config_struct->aq_mode == 0 && config_struct->enable_variance_boost == 0) {
+                    SVT_INFO(
+                        "  Zone %d: frames %llu-%llu, CQP %.2f\n",
+                        i + 1,
+                        config_struct->parsed_zones[i].start_frame,
+                        config_struct->parsed_zones[i].end_frame,
+                        config_struct->parsed_zones[i].zone_baseq + config_struct->parsed_zones[i].zone_qsidx / 4.0);
+                } else {
+                    SVT_INFO(
+                        "  Zone %d: frames %llu-%llu, CRF %.2f\n",
+                        i + 1,
+                        config_struct->parsed_zones[i].start_frame,
+                        config_struct->parsed_zones[i].end_frame,
+                        config_struct->parsed_zones[i].zone_baseq + config_struct->parsed_zones[i].zone_qsidx / 4.0);
+                }
+            }
+        }
+
+        return EB_ErrorNone;
+    }
     // uint32_t fields
     const struct {
         const char *name;
