@@ -4602,6 +4602,8 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     scs->static_config.alt_cdef = config_struct->alt_cdef;
     scs->static_config.alt_dlf = config_struct->alt_dlf;
 
+    // WebM IO
+    scs->static_config.webm = config_struct->webm;
 
     // Override settings for Still IQ tune
     if (scs->static_config.tune == TUNE_IQ) {

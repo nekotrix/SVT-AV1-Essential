@@ -1086,6 +1086,14 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
                 // Update Output Port Activity State
                 *port_state  = APP_PortInactive;
                 return_value = APP_ExitConditionFinished;
+#ifdef CONFIG_WEBM_IO
+                // Finalize WebM file if writing WebM
+                if (app_cfg->write_webm && stream_file) {
+                    if (write_webm_stream_footer(app_cfg) != 0) {
+                        fprintf(stderr, "Warning: WebM file finalization failed\n");
+                    }
+                }
+#endif
                 // Release the output buffer
                 svt_av1_enc_release_out_buffer(&header_ptr);
 
@@ -1129,11 +1137,41 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
                 // Write Stream Data to file
                 if (stream_file) {
                     if (app_cfg->performance_context.frame_count == 1 && !(flags & EB_BUFFERFLAG_IS_ALT_REF)) {
-                        write_ivf_stream_header(
-                            app_cfg, app_cfg->frames_to_be_encoded == -1 ? 0 : (int32_t)app_cfg->frames_to_be_encoded);
+#ifdef CONFIG_WEBM_IO
+                        if (app_cfg->write_webm) {
+                            if (write_webm_stream_header(app_cfg,
+                                                         header_ptr->p_buffer,
+                                                         header_ptr->n_filled_len) != 0) {
+                                fprintf(stderr, "Warning: WebM initialization failed, falling back to IVF\n");
+                                app_cfg->write_webm = 0;
+                                write_ivf_stream_header(app_cfg,
+                                    app_cfg->frames_to_be_encoded == -1 ? 0 : (int32_t)app_cfg->frames_to_be_encoded);
+                            }
+                        } else {
+#endif
+                            write_ivf_stream_header(app_cfg,
+                                app_cfg->frames_to_be_encoded == -1 ? 0 : (int32_t)app_cfg->frames_to_be_encoded);
+#ifdef CONFIG_WEBM_IO
+                        }
+#endif
                     }
-                    write_ivf_frame_header(app_cfg, header_ptr->n_filled_len);
-                    fwrite(header_ptr->p_buffer, 1, header_ptr->n_filled_len, stream_file);
+
+#ifdef CONFIG_WEBM_IO
+                    if (app_cfg->write_webm) {
+                        if (write_webm_frame_data(app_cfg,
+                                                  header_ptr->p_buffer,
+                                                  header_ptr->n_filled_len,
+                                                  header_ptr->pts,
+                                                  header_ptr->pic_type == EB_AV1_KEY_PICTURE) != 0) {
+                            fprintf(stderr, "Warning: WebM frame write failed\n");
+                        }
+                    } else {
+#endif
+                        write_ivf_frame_header(app_cfg, header_ptr->n_filled_len);
+                        fwrite(header_ptr->p_buffer, 1, header_ptr->n_filled_len, stream_file);
+#ifdef CONFIG_WEBM_IO
+                    }
+#endif
                 }
 
                 app_cfg->performance_context.byte_count += header_ptr->n_filled_len;

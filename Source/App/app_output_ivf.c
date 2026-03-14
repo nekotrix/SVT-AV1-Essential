@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "app_config.h"
 #include "app_output_ivf.h"
@@ -59,3 +60,107 @@ void write_ivf_frame_header(EbConfig *app_cfg, uint32_t byte_count) {
     app_cfg->ivf_count++;
     fwrite(header, 1, IVF_FRAME_HEADER_SIZE, app_cfg->bitstream_file);
 }
+
+#ifdef CONFIG_WEBM_IO
+
+// Scans a buffer of OBUs and returns a pointer to the sequence header OBU
+// (obu_type == 1) and its total byte length, or NULL if not found.
+static const uint8_t *find_sequence_header_obu(const uint8_t *buf, size_t sz,
+                                                size_t *obu_sz) {
+    size_t i = 0;
+    while (i < sz) {
+        uint8_t header_byte  = buf[i];
+        if (header_byte & 0x80) return NULL; // forbidden bit set
+
+        int    obu_type        = (header_byte >> 3) & 0xF;
+        int    extension_flag  = (header_byte >> 2) & 0x1;
+        int    has_size_field  = (header_byte >> 1) & 0x1;
+
+        size_t header_sz = 1 + (extension_flag ? 1 : 0);
+        if (i + header_sz > sz) return NULL;
+
+        size_t payload_sz = 0;
+        size_t leb_bytes  = 0;
+        if (has_size_field) {
+            for (int j = 0; j < 8; j++) {
+                if (i + header_sz + j >= sz) return NULL;
+                uint8_t b  = buf[i + header_sz + j];
+                payload_sz |= (size_t)(b & 0x7F) << (j * 7);
+                leb_bytes++;
+                if (!(b & 0x80)) break;
+            }
+        } else {
+            payload_sz = sz - i - header_sz;
+        }
+
+        size_t total = header_sz + leb_bytes + payload_sz;
+
+        if (obu_type == 1) { // OBU_SEQUENCE_HEADER
+            *obu_sz = total;
+            return &buf[i];
+        }
+
+        i += total;
+    }
+    return NULL;
+}
+
+int write_webm_stream_header(EbConfig *app_cfg,
+                             const uint8_t *buf, size_t buf_sz) {
+    app_cfg->webm_ctx.stream    = app_cfg->bitstream_file;
+    app_cfg->webm_ctx.last_pts_ns = -1;
+
+    size_t         seq_obu_sz = 0;
+    const uint8_t *seq_obu    = find_sequence_header_obu(buf, buf_sz, &seq_obu_sz);
+    if (!seq_obu) {
+        fprintf(stderr, "webmenc> Sequence header OBU not found in first packet.\n");
+        return -1;
+    }
+
+    SvtWebmEncConfig cfg = {
+        .width             = app_cfg->input_padded_width,
+        .height            = app_cfg->input_padded_height,
+        .timebase_num      = app_cfg->config.frame_rate_denominator,
+        .timebase_den      = app_cfg->config.frame_rate_numerator,
+    };
+
+    const char *svt_version = svt_av1_get_version();
+    char version[128];
+    snprintf(version, sizeof(version), "SVT-AV1-Essential %s", svt_version);
+
+    char *enc_settings = NULL;
+    if (app_cfg->argc > 0 && app_cfg->argv)
+        enc_settings = extract_encoder_settings(app_cfg->argv, app_cfg->argc);
+
+    int result = write_webm_file_header(&app_cfg->webm_ctx, &cfg,
+                                        seq_obu, seq_obu_sz,
+                                        version, enc_settings);
+    free(enc_settings);
+    return result;
+}
+
+int write_webm_frame_data(EbConfig *app_cfg,
+                          const uint8_t *buf, size_t sz,
+                          int64_t pts, int is_keyframe) {
+    SvtWebmEncConfig cfg = {
+        .width        = app_cfg->input_padded_width,
+        .height       = app_cfg->input_padded_height,
+        .timebase_num = app_cfg->config.frame_rate_denominator,
+        .timebase_den = app_cfg->config.frame_rate_numerator,
+    };
+
+    SvtWebmFrameData frame = {
+        .buf        = buf,
+        .sz         = sz,
+        .pts_ticks  = pts,
+        .is_keyframe = is_keyframe,
+    };
+
+    return write_webm_block(&app_cfg->webm_ctx, &cfg, &frame);
+}
+
+int write_webm_stream_footer(EbConfig *app_cfg) {
+    return write_webm_file_footer(&app_cfg->webm_ctx);
+}
+
+#endif // CONFIG_WEBM_IO
