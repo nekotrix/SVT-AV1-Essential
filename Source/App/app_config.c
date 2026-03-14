@@ -99,6 +99,7 @@
 #define ENABLE_OVERLAYS "--enable-overlays"
 #define TUNE_TOKEN "--tune"
 // --- end: ALTREF_FILTERING_SUPPORT
+#define LOW_MEMORY_TOKEN "--low-memory"
 // --- start: SUPER-RESOLUTION SUPPORT
 #define SUPERRES_MODE_INPUT "--superres-mode"
 #define SUPERRES_DENOM "--superres-denom"
@@ -765,6 +766,11 @@ ConfigDescription config_entry_specific[] = {
      "Specifies whether to use PSNR or VQ as the tuning metric [0 = VQ, 1 = PSNR, 2 = SSIM], "
      "default is 1 "
      "[0-2]"},
+    {LOW_MEMORY_TOKEN,
+     "Specifies whether to use params which reduce RAM usage with potential efficiency and speed trade-offs, "
+     "most effective in CRF/CQP RA mode, "
+     "default is 0 "
+     "[0-1]"},
     // MD Parameters
     {SCREEN_CONTENT_TOKEN,
      "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive]"},
@@ -1053,6 +1059,11 @@ ConfigDescription fconfig_entry_specific[] = {
     {TUNE_TOKEN,
      "Optimize the encoding process for different desired outcomes [0 = VQ, 1 = PSNR, 2 = SSIM, 3 = IQ (Image "
      "Quality)], 4 = MS_SSIM (MS_SSIM and SSIMULACRA2 optimized mode), default is 1 [0-4]"},
+    {LOW_MEMORY_TOKEN,
+     "Specifies whether to use params which reduce RAM usage with potential efficiency and speed trade-offs, "
+     "most effective in CRF/CQP RA mode, "
+     "default is 0 "
+     "[0-1]"},
     // MD Parameters
     {SCREEN_CONTENT_TOKEN,
      "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive, 3: content adaptive "
@@ -1272,6 +1283,7 @@ ConfigEntry config_entry[] = {
     {DG_ENABLE_NEW_TOKEN, "EnableDg", set_cfg_generic_token},
     {FAST_DECODE_TOKEN, "FastDecode", set_cfg_generic_token},
     {TUNE_TOKEN, "Tune", set_cfg_generic_token},
+    {LOW_MEMORY_TOKEN, "LowMemory", set_cfg_generic_token},
     //   ALT-REF filtering support
     {ENABLE_TF_TOKEN, "EnableTf", set_cfg_generic_token},
     {ENABLE_OVERLAYS, "EnableOverlays", set_cfg_generic_token},

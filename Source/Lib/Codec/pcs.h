@@ -1187,6 +1187,7 @@ typedef struct PictureControlSetInitData {
     double  ac_bias;
     bool    use_flat_ipp;
     bool    auto_tiling;
+    bool    low_memory;
 } PictureControlSetInitData;
 
 /**************************************
