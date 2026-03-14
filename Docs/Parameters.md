@@ -126,6 +126,7 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **COMPLEXHVS**                   | --complex-hvs                    | [0-1]      | 0           | Activation of highest complexity HVS model (0: default behavior, 1: enable highest complexity HVS model)                                             |
 | **NoiseAdaptiveFiltering**       | --noise-adaptive-filtering       | [0-4]      | 2           | Controls noise detection which disables CDEF/restoration when noise level is high enough [0: off, 1: on (for both CDEF and restoration), 2: default tune behavior, 3: on (CDEF only), 4: on (restoration only)] |
 | **AltCDEF**                      | --enable-alt-cdef                | [0-3]      | 0           | Enable alternative CDEF biases                                                                                                                       |
+| **DistortionBiasPreset**         | --distortion-bias-preset         | [0-4]      | 0           | Hard sets parameters that trade distortion for higher fidelity potential (Default: 0)                                                                |
 | **UseFixedQIndexOffsets**        | --use-fixed-qindex-offsets       | [0-2]      | 0           | Overwrite the encoder default hierarchical layer based QP assignment and use fixed Q index offsets                                                   |
 | **KeyFrameQIndexOffset**         | --key-frame-qindex-offset        | [-64-63]   | 0           | Overwrite the encoder default keyframe Q index assignment                                                                                            |
 | **KeyFrameChromaQIndexOffset**   | --key-frame-chroma-qindex-offset | [-64-63]   | 0           | Overwrite the encoder default chroma keyframe Q index assignment                                                                                     |
@@ -600,15 +601,15 @@ ffmpeg -y -i in.mp4 \
 In the AV1 standard, 64-pt transforms have the last 32 highest-frequency coefficients zeroed out during encoding, which means coded blocks can look visually blurry, especially when encoding fine noise-like textures.
 PSNR and SSIM-based RDO metrics don't seem to detect this blurriness, so this setting combats this issue by not allowing 64-pt transforms to be considered in the first place. The result is an overall increase in output quality consistency, especially for still images in the medium to high quality range.
 
-### `--qp-scale-compress-strength [0-3]`
+### `--qp-scale-compress-strength [0-8]`
 `--qp-scale-compress-strength` is meant to improve spatio-temporal quality and by design, overall quality consistency. Of course, you trade off mean (average quality) to stddev (consistency).
 The stronger the algorithm strength, the more consistent quality is from keyframe to reference/bidirectional reference frames and other frame types.
 In exchange however, the fewer the opportunities frames can be used as references because they're relatively lower quality than the child frames. Thus, it brings down average performance in most cases (except for one case described further below).
 This parameter allows advanced users to switch between four levels of quantizer compression, compressing quantizer values across all hierarchical/temporal layers inside of a mini GOP.
 
-- **0** disables the feature, the default value.
+- **0** disables the feature.
 
-- **1** is `--qp-scale-compress-strength`, conservatively reducing the QP range used by the encoder. Useful for increasing visual consistency at almost all quality levels with next to no cost.
+- **1** is `--qp-scale-compress-strength`, conservatively reducing the QP range used by the encoder. Useful for increasing visual consistency at almost all quality levels with next to no cost, the default value.
 
 - **2** is `--qp-scale-compress-strength`, reducing the QP range used by the encoder further. This is useful at higher quality levels where restricting the QP range across layers is more important.
 
@@ -616,13 +617,13 @@ This parameter allows advanced users to switch between four levels of quantizer 
 
 ### `--adaptive-film-grain [0,1]`
 When enabled, the `--adaptive-film-grain` parameter adaptively varies the film grain blocksize based on the resolution of the input video. This often greatly improves the consistency of film grain in the output video, reducing grain patterns.
-Adaptive film grain is enabled by default.
+Adaptive film grain is disabled by default.
 
 ### `--tf-strength [0-4]`
-`--tf-strength` is a parameter that allows users to configure the strength of temporal filtering on alternate reference frames, with an offset for keyframes if using Tune 0 (VQ). Based on the material, this can be perceptually salient.
+`--tf-strength` is a parameter that allows users to configure the strength of temporal filtering on alternate reference frames. Based on the material, this can be perceptually salient.
 
 ### `--enable-tf 2`
-`--enable-tf 2` enables experimental adaptive TF strength modulation based on 64x64 block error. This is not always perceptually or metrically salient, but it should provide feature parity with aomenc.
+`--enable-tf 2` enables experimental adaptive TF strength modulation based on 64x64 block error. This is not always perceptually or metrically salient, but it should provide feature parity with aomenc. The parameter is not deterministic above `--lp 1`.
 
 ### `--ac-bias [0.0-8.0]`
 `--ac-bias` is an energy-preserving psycho-visual metric that helps increase subjective quality of video. This metric is based on the difference of the "energy" (SATD - SAD) of the source and reconstituted encoded blocks, similar to x264 and x265's implementation. Alternatively, a more lightweight rate adjustment mechanism based on total block "energy" (sum of transformed AC block coefficients) used by the Fast-PD0 and Fast-PD1 code paths is provided.
@@ -636,4 +637,17 @@ When enabled, the `--luminance-qp-bias` parameter enables frame-level luma bias 
 
 ### `--sharpness [-7-7]`
 The `--sharpness` parameter allows users to manually configure deblocking loop filter sharpness, and it also affects rate control. It is used in Tune 3 (IQ) and Tune 4 (MS_SSIM), which is designed for still image compression; that being said, it still may be useful for perceptual fidelity in video.
-By default, sharpness is set to 0.
+By default, sharpness is set to 1.
+
+### `--distortion-bias-preset [0-4]`
+Hard sets parameters that serve as showcase to SVT-AV1-Essential's high fidelity potential.  
+Gradually selects more and more aggressive parameters that improve detail retention at the cost of higher distortion:  
+**1**: Mild distortion bias for slightly higher fidelity. Expect higher filesizes compared to **0** at a given CRF.  
+- sets: `--noise-norm-strength 1 --sharp-tx 1 --tx-bias 3 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1`
+**2**: Medium distortion bias for greater fidelity. Expect higher filesizes compared to **1** at a given CRF.  
+- sets: `--tune 0 --qm-min 4 --chroma-qm-min 8 --tf-strength 0 --ac-bias 2 --noise-norm-strength 1 --sharp-tx 1 --tx-bias 2 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1`
+**3**: Strong distortion bias for maximum fidelity. Expect higher filesizes compared to **2** at a given CRF.  
+- sets: `--tune 0 --qm-min 8 --chroma-qm-min 10 --tf-strength 0 --ac-bias 4 --noise-norm-strength 3 --sharp-tx 1 --tx-bias 1 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 2`
+**4**: Mimics SVT-AV1-HDR's tune grain for absolute grain retention with no regard to distortion at all. Filesize behavior can vary from clip to clip.  
+- sets: `--tune 0 --qm-min 6 --qm-max 10 --chroma-qm-min 8 --variance-boost-strength 2 --variance-octile 5 --enable-tf 0 --enable-cdef 0 --enable-restoration 0 --ac-bias 4 --noise-norm-strength 1 --tx-bias 1`
+It is recommended to use the parameters from these presets as baseline for additional tweaking, but these are good for quick testing.

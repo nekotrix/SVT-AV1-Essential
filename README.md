@@ -1,17 +1,383 @@
-# Scalable Video Technology for AV1 (SVT-AV1 Encoder)
+# SVT-AV1-Essential
 
-The Scalable Video Technology for AV1 (SVT-AV1 Encoder) is an
-AV1-compliant software encoder library. The work on the SVT-AV1 encoder
-targets the development of a production-quality AV1-encoder with performance
-levels applicable to a wide range of applications, from premium VOD to
-real-time and live encoding/transcoding.
+SVT-AV1-Essential is the Scalable Video Technology for AV1 (SVT-AV1 Encoder) with sensible defaults and Quality of Life improvements. The goal is to provide the best out-of-the-box experience for the average user.
 
-The SVT-AV1 project was initially founded by Intel in partnership with Netflix,
-and was then [adopted](https://aomedia.org/press%20releases/aomedia-software-implementation-working-group-to-bring-av1-to-more-video-platforms/)
-by the Alliance of Open Media (AOM) Software Implementation Working Group
-(SIWG), in August 2020, to carry on the group's mission.
+The canonical URL for the mainline project is at <https://gitlab.com/AOMediaCodec/SVT-AV1>.
 
-The canonical URL for this project is at <https://gitlab.com/AOMediaCodec/SVT-AV1>
+<details>
+<summary><b>Table of Content</b></summary>
+
+- [SVT-AV1-Essential Feature Additions](#SVT-AV1-Essential-Feature-Additions)
+- [Modified Defaults](#Modified-Defaults)
+- [Other Changes](#Other-Changes)
+- [Upcoming Features](#Upcoming-Features)
+- [Auto-Boost-Essential Integration](#Auto-Boost-Essential-Integration)
+- [Development and Release Strategy](#Development-and-Release-Strategy)
+- [Getting Involved](#Getting-Involved)
+  - [Use SVT-AV1-Essential](#Use-SVT-AV1-Essential)
+  - [Projects Featuring SVT-AV1-Essential](#Projects-Featuring-SVT-AV1-Essential)
+  - [Self-Testing](#Self-Testing)
+- [Build Instructions](#Build-Instructions)
+  - [Built-in Script](#Built-in-Script)
+    - [Linux & macOS](#linux--macos)
+    - [Windows](#Windows)
+- [Acknowledgement](#Acknowledgement)
+- [License](#License)
+- [Documentation](#Documentation)
+</details>
+
+### SVT-AV1-Essential Feature Additions
+
+- **`--speed` & `--quality`**
+
+Convenient speed and quality presets that adjust by default to the resolution.  
+Available *speeds* are: *slower*, *slow*, *medium*, *fast*, *faster*  
+Available *qualities* are: *higher*, *high*, *medium*, *low*, *lower*  
+Preset and CRF/QP can still freely be set by the user if desired.
+
+- **`--scd`** *0 and 1*
+
+(Re-)introduce keyframes on scene changes, for more accurate seeking and lowered quality inconsistencies. The feature was tuned for the highest accuracy following a [testing round](https://gist.github.com/nekotrix/a025a48448ce05c3af9bd162dda70f66).
+
+- **`--keyint`** *-2 to inf*
+
+**-2** sets an automatic keyframes placement at a constant interval of about 10 mini-gops (~5 seconds).  
+**-1 / 0** disables automatic keyframes placement at a constant interval.  
+If manually set, it is recommended to have keyint be a multiple of 32 + 1 (225 or 257 for instance) to respect the mini-gop structure.  
+Going higher than 300 is not recommended to ensure perfect compatibility with hardware decoders.
+
+- **`--min-keyint`** *-1 to keyint*
+
+The minimum amount of frames before a new keyframe can be introduced by the SCD feature, which helps prevent cases of keyframes spamming.  
+**-1** sets an automatic minimum keyframes placement of a multiple of the mini-gop length.  
+**0** disables all limitations on SCD and is not recommended.
+
+- **`--zones`**
+
+In CRF/CQP mode, allows setting different quality levels for the specified frame ranges.  
+For example, `--zones 0,100,20;101,200,40` applies a CRF/CQP value of 20 to frames 0-100, a CRF/CQP value of 40 to frames 101-200, while maintaining the original quality level for all other frames.
+
+- **`--auto-tiling`** *0 and 1*
+
+Automatically sets tiles appropriate for the source input resolution, which in turn improves decoding performance with minimal effect on efficiency. The feature was tuned following a [testing round](https://wiki.x266.mov/blog/svt-av1-fourth-deep-dive-p2#tiles)
+
+- **`--qp-scale-compress-strength`** *0 to 8*
+
+Increases video quality temporal consistency, especially with clips that contain film grain and/or contain fast-moving objects.  
+It's typically not advised to go higher than 3.
+
+- **`--enable-dlf 2 & 3`**
+
+**2** enables a more accurate loop filter that prevents blocking, for a modest increase in compute time (most noticeable at presets 7+).  
+**3** forces the most accurate loop filter for every encoding scenario, with important consequences in compute time at faster presets.
+
+- **`--low-memory`**
+
+This parameter sets options that reduce RAM usage of the encoding instance significantly.  
+Enabling low-memory can have some impact on encoding speeds and perceptual quality.  
+It is most effective in CRF/CQP Random Access mode.
+
+- **`--enable-tf 3`**
+
+The setting enables a more powerful, user-controllable, temporal filter on *all* frames, which can serve as an effective fast built-in temporal denoiser.  
+The strength can still be adjusted up or down using `--tf-strength`.
+
+- **`--enable-alt-cdef`** *0 to 3*
+
+Proposes different CDEF trade-offs, typically resulting in weaker deringing but improved fidelity. May gradually cause higher distortion, especially at high presets.  
+**2** and **3** force the best CDEF quality level which can improve results, at the cost of speed.
+
+- **`--enable-alt-dlf`** *0 to 3*
+
+Proposes different DLF trade-offs, typically resulting in weaker deblocking but improved fidelity. May gradually cause higher distortion, especially at high presets.  
+It is recommended to pair it with `--enable-dlf 3` to force the best DLF quality level, which can improve results at the cost of speed.
+
+- **`--distortion-bias-preset`** *0 to 4*
+
+Hard sets parameters that serve as showcase to SVT-AV1-Essential's high fidelity potential.  
+Gradually selects more and more aggressive parameters that improve detail retention at the cost of higher distortion:  
+**1**: Mild distortion bias for slightly higher fidelity. Expect higher filesizes compared to **0** at a given CRF.  
+**2**: Medium distortion bias for greater fidelity. Expect higher filesizes compared to **1** at a given CRF.  
+**3**: Strong distortion bias for maximum fidelity. Expect higher filesizes compared to **2** at a given CRF.  
+**4**: Mimics SVT-AV1-HDR's tune grain for absolute grain retention with no regard to distortion at all. Filesize behavior can vary from clip to clip.  
+It is recommended to use the parameters from these presets as baseline for additional tweaking, but these are good for quick testing.
+
+- **`--pin`**
+
+Pin the encoder instance to the first X threads of your processor with this setting.  
+This feature, removed in mainline v4.0, was brought back for people that want better control over the CPU core usage of the encoder.
+
+### Modified Defaults
+
+SVT-AV1-Essential sports different defaults from mainline SVT-AV1 in order to provide a better out-of-the-box experience. They include:
+
+- Forced 10-bit color depth and HBD mode, for higher internal precision and thus higher quality visuals and efficiency.
+- `--speed` set to `slow` by default at 1080p and below, and `medium` above.
+- `--quality` set to `medium` by default.
+- `--enable-dlf` set to `2` by default.
+- `--enable-variance-boost` set to `1` by default.
+- `--variance-boost-strength` set to `1` by default.
+- `--variance-octile` set to `4` by default.
+- `--tf-strength` (temporal filtering) set to `1` by default.
+- `--luminance-qp-bias` set to `10` by default.
+- `--sharpness` set to `1` by default.
+- `--qp-scale-compress-strength` set to `1` by default.
+- `--enable-qm` set to `1` by default.
+- `--qm-min` set to `2` by default.
+- `--chroma-qm-min` set to `4` by default.
+- `--enable-dg` (dynamic gop) set to `0` by default.
+- `--adaptive-film-grain` set to `0` by default.
+- `--ac-bias` set to `0.25` by default.
+
+It is expected for these provided defaults to be much slower than the *default* mainline SVT-AV1 configuration.
+The user can leverage a faster `--speed` to compensate for that while still getting better visuals in return, 
+or better speeds at similar quality levels.
+
+Benchmarks *(v4 updated)*:
+|                    Metrics                    |                    Speed                    |
+|-----------------------------------------------|---------------------------------------------|
+| ![Metrics](https://i.kek.sh/oO74b21iKhy.webp) | ![Speed](https://i.kek.sh/Jm4hjOSvblM.webp) |
+| ![Metrics](https://i.kek.sh/mpvtTdnNd42.webp) | ![Speed](https://i.kek.sh/w4TxXBms0EJ.webp) |
+| ![Metrics](https://i.kek.sh/CME1OAWMrps.webp) | ![Speed](https://i.kek.sh/LyV2RQHxrXS.webp) |
+| ![Metrics](https://i.kek.sh/CFkE9iAZxzr.webp) | ![Speed](https://i.kek.sh/ncTQcuuhBjW.webp) |
+| ![Metrics](https://i.kek.sh/qJwHDdo500C.webp) | ![Speed](https://i.kek.sh/VnxxO7bXFU1.webp) |
+| ![Metrics](https://i.kek.sh/rR97WP9lSmO.webp) | ![Speed](https://i.kek.sh/7YKHh7HEThG.webp) |
+
+*Pay particular attention to the x and y axes.*  
+*Speed may vary depending on your hardware configuration and source resolution.*
+
+### Other Changes
+
+- **`--full-help`**
+
+Prints the full help information of the encoder. The regular help has been cleaned to only provides the basic, important commands.
+
+- **Detailed banner**
+
+The banner displays more information than ever so you have a better idea of what's going on with the encoder parameters!
+
+- **`--hide-banner`**
+
+Some may prefer to hide the banner though, so we have that option too!
+
+- **Built-in FFMS2 support**
+
+At last, SVT-AV1-Essential supports input formats other than yuv and y4m! Input your favorite MP4s, MKVs and more, and get automatic conversion to YUV420P10, automatic metadata handling and automatic HDR detection!
+
+- **Built-in WebM support (`--webm`)**
+
+SVT-AV1-Essential now also supports WebM output (as an alternative to IVF output)! WebM output permits automatic metadata & encoder settings passthrough, the latter of which being similar in concept to what you can observe in x264 and x265 encodes!
+
+- **Automatic output fallback**
+
+With either WebM or ivf output, the output file name will fallback to the input file name plus the right extension if no output is provided. No more making mistakes!
+
+- **Temporal filtering on keyframes**
+
+Temporal filtering is always disabled on keyframes to eliminate blurring issues and losses of detail.
+
+- **HDR features galore**
+
+SVT-AV1-Essential supports HDR10+, Dolby Vision, and a new varboost curve (3) optimized for PQ HDR content! *(Borrowed from SVT-AV1-HDR)*
+
+- **Psychovisual features galore**
+
+Borrowed from SVT-AV1-PSY and SVT-AV1-HDR, some recognizable psychovisual settings make their introduction in SVT-AV1-Essential, like `--tx-bias`, `--complex-hvs`, `--noise-adaptive-filtering` and more...
+
+- **Chroma fix**
+
+Version 3 of SVT-AV1 introduced a mismatch between restoration algorithms, resulting in inconsistent, severe drops in chroma quality.
+A fix was found and implemented.
+
+### Upcoming Features
+
+Many SVT-AV1-Essential features are planned and currently in the work:
+
+- **`--backcompat`** *0 and 1*
+
+Restores back the original, default SVT-AV1 behavior. Once enabled, the output from SVT-AV1-Essential would always be identical to its mainline SVT-AV1 counterpart whatever the settings used.
+
+- **`--zones-params`** *(WIP)*
+
+A parameter that would let you control the verbosity of `--zones`, and let you choose if you want to force each *start* and *end+1* frames as keyframes *(Old [Patch available](https://github.com/nekotrix/SVT-AV1-Essential/discussions/6), new patch WIP)*.
+
+- **Zones target bitrate / bitrate multiplier support**
+
+For use of `--zones` in VBR/CBR mode.
+
+- **Automatic quantization matrices**
+
+Inspired by Julio Barba's `--enable-qm 2` experiments.
+
+- **Open GOP and Lookahead experiments**
+
+Soon to be available in the [Discussions tab](https://github.com/nekotrix/SVT-AV1-Essential/discussions/).
+
+- **Support RTC mode**
+
+Currently hanging due to unknown causes, I wish to increase the range of usecases supported by SVT-AV1-Essential.
+
+- **Finding better defaults, improving the speed trade-offs...**
+
+...and documenting everything.
+
+*Any contribution to the above features would go a long way to improve the encoder's usability for everyone! I look forward to your help!*
+
+### Auto-Boost-Essential Integration
+
+SVT-AV1-Essential sports *excellent* quality consistency, but what if you want *exceptional* consistency?  
+Auto-Boost-Essential is an encoding script that automatically adjusts the CRF of scenes in order to increase quality consistency throughout a video.  
+Using the SSIMULACRA2 quality metric, it determines which scenes require more or less bitrate based on complexity.  
+By leveraging the latest tools and with a focus on testing, the process has been streamlined and made much faster.  
+
+Auto-Boost-Essential can also be considered a helper script, as all you need to do is provide an input video file and it will manage everything for you including the final encoding pass:
+```bash
+python Auto-Boost-Essential.py "my_video_file.mp4"
+```
+
+Result *(v3.1.0, Auto-Boost-Essential v1.0)*:
+|                    Metrics                    |                    Speed                    |
+|-----------------------------------------------|---------------------------------------------|
+| ![Metrics](https://i.kek.sh/2Ulmd7e7zIJ.webp) | ![Speed](https://i.kek.sh/0fehFRVGuhT.webp) |
+| ![Metrics](https://i.kek.sh/WckNMr7IzRa.webp) | ![Speed](https://i.kek.sh/NHYJEEeJrhB.webp) |  
+
+*Speed may vary depending on your hardware configuration and source resolution.*
+
+The script is also capable of resuming unfinished encodes, supports lots of customization to fit your needs, and can also be run with boosting disabled!
+
+More information on the official [Auto-Boost-Essential repository](https://github.com/nekotrix/auto-boost-algorithm/tree/main/Auto-Boost-Essential)
+
+## Development and Release Strategy
+
+**What this is:** an encoder fork that improves perceptual quality and consistency, with universally better settings for non-low-latency use-cases at usual high resolutions.  
+**What this is not:** the fork does not currently support low-latency (a.k.a real-time), does not focus on very low (SD) or very high (>4K) applications, and cannot guarantee improvements.
+
+SVT-AV1-Essential tracks the official SVT-AV1 releases rather than latest mainline git, ensuring predictability for users. Each branch in the repository corresponds directly to an official SVT-AV1 release (e.g., `v3.1.0`), with our enhancements applied on top. This approach allows users to clearly understand which upstream version they're using while benefiting from our improvements.  
+
+Released branches are frozen unless a major bug is discovered. Official feature additions will only happen after a new mainline release. Work in progress development of new features can be tracked in the [**Pull Requests**](https://github.com/nekotrix/SVT-AV1-Essential/pulls) and [**Discussions**](https://github.com/nekotrix/SVT-AV1-Essential/discussions) tabs where patches can be uploaded and discussed. Such patches are not considered stable until they are merged and should be used with caution. Rather, it is recommended to compile from latest git or to get the official pre-compiled binaries from [**Releases**](https://github.com/nekotrix/SVT-AV1-Essential/releases).
+
+For transparency and potential upstream adoption, we commit to initiating a merging process with mainline SVT-AV1 for any feature that has been in SVT-AV1-Essential for at least 3 months. This gives sufficient time for real-world testing and refinement while demonstrating our intent to contribute improvements back to the community. Users can always check which upstream release their build is based on through the version string.
+
+## Getting Involved
+
+There are multiple ways to contribute to SVT-AV1-Essential, and some don't require any coding experience.
+
+### Use SVT-AV1-Essential
+
+The easiest way to get involved is to use SVT-AV1-Essential for your AV1 encoding projects! By choosing this encoder fork, you're helping validate our improvements and expanding their impact across the community. Your real-world usage provides invaluable feedback on performance, quality, and reliability. When you report issues or share your encoding results, you're directly contributing to the project's development. Plus, we'll proudly add your name or project to the community showcase below.
+
+On that note, feel free to discuss the encoder in the [**Discussions**](https://github.com/nekotrix/SVT-AV1-Essential/discussions) tab above!
+
+### Projects Featuring SVT-AV1-Essential
+
+- [Auto-Boost-Essential](https://github.com/nekotrix/auto-boost-algorithm/tree/main/Auto-Boost-Essential) ~ an encoding script maintained by @nekotrix
+- [SVT-AV1-Essential on the AUR](https://aur.archlinux.org/packages/svt-av1-essential-git) ~ maintained by @nekotrix
+- [Handbrake Builds (Windows/Linux/macOS/Flatpak)](https://github.com/nekotrix/HandBrake-SVT-AV1-Essential) ~ maintained by @nekotrix
+- [FFmpeg Builds (Windows/Linux)](https://github.com/nekotrix/FFmpeg-Builds-SVT-AV1-Essential) ~ maintained by @nekotrix
+- [Homebrew tap (including FFmpeg) (Linux/macOS)](https://github.com/fraluc06/homebrew-ffmpeg-svt-av1-essential) ~ by @fraluc06
+- [Staxrip](https://github.com/staxrip/staxrip) ~ by @Dendraspis
+
+*Join the list of projects and creators who trust SVT-AV1-Essential for their encoding needs.*
+
+### Self-Testing
+
+If you wish to test metrics on your encodes, or to test local changes to see if you have improved the perceptual quality of the encoder, you can use SSIMULACRA2 & Butteraugli locally on legal content (e.g [Media Collection](https://media.xiph.org/video/derf/)). This isn't a requirement for opening a PR, but it helps quite a bit.
+
+More about SSIMULACRA2:
+- https://github.com/cloudinary/ssimulacra2/blob/main/README.md
+
+More about Butteraugli:
+- https://github.com/google/butteraugli/blob/master/README.md
+
+Recommended CPU implementation (Universal):
+- https://github.com/dnjulek/vapoursynth-zip (Requires Vapoursynth)
+
+Recommended GPU implementation (Nvidia and AMD):
+- https://codeberg.org/Line-fr/Vship (Faster, Vapoursynth and standalone options)
+
+With the exception of vanilla VMAF, PSNR, SSIM, and their close variants, if you believe other metrics are relevant, you may include them in your analysis as long as you also include results from either SSIMULACRA2 or Butteraugli in addition. Visual comparisons are helpful as well, though they cannot sorely be relied on by themselves.
+
+## Build Instructions
+
+Through the following sub-sections, we aim to provide a simplified build guide for compiling a standalone SVT-AV1-Essential binary in the form of `SvtAv1EncApp`. Please note that we have not included instructions for building the SVT-AV1-Essential plugin for FFmpeg or other non-affiliated software.
+
+*Please refer to the original, more verbose [mainline SVT-AV1 Build Guide](Docs/Build-Guide.md) if you have unique needs that are not covered here (such as building FFmpeg with SVT-AV1-Essential).*
+
+On Windows, Linux or macOS, you can choose to build SVT-AV1-Essential using the provided helper scripts or manually with the CMake build system. Only the first method will be detailed below.
+
+### Built-in Script
+
+This is the recommended method, as it conveniently runs CMake under the hood and provides generally adequate flexibility. If you just wish to build a working, optimized binary, the script is likely the best option for you.
+
+#### Linux & macOS
+
+0. Ensure you have the necessary dependencies for this process, which may include:
+    - Git
+    - CMake 3.23 or newer
+    - Yasm 1.2.0 or newer
+    - GCC or Clang (preferably Clang)
+    - A POSIX-compliant shell (Bash, Zsh, etc.)
+
+1. Clone the repository & enter the Linux build directory:
+
+```bash
+git clone https://github.com/nekotrix/SVT-AV1-Essential
+cd SVT-AV1-Essential/Build/linux
+```
+
+2. Run the build script with the desired options. You can run `./build.sh --help` if you'd like to see the full suite of options available to you, but a sane configuration is provided below:
+
+```bash
+./build.sh --native --static --release --enable-lto
+```
+
+*Consider that you may want to opt for using the Clang compiler on Linux instead of GCC. This is recommended for much faster build times. You can do this by adding the `cc=clang cxx=clang++` to the build script parameters, provided you have Clang installed & in your PATH.*  
+*HDR10+, DoVi, FFMS2 and WebM are not included by default. You must typically install them system-wide first (excluding WebM), then add one or multiple of the following to the build script: `enable-hdr10plus`, `enable-dovi`, `use-ffms2`, `use-webm-io`. Completely static builds can be achieved by providing `ext-lib-static`, static versions of the libraries must be installed (except WebM).*
+
+3. The compiled binaries will be located in `Bin/Release` if you navigate back to the root directory:
+
+```bash
+cd ../../Bin/Release/ # navigate quickly to Bin/Release from build dir
+./SvtAv1EncApp --version
+```
+
+4. \[Optional\] On most Linux & macOS machines, if you'd like to have the compiled binary available system-wide, you can install it by running:
+
+```bash
+sudo cp SvtAv1EncApp /usr/local/bin
+```
+
+Now, you are all set! You can encode with the `SvtAv1EncApp` binary. Happy encoding!
+
+#### Windows
+
+MSYS2 is the most convenient option for building in Windows, as it provides a Unix-like environment for building SVT-AV1-Essential. This makes the compilation procedure the same as described above for Linux & macOS. The full process is detailed below:
+
+0. Make sure you have downloaded & installed MSYS2 from [the MSYS2 website](https://www.msys2.org/) before beginning the build process.
+
+1. Start the Clang64 console & install the required dependencies:
+```bash
+pacman -Syu --needed git mingw-w64-clang-x86_64-toolchain mingw-w64-clang-x86_64-cmake mingw-w64-clang-x86_64-ninja mingw-w64-clang-x86_64-nasm
+```
+
+2. \[Optional\] Clang is the recommended compiler for SVT-AV1 & SVT-AV1-Essential, so you may download that with the following command:
+
+```bash
+pacman -Syu --needed mingw-w64-clang-x86_64-clang
+```
+
+3. Follow the instructions in [Linux & macOS](#linux--macos) from step 1 & 2 and find the compiled binary in `C:\msys64\home\{user}\SVT-AV1-Essential\Bin\Release\`:
+
+```bash
+cd ../../Bin/Release/ # navigate quickly to Bin/Release from build dir
+./SvtAv1EncApp.exe --version
+```
+
+4. Put the compiled `SvtAv1EncApp.exe` in your PATH, and you should be all set! Happy encoding!
+
+## Acknowledgement
+
+My sincere thanks go to the mainline SVT-AV1 development team, the psy-ex team behind SVT-AV1-PSY and the many AV1 communities' members!
 
 ## License
 
@@ -21,79 +387,10 @@ Alliance for Open Media Patent License 1.0. See [LICENSE](LICENSE-BSD2.md) and
 under the BSD-3-clause clear license and the Alliance for Open Media Patent
 License 1.0. See [LICENSE](LICENSE.md) and [PATENTS](PATENTS.md) for details.
 
+*We are not in any way affiliated with the Alliance for Open Media or any upstream SVT-AV1 project contributors who have not also contributed here.*
+
+*SVT-AV1-Essential does not feature license modifications from mainline SVT-AV1.*
+
 ## Documentation
 
-**Guides**
-- [System Requirements](Docs/System-Requirements.md)
-- [How to run SVT-AV1 within ffmpeg](Docs/Ffmpeg.md)
-- [Standalone Encoder Usage](Docs/svt-av1_encoder_user_guide.md)
-- [List of All Parameters](Docs/Parameters.md)
-- [Build Guide](Docs/Build-Guide.md)
-- [ARM Build Guide](Docs/ARM-Build-Guide.md)
-
-**Common Questions/Issues**
-- [Why build with LTO?](Docs/CommonQuestions.md#why-build-with-lto)
-- [Why build with PGO?](Docs/CommonQuestions.md#why-build-with-pgo)
-- [What presets do](Docs/CommonQuestions.md#what-presets-do)
-- [Scene change detection](Docs/CommonQuestions.md#scene-change-detection)
-- [GOP size selection](Docs/CommonQuestions.md#gop-size-selection)
-- [Threading and efficiency](Docs/CommonQuestions.md#threading-and-efficiency)
-- [Practical advice about grain synthesis](Docs/CommonQuestions.md#practical-advice-about-grain-synthesis)
-- [Improving decoding performance](Docs/CommonQuestions.md#improving-decoding-performance)
-- [Tuning for animation](Docs/CommonQuestions.md#tuning-for-animation)
-- [8 vs. 10-bit encoding](Docs/CommonQuestions.md#8-or-10-bit-encoding)
-- [HDR and SDR video](Docs/CommonQuestions.md#hdr-and-sdr)
-- [Options that give the best encoding bang-for-buck](Docs/CommonQuestions.md#options-that-give-the-best-encoding-bang-for-buck)
-- [Multi-pass encoding](Docs/CommonQuestions.md#multi-pass-encoding)
-- [CBR, VBR, and CRF modes](Docs/CommonQuestions.md#bitrate-control-modes)
-
-**Presentations**
-- [Big Apple Video 2019](https://www.youtube.com/watch?v=lXqOaYNo8m0)
-- [Video @ Scale 2021](https://atscaleconference.com/videos/highly-efficient-svt-av1-based-solutions-for-vod-applications/?contact-form-id=124119&contact-form-sent=163268&contact-form-hash=d4bb3fd420fae91cd39c11bdb69f970a05a152a9&_wpnonce=bba8096d24#contact-form-124119)
-- [ICIP 2024](https://aomedia.org/docs/Software_Implementation_Working_Group_Update_ICIP2024.pdf)
-
-**Papers and Blogs**
-- [Netflix Blog 2020](https://netflixtechblog.com/svt-av1-an-open-source-av1-encoder-and-decoder-ad295d9b5ca2)
-- [SPIE 2020](https://www.spiedigitallibrary.org/conference-proceedings-of-spie/11510/1151021/The-SVT-AV1-encoder--overview-features-and-speed-quality/10.1117/12.2569270.full)
-- [SPIE 2021](https://www.spiedigitallibrary.org/conference-proceedings-of-spie/11842/118420T/Towards-much-better-SVT-AV1-quality-cycles-tradeoffs-for-VOD/10.1117/12.2595598.full)
-- [SVT-AV1 - Tech Blog 2022](https://networkbuilders.intel.com/blog/svt-av1-enables-highly-efficient-large-scale-video-on-demand-vod-services)
-- [SPIE 2022](https://www.spiedigitallibrary.org/conference-proceedings-of-spie/12226/122260S/Enhancing-SVT-AV1-with-LCEVC-to-improve-quality-cycles-trade/10.1117/12.2633882.full)
-- [Adaptive Steaming Common Test Conditions](https://aomedia.org/docs/SIWG-D001o.pdf)
-- [ICIP 2023](https://arxiv.org/abs/2307.05208)
-- [SPIE 2024](https://www.spiedigitallibrary.org/conference-proceedings-of-spie/13137/131370W/Benchmarking-hardware-and-software-encoder-quality-and-performance/10.1117/12.3031754.full)
-
-**Awards**
-- [IBC 2025 Innovation Award - Content Everywhere](https://aomedia.org/blog%20posts/SVT-AV1-Wins-IBC-2025-Innovation-Award-in-Content-Everywhere-Category/)
-
-**Design Documents**
-- [Encoder Design](Docs/svt-av1-encoder-design.md)
-
-**Technical Appendices**
-- [Adaptive Prediction Structure Appendix](Docs/Appendix-Adaptive-Prediction-Structure.md)
-- [Altref and Overlay Pictures Appendix](Docs/Appendix-Alt-Refs.md)
-- [CDEF Appendix](Docs/Appendix-CDEF.md)
-- [CfL Appendix](Docs/Appendix-CfL.md)
-- [Compliant Subpel Interpolation Filter Search Appendix](Docs/Appendix-Compliant-Subpel-Interpolation-Filter-Search.md)
-- [Compound Mode Prediction Appendix](Docs/Appendix-Compound-Mode-Prediction.md)
-- [Deblocking Loop Filter (LF) Appendix](Docs/Appendix-DLF.md)
-- [Film Grain Synthesis](Docs/Appendix-Film-Grain-Synthesis.md)
-- [Global Motion Appendix](Docs/Appendix-Global-Motion.md)
-- [Intra Block Copy Appendix](Docs/Appendix-Intra-Block-Copy.md)
-- [Local Warped Motion appendix](Docs/Appendix-Local-Warped-Motion.md)
-- [Mode Decision Appendix](Docs/Appendix-Mode-Decision.md)
-- [Motion Estimation Appendix](Docs/Appendix-Open-Loop-Motion-Estimation.md)
-- [Overlapped Block Motion Compensation Appendix](Docs/Appendix-Overlapped-Block-Motion-Compensation.md)
-- [Palette Prediction Appendix](Docs/Appendix-Palette-Prediction.md)
-- [Rate Control Appendix](Docs/Appendix-Rate-Control.md)
-- [Recursive Intra Appendix](Docs/Appendix-Recursive-Intra.md)
-- [Restoration Filter Appendix](Docs/Appendix-Restoration-Filter.md)
-- [SQ Weight Appendix](Docs/Appendix-SQ-Weight.md)
-- [Super-resolution Appendix](Docs/Appendix-Super-Resolution.md)
-- [Temporal Dependency Model](Docs/Appendix-TPL.md)
-- [Transform Search Appendix](Docs/Appendix-TX-Search.md)
-- [Reference Scaling Appendix](Docs/Appendix-Reference-Scaling.md)
-- [Variance Boost Appendix](Docs/Appendix-Variance-Boost.md)
-- [Anti-Aliasing Aware Screen Content Detection Mode Appendix](Docs/Appendix-Antialiasing-Aware-Screen-Content-Detection-Mode.md)
-
-**How Can I Contribute?**
-- [SVT-AV1 Contribution Guide](Docs/Contribute.md)
+For additional development insight, see the [Docs](Docs) page.
