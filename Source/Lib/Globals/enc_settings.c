@@ -291,8 +291,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_WARN("Open GOP force disables the encoder key frames placement. Its usage can only "
                  "be recommended in a chunked encoding scenario.\n");
     }
-    if (config->enable_dlf_flag > 2) {
-        SVT_ERROR("Invalid LoopFilterEnable. LoopFilterEnable must be [0 - 2]\n");
+    if (config->enable_dlf_flag > 3) {
+        SVT_ERROR("Invalid LoopFilterEnable. LoopFilterEnable must be [0 - 3]\n");
         return_error = EB_ErrorBadParameter;
     }
     if (config->rate_control_mode > SVT_AV1_RC_MODE_CBR &&
@@ -916,7 +916,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->intra_refresh_type           = 2;
     config_ptr->hierarchical_levels          = HIERARCHICAL_LEVELS_AUTO;
     config_ptr->pred_structure               = RANDOM_ACCESS;
-    config_ptr->enable_dlf_flag              = 1;
+    config_ptr->enable_dlf_flag              = 2;
     config_ptr->cdef_level                   = DEFAULT;
     config_ptr->enable_restoration_filtering = DEFAULT;
     config_ptr->enable_mfmv                  = DEFAULT;

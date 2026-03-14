@@ -745,7 +745,7 @@ ConfigDescription config_entry_specific[] = {
      "[0-4]"},
 
     // DLF
-    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 1 [0-1]"},
+    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 2 [0-3]"},
     // CDEF
     {CDEF_ENABLE_TOKEN,
      "Enable Constrained Directional Enhancement Filter, default is 1 [0-1]"},
@@ -1035,7 +1035,7 @@ ConfigDescription fconfig_entry_specific[] = {
      "Number of tile columns to use, `TileCol == log2(x)`, default is 0 [0-4]"},
 
     // DLF
-    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 1 [0-2]"},
+    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 2 [0-3]"},
     // CDEF
     {CDEF_ENABLE_TOKEN, "Enable Constrained Directional Enhancement Filter, default is 1 [0-1]"},
     // RESTORATION
