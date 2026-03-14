@@ -205,6 +205,7 @@
 #define ADAPTIVE_FILM_GRAIN_TOKEN "--adaptive-film-grain"
 #define MAX_TX_SIZE_TOKEN "--max-tx-size"
 #define AC_BIAS_TOKEN "--ac-bias"
+#define AUTO_TILING "--auto-tiling"
 
 static EbErrorType validate_error(EbErrorType err, const char *token, const char *value) {
     switch (err) {
@@ -946,8 +947,10 @@ ConfigDescription config_entry_psychovisual[] = {
     {ADAPTIVE_FILM_GRAIN_TOKEN, "Adapts film grain blocksize based on video resolution, default is 0 [0-1]"},
     // Max TX size
     {MAX_TX_SIZE_TOKEN, "Limits the allowed transform sizes to the specified, default is 64 [32,64]"},
-    //AC-Bias
+    // AC-Bias
     {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.25 [0.0-8.0]"},
+    // Auto tiling
+    {AUTO_TILING, "Auto tiling, default is 1 [0-1]"},
     // Termination
     {NULL, NULL}};
 
@@ -1155,8 +1158,11 @@ ConfigEntry config_entry[] = {
     // Max TX size
     {MAX_TX_SIZE_TOKEN, "MaxTxSize", set_cfg_generic_token},
 
-    // Psy rd strength
+    // AC-bias strength
     {AC_BIAS_TOKEN, "AcBias", set_cfg_generic_token},
+
+    // Auto tiling
+    {AUTO_TILING, "AutoTiling", set_cfg_generic_token},
 
     // Termination
     {NULL, NULL, NULL}};

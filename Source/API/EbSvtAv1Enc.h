@@ -953,17 +953,23 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint8_t extended_crf_qindex_offset;
 
-    // clang-format off
-    /**
+    /* @brief Signal to the library to automatically adjust tiles
+     *
+     * Default is true.
+     */
+    bool auto_tiling;
+
+    /*
      * @brief Strength of the internal RD metric to bias toward high-frequency error (helps with texture preservation and film grain retention)
      * 0.00: disable AC bias
      * 1.00: enable AC bias with a strength of 1.00
      * Default is 0.00.
      */
-     double ac_bias;
-
+    double ac_bias;
+    // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128
+        - sizeof(bool)
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;
