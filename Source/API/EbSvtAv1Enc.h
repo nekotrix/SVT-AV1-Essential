@@ -1117,13 +1117,23 @@ typedef struct EbSvtAv1EncConfiguration {
      * @brief Output WebM instead of IVF (default when WebM IO is enabled)
      */
     int webm;
+
+    /**
+     * @brief Enable presets that automatically set settings that biases towards higher distortion
+     *levels for greater fidelity potential
+     *
+     * 0: disabled
+     * 1-4: enabled, increasingly distorted
+     * Default is 0
+     */
+    uint8_t distortion_bias_preset;
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128
         - (sizeof(bool) * 4)
         - sizeof(SpeedPreset)
         - sizeof(QualityPreset)
-        - (sizeof(uint8_t) * 8)
+        - (sizeof(uint8_t) * 9)
         - sizeof(uint32_t)
         - sizeof(int)
     ];

@@ -920,6 +920,10 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+    if (config->distortion_bias_preset > 4) {
+        SVT_ERROR("distortion-bias-preset must be between 0 and 4\n");
+        return_error = EB_ErrorBadParameter;
+    }
     return return_error;
 }
 
@@ -1066,7 +1070,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->enable_variance_boost             = true;
     config_ptr->variance_boost_strength           = 1;
     config_ptr->variance_octile                   = 4;
-    config_ptr->tf_strength                       = 0;
+    config_ptr->tf_strength                       = 1;
     config_ptr->variance_boost_curve              = 0;
     config_ptr->luminance_qp_bias                 = 10;
     config_ptr->sharpness                         = 1;
@@ -1097,6 +1101,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration *config_ptr) {
     config_ptr->alt_cdef                          = 0;
     config_ptr->alt_dlf                           = 0;
     config_ptr->webm                              = DEFAULT;
+    config_ptr->distortion_bias_preset            = 0;
     return return_error;
 }
 
@@ -2458,6 +2463,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration *config_
         {"noise-adaptive-filtering", &config_struct->noise_adaptive_filtering},
         {"enable-alt-cdef", &config_struct->alt_cdef},
         {"enable-alt-dlf", &config_struct->alt_dlf},
+        {"distortion-bias-preset", &config_struct->distortion_bias_preset},
     };
     const size_t uint8_opts_size = sizeof(uint8_opts) / sizeof(uint8_opts[0]);
 
