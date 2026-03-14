@@ -443,7 +443,10 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
     }
 
     if ((config->encoder_bit_depth != 10)) {
-        SVT_ERROR("Encoder Bit Depth shall be only 10 \n");
+        SVT_ERROR(
+            "SVT-AV1-Essential only supports 10-bit encoding by design\n"
+            "For yuv/y4m inputs, you must convert the Bit Depth to 10 prior to encoding\n"
+            "For other inputs, FFMS2 automatically converts the Bit Depth to 10 internally.\n");
         return_error = EB_ErrorBadParameter;
     }
     // Check if the EncoderBitDepth is conformant with the Profile constraint
@@ -833,8 +836,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
-    if (config->variance_boost_curve > 2) {
-        SVT_ERROR("Variance Boost curve must be between 0 and 2\n");
+    if (config->variance_boost_curve > 3) {
+        SVT_ERROR("Variance Boost curve must be between 0 and 3\n");
         return_error = EB_ErrorBadParameter;
     }
 

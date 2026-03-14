@@ -1157,7 +1157,8 @@ ConfigDescription fconfig_entry_psychovisual[] = {
     {ENABLE_VARIANCE_BOOST_TOKEN, "Enable Variance Boost, default is 1 [0-1]"},
     {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance Boost strength, default is 1 [1-4]"},
     {VARIANCE_OCTILE_TOKEN, "Octile for Variance Boost, default is 4 [1-8]"},
-    {VARIANCE_BOOST_CURVE_TOKEN, "Curve for Variance Boost, default is 0 [0-2]"},
+    {VARIANCE_BOOST_CURVE_TOKEN,
+     "Curve for Variance Boost, default is 0, or 3 if encoding PQ transfer content [0-3]"},
     // Adaptive film grain
     {ADAPTIVE_FILM_GRAIN_TOKEN, "Adapts film grain blocksize based on video resolution, default is 0 [0-1]"},
     // Max TX size
