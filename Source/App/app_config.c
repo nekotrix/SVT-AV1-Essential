@@ -490,7 +490,7 @@ err:
 static EbErrorType set_no_progress(EbConfig *cfg, const char *token, const char *value) {
     (void)token;
     switch (value ? *value : '1') {
-    case '0': cfg->progress = 1; break; // equal to --progress 1
+    case '0': cfg->progress = 2; break; // equal to --progress 2
     default: cfg->progress = 0; break; // equal to --progress 0
     }
     return EB_ErrorNone;
@@ -499,8 +499,8 @@ static EbErrorType set_progress(EbConfig *cfg, const char *token, const char *va
     (void)token;
     switch (value ? *value : '1') {
     case '0': cfg->progress = 0; break; // no progress printed
-    case '2': cfg->progress = 2; break; // detailed progress
-    default: cfg->progress = 1; break; // default progress
+    case '1': cfg->progress = 1; break; // basic progress
+    default: cfg->progress = 2; break; // default progress
     }
     return EB_ErrorNone;
 }
@@ -639,7 +639,7 @@ ConfigDescription config_entry_options[] = {
 
     {STAT_FILE_TOKEN, "PSNR / SSIM per picture stat output file path, requires `--enable-stat-report 1`"},
 
-    {PROGRESS_TOKEN, "Verbosity of the output, default is 1 [0: no progress is printed, 2: detailed progress]"},
+    {PROGRESS_TOKEN, "Verbosity of the output, default is 1 [0: no progress is printed, 1: basic progress, 2: detailed progress]"},
     {NO_PROGRESS_TOKEN,
      "Do not print out progress, default is 0 [1: `" PROGRESS_TOKEN " 0`, 0: `" PROGRESS_TOKEN " 1`]"},
 
@@ -1170,7 +1170,7 @@ EbConfig *svt_config_ctor() {
         return NULL;
     app_cfg->error_log_file      = stderr;
     app_cfg->buffered_input      = -1;
-    app_cfg->progress            = 1;
+    app_cfg->progress            = 2;
     app_cfg->injector_frame_rate = 60;
     app_cfg->roi_map_file        = NULL;
     app_cfg->fgs_table_path      = NULL;
