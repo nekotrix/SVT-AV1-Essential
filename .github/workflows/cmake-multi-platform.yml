@@ -1,0 +1,161 @@
+name: auto build
+
+on:
+  workflow_dispatch:
+    branches: [ "master", "Essential-v3.1.2" ]
+  push:
+    branches: [ "master", "Essential-v3.1.2" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+              name: "Windows_Optimized",
+              os: windows-2022,
+              generators: "Ninja",
+              msvc_arch: x64,
+              c_compiler: clang,
+              cpp_compiler: clang++,
+              march: "x86-64-v3"
+            }
+          - {
+              name: "Windows_Generic",
+              os: windows-2022,
+              generators: "Ninja",
+              msvc_arch: x64,
+              c_compiler: clang,
+              cpp_compiler: clang++,
+              march: "generic"
+            }
+          - {
+              name: "Linux_Optimized",
+              os: ubuntu-latest,
+              c_compiler: clang,
+              cpp_compiler: clang++,
+              march: "x86-64-v3"
+            }
+          - {
+              name: "Linux_Generic",
+              os: ubuntu-latest,
+              c_compiler: clang,
+              cpp_compiler: clang++,
+              march: "generic"
+            }
+          - {
+              name: "MacOS_Arm",
+              os: macos-latest,
+              c_compiler: clang,
+              cpp_compiler: clang++,
+              osx_arch: arm64,
+              march: "generic"
+            }
+    env:
+      CMAKE_GENERATOR: "${{ matrix.config.generators }}"
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ilammy/setup-nasm@v1
+    - name: Ubuntu
+      if: contains( matrix.config.os, 'ubuntu' )
+      run: |
+        if [ "${{ matrix.config.march }}" = "generic" ]; then
+          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
+        else
+          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=ON -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_C_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -flto -DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -flto -DNDEBUG"
+        fi
+        cmake --build svt_build --config Release
+      shell: bash
+    - name: Mac OS X
+      if: contains( matrix.config.os, 'macos' )
+      run: |
+        cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}"
+        cmake --build svt_build --config Release
+      shell: bash
+    - name: Windows build
+      if: contains( matrix.config.os, 'windows' )
+      run: |
+        set CC=clang
+        set CXX=clang++
+        if "${{ matrix.config.march }}" == "generic" (
+          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
+        ) else (
+          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O2 -flto -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O2 -flto -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
+        )
+        ninja -C svt_build
+      shell: cmd
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.config.name }}
+        path: Bin/Release/
+        retention-days: 90
+
+    - name: Get latest release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v3.1.2'
+      id: latest_release
+      uses: actions/github-script@v7
+      with:
+        result-encoding: string
+        script: |
+          const release = await github.rest.repos.getLatestRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo
+          });
+          console.log('Latest release tag:', release.data.tag_name);
+          return release.data.tag_name;
+
+    - name: Upload binaries to existing release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v3.1.2'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+
+          const tag = '${{ steps.latest_release.outputs.result }}';
+          console.log('Using tag:', tag);
+
+          // Get the existing release
+          const release = await github.rest.repos.getReleaseByTag({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag: tag
+          });
+
+          // Extract version without leading "v" if present
+          const version = tag.startsWith('v') ? tag.slice(1) : tag;
+
+          // Find binary files (executables only, not .a files)
+          const binDir = 'Bin/Release';
+          const files = fs.readdirSync(binDir);
+          const binaries = files.filter(file => {
+            const ext = path.extname(file).toLowerCase();
+            return !ext || ext === '.exe'; // No extension (Unix) or .exe (Windows)
+          });
+
+          console.log('Found binaries:', binaries);
+
+          // Upload each binary
+          for (const binary of binaries) {
+            const filePath = path.join(binDir, binary);
+            const ext = path.extname(binary);
+            const base = path.basename(binary, ext);
+            const fileName = `${base}-${version}-${{ matrix.config.name }}${ext}`;
+
+            console.log(`Uploading ${fileName}...`);
+
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.data.id,
+              name: fileName,
+              data: fs.readFileSync(filePath)
+            });
+          }
