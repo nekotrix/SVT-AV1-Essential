@@ -28,7 +28,25 @@ The encoder parameters are listed in this table below along with their
 | **Progress**                       | --progress           | [0-2]        | 1             | Verbosity of the output [0: no progress is printed, 1: default output, 2: detailed output]                        |
 | **NoProgress**                     | --no-progress        | [0-1]        | 0             | Do not print out progress [1: `--progress 0`, 0: `--progress 1`]                                                  |
 | **EncoderMode**                    | --preset             | [-1-13]      | 4             | Encoder preset. Higher presets means faster encodes, but with a quality tradeoff                                  |
+| **Speed**                          | --speed              | any string   | Null          | Encoder speed (overrides preset): slower, slow, medium, fast, faster. Default is slow below 1080p else medium.    |
 | **SvtAv1Params**                   | --svtav1-params      | any string   | None          | Colon-separated list of `key=value` pairs of parameters with keys based on command line options without `--`      |
+
+### **Speed**
+
+The `--speed` presets overrides `--preset` and the default adjusts to the input resolution.
+In fact, `--speed` default to `slow` at <=1080p and `medium` at >1080p.
+
+For reference purposes, the corresponding presets are:
+
+| **Speed**  | **Preset** |
+|------------|------------|
+| **slower** | 2          |
+| **slow**   | 4          |
+| **medium** | 5          |
+| **fast**   | 6          |
+| **faster** | 8          |
+
+Setting `--preset` will override the default `--speed`.
 
 #### Usage of **SvtAv1Params**
 
@@ -84,6 +102,7 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **RateControlMode**              | --rc                             | [0-2]      | 0           | Rate control mode [0: CRF or CQP (if `--aq-mode` is 0) [Default], 1: VBR, 2: CBR]                                                                    |
 | **QP**                           | --qp                             | [1-63]     | 30          | Initial QP level value                                                                                                                               |
 | **CRF**                          | --crf                            | [1-70]     | 30          | Constant Rate Factor value, setting this value is similar to `--rc 0 --aq-mode 2 --qp x`. Compared to `--qp`, `--crf` can take a value up to 70, and can be set in 0.25 increments |
+| **Quality**                      | --quality                        | any string | Null        | Quality preset, overrides CRF/CQP. Available qualities are: higher, high, medium, low, lower. Default is medium                                      |
 | **TargetBitRate**                | --tbr                            | [1-100000] | 2000        | Target Bitrate (kbps), only applicable for VBR and CBR encoding, also accepts `b`, `k`, and `m` suffixes                                             |
 | **MaxBitRate**                   | --mbr                            | [1-100000] | 0           | Maximum Bitrate (kbps) only applicable for CRF encoding, also accepts `b`, `k`, and `m` suffixes                                                     |
 | **UseQpFile**                    | --use-q-file                     | [0-1]      | 0           | Overwrite the encoder default picture based QP assignments and use QP values from `--qp-file`                                                        |
@@ -129,6 +148,22 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **LuminanceQpBias**              | --luminance-qp-bias              | [0-100]    | 10          | Adjusts a frame's QP based on its average luma value                                                                                                 |
 | **Sharpness**                    | --sharpness                      | [-7-7]     | 1           | Bias towards decreased/increased sharpness                                                                                                           |
 
+
+### **Quality**
+
+The `--quality` presets overrides `--crf` and adjusts to the input resolution.
+
+For reference purposes, the corresponding CRF are:
+
+| **Quality**  | **CRF <=1080p** | **CRF >1080p** |
+|--------------|-----------------|--------------- |
+| **higher**   | 20              | 25             |
+| **high**     | 25              | 30             |
+| **medium**   | 30              | 35             |
+| **low**      | 35              | 40             |
+| **lower**    | 40              | 45             |
+
+Setting `--crf` will override the default `--quality` of `medium`
 
 ### **UseFixedQIndexOffsets** and more information
 

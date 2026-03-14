@@ -3637,7 +3637,7 @@ static void set_param_based_on_input(SequenceControlSet *scs)
     }
     // Set initial qp for vbr and middle pass
     if ((scs->static_config.rate_control_mode == SVT_AV1_RC_MODE_VBR) || (scs->static_config.pass == ENC_FIRST_PASS)) {
-        if (scs->static_config.qp != DEFAULT_QP) {
+        if ((int)scs->static_config.qp != DEFAULT_QP) {
             SVT_WARN("The input q value is ignored in vbr mode %d\n", scs->static_config.qp);
         }
         const uint8_t tbr_bands[5] = { 1,2,4,6,8};
@@ -4024,6 +4024,45 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
     scs->static_config.multiply_keyint = config_struct->multiply_keyint;
     scs->static_config.intra_refresh_type = config_struct->intra_refresh_type;
     scs->static_config.enc_mode = config_struct->enc_mode;
+
+    scs->static_config.qp = config_struct->qp;
+    
+    // Quality & Speed presets
+    scs->static_config.speed = config_struct->speed;
+    scs->static_config.quality = config_struct->quality;
+
+    switch (scs->static_config.speed) {
+    case SPEED_SLOWER: scs->static_config.enc_mode = ENC_M2; break;
+    case SPEED_SLOW:   scs->static_config.enc_mode = ENC_M4; break;
+    case SPEED_MEDIUM: scs->static_config.enc_mode = ENC_M5; break;
+    case SPEED_FAST:   scs->static_config.enc_mode = ENC_M6; break;
+    case SPEED_FASTER: scs->static_config.enc_mode = ENC_M8; break;
+    default:
+        if (scs->static_config.enc_mode == DEFAULT_MODE && (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080)) {
+            scs->static_config.enc_mode = ENC_M5;
+        } else if (scs->static_config.enc_mode == DEFAULT_MODE && (scs->max_input_luma_width * scs->max_input_luma_height <= 1920 * 1080)) {
+            scs->static_config.enc_mode = ENC_M4;
+        }
+        // else keep whatever enc_mode was manually set
+        break;
+    }
+
+    switch (scs->static_config.quality) {
+    case QUALITY_HIGHER: scs->static_config.qp = (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080) ? 25 : 20; break;
+    case QUALITY_HIGH:   scs->static_config.qp = (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080) ? 30 : 25; break;
+    case QUALITY_MEDIUM: scs->static_config.qp = (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080) ? 35 : 30; break;
+    case QUALITY_LOW:    scs->static_config.qp = (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080) ? 40 : 35; break;
+    case QUALITY_LOWER:  scs->static_config.qp = (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080) ? 45 : 40; break;
+    default:
+        if ((int)scs->static_config.qp == DEFAULT_QP && (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080)) {
+            scs->static_config.qp = 35;
+        } else if ((int)scs->static_config.qp == DEFAULT_QP && (scs->max_input_luma_width * scs->max_input_luma_height <= 1920 * 1080)) {
+            scs->static_config.qp = 30;
+        }
+        // else keep whatever qp was manually set
+        break;
+    }
+    
     if (scs->static_config.rtc || scs->allintra) {
         if (scs->static_config.enc_mode > ENC_M12) {
             SVT_WARN("Preset M%d is mapped to M12.\n", scs->static_config.enc_mode);
@@ -4282,7 +4321,6 @@ static void copy_api_from_app(SequenceControlSet *scs, EbSvtAv1EncConfiguration 
         scs->static_config.level_of_parallelism = PARALLEL_LEVEL_6;
     }
 
-    scs->static_config.qp = config_struct->qp;
     scs->static_config.recon_enabled = config_struct->recon_enabled;
 
     // Extract frame rate from Numerator and Denominator if not 0
