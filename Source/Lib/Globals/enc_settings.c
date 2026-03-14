@@ -442,13 +442,13 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
-    if ((config->encoder_bit_depth != 8) && (config->encoder_bit_depth != 10)) {
-        SVT_ERROR("Encoder Bit Depth shall be only 8 or 10 \n");
+    if ((config->encoder_bit_depth != 10)) {
+        SVT_ERROR("Encoder Bit Depth shall be only 10 \n");
         return_error = EB_ErrorBadParameter;
     }
     // Check if the EncoderBitDepth is conformant with the Profile constraint
     if ((config->profile == 0 || config->profile == 1) && config->encoder_bit_depth > 10) {
-        SVT_ERROR("The encoder bit depth shall be equal to 8 or 10 for Main/High Profile\n");
+        SVT_ERROR("The encoder bit depth shall be equal to 10 for Main/High Profile\n");
         return_error = EB_ErrorBadParameter;
     }
 
