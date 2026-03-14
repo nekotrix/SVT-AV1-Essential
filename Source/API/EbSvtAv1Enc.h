@@ -715,6 +715,12 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint32_t level_of_parallelism;
 
+    /* Pin the execution of threads to the first N logical processors.
+     * 0: unpinned
+     * N: Pin threads to socket's first N processors
+     * default 0 */
+    uint32_t pin_threads;
+
     /* CPU FLAGS to limit assembly instruction set used by encoder.
     * Default is EB_CPU_FLAGS_ALL. */
     EbCpuFlags use_cpu_flags;
@@ -1084,13 +1090,36 @@ typedef struct EbSvtAv1EncConfiguration {
      * Default is 0
      */
     uint8_t alt_dlf;
+
+    /**
+     * @brief Photon noise ISO value
+     *
+     * Default is 0.
+     */
+    uint32_t photon_noise_iso;
+
+    /**
+     * @brief Enable chroma noise, which will is scaled based on luma values for generated film grain table.
+     *
+     * 0: disable chroma scaling
+     * 1: enable chroma scaling
+     *
+     * Default is 0.
+     */
+    uint8_t enable_photon_noise_chroma;
+
+    /**
+     * @brief Check if color range is provided by the user
+     */
+    bool color_range_provided;
     // clang-format off
     /*Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct*/
     uint8_t padding[128
-        - (sizeof(bool) * 3)
+        - (sizeof(bool) * 4)
         - sizeof(SpeedPreset)
         - sizeof(QualityPreset)
-        - (sizeof(uint8_t) * 7)
+        - (sizeof(uint8_t) * 8)
+        - sizeof(uint32_t)
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;

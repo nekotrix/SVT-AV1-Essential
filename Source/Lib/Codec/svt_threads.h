@@ -54,7 +54,18 @@ extern EbHandle    svt_create_mutex(void);
 extern EbErrorType svt_release_mutex(EbHandle mutex_handle);
 extern EbErrorType svt_block_on_mutex(EbHandle mutex_handle);
 extern EbErrorType svt_destroy_mutex(EbHandle mutex_handle);
-#ifndef _WIN32
+#ifdef _WIN32
+
+#define EB_CREATE_THREAD(pointer, thread_function, thread_context)               \
+    do {                                                                         \
+        pointer = svt_create_thread(thread_function, thread_context);            \
+        EB_ADD_MEM(pointer, 1, EB_THREAD);                                       \
+        if (svt_aom_group_affinity_enabled) {                                    \
+            SetThreadAffinityMask(pointer, svt_aom_group_affinity.Mask);         \
+        }                                                                        \
+    } while (0)
+
+#else
 #ifndef __USE_GNU
 #define __USE_GNU
 #endif
@@ -63,12 +74,21 @@ extern EbErrorType svt_destroy_mutex(EbHandle mutex_handle);
 #endif
 #include <sched.h>
 #include <pthread.h>
-#endif
+#if defined(__linux__) && !defined(__ANDROID__)
+#define EB_CREATE_THREAD(pointer, thread_function, thread_context)                                   \
+    do {                                                                                             \
+        pointer = svt_create_thread(thread_function, thread_context);                                \
+        EB_ADD_MEM(pointer, 1, EB_THREAD);                                                           \
+        pthread_setaffinity_np(*((pthread_t *)pointer), sizeof(cpu_set_t), &svt_aom_group_affinity); \
+    } while (0)
+#else
 #define EB_CREATE_THREAD(pointer, thread_function, thread_context)    \
     do {                                                              \
         pointer = svt_create_thread(thread_function, thread_context); \
         EB_ADD_MEM(pointer, 1, EB_THREAD);                            \
     } while (0)
+#endif
+#endif
 #define EB_DESTROY_THREAD(pointer)                   \
     do {                                             \
         if (pointer) {                               \

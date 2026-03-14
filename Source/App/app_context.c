@@ -486,6 +486,8 @@ static EbErrorType init_ffms2(EbConfig *app_cfg) {
         app_cfg->config.color_range = EB_CR_STUDIO_RANGE;
     }
 
+    app_cfg->config.color_range_provided = true;
+
     if (test_frame->ChromaLocation == 1) {
         app_cfg->config.chroma_sample_position = EB_CSP_VERTICAL;
     } else if (test_frame->ChromaLocation == 3) {

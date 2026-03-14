@@ -95,6 +95,8 @@
 #define LEVEL_TOKEN "--level"
 #define FILM_GRAIN_TOKEN "--film-grain"
 #define FILM_GRAIN_DENOISE_APPLY_TOKEN "--film-grain-denoise"
+#define PHOTON_NOISE_TOKEN "--photon-noise"
+#define PHOTON_NOISE_CHROMA_TOKEN "--photon-noise-chroma"
 #define INTRA_REFRESH_TYPE_TOKEN "--irefresh-type" // no Eval
 #define CDEF_ENABLE_TOKEN "--enable-cdef"
 #define SCREEN_CONTENT_TOKEN "--scm"
@@ -142,6 +144,7 @@
 #define INJECTOR_FRAMERATE_TOKEN "--inj-frm-rt" // no Eval
 #define ASM_TYPE_TOKEN "--asm"
 #define THREAD_MGMNT "--lp"
+#define PIN_TOKEN "--pin"
 
 //double dash
 #define PRESET_TOKEN "--preset"
@@ -855,6 +858,10 @@ ConfigDescription config_entry_specific[] = {
      "1: level of denoising is set by the film-grain parameter]"},
 
     {FGS_TABLE_TOKEN, "Set the film grain model table path"},
+
+    {PHOTON_NOISE_TOKEN, "Generate photon noise table for film grain, default is 0 [0: off, 1-100000: ISO value]"},
+
+    {PHOTON_NOISE_CHROMA_TOKEN, "Enable chroma noise, default is 0 [0: off, 1: on]"},
 #endif
     {LOSSLESS_TOKEN, "Enable lossless coding, default is 0 [0-1]"},
     {AVIF_TOKEN, "Enable still-picture coding, default is 0 [0-1]"},
@@ -978,6 +985,9 @@ ConfigDescription fconfig_entry_global_options[] = {
     {THREAD_MGMNT,
      "Amount of parallelism to use. 0 means choose the level based on machine core count. Refer to Appendix A.1 "
      "of the user guide, default is 0 [0, 6]"},
+    {PIN_TOKEN,
+     "Pin the execution to the first N cores. Refer to Appendix "
+     "A.1 of the user guide, default is 0 [0, core count of the machine]"},
     // Termination
     {NULL, NULL}};
 
@@ -1158,6 +1168,10 @@ ConfigDescription fconfig_entry_specific[] = {
      "still in frame header, 1: level of denoising is set by the film-grain parameter]"},
 
     {FGS_TABLE_TOKEN, "Set the film grain model table path"},
+
+    {PHOTON_NOISE_TOKEN, "Generate photon noise table for film grain, default is 0 [0: off, 1-100000: ISO value]"},
+
+    {PHOTON_NOISE_CHROMA_TOKEN, "Enable chroma noise, default is 0 [0: off, 1: on]"},
 #endif
     // --- start: SUPER-RESOLUTION SUPPORT
     {SUPERRES_MODE_INPUT,
@@ -1322,6 +1336,7 @@ ConfigEntry config_entry[] = {
 
     //   Thread Management
     {THREAD_MGMNT, "LevelOfParallelism", set_cfg_generic_token},
+    {PIN_TOKEN, "PinnedExecution", set_cfg_generic_token},
 
     // Rate Control Options
     {RATE_CONTROL_ENABLE_TOKEN, "RateControlMode", set_cfg_generic_token},
@@ -1400,6 +1415,8 @@ ConfigEntry config_entry[] = {
     {FILM_GRAIN_TOKEN, "FilmGrain", set_cfg_generic_token},
     {FILM_GRAIN_DENOISE_APPLY_TOKEN, "FilmGrainDenoise", set_cfg_generic_token},
     {FGS_TABLE_TOKEN, "FilmGrainTable", set_cfg_fgs_table_path},
+    {PHOTON_NOISE_TOKEN, "PhotonNoise", set_cfg_generic_token},
+    {PHOTON_NOISE_CHROMA_TOKEN, "PhotonNoiseChroma", set_cfg_generic_token},
 #endif
 #ifdef LIBHDR10PLUS_RS_FOUND
     {HDR10PLUS_JSON_TOKEN, "Hdr10PlusJson", set_cfg_hdr10plus_json},
