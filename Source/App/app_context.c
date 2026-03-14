@@ -19,10 +19,15 @@
 #include <limits.h>
 
 #include "EbSvtAv1.h"
+#include "EbSvtAv1Metadata.h"
 #include "app_context.h"
 #include "app_config.h"
 #if DEBUG_ROI
 #include <inttypes.h>
+#endif
+
+#if HAVE_FFMS2
+#include "ffms.h"
 #endif
 
 /*************************************
@@ -403,12 +408,249 @@ static void deallocate_buffers(EbConfig *app_cfg) {
 * Functions Implementation
 ***************************************/
 
+#if HAVE_FFMS2
+static EbErrorType init_ffms2(EbConfig *app_cfg) {
+    FFMS_Init(0, 0);
+
+    FFMS_ErrorInfo err_info;
+    char errmsg[1024];
+    err_info.Buffer = errmsg;
+    err_info.BufferSize = sizeof(errmsg);
+    err_info.ErrorType = FFMS_ERROR_SUCCESS;
+    err_info.SubType = FFMS_ERROR_SUCCESS;
+
+    FFMS_Indexer *indexer = FFMS_CreateIndexer(app_cfg->input_file_path, &err_info);
+    if (!indexer) {
+        fprintf(stderr, "FFMS2 Error: Failed to create indexer for %s: %s\n",
+                app_cfg->input_file_path, errmsg);
+        return EB_ErrorBadParameter;
+    }
+
+    // Index the file (in memory only)
+    FFMS_Index *index = FFMS_DoIndexing2(indexer, FFMS_IEH_ABORT, &err_info);
+    if (!index) {
+        fprintf(stderr, "FFMS2 Error: Failed to index %s: %s\n",
+                app_cfg->input_file_path, errmsg);
+        return EB_ErrorBadParameter;
+    }
+
+    // Get first video track
+    int track_num = FFMS_GetFirstTrackOfType(index, FFMS_TYPE_VIDEO, &err_info);
+    if (track_num < 0) {
+        fprintf(stderr, "FFMS2 Error: No video tracks found in %s\n", app_cfg->input_file_path);
+        FFMS_DestroyIndex(index);
+        return EB_ErrorBadParameter;
+    }
+
+    FFMS_VideoSource *video_source = FFMS_CreateVideoSource(
+        app_cfg->input_file_path, track_num, index, -1, FFMS_SEEK_NORMAL, &err_info);
+    if (!video_source) {
+        fprintf(stderr, "FFMS2 Error: Failed to create video source: %s\n", errmsg);
+        FFMS_DestroyIndex(index);
+        return EB_ErrorBadParameter;
+    }
+
+    const FFMS_VideoProperties *props = FFMS_GetVideoProperties(video_source);
+
+    // Check first frame
+    const FFMS_Frame *test_frame = FFMS_GetFrame(video_source, 0, &err_info);
+    if (!test_frame) {
+        fprintf(stderr, "FFMS2 Error: Failed to get test frame: %s\n", errmsg);
+        FFMS_DestroyVideoSource(video_source);
+        FFMS_DestroyIndex(index);
+        return EB_ErrorBadParameter;
+    }
+
+    if (!(app_cfg->config.source_width != 0 && (uint32_t)test_frame->EncodedWidth != app_cfg->config.source_width)) {
+        app_cfg->config.source_width = test_frame->EncodedWidth;
+        app_cfg->input_padded_width = test_frame->EncodedWidth;
+    }
+    if (!(app_cfg->config.source_height != 0 && (uint32_t)test_frame->EncodedHeight != app_cfg->config.source_height)) {
+        app_cfg->config.source_height = test_frame->EncodedHeight;
+        app_cfg->input_padded_height = test_frame->EncodedHeight;
+    }
+
+    if (app_cfg->config.frame_rate_numerator != (uint32_t)props->FPSNumerator ||
+        app_cfg->config.frame_rate_denominator != (uint32_t)props->FPSDenominator) {
+        app_cfg->config.frame_rate_numerator = props->FPSNumerator;
+        app_cfg->config.frame_rate_denominator = props->FPSDenominator;
+    }
+
+    app_cfg->config.matrix_coefficients = test_frame->ColorSpace;
+    app_cfg->config.color_primaries = test_frame->ColorPrimaries;
+    app_cfg->config.transfer_characteristics = test_frame->TransferCharateristics;
+
+    if (test_frame->ColorRange == 2) {
+        app_cfg->config.color_range = EB_CR_FULL_RANGE;
+    } else {
+        app_cfg->config.color_range = EB_CR_STUDIO_RANGE;
+    }
+
+    if (test_frame->ChromaLocation == 1) {
+        app_cfg->config.chroma_sample_position = EB_CSP_VERTICAL;
+    } else if (test_frame->ChromaLocation == 3) {
+        app_cfg->config.chroma_sample_position = EB_CSP_COLOCATED;
+    } else {
+        app_cfg->config.chroma_sample_position = EB_CSP_UNKNOWN;
+    }
+
+    // HDR
+    if (test_frame->HasMasteringDisplayPrimaries && test_frame->HasMasteringDisplayLuminance) {
+        char md_buffer[256];
+        sprintf(md_buffer, "G(%g,%g)B(%g,%g)R(%g,%g)WP(%g,%g)L(%g,%g)",
+            test_frame->MasteringDisplayPrimariesX[1], test_frame->MasteringDisplayPrimariesY[1],
+            test_frame->MasteringDisplayPrimariesX[2], test_frame->MasteringDisplayPrimariesY[2],
+            test_frame->MasteringDisplayPrimariesX[0], test_frame->MasteringDisplayPrimariesY[0],
+            test_frame->MasteringDisplayWhitePointX, test_frame->MasteringDisplayWhitePointY,
+            test_frame->MasteringDisplayMaxLuminance, test_frame->MasteringDisplayMinLuminance);
+        fprintf(stderr, "HDR Metadata found:\nMasteringDisplay: G(%g,%g)B(%g,%g)R(%g,%g)WP(%g,%g)L(%g,%g)\n",
+            test_frame->MasteringDisplayPrimariesX[1], test_frame->MasteringDisplayPrimariesY[1],
+            test_frame->MasteringDisplayPrimariesX[2], test_frame->MasteringDisplayPrimariesY[2],
+            test_frame->MasteringDisplayPrimariesX[0], test_frame->MasteringDisplayPrimariesY[0],
+            test_frame->MasteringDisplayWhitePointX, test_frame->MasteringDisplayWhitePointY,
+            test_frame->MasteringDisplayMaxLuminance, test_frame->MasteringDisplayMinLuminance);
+        if (!svt_aom_parse_mastering_display(&app_cfg->config.mastering_display, md_buffer)) {
+            fprintf(stderr, "Warning: Failed to parse mastering display info\n");
+        }
+    }
+    if (test_frame->HasContentLightLevel) {
+        char cll_buffer[64];
+        sprintf(cll_buffer, "%u,%u",
+            test_frame->ContentLightLevelMax, test_frame->ContentLightLevelAverage);
+        fprintf(stderr, "ContentLightLevel: %u,%u\n",
+            test_frame->ContentLightLevelMax, test_frame->ContentLightLevelAverage);
+        if (!svt_aom_parse_content_light_level(&app_cfg->config.content_light_level, cll_buffer)) {
+            fprintf(stderr, "Warning: Failed to parse content light level info\n");
+        }
+    }
+
+    // Force output to 10-bit
+    int pixfmts[2];
+    pixfmts[0] = FFMS_GetPixFmt("yuv420p10le");
+    pixfmts[1] = -1;
+
+    if (FFMS_SetOutputFormatV2(video_source, pixfmts,
+                                app_cfg->input_padded_width, app_cfg->config.source_height,
+                                FFMS_RESIZER_BILINEAR, &err_info)) {
+        fprintf(stderr, "FFMS2 Error: Failed to set output format to yuv420p10le: %s\n", errmsg);
+        FFMS_DestroyVideoSource(video_source);
+        FFMS_DestroyIndex(index);
+        return EB_ErrorBadParameter;
+    }
+
+    app_cfg->ffms_video_source = video_source;
+    app_cfg->ffms_index = index;
+    app_cfg->ffms_track_num = track_num;
+
+    // Set encoder to 10-bit too
+    app_cfg->config.encoder_bit_depth = 10;
+
+    if (app_cfg->frames_to_be_encoded <= 0) {
+        app_cfg->frames_to_be_encoded = props->NumFrames - app_cfg->frames_to_be_skipped;
+    }
+
+    fprintf(stderr, "FFMS2: Initialized video source - %dx%d, %d frames, %.2f fps\n",
+            test_frame->EncodedWidth, test_frame->EncodedHeight, props->NumFrames,
+            (double)props->FPSNumerator / props->FPSDenominator);
+
+    if (app_cfg->config.source_width != (uint32_t)test_frame->EncodedWidth ||
+        app_cfg->config.source_height != (uint32_t)test_frame->EncodedHeight) {
+        fprintf(stderr, "FFMS2: Scaled from %dx%d to %dx%d\n",
+            test_frame->EncodedWidth, test_frame->EncodedHeight,
+            app_cfg->config.source_width, app_cfg->config.source_height);
+    }
+
+    return EB_ErrorNone;
+}
+
+static EbErrorType preload_frames_ffms2(EbConfig *app_cfg) {
+    FFMS_VideoSource *video_source = (FFMS_VideoSource *)app_cfg->ffms_video_source;
+    const FFMS_VideoProperties *props = FFMS_GetVideoProperties(video_source);
+
+    FFMS_ErrorInfo err_info;
+    char errmsg[1024];
+    err_info.Buffer = errmsg;
+    err_info.BufferSize = sizeof(errmsg);
+
+    const uint32_t width = app_cfg->input_padded_width;
+    const uint32_t height = app_cfg->input_padded_height;
+    const uint32_t chroma_width = width >> 1;
+    const uint32_t chroma_height = height >> 1;
+
+    // 10-bit = 2 bytes per sample
+    const size_t frame_size = (width * height + 2 * chroma_width * chroma_height) * 2;
+
+    app_cfg->sequence_buffer = calloc(app_cfg->buffered_input, sizeof(uint8_t *));
+    if (!app_cfg->sequence_buffer)
+        return EB_ErrorInsufficientResources;
+
+    int frames_to_load = app_cfg->buffered_input;
+    if (frames_to_load > props->NumFrames - app_cfg->frames_to_be_skipped) {
+        frames_to_load = props->NumFrames - app_cfg->frames_to_be_skipped;
+    }
+
+    for (int i = 0; i < frames_to_load; i++) {
+        app_cfg->sequence_buffer[i] = malloc(frame_size);
+        if (!app_cfg->sequence_buffer[i])
+            return EB_ErrorInsufficientResources;
+
+        const FFMS_Frame *frame = FFMS_GetFrame(video_source,
+                                                app_cfg->frames_to_be_skipped + i,
+                                                &err_info);
+        if (!frame) {
+            fprintf(stderr, "FFMS2 Error preloading frame %d: %s\n", i, errmsg);
+            return EB_ErrorBadParameter;
+        }
+
+        // Copy frame data
+        uint8_t *dst = app_cfg->sequence_buffer[i];
+        const uint8_t *src_y = frame->Data[0];
+        const uint8_t *src_u = frame->Data[1];
+        const uint8_t *src_v = frame->Data[2];
+
+        for (uint32_t y = 0; y < height; y++) {
+            memcpy(dst, src_y, width * 2);
+            dst += width * 2;
+            src_y += frame->Linesize[0];
+        }
+
+        for (uint32_t y = 0; y < chroma_height; y++) {
+            memcpy(dst, src_u, chroma_width * 2);
+            dst += chroma_width * 2;
+            src_u += frame->Linesize[1];
+        }
+
+        for (uint32_t y = 0; y < chroma_height; y++) {
+            memcpy(dst, src_v, chroma_width * 2);
+            dst += chroma_width * 2;
+            src_v += frame->Linesize[2];
+        }
+    }
+
+    // Fill remaining slots if looping is needed (though I disabled looping for FFMS2)
+    for (int i = frames_to_load; i < app_cfg->buffered_input; i++) {
+        app_cfg->sequence_buffer[i] = app_cfg->sequence_buffer[i % frames_to_load];
+    }
+
+    return EB_ErrorNone;
+}
+#endif
+
 /***********************************
  * Initialize Core & Component
  ***********************************/
 EbErrorType init_encoder(EbConfig *app_cfg) {
     // Initialize Port Activity Flags
     app_cfg->output_stream_port_active = APP_PortActive;
+
+#if HAVE_FFMS2
+    if (app_cfg->use_ffms2) {
+        EbErrorType ffms_ret = init_ffms2(app_cfg);
+        if (ffms_ret != EB_ErrorNone) {
+            return ffms_ret;
+        }
+    }
+#endif
 
     if (app_cfg->roi_map_file != NULL) {
         // Load ROI map data from file
@@ -448,8 +690,13 @@ EbErrorType init_encoder(EbConfig *app_cfg) {
         return return_error;
     // Allocate the Sequence Buffer
     if (app_cfg->buffered_input != -1) {
-        // Preload frames into the ram for a faster yuv access time
-        return_error = preload_frames_info_ram(app_cfg);
+        if (app_cfg->use_ffms2) {
+#if HAVE_FFMS2
+            return_error = preload_frames_ffms2(app_cfg);
+#endif
+        } else {
+            return_error = preload_frames_info_ram(app_cfg);
+        }
     } else
         app_cfg->sequence_buffer = 0;
     ///********************** APPLICATION INIT [END] ******************////////
@@ -462,6 +709,19 @@ EbErrorType init_encoder(EbConfig *app_cfg) {
  ***********************************/
 EbErrorType de_init_encoder(EbConfig *app_cfg) {
     EbErrorType return_error = EB_ErrorNone;
+
+#if HAVE_FFMS2
+    if (app_cfg->use_ffms2) {
+        if (app_cfg->ffms_video_source) {
+            FFMS_DestroyVideoSource((FFMS_VideoSource *)app_cfg->ffms_video_source);
+            app_cfg->ffms_video_source = NULL;
+        }
+        if (app_cfg->ffms_index) {
+            FFMS_DestroyIndex((FFMS_Index *)app_cfg->ffms_index);
+            app_cfg->ffms_index = NULL;
+        }
+    }
+#endif
 
     deallocate_buffers(app_cfg);
 

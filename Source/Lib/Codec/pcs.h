@@ -1190,6 +1190,12 @@ typedef struct PictureControlSetInitData {
     bool    auto_tiling;
     bool    low_memory;
     bool    hide_banner;
+    uint8_t noise_norm_strength;
+    uint8_t sharp_tx;
+    uint8_t tx_bias;
+    uint8_t complex_hvs;
+    uint8_t alt_cdef;
+    uint8_t alt_dlf;
 } PictureControlSetInitData;
 
 /**************************************

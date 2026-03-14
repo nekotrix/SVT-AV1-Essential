@@ -83,6 +83,7 @@ typedef struct EncContext {
     int32_t    total_frames;
 } EncContext;
 
+#if !HAVE_FFMS2
 //initilize memory mapped file handler
 static void init_memory_file_map(EbConfig* app_cfg) {
     if (app_cfg->mmap.allow) {
@@ -130,6 +131,7 @@ static void deinit_memory_file_map(EbConfig* app_cfg) {
     CloseHandle(app_cfg->mmap.map_handle);
 #endif
 }
+#endif
 
 static int compar_uint64(const void* a, const void* b) {
     const uint64_t x = *(const uint64_t*)a;
@@ -195,7 +197,9 @@ static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, in
             qsort(
                 forced_keyframes->frames, forced_keyframes->count, sizeof(forced_keyframes->frames[0]), compar_uint64);
         }
+#if !HAVE_FFMS2
         init_memory_file_map(app_cfg);
+#endif
         init_reader(app_cfg);
 
         app_svt_av1_get_time(&app_cfg->performance_context.lib_start_time[0],
@@ -216,8 +220,11 @@ static EbErrorType enc_context_ctor(EncApp* enc_app, EncContext* enc_context, in
 
 static void enc_context_dctor(EncContext* enc_context) {
     // DeInit Encoder
-    deinit_memory_file_map(enc_context->channel.app_cfg);
-    enc_channel_dctor(&enc_context->channel);
+    EncChannel* c = &enc_context->channel;
+#if !HAVE_FFMS2
+    deinit_memory_file_map(c->app_cfg);
+#endif
+    enc_channel_dctor(c);
 
     for (uint32_t warning_id = 0; warning_id < MAX_NUM_TOKENS; warning_id++) free(enc_context->warning[warning_id]);
 }

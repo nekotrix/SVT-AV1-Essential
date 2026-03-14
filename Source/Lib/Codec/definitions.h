@@ -81,7 +81,7 @@ void svt_aom_assert_err(uint32_t condition, char *err_msg);
 
 #define DS_SC_FACT 23
 
-#define VQ_NOISE_LVL_TH 15000
+#define VQ_NOISE_LVL_TH 16000
 #define VQ_STABILITY_ME_VAR_TH 750
 #define VQ_PIC_AVG_VARIANCE_TH 1000
 #define NUM_MV_COMPONENTS 2
@@ -2317,6 +2317,9 @@ typedef enum {
 } SsimLevel;
 
 #define MAX_U32 0xFFFFFFFF
+
+#define CONVERT_TO_STR_COMPILE_TIME_HELPER(x) #x
+#define CONVERT_TO_STR_COMPILE_TIME(x) CONVERT_TO_STR_COMPILE_TIME_HELPER(x)
 
 // Both SFRAME_FLEXIBLE_BASE and SFRAME_DEC_POSI_BASE use flexible insertion
 #define IS_SFRAME_FLEXIBLE_INSERT(mode) (mode == SFRAME_FLEXIBLE_BASE || mode == SFRAME_DEC_POSI_BASE)

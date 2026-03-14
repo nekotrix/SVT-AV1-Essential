@@ -37,6 +37,10 @@
 
 #include "app_output_ivf.h"
 
+#if HAVE_FFMS2
+#include "ffms.h"
+#endif
+
 /***************************************
  * Macros
  ***************************************/
@@ -235,6 +239,11 @@ static bool is_forced_keyframe(const EbConfig *app_cfg, uint64_t pts) {
 
 bool process_skip(EbConfig *app_cfg, EbBufferHeaderType *header_ptr) {
     const bool is_16bit = app_cfg->config.encoder_bit_depth > 8;
+    if (app_cfg->use_ffms2) {
+        // not implemented yet
+        app_cfg->need_to_skip = false;
+        return true;
+    }
     for (int64_t i = 0; i < app_cfg->frames_to_be_skipped; i++) {
         read_input(app_cfg, is_16bit, header_ptr);
 
@@ -845,8 +854,113 @@ static void buffered_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBu
     header_ptr->n_filled_len = (uint32_t)(luma_size + 2 * chroma_size);
 }
 
+#if HAVE_FFMS2
+static void ffms2_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBufferHeaderType *header_ptr) {
+    (void)is_16bit; // We always output 10-bit from FFMS2
+
+    FFMS_VideoSource *video_source = (FFMS_VideoSource *)app_cfg->ffms_video_source;
+    EbSvtIOFormat *input_ptr = (EbSvtIOFormat *)header_ptr->p_buffer;
+
+    int frame_num = app_cfg->processed_frame_count;
+
+    const FFMS_VideoProperties *props = FFMS_GetVideoProperties(video_source);
+
+    // Check if we've reached the end
+    if (frame_num >= props->NumFrames) {
+        header_ptr->n_filled_len = 0;
+        return;
+    }
+
+    // Get frame from FFMS2
+    FFMS_ErrorInfo err_info;
+    char errmsg[1024];
+    err_info.Buffer = errmsg;
+    err_info.BufferSize = sizeof(errmsg);
+    err_info.ErrorType = FFMS_ERROR_SUCCESS;
+    err_info.SubType = FFMS_ERROR_SUCCESS;
+
+    const FFMS_Frame *frame = FFMS_GetFrame(video_source, frame_num, &err_info);
+    if (!frame) {
+        fprintf(stderr, "FFMS2 Error getting frame %d: %s\n", frame_num, errmsg);
+        header_ptr->n_filled_len = 0;
+        return;
+    }
+
+    const uint32_t width = app_cfg->input_padded_width;
+    const uint32_t height = app_cfg->input_padded_height;
+    const uint32_t chroma_width = width >> 1;
+    const uint32_t chroma_height = height >> 1;
+
+    // Copy frame data (10-bit = 2 bytes per sample)
+    const size_t luma_size = width * height * 2;
+    const size_t chroma_size = chroma_width * chroma_height * 2;
+
+    uint8_t *dst_y = input_ptr->luma;
+    uint8_t *dst_u = input_ptr->cb;
+    uint8_t *dst_v = input_ptr->cr;
+    const uint8_t *src_y = frame->Data[0];
+    const uint8_t *src_u = frame->Data[1];
+    const uint8_t *src_v = frame->Data[2];
+
+    for (uint32_t y = 0; y < height; y++) {
+        memcpy(dst_y, src_y, width * 2);
+        dst_y += width * 2;
+        src_y += frame->Linesize[0];
+    }
+
+    for (uint32_t y = 0; y < chroma_height; y++) {
+        memcpy(dst_u, src_u, chroma_width * 2);
+        memcpy(dst_v, src_v, chroma_width * 2);
+        dst_u += chroma_width * 2;
+        dst_v += chroma_width * 2;
+        src_u += frame->Linesize[1];
+        src_v += frame->Linesize[2];
+    }
+
+    input_ptr->y_stride = width;
+    input_ptr->cb_stride = chroma_width;
+    input_ptr->cr_stride = chroma_width;
+
+    header_ptr->n_filled_len = luma_size + 2 * chroma_size;
+}
+
+static void ffms2_buffered_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBufferHeaderType *header_ptr) {
+    (void)is_16bit;
+
+    EbSvtIOFormat *input_ptr = (EbSvtIOFormat *)header_ptr->p_buffer;
+
+    const uint32_t width = app_cfg->input_padded_width;
+    const uint32_t height = app_cfg->input_padded_height;
+    const uint32_t chroma_width = width >> 1;
+    const uint32_t chroma_height = height >> 1;
+
+    // 10-bit = 2 bytes per sample
+    const size_t luma_size = width * height * 2;
+    const size_t chroma_size = chroma_width * chroma_height * 2;
+
+    uint8_t *base = app_cfg->sequence_buffer[app_cfg->processed_frame_count % app_cfg->buffered_input];
+    input_ptr->luma = base;
+    input_ptr->cb = base + luma_size;
+    input_ptr->cr = base + luma_size + chroma_size;
+
+    input_ptr->y_stride = width;
+    input_ptr->cb_stride = chroma_width;
+    input_ptr->cr_stride = chroma_width;
+
+    header_ptr->n_filled_len = (uint32_t)(luma_size + 2 * chroma_size);
+}
+#endif
+
 void init_reader(EbConfig *app_cfg) {
-    if (app_cfg->buffered_input != -1) {
+    if (app_cfg->use_ffms2) {
+        if (app_cfg->buffered_input != -1) {
+#if HAVE_FFMS2
+            read_input = ffms2_buffered_read_input_frames;
+        } else {
+            read_input = ffms2_read_input_frames;
+#endif
+        }
+    } else if (app_cfg->buffered_input != -1) {
         read_input = buffered_read_input_frames;
     } else if (app_cfg->mmap.enable) {
         read_input = mmap_read_input_frames;

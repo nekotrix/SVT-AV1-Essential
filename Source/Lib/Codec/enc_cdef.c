@@ -111,6 +111,27 @@ uint64_t svt_aom_compute_cdef_dist_16bit_c(const uint16_t *dst, int32_t dstride,
     return sum >> 2 * coeff_shift;
 }
 
+uint64_t compute_cdef_dist_sad_mse_16bit(uint16_t *dst, int32_t dstride, uint16_t *src, CdefList *dlist,
+                                         int32_t cdef_count, BlockSize bsize, int32_t coeff_shift,
+                                         uint8_t subsampling_factor) {
+    int32_t bi, bx, by;
+    uint64_t sad = 0;
+    uint64_t mse;
+
+    for (bi = 0; bi < cdef_count; bi++) {
+        by = dlist[bi].by;
+        bx = dlist[bi].bx;
+
+        sad += sad_16b_kernel(&src[bi << (3 + 3)], 8,
+                              &dst[(by << 3) * dstride + (bx << 3)], dstride,
+                              8, 8);
+    }
+    mse = svt_compute_cdef_dist_16bit(dst, dstride, src, dlist, cdef_count, bsize, coeff_shift, subsampling_factor)
+          << (2 * coeff_shift);
+
+    return ((sad << 2) + (mse >> 1)) >> (2 * coeff_shift);
+}
+
 uint64_t svt_aom_compute_cdef_dist_8bit_c(const uint8_t *dst8, int32_t dstride, const uint8_t *src8,
                                           const CdefList *dlist, int32_t cdef_count, BlockSize bsize,
                                           int32_t coeff_shift, uint8_t subsampling_factor) {
@@ -147,6 +168,27 @@ uint64_t svt_aom_compute_cdef_dist_8bit_c(const uint8_t *dst8, int32_t dstride, 
         }
     }
     return sum >> 2 * coeff_shift;
+}
+
+uint64_t compute_cdef_dist_sad_mse_8bit(uint8_t *dst8, int32_t dstride, uint8_t *src8,
+                                        CdefList *dlist, int32_t cdef_count, BlockSize bsize,
+                                        int32_t coeff_shift, uint8_t subsampling_factor) {
+    int32_t bi, bx, by;
+    uint64_t sad = 0;
+    uint64_t mse;
+
+    for (bi = 0; bi < cdef_count; bi++) {
+        by = dlist[bi].by;
+        bx = dlist[bi].bx;
+
+        sad += svt_nxm_sad_kernel(&src8[bi << (3 + 3)], 8,
+                                  &dst8[(by << 3) * dstride + (bx << 3)], dstride,
+                                  8, 8);
+    }
+    mse = svt_compute_cdef_dist_8bit(dst8, dstride, src8, dlist, cdef_count, bsize, coeff_shift, subsampling_factor)
+          << (2 * coeff_shift);
+
+    return ((sad << 2) + (mse >> 1)) >> (2 * coeff_shift);
 }
 
 static int32_t svt_sb_all_skip(PictureControlSet *pcs, const Av1Common *const cm, int32_t mi_row, int32_t mi_col) {
@@ -668,7 +710,7 @@ static uint64_t joint_strength_search_dual(int32_t *best_lev0, int32_t *best_lev
     }
     return best_tot_mse;
 }
-void finish_cdef_search(PictureControlSet *pcs) {
+void finish_cdef_search(PictureControlSet *pcs, SequenceControlSet *scs) {
     struct PictureParentControlSet *ppcs    = pcs->ppcs;
     FrameHeader                    *frm_hdr = &ppcs->frm_hdr;
     Av1Common                      *cm      = ppcs->av1_cm;
@@ -840,7 +882,13 @@ void finish_cdef_search(PictureControlSet *pcs) {
         uint64_t tot_mse                      = joint_strength_search_dual(
             best_lev0, best_lev1, nb_strengths, mse, sb_count, start_gi, end_gi);
         /* Count superblock signalling cost. */
-        const int      total_bits = sb_count * i + nb_strengths * CDEF_STRENGTH_BITS * 2;
+        uint8_t biased_i;
+        if (scs->static_config.alt_cdef) {
+            if (ppcs->is_ref) biased_i = AOMMAX(i, 3);
+            else biased_i              = AOMMAX(i, 1);
+        }
+        else biased_i                  = i;
+        const int      total_bits = sb_count * biased_i + nb_strengths * CDEF_STRENGTH_BITS * 2;
         const int      rate_cost  = av1_cost_literal(total_bits);
         const uint64_t dist       = tot_mse * 16;
         tot_mse                   = RDCOST(lambda, rate_cost, dist);

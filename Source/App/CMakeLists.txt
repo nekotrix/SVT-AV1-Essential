@@ -146,7 +146,7 @@ endif()
 
 #********** SET COMPILE FLAGS************
 # Link the Encoder App
-target_link_libraries(SvtAv1EncApp PRIVATE SvtAv1Enc ${LIBDOVI_LIBRARY} ${LIBHDR10PLUS_RS_LIBRARY})
+target_link_libraries(SvtAv1EncApp SvtAv1Enc ${LIBDOVI_LIBRARY} ${LIBHDR10PLUS_RS_LIBRARY})
 target_link_directories(SvtAv1EncApp PRIVATE ${LIBDOVI_LIBRARY_DIR} ${LIBHDR10PLUS_RS_LIBRARY_DIR})
 
 install(TARGETS SvtAv1EncApp RUNTIME COMPONENT Runtime DESTINATION ${CMAKE_INSTALL_BINDIR})
