@@ -54,8 +54,12 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         SVT_ERROR("Source Height must be at least 4\n");
         return_error = EB_ErrorBadParameter;
     }
-    if (config->pred_structure > RANDOM_ACCESS || config->pred_structure < LOW_DELAY) {
-        SVT_ERROR("Pred Structure must be [%d (low delay) or %d (random access)]\n", LOW_DELAY, RANDOM_ACCESS);
+    // if (config->pred_structure > RANDOM_ACCESS || config->pred_structure < LOW_DELAY) {
+    //     SVT_ERROR("Pred Structure must be [%d (low delay) or %d (random access)]\n", LOW_DELAY, RANDOM_ACCESS);
+    //     return_error = EB_ErrorBadParameter;
+    // }
+    if (config->pred_structure != RANDOM_ACCESS) {
+        SVT_ERROR("Pred Structure in SVT-AV1-Essential must be [%d (random access)]\n", RANDOM_ACCESS);
         return_error = EB_ErrorBadParameter;
     }
     if (config->pred_structure == LOW_DELAY && config->pass > 0) {
@@ -271,8 +275,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
     if (config->scene_change_detection != 0) {
-        if ((config->min_intra_period_length > config->intra_period_length) || (config->intra_period_length < 0 &&
-            config->min_intra_period_length > 0)) {
+        if ((config->min_intra_period_length > config->intra_period_length && config->intra_period_length >= 0)
+            || (config->intra_period_length < 0 && config->min_intra_period_length > 0)) {
             SVT_ERROR("The minimum intra period must be lower than "
                 "the maximum intra period. \n");
             return_error = EB_ErrorBadParameter;
@@ -845,6 +849,14 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet *scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+    if (config->enable_tf > 3) {
+        SVT_ERROR("Temporal filtering must be between 0 and 3\n");
+        return_error = EB_ErrorBadParameter;
+    }
+    if (config->enable_tf == 3)
+        SVT_WARN("enable-tf 3 forces temporal filtering on all frames and tend to be very aggressive. "
+            "Proceed with caution.\n");
+
     if (config->variance_boost_curve > 3) {
         SVT_ERROR("Variance Boost curve must be between 0 and 3\n");
         return_error = EB_ErrorBadParameter;
@@ -1223,7 +1235,8 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
     if (config->pass == ENC_FIRST_PASS) {
         SVT_INFO("SVT [config]: preset \t\t\t\t\t\t: Pass 1\n");
     } else {
-        SVT_INFO("SVT [config]: profile / tier / level \t\t\t\t: %s / %s / %s\n",
+        SVT_INFO("SVT [config]: output format / profile / tier / level \t\t: %s / %s / %s / %s\n",
+                 (config->webm) ? "WebM" : "ivf",
                  config->profile == MAIN_PROFILE               ? "main"
                      : config->profile == HIGH_PROFILE         ? "high"
                      : config->profile == PROFESSIONAL_PROFILE ? "professional"
@@ -1238,14 +1251,14 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
             config->frame_rate_numerator,
             config->frame_rate_denominator);
         SVT_INFO(
-            "SVT [config]: bit-depth / color format / hdr \t\t\t: %d / "
-            "%s / %d\n",
-            config->encoder_bit_depth,
+            "SVT [config]: color format & bit-depth / hdr \t\t\t: %sP"
+            "%d / %d\n",
             config->encoder_color_format == EB_YUV400       ? "YUV400"
                 : config->encoder_color_format == EB_YUV420 ? "YUV420"
                 : config->encoder_color_format == EB_YUV422 ? "YUV422"
                 : config->encoder_color_format == EB_YUV444 ? "YUV444"
                                                             : "Unknown color format",
+            config->encoder_bit_depth,
             (config->content_light_level.max_cll != 0 || config->mastering_display.max_luma != 0)); // reintroduce enable-hdr param?
 
         SVT_INFO(
@@ -1258,49 +1271,60 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
             config->enc_mode == ENC_M5 &&
             (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080))) {
             SVT_INFO("SVT [config]: speed / tune / pred struct \t\t\t\t: %s / %s / %s\n",
-                    scs->static_config.speed == 0       ? "slower"
-                        : scs->static_config.speed == 1 ? "slow"
-                        : scs->static_config.speed == 2 ? "medium"
-                        : scs->static_config.speed == 3 ? "fast"
-                        : scs->static_config.speed == 4 ? "faster"
-                                                        : "medium",
-                    config->tune == TUNE_VQ            ? "VQ"
-                        : config->tune == TUNE_PSNR    ? "PSNR"
-                        : config->tune == TUNE_SSIM    ? "SSIM"
-                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM"
-                                                       : "IQ",
+                    scs->static_config.speed == 0       ? "slower (2)"
+                        : scs->static_config.speed == 1 ? "slow (4)"
+                        : scs->static_config.speed == 2 ? "medium (5)"
+                        : scs->static_config.speed == 3 ? "fast (6)"
+                        : scs->static_config.speed == 4 ? "faster (8)"
+                                                        : "medium (5)",
+                    config->tune == TUNE_VQ            ? "VQ (0)"
+                        : config->tune == TUNE_PSNR    ? "PSNR (1)"
+                        : config->tune == TUNE_SSIM    ? "SSIM (2)"
+                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM (3)"
+                                                       : "IQ (4)",
                     config->pred_structure == LOW_DELAY           ? "low delay"
-                        : config->pred_structure == RANDOM_ACCESS ? "random access"
+                        : config->pred_structure == RANDOM_ACCESS ? "RA"
                                                                   : "Unknown pred structure");
         } else if (scs->static_config.speed != SPEED_UNKNOWN || (scs->static_config.speed == SPEED_UNKNOWN &&
             config->enc_mode == ENC_M4 &&
             (scs->max_input_luma_width * scs->max_input_luma_height <= 1920 * 1080))) {
             SVT_INFO("SVT [config]: speed / tune / pred struct \t\t\t\t: %s / %s / %s\n",
-                    scs->static_config.speed == 0       ? "slower"
-                        : scs->static_config.speed == 1 ? "slow"
-                        : scs->static_config.speed == 2 ? "medium"
-                        : scs->static_config.speed == 3 ? "fast"
-                        : scs->static_config.speed == 4 ? "faster"
-                                                        : "slow",
-                    config->tune == TUNE_VQ            ? "VQ"
-                        : config->tune == TUNE_PSNR    ? "PSNR"
-                        : config->tune == TUNE_SSIM    ? "SSIM"
-                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM"
-                                                       : "IQ",
+                    scs->static_config.speed == 0       ? "slower (2)"
+                        : scs->static_config.speed == 1 ? "slow (4)"
+                        : scs->static_config.speed == 2 ? "medium (5)"
+                        : scs->static_config.speed == 3 ? "fast (6)"
+                        : scs->static_config.speed == 4 ? "faster (8)"
+                                                        : "slow (4)",
+                    config->tune == TUNE_VQ            ? "VQ (0)"
+                        : config->tune == TUNE_PSNR    ? "PSNR (1)"
+                        : config->tune == TUNE_SSIM    ? "SSIM (2)"
+                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM (3)"
+                                                       : "IQ (4)",
                     config->pred_structure == LOW_DELAY           ? "low delay"
-                        : config->pred_structure == RANDOM_ACCESS ? "random access"
+                        : config->pred_structure == RANDOM_ACCESS ? "RA"
                                                                   : "Unknown pred structure");
         } else {
             SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t: %d / %s / %s\n",
                     config->enc_mode,
-                    config->tune == TUNE_VQ            ? "VQ"
-                        : config->tune == TUNE_PSNR    ? "PSNR"
-                        : config->tune == TUNE_SSIM    ? "SSIM"
-                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM"
-                                                       : "IQ",
+                    config->tune == TUNE_VQ            ? "VQ (0)"
+                        : config->tune == TUNE_PSNR    ? "PSNR (1)"
+                        : config->tune == TUNE_SSIM    ? "SSIM (2)"
+                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM (3)"
+                                                       : "IQ (4)",
                     config->pred_structure == LOW_DELAY           ? "low delay"
-                        : config->pred_structure == RANDOM_ACCESS ? "random access"
+                        : config->pred_structure == RANDOM_ACCESS ? "RA"
                                                                   : "Unknown pred structure");
+        }
+        if (config->level_of_parallelism) {
+            SVT_INFO("SVT [config]: lp / hierarchical level / low memory \t\t\t: %d / %d / %d\n",
+                    config->level_of_parallelism,
+                    config->hierarchical_levels,
+                    config->low_memory);
+        } else {
+            SVT_INFO("SVT [config]: lp / hierarchical level / low memory \t\t\t: %s / %d / %d\n",
+                    "auto",
+                    config->hierarchical_levels,
+                    config->low_memory);
         }
         SVT_INFO(
             "SVT [config]: max / min gop size / mini-gop size / type \t\t: "
@@ -1319,9 +1343,6 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
             case SVT_AV1_RC_MODE_CQP_OR_CRF:
                 if (scs->static_config.quality != QUALITY_UNKNOWN ||
                     (scs->static_config.quality == QUALITY_UNKNOWN &&
-                    scs->static_config.qp == 30 &&
-                    (scs->max_input_luma_width * scs->max_input_luma_height <= 1920 * 1080)) ||
-                    (scs->static_config.quality == QUALITY_UNKNOWN &&
                     scs->static_config.qp == 35 &&
                     (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080))) {
                     if (config->max_bit_rate)
@@ -1329,22 +1350,47 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                                 "SVT [config]: BRC mode / quality / max bitrate (kbps) \t\t: %s / %s / "
                                 "%d\n",
                                 scs->tpl || scs->static_config.enable_variance_boost ? "capped CRF" : "CQP",
-                                scs->static_config.quality == 0       ? "higher"
-                                    : scs->static_config.quality == 1 ? "high"
-                                    : scs->static_config.quality == 2 ? "medium"
-                                    : scs->static_config.quality == 3 ? "low"
-                                    : scs->static_config.quality == 4 ? "lower"
-                                                                      : "medium",
+                                scs->static_config.quality == 0       ? "higher (25)"
+                                    : scs->static_config.quality == 1 ? "high (30)"
+                                    : scs->static_config.quality == 2 ? "medium (35)"
+                                    : scs->static_config.quality == 3 ? "low (40)"
+                                    : scs->static_config.quality == 4 ? "lower (45)"
+                                                                      : "medium (35)",
                                 (int)config->max_bit_rate / 1000);
                     else
                         SVT_INFO("SVT [config]: BRC mode / quality \t\t\t\t\t: %s / %s \n",
                                 scs->tpl || scs->static_config.enable_variance_boost ? "CRF" : "CQP",
-                                scs->static_config.quality == 0       ? "higher"
-                                    : scs->static_config.quality == 1 ? "high"
-                                    : scs->static_config.quality == 2 ? "medium"
-                                    : scs->static_config.quality == 3 ? "low"
-                                    : scs->static_config.quality == 4 ? "lower"
-                                                                      : "medium");
+                                scs->static_config.quality == 0       ? "higher (25)"
+                                    : scs->static_config.quality == 1 ? "high (30)"
+                                    : scs->static_config.quality == 2 ? "medium (35)"
+                                    : scs->static_config.quality == 3 ? "low (40)"
+                                    : scs->static_config.quality == 4 ? "lower (45)"
+                                                                      : "medium (35)");
+                } else if (scs->static_config.quality != QUALITY_UNKNOWN ||
+                    (scs->static_config.quality == QUALITY_UNKNOWN &&
+                    scs->static_config.qp == 30 &&
+                    (scs->max_input_luma_width * scs->max_input_luma_height <= 1920 * 1080))) {
+                    if (config->max_bit_rate)
+                        SVT_INFO(
+                                "SVT [config]: BRC mode / quality / max bitrate (kbps) \t\t: %s / %s / "
+                                "%d\n",
+                                scs->tpl || scs->static_config.enable_variance_boost ? "capped CRF" : "CQP",
+                                scs->static_config.quality == 0       ? "higher (20)"
+                                    : scs->static_config.quality == 1 ? "high (25)"
+                                    : scs->static_config.quality == 2 ? "medium (30)"
+                                    : scs->static_config.quality == 3 ? "low (35)"
+                                    : scs->static_config.quality == 4 ? "lower (40)"
+                                                                      : "medium (30)",
+                                (int)config->max_bit_rate / 1000);
+                    else
+                        SVT_INFO("SVT [config]: BRC mode / quality \t\t\t\t\t: %s / %s \n",
+                                scs->tpl || scs->static_config.enable_variance_boost ? "CRF" : "CQP",
+                                scs->static_config.quality == 0       ? "higher (20)"
+                                    : scs->static_config.quality == 1 ? "high (25)"
+                                    : scs->static_config.quality == 2 ? "medium (30)"
+                                    : scs->static_config.quality == 3 ? "low (35)"
+                                    : scs->static_config.quality == 4 ? "lower (40)"
+                                                                      : "medium (30)");
                 } else {
                     if (config->max_bit_rate)
                         SVT_INFO(
@@ -1387,6 +1433,14 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
             }
         }
 
+        if (config->enable_qm == 1) {
+            SVT_INFO("SVT [config]: quant. matrices min / max / chroma-min / chroma-max \t: %d / %d / %d / %d\n",
+                     config->min_qm_level,
+                     config->max_qm_level,
+                     config->min_chroma_qm_level,
+                     config->max_chroma_qm_level);
+        }
+
         if (config->film_grain_denoise_strength != 0) {
             if (config->adaptive_film_grain) {
                 SVT_INFO(
@@ -1418,31 +1472,57 @@ void svt_av1_print_lib_params(SequenceControlSet *scs) {
                  config->luminance_qp_bias);
 
         switch (config->enable_tf) {
-        case 1: SVT_INFO("SVT [config]: temporal filtering strength \t\t\t\t: %d\n", config->tf_strength); break;
-        case 2: SVT_INFO("SVT [config]: temporal filtering strength \t\t\t\t: auto\n"); break;
+        case 0: SVT_INFO("SVT [config]: temporal filtering / strength \t\t\t\t: off / -\n"); break;
+        case 1: SVT_INFO("SVT [config]: temporal filtering / strength \t\t\t\t: on / %s\n",
+                         config->tf_strength == 0          ? "lowest (0)"
+                                : config->tf_strength == 1 ? "low (1)"
+                                : config->tf_strength == 2 ? "medium (2)"
+                                : config->tf_strength == 3 ? "high (3)"
+                                : config->tf_strength == 4 ? "highest (4)"
+                                : "unknown"); break;
+        case 2: SVT_INFO("SVT [config]: temporal filtering / strength \t\t\t\t: auto / -\n"); break;
+        case 3: SVT_INFO("SVT [config]: temporal filtering / strength \t\t\t\t: full / %s\n",
+                         config->tf_strength == 0          ? "lowest (0)"
+                                : config->tf_strength == 1 ? "low (1)"
+                                : config->tf_strength == 2 ? "medium (2)"
+                                : config->tf_strength == 3 ? "high (3)"
+                                : config->tf_strength == 4 ? "highest (4)"
+                                : "unknown"); break;
         default: break;
         }
 
         SVT_INFO("SVT [config]: QP scale compress strength \t\t\t\t: %d\n", config->qp_scale_compress_strength);
 
         if (config->ac_bias || config->tx_bias) {
-            SVT_INFO("SVT [config]: AC Bias Strength / TX Bias \t\t\t\t: %.2f / %s\n",
+            SVT_INFO("SVT [config]: AC Bias strength / TX Bias / sharp TX optimization \t: %.2f / %s / %d\n",
                      config->ac_bias,
                      config->tx_bias == 1
                          ? "full"
-                         : (config->tx_bias == 2 ? "size only" : (config->tx_bias == 3 ? "interp. only" : "off")));
+                         : (config->tx_bias == 2 ? "size only" : (config->tx_bias == 3 ? "interp. only" : "off")),
+                     config->sharp_tx);
         }
 
-        if (config->noise_norm_strength > 0) {
-            SVT_INFO("SVT [config]: Noise Normalization Strength \t\t\t\t: %d\n", config->noise_norm_strength);
+        SVT_INFO("SVT [config]: noise normalization strength / adaptive filtering \t: %d / %s\n",
+            config->noise_norm_strength,
+            config->noise_adaptive_filtering == 0 ? "CDEF/Restoration off (0)" :
+            config->noise_adaptive_filtering == 1 ? "CDEF/Restoration on (1)" :
+            config->noise_adaptive_filtering == 2 ? "default tune (2)" :
+            config->noise_adaptive_filtering == 3 ? "CDEF only (3)" :
+            config->noise_adaptive_filtering == 4 ? "Restoration only (4)" :
+                                                    "unknown");
+        
+        if (config->complex_hvs == 1 || config->distortion_bias_preset != 0) {
+            SVT_INFO("SVT [config]: highest complexity HVS model / distortion bias preset \t: %d / %d\n",
+                     config->complex_hvs,
+                     config->distortion_bias_preset);
         }
 
         if (config->cdef_level != 0 && config->alt_cdef) {
-            SVT_INFO("SVT [config]: Alternative CDEF Bias \t\t\t\t\t: %d\n", config->alt_cdef);
+            SVT_INFO("SVT [config]: alternative CDEF bias \t\t\t\t\t: %d\n", config->alt_cdef);
         }
 
         if (config->enable_dlf_flag != 0 && config->alt_dlf) {
-            SVT_INFO("SVT [config]: Alternative DLF Bias \t\t\t\t\t: %d\n", config->alt_dlf);
+            SVT_INFO("SVT [config]: alternative DLF bias \t\t\t\t\t: %d\n", config->alt_dlf);
         }
     }
 #if DEBUG_BUFFERS
