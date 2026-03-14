@@ -645,7 +645,7 @@ ConfigDescription config_entry_options[] = {
 
     {PRESET_TOKEN,
      "Encoder preset, presets < 0 are for debugging. Higher presets means faster encodes, but with "
-     "a quality tradeoff, default is 8 [-1-13]"},
+     "a quality tradeoff, default is 4 [-1-13]"},
 
     {SVTAV1_PARAMS, "colon separated list of key=value pairs of parameters with keys based on config file options"},
 
@@ -758,7 +758,7 @@ ConfigDescription config_entry_rc[] = {
      "Only for VBR and CBR, allowable datarate overshoot (max) target (percentage), default is 25, "
      "but can change based on rate control [0-100]"},
     {MBR_OVER_SHOOT_PCT_TOKEN,
-     "Only for Capped CRF, allowable datarate overshoot (max) target (percentage), default is 50, "
+     "Only for Capped CRF, allowable datarate overshoot (max) target (percentage), default is 0, "
      "but can change based on rate control [0-100]"},
     {GOP_CONSTRAINT_RC_TOKEN,
      "Enable GoP constraint rc.  When enabled, the rate control matches the target rate for each "
@@ -773,19 +773,19 @@ ConfigDescription config_entry_rc[] = {
     {VBR_MAX_SECTION_PCT_TOKEN,
      "GOP max bitrate (expressed as a percentage of the target rate), default is 2000 [0-10000]"},
 #if CONFIG_ENABLE_QUANT_MATRIX
-    {ENABLE_QM_TOKEN, "Enable quantisation matrices, default is 0 [0-1]"},
-    {MIN_QM_LEVEL_TOKEN, "Min quant matrix flatness, default is 8 [0-15]"},
+    {ENABLE_QM_TOKEN, "Enable quantisation matrices, default is 1 [0-1]"},
+    {MIN_QM_LEVEL_TOKEN, "Min quant matrix flatness, default is 2 [0-15]"},
     {MAX_QM_LEVEL_TOKEN, "Max quant matrix flatness, default is 15 [0-15]"},
-    {MIN_CHROMA_QM_LEVEL_TOKEN, "Min chroma quant matrix flatness, default is 8 [0-15]"},
+    {MIN_CHROMA_QM_LEVEL_TOKEN, "Min chroma quant matrix flatness, default is 4 [0-15]"},
     {MAX_CHROMA_QM_LEVEL_TOKEN, "Max chroma quant matrix flatness, default is 15 [0-15]"},
 #endif
     {ROI_MAP_FILE_TOKEN, "Enable Region Of Interest and specify a picture based QP Offset map file, default is off"},
     // TF Strength
-    {TF_STRENGTH_FILTER_TOKEN, "Adjust temporal filtering strength, default is 3 [0-4]"},
+    {TF_STRENGTH_FILTER_TOKEN, "Adjust temporal filtering strength, default is 1 [0-4]"},
     // Frame-level luminance-based QP bias
-    {LUMINANCE_QP_BIAS_TOKEN, "Adjusts a frame's QP based on its average luma value, default is 0 [0-100]"},
+    {LUMINANCE_QP_BIAS_TOKEN, "Adjusts a frame's QP based on its average luma value, default is 10 [0-100]"},
     // Sharpness
-    {SHARPNESS_TOKEN, "Bias towards decreased/increased sharpness, default is 0 [-7 to 7]"},
+    {SHARPNESS_TOKEN, "Bias towards decreased/increased sharpness, default is 1 [-7 to 7]"},
     // Termination
     {NULL, NULL}};
 
@@ -809,7 +809,7 @@ ConfigDescription config_entry_intra_refresh[] = {
     {SCENE_CHANGE_DETECTION_TOKEN, "Scene change detection control, default is 0 [0-1]"},
     {LOOKAHEAD_NEW_TOKEN,
      "Number of frames in the future to look ahead, not including minigop, temporal filtering, and "
-     "rate control, default is -1 [-1: auto, 0-120]"},
+     "rate control, default is -1 [-1: auto, 0-32]"},
     {HIERARCHICAL_LEVELS_TOKEN,
      "Set hierarchical levels beyond the base layer, default is <=M12: 5, else: 4 [2: 3 temporal "
      "layers, 3: 4 temporal layers, 4: 5 layers, 5: 6 layers]"},
@@ -839,7 +839,7 @@ ConfigDescription config_entry_specific[] = {
     // RESTORATION
     {ENABLE_RESTORATION_TOKEN, "Enable loop restoration filter, default is 1 [0-1]"},
     {MFMV_ENABLE_NEW_TOKEN, "Motion Field Motion Vector control, default is -1 [-1: auto, 0-1]"},
-    {DG_ENABLE_NEW_TOKEN, "Dynamic GoP control, default is 1 [0-1]"},
+    {DG_ENABLE_NEW_TOKEN, "Dynamic GoP control, default is 0 [0-1]"},
     {FAST_DECODE_TOKEN, "Fast Decoder levels, default is 0 [0-2]"},
     // --- start: ALTREF_FILTERING_SUPPORT
     {ENABLE_TF_TOKEN, "Enable ALT-REF (temporally filtered) frames, default is 1 [0-2]"},
@@ -936,18 +936,18 @@ ConfigDescription config_entry_color_description[] = {
 
 ConfigDescription config_entry_psychovisual[] = {
     // Variance Boost
-    {ENABLE_VARIANCE_BOOST_TOKEN, "Enable Variance Boost, default is 0 [0-1]"},
-    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance Boost strength, default is 2 [1-4]"},
-    {VARIANCE_OCTILE_TOKEN, "Octile for Variance Boost, default is 5 [1-8]"},
+    {ENABLE_VARIANCE_BOOST_TOKEN, "Enable Variance Boost, default is 1 [0-1]"},
+    {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance Boost strength, default is 1 [1-4]"},
+    {VARIANCE_OCTILE_TOKEN, "Octile for Variance Boost, default is 4 [1-8]"},
     {VARIANCE_BOOST_CURVE_TOKEN, "Curve for Variance Boost, default is 0 [0-2]"},
     // QP scale compress
-    {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 0 [0-3]"},
+    {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 1 [0-3]"},
     // Adaptive film grain
-    {ADAPTIVE_FILM_GRAIN_TOKEN, "Adapts film grain blocksize based on video resolution, default is 1 [0-1]"},
+    {ADAPTIVE_FILM_GRAIN_TOKEN, "Adapts film grain blocksize based on video resolution, default is 0 [0-1]"},
     // Max TX size
     {MAX_TX_SIZE_TOKEN, "Limits the allowed transform sizes to the specified, default is 64 [32,64]"},
     //AC-Bias
-    {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.0 [0.0-8.0]"},
+    {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.25 [0.0-8.0]"},
     // Termination
     {NULL, NULL}};
 
