@@ -30,54 +30,6 @@ static INLINE __m128i predict_unclipped_ssse3(const __m128i *input, __m128i alph
     return _mm_add_epi16(scaled_luma_q0, dc_q0);
 }
 
-// Store 32-bit integer from the first element of a into memory.
-static INLINE void _mm_storeh_epi32(__m128i const *mem_addr, __m128i a) {
-    *((int32_t *)mem_addr) = _mm_cvtsi128_si32(a);
-}
-
-void svt_cfl_predict_lbd_avx2(const int16_t *pred_buf_q3, uint8_t *pred, int32_t pred_stride, uint8_t *dst,
-                              int32_t dst_stride, int32_t alpha_q3, int32_t bit_depth, int32_t width, int32_t height) {
-    (void)bit_depth;
-    (void)pred_stride;
-    if (width <= 16) {
-        const __m128i  alpha_sign = _mm_set1_epi16(alpha_q3);
-        const __m128i  alpha_q12  = _mm_slli_epi16(_mm_abs_epi16(alpha_sign), 9);
-        const __m128i  dc_q0      = _mm_set1_epi16(*pred);
-        __m128i       *row        = (__m128i *)pred_buf_q3;
-        const __m128i *row_end    = row + height * CFL_BUF_LINE_I128;
-        do {
-            __m128i res = predict_unclipped_ssse3(row, alpha_q12, alpha_sign, dc_q0);
-            if (width < 16) {
-                res = _mm_packus_epi16(res, res);
-                if (width == 4)
-                    _mm_storeh_epi32((__m128i *)dst, res);
-                else
-                    _mm_storel_epi64((__m128i *)dst, res);
-            } else {
-                __m128i next = predict_unclipped_ssse3(row + 1, alpha_q12, alpha_sign, dc_q0);
-                res          = _mm_packus_epi16(res, next);
-                _mm_storeu_si128((__m128i *)dst, res);
-            }
-            dst += dst_stride;
-        } while ((row += CFL_BUF_LINE_I128) < row_end);
-    } else {
-        const __m256i  alpha_sign = _mm256_set1_epi16(alpha_q3);
-        const __m256i  alpha_q12  = _mm256_slli_epi16(_mm256_abs_epi16(alpha_sign), 9);
-        const __m256i  dc_q0      = _mm256_set1_epi16(*pred);
-        __m256i       *row        = (__m256i *)pred_buf_q3;
-        const __m256i *row_end    = row + height * CFL_BUF_LINE_I256;
-
-        do {
-            __m256i res  = predict_unclipped(row, alpha_q12, alpha_sign, dc_q0);
-            __m256i next = predict_unclipped(row + 1, alpha_q12, alpha_sign, dc_q0);
-            res          = _mm256_packus_epi16(res, next);
-            res          = _mm256_permute4x64_epi64(res, _MM_SHUFFLE(3, 1, 2, 0));
-            _mm256_storeu_si256((__m256i *)dst, res);
-            dst += dst_stride;
-        } while ((row += CFL_BUF_LINE_I256) < row_end);
-    }
-}
-
 static __m256i highbd_max_epi16(int32_t bd) {
     const __m256i neg_one = _mm256_set1_epi16(-1);
     // (1 << bd) - 1 => -(-1 << bd) -1 => -1 - (-1 << bd) => -1 ^ (-1 << bd)
@@ -314,60 +266,6 @@ void svt_cfl_luma_subsampling_420_hbd_avx2(const uint16_t *input, int32_t input_
                 hsum  = _mm256_permute4x64_epi64(hsum, _MM_SHUFFLE(3, 1, 2, 0));
                 hsum  = _mm256_add_epi16(hsum, hsum);
                 _mm256_storeu_si256(row + 1, hsum);
-            }
-        }
-        input += luma_stride;
-    } while ((row += CFL_BUF_LINE_I256) < row_end);
-}
-/************************************************************************************************
-* svt_cfl_luma_subsampling_420_lbd_avx2
-* Subsample luma samples to match chroma size. Low bit depth and avx2
-************************************************************************************************/
-void svt_cfl_luma_subsampling_420_lbd_avx2(const uint8_t *input, int32_t input_stride, int16_t *output_q3,
-                                           int32_t width, int32_t height) {
-    const __m128i  twos_128    = _mm_set1_epi8(2);
-    const __m256i  twos_256    = _mm256_set1_epi8(2); // Thirty two twos
-    const int      luma_stride = input_stride << 1;
-    __m256i       *row         = (__m256i *)output_q3;
-    const __m256i *row_end     = row + (height >> 1) * CFL_BUF_LINE_I256;
-    do {
-        if (width == 4) {
-            __m128i top       = _mm_cvtsi32_si128(*((int *)input));
-            top               = _mm_maddubs_epi16(top, twos_128);
-            __m128i bot       = _mm_cvtsi32_si128(*((int *)(input + input_stride)));
-            bot               = _mm_maddubs_epi16(bot, twos_128);
-            const __m128i sum = _mm_add_epi16(top, bot);
-            _mm_storeh_epi32((__m128i *)row, sum);
-        } else if (width == 8) {
-            __m128i top       = _mm_loadl_epi64((__m128i *)input);
-            top               = _mm_maddubs_epi16(top, twos_128);
-            __m128i bot       = _mm_loadl_epi64((__m128i *)(input + input_stride));
-            bot               = _mm_maddubs_epi16(bot, twos_128);
-            const __m128i sum = _mm_add_epi16(top, bot);
-            _mm_storel_epi64((__m128i *)row, sum);
-        } else if (width == 16) {
-            __m128i top       = _mm_loadu_si128((__m128i *)input);
-            top               = _mm_maddubs_epi16(top, twos_128);
-            __m128i bot       = _mm_loadu_si128((__m128i *)(input + input_stride));
-            bot               = _mm_maddubs_epi16(bot, twos_128);
-            const __m128i sum = _mm_add_epi16(top, bot);
-            _mm_storeu_si128((__m128i *)row, sum);
-        } else {
-            __m256i top = _mm256_loadu_si256((__m256i *)input);
-            __m256i bot = _mm256_loadu_si256((__m256i *)(input + input_stride));
-
-            __m256i top_16x16 = _mm256_maddubs_epi16(top, twos_256);
-            __m256i bot_16x16 = _mm256_maddubs_epi16(bot, twos_256);
-            __m256i sum_16x16 = _mm256_add_epi16(top_16x16, bot_16x16);
-
-            _mm256_storeu_si256(row, sum_16x16);
-            if (width == 64) {
-                top       = _mm256_loadu_si256(((__m256i *)input) + 1);
-                bot       = _mm256_loadu_si256(((__m256i *)(input + input_stride)) + 1);
-                top_16x16 = _mm256_maddubs_epi16(top, twos_256);
-                bot_16x16 = _mm256_maddubs_epi16(bot, twos_256);
-                sum_16x16 = _mm256_add_epi16(top_16x16, bot_16x16);
-                _mm256_storeu_si256(row + 1, sum_16x16);
             }
         }
         input += luma_stride;

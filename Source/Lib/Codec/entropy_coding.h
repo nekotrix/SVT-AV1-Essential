@@ -68,8 +68,6 @@ static INLINE int32_t frame_is_intra_only(const PictureParentControlSet *const p
     return pcs->frm_hdr.frame_type == KEY_FRAME || pcs->frm_hdr.frame_type == INTRA_ONLY_FRAME;
 }
 
-static INLINE int32_t frame_is_sframe(const PictureParentControlSet *pcs) { return pcs->frm_hdr.frame_type == S_FRAME; }
-
 // Returns 1 if this frame might allow mvs from some reference frame.
 
 static INLINE int32_t frame_might_allow_ref_frame_mvs(const PictureParentControlSet *pcs, SequenceControlSet *scs) {

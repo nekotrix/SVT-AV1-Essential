@@ -21,7 +21,6 @@
 #include "transpose_neon.h"
 #include "utility.h"
 
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 static inline void compute_stats_win5_highbd_neon(const int16_t *const d, const int32_t d_stride,
                                                   const int16_t *const s, const int32_t s_stride, const int32_t width,
                                                   const int32_t height, int64_t *const M, int64_t *const H,
@@ -1498,4 +1497,3 @@ void svt_av1_compute_stats_highbd_neon(int32_t wiener_win, const uint8_t *dgd8, 
 
     svt_aom_free(d);
 }
-#endif // CONFIG_ENABLE_HIGH_BIT_DEPTH

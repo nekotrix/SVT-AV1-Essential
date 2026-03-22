@@ -53,7 +53,6 @@ typedef struct EncDecContext {
     uint16_t blk_org_y; // within the picture
     uint32_t sb_index;
     uint8_t  txb_itr;
-    bool     is_16bit; //enable 10 bit encode in CL
     uint32_t bit_depth;
     uint64_t tot_intra_coded_area;
     uint64_t tot_skip_coded_area;

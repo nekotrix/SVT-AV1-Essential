@@ -52,7 +52,6 @@ extern "C" {
 
 #define TASK_PAME 0
 #define TASK_TFME 1
-#define TASK_SUPERRES_RE_ME 3
 #define TASK_DG_DETECTOR_HME 4
 #define MAX_TPL_GROUP_SIZE 512 //enough to cover 6L gop
 
@@ -1399,9 +1398,6 @@ typedef enum ATTRIBUTE_PACKED {
 } RestorationType;
 
 #define SCALE_NUMERATOR 8
-#define SUPERRES_SCALE_BITS 3
-#define SUPERRES_SCALE_DENOMINATOR_MIN (SCALE_NUMERATOR + 1)
-#define NUM_SR_SCALES 8 // number of super-res scales
 #define NUM_RESIZE_SCALES 9 // number of resize scales, index 0~8 means 8/8~8/16 and index 9 means 3/4 for dynamic mode
 #define SCALE_DENOMINATOR_MAX 16 // maximum scaling denominator is 16
 #define SCALE_THREE_QUATER 17 // 3/4 of resize dynamic mode is defined as 17
@@ -1942,26 +1938,16 @@ buffers to and from the eBrisk API.  The EbByte type is a 32 bit pointer.
 The pointer is word aligned and the buffer is byte aligned.
 */
 
-/** The MD_BIT_DEPTH_MODE type is used to describe the bitdepth of MD path.
-*/
+#define EB_8_BIT_MD  0
+#define EB_10_BIT_MD 1
 
-typedef enum MD_BIT_DEPTH_MODE
-{
-    EB_8_BIT_MD     = 0,    // 8bit mode decision
-    EB_10_BIT_MD    = 1,    // 10bit mode decision
-    EB_DUAL_BIT_MD  = 2     // Auto: 8bit & 10bit mode decision
-} MD_BIT_DEPTH_MODE;
-
- /* Indicates what prediction structure to use
-  *
-  * SVT_AV1_PRED_UNUSED is not used, and not supported in the code. It is a placeholder after removing SVT_AV1_PRED_LOW_DELAY_P
-  * so that the values for --pred-struct don't need to change.
-  *
-  * TODO: At v4.0 remove PRED_UNUSED to have only LOW_DELAY and RANDOM_ACCESS. Need to update documentation for --pred-struct
+ /* Indicates what prediction structure to use.
+  * Only RANDOM_ACCESS is supported as user-facing mode.
+  * LOW_DELAY is used internally for incomplete mini-GOPs when cutting short RA periods.
   */
 typedef enum PredStructure {
-    PRED_UNUSED = 0, // Do not use
-    LOW_DELAY = 1,
+    PRED_UNUSED = 0, // Reserved (unused)
+    LOW_DELAY = 1,   // Internal use only (incomplete mini-GOP)
     RANDOM_ACCESS = 2,
     PRED_TOTAL_COUNT = 3,
     PRED_INVALID = 0xFF
@@ -2135,9 +2121,6 @@ void(*error_handler)(
 #define LOG_MIN_BLOCK_SIZE                          3
 #define MIN_BLOCK_SIZE                              (1 << LOG_MIN_BLOCK_SIZE)
 #define MAX_NUM_OF_REF_PIC_LIST                     2
-// super-resolution definitions
-#define MIN_SUPERRES_DENOM                          8
-#define MAX_SUPERRES_DENOM                          16
 
 // reference scaling definitions
 #define MIN_RESIZE_DENOM                            8
@@ -2320,9 +2303,6 @@ typedef enum {
 
 #define CONVERT_TO_STR_COMPILE_TIME_HELPER(x) #x
 #define CONVERT_TO_STR_COMPILE_TIME(x) CONVERT_TO_STR_COMPILE_TIME_HELPER(x)
-
-// Both SFRAME_FLEXIBLE_BASE and SFRAME_DEC_POSI_BASE use flexible insertion
-#define IS_SFRAME_FLEXIBLE_INSERT(mode) (mode == SFRAME_FLEXIBLE_BASE || mode == SFRAME_DEC_POSI_BASE)
 
 #ifdef __cplusplus
 }

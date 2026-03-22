@@ -88,7 +88,6 @@
 #define FRAME_RATE_DENOMINATOR_TOKEN "--fps-denom"
 #define ENCODER_COLOR_FORMAT "--color-format"
 #define HIERARCHICAL_LEVELS_TOKEN "--hierarchical-levels" // no Eval
-#define PRED_STRUCT_TOKEN "--pred-struct"
 #define PROFILE_TOKEN "--profile"
 #define INTRA_PERIOD_TOKEN "--intra-period"
 #define TIER_TOKEN "--tier"
@@ -106,13 +105,6 @@
 #define TUNE_TOKEN "--tune"
 // --- end: ALTREF_FILTERING_SUPPORT
 #define LOW_MEMORY_TOKEN "--low-memory"
-// --- start: SUPER-RESOLUTION SUPPORT
-#define SUPERRES_MODE_INPUT "--superres-mode"
-#define SUPERRES_DENOM "--superres-denom"
-#define SUPERRES_KF_DENOM "--superres-kf-denom"
-#define SUPERRES_QTHRES "--superres-qthres"
-#define SUPERRES_KF_QTHRES "--superres-kf-qthres"
-// --- end: SUPER-RESOLUTION SUPPORT
 // --- start: REFERENCE SCALING SUPPORT
 #define RESIZE_MODE_INPUT "--resize-mode"
 #define RESIZE_DENOM "--resize-denom"
@@ -190,12 +182,6 @@
 #define HDR10PLUS_JSON_TOKEN "--hdr10plus-json"
 #endif
 
-#define SFRAME_DIST_TOKEN "--sframe-dist"
-#define SFRAME_MODE_TOKEN "--sframe-mode"
-#define SFRAME_POSI_TOKEN "--sframe-posi"
-#define SFRAME_QP_TOKEN "--sframe-qp"
-#define SFRAME_QP_OFFSET_TOKEN "--sframe-qp-offset"
-
 #define ENABLE_QM_TOKEN "--enable-qm"
 #define MIN_QM_LEVEL_TOKEN "--qm-min"
 #define MAX_QM_LEVEL_TOKEN "--qm-max"
@@ -215,7 +201,6 @@
 #define LUMINANCE_QP_BIAS_TOKEN "--luminance-qp-bias"
 #define LOSSLESS_TOKEN "--lossless"
 #define AVIF_TOKEN "--avif"
-#define RTC_TOKEN "--rtc"
 #define QP_SCALE_COMPRESS_STRENGTH_TOKEN "--qp-scale-compress-strength"
 #define ADAPTIVE_FILM_GRAIN_TOKEN "--adaptive-film-grain"
 #define MAX_TX_SIZE_TOKEN "--max-tx-size"
@@ -1151,10 +1136,6 @@ ConfigDescription fconfig_entry_intra_refresh[] = {
     {HIERARCHICAL_LEVELS_TOKEN,
      "Set hierarchical levels beyond the base layer, default is <=M12: 5, else: 4 [2: 3 temporal "
      "layers, 3: 4 temporal layers, 4: 5 layers, 5: 6 layers]"},
-    {PRED_STRUCT_TOKEN, "Set prediction structure, default is 2 [1: low delay frames, 2: random access]"},
-    {RTC_TOKEN,
-     "Enables fast settings for rtc when using low-delay mode. Forces low-delay pred struct to be used, "
-     "default is 0, [0-1]]"},
     {FORCE_KEY_FRAMES_TOKEN, "Force key frames at the comma separated specifiers. `#f` for frames, `#.#s` for seconds"},
     {STARTUP_MG_SIZE_TOKEN,
      "Specify another mini-gop configuration for the first mini-gop after the key-frame, default "
@@ -1214,35 +1195,6 @@ ConfigDescription fconfig_entry_specific[] = {
 
     {PHOTON_NOISE_CHROMA_TOKEN, "Enable chroma noise, default is 0 [0: off, 1: on]"},
 #endif
-    // --- start: SUPER-RESOLUTION SUPPORT
-    {SUPERRES_MODE_INPUT,
-     "Enable super-resolution mode, refer to the super-resolution section in the user guide, "
-     "default is 0 [0: off, 1-3, 4: auto-select mode]"},
-    {SUPERRES_DENOM,
-     "Super-resolution denominator, only applicable for mode == 1, default is 8 [8: no scaling, "
-     "9-15, 16: half-scaling]"},
-    {SUPERRES_KF_DENOM,
-     "Super-resolution denominator for key frames, only applicable for mode == 1, default is 8 [8: "
-     "no scaling, 9-15, 16: half-scaling]"},
-    {SUPERRES_QTHRES, "Super-resolution q-threshold, only applicable for mode == 3, default is 43 [0-63]"},
-    {SUPERRES_KF_QTHRES,
-     "Super-resolution q-threshold for key frames, only applicable for mode == 3, default is 43 [0-63]"},
-    // --- end: SUPER-RESOLUTION SUPPORT
-
-    // --- start: SWITCH_FRAME SUPPORT
-    {SFRAME_DIST_TOKEN, "S-Frame interval (frames) (0: OFF[default], > 0: ON)"},
-    {SFRAME_MODE_TOKEN,
-     "S-Frame insertion mode ([1-3], 1: the considered frame will be made into an S-Frame only if "
-     "it is an altref frame, 2: the next altref frame will be made into an S-Frame[default], "
-     "3: adjust minigop size to make an S-Frame at specific position, 4: adjust minigop size to make "
-     "an S-Frame inserting at specific position in decode order)"},
-    {SFRAME_POSI_TOKEN,
-     "S-Frame insertion positions, a list separated by ',', S-Frame process inserts by "
-     "the specified frame numbers (0 based), only applicable for mode 3"},
-    {SFRAME_QP_TOKEN, "S-Frame setup qp, a list separated by ',', QP value(s) set with S-Frame insertion"},
-    {SFRAME_QP_OFFSET_TOKEN,
-     "S-Frame setup qp offset, a list separated by ',', QP offset value(s) set with S-Frame insertion"},
-    // --- end: SWITCH_FRAME SUPPORT
     // --- start: REFERENCE SCALING SUPPORT
     {RESIZE_MODE_INPUT,
      "Enable resize mode [0: none, 1: fixed scale, 2: random scale, 3: dynamic scale, 4: random "
@@ -1438,7 +1390,6 @@ ConfigEntry config_entry[] = {
     {LOOKAHEAD_NEW_TOKEN, "Lookahead", set_cfg_generic_token},
     //   Prediction Structure
     {HIERARCHICAL_LEVELS_TOKEN, "HierarchicalLevels", set_cfg_generic_token},
-    {PRED_STRUCT_TOKEN, "PredStructure", set_cfg_generic_token},
     {FORCE_KEY_FRAMES_TOKEN, "ForceKeyFrames", set_cfg_force_key_frames},
     {STARTUP_MG_SIZE_TOKEN, "StartupMgSize", set_cfg_generic_token},
     {STARTUP_QP_OFFSET_TOKEN, "StartupGopQpOffset", set_cfg_generic_token},
@@ -1468,20 +1419,6 @@ ConfigEntry config_entry[] = {
 #ifdef LIBHDR10PLUS_RS_FOUND
     {HDR10PLUS_JSON_TOKEN, "Hdr10PlusJson", set_cfg_hdr10plus_json},
 #endif
-
-    //   Super-resolution support
-    {SUPERRES_MODE_INPUT, "SuperresMode", set_cfg_generic_token},
-    {SUPERRES_DENOM, "SuperresDenom", set_cfg_generic_token},
-    {SUPERRES_KF_DENOM, "SuperresKfDenom", set_cfg_generic_token},
-    {SUPERRES_QTHRES, "SuperresQthres", set_cfg_generic_token},
-    {SUPERRES_KF_QTHRES, "SuperresKfQthres", set_cfg_generic_token},
-
-    // Switch frame support
-    {SFRAME_DIST_TOKEN, "SframeInterval", set_cfg_generic_token},
-    {SFRAME_MODE_TOKEN, "SframeMode", set_cfg_generic_token},
-    {SFRAME_POSI_TOKEN, "SframePositions", set_cfg_generic_token},
-    {SFRAME_QP_TOKEN, "SframeQPs", set_cfg_generic_token},
-    {SFRAME_QP_OFFSET_TOKEN, "SframeQPOffsets", set_cfg_generic_token},
 
     // Reference Scaling support
     {RESIZE_MODE_INPUT, "ResizeMode", set_cfg_generic_token},
@@ -1532,8 +1469,6 @@ ConfigEntry config_entry[] = {
     // Lossless coding
     {LOSSLESS_TOKEN, "Lossless", set_cfg_generic_token},
     {AVIF_TOKEN, "Avif", set_cfg_generic_token},
-    // Real-time Coding
-    {RTC_TOKEN, "RealTime", set_cfg_generic_token},
 
     // QP scale compression
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QpScaleCompressStrength", set_cfg_generic_token},
@@ -2519,7 +2454,7 @@ static bool is_negative_number(const char *string) {
 }
 
 // this function is to check if the parameter value is a list starting with
-// a negative number, for example: "--sframe-qp-offset -10,5,-15"
+// a negative number, for example: "-10,5,-15"
 static bool is_negative_number_in_list(const char *string) {
     char *end;
     return strtol(string, &end, 10) < 0 && *end == ',';

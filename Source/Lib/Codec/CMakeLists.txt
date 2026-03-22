@@ -270,8 +270,7 @@ set(all_files
         sequence_control_set.h
         src_ops_process.c
         src_ops_process.h
-        super_res.c
-        super_res.h
+
         svt_log.c
         svt_log.h
         svt_malloc.c

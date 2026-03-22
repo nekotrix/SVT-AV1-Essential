@@ -24,20 +24,12 @@
 AomVarianceFnPtr svt_aom_mefn_ptr[BlockSizeS_ALL];
 
 void init_fn_ptr(void) {
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 #define BFP0(w, h)                                                                     \
     svt_aom_mefn_ptr[BLOCK_##w##X##h].sdf       = svt_aom_sad##w##x##h;                \
     svt_aom_mefn_ptr[BLOCK_##w##X##h].vf        = svt_aom_variance##w##x##h;           \
     svt_aom_mefn_ptr[BLOCK_##w##X##h].vf_hbd_10 = svt_aom_highbd_10_variance##w##x##h; \
     svt_aom_mefn_ptr[BLOCK_##w##X##h].svf       = svt_aom_sub_pixel_variance##w##x##h; \
     svt_aom_mefn_ptr[BLOCK_##w##X##h].sdx4df    = svt_aom_sad##w##x##h##x4d;
-#else
-#define BFP0(w, h)                                                                  \
-    svt_aom_mefn_ptr[BLOCK_##w##X##h].sdf    = svt_aom_sad##w##x##h;                \
-    svt_aom_mefn_ptr[BLOCK_##w##X##h].vf     = svt_aom_variance##w##x##h;           \
-    svt_aom_mefn_ptr[BLOCK_##w##X##h].svf    = svt_aom_sub_pixel_variance##w##x##h; \
-    svt_aom_mefn_ptr[BLOCK_##w##X##h].sdx4df = svt_aom_sad##w##x##h##x4d;
-#endif
     BFP0(4, 16)
     BFP0(16, 4)
     BFP0(8, 32)

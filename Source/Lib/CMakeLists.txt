@@ -139,13 +139,8 @@ if (BUILD_SHARED_LIBS)
     set(ENC_PKG_CONFIG_EXTRA_CFLAGS " -DEB_DLL")
 endif()
 
-if(RTC_BUILD)
-    target_compile_definitions(SvtAv1Enc PUBLIC RTC_BUILD=1)
-    set(ENC_PKG_CONFIG_EXTRA_CFLAGS "${ENC_PKG_CONFIG_EXTRA_CFLAGS} -DRTC_BUILD=1")
-else()
-    target_compile_definitions(SvtAv1Enc PUBLIC RTC_BUILD=0)
-    set(ENC_PKG_CONFIG_EXTRA_CFLAGS "${ENC_PKG_CONFIG_EXTRA_CFLAGS} -DRTC_BUILD=0")
-endif()
+target_compile_definitions(SvtAv1Enc PUBLIC RTC_BUILD=0)
+set(ENC_PKG_CONFIG_EXTRA_CFLAGS "${ENC_PKG_CONFIG_EXTRA_CFLAGS} -DRTC_BUILD=0")
 
 install(TARGETS SvtAv1Enc
         EXPORT ${SVT_AV1_TARGET}Targets

@@ -37,7 +37,7 @@ EbErrorType svt_aom_entropy_coding_context_ctor(EbThreadContext *thread_ctx, con
     thread_ctx->priv  = context_ptr;
     thread_ctx->dctor = rest_context_dctor;
 
-    context_ptr->is_16bit = (bool)(enc_handle_ptr->scs_instance->scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
+    context_ptr->is_16bit = true;
 
     // Input/Output System Resource Manager FIFOs
     context_ptr->enc_dec_input_fifo_ptr = svt_system_resource_get_consumer_fifo(
@@ -68,7 +68,7 @@ static void entropy_coding_reset_neighbor_arrays(PictureControlSet *pcs, uint16_
 static void reset_entropy_coding_picture(EntropyCodingContext *ctx, PictureControlSet *pcs, SequenceControlSet *scs) {
     struct PictureParentControlSet *ppcs     = pcs->ppcs;
     const uint16_t                  tile_cnt = ppcs->av1_cm->tiles_info.tile_rows * ppcs->av1_cm->tiles_info.tile_cols;
-    ctx->is_16bit                            = scs->static_config.encoder_bit_depth > EB_EIGHT_BIT;
+    ctx->is_16bit                            = true;
     const FrameHeader *frm_hdr               = &ppcs->frm_hdr;
     // Asuming cb and cr offset to be the same for chroma QP in both slice and pps for lambda computation
     const uint32_t entropy_coding_qp = frm_hdr->quantization_params.base_q_idx;
@@ -210,20 +210,18 @@ void *svt_aom_entropy_coding_kernel(void *input_ptr) {
         }
         svt_release_mutex(pcs->entropy_coding_pic_mutex);
         if (pic_ready) {
-            if (pcs->ppcs->superres_total_recode_loop == 0) {
-                // Release the reference Pictures from both lists
-                for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
-                    const uint8_t list_idx = get_list_idx(ref + 1);
-                    const uint8_t ref_idx  = get_ref_frame_idx(ref + 1);
-                    if (pcs->ref_pic_ptr_array[list_idx][ref_idx] != NULL) {
-                        svt_release_object(pcs->ref_pic_ptr_array[list_idx][ref_idx]);
-                    }
+            // Release the reference Pictures from both lists
+            for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
+                const uint8_t list_idx = get_list_idx(ref + 1);
+                const uint8_t ref_idx  = get_ref_frame_idx(ref + 1);
+                if (pcs->ref_pic_ptr_array[list_idx][ref_idx] != NULL) {
+                    svt_release_object(pcs->ref_pic_ptr_array[list_idx][ref_idx]);
                 }
-
-                //free palette data
-                if (pcs->tile_tok[0][0])
-                    EB_FREE_ARRAY(pcs->tile_tok[0][0]);
             }
+
+            //free palette data
+            if (pcs->tile_tok[0][0])
+                EB_FREE_ARRAY(pcs->tile_tok[0][0]);
             frame_entropy_done = true;
         }
 

@@ -100,7 +100,7 @@ typedef struct {
     int     gfu_boost;
     int     kf_boost;
     double  rate_correction_factors[MAX_TEMPORAL_LAYERS + 1];
-    int     onepass_cbr_mode; // 0: not 1pass cbr, 1: 1pass cbr for low delay
+    int     onepass_cbr_mode; // 0: not 1pass cbr, 1: 1pass cbr
     int     baseline_gf_interval;
     int     constrained_gf_group;
     int     frames_to_key;

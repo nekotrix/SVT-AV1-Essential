@@ -2136,7 +2136,7 @@ static void denoise_and_model_dctor(EbPtr p) {
 EbErrorType svt_aom_denoise_and_model_ctor(AomDenoiseAndModel *object_ptr, EbPtr object_init_data_ptr) {
     DenoiseAndModelInitData *init_data_ptr = (DenoiseAndModelInitData *)object_init_data_ptr;
     EbErrorType              return_error  = EB_ErrorNone;
-    uint32_t                 use_highbd    = init_data_ptr->encoder_bit_depth > EB_EIGHT_BIT ? 1 : 0;
+    uint32_t                 use_highbd    = 1;
     EbInputResolution        input_resolution;
 
     int32_t chroma_sub_log2[2] = {1, 1}; //todo: send chroma subsampling
@@ -2158,7 +2158,7 @@ EbErrorType svt_aom_denoise_and_model_ctor(AomDenoiseAndModel *object_ptr, EbPtr
 
     object_ptr->block_size  = denoise_block_size;
     object_ptr->noise_level = (float)(init_data_ptr->noise_level / 10.0);
-    object_ptr->bit_depth   = init_data_ptr->encoder_bit_depth > EB_EIGHT_BIT ? 10 : 8;
+    object_ptr->bit_depth   = 10;
 
     object_ptr->width     = init_data_ptr->width;
     object_ptr->height    = init_data_ptr->height;

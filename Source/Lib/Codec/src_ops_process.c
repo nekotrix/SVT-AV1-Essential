@@ -1558,8 +1558,7 @@ void svt_aom_generate_r0beta(PictureParentControlSet *pcs) {
     int64_t             mc_dep_cost_base      = 0;
     const int32_t       shift = pcs->tpl_ctrls.synth_blk_size == 8 ? 1 : pcs->tpl_ctrls.synth_blk_size == 16 ? 2 : 3;
     const int32_t       step  = 1 << (shift);
-    const int32_t       col_step_sr = coded_to_superres_mi(step, pcs->superres_denom);
-    // Super-res upscaled size should be used here.
+    const int32_t       col_step_sr = step;
     const int32_t mi_cols_sr = ((pcs->enhanced_unscaled_pic->width + 15) / 16) << 2; // picture column boundary
     const int32_t mi_rows    = ((pcs->enhanced_unscaled_pic->height + 15) / 16) << 2; // picture row boundary
     int64_t       count      = 0;
@@ -1599,7 +1598,6 @@ void svt_aom_generate_r0beta(PictureParentControlSet *pcs) {
 #endif
     generate_lambda_scaling_factor(pcs, mc_dep_cost_base);
 
-    // If superres scale down is on, should use scaled width instead of full size
     const int32_t  sb_mi_sz          = (int32_t)(scs->sb_size >> 2);
     const uint32_t picture_sb_width  = (uint32_t)((pcs->aligned_width + scs->sb_size - 1) / scs->sb_size);
     const uint32_t picture_sb_height = (uint32_t)((pcs->aligned_height + scs->sb_size - 1) / scs->sb_size);
@@ -1611,8 +1609,8 @@ void svt_aom_generate_r0beta(PictureParentControlSet *pcs) {
             uint16_t  mi_col           = pcs->sb_geom[sb_y * picture_sb_width + sb_x].org_x >> 2;
             int64_t   recrf_dist_sum   = 0;
             int64_t   mc_dep_delta_sum = 0;
-            const int mi_col_sr        = coded_to_superres_mi(mi_col, pcs->superres_denom);
-            const int mi_col_end_sr    = coded_to_superres_mi(mi_col + mi_wide, pcs->superres_denom);
+            const int mi_col_sr        = mi_col;
+            const int mi_col_end_sr    = mi_col + mi_wide;
             const int row_step         = step;
 
             // loop all mb in the sb
@@ -1903,18 +1901,13 @@ static EbErrorType tpl_mc_flow(EncodeContext *enc_ctx, SequenceControlSet *scs, 
         }
     }
 
-    // When super-res recode is actived, don't release pa_ref_objs until final loop is finished
-    // Although tpl-la won't be enabled in super-res FIXED or RANDOM mode, here we use the condition to align with that in initial rate control process
-    bool release_pa_ref = (scs->static_config.superres_mode <= SUPERRES_RANDOM) ? true : false;
     for (uint32_t i = 0; i < pcs->tpl_group_size; i++) {
-        if (release_pa_ref) {
-            if (svt_aom_is_incomp_mg_frame(pcs->tpl_group[i])) {
-                if (pcs->tpl_group[i]->ext_mg_id == pcs->ext_mg_id + 1)
-                    svt_aom_release_pa_reference_objects(scs, pcs->tpl_group[i]);
-            } else {
-                if (pcs->tpl_group[i]->ext_mg_id == pcs->ext_mg_id)
-                    svt_aom_release_pa_reference_objects(scs, pcs->tpl_group[i]);
-            }
+        if (svt_aom_is_incomp_mg_frame(pcs->tpl_group[i])) {
+            if (pcs->tpl_group[i]->ext_mg_id == pcs->ext_mg_id + 1)
+                svt_aom_release_pa_reference_objects(scs, pcs->tpl_group[i]);
+        } else {
+            if (pcs->tpl_group[i]->ext_mg_id == pcs->ext_mg_id)
+                svt_aom_release_pa_reference_objects(scs, pcs->tpl_group[i]);
         }
         if (pcs->tpl_group[i]->non_tf_input)
             EB_DELETE(pcs->tpl_group[i]->non_tf_input);
@@ -2050,8 +2043,7 @@ void *svt_aom_tpl_disp_kernel(void *input_ptr) {
     return NULL;
 }
 
-static void sbo_send_picture_out(SourceBasedOperationsContext *context_ptr, PictureParentControlSet *pcs,
-                                 bool superres_recode) {
+static void sbo_send_picture_out(SourceBasedOperationsContext *context_ptr, PictureParentControlSet *pcs) {
     EbObjectWrapper *out_results_wrapper;
 
     // Get Empty Results Object
@@ -2059,7 +2051,7 @@ static void sbo_send_picture_out(SourceBasedOperationsContext *context_ptr, Pict
 
     PictureDemuxResults *out_results = (PictureDemuxResults *)out_results_wrapper->object_ptr;
     out_results->pcs_wrapper         = pcs->p_pcs_wrapper_ptr;
-    out_results->picture_type        = superres_recode ? EB_PIC_SUPERRES_INPUT : EB_PIC_INPUT;
+    out_results->picture_type        = EB_PIC_INPUT;
 
     // Post the Full Results Object
     svt_post_full_object(out_results_wrapper);
@@ -2178,26 +2170,15 @@ void *svt_aom_source_based_operations_kernel(void *input_ptr) {
         InitialRateControlResults *in_results_ptr = (InitialRateControlResults *)in_results_wrapper_ptr->object_ptr;
         PictureParentControlSet   *pcs            = (PictureParentControlSet *)in_results_ptr->pcs_wrapper->object_ptr;
         SequenceControlSet        *scs            = pcs->scs;
-        if (in_results_ptr->superres_recode) {
-            sbo_send_picture_out(context_ptr, pcs, true);
-
-            // Release the Input Results
-            svt_release_object(in_results_wrapper_ptr);
-            continue;
-        }
-
         // Get TPL ME
         if (pcs->tpl_ctrls.enable) {
-            // tpl ME can be performed on unscaled frames in super-res q-threshold and auto mode
-            if (!pcs->frame_superres_enabled && pcs->temporal_layer_index == 0) {
+            if (pcs->temporal_layer_index == 0) {
                 tpl_prep_info(pcs);
                 tpl_mc_flow(scs->enc_ctx, scs, pcs, context_ptr);
             }
-            bool release_pa_ref = (scs->static_config.superres_mode <= SUPERRES_RANDOM) ? true : false;
             // Release Pa Ref if lad_mg is 0 and P slice and not flat struct (not belonging to any TPL group)
-            if (release_pa_ref && /*scs->lad_mg == 0 &&*/ pcs->reference_released == 0) {
+            if (pcs->reference_released == 0) {
                 svt_aom_release_pa_reference_objects(scs, pcs);
-                // printf ("\n PIC \t %d\n",pcs->picture_number);
             }
         }
         /*********************************************Picture-based operations**********************************************************/
@@ -2205,7 +2186,7 @@ void *svt_aom_source_based_operations_kernel(void *input_ptr) {
             scs->static_config.tune == TUNE_MS_SSIM) {
             aom_av1_set_mb_ssim_rdmult_scaling(pcs);
         }
-        sbo_send_picture_out(context_ptr, pcs, false);
+        sbo_send_picture_out(context_ptr, pcs);
 
         // Release the Input Results
         svt_release_object(in_results_wrapper_ptr);

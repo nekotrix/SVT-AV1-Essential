@@ -22,7 +22,6 @@
 typedef enum RateControlTaskTypes {
     RC_INPUT,
     RC_PACKETIZATION_FEEDBACK_RESULT,
-    RC_INPUT_SUPERRES_RECODE,
     RC_INVALID_TASK
 } RateControlTaskTypes;
 

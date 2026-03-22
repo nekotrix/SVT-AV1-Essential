@@ -117,14 +117,6 @@ typedef struct {
     // of the target bitrate.
     int vbrmax_section;
 } TwoPassCfg;
-typedef struct SwitchFrameCfg {
-    // Indicates the number of frames after which a frame may be coded as an S-Frame.
-    int32_t sframe_dist;
-    // 1: the considered frame will be made into an S-Frame only if it is an altref frame.
-    // 2: the next altref frame will be made into an S-Frame.
-    EbSFrameMode sframe_mode;
-} SwitchFrameCfg;
-
 #define MAX_GFUBOOST_FACTOR 10.0
 #define MIN_GFUBOOST_FACTOR 4.0
 

@@ -2513,25 +2513,11 @@ static AOM_INLINE void write_render_size(struct AomWriteBitBuffer *wb, PicturePa
     svt_aom_wb_write_literal(wb, render_height_minus_1, 16);
 }
 
-static AOM_INLINE void write_superres_scale(struct AomWriteBitBuffer *wb, PictureParentControlSet *pcs) {
-    SequenceControlSet *scs            = pcs->scs;
-    Av1Common          *cm             = pcs->av1_cm;
-    uint8_t             superres_denom = cm->frm_size.superres_denominator;
-
-    if (!scs->seq_header.enable_superres) {
-        assert(cm->frm_size.superres_denominator == SCALE_NUMERATOR);
-        return;
-    }
-
-    // First bit is whether to to scale or not
-    if (superres_denom == SCALE_NUMERATOR) {
-        svt_aom_wb_write_bit(wb, 0); // no scaling
-    } else {
-        svt_aom_wb_write_bit(wb, 1); // scaling, write scale factor
-        assert(superres_denom >= SUPERRES_SCALE_DENOMINATOR_MIN);
-        assert(superres_denom < SUPERRES_SCALE_DENOMINATOR_MIN + (1 << SUPERRES_SCALE_BITS));
-        svt_aom_wb_write_literal(wb, superres_denom - SUPERRES_SCALE_DENOMINATOR_MIN, SUPERRES_SCALE_BITS);
-    }
+static AOM_INLINE void write_resize_scale(struct AomWriteBitBuffer *wb, PictureParentControlSet *pcs) {
+    (void)wb;
+    Av1Common *cm = pcs->av1_cm;
+    assert(cm->frm_size.superres_denominator == SCALE_NUMERATOR);
+    (void)cm;
 }
 
 static void write_frame_size(PictureParentControlSet *pcs, int32_t frame_size_override, struct AomWriteBitBuffer *wb) {
@@ -2549,7 +2535,7 @@ static void write_frame_size(PictureParentControlSet *pcs, int32_t frame_size_ov
         svt_aom_wb_write_literal(wb, coded_height, num_bits_height);
     }
 
-    write_superres_scale(wb, pcs);
+    write_resize_scale(wb, pcs);
     write_render_size(wb, pcs);
 }
 
@@ -2561,10 +2547,10 @@ static void write_profile(BitstreamProfile profile, struct AomWriteBitBuffer *wb
 static AOM_INLINE void write_bitdepth(const SequenceControlSet *const scs, struct AomWriteBitBuffer *wb) {
     // Profile 0/1: [0] for 8 bit, [1]  10-bit
     // Profile   2: [0] for 8 bit, [10] 10-bit, [11] - 12-bit
-    svt_aom_wb_write_bit(wb, scs->static_config.encoder_bit_depth == EB_EIGHT_BIT ? 0 : 1);
+    svt_aom_wb_write_bit(wb, 1);
     if (scs->static_config.profile == PROFESSIONAL_PROFILE && scs->static_config.encoder_bit_depth != EB_EIGHT_BIT) {
         SVT_ERROR("Profile 2 Not supported\n");
-        svt_aom_wb_write_bit(wb, scs->static_config.encoder_bit_depth == EB_TEN_BIT ? 0 : 1);
+        svt_aom_wb_write_bit(wb, 0);
     }
 }
 
@@ -2707,7 +2693,7 @@ static void write_sequence_header(SequenceControlSet *scs, struct AomWriteBitBuf
             svt_aom_wb_write_literal(wb, scs->seq_header.order_hint_info.order_hint_bits - 1, 3);
     }
 
-    svt_aom_wb_write_bit(wb, scs->seq_header.enable_superres);
+    svt_aom_wb_write_bit(wb, 0); // no frame upscaling
     svt_aom_wb_write_bit(wb, scs->seq_header.cdef_level);
     svt_aom_wb_write_bit(wb, scs->seq_header.enable_restoration);
 }
@@ -3085,18 +3071,6 @@ static uint32_t get_ref_order_hint(PictureParentControlSet *pcs, MvReferenceFram
 }
 
 static void write_frame_size_with_refs(PictureParentControlSet *pcs, struct AomWriteBitBuffer *wb) {
-#if DEBUG_SFRAME
-    fprintf(stderr,
-            "\nFrame %d, dpb buf order hint %u,%u,%u,%u,%u,%u,%u\n",
-            (int)pcs->picture_number,
-            get_ref_order_hint(pcs, LAST_FRAME),
-            get_ref_order_hint(pcs, LAST2_FRAME),
-            get_ref_order_hint(pcs, LAST3_FRAME),
-            get_ref_order_hint(pcs, GOLDEN_FRAME),
-            get_ref_order_hint(pcs, BWDREF_FRAME),
-            get_ref_order_hint(pcs, ALTREF2_FRAME),
-            get_ref_order_hint(pcs, ALTREF_FRAME));
-#endif
     for (uint32_t ref_frame = LAST_FRAME; ref_frame <= ALTREF_FRAME; ++ref_frame) {
         int32_t  found          = 0;
         uint32_t ref_order_hint = get_ref_order_hint(pcs, ref_frame);
@@ -3134,7 +3108,7 @@ static void write_frame_size_with_refs(PictureParentControlSet *pcs, struct AomW
 
         svt_aom_wb_write_bit(wb, found);
         if (found) {
-            write_superres_scale(wb, pcs);
+            write_resize_scale(wb, pcs);
             return;
         }
     }
@@ -3199,9 +3173,7 @@ static void write_uncompressed_header_obu(SequenceControlSet *scs /*Av1Comp *cpi
 
         if (!frm_hdr->show_frame)
             svt_aom_wb_write_bit(wb, frm_hdr->showable_frame);
-        if (frm_hdr->frame_type == S_FRAME)
-            assert(frm_hdr->error_resilient_mode);
-        else if (!(frm_hdr->frame_type == KEY_FRAME && frm_hdr->show_frame))
+        if (!(frm_hdr->frame_type == KEY_FRAME && frm_hdr->show_frame))
             svt_aom_wb_write_bit(wb, frm_hdr->error_resilient_mode);
     }
 
@@ -3221,7 +3193,7 @@ static void write_uncompressed_header_obu(SequenceControlSet *scs /*Av1Comp *cpi
     } else
         assert(frm_hdr->force_integer_mv == 0);
 
-    const int32_t frame_size_override_flag = frame_is_sframe(pcs) || pcs->frame_resize_enabled
+    const int32_t frame_size_override_flag = pcs->frame_resize_enabled
         ? 1
         : ((pcs->av1_cm->frm_size.superres_upscaled_width != scs->seq_header.max_frame_width) ||
            (pcs->av1_cm->frm_size.superres_upscaled_height != scs->seq_header.max_frame_height));
@@ -3238,9 +3210,7 @@ static void write_uncompressed_header_obu(SequenceControlSet *scs /*Av1Comp *cpi
         //        "Frame dimensions are larger than the maximum values");
         //}
 
-        if (!frame_is_sframe(pcs)) {
-            svt_aom_wb_write_bit(wb, frame_size_override_flag);
-        }
+        svt_aom_wb_write_bit(wb, frame_size_override_flag);
 
         if (scs->seq_header.order_hint_info.enable_order_hint)
             svt_aom_wb_write_literal(wb, (int32_t)pcs->frame_offset, scs->seq_header.order_hint_info.order_hint_bits);
@@ -3269,12 +3239,8 @@ static void write_uncompressed_header_obu(SequenceControlSet *scs /*Av1Comp *cpi
             pcs->fb_of_context_type[pcs->frame_context_idx] = updated_fb;
 
             svt_aom_wb_write_literal(wb, pcs->av1_ref_signal.refresh_frame_mask, REF_FRAMES);
-        } else if (frm_hdr->frame_type == INTER_FRAME || frame_is_sframe(pcs)) {
-            //pcs->refresh_frame_mask = get_refresh_mask(cpi);
-            if (frm_hdr->frame_type == INTER_FRAME)
-                svt_aom_wb_write_literal(wb, pcs->av1_ref_signal.refresh_frame_mask, REF_FRAMES);
-            else
-                assert(frame_is_sframe(pcs) && pcs->av1_ref_signal.refresh_frame_mask == 0xFF);
+        } else if (frm_hdr->frame_type == INTER_FRAME) {
+            svt_aom_wb_write_literal(wb, pcs->av1_ref_signal.refresh_frame_mask, REF_FRAMES);
 
             // write ref order hint map into bitstream
             if (pcs->frm_hdr.error_resilient_mode && scs->seq_header.order_hint_info.enable_order_hint) {
@@ -3304,38 +3270,20 @@ static void write_uncompressed_header_obu(SequenceControlSet *scs /*Av1Comp *cpi
         }
     }
 
-#if DEBUG_SFRAME
-    {
-        uint32_t *_ref_frame_map = pcs->dpb_order_hint;
-        fprintf(stderr,
-                "\nFrame %d, use_ref_frame_mvs %u, ref_order_hint_map %d,%d,%d,%d,%d,%d,%d,%d\n",
-                (int)pcs->picture_number,
-                frm_hdr->use_ref_frame_mvs,
-                _ref_frame_map[0],
-                _ref_frame_map[1],
-                _ref_frame_map[2],
-                _ref_frame_map[3],
-                _ref_frame_map[4],
-                _ref_frame_map[5],
-                _ref_frame_map[6],
-                _ref_frame_map[7]);
-    }
-#endif
-
     if (frm_hdr->frame_type == KEY_FRAME) {
         write_frame_size(pcs, frame_size_override_flag, wb);
-        assert(av1_superres_unscaled(&(pcs->av1_cm->frm_size)) || !(frm_hdr->allow_intrabc));
-        if (frm_hdr->allow_screen_content_tools && av1_superres_unscaled(&(pcs->av1_cm->frm_size)))
+        assert(av1_resize_unscaled(&(pcs->av1_cm->frm_size)) || !(frm_hdr->allow_intrabc));
+        if (frm_hdr->allow_screen_content_tools && av1_resize_unscaled(&(pcs->av1_cm->frm_size)))
             svt_aom_wb_write_bit(wb, frm_hdr->allow_intrabc);
         // all eight fbs are refreshed, pick one that will live long enough
         pcs->fb_of_context_type[REGULAR_FRAME] = 0;
     } else {
         if (frm_hdr->frame_type == INTRA_ONLY_FRAME) {
             write_frame_size(pcs, frame_size_override_flag, wb);
-            assert(av1_superres_unscaled(&(pcs->av1_cm->frm_size)) || !(frm_hdr->allow_intrabc));
-            if (frm_hdr->allow_screen_content_tools && av1_superres_unscaled(&(pcs->av1_cm->frm_size)))
+            assert(av1_resize_unscaled(&(pcs->av1_cm->frm_size)) || !(frm_hdr->allow_intrabc));
+            if (frm_hdr->allow_screen_content_tools && av1_resize_unscaled(&(pcs->av1_cm->frm_size)))
                 svt_aom_wb_write_bit(wb, frm_hdr->allow_intrabc);
-        } else if (frm_hdr->frame_type == INTER_FRAME || frame_is_sframe(pcs)) {
+        } else if (frm_hdr->frame_type == INTER_FRAME) {
             MvReferenceFrame ref_frame;
 
             assert(frm_hdr->frame_refs_short_signaling == 0);
@@ -3432,7 +3380,7 @@ static void write_uncompressed_header_obu(SequenceControlSet *scs /*Av1Comp *cpi
     }
 
     if (frm_hdr->all_lossless) {
-        assert(av1_superres_unscaled(&(pcs->av1_cm->frm_size)));
+        assert(av1_resize_unscaled(&(pcs->av1_cm->frm_size)));
     } else {
         if (!frm_hdr->coded_lossless) {
             encode_loopfilter(pcs, wb);

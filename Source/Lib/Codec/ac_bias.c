@@ -90,7 +90,6 @@ uint64_t svt_psy_distortion(const uint8_t *input, const uint32_t input_stride, c
     return energy_gap;
 }
 
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 /* High bit-depth version of "AC Bias" */
 uint64_t svt_psy_distortion_hbd(const uint16_t *input, const uint32_t input_stride, const uint16_t *recon,
                                 const uint32_t recon_stride, const uint32_t width, const uint32_t height) {
@@ -134,7 +133,6 @@ uint64_t svt_psy_distortion_hbd(const uint16_t *input, const uint32_t input_stri
     // Energy is scaled to approximately match equivalent 8-bit strengths
     return energy_gap << 2;
 }
-#endif
 
 /*
  * Public function that mirrors the arguments of `spatial_full_dist_type_fun()`
@@ -143,11 +141,7 @@ uint64_t get_svt_psy_full_dist(const void *s, const uint32_t so, const uint32_t 
                                const uint32_t rp, const uint32_t w, const uint32_t h, const uint8_t is_hbd,
                                const double ac_bias) {
     if (is_hbd)
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         return llrint(svt_psy_distortion_hbd((const uint16_t *)s + so, sp, (uint16_t *)r + ro, rp, w, h) * ac_bias);
-#else
-        return 0;
-#endif
     else
         return llrint(svt_psy_distortion((const uint8_t *)s + so, sp, (const uint8_t *)r + ro, rp, w, h) * ac_bias);
 }

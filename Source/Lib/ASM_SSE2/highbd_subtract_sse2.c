@@ -11,7 +11,6 @@
 
 #include "EbConfigMacros.h"
 
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 
 #include "definitions.h"
 #include "common_dsp_rtcd.h"
@@ -288,4 +287,3 @@ void svt_aom_highbd_subtract_block_sse2(int rows, int cols, int16_t *diff, ptrdi
     func(diff, diff_stride, src, src_stride, pred, pred_stride);
 }
 
-#endif

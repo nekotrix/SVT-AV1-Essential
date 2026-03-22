@@ -72,22 +72,6 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
         PictureParentControlSet *ppcs = pcs->ppcs;
         scs                           = pcs->scs;
 
-        bool is_16bit = scs->is_16bit_pipeline;
-        if (is_16bit && scs->static_config.encoder_bit_depth == EB_EIGHT_BIT) {
-            svt_aom_convert_pic_8bit_to_16bit(pcs->ppcs->enhanced_pic,
-                                              pcs->input_frame16bit,
-                                              pcs->ppcs->scs->subsampling_x,
-                                              pcs->ppcs->scs->subsampling_y);
-            // convert 8-bit recon to 16-bit for it bypass encdec process
-            if (pcs->pic_bypass_encdec) {
-                EbPictureBufferDesc *recon_pic;
-                EbPictureBufferDesc *recon_picture_16bit_ptr;
-                svt_aom_get_recon_pic(pcs, &recon_pic, 0);
-                svt_aom_get_recon_pic(pcs, &recon_picture_16bit_ptr, 1);
-                svt_aom_convert_pic_8bit_to_16bit(
-                    recon_pic, recon_picture_16bit_ptr, pcs->ppcs->scs->subsampling_x, pcs->ppcs->scs->subsampling_y);
-            }
-        }
         // Initialize dev to negative value to indicate it was not computed.
         // SB-based DLF does not compute the distortion
         pcs->zero_filt_sse             = -1;
@@ -100,7 +84,7 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
         if ((dlf_enable_flag && !pcs->ppcs->dlf_ctrls.sb_based_dlf) ||
             (dlf_enable_flag && pcs->ppcs->dlf_ctrls.sb_based_dlf && tg_count > 1)) {
             EbPictureBufferDesc *recon_buffer;
-            svt_aom_get_recon_pic(pcs, &recon_buffer, is_16bit);
+            svt_aom_get_recon_pic(pcs, &recon_buffer, true);
             svt_av1_loop_filter_init(pcs);
             svt_av1_pick_filter_level((EbPictureBufferDesc *)pcs->ppcs->enhanced_pic, pcs, LPF_PICK_FROM_FULL_IMAGE);
             if (pcs->zero_filt_sse == -1 &&
@@ -128,30 +112,30 @@ void *svt_aom_dlf_kernel(void *input_ptr) {
         //pre-cdef prep
         {
             EbPictureBufferDesc *recon_pic;
-            svt_aom_get_recon_pic(pcs, &recon_pic, is_16bit);
+            svt_aom_get_recon_pic(pcs, &recon_pic, true);
 
             Av1Common *cm = pcs->ppcs->av1_cm;
             if (ppcs->enable_restoration) {
                 svt_aom_link_eb_to_aom_buffer_desc(
-                    recon_pic, cm->frame_to_show, scs->max_input_pad_right, scs->max_input_pad_bottom, is_16bit);
+                    recon_pic, cm->frame_to_show, scs->max_input_pad_right, scs->max_input_pad_bottom, true);
                 svt_av1_loop_restoration_save_boundary_lines(cm->frame_to_show, cm, 0);
             }
 
             if (scs->seq_header.cdef_level && pcs->ppcs->cdef_level) {
                 const uint32_t offset_y  = recon_pic->org_x + recon_pic->org_y * recon_pic->stride_y;
-                pcs->cdef_input_recon[0] = recon_pic->buffer_y + (offset_y << is_16bit);
+                pcs->cdef_input_recon[0] = recon_pic->buffer_y + (offset_y << 1);
                 const uint32_t offset_cb = (recon_pic->org_x + recon_pic->org_y * recon_pic->stride_cb) >> 1;
-                pcs->cdef_input_recon[1] = recon_pic->buffer_cb + (offset_cb << is_16bit);
+                pcs->cdef_input_recon[1] = recon_pic->buffer_cb + (offset_cb << 1);
                 const uint32_t offset_cr = (recon_pic->org_x + recon_pic->org_y * recon_pic->stride_cr) >> 1;
-                pcs->cdef_input_recon[2] = recon_pic->buffer_cr + (offset_cr << is_16bit);
+                pcs->cdef_input_recon[2] = recon_pic->buffer_cr + (offset_cr << 1);
 
-                EbPictureBufferDesc *input_pic      = is_16bit ? pcs->input_frame16bit : pcs->ppcs->enhanced_pic;
+                EbPictureBufferDesc *input_pic      = pcs->input_frame16bit;
                 const uint32_t       input_offset_y = input_pic->org_x + input_pic->org_y * input_pic->stride_y;
-                pcs->cdef_input_source[0]           = input_pic->buffer_y + (input_offset_y << is_16bit);
+                pcs->cdef_input_source[0]           = input_pic->buffer_y + (input_offset_y << 1);
                 const uint32_t input_offset_cb      = (input_pic->org_x + input_pic->org_y * input_pic->stride_cb) >> 1;
-                pcs->cdef_input_source[1]           = input_pic->buffer_cb + (input_offset_cb << is_16bit);
+                pcs->cdef_input_source[1]           = input_pic->buffer_cb + (input_offset_cb << 1);
                 const uint32_t input_offset_cr      = (input_pic->org_x + input_pic->org_y * input_pic->stride_cr) >> 1;
-                pcs->cdef_input_source[2]           = input_pic->buffer_cr + (input_offset_cr << is_16bit);
+                pcs->cdef_input_source[2]           = input_pic->buffer_cr + (input_offset_cr << 1);
             }
         }
 

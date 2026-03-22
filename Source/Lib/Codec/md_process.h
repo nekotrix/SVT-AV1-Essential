@@ -980,7 +980,6 @@ typedef struct ModeDecisionContext {
     uint8_t           unipred3x3_injection;
     Bipred3x3Controls bipred3x3_ctrls;
     uint8_t           redundant_blk;
-    uint8_t          *cfl_temp_luma_recon;
     uint16_t         *cfl_temp_luma_recon16bit;
     bool              blk_skip_decision;
     Mv                sb_me_mv[MAX_NUM_OF_REF_PIC_LIST][MAX_REF_IDX];
@@ -1204,8 +1203,6 @@ typedef struct ModeDecisionContext {
     // non-normative txs
     uint16_t min_nz_h;
     uint16_t min_nz_v;
-    // used to signal when the N4 shortcut can be used for rtc, works in conjunction with use_tx_shortcuts_mds3 flag
-    uint8_t rtc_use_N4_dct_dct_shortcut;
     // SSIM_LVL_0: off
     // SSIM_LVL_1: use ssim cost to find best candidate in product_full_mode_decision()
     // SSIM_LVL_2: addition to level 1, also use ssim cost to find best tx type in tx_type_search()
@@ -1225,7 +1222,7 @@ extern EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, 
                                                       uint16_t max_block_cnt, uint32_t encoder_bit_depth,
                                                       EbFifo *mode_decision_configuration_input_fifo_ptr,
                                                       EbFifo *mode_decision_output_fifo_ptr,
-                                                      uint8_t enable_hbd_mode_decision, uint8_t seq_qp_mod);
+                                                      uint8_t seq_qp_mod);
 
 // Table that converts 0-63 Q-range values passed in outside to the Qindex
 // range used internally.

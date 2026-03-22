@@ -110,21 +110,19 @@ void *svt_aom_motion_estimation_kernel(void *input_ptr) {
         SequenceControlSet *scs = pcs->scs;
         if (in_results_ptr->task_type == TASK_TFME)
             me_context_ptr->me_ctx->me_type = ME_MCTF;
-        else if (in_results_ptr->task_type == TASK_PAME || in_results_ptr->task_type == TASK_SUPERRES_RE_ME)
+        else if (in_results_ptr->task_type == TASK_PAME)
             me_context_ptr->me_ctx->me_type = ME_OPEN_LOOP;
         else if (in_results_ptr->task_type == TASK_DG_DETECTOR_HME)
             me_context_ptr->me_ctx->me_type = ME_DG_DETECTOR;
 
         // ME Kernel Signal(s) derivation
-        if ((in_results_ptr->task_type == TASK_PAME) ||
-            (in_results_ptr->task_type == TASK_SUPERRES_RE_ME))
+        if (in_results_ptr->task_type == TASK_PAME)
                 svt_aom_sig_deriv_me(scs, pcs, me_context_ptr->me_ctx);
 
         else if (in_results_ptr->task_type == TASK_TFME)
             svt_aom_sig_deriv_me_tf(pcs, me_context_ptr->me_ctx);
 
-        if ((in_results_ptr->task_type == TASK_PAME) ||
-            (in_results_ptr->task_type == TASK_SUPERRES_RE_ME)) {
+        if (in_results_ptr->task_type == TASK_PAME) {
             EbPictureBufferDesc *sixteenth_picture_ptr;
             EbPictureBufferDesc *quarter_picture_ptr;
             EbPictureBufferDesc *input_padded_pic;
@@ -213,7 +211,7 @@ void *svt_aom_motion_estimation_kernel(void *input_ptr) {
 
                             me_context_ptr->me_ctx->me_type = ME_OPEN_LOOP;
 
-                            if ((in_results_ptr->task_type == TASK_PAME) || (in_results_ptr->task_type == TASK_SUPERRES_RE_ME)) {
+                            if (in_results_ptr->task_type == TASK_PAME) {
                                 me_context_ptr->me_ctx->num_of_list_to_search = MAX_NUM_OF_REF_PIC_LIST;
 
                                 me_context_ptr->me_ctx->num_of_ref_pic_to_search[0] = pcs->ref_list0_count_try;
@@ -221,20 +219,19 @@ void *svt_aom_motion_estimation_kernel(void *input_ptr) {
                                 me_context_ptr->me_ctx->temporal_layer_index = pcs->temporal_layer_index;
                                 me_context_ptr->me_ctx->is_ref = pcs->is_ref;
 
-                                if (pcs->frame_superres_enabled || pcs->frame_resize_enabled) {
+                                if (pcs->frame_resize_enabled) {
                                     for (int i = 0;  i < me_context_ptr->me_ctx->num_of_list_to_search; i++) {
                                         for (int j = 0; j < me_context_ptr->me_ctx->num_of_ref_pic_to_search[i]; j++) {
                                             //assert((int)pcs->ref_pa_pic_ptr_array[i][j]->live_count > 0);
-                                            uint8_t sr_denom_idx = svt_aom_get_denom_idx(pcs->superres_denom);
                                             uint8_t resize_denom_idx = svt_aom_get_denom_idx(pcs->resize_denom);
                                             EbPaReferenceObject *ref_object =
                                                 (EbPaReferenceObject *)pcs->ref_pa_pic_ptr_array[i][j]->object_ptr;
                                             me_context_ptr->me_ctx->me_ds_ref_array[i][j].picture_ptr =
-                                                ref_object->downscaled_input_padded_picture_ptr[sr_denom_idx][resize_denom_idx];
+                                                ref_object->downscaled_input_padded_picture_ptr[resize_denom_idx];
                                             me_context_ptr->me_ctx->me_ds_ref_array[i][j].quarter_picture_ptr =
-                                                ref_object->downscaled_quarter_downsampled_picture_ptr[sr_denom_idx][resize_denom_idx];
+                                                ref_object->downscaled_quarter_downsampled_picture_ptr[resize_denom_idx];
                                             me_context_ptr->me_ctx->me_ds_ref_array[i][j].sixteenth_picture_ptr =
-                                                ref_object->downscaled_sixteenth_downsampled_picture_ptr[sr_denom_idx][resize_denom_idx];
+                                                ref_object->downscaled_sixteenth_downsampled_picture_ptr[resize_denom_idx];
                                             me_context_ptr->me_ctx->me_ds_ref_array[i][j].picture_number =
                                                 ref_object->picture_number;
                                         }
@@ -265,7 +262,7 @@ void *svt_aom_motion_estimation_kernel(void *input_ptr) {
                                 me_context_ptr->me_ctx,
                                 input_pic);
 
-                            if ((in_results_ptr->task_type == TASK_PAME) || (in_results_ptr->task_type == TASK_SUPERRES_RE_ME)) {
+                            if (in_results_ptr->task_type == TASK_PAME) {
                                 svt_block_on_mutex(pcs->me_processed_b64_mutex);
                                 pcs->me_processed_b64_count++;
                                 // We need to finish ME for all SBs to do GM

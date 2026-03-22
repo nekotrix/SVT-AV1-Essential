@@ -245,11 +245,6 @@ typedef struct SeqHeader {
      * contains the value for force_integer_mv */
     uint8_t seq_force_integer_mv;
 
-    /*!< 1: Specifies that the use_superres syntax element will be present in
-     *      the uncompressed header.
-     *   0: Specifies that the use_superres syntax element will not be present*/
-    uint8_t enable_superres;
-
     /*!< 1: Specifies that cdef filtering may be enabled.
          0: specifies that cdef filtering is disabled */
     uint8_t cdef_level;

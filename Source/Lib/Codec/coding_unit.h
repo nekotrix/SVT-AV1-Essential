@@ -283,7 +283,7 @@ typedef struct SuperBlock {
     uint16_t       final_blk_cnt; // number of block(s) posted from EncDec to EC
 } SuperBlock;
 EbErrorType svt_aom_largest_coding_unit_ctor(SuperBlock *larget_coding_unit_ptr, uint8_t sb_size, uint16_t sb_origin_x,
-                                             uint16_t sb_origin_y, uint16_t sb_index, EncMode enc_mode, bool rtc,
+                                             uint16_t sb_origin_y, uint16_t sb_index, EncMode enc_mode,
                                              uint16_t max_block_cnt, bool allintra, ResolutionRange input_resolution,
                                              struct PictureControlSet *picture_control_set);
 

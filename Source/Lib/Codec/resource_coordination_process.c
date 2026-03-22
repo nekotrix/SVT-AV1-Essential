@@ -451,65 +451,26 @@ static EbErrorType reset_pcs_av1(PictureParentControlSet *pcs) {
 **** sample application to the library buffers
 ************************************************/
 static EbErrorType copy_frame_buffer_overlay(SequenceControlSet *scs, uint8_t *dst, uint8_t *src) {
-    EbSvtAv1EncConfiguration *config       = &scs->static_config;
+    (void)scs;
     EbErrorType               return_error = EB_ErrorNone;
 
     EbPictureBufferDesc *dst_picture_ptr = (EbPictureBufferDesc *)dst;
     EbPictureBufferDesc *src_picture_ptr = (EbPictureBufferDesc *)src;
-    bool                 is_16bit_input  = (bool)(config->encoder_bit_depth > EB_EIGHT_BIT);
+    // 10bit packed
+    svt_memcpy(dst_picture_ptr->buffer_y, src_picture_ptr->buffer_y, src_picture_ptr->luma_size);
 
-    // Need to include for Interlacing on the fly with pictureScanType = 1
+    svt_memcpy(dst_picture_ptr->buffer_cb, src_picture_ptr->buffer_cb, src_picture_ptr->chroma_size);
 
-    if (!is_16bit_input) {
-        uint16_t input_row_index;
-        uint32_t luma_buffer_offset = (dst_picture_ptr->stride_y * scs->top_padding + scs->left_padding)
-            << is_16bit_input;
-        uint32_t chroma_buffer_offset =
-            (dst_picture_ptr->stride_cr * (scs->top_padding >> 1) + (scs->left_padding >> 1)) << is_16bit_input;
-        uint16_t luma_stride   = dst_picture_ptr->stride_y << is_16bit_input;
-        uint16_t chroma_stride = dst_picture_ptr->stride_cb << is_16bit_input;
-        uint16_t luma_width    = (uint16_t)(dst_picture_ptr->width - scs->max_input_pad_right) << is_16bit_input;
-        uint16_t chroma_width  = (luma_width >> 1) << is_16bit_input;
-        uint16_t luma_height   = (uint16_t)(dst_picture_ptr->height - scs->max_input_pad_bottom);
+    svt_memcpy(dst_picture_ptr->buffer_cr, src_picture_ptr->buffer_cr, src_picture_ptr->chroma_size);
 
-        //uint16_t     luma_height  = input_pic->max_height;
-        // Y
-        for (input_row_index = 0; input_row_index < luma_height; input_row_index++) {
-            svt_memcpy((dst_picture_ptr->buffer_y + luma_buffer_offset + luma_stride * input_row_index),
-                       (src_picture_ptr->buffer_y + luma_buffer_offset + luma_stride * input_row_index),
-                       luma_width);
-        }
+    svt_memcpy(
+        dst_picture_ptr->buffer_bit_inc_y, src_picture_ptr->buffer_bit_inc_y, src_picture_ptr->luma_size >> 2);
 
-        // U
-        for (input_row_index = 0; input_row_index < (luma_height >> 1); input_row_index++) {
-            svt_memcpy((dst_picture_ptr->buffer_cb + chroma_buffer_offset + chroma_stride * input_row_index),
-                       (src_picture_ptr->buffer_cb + chroma_buffer_offset + chroma_stride * input_row_index),
-                       chroma_width);
-        }
+    svt_memcpy(
+        dst_picture_ptr->buffer_bit_inc_cb, src_picture_ptr->buffer_bit_inc_cb, src_picture_ptr->chroma_size >> 2);
 
-        // V
-        for (input_row_index = 0; input_row_index < (luma_height >> 1); input_row_index++) {
-            svt_memcpy((dst_picture_ptr->buffer_cr + chroma_buffer_offset + chroma_stride * input_row_index),
-                       (src_picture_ptr->buffer_cr + chroma_buffer_offset + chroma_stride * input_row_index),
-                       chroma_width);
-        }
-    } else { // 10bit packed
-
-        svt_memcpy(dst_picture_ptr->buffer_y, src_picture_ptr->buffer_y, src_picture_ptr->luma_size);
-
-        svt_memcpy(dst_picture_ptr->buffer_cb, src_picture_ptr->buffer_cb, src_picture_ptr->chroma_size);
-
-        svt_memcpy(dst_picture_ptr->buffer_cr, src_picture_ptr->buffer_cr, src_picture_ptr->chroma_size);
-
-        svt_memcpy(
-            dst_picture_ptr->buffer_bit_inc_y, src_picture_ptr->buffer_bit_inc_y, src_picture_ptr->luma_size >> 2);
-
-        svt_memcpy(
-            dst_picture_ptr->buffer_bit_inc_cb, src_picture_ptr->buffer_bit_inc_cb, src_picture_ptr->chroma_size >> 2);
-
-        svt_memcpy(
-            dst_picture_ptr->buffer_bit_inc_cr, src_picture_ptr->buffer_bit_inc_cr, src_picture_ptr->chroma_size >> 2);
-    }
+    svt_memcpy(
+        dst_picture_ptr->buffer_bit_inc_cr, src_picture_ptr->buffer_bit_inc_cr, src_picture_ptr->chroma_size >> 2);
     return return_error;
 }
 
@@ -682,12 +643,9 @@ static void update_new_param(SequenceControlSet *scs) {
     scs->static_config.source_height = scs->max_input_luma_height;
     scs->seq_header.max_frame_width  = scs->static_config.forced_max_frame_width > 0
          ? scs->static_config.forced_max_frame_width
-         : scs->static_config.sframe_dist > 0 || scs->static_config.sframe_posi.sframe_posis ? 16384
-                                                                                             : scs->max_input_luma_width;
+         : scs->max_input_luma_width;
     scs->seq_header.max_frame_height = scs->static_config.forced_max_frame_height > 0
         ? scs->static_config.forced_max_frame_height
-        : scs->static_config.sframe_dist > 0 || scs->static_config.sframe_posi.sframe_posis
-        ? 8704
         : scs->max_input_luma_height;
 
     svt_aom_derive_input_resolution(&scs->input_resolution, scs->max_input_luma_width * scs->max_input_luma_height);
@@ -1017,8 +975,8 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             //     to avoid recycling overlay candidate's ppcs to empty fifo too early.
             pcs->p_pcs_wrapper_ptr = pcs_wrapper;
 
-            // reallocate sb_param_array and sb_geom for super-res or reference scaling mode on
-            if (scs->static_config.superres_mode > SUPERRES_NONE || scs->static_config.resize_mode > RESIZE_NONE)
+            // reallocate sb_param_array and sb_geom for reference scaling mode on
+            if (scs->static_config.resize_mode > RESIZE_NONE)
                 realloc_sb_param(scs, pcs);
             else {
                 pcs->b64_geom         = scs->b64_geom;
@@ -1065,12 +1023,10 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             pcs->enhanced_pic->buffer_y = buff_y8b;
             pcs->input_ptr              = eb_input_ptr;
             end_of_sequence_flag        = (pcs->input_ptr->flags & EB_BUFFERFLAG_EOS) ? true : false;
-            // Check whether super-res is previously enabled in this recycled parent pcs and restore
+            // Check whether resize is previously enabled in this recycled parent pcs and restore
             // to non-scale-down default if so.
-            if (pcs->frame_superres_enabled || pcs->frame_resize_enabled)
+            if (pcs->frame_resize_enabled)
                 svt_aom_reset_resized_picture(scs, pcs, pcs->enhanced_pic);
-            pcs->superres_total_recode_loop = 0;
-            pcs->superres_recode_loop       = 0;
             svt_av1_get_time(&pcs->start_time_seconds, &pcs->start_time_u_seconds);
             pcs->seq_param_changed = (context_ptr->seq_param_change) ? true : false;
             // set the scs wrapper to be released after the picture is done
@@ -1087,8 +1043,7 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
             pcs->compute_psnr         = scs->static_config.stat_report;
             pcs->compute_ssim         = scs->static_config.stat_report;
             update_frame_event(pcs, context_ptr->picture_number);
-            pcs->is_not_scaled = (scs->static_config.superres_mode == SUPERRES_NONE) &&
-                scs->static_config.resize_mode == RESIZE_NONE;
+            pcs->is_not_scaled = scs->static_config.resize_mode == RESIZE_NONE;
             if (loop_index == 1) {
                 // Get a new input picture for overlay.
                 EbObjectWrapper *input_pic_wrapper_ptr;
@@ -1155,14 +1110,11 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 pcs->qp_on_the_fly = false;
                 pcs->picture_qp    = (uint8_t)scs->static_config.qp;
             }
-            pcs->sframe_qp_offset = 0;
-
             // Initialize variables for calculating the average QP
             pcs->tot_qindex               = 0;
             pcs->valid_qindex_area        = 0;
             pcs->ts_duration              = (double)10000000 / scs->frame_rate;
             scs->enc_ctx->initial_picture = false;
-            pcs->sframe_ref_pruned        = false;
 
             // Get Empty Reference Picture Object
             svt_get_empty_object(scs->enc_ctx->pa_reference_picture_pool_fifo_ptr, &ref_pic_wrapper);
@@ -1182,9 +1134,8 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                 svt_object_inc_live_count(pcs->y8b_wrapper, 1);
             }
             // Get Empty Output Results Object
-            // For the low delay mode, buffering for receiving EOS does not happen
-            if (scs->static_config.pred_structure == LOW_DELAY) {
-                PictureParentControlSet *ppcs_out = pcs;
+            if (pcs->picture_number > 0 && (prev_pcs_wrapper_ptr != NULL)) {
+                PictureParentControlSet *ppcs_out = (PictureParentControlSet *)prev_pcs_wrapper_ptr->object_ptr;
 
                 ppcs_out->end_of_sequence_flag = end_of_sequence_flag;
                 // since overlay frame has the end of sequence set properly, set the end of sequence to true in the alt ref picture
@@ -1192,58 +1143,27 @@ void *svt_aom_resource_coordination_kernel(void *input_ptr) {
                     ppcs_out->alt_ref_ppcs_ptr->end_of_sequence_flag = true;
 
                 reset_pcs_av1(ppcs_out);
-                if (!ppcs_out->end_of_sequence_flag) {
-                    svt_get_empty_object(context_ptr->resource_coordination_results_output_fifo_ptr,
-                                         &output_wrapper_ptr);
-                    out_results = (ResourceCoordinationResults *)output_wrapper_ptr->object_ptr;
 
-                    if (scs->static_config.enable_overlays == true) {
-                        // ppcs live_count + 1 for PictureAnalysis & PictureDecision, will svt_release_object(ppcs) at the end of picture_decision_kernel.
-                        svt_object_inc_live_count(pcs_wrapper, 1);
-                    }
+                svt_get_empty_object(context_ptr->resource_coordination_results_output_fifo_ptr,
+                                     &output_wrapper_ptr);
+                out_results = (ResourceCoordinationResults *)output_wrapper_ptr->object_ptr;
 
-                    out_results->pcs_wrapper = pcs_wrapper;
-                    // Post the finished Results Object
-                    svt_post_full_object(output_wrapper_ptr);
-                } else {
-                    // When the end of sequence recieved, there is no need to inject a new PCS.
-                    // terminating_picture_number and terminating_sequence_flag_received are set. When all
-                    // the pictures in the packetiztion queue are processed, EOS is signalled to the application.
-                    set_eos_terminating_signals(ppcs_out);
+                if (scs->static_config.enable_overlays == true) {
+                    // ppcs live_count + 1 for PictureAnalysis & PictureDecision, will svt_release_object(ppcs) at the end of svt_aom_picture_decision_kernel.
+                    svt_object_inc_live_count(prev_pcs_wrapper_ptr, 1);
+                    svt_object_inc_live_count(
+                        ((PictureParentControlSet *)prev_pcs_wrapper_ptr->object_ptr)->scs_wrapper, 1);
                 }
-            } else {
-                // Get Empty Output Results Object
-                if (pcs->picture_number > 0 && (prev_pcs_wrapper_ptr != NULL)) {
-                    PictureParentControlSet *ppcs_out = (PictureParentControlSet *)prev_pcs_wrapper_ptr->object_ptr;
 
-                    ppcs_out->end_of_sequence_flag = end_of_sequence_flag;
-                    // since overlay frame has the end of sequence set properly, set the end of sequence to true in the alt ref picture
-                    if (ppcs_out->is_overlay && end_of_sequence_flag)
-                        ppcs_out->alt_ref_ppcs_ptr->end_of_sequence_flag = true;
-
-                    reset_pcs_av1(ppcs_out);
-
-                    svt_get_empty_object(context_ptr->resource_coordination_results_output_fifo_ptr,
-                                         &output_wrapper_ptr);
-                    out_results = (ResourceCoordinationResults *)output_wrapper_ptr->object_ptr;
-
-                    if (scs->static_config.enable_overlays == true) {
-                        // ppcs live_count + 1 for PictureAnalysis & PictureDecision, will svt_release_object(ppcs) at the end of svt_aom_picture_decision_kernel.
-                        svt_object_inc_live_count(prev_pcs_wrapper_ptr, 1);
-                        svt_object_inc_live_count(
-                            ((PictureParentControlSet *)prev_pcs_wrapper_ptr->object_ptr)->scs_wrapper, 1);
-                    }
-
-                    out_results->pcs_wrapper = prev_pcs_wrapper_ptr;
-                    // Post the finished Results Object
-                    svt_post_full_object(output_wrapper_ptr);
-                }
-                if (end_of_sequence_flag) {
-                    // When the end of sequence recieved, there is no need to inject a new PCS.
-                    // terminating_picture_number and terminating_sequence_flag_received are set. When all
-                    // the pictures in the packetiztion queue are processed, EOS is signalled to the application.
-                    set_eos_terminating_signals(pcs);
-                }
+                out_results->pcs_wrapper = prev_pcs_wrapper_ptr;
+                // Post the finished Results Object
+                svt_post_full_object(output_wrapper_ptr);
+            }
+            if (end_of_sequence_flag) {
+                // When the end of sequence recieved, there is no need to inject a new PCS.
+                // terminating_picture_number and terminating_sequence_flag_received are set. When all
+                // the pictures in the packetiztion queue are processed, EOS is signalled to the application.
+                set_eos_terminating_signals(pcs);
             }
             prev_pcs_wrapper_ptr = pcs_wrapper;
         }

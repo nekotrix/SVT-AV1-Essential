@@ -69,7 +69,6 @@ static void mode_decision_context_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->cand_bf_tx_depth_2->cand);
     EB_DELETE(obj->cand_bf_tx_depth_2);
     EB_FREE_ALIGNED_ARRAY(obj->cfl_temp_luma_recon16bit);
-    EB_FREE_ALIGNED_ARRAY(obj->cfl_temp_luma_recon);
     EB_FREE_ALIGNED_ARRAY(obj->pred_buf_q3);
     EB_FREE_ARRAY(obj->fast_cand_array);
     EB_FREE_2D(obj->injected_mvs);
@@ -142,7 +141,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
                                                EbColorFormat color_format, uint8_t sb_size, EncMode enc_mode,
                                                uint16_t max_block_cnt, uint32_t encoder_bit_depth,
                                                EbFifo *mode_decision_configuration_input_fifo_ptr,
-                                               EbFifo *mode_decision_output_fifo_ptr, uint8_t enable_hbd_mode_decision,
+                                               EbFifo *mode_decision_output_fifo_ptr,
                                                uint8_t seq_qp_mod) {
     const EbInputResolution input_resolution = scs->input_resolution;
     const bool              allintra         = scs->allintra;
@@ -157,7 +156,6 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     (void)color_format;
 
     ctx->dctor  = mode_decision_context_dctor;
-    ctx->hbd_md = enable_hbd_mode_decision;
 
     // Input/Output System Resource Manager FIFOs
     ctx->mode_decision_configuration_input_fifo_ptr = mode_decision_configuration_input_fifo_ptr;
@@ -168,13 +166,10 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     // get the min scaling level (the smallest scaling level is the most conservative)
     uint8_t min_nic_scaling_level = NICS_SCALING_LEVELS - 1;
     for (uint8_t sc_class1 = 0; sc_class1 < 2; sc_class1++) {
-        for (uint8_t rtc_itr = 0; rtc_itr < 2; rtc_itr++) {
-            bool rtc_tune = (bool)rtc_itr;
-            for (uint8_t is_base = 0; is_base < 2; is_base++) {
-                uint8_t nic_level         = svt_aom_get_nic_level(scs, enc_mode, is_base, rtc_tune, sc_class1);
-                uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
-                min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
-            }
+        for (uint8_t is_base = 0; is_base < 2; is_base++) {
+            uint8_t nic_level         = svt_aom_get_nic_level(scs, enc_mode, is_base, sc_class1);
+            uint8_t nic_scaling_level = svt_aom_set_nic_controls(NULL, nic_level);
+            min_nic_scaling_level     = MIN(min_nic_scaling_level, nic_scaling_level);
         }
     }
     uint8_t stage1_scaling_num = MD_STAGE_NICS_SCAL_NUM[min_nic_scaling_level][MD_STAGE_1];
@@ -213,10 +208,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     ctx->max_nics    = max_nics;
     ctx->max_nics_uv = max_nics + ind_uv_cands;
     // Cfl scratch memory
-    if (ctx->hbd_md > EB_8_BIT_MD)
-        EB_MALLOC_ALIGNED(ctx->cfl_temp_luma_recon16bit, sizeof(uint16_t) * sb_size * sb_size);
-    if (ctx->hbd_md != EB_10_BIT_MD)
-        EB_MALLOC_ALIGNED(ctx->cfl_temp_luma_recon, sizeof(uint8_t) * sb_size * sb_size);
+    EB_MALLOC_ALIGNED(ctx->cfl_temp_luma_recon16bit, sizeof(uint16_t) * sb_size * sb_size);
     EB_MALLOC_ALIGNED(ctx->pred_buf_q3, CFL_BUF_SQUARE);
     uint8_t use_update_cdf = 0;
     for (uint8_t sc_class1 = 0; sc_class1 < 2; sc_class1++) {
@@ -235,7 +227,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
         ctx->rate_est_table = NULL;
     // Allocate buffer for inter-inter compound prediction
     if (get_inter_compound_level(enc_mode)) {
-        const uint8_t bits = ctx->hbd_md > EB_8_BIT_MD ? 2 : 1;
+        const uint8_t bits = 2;
         for (int i = 0; i < NEAREST_NEAR_MV_CNT; i++) {
             EB_MALLOC(ctx->cmp_store.pred0_buf[i], sb_size * sb_size * bits * sizeof(uint8_t));
             EB_MALLOC(ctx->cmp_store.pred1_buf[i], sb_size * sb_size * bits * sizeof(uint8_t));
@@ -252,7 +244,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
         ii_allowed |= svt_aom_get_inter_intra_level(enc_mode, transition_present);
     }
     if (ii_allowed) {
-        const uint8_t bits = ctx->hbd_md > EB_8_BIT_MD ? 2 : 1;
+        const uint8_t bits = 2;
         // MAX block size for inter intra is 32x32
         EB_MALLOC_2D(ctx->intrapred_buf, INTERINTRA_MODES, 32 * 32 * bits * sizeof(ctx->intrapred_buf[0][0]));
     }
@@ -267,7 +259,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
         }
     }
     if (obmc_allowed) {
-        const uint8_t bits = ctx->hbd_md > EB_8_BIT_MD ? 2 : 1;
+        const uint8_t bits = 2;
         EB_MALLOC(ctx->obmc_buff_0, sb_size * sb_size * bits * MAX_MB_PLANE * sizeof(ctx->obmc_buff_0[0]));
         EB_MALLOC(ctx->obmc_buff_1, sb_size * sb_size * bits * MAX_MB_PLANE * sizeof(ctx->obmc_buff_1[0]));
         EB_MALLOC(ctx->wsrc_buf, sb_size * sb_size * sizeof(ctx->wsrc_buf[0]));
@@ -298,13 +290,13 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     EB_NEW(ctx->cand_bf_tx_depth_1,
            svt_aom_mode_decision_scratch_cand_bf_ctor,
            sb_size,
-           ctx->hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT);
+           EB_TEN_BIT);
 
     EB_ALLOC_PTR_ARRAY(ctx->cand_bf_tx_depth_1->cand, 1);
     EB_NEW(ctx->cand_bf_tx_depth_2,
            svt_aom_mode_decision_scratch_cand_bf_ctor,
            sb_size,
-           ctx->hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT);
+           EB_TEN_BIT);
 
     EB_ALLOC_PTR_ARRAY(ctx->cand_bf_tx_depth_2->cand, 1);
     for (int i = 0; i < 3; i++) {
@@ -315,7 +307,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     }
     uint32_t coded_leaf_index;
     uint16_t sz = sizeof(uint16_t);
-    if (ctx->hbd_md > EB_8_BIT_MD) {
+    {
         EB_MALLOC_ARRAY(ctx->md_blk_arr_nsq[0].neigh_left_recon_16bit[0], block_max_count_sb * sb_size * sz);
         EB_MALLOC_ARRAY(ctx->md_blk_arr_nsq[0].neigh_top_recon_16bit[0], block_max_count_sb * sb_size * sz);
         EB_MALLOC_ARRAY(ctx->md_blk_arr_nsq[0].neigh_left_recon_16bit[1], block_max_count_sb * sb_size * sz >> 1);
@@ -340,7 +332,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
                 ctx->md_blk_arr_nsq[0].neigh_top_recon_16bit[2] + offset;
         }
     }
-    if (ctx->hbd_md != EB_10_BIT_MD) {
+    {
         EB_MALLOC_ARRAY(ctx->md_blk_arr_nsq[0].neigh_left_recon[0], block_max_count_sb * sb_size);
         EB_MALLOC_ARRAY(ctx->md_blk_arr_nsq[0].neigh_top_recon[0], block_max_count_sb * sb_size);
         EB_MALLOC_ARRAY(ctx->md_blk_arr_nsq[0].neigh_left_recon[1], block_max_count_sb * sb_size >> 1);
@@ -399,7 +391,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
             init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK;
             init_data.max_width          = blk_geom->bwidth;
             init_data.max_height         = blk_geom->bheight;
-            init_data.bit_depth          = ctx->hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT;
+            init_data.bit_depth          = EB_TEN_BIT;
             ;
             init_data.color_format  = (blk_geom->bwidth > 4 && blk_geom->bheight > 4) ? EB_YUV420 : EB_YUV444;
             init_data.left_padding  = 0;
@@ -425,7 +417,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
 
     picture_buffer_desc_init_data.max_width          = sb_size;
     picture_buffer_desc_init_data.max_height         = sb_size;
-    picture_buffer_desc_init_data.bit_depth          = ctx->hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT;
+    picture_buffer_desc_init_data.bit_depth          = EB_TEN_BIT;
     picture_buffer_desc_init_data.color_format       = EB_YUV420;
     picture_buffer_desc_init_data.buffer_enable_mask = PICTURE_BUFFER_DESC_FULL_MASK;
     picture_buffer_desc_init_data.left_padding       = 0;
@@ -481,7 +473,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     for (buffer_index = 0; buffer_index < ctx->max_nics; ++buffer_index) {
         EB_NEW(ctx->cand_bf_ptr_array[buffer_index],
                svt_aom_mode_decision_cand_bf_ctor,
-               ctx->hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT,
+               EB_TEN_BIT,
                sb_size,
                PICTURE_BUFFER_DESC_FULL_MASK,
                ctx->temp_residual,
@@ -494,7 +486,7 @@ EbErrorType svt_aom_mode_decision_context_ctor(ModeDecisionContext *ctx, Sequenc
     for (buffer_index = max_nics; buffer_index < ctx->max_nics_uv; ++buffer_index) {
         EB_NEW(ctx->cand_bf_ptr_array[buffer_index],
                svt_aom_mode_decision_cand_bf_ctor,
-               ctx->hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT,
+               EB_TEN_BIT,
                sb_size,
                PICTURE_BUFFER_DESC_CHROMA_MASK,
                ctx->temp_residual,
@@ -521,13 +513,11 @@ void svt_aom_reset_mode_decision_neighbor_arrays(PictureControlSet *pcs, uint16_
             svt_aom_neighbor_array_unit_reset(pcs->md_cb_recon_na[depth][tile_idx]);
             svt_aom_neighbor_array_unit_reset(pcs->md_cr_recon_na[depth][tile_idx]);
         }
-        if (pcs->hbd_md > EB_8_BIT_MD || (pcs->scs->encoder_bit_depth > EB_EIGHT_BIT && pcs->pic_bypass_encdec)) {
-            svt_aom_neighbor_array_unit_reset(pcs->md_luma_recon_na_16bit[depth][tile_idx]);
-            svt_aom_neighbor_array_unit_reset(pcs->md_tx_depth_1_luma_recon_na_16bit[depth][tile_idx]);
-            svt_aom_neighbor_array_unit_reset(pcs->md_tx_depth_2_luma_recon_na_16bit[depth][tile_idx]);
-            svt_aom_neighbor_array_unit_reset(pcs->md_cb_recon_na_16bit[depth][tile_idx]);
-            svt_aom_neighbor_array_unit_reset(pcs->md_cr_recon_na_16bit[depth][tile_idx]);
-        }
+        svt_aom_neighbor_array_unit_reset(pcs->md_luma_recon_na_16bit[depth][tile_idx]);
+        svt_aom_neighbor_array_unit_reset(pcs->md_tx_depth_1_luma_recon_na_16bit[depth][tile_idx]);
+        svt_aom_neighbor_array_unit_reset(pcs->md_tx_depth_2_luma_recon_na_16bit[depth][tile_idx]);
+        svt_aom_neighbor_array_unit_reset(pcs->md_cb_recon_na_16bit[depth][tile_idx]);
+        svt_aom_neighbor_array_unit_reset(pcs->md_cr_recon_na_16bit[depth][tile_idx]);
 
         svt_aom_neighbor_array_unit_reset(pcs->md_y_dcs_na[depth][tile_idx]);
         svt_aom_neighbor_array_unit_reset(pcs->md_tx_depth_1_luma_dc_sign_level_coeff_na[depth][tile_idx]);
@@ -551,7 +541,7 @@ static void av1_lambda_assign_md(PictureControlSet *pcs, ModeDecisionContext *ct
     ctx->full_lambda_md[1] = (uint32_t)svt_aom_compute_rd_mult(pcs, ctx->qp_index, ctx->me_q_index, 10);
     ctx->fast_lambda_md[1] = (uint32_t)svt_aom_compute_fast_lambda(pcs, ctx->qp_index, ctx->me_q_index, 10);
 
-    if (!pcs->scs->static_config.rtc && pcs->scs->stats_based_sb_lambda_modulation) {
+    if (pcs->scs->stats_based_sb_lambda_modulation) {
         if (pcs->temporal_layer_index > 0) {
             if (pcs->ref_intra_percentage < LAMBDA_MOD_INTRA_TH) {
                 ctx->full_lambda_md[0] = (ctx->full_lambda_md[0] * LAMBDA_MOD_INTRA_SCALING_FACTOR) >> 7;
@@ -584,7 +574,6 @@ static void av1_lambda_assign_md(PictureControlSet *pcs, ModeDecisionContext *ct
 
 void svt_aom_reset_mode_decision(SequenceControlSet *scs, ModeDecisionContext *ctx, PictureControlSet *pcs,
                                  uint16_t tile_group_idx, uint32_t segment_index) {
-    const bool rtc_tune = scs->static_config.rtc;
     ctx->hbd_md         = pcs->hbd_md;
     // Reset MD rate Estimation table to initial values by copying from md_rate_est_ctx
     ctx->md_rate_est_ctx = pcs->md_rate_est_ctx;
@@ -606,11 +595,6 @@ void svt_aom_reset_mode_decision(SequenceControlSet *scs, ModeDecisionContext *c
     }
     //each segment enherits the bypass encdec from the picture level
     ctx->bypass_encdec = pcs->pic_bypass_encdec;
-
-    if (!rtc_tune && (pcs->enc_mode <= ENC_M11 || pcs->temporal_layer_index != 0))
-        ctx->rtc_use_N4_dct_dct_shortcut = 1;
-    else
-        ctx->rtc_use_N4_dct_dct_shortcut = 0;
     return;
 }
 
