@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 
 #include "EbSvtAv1Metadata.h"
+#include "EbVersion.h"
 #include "app_config.h"
 #include "app_context.h"
 #include "app_input_y4m.h"
@@ -2136,7 +2137,50 @@ int get_version(int argc, char *const argv[]) {
 #endif
     if (find_token(argc, argv, VERSION_TOKEN, NULL))
         return 0;
+    
+    // Check NO_COLOR environment variable (https://no-color.org/)
+    char *no_color = getenv("NO_COLOR");
+    bool use_color = true;
+    if (no_color != NULL && no_color[0] != '\0')
+        use_color = false;
+#ifdef _WIN32
+    use_color = false;
+#endif
+    
+    const char *color_green = use_color ? "\033[0;32m" : "";
+    const char *color_red = use_color ? "\033[0;31m" : "";
+    const char *color_reset = use_color ? "\033[0m" : "";
+    
     printf("SVT-AV1-Essential %s (" BUILD_TYPE_STRING ")\n", svt_av1_get_version());
+    
+    printf("\n* Compiler\n");
+    printf("  %s version %s\n", SVT_AV1_COMPILER_ID, SVT_AV1_COMPILER_VERSION);
+    
+    printf("\n* Date Info\n");
+    printf("  Commit Date:  %s (%s)\n", SVT_AV1_GIT_COMMIT_DATE, SVT_AV1_GIT_COMMIT);
+    
+    printf("\n* Features:\n");
+#ifdef HAVE_FFMS2
+    printf("  FFMS2         : %s%s%s\n", HAVE_FFMS2 ? color_green : color_red, HAVE_FFMS2 ? "Yes" : "No", color_reset);
+#else
+    printf("  FFMS2         : %sNo%s\n", color_red, color_reset);
+#endif
+#ifdef CONFIG_WEBM_IO
+    printf("  WEBM          : %sYes%s\n", color_green, color_reset);
+#else
+    printf("  WEBM          : %sNo%s\n", color_red, color_reset);
+#endif
+#ifdef LIBDOVI_FOUND
+    printf("  Dolby Vision  : %sYes%s\n", color_green, color_reset);
+#else
+    printf("  Dolby Vision  : %sNo%s\n", color_red, color_reset);
+#endif
+#ifdef LIBHDR10PLUS_RS_FOUND
+    printf("  HDR10Plus     : %sYes%s\n", color_green, color_reset);
+#else
+    printf("  HDR10Plus     : %sNo%s\n", color_red, color_reset);
+#endif
+    
     return 1;
 #undef BUILD_TYPE_STRING
 }

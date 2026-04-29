@@ -21,6 +21,10 @@
 
 set(PACKAGE_VERSION_STRING "v${PACKAGE_VERSION_STRING}")
 
+# Set compiler info
+set(COMPILER_ID "${CMAKE_C_COMPILER_ID}")
+set(COMPILER_VERSION "${CMAKE_C_COMPILER_VERSION}")
+
 find_package(Git QUIET)
 if(Git_FOUND AND EXISTS "${GIT_ROOT_DIR}/.git")
     execute_process(COMMAND
@@ -37,6 +41,43 @@ if(Git_FOUND AND EXISTS "${GIT_ROOT_DIR}/.git")
     else()
         set(PACKAGE_VERSION_STRING ${git_describe_output})
     endif()
+
+    # Get git commit hash
+    execute_process(COMMAND
+        ${GIT_EXECUTABLE} -C ${GIT_ROOT_DIR}
+            rev-parse --short HEAD
+        RESULT_VARIABLE git_commit_status
+        OUTPUT_VARIABLE git_commit_output
+        ERROR_VARIABLE git_commit_error
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_STRIP_TRAILING_WHITESPACE)
+
+    if (git_commit_status)
+        message(WARNING "Failure to get git commit: ${git_commit_error}")
+        set(GIT_COMMIT "unknown")
+    else()
+        set(GIT_COMMIT ${git_commit_output})
+    endif()
+
+    # Get git commit date
+    execute_process(COMMAND
+        ${GIT_EXECUTABLE} -C ${GIT_ROOT_DIR}
+            log -1 --format=%cd --date=short
+        RESULT_VARIABLE git_date_status
+        OUTPUT_VARIABLE git_date_output
+        ERROR_VARIABLE git_date_error
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_STRIP_TRAILING_WHITESPACE)
+
+    if (git_date_status)
+        message(WARNING "Failure to get git commit date: ${git_date_error}")
+        set(GIT_COMMIT_DATE "unknown")
+    else()
+        set(GIT_COMMIT_DATE ${git_date_output})
+    endif()
+else()
+    set(GIT_COMMIT "unknown")
+    set(GIT_COMMIT_DATE "unknown")
 endif()
 
 message(STATUS "Configured version: ${PACKAGE_VERSION_STRING}")
