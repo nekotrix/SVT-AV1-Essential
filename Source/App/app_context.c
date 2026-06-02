@@ -474,9 +474,6 @@ static EbErrorType init_ffms2(EbConfig *app_cfg) {
             FFMS_DestroyIndex(index);
             return EB_ErrorBadParameter;
         }
-        fprintf(stderr, "FFMS2: Cropping %dx%d+%d+%d from %dx%d\n",
-                app_cfg->crop_w, app_cfg->crop_h, app_cfg->crop_x, app_cfg->crop_y,
-                src_width, src_height);
     }
 
     if (!(app_cfg->config.source_width != 0 && (uint32_t)test_frame->EncodedWidth != app_cfg->config.source_width)) {
@@ -500,9 +497,12 @@ static EbErrorType init_ffms2(EbConfig *app_cfg) {
         app_cfg->config.frame_rate_denominator = props->FPSDenominator;
     }
 
-    app_cfg->config.matrix_coefficients = test_frame->ColorSpace;
-    app_cfg->config.color_primaries = test_frame->ColorPrimaries;
-    app_cfg->config.transfer_characteristics = test_frame->TransferCharateristics;
+    if (app_cfg->config.matrix_coefficients == EB_CICP_MC_UNSPECIFIED)
+        app_cfg->config.matrix_coefficients = test_frame->ColorSpace;
+    if (app_cfg->config.color_primaries == EB_CICP_CP_UNSPECIFIED)
+        app_cfg->config.color_primaries = test_frame->ColorPrimaries;
+    if (app_cfg->config.transfer_characteristics == EB_CICP_TC_UNSPECIFIED)
+        app_cfg->config.transfer_characteristics = test_frame->TransferCharateristics;
 
     if (test_frame->ColorRange == 2) {
         app_cfg->config.color_range = EB_CR_FULL_RANGE;
