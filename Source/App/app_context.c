@@ -465,6 +465,13 @@ static EbErrorType init_ffms2(EbConfig *app_cfg) {
     int src_height = test_frame->EncodedHeight;
 
     if (app_cfg->crop_w > 0 && app_cfg->crop_h > 0) {
+        if (app_cfg->crop_x == -1) {
+            app_cfg->crop_x = ((src_width - app_cfg->crop_w) / 2) & ~1;
+        }
+        if (app_cfg->crop_y == -1) {
+            app_cfg->crop_y = ((src_height - app_cfg->crop_h) / 2) & ~1;
+        }
+        
         if (app_cfg->crop_w + app_cfg->crop_x > src_width ||
             app_cfg->crop_h + app_cfg->crop_y > src_height) {
             fprintf(stderr, "Error: Crop region %dx%d+%d+%d exceeds source dimensions %dx%d\n",

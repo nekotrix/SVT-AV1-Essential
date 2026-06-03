@@ -704,20 +704,24 @@ static EbErrorType set_crop(EbConfig *cfg, const char *token, const char *value)
         fprintf(stderr, "Error: --crop requires a value (W:H[:X[:Y]])\n");
         return EB_ErrorBadParameter;
     }
-    int cw = 0, ch = 0, cx = 0, cy = 0;
+    int cw = -1, ch = -1, cx = -1, cy = -1;
     int n = sscanf(value, "%d:%d:%d:%d", &cw, &ch, &cx, &cy);
-    if (n < 2 || cw <= 0 || ch <= 0 || cx < 0 || cy < 0) {
+    if (n < 2 || cw <= 0 || ch <= 0) {
         fprintf(stderr, "Error: Invalid crop value '%s'. Expected W:H[:X[:Y]]\n", value);
         return EB_ErrorBadParameter;
     }
-    if ((cw & 1) || (ch & 1) || (cx & 1) || (cy & 1)) {
+    if ((cx < 0 && n >= 3) || (cy < 0 && n >= 4)) {
+        fprintf(stderr, "Error: Crop offsets cannot be negative\n");
+        return EB_ErrorBadParameter;
+    }
+    if ((cw & 1) || (ch & 1) || ((cx & 1) && n >= 3) || ((cy & 1) && n >= 4)) {
         fprintf(stderr, "Error: Crop dimensions and offsets must be even for yuv420p\n");
         return EB_ErrorBadParameter;
     }
     cfg->crop_w = cw;
     cfg->crop_h = ch;
-    cfg->crop_x = cx;
-    cfg->crop_y = cy;
+    cfg->crop_x = (n >= 3) ? cx : -1;
+    cfg->crop_y = (n >= 4) ? cy : -1;
     return EB_ErrorNone;
 }
 
@@ -1614,6 +1618,8 @@ EbConfig *svt_config_ctor(bool color) {
     app_cfg->roi_map_file        = NULL;
     app_cfg->fgs_table_path      = NULL;
     app_cfg->mmap.allow          = true;
+    app_cfg->crop_x              = -1;
+    app_cfg->crop_y              = -1;
 #ifdef LIBDOVI_FOUND
     app_cfg->dovi_rpus = NULL;
 #endif
