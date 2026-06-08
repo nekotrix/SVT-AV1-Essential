@@ -642,12 +642,18 @@ By default, sharpness is set to 1.
 ### `--distortion-bias-preset [0-4]`
 Hard sets parameters that serve as showcase to SVT-AV1-Essential's high fidelity potential.  
 Gradually selects more and more aggressive parameters that improve detail retention at the cost of higher distortion:  
+
+
 **1**: Mild distortion bias for slightly higher fidelity. Expect higher filesizes compared to **0** at a given CRF.  
 - sets: `--noise-norm-strength 1 --sharp-tx 1 --tx-bias 3 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1`
+
 **2**: Medium distortion bias for greater fidelity. Expect higher filesizes compared to **1** at a given CRF.  
 - sets: `--tune 0 --qm-min 4 --chroma-qm-min 8 --tf-strength 0 --ac-bias 2 --noise-norm-strength 1 --sharp-tx 1 --tx-bias 2 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1`
+
 **3**: Strong distortion bias for maximum fidelity. Expect higher filesizes compared to **2** at a given CRF.  
 - sets: `--tune 0 --qm-min 8 --chroma-qm-min 10 --tf-strength 0 --ac-bias 4 --noise-norm-strength 3 --sharp-tx 1 --tx-bias 1 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 2`
+
 **4**: Mimics SVT-AV1-HDR's tune grain for absolute grain retention with no regard to distortion at all. Filesize behavior can vary from clip to clip.  
 - sets: `--tune 0 --qm-min 6 --qm-max 10 --chroma-qm-min 8 --variance-boost-strength 2 --variance-octile 5 --enable-tf 0 --enable-cdef 0 --enable-restoration 0 --ac-bias 4 --noise-norm-strength 1 --tx-bias 1`
+
 It is recommended to use the parameters from these presets as baseline for additional tweaking, but these are good for quick testing.
