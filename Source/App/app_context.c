@@ -461,13 +461,41 @@ static EbErrorType init_ffms2(EbConfig *app_cfg) {
         return EB_ErrorBadParameter;
     }
 
+    int src_width = test_frame->EncodedWidth;
+    int src_height = test_frame->EncodedHeight;
+
+    if (app_cfg->crop_w > 0 && app_cfg->crop_h > 0) {
+        if (app_cfg->crop_x == -1) {
+            app_cfg->crop_x = ((src_width - app_cfg->crop_w) / 2) & ~1;
+        }
+        if (app_cfg->crop_y == -1) {
+            app_cfg->crop_y = ((src_height - app_cfg->crop_h) / 2) & ~1;
+        }
+        
+        if (app_cfg->crop_w + app_cfg->crop_x > src_width ||
+            app_cfg->crop_h + app_cfg->crop_y > src_height) {
+            fprintf(stderr, "Error: Crop region %dx%d+%d+%d exceeds source dimensions %dx%d\n",
+                    app_cfg->crop_w, app_cfg->crop_h, app_cfg->crop_x, app_cfg->crop_y,
+                    src_width, src_height);
+            FFMS_DestroyVideoSource(video_source);
+            FFMS_DestroyIndex(index);
+            return EB_ErrorBadParameter;
+        }
+    }
+
     if (!(app_cfg->config.source_width != 0 && (uint32_t)test_frame->EncodedWidth != app_cfg->config.source_width)) {
-        app_cfg->config.source_width = test_frame->EncodedWidth;
-        app_cfg->input_padded_width = test_frame->EncodedWidth;
+        if (app_cfg->crop_w > 0)
+            app_cfg->config.source_width = app_cfg->crop_w;
+        else
+            app_cfg->config.source_width = test_frame->EncodedWidth;
+        app_cfg->input_padded_width = app_cfg->config.source_width;
     }
     if (!(app_cfg->config.source_height != 0 && (uint32_t)test_frame->EncodedHeight != app_cfg->config.source_height)) {
-        app_cfg->config.source_height = test_frame->EncodedHeight;
-        app_cfg->input_padded_height = test_frame->EncodedHeight;
+        if (app_cfg->crop_h > 0)
+            app_cfg->config.source_height = app_cfg->crop_h;
+        else
+            app_cfg->config.source_height = test_frame->EncodedHeight;
+        app_cfg->input_padded_height = app_cfg->config.source_height;
     }
 
     if (app_cfg->config.frame_rate_numerator != (uint32_t)props->FPSNumerator ||
@@ -476,9 +504,12 @@ static EbErrorType init_ffms2(EbConfig *app_cfg) {
         app_cfg->config.frame_rate_denominator = props->FPSDenominator;
     }
 
-    app_cfg->config.matrix_coefficients = test_frame->ColorSpace;
-    app_cfg->config.color_primaries = test_frame->ColorPrimaries;
-    app_cfg->config.transfer_characteristics = test_frame->TransferCharateristics;
+    if (app_cfg->config.matrix_coefficients == EB_CICP_MC_UNSPECIFIED)
+        app_cfg->config.matrix_coefficients = test_frame->ColorSpace;
+    if (app_cfg->config.color_primaries == EB_CICP_CP_UNSPECIFIED)
+        app_cfg->config.color_primaries = test_frame->ColorPrimaries;
+    if (app_cfg->config.transfer_characteristics == EB_CICP_TC_UNSPECIFIED)
+        app_cfg->config.transfer_characteristics = test_frame->TransferCharateristics;
 
     if (test_frame->ColorRange == 2) {
         app_cfg->config.color_range = EB_CR_FULL_RANGE;
@@ -532,7 +563,7 @@ static EbErrorType init_ffms2(EbConfig *app_cfg) {
     pixfmts[1] = -1;
 
     if (FFMS_SetOutputFormatV2(video_source, pixfmts,
-                                app_cfg->input_padded_width, app_cfg->config.source_height,
+                                src_width, src_height,
                                 FFMS_RESIZER_BILINEAR, &err_info)) {
         fprintf(stderr, "FFMS2 Error: Failed to set output format to yuv420p10le: %s\n", errmsg);
         FFMS_DestroyVideoSource(video_source);
@@ -555,7 +586,11 @@ static EbErrorType init_ffms2(EbConfig *app_cfg) {
             test_frame->EncodedWidth, test_frame->EncodedHeight, props->NumFrames,
             (double)props->FPSNumerator / props->FPSDenominator);
 
-    if (app_cfg->config.source_width != (uint32_t)test_frame->EncodedWidth ||
+    if (app_cfg->crop_w > 0 && app_cfg->crop_h > 0) {
+        fprintf(stderr, "FFMS2: Cropped from %dx%d to %dx%d\n",
+            test_frame->EncodedWidth, test_frame->EncodedHeight,
+            app_cfg->config.source_width, app_cfg->config.source_height);
+    } else if (app_cfg->config.source_width != (uint32_t)test_frame->EncodedWidth ||
         app_cfg->config.source_height != (uint32_t)test_frame->EncodedHeight) {
         fprintf(stderr, "FFMS2: Scaled from %dx%d to %dx%d\n",
             test_frame->EncodedWidth, test_frame->EncodedHeight,
@@ -609,6 +644,15 @@ static EbErrorType preload_frames_ffms2(EbConfig *app_cfg) {
         const uint8_t *src_y = frame->Data[0];
         const uint8_t *src_u = frame->Data[1];
         const uint8_t *src_v = frame->Data[2];
+
+        if (app_cfg->crop_w > 0 && app_cfg->crop_h > 0) {
+            const int crop_x = app_cfg->crop_x;
+            const int crop_y = app_cfg->crop_y;
+            const int bps = 2;
+            src_y += crop_y * frame->Linesize[0] + crop_x * bps;
+            src_u += (crop_y >> 1) * frame->Linesize[1] + (crop_x >> 1) * bps;
+            src_v += (crop_y >> 1) * frame->Linesize[2] + (crop_x >> 1) * bps;
+        }
 
         for (uint32_t y = 0; y < height; y++) {
             memcpy(dst, src_y, width * 2);

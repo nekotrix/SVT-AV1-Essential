@@ -213,6 +213,7 @@ typedef struct EbConfig {
     void *ffms_video_source;
     void *ffms_index;
     int   ffms_track_num;
+    int   crop_x, crop_y, crop_w, crop_h;
 #ifdef CONFIG_WEBM_IO
     bool                     write_webm;        // Enable WebM output
     struct WebmOutputContext webm_ctx;          // WebM context
