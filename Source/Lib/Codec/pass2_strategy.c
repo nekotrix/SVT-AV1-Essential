@@ -946,99 +946,6 @@ void svt_aom_reset_update_frame_target(PictureParentControlSet *ppcs) {
 
 extern void svt_av1_resize_reset_rc(PictureParentControlSet *ppcs, int32_t resize_width, int32_t resize_height,
                                     int32_t prev_width, int32_t prev_height);
-static void dynamic_resize_one_pass_cbr(PictureParentControlSet *ppcs) {
-    SequenceControlSet *scs           = ppcs->scs;
-    EncodeContext      *enc_ctx       = scs->enc_ctx;
-    RATE_CONTROL       *rc            = &enc_ctx->rc;
-    RESIZE_ACTION       resize_action = NO_RESIZE;
-    const int32_t       avg_qp_thr1   = 70;
-    const int32_t       avg_qp_thr2   = 50;
-    // Don't allow for resized frame to go below 160x90, resize in steps of 3/4.
-    const int32_t min_width    = (160 * 4) / 3;
-    const int32_t min_height   = (90 * 4) / 3;
-    bool          down_size_on = true;
-
-    // Step 1: check frame type
-    // Don't resize on key frame; reset the counters on key frame.
-    if (ppcs->frm_hdr.frame_type == KEY_FRAME) {
-        rc->resize_avg_qp           = 0;
-        rc->resize_count            = 0;
-        rc->resize_buffer_underflow = 0;
-        return;
-    }
-
-    // Step 2: check frame size
-    // No resizing down if frame size is below some limit.
-    if ((ppcs->frame_width * ppcs->frame_height) < min_width * min_height)
-        down_size_on = false;
-
-    // Step 3: calculate dynamic resize state
-    // Resize based on average buffer underflow and QP over some window.
-    // Ignore samples close to key frame, since QP is usually high after key.
-    if (rc->frames_since_key > scs->new_framerate) {
-        const int32_t window = AOMMIN(30, (int32_t)(2 * scs->new_framerate));
-        rc->resize_avg_qp += rc->last_q[INTER_FRAME];
-        if (rc->buffer_level < (int32_t)(30 * rc->optimal_buffer_level / 100))
-            ++rc->resize_buffer_underflow;
-        ++rc->resize_count;
-        // Check for resize action every "window" frames.
-        if (rc->resize_count >= window) {
-            int32_t avg_qp = rc->resize_avg_qp / rc->resize_count;
-            // Resize down if buffer level has underflowed sufficient amount in past
-            // window, and we are at original or 3/4 of original resolution.
-            // Resize back up if average QP is low, and we are currently in a resized
-            // down state, i.e. 1/2 or 3/4 of original resolution.
-            // Currently, use a flag to turn 3/4 resizing feature on/off.
-            if (rc->resize_buffer_underflow > (rc->resize_count >> 2) && down_size_on) {
-                if (rc->resize_state == THREE_QUARTER) {
-                    resize_action = DOWN_ONEHALF;
-                    printf("Dynamic resize: %d --> %d\n", rc->resize_state, ONE_HALF);
-                    rc->resize_state = ONE_HALF;
-                } else if (rc->resize_state == ORIG) {
-                    resize_action = DOWN_THREEFOUR;
-                    printf("Dynamic resize: %d --> %d\n", rc->resize_state, THREE_QUARTER);
-                    rc->resize_state = THREE_QUARTER;
-                }
-            } else if (rc->resize_state != ORIG && avg_qp < avg_qp_thr1 * rc->worst_quality / 100) {
-                if (rc->resize_state == THREE_QUARTER || avg_qp < avg_qp_thr2 * rc->worst_quality / 100) {
-                    resize_action = UP_ORIG;
-                    printf("Dynamic resize: %d --> %d\n", rc->resize_state, ORIG);
-                    rc->resize_state = ORIG;
-                } else if (rc->resize_state == ONE_HALF) {
-                    resize_action = UP_THREEFOUR;
-                    printf("Dynamic resize: %d --> %d\n", rc->resize_state, THREE_QUARTER);
-                    rc->resize_state = THREE_QUARTER;
-                }
-            }
-            // Reset for next window measurement.
-            rc->resize_avg_qp           = 0;
-            rc->resize_count            = 0;
-            rc->resize_buffer_underflow = 0;
-        }
-    }
-
-    // Step 4: reset rate control configuration
-    // If decision is to resize, reset some quantities, and check is we should
-    // reduce rate correction factor,
-    if (resize_action != NO_RESIZE) {
-        int32_t resize_width     = ppcs->frame_width; // cpi->oxcf.frm_dim_cfg.width;
-        int32_t resize_height    = ppcs->frame_height; // cpi->oxcf.frm_dim_cfg.height;
-        int32_t resize_scale_num = 1;
-        int32_t resize_scale_den = 1;
-        if (resize_action == DOWN_THREEFOUR || resize_action == UP_THREEFOUR) {
-            resize_scale_num = 3;
-            resize_scale_den = 4;
-        } else if (resize_action == DOWN_ONEHALF) {
-            resize_scale_num = 1;
-            resize_scale_den = 2;
-        }
-        resize_width  = resize_width * resize_scale_num / resize_scale_den;
-        resize_height = resize_height * resize_scale_num / resize_scale_den;
-        svt_av1_resize_reset_rc(ppcs, resize_width, resize_height, ppcs->frame_width, ppcs->frame_height);
-    }
-    return;
-}
-
 void svt_aom_one_pass_rt_rate_alloc(PictureParentControlSet *pcs) {
     SequenceControlSet *scs     = pcs->scs;
     EncodeContext      *enc_ctx = scs->enc_ctx;
@@ -1053,26 +960,7 @@ void svt_aom_one_pass_rt_rate_alloc(PictureParentControlSet *pcs) {
         rc->frames_to_key         = scs->static_config.intra_period_length + 1;
     }
 
-    /* resize dynamic mode make desicion of scaling here and store it in resize_pending_params,
-     * the actual resizing performs on the next new input picture in PD, current picture and
-     * other pictures already in pipeline use their own resolution without resizing
-     */
-    // resize dynamic mode only works with 1-pass CBR low delay mode
-    if (scs->static_config.resize_mode == RESIZE_DYNAMIC && scs->static_config.pass == ENC_SINGLE_PASS &&
-        scs->static_config.pred_structure == LOW_DELAY) {
-        dynamic_resize_one_pass_cbr(pcs);
-        if (rc->resize_state != scs->resize_pending_params.resize_state) {
-            if (rc->resize_state == ORIG)
-                scs->resize_pending_params.resize_denom = SCALE_NUMERATOR;
-            else if (rc->resize_state == THREE_QUARTER)
-                scs->resize_pending_params.resize_denom = SCALE_THREE_QUATER;
-            else if (rc->resize_state == ONE_HALF)
-                scs->resize_pending_params.resize_denom = SCALE_DENOMINATOR_MAX;
-            else
-                svt_aom_assert_err(0, "unknown resize denom");
-            scs->resize_pending_params.resize_state = rc->resize_state;
-        }
-    } else if (pcs->rc_reset_flag) {
+    if (pcs->rc_reset_flag) {
         svt_av1_resize_reset_rc(
             pcs, pcs->render_width, pcs->render_height, scs->max_input_luma_width, scs->max_input_luma_height);
     }
@@ -1188,8 +1076,6 @@ void svt_aom_set_rc_param(SequenceControlSet *scs) {
     // todo: to expose to a cli parameter
     enc_ctx->rc_cfg.max_intra_bitrate_pct = 300;
 
-    enc_ctx->sf_cfg.sframe_dist = scs->static_config.sframe_dist;
-    enc_ctx->sf_cfg.sframe_mode = scs->static_config.sframe_mode;
 }
 /******************************************************
  * Read Stat from File

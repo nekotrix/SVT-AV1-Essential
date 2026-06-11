@@ -295,8 +295,8 @@ void svt_av1_loop_restoration_filter_unit(uint8_t need_bounadaries, const Restor
                                           int32_t bit_depth, uint8_t *data8, int32_t stride, uint8_t *dst8,
                                           int32_t dst_stride, int32_t *tmpbuf, int32_t optimized_lr);
 
-// Returns 1 if a superres upscaled frame is unscaled and 0 otherwise.
-static INLINE int32_t av1_superres_unscaled(const FrameSize *frm_size) {
+// Returns 1 if the frame is unscaled and 0 otherwise.
+static INLINE int32_t av1_resize_unscaled(const FrameSize *frm_size) {
     return (frm_size->frame_width == frm_size->superres_upscaled_width);
 }
 

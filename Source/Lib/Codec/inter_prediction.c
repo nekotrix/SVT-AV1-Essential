@@ -58,16 +58,6 @@ void svt_aom_subtract_block_c(int rows, int cols, int16_t *diff, ptrdiff_t diff_
     }
 }
 
-static void diffwtd_mask(uint8_t *mask, int which_inverse, int mask_base, const uint8_t *src0, int src0_stride,
-                         const uint8_t *src1, int src1_stride, int h, int w) {
-    for (int i = 0; i < h; ++i) {
-        for (int j = 0; j < w; ++j) {
-            int diff        = abs((int)src0[i * src0_stride + j] - (int)src1[i * src1_stride + j]);
-            int m           = clamp(mask_base + (diff / DIFF_FACTOR), 0, AOM_BLEND_A64_MAX_ALPHA);
-            mask[i * w + j] = which_inverse ? AOM_BLEND_A64_MAX_ALPHA - m : m;
-        }
-    }
-}
 static AOM_FORCE_INLINE void diffwtd_mask_highbd(uint8_t *mask, int which_inverse, int mask_base, const uint16_t *src0,
                                                  int src0_stride, const uint16_t *src1, int src1_stride, int h, int w,
                                                  const unsigned int bd) {
@@ -137,15 +127,6 @@ void svt_av1_build_compound_diffwtd_mask_highbd_c(uint8_t *mask, DIFFWTD_MASK_TY
     case DIFFWTD_38_INV:
         diffwtd_mask_highbd(mask, 1, 38, (uint16_t *)src0, src0_stride, (uint16_t *)src1, src1_stride, h, w, bd);
         break;
-    default: assert(0);
-    }
-}
-
-void svt_av1_build_compound_diffwtd_mask_c(uint8_t *mask, DIFFWTD_MASK_TYPE mask_type, const uint8_t *src0,
-                                           int src0_stride, const uint8_t *src1, int src1_stride, int h, int w) {
-    switch (mask_type) {
-    case DIFFWTD_38: diffwtd_mask(mask, 0, 38, src0, src0_stride, src1, src1_stride, h, w); break;
-    case DIFFWTD_38_INV: diffwtd_mask(mask, 1, 38, src0, src0_stride, src1, src1_stride, h, w); break;
     default: assert(0);
     }
 }

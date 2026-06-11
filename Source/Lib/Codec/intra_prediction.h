@@ -110,20 +110,10 @@ void filter_intra_edge_corner_high(uint16_t *p_above, uint16_t *p_left);
 void svt_aom_highbd_filter_intra_predictor(uint16_t *dst, ptrdiff_t stride, TxSize tx_size, const uint16_t *above,
                                            const uint16_t *left, int mode, int bd);
 
-extern void svt_cfl_luma_subsampling_420_lbd_c(const uint8_t *input, // AMIR-> Changed to 8 bit
-                                               int32_t input_stride, int16_t *output_q3, int32_t width, int32_t height);
 extern void svt_cfl_luma_subsampling_420_hbd_c(const uint16_t *input, int32_t input_stride, int16_t *output_q3,
                                                int32_t width, int32_t height);
 extern void svt_subtract_average_c(int16_t *pred_buf_q3, int32_t width, int32_t height, int32_t round_offset,
                                    int32_t num_pel_log2);
-
-//CFL_PREDICT_FN(c, lbd)
-
-void svt_cfl_predict_lbd_c(const int16_t *pred_buf_q3,
-                           uint8_t       *pred, // AMIR ADDED
-                           int32_t        pred_stride,
-                           uint8_t       *dst, // AMIR changed to 8 bit
-                           int32_t dst_stride, int32_t alpha_q3, int32_t bit_depth, int32_t width, int32_t height);
 
 void svt_cfl_predict_hbd_c(const int16_t *pred_buf_q3,
                            uint16_t      *pred, // AMIR ADDED

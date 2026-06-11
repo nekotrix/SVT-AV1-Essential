@@ -70,14 +70,11 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
     SequenceControlSet             *scs                      = enc_handle_ptr->scs_instance->scs;
     const EbSvtAv1EncConfiguration *static_config            = &scs->static_config;
     EbColorFormat                   color_format             = static_config->encoder_color_format;
-    int8_t                          enable_hbd_mode_decision = scs->enable_hbd_mode_decision;
 
     EncDecContext *ed_ctx;
     EB_CALLOC_ARRAY(ed_ctx, 1);
     thread_ctx->priv  = ed_ctx;
     thread_ctx->dctor = enc_dec_context_dctor;
-
-    ed_ctx->is_16bit = scs->is_16bit_pipeline;
 
     // Input/Output System Resource Manager FIFOs
     ed_ctx->mode_decision_input_fifo_ptr = svt_system_resource_get_consumer_fifo(
@@ -89,7 +86,6 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
 
     // Prediction Buffer
     ed_ctx->input_sample16bit_buffer = NULL;
-    if (ed_ctx->is_16bit)
         EB_NEW(ed_ctx->input_sample16bit_buffer,
                svt_picture_buffer_desc_ctor,
                &(EbPictureBufferDescInitData){
@@ -115,11 +111,9 @@ EbErrorType svt_aom_enc_dec_context_ctor(EbThreadContext *thread_ctx, const EbEn
            static_config->encoder_bit_depth,
            0,
            0,
-           enable_hbd_mode_decision == DEFAULT ? 2 : enable_hbd_mode_decision,
            scs->seq_qp_mod);
 
-    if (enable_hbd_mode_decision)
-        ed_ctx->md_ctx->input_sample16bit_buffer = ed_ctx->input_sample16bit_buffer;
+    ed_ctx->md_ctx->input_sample16bit_buffer = ed_ctx->input_sample16bit_buffer;
 
     ed_ctx->md_ctx->ed_ctx = ed_ctx;
 
@@ -149,12 +143,9 @@ static void reset_encode_pass_neighbor_arrays(PictureControlSet *pcs, uint16_t t
     svt_aom_neighbor_array_unit_reset(pcs->ep_cr_dc_sign_level_coeff_na_update[tile_idx]);
     svt_aom_neighbor_array_unit_reset(pcs->ep_partition_context_na[tile_idx]);
     svt_aom_neighbor_array_unit_reset(pcs->ep_txfm_context_na[tile_idx]);
-    // TODO(Joel): 8-bit ep_luma_recon_na (Cb,Cr) when is_16bit==0?
-    if (pcs->ppcs->scs->is_16bit_pipeline) {
-        svt_aom_neighbor_array_unit_reset(pcs->ep_luma_recon_na_16bit[tile_idx]);
-        svt_aom_neighbor_array_unit_reset(pcs->ep_cb_recon_na_16bit[tile_idx]);
-        svt_aom_neighbor_array_unit_reset(pcs->ep_cr_recon_na_16bit[tile_idx]);
-    }
+    svt_aom_neighbor_array_unit_reset(pcs->ep_luma_recon_na_16bit[tile_idx]);
+    svt_aom_neighbor_array_unit_reset(pcs->ep_cb_recon_na_16bit[tile_idx]);
+    svt_aom_neighbor_array_unit_reset(pcs->ep_cr_recon_na_16bit[tile_idx]);
     return;
 }
 
@@ -163,7 +154,6 @@ static void reset_encode_pass_neighbor_arrays(PictureControlSet *pcs, uint16_t t
  **************************************************/
 static void reset_enc_dec(EncDecContext *ed_ctx, PictureControlSet *pcs, SequenceControlSet *scs,
                           uint32_t segment_index) {
-    ed_ctx->is_16bit        = scs->is_16bit_pipeline;
     ed_ctx->bit_depth       = scs->static_config.encoder_bit_depth;
     uint16_t tile_group_idx = ed_ctx->tile_group_index;
     svt_aom_lambda_assign(pcs,
@@ -440,7 +430,6 @@ void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
     svt_block_on_mutex(enc_ctx->total_number_of_recon_frame_mutex);
 
     if (!pcs->ppcs->is_alt_ref) {
-        bool             is_16bit = (scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
         EbObjectWrapper *output_recon_wrapper_ptr;
         // Get Recon Buffer
         svt_get_empty_object(scs->enc_ctx->recon_output_fifo_ptr, &output_recon_wrapper_ptr);
@@ -464,7 +453,7 @@ void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
 
             EbPictureBufferDesc *recon_ptr;
             EbPictureBufferDesc *intermediate_buffer_ptr = NULL;
-            svt_aom_get_recon_pic(pcs, &recon_ptr, is_16bit);
+            svt_aom_get_recon_pic(pcs, &recon_ptr, true);
 
             const uint32_t color_format = recon_ptr->color_format;
             const uint16_t ss_x         = (color_format == EB_YUV444 ? 0 : 1);
@@ -487,11 +476,7 @@ void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
                 temp_recon_desc_init_data.split_mode    = false;
                 temp_recon_desc_init_data.color_format  = scs->static_config.encoder_color_format;
 
-                if (is_16bit) {
-                    temp_recon_desc_init_data.bit_depth = EB_SIXTEEN_BIT;
-                } else {
-                    temp_recon_desc_init_data.bit_depth = EB_EIGHT_BIT;
-                }
+                temp_recon_desc_init_data.bit_depth = EB_SIXTEEN_BIT;
 
                 EB_NO_THROW_NEW(
                     intermediate_buffer_ptr, svt_recon_picture_buffer_desc_ctor, (EbPtr)&temp_recon_desc_init_data);
@@ -521,9 +506,9 @@ void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
             // Y Recon Samples
             sample_total_count = ((pcs->scs->max_initial_input_luma_width - scs->max_initial_input_pad_right) *
                                   (pcs->scs->max_initial_input_luma_height - scs->max_initial_input_pad_bottom))
-                << is_16bit;
-            recon_read_ptr = recon_ptr->buffer_y + (recon_ptr->org_y << is_16bit) * recon_ptr->stride_y +
-                (recon_ptr->org_x << is_16bit);
+                << 1;
+            recon_read_ptr = recon_ptr->buffer_y + (recon_ptr->org_y << 1) * recon_ptr->stride_y +
+                (recon_ptr->org_x << 1);
             recon_write_ptr = &(output_recon_ptr->p_buffer[output_recon_ptr->n_filled_len]);
             // Reset the Luma buffer for the case on changing the resolution on the fly
             memset(recon_write_ptr, 0, sample_total_count);
@@ -539,7 +524,7 @@ void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
                 pcs->scs->max_initial_input_luma_width - scs->pad_right, // use the full res stride
                 recon_w - scs->pad_right,
                 recon_h - scs->pad_bottom,
-                1 << is_16bit);
+                1 << 1);
 
             output_recon_ptr->n_filled_len += sample_total_count;
 
@@ -548,9 +533,9 @@ void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
             sample_total_count =
                 (((pcs->scs->max_initial_input_luma_width + ss_x - scs->max_initial_input_pad_right) >> ss_x) *
                  ((pcs->scs->max_initial_input_luma_height + ss_y - scs->max_initial_input_pad_bottom) >> ss_y))
-                << is_16bit;
-            recon_read_ptr = recon_ptr->buffer_cb + ((recon_ptr->org_y << is_16bit) >> ss_y) * recon_ptr->stride_cb +
-                ((recon_ptr->org_x << is_16bit) >> ss_x);
+                << 1;
+            recon_read_ptr = recon_ptr->buffer_cb + ((recon_ptr->org_y << 1) >> ss_y) * recon_ptr->stride_cb +
+                ((recon_ptr->org_x << 1) >> ss_x);
             recon_write_ptr = &(output_recon_ptr->p_buffer[output_recon_ptr->n_filled_len]);
 
             // Reset the Chroma buffer for the case on changing the resolution on the fly
@@ -567,16 +552,16 @@ void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
                                         (pcs->scs->max_initial_input_luma_width + ss_x - scs->pad_right) >> ss_x,
                                         (recon_w + ss_x - scs->pad_right) >> ss_x,
                                         (recon_h + ss_y - scs->pad_bottom) >> ss_y,
-                                        1 << is_16bit);
+                                        1 << 1);
             output_recon_ptr->n_filled_len += sample_total_count;
 
             // V Recon Samples
             sample_total_count =
                 (((pcs->scs->max_initial_input_luma_width + ss_x - scs->max_initial_input_pad_right) >> ss_x) *
                  ((pcs->scs->max_initial_input_luma_height + ss_y - scs->max_initial_input_pad_bottom) >> ss_y))
-                << is_16bit;
-            recon_read_ptr = recon_ptr->buffer_cr + ((recon_ptr->org_y << is_16bit) >> ss_y) * recon_ptr->stride_cr +
-                ((recon_ptr->org_x << is_16bit) >> ss_x);
+                << 1;
+            recon_read_ptr = recon_ptr->buffer_cr + ((recon_ptr->org_y << 1) >> ss_y) * recon_ptr->stride_cr +
+                ((recon_ptr->org_x << 1) >> ss_x);
             recon_write_ptr = &(output_recon_ptr->p_buffer[output_recon_ptr->n_filled_len]);
             // Reset the Chroma buffer for the case on changing the resolution on the fly
             memset(recon_write_ptr, 0, sample_total_count);
@@ -591,7 +576,7 @@ void svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs) {
                                         (pcs->scs->max_initial_input_luma_width + ss_x - scs->pad_right) >> ss_x,
                                         (recon_w + ss_x - scs->pad_right) >> ss_x,
                                         (recon_h + ss_y - scs->pad_bottom) >> ss_y,
-                                        1 << is_16bit);
+                                        1 << 1);
             output_recon_ptr->n_filled_len += sample_total_count;
             output_recon_ptr->pts = pcs->picture_number;
 
@@ -776,29 +761,24 @@ void free_temporal_filtering_buffer(PictureControlSet *pcs, SequenceControlSet *
     EB_FREE_ARRAY(pcs->ppcs->save_source_picture_ptr[1]);
     EB_FREE_ARRAY(pcs->ppcs->save_source_picture_ptr[2]);
 
-    bool is_16bit = (scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
-    if (is_16bit) {
-        EB_FREE_ARRAY(pcs->ppcs->save_source_picture_bit_inc_ptr[0]);
-        EB_FREE_ARRAY(pcs->ppcs->save_source_picture_bit_inc_ptr[1]);
-        EB_FREE_ARRAY(pcs->ppcs->save_source_picture_bit_inc_ptr[2]);
-    }
+    EB_FREE_ARRAY(pcs->ppcs->save_source_picture_bit_inc_ptr[0]);
+    EB_FREE_ARRAY(pcs->ppcs->save_source_picture_bit_inc_ptr[1]);
+    EB_FREE_ARRAY(pcs->ppcs->save_source_picture_bit_inc_ptr[2]);
 }
 
 EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet *scs, bool free_memory) {
-    bool is_16bit = (scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
-
     const uint32_t ss_x = scs->subsampling_x;
     const uint32_t ss_y = scs->subsampling_y;
 
     EbPictureBufferDesc *recon_ptr;
     EbPictureBufferDesc *input_pic = (EbPictureBufferDesc *)pcs->ppcs->enhanced_unscaled_pic;
-    svt_aom_get_recon_pic(pcs, &recon_ptr, is_16bit);
+    svt_aom_get_recon_pic(pcs, &recon_ptr, true);
 
     // upscale recon if resized
     EbPictureBufferDesc *upscaled_recon = NULL;
     bool                 is_resized = recon_ptr->width != input_pic->width || recon_ptr->height != input_pic->height;
     if (is_resized) {
-        superres_params_type spr_params = {input_pic->width, input_pic->height, 0};
+        resize_params_type spr_params = {input_pic->width, input_pic->height, 0};
         svt_aom_downscaled_source_buffer_desc_ctor(&upscaled_recon, recon_ptr, spr_params);
         svt_aom_resize_frame(recon_ptr,
                              upscaled_recon,
@@ -817,60 +797,7 @@ EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet
     const int32_t recon_org_x_c = recon_ptr->org_x >> ss_x;
     const int32_t recon_org_y_c = recon_ptr->org_y >> ss_y;
 
-    if (!is_16bit) {
-        EbByte input_buffer;
-        EbByte recon_buffer;
-        EbByte buffer_y;
-        EbByte buffer_cb;
-        EbByte buffer_cr;
-
-        // if current source picture was temporally filtered, use an alternative buffer which stores
-        // the original source picture
-        if (pcs->ppcs->do_tf == true) {
-            assert(pcs->ppcs->save_source_picture_width == input_pic->width &&
-                   pcs->ppcs->save_source_picture_height == input_pic->height);
-            buffer_y  = pcs->ppcs->save_source_picture_ptr[0];
-            buffer_cb = pcs->ppcs->save_source_picture_ptr[1];
-            buffer_cr = pcs->ppcs->save_source_picture_ptr[2];
-        } else {
-            buffer_y  = input_pic->buffer_y;
-            buffer_cb = input_pic->buffer_cb;
-            buffer_cr = input_pic->buffer_cr;
-        }
-
-        recon_buffer         = &recon_ptr->buffer_y[recon_ptr->org_x + recon_ptr->org_y * recon_ptr->stride_y];
-        input_buffer         = &buffer_y[input_pic->org_x + input_pic->org_y * input_pic->stride_y];
-        pcs->ppcs->luma_ssim = aom_ssim2(input_buffer,
-                                         input_pic->stride_y,
-                                         recon_buffer,
-                                         recon_ptr->stride_y,
-                                         scs->max_input_luma_width,
-                                         scs->max_input_luma_height);
-
-        recon_buffer       = &recon_ptr->buffer_cb[recon_org_x_c + recon_org_y_c * recon_ptr->stride_cb];
-        input_buffer       = &buffer_cb[input_org_x_c + input_org_y_c * input_pic->stride_cb];
-        pcs->ppcs->cb_ssim = aom_ssim2(input_buffer,
-                                       input_pic->stride_cb,
-                                       recon_buffer,
-                                       recon_ptr->stride_cb,
-                                       scs->chroma_width,
-                                       scs->chroma_height);
-
-        recon_buffer       = &recon_ptr->buffer_cr[recon_org_x_c + recon_org_y_c * recon_ptr->stride_cr];
-        input_buffer       = &buffer_cr[input_org_x_c + input_org_y_c * input_pic->stride_cr];
-        pcs->ppcs->cr_ssim = aom_ssim2(input_buffer,
-                                       input_pic->stride_cr,
-                                       recon_buffer,
-                                       recon_ptr->stride_cr,
-                                       scs->chroma_width,
-                                       scs->chroma_height);
-
-        if (free_memory && pcs->ppcs->do_tf == true) {
-            EB_FREE_ARRAY(buffer_y);
-            EB_FREE_ARRAY(buffer_cb);
-            EB_FREE_ARRAY(buffer_cr);
-        }
-    } else {
+    {
         EbByte    input_buffer;
         EbByte    input_buffer_bit_inc;
         uint16_t *recon_buffer;
@@ -999,20 +926,18 @@ static int64_t get_sse_10bit(const uint8_t *a_hi, int32_t a_hi_stride, const uin
 }
 
 EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, bool free_memory) {
-    bool is_16bit = (scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
-
     const uint32_t ss_x = scs->subsampling_x;
     const uint32_t ss_y = scs->subsampling_y;
 
     EbPictureBufferDesc *recon_ptr;
     EbPictureBufferDesc *input_pic = (EbPictureBufferDesc *)pcs->ppcs->enhanced_unscaled_pic;
-    svt_aom_get_recon_pic(pcs, &recon_ptr, is_16bit);
+    svt_aom_get_recon_pic(pcs, &recon_ptr, true);
 
     // upscale recon if resized
     EbPictureBufferDesc *upscaled_recon = NULL;
     bool                 is_resized = recon_ptr->width != input_pic->width || recon_ptr->height != input_pic->height;
     if (is_resized) {
-        superres_params_type spr_params = {input_pic->width, input_pic->height, 0};
+        resize_params_type spr_params = {input_pic->width, input_pic->height, 0};
         svt_aom_downscaled_source_buffer_desc_ctor(&upscaled_recon, recon_ptr, spr_params);
         svt_aom_resize_frame(recon_ptr,
                              upscaled_recon,
@@ -1034,48 +959,7 @@ EbErrorType psnr_calculations(PictureControlSet *pcs, SequenceControlSet *scs, b
     const int32_t recon_org_x_c = recon_ptr->org_x >> ss_x;
     const int32_t recon_org_y_c = recon_ptr->org_y >> ss_y;
 
-    if (!is_16bit) {
-        EbByte input_buffer;
-        EbByte recon_buffer;
-        EbByte buffer_y;
-        EbByte buffer_cb;
-        EbByte buffer_cr;
-
-        // if current source picture was temporally filtered, use an alternative buffer which stores
-        // the original source picture
-        if (pcs->ppcs->do_tf == true) {
-            assert(pcs->ppcs->save_source_picture_width == input_pic->width &&
-                   pcs->ppcs->save_source_picture_height == input_pic->height);
-            buffer_y  = pcs->ppcs->save_source_picture_ptr[0];
-            buffer_cb = pcs->ppcs->save_source_picture_ptr[1];
-            buffer_cr = pcs->ppcs->save_source_picture_ptr[2];
-        } else {
-            buffer_y  = input_pic->buffer_y;
-            buffer_cb = input_pic->buffer_cb;
-            buffer_cr = input_pic->buffer_cr;
-        }
-
-        recon_buffer        = &recon_ptr->buffer_y[recon_ptr->org_x + recon_ptr->org_y * recon_ptr->stride_y];
-        input_buffer        = &buffer_y[input_pic->org_x + input_pic->org_y * input_pic->stride_y];
-        pcs->ppcs->luma_sse = svt_aom_get_sse(
-            input_buffer, input_pic->stride_y, recon_buffer, recon_ptr->stride_y, pic_w, pic_h);
-
-        recon_buffer      = &recon_ptr->buffer_cb[recon_org_x_c + recon_org_y_c * recon_ptr->stride_cb];
-        input_buffer      = &buffer_cb[input_org_x_c + input_org_y_c * input_pic->stride_cb];
-        pcs->ppcs->cb_sse = svt_aom_get_sse(
-            input_buffer, input_pic->stride_cb, recon_buffer, recon_ptr->stride_cb, pic_w >> ss_x, pic_h >> ss_y);
-
-        recon_buffer      = &recon_ptr->buffer_cr[recon_org_x_c + recon_org_y_c * recon_ptr->stride_cr];
-        input_buffer      = &buffer_cr[input_org_x_c + input_org_y_c * input_pic->stride_cr];
-        pcs->ppcs->cr_sse = svt_aom_get_sse(
-            input_buffer, input_pic->stride_cr, recon_buffer, recon_ptr->stride_cr, pic_w >> ss_x, pic_h >> ss_y);
-
-        if (free_memory && pcs->ppcs->do_tf == true) {
-            EB_FREE_ARRAY(buffer_y);
-            EB_FREE_ARRAY(buffer_cb);
-            EB_FREE_ARRAY(buffer_cr);
-        }
-    } else {
+    {
         EbByte    input_buffer;
         EbByte    input_buffer_bit_inc;
         uint16_t *recon_buffer;
@@ -1194,40 +1078,12 @@ void pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *scs) {
         svt_aom_get_recon_pic(pcs, &ref_pic_ptr, 0);
         svt_aom_get_recon_pic(pcs, &ref_pic_16bit_ptr, 1);
     }
-    const bool     is_16bit     = (scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
     const uint32_t color_format = ref_pic_ptr->color_format;
     const uint16_t ss_x         = (color_format == EB_YUV444 ? 0 : 1);
     const uint16_t ss_y         = (color_format >= EB_YUV422 ? 0 : 1);
 
-    if (!is_16bit) {
-        svt_aom_pad_picture_to_multiple_of_min_blk_size_dimensions(scs, ref_pic_ptr);
-        // Y samples
-        svt_aom_generate_padding(ref_pic_ptr->buffer_y,
-                                 ref_pic_ptr->stride_y,
-                                 ref_pic_ptr->width,
-                                 ref_pic_ptr->height,
-                                 ref_pic_ptr->org_x,
-                                 ref_pic_ptr->org_y);
-
-        // Cb samples
-        svt_aom_generate_padding(ref_pic_ptr->buffer_cb,
-                                 ref_pic_ptr->stride_cb,
-                                 (ref_pic_ptr->width + ss_x) >> ss_x,
-                                 (ref_pic_ptr->height + ss_y) >> ss_y,
-                                 (ref_pic_ptr->org_x + ss_x) >> ss_x,
-                                 (ref_pic_ptr->org_y + ss_y) >> ss_y);
-
-        // Cr samples
-        svt_aom_generate_padding(ref_pic_ptr->buffer_cr,
-                                 ref_pic_ptr->stride_cr,
-                                 (ref_pic_ptr->width + ss_x) >> ss_x,
-                                 (ref_pic_ptr->height + ss_y) >> ss_y,
-                                 (ref_pic_ptr->org_x + ss_x) >> ss_x,
-                                 (ref_pic_ptr->org_y + ss_y) >> ss_y);
-    }
-
     //We need this for MCP
-    if (is_16bit) {
+    {
         // Non visible Reference samples should be overwritten by the last visible line of pixels
         svt_aom_pad_picture_to_multiple_of_min_blk_size_dimensions_16bit(scs, ref_pic_16bit_ptr);
 
@@ -1280,63 +1136,6 @@ void pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *scs) {
                           ref_pic_ptr->stride_bit_inc_cr,
                           (ref_pic_16bit_ptr->width + ss_x + (ref_pic_ptr->org_x << 1)) >> ss_x,
                           (ref_pic_16bit_ptr->height + ss_y + (ref_pic_ptr->org_y << 1)) >> ss_y);
-    }
-    if ((scs->is_16bit_pipeline) && (!is_16bit)) {
-        // Y samples
-        svt_aom_generate_padding16_bit((uint16_t *)ref_pic_16bit_ptr->buffer_y,
-                                       ref_pic_16bit_ptr->stride_y,
-                                       ref_pic_16bit_ptr->width - scs->max_input_pad_right,
-                                       ref_pic_16bit_ptr->height - scs->max_input_pad_bottom,
-                                       ref_pic_16bit_ptr->org_x,
-                                       ref_pic_16bit_ptr->org_y);
-
-        // Cb samples
-        svt_aom_generate_padding16_bit((uint16_t *)ref_pic_16bit_ptr->buffer_cb,
-                                       ref_pic_16bit_ptr->stride_cb,
-                                       (ref_pic_16bit_ptr->width + ss_x - scs->max_input_pad_right) >> ss_x,
-                                       (ref_pic_16bit_ptr->height + ss_y - scs->max_input_pad_bottom) >> ss_y,
-                                       (ref_pic_16bit_ptr->org_x + ss_x) >> ss_x,
-                                       (ref_pic_16bit_ptr->org_y + ss_y) >> ss_y);
-
-        // Cr samples
-        svt_aom_generate_padding16_bit((uint16_t *)ref_pic_16bit_ptr->buffer_cr,
-                                       ref_pic_16bit_ptr->stride_cr,
-                                       (ref_pic_16bit_ptr->width + ss_x - scs->max_input_pad_right) >> ss_x,
-                                       (ref_pic_16bit_ptr->height + ss_y - scs->max_input_pad_bottom) >> ss_y,
-                                       (ref_pic_16bit_ptr->org_x + ss_x) >> ss_x,
-                                       (ref_pic_16bit_ptr->org_y + ss_y) >> ss_y);
-
-        // Hsan: unpack ref samples (to be used @ MD)
-
-        //Y
-        uint16_t *buf_16bit = (uint16_t *)(ref_pic_16bit_ptr->buffer_y);
-        uint8_t  *buf_8bit  = ref_pic_ptr->buffer_y;
-        svt_convert_16bit_to_8bit(buf_16bit,
-                                  ref_pic_16bit_ptr->stride_y,
-                                  buf_8bit,
-                                  ref_pic_ptr->stride_y,
-                                  ref_pic_16bit_ptr->width + (ref_pic_ptr->org_x << 1),
-                                  ref_pic_16bit_ptr->height + (ref_pic_ptr->org_y << 1));
-
-        //CB
-        buf_16bit = (uint16_t *)(ref_pic_16bit_ptr->buffer_cb);
-        buf_8bit  = ref_pic_ptr->buffer_cb;
-        svt_convert_16bit_to_8bit(buf_16bit,
-                                  ref_pic_16bit_ptr->stride_cb,
-                                  buf_8bit,
-                                  ref_pic_ptr->stride_cb,
-                                  (ref_pic_16bit_ptr->width + ss_x + (ref_pic_ptr->org_x << 1)) >> ss_x,
-                                  (ref_pic_16bit_ptr->height + ss_y + (ref_pic_ptr->org_y << 1)) >> ss_y);
-
-        //CR
-        buf_16bit = (uint16_t *)(ref_pic_16bit_ptr->buffer_cr);
-        buf_8bit  = ref_pic_ptr->buffer_cr;
-        svt_convert_16bit_to_8bit(buf_16bit,
-                                  ref_pic_16bit_ptr->stride_cr,
-                                  buf_8bit,
-                                  ref_pic_ptr->stride_cr,
-                                  (ref_pic_16bit_ptr->width + ss_x + (ref_pic_ptr->org_x << 1)) >> ss_x,
-                                  (ref_pic_16bit_ptr->height + ss_y + (ref_pic_ptr->org_y << 1)) >> ss_y);
     }
     // set up the ref POC
     ref_object->ref_poc = pcs->ppcs->picture_number;
@@ -2762,34 +2561,6 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
             // Post EncDec Results
             svt_post_full_object(enc_dec_results_wrapper);
         } else {
-            if (enc_dec_tasks->input_type == ENCDEC_TASKS_SUPERRES_INPUT) {
-                // do as dorecode do
-                pcs->enc_dec_coded_sb_count = 0;
-                // re-init mode decision configuration for qp update for re-encode frame
-                mdc_init_qp_update(pcs);
-                // init segment for re-encode frame
-                svt_aom_init_enc_dec_segement(pcs->ppcs);
-
-                // post tile based encdec task
-                EbObjectWrapper *enc_dec_re_encode_tasks_wrapper;
-                uint16_t         tg_count = pcs->ppcs->tile_group_cols * pcs->ppcs->tile_group_rows;
-                for (uint16_t tile_group_idx = 0; tile_group_idx < tg_count; tile_group_idx++) {
-                    svt_get_empty_object(ed_ctx->enc_dec_feedback_fifo_ptr, &enc_dec_re_encode_tasks_wrapper);
-
-                    EncDecTasks *enc_dec_re_encode_tasks_ptr = (EncDecTasks *)
-                                                                   enc_dec_re_encode_tasks_wrapper->object_ptr;
-                    enc_dec_re_encode_tasks_ptr->pcs_wrapper      = enc_dec_tasks->pcs_wrapper;
-                    enc_dec_re_encode_tasks_ptr->input_type       = ENCDEC_TASKS_MDC_INPUT;
-                    enc_dec_re_encode_tasks_ptr->tile_group_index = tile_group_idx;
-
-                    // Post the Full Results Object
-                    svt_post_full_object(enc_dec_re_encode_tasks_wrapper);
-                }
-
-                svt_release_object(enc_dec_tasks_wrapper);
-                continue;
-            }
-
             if (pcs->cdf_ctrl.enabled) {
                 if (!pcs->cdf_ctrl.update_mv)
                     copy_mv_rate(pcs, ed_ctx->md_ctx->rate_est_table);
@@ -2930,8 +2701,7 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                              ed_ctx->md_ctx->max_block_size == 32);
 
                         // If LPD0 is used, a more conservative level can be set for complex SBs
-                        const bool use_lpd0_classifier = !scs->static_config.rtc || pcs->ppcs->sc_class1 ||
-                            pcs->enc_mode <= ENC_M9;
+                        const bool use_lpd0_classifier = true;
                         if (use_lpd0_classifier && md_ctx->lpd0_ctrls.pd0_level > REGULAR_PD0) {
                             lpd0_detector(pcs, md_ctx, pic_width_in_sb);
                         }
@@ -3140,11 +2910,9 @@ void *svt_aom_mode_decision_kernel(void *input_ptr) {
                                2 * sizeof(int32_t));
                     pcs->ppcs->av1x->rdmult =
                         ed_ctx->pic_full_lambda[(ed_ctx->bit_depth == EB_TEN_BIT) ? EB_10_BIT_MD : EB_8_BIT_MD];
-                    if (pcs->ppcs->superres_total_recode_loop == 0) {
-                        svt_release_object(pcs->ppcs->me_data_wrapper);
-                        pcs->ppcs->me_data_wrapper = (EbObjectWrapper *)NULL;
-                        pcs->ppcs->pa_me_data      = NULL;
-                    }
+                    svt_release_object(pcs->ppcs->me_data_wrapper);
+                    pcs->ppcs->me_data_wrapper = (EbObjectWrapper *)NULL;
+                    pcs->ppcs->pa_me_data      = NULL;
                     // Get Empty EncDec Results
                     svt_get_empty_object(ed_ctx->enc_dec_output_fifo_ptr, &enc_dec_results_wrapper);
                     enc_dec_results              = (EncDecResults *)enc_dec_results_wrapper->object_ptr;

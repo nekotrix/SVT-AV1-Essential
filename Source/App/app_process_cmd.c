@@ -1071,7 +1071,7 @@ void process_output_stream_buffer(EncChannel *channel, EncApp *enc_app, int32_t 
         : 1;
     while (is_alt_ref) {
         is_alt_ref = 0;
-        // If we are not in low-delay mode, this is a non-blocking call until all input frames are sent
+        // This is a non-blocking call until all input frames are sent
         EbErrorType stream_status = svt_av1_enc_get_packet(component_handle, &header_ptr, pic_send_done);
 
         if (stream_status == EB_ErrorMax) {

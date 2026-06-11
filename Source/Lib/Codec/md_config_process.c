@@ -886,15 +886,14 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             pcs->avg_me_clpx = avg_me_clpx / pcs->ppcs->b64_total_count;
         }
         pcs->coeff_lvl = INVALID_LVL;
-        if (!scs->static_config.rtc && pcs->slice_type != I_SLICE && !pcs->ppcs->sc_class1) {
+        if (pcs->slice_type != I_SLICE && !pcs->ppcs->sc_class1) {
             set_frame_coeff_lvl(pcs);
         }
         // -------
         // Scale references if resolution of the reference is different than the input
-        // super-res reference frame size is same as original input size, only check current frame scaled flag;
         // reference scaling resizes reference frame to different size, need check each reference frame for scaling
         // -------
-        if ((pcs->ppcs->frame_superres_enabled == 1 || scs->static_config.resize_mode != RESIZE_NONE) &&
+        if (scs->static_config.resize_mode != RESIZE_NONE &&
             pcs->slice_type != I_SLICE) {
             if (pcs->ppcs->is_ref == true && pcs->ppcs->ref_pic_wrapper != NULL) {
                 // update mi_rows and mi_cols for the reference pic wrapper (used in mfmv for other
@@ -968,8 +967,7 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
             frm_hdr->coded_lossless = pcs->lossless[0] = !pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
         }
 
-        // Derive all_lossless; if super-resolution is used, such a frame will still NOT be lossless at the upscaled resolution.
-        frm_hdr->all_lossless = frm_hdr->coded_lossless && av1_superres_unscaled(&(pcs->ppcs->av1_cm->frm_size));
+        frm_hdr->all_lossless = frm_hdr->coded_lossless;
 
         if (frm_hdr->coded_lossless) {
             pcs->ppcs->frm_hdr.delta_q_params.delta_q_present    = 0;
@@ -1004,17 +1002,11 @@ void *svt_aom_mode_decision_configuration_kernel(void *input_ptr) {
 
             EncDecTasks *enc_dec_tasks      = (EncDecTasks *)enc_dec_tasks_wrapper->object_ptr;
             enc_dec_tasks->pcs_wrapper      = rc_results->pcs_wrapper;
-            enc_dec_tasks->input_type       = rc_results->superres_recode ? ENCDEC_TASKS_SUPERRES_INPUT
-                                                                          : ENCDEC_TASKS_MDC_INPUT;
+            enc_dec_tasks->input_type       = ENCDEC_TASKS_MDC_INPUT;
             enc_dec_tasks->tile_group_index = tile_group_idx;
 
             // Post the Full Results Object
             svt_post_full_object(enc_dec_tasks_wrapper);
-
-            if (rc_results->superres_recode) {
-                // for superres input, only send one task
-                break;
-            }
         }
         // Release Rate Control Results
         svt_release_object(rc_results_wrapper);

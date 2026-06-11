@@ -17,7 +17,7 @@
 #include "svt_log.h"
 #include "intra_prediction.h"
 #include "pcs.h"
-#include "super_res.h"
+#include "resize.h"
 #include "pic_operators.h"
 #include "convolve.h"
 
@@ -1414,8 +1414,8 @@ int32_t svt_av1_loop_restoration_corners_in_sb(Av1Common *cm, SeqHeader *seq_hea
     const int32_t mi_size_x = MI_SIZE >> ss_x;
     const int32_t mi_size_y = MI_SIZE >> ss_y;
 
-    // Write m for the relative mi column or row, D for the superres denominator
-    // and N for the superres numerator. If u is the upscaled (called "unscaled"
+    // Write m for the relative mi column or row, D for the resize denominator
+    // and N for the resize numerator. If u is the upscaled (called "unscaled"
     // elsewhere) pixel offset then we can write the downscaled pixel offset in
     // two ways as:
     //
@@ -1423,10 +1423,10 @@ int32_t svt_av1_loop_restoration_corners_in_sb(Av1Common *cm, SeqHeader *seq_hea
     //
     // from which we get u = D * MI_SIZE * m / N
 
-    const int     mi_to_num_x = !av1_superres_unscaled(&cm->frm_size) ? mi_size_x * cm->frm_size.superres_denominator
+    const int     mi_to_num_x = !av1_resize_unscaled(&cm->frm_size) ? mi_size_x * cm->frm_size.superres_denominator
                                                                       : mi_size_x;
     const int     mi_to_num_y = mi_size_y;
-    const int     denom_x     = !av1_superres_unscaled(&cm->frm_size) ? size * SCALE_NUMERATOR : size;
+    const int     denom_x     = !av1_resize_unscaled(&cm->frm_size) ? size * SCALE_NUMERATOR : size;
     const int32_t denom_y     = size;
 
     const int32_t rnd_x = denom_x - 1;
@@ -1493,7 +1493,7 @@ void svt_aom_save_deblock_boundary_lines(uint8_t *src_buf, int32_t src_stride, i
     int32_t upscaled_width;
     int32_t line_bytes;
 
-    if (!av1_superres_unscaled(&cm->frm_size)) {
+    if (!av1_resize_unscaled(&cm->frm_size)) {
         int32_t sx     = is_uv && cm->subsampling_x;
         upscaled_width = (cm->frm_size.superres_upscaled_width + sx) >> sx;
         line_bytes     = upscaled_width << use_highbd;
@@ -1534,10 +1534,10 @@ void svt_aom_save_cdef_boundary_lines(uint8_t *src_buf, int32_t src_stride, int3
     uint8_t      *bdry_rows   = bdry_start + RESTORATION_CTX_VERT * stripe * bdry_stride;
 
     // At the point where this function is called, we've already applied
-    // superres. So we don't need to extend the lines here, we can just
+    // resize upscaling. So we don't need to extend the lines here, we can just
     // pull directly from the topmost row of the upscaled frame.
     const int32_t ss_x           = is_uv && cm->subsampling_x;
-    const int32_t upscaled_width = av1_superres_unscaled(&cm->frm_size)
+    const int32_t upscaled_width = av1_resize_unscaled(&cm->frm_size)
         ? src_width
         : (cm->frm_size.superres_upscaled_width + ss_x) >> ss_x;
     const int32_t line_bytes     = upscaled_width << use_highbd;

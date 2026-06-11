@@ -272,15 +272,6 @@ typedef struct SequenceControlSet {
     bool pic_based_rate_est;
 
     // MD Parameters
-    /* Enable the use of HBD (10-bit) for 10 bit content at the mode decision step
-     *
-     * 0 = 8bit mode decision
-     * 1 = 10bit mode decision
-     * 2 = Auto: 8bit & 10bit mode decision
-     *
-    * Default is 1. */
-    int8_t enable_hbd_mode_decision;
-
     /* Enable picture QP scaling between hierarchical levels
     *
     * Default is null.*/
@@ -303,8 +294,6 @@ typedef struct SequenceControlSet {
     bool stats_based_sb_lambda_modulation;
     // Desired dimensions for an externally triggered resize
     ResizePendingParams resize_pending_params;
-    // Enable low latency KF coding for RTC
-    bool          low_latency_kf;
     List0OnlyBase list0_only_base_ctrls;
     // Control if feature levels are directly modulated using the sequence QP.
     // 0: No seq QP modulation

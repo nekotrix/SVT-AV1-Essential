@@ -38,11 +38,9 @@ static const SsePartExtractorType sse_part_extractors[NUM_EXTRACTORS] = {
     svt_aom_get_y_sse_part,
     svt_aom_get_u_sse_part,
     svt_aom_get_v_sse_part,
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     svt_aom_highbd_get_y_sse_part,
     svt_aom_highbd_get_u_sse_part,
     svt_aom_highbd_get_v_sse_part,
-#endif
 };
 static int64_t sse_restoration_unit(const RestorationTileLimits *limits, const Yv12BufferConfig *src,
                                     const Yv12BufferConfig *dst, int32_t plane, int32_t highbd) {
@@ -221,7 +219,6 @@ int64_t svt_av1_lowbd_pixel_proj_error_c(const uint8_t *src8, int32_t width, int
     return err;
 }
 
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 int64_t svt_av1_highbd_pixel_proj_error_c(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride,
                                           const uint8_t *dat8, int32_t dat_stride, int32_t *flt0, int32_t flt0_stride,
                                           int32_t *flt1, int32_t flt1_stride, const int32_t xq[2],
@@ -293,7 +290,6 @@ int64_t svt_av1_highbd_pixel_proj_error_c(const uint8_t *src8, int32_t width, in
     }
     return err;
 }
-#endif
 
 static int64_t get_pixel_proj_error(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride,
                                     const uint8_t *dat8, int32_t dat_stride, int32_t use_highbitdepth, int32_t *flt0,
@@ -301,21 +297,15 @@ static int64_t get_pixel_proj_error(const uint8_t *src8, int32_t width, int32_t 
                                     const SgrParamsType *params) {
     int32_t xq[2];
     svt_decode_xq(xqd, xq, params);
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (!use_highbitdepth)
-#else
-    UNUSED(use_highbitdepth);
-#endif
     {
         return svt_av1_lowbd_pixel_proj_error(
             src8, width, height, src_stride, dat8, dat_stride, flt0, flt0_stride, flt1, flt1_stride, xq, params);
     }
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     else {
         return svt_av1_highbd_pixel_proj_error(
             src8, width, height, src_stride, dat8, dat_stride, flt0, flt0_stride, flt1, flt1_stride, xq, params);
     }
-#endif
 }
 
 static int64_t finer_search_pixel_proj_error(const uint8_t *src8, int32_t width, int32_t height, int32_t src_stride,
@@ -671,7 +661,6 @@ void svt_av1_compute_stats_c(int32_t wiener_win, const uint8_t *dgd, const uint8
         for (l = k + 1; l < wiener_win2; ++l) H[l * wiener_win2 + k] = H[k * wiener_win2 + l];
     }
 }
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
 void svt_av1_compute_stats_highbd_c(int32_t wiener_win, const uint8_t *dgd8, const uint8_t *src8, int32_t h_start,
                                     int32_t h_end, int32_t v_start, int32_t v_end, int32_t dgd_stride,
                                     int32_t src_stride, int64_t *M, int64_t *H, EbBitDepth bit_depth) {
@@ -722,7 +711,6 @@ void svt_av1_compute_stats_highbd_c(int32_t wiener_win, const uint8_t *dgd8, con
         }
     }
 }
-#endif
 
 static INLINE int32_t wrap_index(int32_t i, int32_t wiener_win) {
     const int32_t wiener_halfwin1 = (wiener_win >> 1) + 1;
@@ -1272,7 +1260,6 @@ static void search_wiener_seg(const RestorationTileLimits *limits, const Av1Pixe
         EB_ALIGN(32) int64_t H[WIENER_WIN2 * WIENER_WIN2];
         int32_t              vfilterd[WIENER_WIN], hfilterd[WIENER_WIN];
 
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (cm->use_highbitdepth) {
             svt_av1_compute_stats_highbd(wiener_win,
                                          rsc->dgd_buffer,
@@ -1287,7 +1274,6 @@ static void search_wiener_seg(const RestorationTileLimits *limits, const Av1Pixe
                                          H,
                                          (EbBitDepth)cm->bit_depth);
         } else
-#endif
         {
             svt_av1_compute_stats(wiener_win,
                                   rsc->dgd_buffer,

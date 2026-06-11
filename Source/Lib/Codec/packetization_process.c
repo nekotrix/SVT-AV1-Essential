@@ -23,11 +23,7 @@
 #include "svt_log.h"
 #include "EbSvtAv1ErrorCodes.h"
 #include "pd_results.h"
-#include "restoration.h" // RDCOST_DBL
 #include "rc_process.h"
-#include "enc_mode_config.h"
-
-#define RDCOST_DBL_WITH_NATIVE_BD_DIST(RM, R, D, BD) RDCOST_DBL((RM), (R), (double)((D) >> (2 * (BD - 8))))
 
 /**************************************
  * Context
@@ -46,9 +42,7 @@ typedef struct PacketizationContext {
 } PacketizationContext;
 void        free_temporal_filtering_buffer(PictureControlSet *pcs, SequenceControlSet *scs);
 void        svt_aom_recon_output(PictureControlSet *pcs, SequenceControlSet *scs);
-void        svt_aom_init_resize_picture(SequenceControlSet *scs, PictureParentControlSet *pcs);
 void        pad_ref_and_set_flags(PictureControlSet *pcs, SequenceControlSet *scs);
-void        svt_aom_update_rc_counts(PictureParentControlSet *ppcs);
 EbErrorType svt_aom_ssim_calculations(PictureControlSet *pcs, SequenceControlSet *scs, bool free_memory);
 
 static void packetization_context_dctor(EbPtr p) {
@@ -470,193 +464,7 @@ void *svt_aom_packetization_kernel(void *input_ptr) {
         uint16_t                 tile_cnt = cm->tiles_info.tile_rows * cm->tiles_info.tile_cols;
         PictureParentControlSet *ppcs     = (PictureParentControlSet *)pcs->ppcs;
 
-        if (ppcs->superres_total_recode_loop > 0 && ppcs->superres_recode_loop < ppcs->superres_total_recode_loop) {
-            // Reset the Bitstream before writing to it
-            svt_aom_bitstream_reset(pcs->bitstream_ptr);
-            svt_aom_write_frame_header_av1(pcs->bitstream_ptr, scs, pcs, 0);
-            int64_t bits = (int64_t)svt_aom_bitstream_get_bytes_count(pcs->bitstream_ptr) << 3;
-            int64_t rate = bits << 5; // To match scale.
-            svt_aom_bitstream_reset(pcs->bitstream_ptr);
-            int64_t sse       = ppcs->luma_sse;
-            uint8_t bit_depth = pcs->hbd_md ? 10 : 8;
-            uint8_t qindex    = ppcs->frm_hdr.quantization_params.base_q_idx;
-            int32_t rdmult    = svt_aom_compute_rd_mult(pcs, qindex, qindex, bit_depth);
-
-            double rdcost = RDCOST_DBL_WITH_NATIVE_BD_DIST(rdmult, rate, sse, scs->static_config.encoder_bit_depth);
-
-#if DEBUG_SUPERRES_RECODE
-            printf(
-                "\n####### %s - frame %d, loop %d/%d, denom %d, rate %I64d, sse %I64d, rdcost "
-                "%.2f, qindex %d, rdmult %d\n",
-                __FUNCTION__,
-                (int)ppcs->picture_number,
-                ppcs->superres_recode_loop,
-                ppcs->superres_total_recode_loop,
-                ppcs->superres_denom,
-                rate,
-                sse,
-                rdcost,
-                qindex,
-                rdmult);
-#endif
-
-            assert(ppcs->superres_total_recode_loop <= SCALE_NUMERATOR + 1);
-            ppcs->superres_rdcost[ppcs->superres_recode_loop] = rdcost;
-            ++ppcs->superres_recode_loop;
-
-            if (ppcs->superres_recode_loop <= ppcs->superres_total_recode_loop) {
-                bool do_recode = false;
-                if (ppcs->superres_recode_loop == ppcs->superres_total_recode_loop) {
-                    // compare rdcosts to determine whether need to recode again
-                    // rdcost is the smaller the better
-                    int best_index = 0;
-                    for (int i = 1; i < ppcs->superres_total_recode_loop; ++i) {
-                        double rdcost1 = ppcs->superres_rdcost[best_index];
-                        double rdcost2 = ppcs->superres_rdcost[i];
-                        if (rdcost2 < rdcost1) {
-                            best_index = i;
-                        }
-                    }
-
-                    if (best_index != ppcs->superres_total_recode_loop - 1) {
-                        do_recode            = true;
-                        ppcs->superres_denom = ppcs->superres_denom_array[best_index];
-#if DEBUG_SUPERRES_RECODE
-                        printf("\n####### %s - frame %d, extra loop, pick denom %d\n",
-                               __FUNCTION__,
-                               (int)ppcs->picture_number,
-                               ppcs->superres_denom);
-#endif
-                    }
-                } else {
-                    do_recode = true;
-                }
-
-                if (do_recode) {
-                    svt_aom_init_resize_picture(scs, ppcs);
-
-                    // reset gm based on super-res on/off
-                    bool super_res_off = ppcs->frame_superres_enabled == false &&
-                        scs->static_config.resize_mode == RESIZE_NONE;
-                    svt_aom_set_gm_controls(ppcs, svt_aom_derive_gm_level(ppcs, super_res_off));
-                    // Initialize Segments as picture decision process
-                    ppcs->me_segments_completion_count = 0;
-                    ppcs->me_processed_b64_count       = 0;
-
-                    if (ppcs->ref_pic_wrapper != NULL) {
-                        // update mi_rows and mi_cols for the reference pic wrapper (used in mfmv
-                        // for other pictures)
-                        EbReferenceObject *ref_object = ppcs->ref_pic_wrapper->object_ptr;
-                        svt_reference_object_reset(ref_object, scs);
-                    }
-#if DEBUG_SUPERRES_RECODE
-                    printf("\n%s - send superres recode task to open loop ME. Frame %d, denom %d\n",
-                           __FUNCTION__,
-                           (int)ppcs->picture_number,
-                           ppcs->superres_denom);
-#endif
-
-                    for (uint32_t segment_index = 0; segment_index < ppcs->me_segments_total_count; ++segment_index) {
-                        // Get Empty Results Object
-                        EbObjectWrapper *out_results_wrapper;
-                        svt_get_empty_object(context_ptr->picture_decision_results_output_fifo_ptr,
-                                             &out_results_wrapper);
-
-                        PictureDecisionResults *out_results = (PictureDecisionResults *)out_results_wrapper->object_ptr;
-                        out_results->pcs_wrapper            = ppcs->p_pcs_wrapper_ptr;
-                        out_results->segment_index          = segment_index;
-                        out_results->task_type              = TASK_SUPERRES_RE_ME;
-                        // Post the Full Results Object
-                        svt_post_full_object(out_results_wrapper);
-                    }
-
-                    // Release the Entropy Coding Result
-                    svt_release_object(entropy_coding_results_wrapper_ptr);
-                    continue;
-                }
-            }
-        }
-
-        if (ppcs->superres_total_recode_loop > 0) {
-            // Release pa_ref_objs
-            // Delayed call from Initial Rate Control process / Source Based Operations process
-            if (ppcs->tpl_ctrls.enable) {
-                if (ppcs->temporal_layer_index == 0) {
-                    for (uint32_t i = 0; i < ppcs->tpl_group_size; i++) {
-                        if (svt_aom_is_incomp_mg_frame(ppcs->tpl_group[i])) {
-                            if (ppcs->tpl_group[i]->ext_mg_id == ppcs->ext_mg_id + 1) {
-                                svt_aom_release_pa_reference_objects(scs, ppcs->tpl_group[i]);
-                            }
-                        } else {
-                            if (ppcs->tpl_group[i]->ext_mg_id == ppcs->ext_mg_id) {
-                                svt_aom_release_pa_reference_objects(scs, ppcs->tpl_group[i]);
-                            }
-                        }
-                    }
-                }
-            } else {
-                svt_aom_release_pa_reference_objects(scs, ppcs);
-            }
-
-            // Delayed call from Rate Control process for multiple coding loop frames
-            if (scs->static_config.rate_control_mode)
-                svt_aom_update_rc_counts(ppcs);
-
-            // Release pa me ptr. For non-superres-recode, it's released in svt_aom_mode_decision_kernel
-            assert(pcs->ppcs->me_data_wrapper != NULL);
-            assert(pcs->ppcs->pa_me_data != NULL);
-            svt_release_object(pcs->ppcs->me_data_wrapper);
-            pcs->ppcs->me_data_wrapper = NULL;
-            pcs->ppcs->pa_me_data      = NULL;
-
-            // Delayed call from Rest process
-            {
-                if (pcs->ppcs->compute_ssim) {
-                    // memory is freed in the svt_aom_ssim_calculations call
-                    svt_aom_ssim_calculations(pcs, scs, true);
-                } else {
-                    // free memory used by psnr_calculations
-                    free_temporal_filtering_buffer(pcs, scs);
-                }
-
-                if (scs->static_config.recon_enabled) {
-                    svt_aom_recon_output(pcs, scs);
-                }
-
-                if (ppcs->is_ref) {
-                    EbObjectWrapper     *picture_demux_results_wrapper_ptr;
-                    PictureDemuxResults *picture_demux_results_rtr;
-
-                    // Get Empty PicMgr Results
-                    svt_get_empty_object(context_ptr->picture_demux_fifo_ptr, &picture_demux_results_wrapper_ptr);
-
-                    picture_demux_results_rtr = (PictureDemuxResults *)picture_demux_results_wrapper_ptr->object_ptr;
-                    picture_demux_results_rtr->ref_pic_wrapper = ppcs->ref_pic_wrapper;
-                    picture_demux_results_rtr->scs             = ppcs->scs;
-                    picture_demux_results_rtr->picture_number  = ppcs->picture_number;
-                    picture_demux_results_rtr->picture_type    = EB_PIC_REFERENCE;
-
-                    // Post Reference Picture
-                    svt_post_full_object(picture_demux_results_wrapper_ptr);
-                }
-            }
-
-            // Delayed call from Entropy Coding process
-            {
-                // Release the reference Pictures from both lists
-                for (REF_FRAME_MINUS1 ref = LAST; ref < ALT + 1; ref++) {
-                    const uint8_t list_idx = get_list_idx(ref + 1);
-                    const uint8_t ref_idx  = get_ref_frame_idx(ref + 1);
-                    if (pcs->ref_pic_ptr_array[list_idx][ref_idx] != NULL) {
-                        svt_release_object(pcs->ref_pic_ptr_array[list_idx][ref_idx]);
-                    }
-                }
-
-                //free palette data
-                if (pcs->tile_tok[0][0])
-                    EB_FREE_ARRAY(pcs->tile_tok[0][0]);
-            }
-        } else if (!(pcs->ppcs->compute_psnr || pcs->ppcs->compute_ssim))
+        if (!(pcs->ppcs->compute_psnr || pcs->ppcs->compute_ssim))
             free_temporal_filtering_buffer(pcs, scs);
         //****************************************************
         // Input Entropy Results into Reordering Queue

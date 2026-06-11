@@ -163,7 +163,6 @@ typedef struct EncodeContext {
     TwoPassCfg           two_pass_cfg; // two pass datarate control
     RATE_CONTROL         rc;
     RateControlCfg       rc_cfg;
-    SwitchFrameCfg       sf_cfg;
     FIRSTPASS_STATS     *frame_stats_buffer;
     // Number of stats buffers required for look ahead
     int               num_lap_buffers;

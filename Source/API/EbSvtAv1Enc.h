@@ -101,24 +101,6 @@ struct EbSvtAv1MasteringDisplayInfo {
     uint32_t                    min_luma;
 };
 
-// super-res modes
-typedef enum {
-    SUPERRES_NONE, // No frame superres allowed.
-    SUPERRES_FIXED, // All frames are coded at the specified scale, and super-resolved.
-    SUPERRES_RANDOM, // All frames are coded at a random scale, and super-resolved.
-    SUPERRES_QTHRESH, // Superres scale for a frame is determined based on q_index.
-    SUPERRES_AUTO, // Automatically select superres for appropriate frames.
-    SUPERRES_MODES
-} SUPERRES_MODE;
-
-// super-res auto search type
-typedef enum {
-    SUPERRES_AUTO_ALL, // Tries all possible superres ratios
-    SUPERRES_AUTO_DUAL, // Tries no superres and q-based superres ratios
-    SUPERRES_AUTO_SOLO, // Only apply the q-based superres ratio
-    SUPERRES_AUTO_SEARCH_TYPES
-} SUPERRES_AUTO_SEARCH_TYPE;
-
 // reference scaling modes
 typedef enum {
     RESIZE_NONE, // No frame resize allowed.
@@ -151,19 +133,6 @@ typedef struct SvtAv1FixedBuf {
     void    *buf; /**< Pointer to the data. Does NOT own the data! */
     uint64_t sz; /**< Length of the buffer, in chars */
 } SvtAv1FixedBuf; /**< alias for struct aom_fixed_buf */
-
-/** Indicates how an S-Frame should be inserted.
-*/
-typedef enum EbSFrameMode {
-    SFRAME_STRICT_BASE =
-        1, /**< The considered frame will be made into an S-Frame only if it is a base layer inter frame */
-    SFRAME_NEAREST_BASE =
-        2, /**< If the considered frame is not an altref frame, the next base layer inter frame will be made into an S-Frame */
-    SFRAME_FLEXIBLE_BASE =
-        3, /**< If the considered frame is not an altref frame, modify the miniGOP layers to make the considered frame as an altref frame, then it will be made into an S-Frame */
-    SFRAME_DEC_POSI_BASE =
-        4, /**< If the considered frame in decode order is not an altref frame, modify the mini-GOP structure to promote its previous frame to an altref frame, and set the next altref to an S-Frame */
-} EbSFrameMode;
 
 /* Indicates what rate control mode is used.
  * Currently, cqp is distinguised by setting aq_mode to 0
@@ -209,14 +178,6 @@ typedef struct SvtAv1FrameScaleEvts {
     uint32_t *resize_kf_denoms;
     uint32_t *resize_denoms;
 } SvtAv1FrameScaleEvts;
-
-typedef struct SvtAv1SFramePositions {
-    uint32_t  sframe_num;
-    uint64_t *sframe_posis;
-    uint32_t  sframe_qp_num;
-    uint8_t  *sframe_qps;
-    int8_t   *sframe_qp_offsets;
-} SvtAv1SFramePositions;
 
 typedef struct QualityZone {
     uint32_t start_frame; // inclusive
@@ -277,18 +238,10 @@ typedef struct EbSvtAv1EncConfiguration {
      *
      * Default is auto */
     uint32_t hierarchical_levels;
-    /* Prediction structure used to construct GOP. There are two main structures
-     * supported, which are: Low Delay and Random Access.
-     *
-     * In Low Delay structure, pictures within a mini GOP refer to the previously
-     * encoded pictures in display order. In other words, pictures with display
-     * order N can only be referenced by pictures with display order greater than
-     * N, and it can only refer pictures with picture order lower than N.
+    /* Prediction structure used to construct GOP. Only Random Access is supported.
      *
      * In Random Access structure, the B/b pictures can refer to reference pictures
      * from both directions (past and future).
-     *
-     * Refer to PredStructure enum for valid values.
      *
      * Default is RANDOM_ACCESS. */
     uint8_t pred_structure;
@@ -315,8 +268,7 @@ typedef struct EbSvtAv1EncConfiguration {
 
     /* Specifies the maximum frame width/height for the frames represented by the sequence header
      * (max_frame_width_minus_1 and max_frame_height_minus_1, spec 5.5.1).
-     * Actual frame height could be equal to or less than this value. E.g. Use this value to indicate
-     * the maximum height between renditions when switch frame feature is on.
+     * Actual frame height could be equal to or less than this value.
      */
     uint32_t forced_max_frame_width;
     uint32_t forced_max_frame_height;
@@ -684,32 +636,12 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint8_t tune;
 
-    // super-resolution parameters
-    uint8_t superres_mode;
-    uint8_t superres_denom;
-    uint8_t superres_kf_denom;
-    uint8_t superres_qthres;
-    uint8_t superres_kf_qthres;
-    uint8_t superres_auto_search_type;
     /* Decoder-speed-targeted encoder optimization level (produce bitstreams that can be decoded faster).
     * 0: No decoder-targeted speed optimization
     * 1: Level 1 of decoder-targeted speed optimizations (faster decoder-speed than level 0)
     * 2: Level 2 of decoder-targeted speed optimizations (faster decoder-speed than level 1)
     */
     uint8_t fast_decode;
-    /* S-Frame interval (frames)
-    * 0: S-Frame off
-    * >0: S-Frame on and indicates the number of frames after which a frame may be coded as an S-Frame
-    */
-    int32_t sframe_dist;
-    /* Indicates how an S-Frame should be inserted
-    * values are from EbSFrameMode
-    * SFRAME_STRICT_ARF: the considered frame will be made into an S-Frame only if it is an altref frame
-    * SFRAME_NEAREST_ARF: if the considered frame is not an altref frame, the next altref frame will be made into an S-Frame
-    * SFRAME_FLEXIBLE_ARF: if the considered frame is not an altref frame, modify the mini-GOP structure to promote it to an altref frame
-    * SFRAME_DEC_POSI: if the considered frame in decode order is not an altref frame, modify the mini-GOP structure to promote its previous frame to an altref frame, and set the next altref to an S-Frame
-    */
-    EbSFrameMode sframe_mode;
 
     // End of individual tuning flags
 
@@ -944,11 +876,6 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint8_t max_chroma_qm_level;
 
-    /* @brief Signal to the library to enable real-time coding
-     *
-     * Default is false.
-     */
-    bool rtc;
 
     /* @brief compresses the QP hierarchical layer scale to improve temporal video consistency
     * 0: no compression, original SVT-AV1 scaling
@@ -957,14 +884,6 @@ typedef struct EbSvtAv1EncConfiguration {
     * Default is 1
     */
     uint8_t qp_scale_compress_strength;
-
-    /* @brief Indicates where to insert an S-Frame, only available when sframe_mode is SFRAME_FLEXIBLE_ARF */
-    SvtAv1SFramePositions sframe_posi;
-
-    /* @brief Indicates QP of S-Frame(s) */
-    uint8_t sframe_qp;
-    /* @brief Indicates QP offset of S-Frame(s) */
-    int8_t sframe_qp_offset;
 
     /**
      * @brief Toggle default film grain blocksize behavior
@@ -1275,7 +1194,7 @@ EB_API EbErrorType svt_av1_enc_send_picture(EbComponentType *svt_enc_component, 
 
 /**
  * @brief Step 5: Receive packet.
- * This function will become blocking if either pic_send_done is set to 1 or if we are in low-delay (pred-struct=1).
+ * This function will become blocking if pic_send_done is set to 1.
  * Otherwise, this function is non-blocking and will return EB_NoErrorEmptyQueue if there are no packets available.
  *
  * @param svt_enc_component The encoder handler

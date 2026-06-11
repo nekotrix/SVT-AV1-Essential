@@ -255,82 +255,6 @@ void svt_aom_init_enc_dec_segement(PictureParentControlSet *ppcs) {
     }
 }
 
-void superres_setup_child_pcs(SequenceControlSet *entry_scs_ptr, PictureParentControlSet *entry_ppcs) {
-    PictureControlSet *child_pcs = entry_ppcs->child_pcs;
-
-    uint8_t pic_width_in_sb;
-    uint8_t picture_height_in_sb;
-
-    child_pcs->b64_total_count = entry_ppcs->b64_total_count;
-
-    pic_width_in_sb      = (uint8_t)((entry_ppcs->aligned_width + entry_scs_ptr->sb_size - 1) / entry_scs_ptr->sb_size);
-    picture_height_in_sb = (uint8_t)((entry_ppcs->aligned_height + entry_scs_ptr->sb_size - 1) /
-                                     entry_scs_ptr->sb_size);
-
-    child_pcs->sb_total_count = pic_width_in_sb * picture_height_in_sb;
-
-    // if (entry_ppcs->frame_superres_enabled)
-    {
-        // Modify sb_prt_array in child pcs
-        uint16_t sb_index;
-        uint16_t sb_origin_x = 0;
-        uint16_t sb_origin_y = 0;
-        for (sb_index = 0; sb_index < child_pcs->sb_total_count; ++sb_index) {
-            svt_aom_largest_coding_unit_dctor(child_pcs->sb_ptr_array[sb_index]);
-            svt_aom_largest_coding_unit_ctor(child_pcs->sb_ptr_array[sb_index],
-                                             (uint8_t)entry_scs_ptr->sb_size,
-                                             (uint16_t)(sb_origin_x * entry_scs_ptr->sb_size),
-                                             (uint16_t)(sb_origin_y * entry_scs_ptr->sb_size),
-                                             (uint16_t)sb_index,
-                                             child_pcs->enc_mode,
-                                             entry_scs_ptr->static_config.rtc,
-                                             entry_scs_ptr->max_block_cnt,
-                                             entry_scs_ptr->allintra,
-                                             entry_scs_ptr->input_resolution,
-                                             child_pcs);
-            // Increment the Order in coding order (Raster Scan Order)
-            sb_origin_y = (sb_origin_x == pic_width_in_sb - 1) ? sb_origin_y + 1 : sb_origin_y;
-            sb_origin_x = (sb_origin_x == pic_width_in_sb - 1) ? 0 : sb_origin_x + 1;
-        }
-    }
-
-    // Update pcs->mi_stride
-    child_pcs->mi_stride = pic_width_in_sb * (entry_scs_ptr->sb_size >> MI_SIZE_LOG2);
-
-    // init segment since picture scaled
-    svt_aom_init_enc_dec_segement(entry_ppcs);
-
-    // Tile Loop
-    int              sb_size_log2 = entry_scs_ptr->seq_header.sb_size_log2;
-    Av1Common *const cm           = entry_ppcs->av1_cm;
-    const int        tile_cols    = entry_ppcs->av1_cm->tiles_info.tile_cols;
-    const int        tile_rows    = entry_ppcs->av1_cm->tiles_info.tile_rows;
-    uint32_t         x_sb_index, y_sb_index;
-    uint16_t         tile_row, tile_col;
-    TileInfo         tile_info;
-    for (tile_row = 0; tile_row < tile_rows; tile_row++) {
-        svt_av1_tile_set_row(&tile_info, &cm->tiles_info, cm->mi_rows, tile_row);
-
-        for (tile_col = 0; tile_col < tile_cols; tile_col++) {
-            svt_av1_tile_set_col(&tile_info, &cm->tiles_info, cm->mi_cols, tile_col);
-            tile_info.tile_rs_index = tile_col + tile_row * tile_cols;
-
-            for ((y_sb_index = cm->tiles_info.tile_row_start_mi[tile_row] >> sb_size_log2);
-                 (y_sb_index < ((uint32_t)cm->tiles_info.tile_row_start_mi[tile_row + 1] >> sb_size_log2));
-                 y_sb_index++) {
-                for ((x_sb_index = cm->tiles_info.tile_col_start_mi[tile_col] >> sb_size_log2);
-                     (x_sb_index < ((uint32_t)cm->tiles_info.tile_col_start_mi[tile_col + 1] >> sb_size_log2));
-                     x_sb_index++) {
-                    int sb_index = (uint16_t)(x_sb_index + y_sb_index * pic_width_in_sb);
-                    child_pcs->sb_ptr_array[sb_index]->tile_info = tile_info;
-                }
-            }
-        }
-    }
-
-    child_pcs->enc_dec_coded_sb_count = 0;
-}
-
 /* Picture Manager Kernel */
 
 /***************************************************************************************************
@@ -381,29 +305,6 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
         //   need hierarchical support.
 
         switch (input_pic_demux->picture_type) {
-        case EB_PIC_SUPERRES_INPUT: {
-            pcs = (PictureParentControlSet *)input_pic_demux->pcs_wrapper->object_ptr;
-            scs = pcs->scs;
-
-            assert(scs->static_config.superres_mode == SUPERRES_QTHRESH ||
-                   scs->static_config.superres_mode == SUPERRES_AUTO);
-
-            // setup child pcs to reflect superres config. E.g. sb count, sb orig, tile info, etc.
-            superres_setup_child_pcs(scs, pcs);
-
-            EbObjectWrapper *out_results_wrapper;
-            // Get Empty Results Object
-            svt_get_empty_object(context_ptr->picture_manager_output_fifo_ptr, &out_results_wrapper);
-            RateControlTasks *rc_tasks = (RateControlTasks *)out_results_wrapper->object_ptr;
-            rc_tasks->pcs_wrapper      = pcs->child_pcs->c_pcs_wrapper_ptr;
-            rc_tasks->task_type        = RC_INPUT_SUPERRES_RECODE;
-            // Post the Full Results Object
-            svt_post_full_object(out_results_wrapper);
-
-            pcs     = NULL;
-            enc_ctx = NULL;
-            break;
-        }
         case EB_PIC_INPUT:
 
             pcs     = (PictureParentControlSet *)input_pic_demux->pcs_wrapper->object_ptr;
@@ -588,8 +489,6 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 // Get Empty Reference Picture Object
                 svt_get_empty_object(scs->enc_ctx->reference_picture_pool_fifo_ptr, &ref_pic_wrapper);
                 entry_ppcs->ref_pic_wrapper = ref_pic_wrapper;
-                // reset reference object in case of its members are altered by superres
-                // tool
                 EbReferenceObject *ref = (EbReferenceObject *)ref_pic_wrapper->object_ptr;
                 // if resolution has changed, and the ref_picsettings do not match scs settings, update ref_pic params
                 if (ref->reference_picture->max_width != entry_scs_ptr->max_input_luma_width ||
@@ -710,8 +609,8 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
             child_pcs->sb_total_count = pic_width_in_sb * pic_height_in_sb;
 
             // force re-ctor sb_ptr since child_pcs_ptrs are reused, and sb_ptr could be
-            // altered by superres tool when coding previous pictures
-            if (scs->static_config.superres_mode > SUPERRES_NONE || scs->static_config.resize_mode > RESIZE_NONE) {
+            // altered by resize tool when coding previous pictures
+            if (scs->static_config.resize_mode > RESIZE_NONE) {
                 // Modify sb_prt_array in child pcs
                 uint16_t sb_index;
                 uint16_t sb_origin_x = 0;
@@ -724,7 +623,6 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                                                      (uint16_t)(sb_origin_y * scs->sb_size),
                                                      (uint16_t)sb_index,
                                                      child_pcs->enc_mode,
-                                                     scs->static_config.rtc,
                                                      scs->max_block_cnt,
                                                      scs->allintra,
                                                      scs->input_resolution,
@@ -735,9 +633,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                 }
 
                 // reset input_frame16bit to align with enhanced_pic
-                if (scs->static_config.encoder_bit_depth > EB_EIGHT_BIT) {
-                    svt_aom_copy_buffer_info(entry_ppcs->enhanced_pic, child_pcs->input_frame16bit);
-                }
+                svt_aom_copy_buffer_info(entry_ppcs->enhanced_pic, child_pcs->input_frame16bit);
             }
 
             // Update pcs->mi_stride
@@ -745,8 +641,7 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
 
             // copy buffer info from the downsampled picture to the input frame 16 bit
             // buffer
-            if ((entry_ppcs->frame_superres_enabled || entry_ppcs->frame_resize_enabled) &&
-                scs->static_config.encoder_bit_depth > EB_EIGHT_BIT) {
+            if (entry_ppcs->frame_resize_enabled) {
                 svt_aom_copy_buffer_info(entry_ppcs->enhanced_downscaled_pic, child_pcs->input_frame16bit);
             }
 
@@ -838,23 +733,11 @@ void *svt_aom_picture_manager_kernel(void *input_ptr) {
                     // input picture
                     svt_object_inc_live_count(ref_entry->reference_object_ptr, 1);
 
-#if DEBUG_SFRAME
-                    if (scs->static_config.pass != ENC_FIRST_PASS) {
-                        fprintf(stderr,
-                                "\nframe %d, layer %d, ref-list-0 count %u, ref "
-                                "frame %d, ref frame remain dep count %d\n",
-                                (int)child_pcs->picture_number,
-                                entry_ppcs->temporal_layer_index,
-                                entry_ppcs->ref_list0_count,
-                                (int)child_pcs->ppcs->ref_pic_poc_array[REF_LIST_0][ref_idx],
-                                ref_entry->dependent_count);
-                    }
-#endif
                 }
             }
 
             if (entry_ppcs->frame_end_cdf_update_mode) {
-                if (entry_ppcs->slice_type != I_SLICE && entry_ppcs->frm_hdr.frame_type != S_FRAME)
+                if (entry_ppcs->slice_type != I_SLICE)
                     child_pcs->ppcs->frm_hdr.primary_ref_frame = ref_index;
                 else
                     child_pcs->ppcs->frm_hdr.primary_ref_frame = PRIMARY_REF_NONE;

@@ -115,10 +115,7 @@ typedef struct PictureDecisionContext {
     int32_t last_i_noise_levels_log1p_fp16[MAX_MB_PLANE];
     double  last_i_noise_levels[MAX_MB_PLANE];
 
-    // for switch frame feature
     uint32_t ref_order_hint[REF_FRAMES]; // spec 6.8.2
-    uint64_t sframe_poc;
-    int32_t  sframe_due; // The flag indicates whether the next ARF will be made an s-frame
     uint8_t *sixteenth_b64_buffer;
     uint32_t sixteenth_b64_buffer_stride;
     uint64_t norm_dist;
@@ -129,9 +126,6 @@ typedef struct PictureDecisionContext {
     uint32_t filt_to_unfilt_diff;
     bool     list0_only;
     bool     is_startup_gop;
-    int32_t  sframe_hier_lvls;
-    uint64_t sframe_last_arf;
-    bool     next_arf_is_s;
     int32_t  frames_since_last_keyframe;
 } PictureDecisionContext;
 

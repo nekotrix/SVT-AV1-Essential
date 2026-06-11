@@ -145,14 +145,13 @@ static void push_to_lad_queue(PictureParentControlSet *pcs, InitialRateControlCo
 }
 
 /* send picture out from irc process */
-static void irc_send_picture_out(InitialRateControlContext *ctx, PictureParentControlSet *pcs, bool superres_recode) {
+static void irc_send_picture_out(InitialRateControlContext *ctx, PictureParentControlSet *pcs) {
     EbObjectWrapper *out_results_wrapper;
     // Get Empty Results Object
     svt_get_empty_object(ctx->initialrate_control_results_output_fifo_ptr, &out_results_wrapper);
     InitialRateControlResults *out_results = (InitialRateControlResults *)out_results_wrapper->object_ptr;
     // SVT_LOG("iRC Out:%lld\n",pcs->picture_number);
     out_results->pcs_wrapper     = pcs->p_pcs_wrapper_ptr;
-    out_results->superres_recode = superres_recode;
     svt_post_full_object(out_results_wrapper);
 }
 static uint8_t is_frame_already_exists(PictureParentControlSet *pcs, uint32_t end_index, uint64_t pic_num) {
@@ -587,7 +586,7 @@ static void process_lad_queue(InitialRateControlContext *ctx, uint8_t pass_thru)
                 svt_release_mutex(head_pcs->scs->twopass.stats_buf_ctx->stats_in_write_mutex);
             }
             //take the picture out from iRc process
-            irc_send_picture_out(ctx, head_pcs, false);
+            irc_send_picture_out(ctx, head_pcs);
             //advance the head
             head_entry->pcs = NULL;
             queue->head     = OUT_Q_ADVANCE(queue->head, queue->cir_buf_size);
@@ -728,42 +727,6 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
                     pcs->r0_delta_qp_quant = (pcs->r0_delta_qp_md && pcs->slice_type == I_SLICE);
                 }
             }
-            if (in_results_ptr->task_type == TASK_SUPERRES_RE_ME) {
-                // do necessary steps as normal routine
-                {
-                    // Release Pa Ref pictures when not needed
-                    // Don't release if superres recode loop is actived (auto-dual or auto-all mode)
-                    if (pcs->superres_total_recode_loop == 0) { // QThreshold or auto-solo mode
-                        if (pcs->tpl_ctrls.enable) {
-                            for (uint32_t i = 0; i < pcs->tpl_group_size; i++) {
-                                if (svt_aom_is_incomp_mg_frame(pcs->tpl_group[i])) {
-                                    if (pcs->tpl_group[i]->ext_mg_id == pcs->ext_mg_id + 1)
-                                        svt_aom_release_pa_reference_objects(scs, pcs->tpl_group[i]);
-                                } else {
-                                    if (pcs->tpl_group[i]->ext_mg_id == pcs->ext_mg_id)
-                                        svt_aom_release_pa_reference_objects(scs, pcs->tpl_group[i]);
-                                }
-                                if (pcs->tpl_group[i]->non_tf_input)
-                                    EB_DELETE(pcs->tpl_group[i]->non_tf_input);
-                            }
-                        } else {
-                            svt_aom_release_pa_reference_objects(scs, pcs);
-                        }
-                    }
-
-                    /*In case Look-Ahead is zero there is no need to place pictures in the
-                      re-order queue. this will cause an artificial delay since pictures come in dec-order*/
-                    pcs->frames_in_sw           = 0;
-                    pcs->end_of_sequence_region = false;
-                }
-
-                // post to downstream process
-                irc_send_picture_out(context_ptr, pcs, true);
-
-                // Release the Input Results
-                svt_release_object(in_results_wrapper_ptr);
-                continue;
-            }
             // The quant/dequant params derivation is performaed 1 time per sequence assuming the qindex offset(s) are 0
             // then adjusted per TU prior of the quantization at svt_aom_quantize_inv_quantize() depending on the qindex offset(s)
             if (pcs->picture_number == 0) {
@@ -771,7 +734,7 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
                 Dequants *const deq_8bit    = &scs->enc_ctx->deq_8bit;
                 svt_av1_build_quantizer(pcs, EB_EIGHT_BIT, 0, 0, 0, 0, 0, quants_8bit, deq_8bit);
 
-                if (scs->static_config.encoder_bit_depth == EB_TEN_BIT) {
+                {
                     Quants *const   quants_bd = &scs->enc_ctx->quants_bd;
                     Dequants *const deq_bd    = &scs->enc_ctx->deq_bd;
                     svt_av1_build_quantizer(pcs, EB_TEN_BIT, 0, 0, 0, 0, 0, quants_bd, deq_bd);
@@ -781,17 +744,12 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
             if (scs->lap_rc) {
                 set_1pvbr_param(pcs);
             }
-            // tpl_la can be performed on unscaled frames in super-res q-threshold and auto mode
-            if (pcs->tpl_ctrls.enable && !pcs->frame_superres_enabled) {
+            if (pcs->tpl_ctrls.enable) {
                 svt_set_cond_var(&pcs->me_ready, 1);
             }
 
             // Release Pa Ref pictures when not needed
-            // Release Pa ref when
-            //   1. TPL is OFF and
-            //   2. super-res mode is NONE or FIXED or RANDOM.
-            //     For other super-res modes, pa_ref_objs are needed in TASK_SUPERRES_RE_ME task
-            if (pcs->tpl_ctrls.enable == 0 && scs->static_config.superres_mode <= SUPERRES_RANDOM)
+            if (pcs->tpl_ctrls.enable == 0)
                 svt_aom_release_pa_reference_objects(scs, pcs);
 
             /*In case Look-Ahead is zero there is no need to place pictures in the
@@ -803,8 +761,7 @@ void *svt_aom_initial_rate_control_kernel(void *input_ptr) {
 #if LAD_MG_PRINT
             print_lad_queue(context_ptr, 0);
 #endif
-            // tpl_la can be performed on unscaled frame when in super-res q-threshold and auto mode
-            uint8_t lad_queue_pass_thru = !(pcs->tpl_ctrls.enable && !pcs->frame_superres_enabled);
+            uint8_t lad_queue_pass_thru = !(pcs->tpl_ctrls.enable);
             process_lad_queue(context_ptr, lad_queue_pass_thru);
         }
         // Release the Input Results

@@ -1238,11 +1238,6 @@ void svt_av1_convolve_x_sr_avx2(const uint8_t *src, int32_t src_stride, uint8_t 
 // to the right type.
 static INLINE __m128i xx_load_128(const void *a) { return _mm_loadu_si128((const __m128i *)a); }
 
-static INLINE __m256i calc_mask_avx2(const __m256i mask_base, const __m256i s0, const __m256i s1) {
-    const __m256i diff = _mm256_abs_epi16(_mm256_sub_epi16(s0, s1));
-    return _mm256_abs_epi16(_mm256_add_epi16(mask_base, _mm256_srli_epi16(diff, 4)));
-    // clamp(diff, 0, 64) can be skiped for diff is always in the range ( 38, 54)
-}
 void svt_av1_build_compound_diffwtd_mask_highbd_avx2(uint8_t *mask, DIFFWTD_MASK_TYPE mask_type, const uint8_t *src0,
                                                      int src0_stride, const uint8_t *src1, int src1_stride, int h,
                                                      int w, int bd) {
@@ -1338,106 +1333,6 @@ void svt_av1_build_compound_diffwtd_mask_highbd_avx2(uint8_t *mask, DIFFWTD_MASK
     }
 }
 
-void svt_av1_build_compound_diffwtd_mask_avx2(uint8_t *mask, DIFFWTD_MASK_TYPE mask_type, const uint8_t *src0,
-                                              int src0_stride, const uint8_t *src1, int src1_stride, int h, int w) {
-    const int     mb          = (mask_type == DIFFWTD_38_INV) ? AOM_BLEND_A64_MAX_ALPHA : 0;
-    const __m256i y_mask_base = _mm256_set1_epi16(38 - mb);
-    int           i           = 0;
-    if (4 == w) {
-        do {
-            const __m128i s0_a         = xx_loadl_32(src0);
-            const __m128i s0_b         = xx_loadl_32(src0 + src0_stride);
-            const __m128i s0_c         = xx_loadl_32(src0 + src0_stride * 2);
-            const __m128i s0_d         = xx_loadl_32(src0 + src0_stride * 3);
-            const __m128i s0_a_b       = _mm_unpacklo_epi32(s0_a, s0_b);
-            const __m128i s0_c_d       = _mm_unpacklo_epi32(s0_c, s0_d);
-            const __m128i s0_a_b_c_d   = _mm_unpacklo_epi64(s0_a_b, s0_c_d);
-            const __m256i s0_a_b_c_d_w = _mm256_cvtepu8_epi16(s0_a_b_c_d);
-
-            const __m128i s1_a         = xx_loadl_32(src1);
-            const __m128i s1_b         = xx_loadl_32(src1 + src1_stride);
-            const __m128i s1_c         = xx_loadl_32(src1 + src1_stride * 2);
-            const __m128i s1_d         = xx_loadl_32(src1 + src1_stride * 3);
-            const __m128i s1_a_b       = _mm_unpacklo_epi32(s1_a, s1_b);
-            const __m128i s1_c_d       = _mm_unpacklo_epi32(s1_c, s1_d);
-            const __m128i s1_a_b_c_d   = _mm_unpacklo_epi64(s1_a_b, s1_c_d);
-            const __m256i s1_a_b_c_d_w = _mm256_cvtepu8_epi16(s1_a_b_c_d);
-            const __m256i m16          = calc_mask_avx2(y_mask_base, s0_a_b_c_d_w, s1_a_b_c_d_w);
-            const __m256i m8           = _mm256_packus_epi16(m16, _mm256_setzero_si256());
-            const __m128i x_m8         = _mm256_castsi256_si128(_mm256_permute4x64_epi64(m8, 0xd8));
-            xx_storeu_128(mask, x_m8);
-            src0 += (src0_stride << 2);
-            src1 += (src1_stride << 2);
-            mask += 16;
-            i += 4;
-        } while (i < h);
-    } else if (8 == w) {
-        do {
-            const __m128i s0_a     = xx_loadl_64(src0);
-            const __m128i s0_b     = xx_loadl_64(src0 + src0_stride);
-            const __m128i s0_c     = xx_loadl_64(src0 + src0_stride * 2);
-            const __m128i s0_d     = xx_loadl_64(src0 + src0_stride * 3);
-            const __m256i s0_a_c_w = _mm256_cvtepu8_epi16(_mm_unpacklo_epi64(s0_a, s0_c));
-            const __m256i s0_b_d_w = _mm256_cvtepu8_epi16(_mm_unpacklo_epi64(s0_b, s0_d));
-            const __m128i s1_a     = xx_loadl_64(src1);
-            const __m128i s1_b     = xx_loadl_64(src1 + src1_stride);
-            const __m128i s1_c     = xx_loadl_64(src1 + src1_stride * 2);
-            const __m128i s1_d     = xx_loadl_64(src1 + src1_stride * 3);
-            const __m256i s1_a_b_w = _mm256_cvtepu8_epi16(_mm_unpacklo_epi64(s1_a, s1_c));
-            const __m256i s1_c_d_w = _mm256_cvtepu8_epi16(_mm_unpacklo_epi64(s1_b, s1_d));
-            const __m256i m16_a_c  = calc_mask_avx2(y_mask_base, s0_a_c_w, s1_a_b_w);
-            const __m256i m16_b_d  = calc_mask_avx2(y_mask_base, s0_b_d_w, s1_c_d_w);
-            const __m256i m8       = _mm256_packus_epi16(m16_a_c, m16_b_d);
-            yy_storeu_256(mask, m8);
-            src0 += src0_stride << 2;
-            src1 += src1_stride << 2;
-            mask += 32;
-            i += 4;
-        } while (i < h);
-    } else if (16 == w) {
-        do {
-            const __m128i s0_a   = xx_load_128(src0);
-            const __m128i s0_b   = xx_load_128(src0 + src0_stride);
-            const __m128i s1_a   = xx_load_128(src1);
-            const __m128i s1_b   = xx_load_128(src1 + src1_stride);
-            const __m256i s0_a_l = _mm256_cvtepu8_epi16(s0_a);
-            const __m256i s0_b_l = _mm256_cvtepu8_epi16(s0_b);
-            const __m256i s1_a_l = _mm256_cvtepu8_epi16(s1_a);
-            const __m256i s1_b_l = _mm256_cvtepu8_epi16(s1_b);
-
-            const __m256i m16_a_l = calc_mask_avx2(y_mask_base, s0_a_l, s1_a_l);
-            const __m256i m16_b_l = calc_mask_avx2(y_mask_base, s0_b_l, s1_b_l);
-
-            const __m256i m8 = _mm256_permute4x64_epi64(_mm256_packus_epi16(m16_a_l, m16_b_l), 0xd8);
-            yy_storeu_256(mask, m8);
-            src0 += src0_stride << 1;
-            src1 += src1_stride << 1;
-            mask += 32;
-            i += 2;
-        } while (i < h);
-    } else {
-        do {
-            int j = 0;
-            do {
-                const __m256i s0    = yy_loadu_256(src0 + j);
-                const __m256i s1    = yy_loadu_256(src1 + j);
-                const __m256i s0_l  = _mm256_cvtepu8_epi16(_mm256_castsi256_si128(s0));
-                const __m256i s1_l  = _mm256_cvtepu8_epi16(_mm256_castsi256_si128(s1));
-                const __m256i s0_h  = _mm256_cvtepu8_epi16(_mm256_extracti128_si256(s0, 1));
-                const __m256i s1_h  = _mm256_cvtepu8_epi16(_mm256_extracti128_si256(s1, 1));
-                const __m256i m16_l = calc_mask_avx2(y_mask_base, s0_l, s1_l);
-                const __m256i m16_h = calc_mask_avx2(y_mask_base, s0_h, s1_h);
-                const __m256i m8    = _mm256_permute4x64_epi64(_mm256_packus_epi16(m16_l, m16_h), 0xd8);
-                yy_storeu_256(mask + j, m8);
-                j += 32;
-            } while (j < w);
-            src0 += src0_stride;
-            src1 += src1_stride;
-            mask += w;
-            i += 1;
-        } while (i < h);
-    }
-}
 ////////
 
 #define MAX_MASK_VALUE (1 << WEDGE_WEIGHT_BITS)

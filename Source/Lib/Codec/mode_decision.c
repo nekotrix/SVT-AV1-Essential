@@ -47,7 +47,6 @@ void calc_target_weighted_pred(PictureControlSet *pcs, ModeDecisionContext *ctx,
         SVT_ERROR("Mode decision candidate count exceeded"); \
     MULTI_LINE_MACRO_END
 
-#define SUPERRES_INVALID_STATE 0x7fffffff
 
 bool svt_av1_is_lossless_segment(PictureControlSet *pcs, int8_t segment_id) {
     FrameHeader *frm_hdr = &pcs->ppcs->frm_hdr;
@@ -265,17 +264,8 @@ static int64_t pick_interintra_wedge(PictureControlSet *pcs, ModeDecisionContext
     const int bh = block_size_high[bsize];
     DECLARE_ALIGNED(32, int16_t, residual1[MAX_INTERINTRA_SB_SQUARE]); // src - pred1
     DECLARE_ALIGNED(32, int16_t, diff10[MAX_INTERINTRA_SB_SQUARE]); // pred1 - pred0
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
-    if (ctx->hbd_md) {
-        svt_aom_highbd_subtract_block(bh, bw, residual1, bw, src_buf, src_stride, p1, bw, EB_TEN_BIT);
-        svt_aom_highbd_subtract_block(bh, bw, diff10, bw, p1, bw, p0, bw, EB_TEN_BIT);
-
-    } else
-#endif
-    {
-        svt_aom_subtract_block(bh, bw, residual1, bw, src_buf, src_stride, p1, bw);
-        svt_aom_subtract_block(bh, bw, diff10, bw, p1, bw, p0, bw);
-    }
+    svt_aom_highbd_subtract_block(bh, bw, residual1, bw, src_buf, src_stride, p1, bw, EB_TEN_BIT);
+    svt_aom_highbd_subtract_block(bh, bw, diff10, bw, p1, bw, p0, bw, EB_TEN_BIT);
 
     int8_t  wedge_index = -1;
     int64_t rd          = pick_wedge_fixed_sign(pcs, ctx, bsize, residual1, diff10, 0, &wedge_index);
@@ -288,14 +278,14 @@ static void inter_intra_search(PictureControlSet *pcs, ModeDecisionContext *ctx,
     DECLARE_ALIGNED(16, uint8_t, tmp_buf[2 * MAX_INTERINTRA_SB_SQUARE]);
     DECLARE_ALIGNED(16, uint8_t, ii_pred_buf[2 * MAX_INTERINTRA_SB_SQUARE]);
     // get inter pred for ref0
-    EbPictureBufferDesc *src_pic     = ctx->hbd_md ? pcs->input_frame16bit : pcs->ppcs->enhanced_pic;
+    EbPictureBufferDesc *src_pic     = pcs->input_frame16bit;
     uint16_t            *src_buf_hbd = (uint16_t *)src_pic->buffer_y + (ctx->blk_org_x + src_pic->org_x) +
         (ctx->blk_org_y + src_pic->org_y) * src_pic->stride_y;
     uint8_t *src_buf = src_pic->buffer_y + (ctx->blk_org_x + src_pic->org_x) +
         (ctx->blk_org_y + src_pic->org_y) * src_pic->stride_y;
 
-    uint8_t  bit_depth   = ctx->hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT;
-    uint32_t full_lambda = ctx->hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
+    uint8_t  bit_depth   = EB_TEN_BIT;
+    uint32_t full_lambda = ctx->full_lambda_md[EB_10_BIT_MD];
 
     uint32_t            bwidth  = ctx->blk_geom->bwidth;
     uint32_t            bheight = ctx->blk_geom->bheight;
@@ -316,7 +306,7 @@ static void inter_intra_search(PictureControlSet *pcs, ModeDecisionContext *ctx,
             pcs->ppcs->enhanced_pic,
             (EbReferenceObject *)pcs->ref_pic_ptr_array[list_idx0][ref_idx_l0]->object_ptr,
             &ref_pic_list0,
-            ctx->hbd_md);
+            EB_10_BIT_MD);
     }
     pred_desc.buffer_y = tmp_buf;
 
@@ -344,7 +334,7 @@ static void inter_intra_search(PictureControlSet *pcs, ModeDecisionContext *ctx,
                              0, //output org_x,
                              0, //output org_y,
                              PICTURE_BUFFER_DESC_LUMA_MASK,
-                             ctx->hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT,
+                             EB_TEN_BIT,
                              0); // is_16bit_pipeline
 
     assert(svt_aom_is_interintra_wedge_used(ctx->blk_geom->bsize)); //if not I need to add nowedge path!!
@@ -360,8 +350,7 @@ static void inter_intra_search(PictureControlSet *pcs, ModeDecisionContext *ctx,
         const int bsize_group = eb_size_group_lookup[ctx->blk_geom->bsize];
         const int rmode       = ctx->md_rate_est_ctx->inter_intra_mode_fac_bits[bsize_group][interintra_mode];
         // av1_combine_interintra(xd, bsize, 0, tmp_buf, bw, intrapred, bw);
-        if (ctx->hbd_md)
-            svt_aom_combine_interintra_highbd(interintra_mode, // mode,
+        svt_aom_combine_interintra_highbd(interintra_mode, // mode,
                                               0, // use_wedge_interintra,
                                               0, // cand->interintra_wedge_index,
                                               0, // int wedge_sign,
@@ -374,20 +363,6 @@ static void inter_intra_search(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                               ctx->intrapred_buf[j],
                                               bwidth /*const uint8_t *intrapred,   int intrastride*/,
                                               bit_depth);
-        else
-
-            svt_aom_combine_interintra(interintra_mode, //mode,
-                                       0, //use_wedge_interintra,
-                                       0, //cand->interintra_wedge_index,
-                                       0, //int wedge_sign,
-                                       ctx->blk_geom->bsize,
-                                       ctx->blk_geom->bsize, // plane_bsize,
-                                       ii_pred_buf,
-                                       bwidth, /*uint8_t *comppred, int compstride,*/
-                                       tmp_buf,
-                                       bwidth, /*const uint8_t *interpred, int interstride,*/
-                                       ctx->intrapred_buf[j],
-                                       bwidth /*const uint8_t *intrapred,   int intrastride*/);
         int64_t rd;
         if (ctx->inter_intra_comp_ctrls.use_rd_model) {
             int     rate_sum;
@@ -397,7 +372,7 @@ static void inter_intra_search(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                          ctx->blk_geom->bsize,
                                          bwidth,
                                          bheight,
-                                         ctx->hbd_md ? (uint8_t *)src_buf_hbd : src_buf,
+                                         (uint8_t *)src_buf_hbd,
                                          src_pic->stride_y,
                                          ii_pred_buf,
                                          bwidth,
@@ -413,15 +388,8 @@ static void inter_intra_search(PictureControlSet *pcs, ModeDecisionContext *ctx,
 
             rd = RDCOST(full_lambda, rate_sum + rmode, dist_sum);
         } else {
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
-            if (ctx->hbd_md) {
-                rd = svt_aom_highbd_sse(
-                    (uint8_t *)src_buf_hbd, src_pic->stride_y, ii_pred_buf, bwidth, bwidth, bheight);
-            } else
-#endif
-            {
-                rd = svt_aom_sse(src_buf, src_pic->stride_y, ii_pred_buf, bwidth, bwidth, bheight);
-            }
+            rd = svt_aom_highbd_sse(
+                (uint8_t *)src_buf_hbd, src_pic->stride_y, ii_pred_buf, bwidth, bwidth, bheight);
         }
         if (rd < best_interintra_rd) {
             best_interintra_rd             = rd;
@@ -439,7 +407,7 @@ static void inter_intra_search(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                                          ctx->blk_geom->bsize,
                                                          ctx->intrapred_buf[best_interintra_mode],
                                                          tmp_buf,
-                                                         ctx->hbd_md ? (uint8_t *)src_buf_hbd : src_buf,
+                                                         (uint8_t *)src_buf_hbd,
                                                          src_pic->stride_y,
                                                          &cand->block_mi.interintra_wedge_index);
     }
@@ -2834,7 +2802,7 @@ static void intra_bc_search(PictureControlSet *pcs, ModeDecisionContext *ctx, co
                             BlkStruct *blk_ptr, Mv *dv_cand, uint8_t *num_dv_cand) {
     IntraBcContext  x_st;
     IntraBcContext *x           = &x_st;
-    uint32_t        full_lambda = ctx->hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
+    uint32_t        full_lambda = ctx->full_lambda_md[EB_10_BIT_MD];
     //fill x with what needed.
     x->is_exhaustive_allowed = ctx->blk_geom->bwidth == 4 || ctx->blk_geom->bheight == 4 ? 1 : 0;
     svt_memcpy(&x->crc_calculator, &pcs->crc_calculator, sizeof(pcs->crc_calculator));
@@ -3327,75 +3295,6 @@ static INLINE void eliminate_candidate_based_on_pme_me_results(ModeDecisionConte
             *dc_cand_only_flag = 1;
     }
 }
-static bool valid_ref_frame_type(MvReferenceFrame rf[2], const MvReferenceFrame ref_frame_type_arr[], uint8_t tot_ref_frame_types) {
-    // INTRA_FRAME is added in candidates sometimes, skip validation
-    if (rf[0] == INTRA_FRAME)
-        return true;
-
-    for (uint8_t i = 0; i < tot_ref_frame_types; i++) {
-        MvReferenceFrame rf_in_arr[2];
-        av1_set_ref_frame(rf_in_arr, ref_frame_type_arr[i]);
-        if (rf[0] == rf_in_arr[0] && rf[1] == rf_in_arr[1])
-            return true;
-    }
-    return false;
-}
-// refer to inject_zz_backup_candidate, but use BWD ref instead of LAST
-static void inject_sframe_backup_candidate(
-    PictureControlSet *pcs,
-    struct ModeDecisionContext *ctx,
-    uint32_t *candidate_total_cnt) {
-    ModeDecisionCandidate *cand_array = ctx->fast_cand_array;
-    Mv best_pred_mv[2] = { {{0}}, {{0}} };
-    uint32_t cand_total_cnt = (*candidate_total_cnt);
-    cand_array[cand_total_cnt].drl_index = 0;
-    svt_aom_choose_best_av1_mv_pred(ctx,
-        svt_get_ref_frame_type(REF_LIST_1, 0),
-        NEWMV,
-        (Mv){{0}}, (Mv){{0}},
-        &cand_array[cand_total_cnt].drl_index,
-        best_pred_mv);
-    if (!ctx->corrupted_mv_check || is_valid_mv_diff(best_pred_mv, (Mv) { {0, 0} }, (Mv) { {0, 0} }, 0)) {
-        ModeDecisionCandidate* cand = &cand_array[cand_total_cnt];
-        cand->block_mi.use_intrabc = 0;
-        cand->skip_mode_allowed = false;
-        cand->block_mi.mode = NEWMV;
-        cand->block_mi.motion_mode = SIMPLE_TRANSLATION;
-        cand->block_mi.mv[0] = (Mv){ {0, 0} };
-        cand->block_mi.ref_frame[0] = svt_get_ref_frame_type(REF_LIST_1, 0);
-        cand->block_mi.ref_frame[1] = NONE_FRAME;
-        cand->transform_type[0] = DCT_DCT;
-        cand->transform_type_uv = DCT_DCT;
-        cand->pred_mv[0].as_int = best_pred_mv[0].as_int;
-        cand->block_mi.is_interintra_used = 0;
-        cand->block_mi.motion_mode = SIMPLE_TRANSLATION;
-        cand->block_mi.num_proj_ref = ctx->wm_sample_info[svt_get_ref_frame_type(REF_LIST_1, 0)].num;
-        INC_MD_CAND_CNT (cand_total_cnt,pcs->ppcs->max_can_count);
-        // update the total number of candidates injected
-        (*candidate_total_cnt) = cand_total_cnt;
-    }
-}
-// in MD stage 0, candidates are injected by different tools, but for S-Frame in RA mode
-// the ref frame types in ref_list0 has be pruned in PD for the reversed direction of ref MVs
-// here to check and reject the candidates if mismatches the available frame types array
-static uint32_t reject_candidate_sframe(PictureControlSet* pcs, ModeDecisionContext* ctx, uint32_t cand_total_cnt) {
-    for (uint32_t i = 0; i < cand_total_cnt;) {
-        if (!valid_ref_frame_type(ctx->fast_cand_array[i].block_mi.ref_frame, ctx->ref_frame_type_arr, ctx->tot_ref_frame_types)) {
-            for (uint32_t j = i; j < cand_total_cnt; j++) {
-                memcpy(&ctx->fast_cand_array[j], &ctx->fast_cand_array[j + 1], sizeof(ModeDecisionCandidate));
-            }
-            cand_total_cnt--;
-            continue;
-        }
-        i++;
-    }
-    // zero candidate in fast cand array risks in md stage 0, add a candidate from ref list1 as backup
-    if (cand_total_cnt == 0)
-        inject_sframe_backup_candidate(pcs, ctx, &cand_total_cnt);
-    assert(cand_total_cnt > 0);
-    return cand_total_cnt;
-}
-
 EbErrorType generate_md_stage_0_cand_light_pd0(
     ModeDecisionContext *ctx,
     uint32_t            *candidate_total_count_ptr,
@@ -3426,10 +3325,6 @@ EbErrorType generate_md_stage_0_cand_light_pd0(
             pcs,
             ctx,
             &cand_total_cnt);
-    }
-
-    if (pcs->ppcs->sframe_ref_pruned) {
-        cand_total_cnt = reject_candidate_sframe(pcs, ctx, cand_total_cnt);
     }
 
     *candidate_total_count_ptr = cand_total_cnt;
@@ -3479,10 +3374,6 @@ void generate_md_stage_0_cand_light_pd1(
             pcs,
             ctx,
             &cand_total_cnt);
-    }
-
-    if (pcs->ppcs->sframe_ref_pruned) {
-        cand_total_cnt = reject_candidate_sframe(pcs, ctx, cand_total_cnt);
     }
 
     *candidate_total_count_ptr = cand_total_cnt;
@@ -3548,10 +3439,6 @@ EbErrorType generate_md_stage_0_cand(
             pcs,
             ctx,
             &cand_total_cnt);
-    }
-
-    if (pcs->ppcs->sframe_ref_pruned) {
-        cand_total_cnt = reject_candidate_sframe(pcs, ctx, cand_total_cnt);
     }
 
     *candidate_total_count_ptr = cand_total_cnt;
@@ -3799,9 +3686,7 @@ uint32_t svt_aom_product_full_mode_decision(
     blk_ptr->total_rate = cand_bf->total_rate;
     if (!(ctx->pd_pass == PD_PASS_1 && ctx->fixed_partition)) {
         // When lambda tuning is on, lambda of each block is set separately, however at interdepth decision the sb lambda is used
-        uint32_t full_lambda = ctx->hbd_md ?
-            ctx->full_sb_lambda_md[EB_10_BIT_MD] :
-            ctx->full_sb_lambda_md[EB_8_BIT_MD];
+        uint32_t full_lambda = ctx->full_sb_lambda_md[EB_10_BIT_MD];
         ctx->blk_ptr->cost =
             RDCOST(full_lambda, cand_bf->total_rate, cand_bf->full_dist);
         ctx->blk_ptr->default_cost = ctx->blk_ptr->cost;
@@ -3958,16 +3843,10 @@ static int get_superblock_tpl_column_end(PictureParentControlSet* ppcs, int mi_c
     const int mib_size_log2 = ppcs->scs->seq_header.sb_size == BLOCK_128X128 ? 5 : 4;
     // Find the start column of this superblock.
     const int sb_mi_col_start = (mi_col >> mib_size_log2) << mib_size_log2;
-    // Same but in superres upscaled dimension.
-    const int sb_mi_col_start_sr =
-        coded_to_superres_mi(sb_mi_col_start, ppcs->superres_denom);
     // Width of this superblock in mi units.
     const int sb_mi_width = mi_size_wide[ppcs->scs->seq_header.sb_size];
-    // Same but in superres upscaled dimension.
-    const int sb_mi_width_sr =
-        coded_to_superres_mi(sb_mi_width, ppcs->superres_denom);
     // Superblock end in mi units.
-    const int sb_mi_end = sb_mi_col_start_sr + sb_mi_width_sr;
+    const int sb_mi_end = sb_mi_col_start + sb_mi_width;
     // Superblock end in TPL units.
     return (sb_mi_end + num_mi_w - 1) / num_mi_w;
 }
@@ -4020,11 +3899,9 @@ void  svt_aom_set_tuned_blk_lambda(struct ModeDecisionContext *ctx, PictureContr
     int mi_row = ctx->blk_org_y / 4;
     int mi_col = ctx->blk_org_x / 4;
 
-    const int mi_col_sr =
-        coded_to_superres_mi(mi_col, ppcs->superres_denom);
+    const int mi_col_sr = mi_col;
     const int mi_cols_sr = ((ppcs->enhanced_unscaled_pic->width + 15) / 16) << 2;  // picture column boundary
-    const int block_mi_width_sr =
-        coded_to_superres_mi(mi_size_wide[bsize], ppcs->superres_denom);
+    const int block_mi_width_sr = mi_size_wide[bsize];
     const int bsize_base = ppcs->tpl_ctrls.synth_blk_size == 32 ? BLOCK_32X32 : BLOCK_16X16;
     const int num_mi_w = mi_size_wide[bsize_base];
     const int num_mi_h = mi_size_high[bsize_base];
@@ -4033,8 +3910,6 @@ void  svt_aom_set_tuned_blk_lambda(struct ModeDecisionContext *ctx, PictureContr
     const int num_bcols = (block_mi_width_sr + num_mi_w - 1) / num_mi_w;
     const int num_brows = (mi_size_high[bsize] + num_mi_h - 1) / num_mi_h;
 
-    // This is required because the end col of superblock may be off by 1 in case
-    // of superres.
     const int sb_bcol_end = get_superblock_tpl_column_end(ppcs, mi_col, num_mi_w);
     int row, col;
     int32_t base_block_count = 0;
@@ -4050,15 +3925,7 @@ void  svt_aom_set_tuned_blk_lambda(struct ModeDecisionContext *ctx, PictureContr
             ++base_block_count;
         }
     }
-    // When superres is on, base_block_count could be zero.
-    // This function's counterpart in AOM, av1_get_hier_tpl_rdmult, will encounter division by zero
     if (base_block_count == 0) {
-        // return a large number to indicate invalid state
-        ctx->full_lambda_md[EB_8_BIT_MD] = SUPERRES_INVALID_STATE;
-        ctx->full_lambda_md[EB_10_BIT_MD] = SUPERRES_INVALID_STATE;
-
-        ctx->fast_lambda_md[EB_8_BIT_MD] = SUPERRES_INVALID_STATE;
-        ctx->fast_lambda_md[EB_10_BIT_MD] = SUPERRES_INVALID_STATE;
         return;
     }
 
@@ -4303,14 +4170,12 @@ uint64_t svt_spatial_full_distortion_ssim_kernel(uint8_t* input, uint32_t input_
         ssim_score = ssim_hbd((uint16_t *)input + input_offset, input_stride,
             (uint16_t *)recon + recon_offset, recon_stride,
             area_width, area_height);
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (ac_bias) {
             uint64_t ac_distortion = svt_psy_distortion_hbd((uint16_t *)input + input_offset,
                 input_stride, (uint16_t *)recon + recon_offset, recon_stride,
                 area_width, area_height);
             psy_distortion = (uint64_t)(ac_distortion * ac_bias);
         }
-#endif
     }
 
     spatial_distortion = (uint64_t)((1 - ssim_score) * count * 100 * 7 * m);

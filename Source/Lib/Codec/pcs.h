@@ -342,7 +342,7 @@ typedef struct PictureControlSet {
     uint16_t tile_row_count;
     uint16_t tile_column_count;
     uint16_t sb_total_count;
-    // Total SB count of unscaled picture (used for memory alloc/dealloc when superres is used)
+    // Total SB count of unscaled picture (used for memory alloc/dealloc when resize is used)
     uint16_t sb_total_count_unscaled;
 
     EbPictureBufferDesc *temp_lf_recon_pic;
@@ -996,15 +996,6 @@ typedef struct PictureParentControlSet {
     EbRefFrameScale resize_evt;
     bool            rc_reset_flag;
 
-    bool    frame_superres_enabled;
-    uint8_t superres_denom;
-    // recode for auto superres
-    // which loop is now running, range from 0 to superres_total_recode_loop - 1
-    int32_t superres_recode_loop;
-    int32_t superres_total_recode_loop; // how many loops to run, set to 2 in dual search mode
-    uint8_t superres_denom_array[NUM_SR_SCALES + 1]; // denom candidate array used in auto supreres
-    double  superres_rdcost[NUM_SR_SCALES + 1]; // 9 slots, for denom 8 ~ 16
-
     EbObjectWrapper      *me_data_wrapper;
     MotionEstimationData *pa_me_data;
     // stores pcs pictures needed for tpl algorithm
@@ -1107,8 +1098,6 @@ typedef struct PictureParentControlSet {
     bool     is_startup_gop;
     uint32_t ahd_error;
 
-    bool   sframe_ref_pruned;
-    int8_t sframe_qp_offset;
 } PictureParentControlSet;
 
 typedef struct TplDispResults {
@@ -1144,7 +1133,6 @@ typedef struct PictureControlSetInitData {
     EncMode                  enc_mode;
     EbSvtAv1EncConfiguration static_config;
     uint8_t                  speed_control;
-    int8_t                   hbd_md;
     uint8_t                  over_boundary_block_mode;
     uint8_t                  mfmv;
     // init value for child pcs
@@ -1176,7 +1164,6 @@ typedef struct PictureControlSetInitData {
     uint8_t input_resolution;
     uint8_t calculate_variance;
     bool    is_scale;
-    bool    rtc_tune;
     bool    enable_variance_boost;
     uint8_t variance_boost_strength;
     uint8_t variance_octile;

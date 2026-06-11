@@ -272,7 +272,7 @@ void svt_av1_cdef_frame(SequenceControlSet *scs, PictureControlSet *pcs) {
     struct PictureParentControlSet *ppcs     = pcs->ppcs;
     Av1Common                      *cm       = ppcs->av1_cm;
     FrameHeader                    *frm_hdr  = &ppcs->frm_hdr;
-    bool                            is_16bit = scs->is_16bit_pipeline;
+    bool                            is_16bit = true;
 
     EbPictureBufferDesc *recon_pic;
     svt_aom_get_recon_pic(pcs, &recon_pic, is_16bit);
@@ -831,43 +831,25 @@ void finish_cdef_search(PictureControlSet *pcs, SequenceControlSet *scs) {
     // Scale down the cost of the (0,0) filter strength to bias selection towards off.
     // When off, can save the cost of the application.
     if (cdef_recon_ctrls->zero_fs_cost_bias) {
-        const bool is_16bit = (pcs->scs->static_config.encoder_bit_depth > EB_EIGHT_BIT);
-        uint16_t   factor;
+        uint16_t factor;
         for (i = 0; i < sb_count; i++) {
-            if (is_16bit) {
-                factor = cdef_recon_ctrls->zero_fs_cost_bias;
-                if (mse[0][i][0] < 5000)
-                    factor = MIN(factor - 10, 64);
-                else if (mse[0][i][0] < 10000)
-                    factor = MIN(factor - 5, 64);
-                else if (mse[0][i][0] > 25000)
-                    factor = MIN(factor + 1, 64);
-                mse[0][i][0] = (factor * mse[0][i][0]) >> 6;
+            factor = cdef_recon_ctrls->zero_fs_cost_bias;
+            if (mse[0][i][0] < 5000)
+                factor = MIN(factor - 10, 64);
+            else if (mse[0][i][0] < 10000)
+                factor = MIN(factor - 5, 64);
+            else if (mse[0][i][0] > 25000)
+                factor = MIN(factor + 1, 64);
+            mse[0][i][0] = (factor * mse[0][i][0]) >> 6;
 
-                factor = cdef_recon_ctrls->zero_fs_cost_bias;
-                if (mse[1][i][0] < 5000)
-                    factor = MIN(factor - 10, 64);
-                else if (mse[1][i][0] < 10000)
-                    factor = MIN(factor - 5, 64);
-                else if (mse[1][i][0] > 25000)
-                    factor = MIN(factor + 1, 64);
-                mse[1][i][0] = (factor * mse[1][i][0]) >> 6;
-            } else {
-                factor = cdef_recon_ctrls->zero_fs_cost_bias;
-                if (mse[0][i][0] > 25000)
-                    factor = MIN(factor + 2, 64);
-                else if (mse[0][i][0] > 10000)
-                    factor = MIN(factor + 1, 64);
-                mse[0][i][0] = (factor * mse[0][i][0]) >> 6;
-
-                factor = cdef_recon_ctrls->zero_fs_cost_bias;
-                if (mse[1][i][0] > 25000)
-                    factor = MIN(factor + 2, 64);
-                else if (mse[1][i][0] > 10000)
-                    factor = MIN(factor + 1, 64);
-
-                mse[1][i][0] = (factor * mse[1][i][0]) >> 6;
-            }
+            factor = cdef_recon_ctrls->zero_fs_cost_bias;
+            if (mse[1][i][0] < 5000)
+                factor = MIN(factor - 10, 64);
+            else if (mse[1][i][0] < 10000)
+                factor = MIN(factor - 5, 64);
+            else if (mse[1][i][0] > 25000)
+                factor = MIN(factor + 1, 64);
+            mse[1][i][0] = (factor * mse[1][i][0]) >> 6;
         }
     }
     // Compute cost of off to use in deriving pcs->cdef_dist_dev

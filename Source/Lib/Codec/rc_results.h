@@ -24,7 +24,6 @@ extern "C" {
 typedef struct RateControlResults {
     EbDctor          dctor;
     EbObjectWrapper *pcs_wrapper;
-    bool             superres_recode;
 } RateControlResults;
 
 typedef struct RateControlResultsInitData {

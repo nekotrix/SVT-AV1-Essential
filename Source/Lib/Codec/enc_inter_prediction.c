@@ -91,10 +91,9 @@ static void av1_make_masked_scaled_inter_predictor(
     conv_params->dst_stride       = tmp_buf_stride;
     assert(conv_params->do_average == 0);
 
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
     if (bitdepth > EB_EIGHT_BIT || is_16bit) {
-        // for super-res, the reference frame block might be 2x than predictor in maximum
-        // for reference scaling, it might be 4x since both width and height is scaled 2x
+        // for reference scaling, the reference frame block might be up to 4x the predictor size
+        // since both width and height can be scaled 2x
         // should pack enough buffer for scaled reference
         DECLARE_ALIGNED(16, uint16_t, src16[PACKED_BUFFER_SIZE * 4]);
         uint16_t *src_ptr_10b;
@@ -140,9 +139,6 @@ static void av1_make_masked_scaled_inter_predictor(
                                    use_intrabc,
                                    bitdepth);
     } else
-#else
-    UNUSED(src_ptr_2b);
-#endif
     {
         svt_inter_predictor(src_ptr,
                             src_stride,
@@ -309,7 +305,7 @@ static void model_rd_with_curvfit(PictureControlSet *pcs, BlockSize plane_bsize,
     const int           dequant_shift   = 3;
     int32_t             current_q_index = pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
     SequenceControlSet *scs             = pcs->scs;
-    Dequants *const     dequants        = ctx->hbd_md ? &scs->enc_ctx->deq_bd : &scs->enc_ctx->deq_8bit;
+    Dequants *const     dequants        = &scs->enc_ctx->deq_bd;
     int16_t             quantizer       = dequants->y_dequant_qtx[current_q_index][1];
 
     const int qstep = AOMMAX(quantizer >> dequant_shift, 1);
@@ -406,9 +402,8 @@ int8_t svt_av1_wedge_sign_from_residuals_c(const int16_t *ds, const uint8_t *m, 
 static void pick_wedge(PictureControlSet *pcs, ModeDecisionContext *ctx, const BlockSize bsize, const uint8_t *const p0,
                        const int16_t *const residual1, const int16_t *const diff10, int8_t *const best_wedge_sign,
                        int8_t *const best_wedge_index) {
-    uint8_t              hbd_md      = ctx->hbd_md == EB_DUAL_BIT_MD ? EB_8_BIT_MD : ctx->hbd_md;
-    uint32_t             full_lambda = hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
-    EbPictureBufferDesc *src_pic     = hbd_md ? pcs->input_frame16bit : pcs->ppcs->enhanced_pic;
+    uint32_t             full_lambda = ctx->full_lambda_md[EB_10_BIT_MD];
+    EbPictureBufferDesc *src_pic     = pcs->input_frame16bit;
     const int            bw          = block_size_wide[bsize];
     const int            bh          = block_size_high[bsize];
     const int            N           = bw * bh;
@@ -419,8 +414,7 @@ static void pick_wedge(PictureControlSet *pcs, ModeDecisionContext *ctx, const B
     int8_t    wedge_types = (1 << svt_aom_get_wedge_bits_lookup(bsize));
     const int bd_round    = 0;
     DECLARE_ALIGNED(32, int16_t, residual0[MAX_SB_SQUARE]); // src - pred0
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
-    if (hbd_md) {
+    {
         uint16_t *src_buf_hbd = (uint16_t *)src_pic->buffer_y + (ctx->blk_org_x + src_pic->org_x) +
             (ctx->blk_org_y + src_pic->org_y) * src_pic->stride_y;
         svt_aom_highbd_subtract_block(bh,
@@ -432,12 +426,6 @@ static void pick_wedge(PictureControlSet *pcs, ModeDecisionContext *ctx, const B
                                       (uint8_t *)p0,
                                       bw,
                                       EB_TEN_BIT);
-    } else
-#endif
-    {
-        uint8_t *src_buf = src_pic->buffer_y + (ctx->blk_org_x + src_pic->org_x) +
-            (ctx->blk_org_y + src_pic->org_y) * src_pic->stride_y;
-        svt_aom_subtract_block(bh, bw, residual0, bw, src_buf /*src->buf*/, src_pic->stride_y /*src->stride*/, p0, bw);
     }
     int64_t sign_limit = ((int64_t)svt_aom_sum_squares_i16(residual0, N) -
                           (int64_t)svt_aom_sum_squares_i16(residual1, N)) *
@@ -475,7 +463,7 @@ int64_t pick_wedge_fixed_sign(PictureControlSet *pcs, ModeDecisionContext *ctx, 
                               int8_t *const best_wedge_index) {
     //const MACROBLOCKD *const xd = &x->e_mbd;
 
-    uint32_t  full_lambda = ctx->hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
+    uint32_t  full_lambda = ctx->full_lambda_md[EB_10_BIT_MD];
     const int bw          = block_size_wide[bsize];
     const int bh          = block_size_high[bsize];
     const int N           = bw * bh;
@@ -522,8 +510,7 @@ static void pick_interinter_wedge(PictureControlSet *pcs, ModeDecisionContext *c
 static void pick_interinter_seg(PictureControlSet *pcs, ModeDecisionContext *ctx,
                                 InterInterCompoundData *interinter_comp, const BlockSize bsize, const uint8_t *const p0,
                                 const uint8_t *const p1, const int16_t *const residual1, const int16_t *const diff10) {
-    uint8_t           hbd_md      = ctx->hbd_md == EB_DUAL_BIT_MD ? EB_8_BIT_MD : ctx->hbd_md;
-    uint32_t          full_lambda = hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
+    uint32_t          full_lambda = ctx->full_lambda_md[EB_10_BIT_MD];
     const int         bw          = block_size_wide[bsize];
     const int         bh          = block_size_high[bsize];
     const int         N           = 1 << eb_num_pels_log2_lookup[bsize];
@@ -542,10 +529,7 @@ static void pick_interinter_seg(PictureControlSet *pcs, ModeDecisionContext *ctx
     for (cur_mask_type = 0; cur_mask_type < DIFFWTD_MASK_TYPES; cur_mask_type++) {
         uint8_t *const temp_mask = cur_mask_type ? seg_mask1 : seg_mask0;
         // build mask and inverse
-        if (hbd_md)
-            svt_av1_build_compound_diffwtd_mask_highbd(temp_mask, cur_mask_type, p0, bw, p1, bw, bh, bw, EB_TEN_BIT);
-        else
-            svt_av1_build_compound_diffwtd_mask(temp_mask, cur_mask_type, p0, bw, p1, bw, bh, bw);
+        svt_av1_build_compound_diffwtd_mask_highbd(temp_mask, cur_mask_type, p0, bw, p1, bw, bh, bw, EB_TEN_BIT);
 
         // compute rd for mask
         const uint64_t sse = svt_av1_wedge_sse_from_residuals(residual1, diff10, temp_mask, N);
@@ -615,7 +599,7 @@ void model_rd_for_sb_with_curvfit(PictureControlSet *pcs, ModeDecisionContext *c
     // we need to divide by 8 before sending to modeling function.
     const int bd_round = 0;
 
-    uint32_t full_lambda = ctx->hbd_md ? ctx->full_lambda_md[EB_10_BIT_MD] : ctx->full_lambda_md[EB_8_BIT_MD];
+    uint32_t full_lambda = ctx->full_lambda_md[EB_10_BIT_MD];
 
     int64_t rate_sum = 0;
     int64_t dist_sum = 0;
@@ -625,14 +609,7 @@ void model_rd_for_sb_with_curvfit(PictureControlSet *pcs, ModeDecisionContext *c
         const BlockSize plane_bsize = get_plane_block_size(bsize, subsampling, subsampling);
         int64_t         dist, sse;
         int             rate;
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
-        if (ctx->hbd_md) {
-            sse = svt_aom_highbd_sse(src_buf, src_stride, pred_buf, pred_stride, bw, bh);
-        } else
-#endif
-        {
-            sse = svt_aom_sse(src_buf, src_stride, pred_buf, pred_stride, bw, bh);
-        }
+        sse = svt_aom_highbd_sse(src_buf, src_stride, pred_buf, pred_stride, bw, bh);
 
         sse = ROUND_POWER_OF_TWO(sse, bd_round);
         model_rd_with_curvfit(pcs, plane_bsize, sse, bw * bh, &rate, &dist, ctx, full_lambda);
@@ -1812,23 +1789,14 @@ void svt_aom_precompute_obmc_data(PictureControlSet *pcs, ModeDecisionContext *c
     int      dst_stride1[MAX_MB_PLANE] = {ctx->blk_geom->bwidth, ctx->blk_geom->bwidth, ctx->blk_geom->bwidth};
     int      dst_stride2[MAX_MB_PLANE] = {ctx->blk_geom->bwidth, ctx->blk_geom->bwidth, ctx->blk_geom->bwidth};
 
-    if (ctx->hbd_md) {
-        if (component_mask & PICTURE_BUFFER_DESC_LUMA_MASK)
-            ctx->obmc_is_luma_neigh_10bit = true;
-        dst_buf1[0] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[0]);
-        dst_buf1[1] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[0] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight));
-        dst_buf1[2] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[0] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight) * 2);
-        dst_buf2[0] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[1]);
-        dst_buf2[1] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[1] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight));
-        dst_buf2[2] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[1] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight) * 2);
-    } else {
-        dst_buf1[0] = tmp_obmc_bufs[0];
-        dst_buf1[1] = tmp_obmc_bufs[0] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight);
-        dst_buf1[2] = tmp_obmc_bufs[0] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight) * 2;
-        dst_buf2[0] = tmp_obmc_bufs[1];
-        dst_buf2[1] = tmp_obmc_bufs[1] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight);
-        dst_buf2[2] = tmp_obmc_bufs[1] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight) * 2;
-    }
+    if (component_mask & PICTURE_BUFFER_DESC_LUMA_MASK)
+        ctx->obmc_is_luma_neigh_10bit = true;
+    dst_buf1[0] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[0]);
+    dst_buf1[1] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[0] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight));
+    dst_buf1[2] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[0] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight) * 2);
+    dst_buf2[0] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[1]);
+    dst_buf2[1] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[1] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight));
+    dst_buf2[2] = (uint8_t *)((uint16_t *)tmp_obmc_bufs[1] + (ctx->blk_geom->bwidth * ctx->blk_geom->bheight) * 2);
     int mi_row = ctx->blk_org_y >> 2;
     int mi_col = ctx->blk_org_x >> 2;
     build_prediction_by_above_preds(component_mask,
@@ -1839,7 +1807,7 @@ void svt_aom_precompute_obmc_data(PictureControlSet *pcs, ModeDecisionContext *c
                                     mi_col,
                                     dst_buf1,
                                     dst_stride1,
-                                    ctx->hbd_md);
+                                    EB_10_BIT_MD);
     build_prediction_by_left_preds(component_mask,
                                    ctx->blk_geom->bsize,
                                    pcs,
@@ -1848,7 +1816,7 @@ void svt_aom_precompute_obmc_data(PictureControlSet *pcs, ModeDecisionContext *c
                                    mi_col,
                                    dst_buf2,
                                    dst_stride2,
-                                   ctx->hbd_md);
+                                   EB_10_BIT_MD);
     ctx->obmc_neighbor_luma_pred_ready   = component_mask == PICTURE_BUFFER_DESC_FULL_MASK ||
             component_mask == PICTURE_BUFFER_DESC_LUMA_MASK
           ? true
@@ -2069,7 +2037,7 @@ static void model_rd_for_sb(PictureControlSet *pcs, EbPictureBufferDesc *predict
             dist_sum += dist * 10;
         } else {
             const uint8_t   current_q_index = pcs->ppcs->frm_hdr.quantization_params.base_q_idx;
-            Dequants *const dequants        = ctx->hbd_md ? &scs->enc_ctx->deq_bd : &scs->enc_ctx->deq_8bit;
+            Dequants *const dequants        = &scs->enc_ctx->deq_bd;
             int16_t         quantizer       = dequants->y_dequant_qtx[current_q_index][1];
             model_rd_from_sse(plane == 0 ? ctx->blk_geom->bsize : ctx->blk_geom->bsize_uv,
                               quantizer,
@@ -2111,8 +2079,6 @@ static void interpolation_filter_search(PictureControlSet *pcs, ModeDecisionCont
     SequenceControlSet *scs                = pcs->scs;
     const FrameHeader  *frm_hdr            = &pcs->ppcs->frm_hdr;
     const uint8_t       enable_dual_filter = scs->seq_header.enable_dual_filter;
-    const uint32_t      encoder_bit_depth  = scs->static_config.encoder_bit_depth;
-
     /* Save the orignal interp filter because the compensation is likely available
      * for that filter, and can be skipped in IFS. Also, we shouldn't overwrite
      * the pred buffer with a filter that is different from the input, because
@@ -2162,47 +2128,37 @@ static void interpolation_filter_search(PictureControlSet *pcs, ModeDecisionCont
         if (is_fp) {
             tmp_rd = RDCOST(full_lambda_divided, tmp_rs, 0);
         } else {
-            /*
-             * Skip the prediction if the interp_filter matches the current interp_filter
-             * for MDS1 or higher (since previously performed @ mds0), and EB_EIGHT_BIT (to do for EB_TEN_BIT).
-             */
-            const uint8_t is_pred_buffer_ready = (cand_bf->valid_luma_pred &&
-                                                  cand_bf->cand->block_mi.interp_filters == org_interp_filters &&
-                                                  ctx->md_stage > MD_STAGE_0 && encoder_bit_depth == EB_EIGHT_BIT);
-
-            if (is_pred_buffer_ready == 0) {
-                svt_aom_inter_prediction(
-                    scs,
-                    pcs,
-                    &cand_bf->cand->block_mi,
-                    &cand_bf->cand->wm_params_l0,
-                    &cand_bf->cand->wm_params_l1,
-                    ctx->blk_ptr,
-                    ctx->blk_geom,
-                    true, //use_precomputed_obmc
-                    ctx->need_hbd_comp_mds3
-                        ? 0
-                        : 1, //use_precomputed_ii; if precompute generated for 8bit and now switched to 10bit, don't use precomputed data
-                    ctx,
-                    recon_neigh_y,
-                    recon_neigh_cb,
-                    recon_neigh_cr,
-                    ref_pic_list0,
-                    ref_pic_list1,
-                    ctx->blk_org_x,
-                    ctx->blk_org_y,
-                    ctx->scratch_prediction_ptr,
-                    ctx->blk_geom->org_x,
-                    ctx->blk_geom->org_y,
-                    PICTURE_BUFFER_DESC_LUMA_MASK,
-                    hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT,
-                    0); // is_16bit_pipeline
-            }
+            svt_aom_inter_prediction(
+                scs,
+                pcs,
+                &cand_bf->cand->block_mi,
+                &cand_bf->cand->wm_params_l0,
+                &cand_bf->cand->wm_params_l1,
+                ctx->blk_ptr,
+                ctx->blk_geom,
+                true, //use_precomputed_obmc
+                ctx->need_hbd_comp_mds3
+                    ? 0
+                    : 1, //use_precomputed_ii; if precompute generated for 8bit and now switched to 10bit, don't use precomputed data
+                ctx,
+                recon_neigh_y,
+                recon_neigh_cb,
+                recon_neigh_cr,
+                ref_pic_list0,
+                ref_pic_list1,
+                ctx->blk_org_x,
+                ctx->blk_org_y,
+                ctx->scratch_prediction_ptr,
+                ctx->blk_geom->org_x,
+                ctx->blk_geom->org_y,
+                PICTURE_BUFFER_DESC_LUMA_MASK,
+                hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT,
+                0); // is_16bit_pipeline
 
             int32_t tmp_rate;
             int64_t tmp_dist;
             model_rd_for_sb(pcs,
-                            is_pred_buffer_ready ? cand_bf->pred : ctx->scratch_prediction_ptr,
+                            ctx->scratch_prediction_ptr,
                             ctx,
                             0,
                             0,
@@ -2374,7 +2330,6 @@ static void inter_intra_prediction(PictureControlSet *pcs, ModeDecisionContext *
         TxSize tx_size        = blk_geom->txsize[0]; // Nader - Intra 128x128 not supported
         TxSize tx_size_Chroma = blk_geom->txsize_uv[0]; //Nader - Intra 128x128 not supported
 
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
         if (is16bit) {
             if (!use_precomputed_intra || plane) {
                 svt_av1_predict_intra_block_16bit(bit_depth,
@@ -2419,9 +2374,6 @@ static void inter_intra_prediction(PictureControlSet *pcs, ModeDecisionContext *
                 use_precomputed_intra && !plane ? blk_geom->bwidth : intra_stride, // Intra pred stride
                 bit_depth);
         } else
-#else
-        UNUSED(bit_depth);
-#endif
         {
             if (!use_precomputed_intra || plane) {
                 svt_av1_predict_intra_block(!ED_STAGE,
@@ -3622,8 +3574,7 @@ EbErrorType svt_aom_inter_prediction(SequenceControlSet *scs, PictureControlSet 
 
 bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionContext *ctx, ModeDecisionCandidate *cand) {
     SequenceControlSet  *scs     = pcs->scs;
-    uint8_t              hbd_md  = ctx->hbd_md == EB_DUAL_BIT_MD ? EB_8_BIT_MD : ctx->hbd_md;
-    EbPictureBufferDesc *src_pic = hbd_md ? pcs->input_frame16bit : pcs->ppcs->enhanced_pic;
+    EbPictureBufferDesc *src_pic = pcs->input_frame16bit;
     uint32_t             bwidth  = ctx->blk_geom->bwidth;
     uint32_t             bheight = ctx->blk_geom->bheight;
     EbPictureBufferDesc  pred_desc;
@@ -3682,7 +3633,7 @@ bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionConte
                                  0, //output org_x,
                                  0, //output org_y,
                                  PICTURE_BUFFER_DESC_LUMA_MASK,
-                                 hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT,
+                                 EB_TEN_BIT,
                                  0); // is_16bit_pipeline
     }
 
@@ -3737,27 +3688,20 @@ bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionConte
                                  0, //output org_x,
                                  0, //output org_y,
                                  PICTURE_BUFFER_DESC_LUMA_MASK,
-                                 hbd_md ? EB_TEN_BIT : EB_EIGHT_BIT,
+                                 EB_TEN_BIT,
                                  0); // is_16bit_pipeline
     }
 
     bool     exit_compound_prep  = false;
-    uint32_t pred0_to_pred1_dist = 0;
-
-    if (hbd_md) {
-        pred0_to_pred1_dist = sad_16b_kernel(
-            (uint16_t *)ctx->pred0, bwidth, (uint16_t *)ctx->pred1, bwidth, bheight, bwidth);
-    } else {
-        pred0_to_pred1_dist = svt_nxm_sad_kernel(ctx->pred0, bwidth, ctx->pred1, bwidth, bheight, bwidth);
-    }
+    uint32_t pred0_to_pred1_dist = sad_16b_kernel(
+        (uint16_t *)ctx->pred0, bwidth, (uint16_t *)ctx->pred1, bwidth, bheight, bwidth);
 
     if (pred0_to_pred1_dist < (bheight * bwidth * ctx->inter_comp_ctrls.pred0_to_pred1_mult)) {
         exit_compound_prep = true;
         return exit_compound_prep;
     }
 
-#if CONFIG_ENABLE_HIGH_BIT_DEPTH
-    if (hbd_md) {
+    {
         uint16_t *src_buf_hbd = (uint16_t *)src_pic->buffer_y + (ctx->blk_org_x + src_pic->org_x) +
             (ctx->blk_org_y + src_pic->org_y) * src_pic->stride_y;
         svt_aom_highbd_subtract_block(bheight,
@@ -3778,13 +3722,6 @@ bool svt_aom_calc_pred_masked_compound(PictureControlSet *pcs, ModeDecisionConte
                                       (uint8_t *)ctx->pred0,
                                       bwidth,
                                       EB_TEN_BIT);
-    } else
-#endif
-    {
-        uint8_t *src_buf = src_pic->buffer_y + (ctx->blk_org_x + src_pic->org_x) +
-            (ctx->blk_org_y + src_pic->org_y) * src_pic->stride_y;
-        svt_aom_subtract_block(bheight, bwidth, ctx->residual1, bwidth, src_buf, src_pic->stride_y, ctx->pred1, bwidth);
-        svt_aom_subtract_block(bheight, bwidth, ctx->diff10, bwidth, ctx->pred1, bwidth, ctx->pred0, bwidth);
     }
 
     return exit_compound_prep;

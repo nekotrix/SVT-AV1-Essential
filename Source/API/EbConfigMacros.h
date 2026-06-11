@@ -22,22 +22,6 @@
 
 // clang-format off
 
-#ifndef RTC_BUILD
-#define RTC_BUILD 0
-#endif
-
-#if RTC_BUILD
-#define CONFIG_LOG_QUIET                    1
-
-#define CONFIG_ARM_NEON_IS_GUARANTEED       1
-#define CONFIG_X86_AVX2_IS_GUARANTEED       0
-
-#define CONFIG_ENABLE_QUANT_MATRIX          0
-#define CONFIG_ENABLE_OBMC                  0
-#define CONFIG_ENABLE_FILM_GRAIN            0
-#define CONFIG_ENABLE_HIGH_BIT_DEPTH        0
-#endif
-
 
 // When set to 1, EB_CPU_FLAGS_NEON is unconditionally set for all ARCH_AARCH64
 // builds, i.e. requiring Neon for library to work. This also allows linker to

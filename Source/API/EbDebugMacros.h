@@ -54,15 +54,9 @@ extern "C" {
 #define FTR_FRAME_RATE_ON_FLY_SAMPLE 0 // Sample functions to change frame rate
 #define FTR_PER_FRAME_QUALITY_SAMPLE 0 // Sample functions to compute PSNR per frame
 #endif
-// Super-resolution debugging code
 #define DEBUG_SCALING           0
 #define DEBUG_TF                0
-#define DEBUG_SUPERRES_RECODE   0
-#define DEBUG_SUPERRES_ENERGY   0
 #define DEBUG_RC_CAP_LOG        0 // Prints for RC cap
-
-// Switch frame debugging code
-#define DEBUG_SFRAME            0
 
 // Variance Boost debugging code
 #define DEBUG_VAR_BOOST         0

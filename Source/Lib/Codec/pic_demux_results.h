@@ -19,11 +19,10 @@
  * Enums
  **************************************/
 typedef enum EbPicType {
-    EB_PIC_INVALID        = 0,
-    EB_PIC_INPUT          = 1,
-    EB_PIC_REFERENCE      = 2,
-    EB_PIC_FEEDBACK       = 3,
-    EB_PIC_SUPERRES_INPUT = 4
+    EB_PIC_INVALID   = 0,
+    EB_PIC_INPUT     = 1,
+    EB_PIC_REFERENCE = 2,
+    EB_PIC_FEEDBACK  = 3
 } EbPicType;
 
 /**************************************
