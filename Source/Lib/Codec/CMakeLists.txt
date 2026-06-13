@@ -13,6 +13,10 @@
 
 if(EXCLUDE_HASH)
     set(PACKAGE_VERSION_STRING ${PROJECT_VERSION}${VERSION_TAG})
+    set(COMPILER_ID "${CMAKE_C_COMPILER_ID}")
+    set(COMPILER_VERSION "${CMAKE_C_COMPILER_VERSION}")
+    set(GIT_COMMIT "unknown")
+    set(GIT_COMMIT_DATE "unknown")
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/EbVersion.h.in EbVersion.h @ONLY)
     add_custom_target(EbVersionHeaderGen)
 else()
@@ -22,6 +26,8 @@ else()
             -D OUTPUT_FILE=EbVersion.h
             -D GIT_ROOT_DIR=${PROJECT_SOURCE_DIR}
             -D PACKAGE_VERSION_STRING=${PROJECT_VERSION}${VERSION_TAG}
+            -D CMAKE_C_COMPILER_ID=${CMAKE_C_COMPILER_ID}
+            -D CMAKE_C_COMPILER_VERSION=${CMAKE_C_COMPILER_VERSION}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/ConfigureGitVersion.cmake
         BYPRODUCTS EbVersion.h
         COMMENT "Generating version header"
