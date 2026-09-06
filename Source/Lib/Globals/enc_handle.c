@@ -4578,9 +4578,10 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
         scs->static_config.pred_structure      = ALL_INTRA;
         scs->static_config.intra_period_length = 0;
     }
-    scs->static_config.multiply_keyint    = config_struct->multiply_keyint;
-    scs->static_config.intra_refresh_type = config_struct->intra_refresh_type;
-    scs->static_config.enc_mode = config_struct->enc_mode;
+    scs->static_config.multiply_keyint     = config_struct->multiply_keyint;
+    scs->static_config.multiply_min_keyint = config_struct->multiply_min_keyint;
+    scs->static_config.intra_refresh_type  = config_struct->intra_refresh_type;
+    scs->static_config.enc_mode            = config_struct->enc_mode;
 
     scs->static_config.qp = config_struct->qp;
 
@@ -4968,8 +4969,13 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
     }
     if (scs->static_config.intra_period_length == -1 || scs->allintra) {
         scs->static_config.min_intra_period_length = 0;
-    } else if (scs->static_config.min_intra_period_length == -1) {
-        scs->static_config.min_intra_period_length = compute_default_min_intra_period(scs);
+    } else {
+        if (scs->static_config.multiply_min_keyint) {
+            scs->static_config.min_intra_period_length = (int32_t)(scs->frame_rate * scs->static_config.min_intra_period_length);
+        }
+        if (scs->static_config.min_intra_period_length == -1) {
+            scs->static_config.min_intra_period_length = compute_default_min_intra_period(scs);
+        }
     }
     if (scs->static_config.look_ahead_distance == (uint32_t)~0) {
         scs->static_config.look_ahead_distance = scs->static_config.low_memory == 2

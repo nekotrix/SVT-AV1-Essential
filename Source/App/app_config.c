@@ -941,10 +941,11 @@ ConfigDescription config_entry_rc[] = {
 
 ConfigDescription config_entry_intra_refresh[] = {
     {KEYINT_TOKEN,
-     "Max GOP size (frames), default is -2 [-2: ~5 seconds, -1: \"infinite\" and only applicable for "
-     "CRF, 0: same as -1]"},
+     "Max GOP size (frames), use `s` suffix for seconds, default is -2 [-2: ~5 seconds, -1: \"infinite\" and only "
+     "applicable for CRF, 0: same as -1]"},
     {MIN_KEYINT_TOKEN,
-     "Min GOP size (frames), default is -1 [-1: multiple of the mini-gop length (automatic), "
+     "Min GOP size (frames), use `s` suffix for seconds, default is -1 [-1: multiple of the mini-gop length "
+     "(automatic), "
      "0: no minimum]"},
     {SCENE_CHANGE_DETECTION_TOKEN,
      "Scene change detection control, default is 1 [0-1]"},
@@ -1278,10 +1279,11 @@ ConfigDescription fconfig_entry_2p[] = {
 
 ConfigDescription fconfig_entry_intra_refresh[] = {
     {KEYINT_TOKEN,
-     "Max GOP size (frames), default is -2 [-2: ~5 seconds, -1: \"infinite\" and only applicable for "
-     "CRF, 0: same as -1]"},
+     "Max GOP size (frames), use `s` suffix for seconds, default is -2 [-2: ~5 seconds, -1: \"infinite\" and only "
+     "applicable for CRF, 0: same as -1]"},
     {MIN_KEYINT_TOKEN,
-     "Min GOP size (frames), default is -1 [-1: multiple of the mini-gop length (automatic), "
+     "Min GOP size (frames), use `s` suffix for seconds, default is -1 [-1: multiple of the mini-gop length "
+     "(automatic), "
      "0: no minimum]"},
     {INTRA_REFRESH_TYPE_TOKEN, "Intra refresh type, default is 2 [1: FWD Frame (Open GOP), 2: KEY Frame (Closed GOP)]"},
     {SCENE_CHANGE_DETECTION_TOKEN, "Scene change detection control, default is 1 [0-1]"},

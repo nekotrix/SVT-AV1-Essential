@@ -1296,6 +1296,12 @@ typedef struct EbSvtAv1EncConfiguration {
     uint16_t* fgs_seeds;
     uint32_t  fgs_seed_count;
 
+    /**
+     * @brief Signal to the library to treat min_intra_period_length as seconds and
+     * multiply by fps_num/fps_den.
+     */
+    bool multiply_min_keyint;
+
     // clang-format off
     /* Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct */
     uint8_t padding[128
@@ -1319,6 +1325,7 @@ typedef struct EbSvtAv1EncConfiguration {
         - sizeof(QualityZone*)
         - sizeof(uint16_t)
         - sizeof(uint16_t*) - sizeof(uint32_t) // fgs_seeds, fgs_seed_count
+        - sizeof(bool) // multiply_min_keyint
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;
