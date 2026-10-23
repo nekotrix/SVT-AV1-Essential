@@ -65,7 +65,7 @@ int64 MkvWriter::Position() const {
   if (!file_)
     return 0;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(_WIN32)
   return _ftelli64(file_);
 #else
   return ftell(file_);
@@ -76,7 +76,7 @@ int32 MkvWriter::Position(int64 position) {
   if (!file_)
     return -1;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(_WIN32)
   return _fseeki64(file_, position, SEEK_SET);
 #elif defined(_WIN32)
   return fseeko64(file_, static_cast<off_t>(position), SEEK_SET);
