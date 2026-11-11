@@ -992,10 +992,7 @@ ConfigDescription config_entry_specific[] = {
      "Optimize the encoding process for different desired outcomes [0 = VQ, 1 = PSNR, 2 = SSIM, 3 = IQ (Image "
      "Quality), 4 = MS_SSIM (MS_SSIM and SSIMULACRA2 optimized mode), 5 = VMAF], default is 1 [0-5]"},
     {LOW_MEMORY_TOKEN,
-     "Specifies whether to use params which reduce RAM usage with potential efficiency and speed trade-offs, "
-     "most effective in CRF/CQP RA mode, "
-     "default is 0 "
-     "[0-1]"},
+     "Reduce RAM usage with potential efficiency and speed trade-offs, default is 0 [0-2]"},
     // MD Parameters
     {SCREEN_CONTENT_TOKEN,
      "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive]"},
@@ -1334,10 +1331,7 @@ ConfigDescription fconfig_entry_specific[] = {
      "Optimize the encoding process for different desired outcomes [0 = VQ, 1 = PSNR, 2 = SSIM, 3 = IQ (Image "
      "Quality), 4 = MS_SSIM (MS_SSIM and SSIMULACRA2 optimized mode), 5 = VMAF], default is 1 [0-5]"},
     {LOW_MEMORY_TOKEN,
-     "Specifies whether to use params which reduce RAM usage with potential efficiency and speed trade-offs, "
-     "most effective in CRF/CQP RA mode, "
-     "default is 0 "
-     "[0-1]"},
+     "Reduce RAM usage with potential efficiency and speed trade-offs, default is 0 [0-2]"},
     // MD Parameters
     {SCREEN_CONTENT_TOKEN,
      "Set screen content detection level, default is 2 [0: off, 1: on, 2: content adaptive, 3: content adaptive "

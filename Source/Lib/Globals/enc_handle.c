@@ -409,6 +409,9 @@ static EbErrorType load_default_buffer_configuration_settings(SequenceControlSet
     set_segments_numbers(scs);
 
     const bool is_low_delay = (scs->static_config.pred_structure == LOW_DELAY);
+    const bool compact_ra = scs->static_config.low_memory && !is_low_delay && !scs->static_config.avif;
+    const bool compact_level = compact_ra &&
+        (lp == PARALLEL_LEVEL_4 || lp == PARALLEL_LEVEL_5 || lp == PARALLEL_LEVEL_6);
     // adjust buffer count for superres
     uint32_t superres_count = (scs->static_config.superres_mode == SUPERRES_AUTO &&
                                (scs->static_config.superres_auto_search_type == SUPERRES_AUTO_DUAL ||
@@ -520,7 +523,9 @@ static EbErrorType load_default_buffer_configuration_settings(SequenceControlSet
     //Configure max needed buffers to process 1+n_extra_mg Mini-Gops in the pipeline. n extra MGs to feed to picMgr on top of current one.
     // Low delay mode has no extra minigops to process.
     uint32_t n_extra_mg;
-    if (lp <= PARALLEL_LEVEL_3 || is_low_delay) {
+    if (compact_level) {
+        n_extra_mg = lp == PARALLEL_LEVEL_4 ? 0 : lp == PARALLEL_LEVEL_5 ? 1 : 3;
+    } else if (lp <= PARALLEL_LEVEL_3 || is_low_delay) {
         n_extra_mg = 0;
     } else if (lp <= PARALLEL_LEVEL_4) {
         n_extra_mg = 1;
@@ -589,6 +594,9 @@ static EbErrorType load_default_buffer_configuration_settings(SequenceControlSet
     } else if (lp <= PARALLEL_LEVEL_3) {
         scs->picture_control_set_pool_init_count_child = scs->enc_dec_pool_init_count = clamp(8, min_child, max_child) +
             superres_count;
+    } else if (compact_level) {
+        scs->picture_control_set_pool_init_count_child = scs->enc_dec_pool_init_count =
+            clamp(4, min_child, max_child) + superres_count;
     } else if (lp <= PARALLEL_LEVEL_4) {
         scs->picture_control_set_pool_init_count_child = scs->enc_dec_pool_init_count = clamp(
                                                                                             12, min_child, max_child) +
@@ -725,7 +733,30 @@ static EbErrorType load_default_buffer_configuration_settings(SequenceControlSet
     max_rest_proc = scs->picture_control_set_pool_init_count_child * scs->rest_segment_column_count *
         scs->rest_segment_row_count;
 #define WORKERS_COUNT(x) (is_low_delay ? ld_workers : (x))
-    if (lp <= PARALLEL_LEVEL_1) {
+    if (compact_level) {
+        uint8_t pa_processes = scs->static_config.film_grain_denoise_strength > 0 ? 20 : 4;
+        if (scs->static_config.pass == ENC_FIRST_PASS) {
+            pa_processes = 12;
+        }
+        scs->total_process_init_count += (scs->picture_analysis_process_init_count = clamp(
+                                              lp == PARALLEL_LEVEL_6 ? 2 : pa_processes, 1, max_pa_proc));
+        scs->total_process_init_count += (scs->motion_estimation_process_init_count = clamp(
+                                              lp == PARALLEL_LEVEL_6 ? 16 : 25, 1, max_me_proc));
+        scs->total_process_init_count += (scs->source_based_operations_process_init_count = clamp(1, 1, 1));
+        scs->total_process_init_count += (scs->tpl_disp_process_init_count = clamp(6, 1, max_tpl_proc));
+        scs->total_process_init_count += (scs->mode_decision_configuration_process_init_count = clamp(
+                                              lp == PARALLEL_LEVEL_6 ? 2 : 3, 1, max_mdc_proc));
+        scs->total_process_init_count += (scs->enc_dec_process_init_count = clamp(
+                                              lp == PARALLEL_LEVEL_5 ? 20 : 16, 1, max_md_proc));
+        scs->total_process_init_count += (scs->entropy_coding_process_init_count = clamp(
+                                              lp == PARALLEL_LEVEL_6 ? 2 : 4, 1, max_ec_proc));
+        scs->total_process_init_count += (scs->dlf_process_init_count = clamp(
+                                              lp == PARALLEL_LEVEL_6 ? 2 : 3, 1, max_dlf_proc));
+        scs->total_process_init_count += (scs->cdef_process_init_count = clamp(
+                                              lp == PARALLEL_LEVEL_6 ? 4 : 6, 1, max_cdef_proc));
+        scs->total_process_init_count += (scs->rest_process_init_count = clamp(
+                                              lp == PARALLEL_LEVEL_6 ? 2 : 4, 1, max_rest_proc));
+    } else if (lp <= PARALLEL_LEVEL_1) {
         scs->total_process_init_count += (scs->picture_analysis_process_init_count = 1);
         scs->total_process_init_count += (scs->motion_estimation_process_init_count = 1);
         scs->total_process_init_count += (scs->source_based_operations_process_init_count = 1);
@@ -4758,8 +4789,8 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
     scs->static_config.hierarchical_levels = config_struct->hierarchical_levels;
 
     if (!scs->allintra && scs->static_config.low_memory) {
-        scs->lad_mg = 0;
-        if (scs->static_config.hierarchical_levels == HIERARCHICAL_LEVELS_AUTO) {
+        if (scs->static_config.low_memory == 2 &&
+            scs->static_config.hierarchical_levels == HIERARCHICAL_LEVELS_AUTO) {
             scs->static_config.hierarchical_levels = 4;
         }
         SVT_WARN("Low memory mode active. Reducing --lp can decrease memory usage further at the cost of speed.\n");
@@ -4941,7 +4972,9 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
         scs->static_config.min_intra_period_length = compute_default_min_intra_period(scs);
     }
     if (scs->static_config.look_ahead_distance == (uint32_t)~0) {
-        scs->static_config.look_ahead_distance = compute_default_look_ahead(&scs->static_config);
+        scs->static_config.look_ahead_distance = scs->static_config.low_memory == 2
+            ? 0
+            : compute_default_look_ahead(&scs->static_config);
     }
     scs->static_config.enable_tf          = scs->allintra ? 0 : config_struct->enable_tf;
     scs->static_config.enable_tf_key      = config_struct->enable_tf && config_struct->enable_tf_key;

@@ -1177,9 +1177,9 @@ typedef struct EbSvtAv1EncConfiguration {
 
     /* @brief use settings which reduce memory usage
      *
-     * Default is false.
+     * Default is 0.
      */
-    bool low_memory;
+    uint8_t low_memory;
 
     /* @brief do not print encoder parameters
      *
@@ -1299,7 +1299,8 @@ typedef struct EbSvtAv1EncConfiguration {
     // clang-format off
     /* Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct */
     uint8_t padding[128
-        - sizeof(bool) * 4 // auto_tiling, low_memory, hide_banner, color_range_provided
+        - sizeof(bool) * 3 // auto_tiling, hide_banner, color_range_provided
+        - sizeof(uint8_t) // low_memory
         - sizeof(PredStructure) + sizeof (uint8_t) // pred_strucutre type was changed from uint8_t to PredStructure
         - sizeof(int) // This was added to take into account the new hbd_mds field while keeping previous ABI compat
         - sizeof(bool) // add the ability to shut MCTF for key frames

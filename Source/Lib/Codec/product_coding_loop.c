@@ -10908,7 +10908,9 @@ static void update_part_neighs(ModeDecisionContext* ctx, PC_TREE* pc_tree, const
 void svt_aom_init_sb_data(SequenceControlSet* scs, PictureControlSet* pcs, ModeDecisionContext* ctx) {
     // Update neighbour arrays for the SB
     if (ctx->pd_pass == PD_PASS_0) {
-        if (!ctx->skip_intra) {
+        // Source-sample preparation also writes this array when intra is skipped.
+        // Bind it to this picture even on the first job of a fresh worker.
+        if (!ctx->skip_intra || ctx->pd0_use_src_samples) {
             update_neighbour_arrays_pd0(pcs, ctx);
         }
     } else {

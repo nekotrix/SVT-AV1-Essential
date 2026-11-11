@@ -428,6 +428,10 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet* scs) {
 
         return_error = EB_ErrorBadParameter;
     }
+    if (config->low_memory > 2) {
+        SVT_ERROR("Low memory mode must be [0 - 2]\n");
+        return_error = EB_ErrorBadParameter;
+    }
     if ((unsigned)config->tile_rows > 6 || (unsigned)config->tile_columns > 6) {
         SVT_ERROR("Log2Tile rows/cols must be [0 - 6] \n");
         return_error = EB_ErrorBadParameter;
@@ -1277,7 +1281,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
     config_ptr->auto_tiling                       = true;
     config_ptr->speed                             = SPEED_UNKNOWN;
     config_ptr->quality                           = QUALITY_UNKNOWN;
-    config_ptr->low_memory                        = false;
+    config_ptr->low_memory                        = 0;
     config_ptr->hide_banner                       = false;
     config_ptr->noise_norm_strength               = 0;
     config_ptr->sharp_tx                          = 0;
@@ -2981,6 +2985,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         {"enable-alt-cdef", &config_struct->alt_cdef},
         {"enable-alt-dlf", &config_struct->alt_dlf},
         {"distortion-bias-preset", &config_struct->distortion_bias_preset},
+        {"low-memory", &config_struct->low_memory},
     };
 
     const size_t uint8_opts_size = sizeof(uint8_opts) / sizeof(uint8_opts[0]);
@@ -3113,7 +3118,6 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         {"enable-kf-tf", &config_struct->enable_tf_key},
         {"enable-intrabc", &config_struct->enable_intrabc},
         {"auto-tiling", &config_struct->auto_tiling},
-        {"low-memory", &config_struct->low_memory},
         {"hide-banner", &config_struct->hide_banner},
     };
     const size_t bool_opts_size = sizeof(bool_opts) / sizeof(bool_opts[0]);
