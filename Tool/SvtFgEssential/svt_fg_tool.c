@@ -66,6 +66,7 @@
 #include "sequence_control_set.h"
 #include "svt_fg_noise_model.h"
 #include "film_grain_analysis.h"
+#include "film_grain_seeds.h"
 #include "pic_buffer_desc.h"
 
 #define FG_TOOL_MAX_LINE 4096
@@ -195,7 +196,7 @@ typedef struct Options {
     SeedMode       seed_mode;
     uint16_t       default_seed;
     uint16_t*      seeds;
-    int            seed_count;
+    uint32_t       seed_count;
     int*           keyframes;
     int            keyframe_count;
     int            jobs;
@@ -277,7 +278,8 @@ static void usage(FILE* fp, const char* argv0, int full) {
             "  --keyframes LIST|FILE|@FILE\n"
             "                        Keyframe numbers or a list file.\n"
             "  --seed S              Set a fixed grain-pattern seed (1..65535).\n"
-            "  --seeds S1,S2,...     Cycle through a list of grain-pattern seeds.\n"
+            "                        -1 uses a sequence optimized to reduce repeating grain patterns.\n"
+            "  --seeds S1,S2,...|-1  Cycle through seeds; -1 uses an optimized sequence.\n"
             "  --fast                Enable extra optimizations without changing results.\n"
             "  -h, --help            Show the full help\n");
         return;
@@ -337,9 +339,11 @@ static void usage(FILE* fp, const char* argv0, int full) {
             "                        Automatic analysis processes one frame at a time.\n"
             "  --seed S              Number controlling the generated grain pattern (1..65535).\n"
             "                        A fixed value keeps the same random seed on every frame.\n"
-            "                        Default: change the seed for each frame.\n"
-            "  --seeds S1,S2,...     Cycle through a list of seeds, one per frame, then repeat.\n"
-            "                        List values: 1..65535.\n"
+            "                        -1 uses a tested sequence chosen to reduce visible repeating\n"
+            "                        grain patterns. Default: change the seed for each frame.\n"
+            "  --seeds S1,S2,...|-1  Cycle through a list of seeds, one per frame, then repeat.\n"
+            "                        List values: 1..65535. -1 uses a tested sequence chosen to\n"
+            "                        reduce visible repeating grain patterns.\n"
             "                        Use either --seed or --seeds, not both.\n"
             "  --fast                Enable extra optimizations without changing results.\n"
             "\n"
@@ -375,61 +379,6 @@ static int parse_int_arg(const char* text, int min_value, int max_value, int* ou
         return 0;
     }
     *out = (int)v;
-    return 1;
-}
-
-static int parse_u16_arg(const char* text, uint16_t* out) {
-    int value;
-    if (!parse_int_arg(text, 1, 65535, &value)) {
-        return 0;
-    }
-    *out = (uint16_t)value;
-    return 1;
-}
-
-static int parse_seed_list(const char* text, uint16_t** seeds, int* seed_count) {
-    char*     copy;
-    char*     token;
-    uint16_t* parsed = NULL;
-    int       count  = 0;
-
-    if (!text || !*text) {
-        return 0;
-    }
-
-    copy = (char*)malloc(strlen(text) + 1);
-    if (!copy) {
-        return 0;
-    }
-    strcpy(copy, text);
-
-    token = strtok(copy, ",");
-    while (token) {
-        uint16_t  seed;
-        uint16_t* grown;
-        if (!parse_u16_arg(token, &seed)) {
-            free(parsed);
-            free(copy);
-            return 0;
-        }
-        grown = (uint16_t*)realloc(parsed, sizeof(*parsed) * (size_t)(count + 1));
-        if (!grown) {
-            free(parsed);
-            free(copy);
-            return 0;
-        }
-        parsed          = grown;
-        parsed[count++] = seed;
-        token           = strtok(NULL, ",");
-    }
-
-    free(copy);
-    if (count == 0) {
-        free(parsed);
-        return 0;
-    }
-    *seeds     = parsed;
-    *seed_count = count;
     return 1;
 }
 
@@ -798,22 +747,24 @@ static int parse_options(int argc, char** argv, Options* opt) {
                 fprintf(stderr, "Only one of --seed or --seeds may be specified\n");
                 return 0;
             }
-            if (!next_arg(argc, argv, &i, &value) || !parse_seed_list(value, &opt->seeds, &opt->seed_count) ||
-                opt->seed_count != 1) {
+            if (!next_arg(argc, argv, &i, &value) ||
+                svt_aom_parse_film_grain_seeds(value, &opt->seeds, &opt->seed_count) != 1 ||
+                (opt->seed_count != 1 && strcmp(value, "-1"))) {
                 free(opt->seeds);
                 opt->seeds      = NULL;
                 opt->seed_count = 0;
-                fprintf(stderr, "Invalid --seed value; expected 1..65535\n");
+                fprintf(stderr, "Invalid --seed value; expected 1..65535 or -1\n");
                 return 0;
             }
-            opt->seed_mode = SEED_MODE_SINGLE;
+            opt->seed_mode = opt->seed_count == 1 ? SEED_MODE_SINGLE : SEED_MODE_LIST;
         } else if (!strcmp(argv[i], "--seeds")) {
             if (opt->seed_mode != SEED_MODE_SVT_DEFAULT) {
                 fprintf(stderr, "Only one of --seed or --seeds may be specified\n");
                 return 0;
             }
-            if (!next_arg(argc, argv, &i, &value) || !parse_seed_list(value, &opt->seeds, &opt->seed_count)) {
-                fprintf(stderr, "Invalid --seeds value; expected a comma-separated list of 1..65535 values\n");
+            if (!next_arg(argc, argv, &i, &value) ||
+                svt_aom_parse_film_grain_seeds(value, &opt->seeds, &opt->seed_count) != 1) {
+                fprintf(stderr, "Invalid --seeds value; expected a comma-separated list of 1..65535 values or -1\n");
                 return 0;
             }
             opt->seed_mode = SEED_MODE_LIST;

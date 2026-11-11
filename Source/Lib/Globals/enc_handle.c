@@ -5262,6 +5262,22 @@ EB_API EbErrorType svt_av1_enc_set_parameter(EbComponentType*          svt_enc_c
 
     EbEncHandle*        enc_handle = (EbEncHandle*)svt_enc_component->p_component_private;
     SequenceControlSet* scs        = enc_handle->scs_instance->scs;
+    uint16_t*           fgs_seeds  = NULL;
+    if (config_struct->fgs_seed_count) {
+        if (!config_struct->fgs_seeds || (size_t)config_struct->fgs_seed_count > SIZE_MAX / sizeof(*fgs_seeds)) {
+            return EB_ErrorBadParameter;
+        }
+        for (uint32_t i = 0; i < config_struct->fgs_seed_count; ++i) {
+            if (!config_struct->fgs_seeds[i]) {
+                return EB_ErrorBadParameter;
+            }
+        }
+        EB_MALLOC_ARRAY(fgs_seeds, config_struct->fgs_seed_count);
+        memcpy(fgs_seeds, config_struct->fgs_seeds, config_struct->fgs_seed_count * sizeof(*fgs_seeds));
+    }
+    EB_FREE_ARRAY(scs->static_config.fgs_seeds);
+    scs->static_config.fgs_seeds      = fgs_seeds;
+    scs->static_config.fgs_seed_count = config_struct->fgs_seed_count;
     free(enc_handle->photon_noise_table);
     enc_handle->photon_noise_table = NULL;
     copy_api_from_app(scs, config_struct);

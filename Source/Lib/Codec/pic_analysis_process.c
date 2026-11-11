@@ -513,7 +513,11 @@ static EbErrorType apply_film_grain_table(SequenceControlSet* scs_ptr, PicturePa
 void svt_aom_picture_pre_processing_operations(PictureParentControlSet* pcs, SequenceControlSet* scs) {
 #if CONFIG_ENABLE_FILM_GRAIN
     if (pcs->has_film_grain_event && scs->seq_header.film_grain_params_present) {
+        const uint16_t seed            = pcs->frm_hdr.film_grain_params.random_seed;
         pcs->frm_hdr.film_grain_params = pcs->film_grain_event;
+        if (scs->static_config.fgs_seed_count) {
+            pcs->frm_hdr.film_grain_params.random_seed = seed;
+        }
     } else if (scs->static_config.fgs_table) {
         apply_film_grain_table(scs, pcs);
     } else if (scs->static_config.film_grain_denoise_strength > 0) {

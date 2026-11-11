@@ -145,6 +145,7 @@ set(all_files
         fft_common.h
         film_grain_analysis.c
         film_grain_analysis.h
+        film_grain_seeds.h
         filter.h
         firstpass.c
         firstpass.h

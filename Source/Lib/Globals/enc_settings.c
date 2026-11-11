@@ -24,6 +24,7 @@
 #include "EbSvtAv1Metadata.h"
 #include "enc_settings.h"
 #include "entropy_coding.h"
+#include "film_grain_seeds.h"
 
 #include "svt_log.h"
 #include "utility.h"
@@ -1236,6 +1237,8 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
     config_ptr->frame_scale_evts.start_frame_nums = NULL;
     config_ptr->enable_roi_map                    = false;
     config_ptr->fgs_table                         = NULL;
+    config_ptr->fgs_seeds                         = NULL;
+    config_ptr->fgs_seed_count                    = 0;
     config_ptr->enable_variance_boost             = true;
     config_ptr->variance_boost_strength           = 1;
     config_ptr->variance_octile                   = 4;
@@ -2701,6 +2704,19 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
     }
 
     EbErrorType return_error = EB_ErrorBadParameter;
+
+    if (!strcmp(name, "fgs-seed")) {
+        uint16_t* seeds;
+        uint32_t  count;
+        const int ret = svt_aom_parse_film_grain_seeds(value, &seeds, &count);
+        if (ret != 1) {
+            return ret < 0 ? EB_ErrorInsufficientResources : EB_ErrorBadParameter;
+        }
+        free(config_struct->fgs_seeds);
+        config_struct->fgs_seeds      = seeds;
+        config_struct->fgs_seed_count = count;
+        return EB_ErrorNone;
+    }
 
     if (!strcmp(name, "keyint")) {
         return str_to_keyint(value, &config_struct->intra_period_length, &config_struct->multiply_keyint);

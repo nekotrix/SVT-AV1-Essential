@@ -96,6 +96,7 @@
 #define TIER_TOKEN "--tier"
 #define LEVEL_TOKEN "--level"
 #define FILM_GRAIN_TOKEN "--film-grain"
+#define FGS_SEED_TOKEN "--fgs-seed"
 #define FILM_GRAIN_DENOISE_APPLY_TOKEN "--film-grain-denoise"
 #define PHOTON_NOISE_TOKEN "--photon-noise"
 #define PHOTON_NOISE_CHROMA_TOKEN "--photon-noise-chroma"
@@ -1010,6 +1011,10 @@ ConfigDescription config_entry_specific[] = {
 
     {FGS_TABLE_TOKEN, "Set the film grain model table path"},
 
+    {FGS_SEED_TOKEN,
+     "Film grain seed (1-65535) or comma-separated list; -1 uses a sequence optimized to reduce "
+     "repeating grain patterns. Lists repeat one seed per frame; default changes the seed for each frame"},
+
     {PHOTON_NOISE_TOKEN, "Generate photon noise table for film grain, default is 0 [0: off, 1-100000: ISO value]"},
 
     {PHOTON_NOISE_CHROMA_TOKEN, "Enable chroma noise, default is 0 [0: off, 1: on]"},
@@ -1348,6 +1353,10 @@ ConfigDescription fconfig_entry_specific[] = {
 
     {FGS_TABLE_TOKEN, "Set the film grain model table path"},
 
+    {FGS_SEED_TOKEN,
+     "Film grain seed (1-65535) or comma-separated list; -1 uses a sequence optimized to reduce "
+     "repeating grain patterns. Lists repeat one seed per frame; default changes the seed for each frame"},
+
     {PHOTON_NOISE_TOKEN, "Generate photon noise table for film grain, default is 0 [0: off, 1-100000: ISO value]"},
 
     {PHOTON_NOISE_CHROMA_TOKEN, "Enable chroma noise, default is 0 [0: off, 1: on]"},
@@ -1603,6 +1612,7 @@ ConfigEntry config_entry[] = {
 
 #if CONFIG_ENABLE_FILM_GRAIN
     {FILM_GRAIN_TOKEN, "FilmGrain", set_cfg_generic_token},
+    {FGS_SEED_TOKEN, "FilmGrainSeed", set_cfg_generic_token},
     {FILM_GRAIN_DENOISE_APPLY_TOKEN, "FilmGrainDenoise", set_cfg_generic_token},
     {FGS_TABLE_TOKEN, "FilmGrainTable", set_cfg_fgs_table_path},
     {PHOTON_NOISE_TOKEN, "PhotonNoise", set_cfg_generic_token},
@@ -1820,6 +1830,7 @@ void svt_config_dtor(EbConfig* app_cfg) {
     }
 
     free_film_grain_table(&app_cfg->fgs_table);
+    free(app_cfg->config.fgs_seeds);
 
     for (size_t i = 0; i < app_cfg->forced_keyframes.count; ++i) {
         free(app_cfg->forced_keyframes.specifiers[i]);
