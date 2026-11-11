@@ -451,6 +451,10 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    if (get_fhelp(argc, argv)) {
+        return 0;
+    }
+
     if (get_color_help(argc, argv)) {
         return 0;
     }
