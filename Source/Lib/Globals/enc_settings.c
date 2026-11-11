@@ -1523,56 +1523,25 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
         } else {
             switch (config->rate_control_mode) {
             case SVT_AV1_RC_MODE_CQP_OR_CRF:
-                if (scs->static_config.quality != QUALITY_UNKNOWN ||
-                    (scs->static_config.quality == QUALITY_UNKNOWN &&
-                    scs->static_config.qp == 35 &&
-                    (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080))) {
+                if (config->quality != QUALITY_UNKNOWN ||
+                    config->qp == (scs->max_input_luma_width * scs->max_input_luma_height > 1920 * 1080 ? 35 : 30)) {
+                    const char* quality = config->quality == QUALITY_HIGHER  ? "higher"
+                        : config->quality == QUALITY_HIGH                  ? "high"
+                        : config->quality == QUALITY_LOW                   ? "low"
+                        : config->quality == QUALITY_LOWER                 ? "lower"
+                                                                           : "medium";
                     if (config->max_bit_rate)
                         SVT_INFO(
-                                "SVT [config]: BRC mode / quality / max bitrate (kbps) \t\t: %s / %s / "
-                                "%d\n",
-                                scs->tpl || scs->static_config.enable_variance_boost ? "capped CRF" : "CQP",
-                                scs->static_config.quality == 0       ? "higher (25)"
-                                    : scs->static_config.quality == 1 ? "high (30)"
-                                    : scs->static_config.quality == 2 ? "medium (35)"
-                                    : scs->static_config.quality == 3 ? "low (40)"
-                                    : scs->static_config.quality == 4 ? "lower (45)"
-                                                                      : "medium (35)",
-                                (int)config->max_bit_rate / 1000);
+                            "SVT [config]: BRC mode / quality / max bitrate (kbps) \t\t: %s / %s (%.2f) / %d\n",
+                            scs->tpl || config->enable_variance_boost ? "capped CRF" : "CQP",
+                            quality,
+                            get_extended_crf(config),
+                            (int)config->max_bit_rate / 1000);
                     else
-                        SVT_INFO("SVT [config]: BRC mode / quality \t\t\t\t\t: %s / %s \n",
-                                scs->tpl || scs->static_config.enable_variance_boost ? "CRF" : "CQP",
-                                scs->static_config.quality == 0       ? "higher (25)"
-                                    : scs->static_config.quality == 1 ? "high (30)"
-                                    : scs->static_config.quality == 2 ? "medium (35)"
-                                    : scs->static_config.quality == 3 ? "low (40)"
-                                    : scs->static_config.quality == 4 ? "lower (45)"
-                                                                      : "medium (35)");
-                } else if (scs->static_config.quality != QUALITY_UNKNOWN ||
-                    (scs->static_config.quality == QUALITY_UNKNOWN &&
-                    scs->static_config.qp == 30 &&
-                    (scs->max_input_luma_width * scs->max_input_luma_height <= 1920 * 1080))) {
-                    if (config->max_bit_rate)
-                        SVT_INFO(
-                                "SVT [config]: BRC mode / quality / max bitrate (kbps) \t\t: %s / %s / "
-                                "%d\n",
-                                scs->tpl || scs->static_config.enable_variance_boost ? "capped CRF" : "CQP",
-                                scs->static_config.quality == 0       ? "higher (20)"
-                                    : scs->static_config.quality == 1 ? "high (25)"
-                                    : scs->static_config.quality == 2 ? "medium (30)"
-                                    : scs->static_config.quality == 3 ? "low (35)"
-                                    : scs->static_config.quality == 4 ? "lower (40)"
-                                                                      : "medium (30)",
-                                (int)config->max_bit_rate / 1000);
-                    else
-                        SVT_INFO("SVT [config]: BRC mode / quality \t\t\t\t\t: %s / %s \n",
-                                scs->tpl || scs->static_config.enable_variance_boost ? "CRF" : "CQP",
-                                scs->static_config.quality == 0       ? "higher (20)"
-                                    : scs->static_config.quality == 1 ? "high (25)"
-                                    : scs->static_config.quality == 2 ? "medium (30)"
-                                    : scs->static_config.quality == 3 ? "low (35)"
-                                    : scs->static_config.quality == 4 ? "lower (40)"
-                                                                      : "medium (30)");
+                        SVT_INFO("SVT [config]: BRC mode / quality \t\t\t\t\t: %s / %s (%.2f)\n",
+                                 scs->tpl || config->enable_variance_boost ? "CRF" : "CQP",
+                                 quality,
+                                 get_extended_crf(config));
                 } else {
                     if (config->max_bit_rate)
                         SVT_INFO(
