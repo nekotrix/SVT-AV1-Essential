@@ -254,7 +254,7 @@ static void print_summary_to_file(const EbConfig* app_cfg, FILE* f) {
             bitrate_kbps);
 
     if (cfg->stat_report) {
-        double max_pix_value  = (cfg->encoder_bit_depth == 8) ? 255 : 1023;
+        double max_pix_value  = 1023;
         double max_luma_sse   = max_pix_value * max_pix_value * (cfg->source_width * cfg->source_height);
         double max_chroma_sse = max_pix_value * max_pix_value * (cfg->source_width / 2 * cfg->source_height / 2);
 

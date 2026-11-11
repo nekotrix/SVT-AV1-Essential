@@ -687,6 +687,27 @@ static void free_private_data_list(void* node_head) {
 // them into the input buffer
 /************************************/
 
+static void upshift_input(EbConfig* app_cfg, const EbSvtIOFormat* src) {
+    EbSvtIOFormat* dst           = &app_cfg->conversion_buffer;
+    const uint8_t* src_planes[]  = {src->luma, src->cb, src->cr};
+    uint8_t*       dst_planes[]  = {dst->luma, dst->cb, dst->cr};
+    const uint32_t src_strides[] = {src->y_stride, src->cb_stride, src->cr_stride};
+    const uint32_t dst_strides[] = {dst->y_stride, dst->cb_stride, dst->cr_stride};
+    const uint8_t  subsampling_y = app_cfg->config.encoder_color_format == EB_YUV420;
+
+    for (int plane = 0; plane < 3; plane++) {
+        const uint32_t height = plane ? (app_cfg->input_padded_height + subsampling_y) >> subsampling_y
+                                      : app_cfg->input_padded_height;
+        for (uint32_t y = 0; y < height; y++) {
+            const uint8_t* src_row = src_planes[plane] + y * src_strides[plane];
+            uint16_t*      dst_row = (uint16_t*)dst_planes[plane] + y * dst_strides[plane];
+            for (uint32_t x = 0; x < dst_strides[plane]; x++) {
+                dst_row[x] = (src_row[x] << 2) + 1;
+            }
+        }
+    }
+}
+
 void process_input_buffer(EncChannel* channel) {
     EbConfig*           app_cfg          = channel->app_cfg;
     uint8_t             is_16bit         = (uint8_t)(app_cfg->config.encoder_bit_depth > 8);
@@ -755,16 +776,26 @@ void process_input_buffer(EncChannel* channel) {
             test_update_mg_size_info(header_ptr->pts, header_ptr);
 #endif
             retrieve_roi_map_event(app_cfg->roi_map, header_ptr->pts, header_ptr);
+            uint8_t* input_buffer = header_ptr->p_buffer;
+            uint32_t input_size   = header_ptr->n_filled_len;
+            if (app_cfg->config.encoder_bit_depth == 8) {
+                upshift_input(app_cfg, (const EbSvtIOFormat*)input_buffer);
+                header_ptr->p_buffer     = (uint8_t*)&app_cfg->conversion_buffer;
+                header_ptr->n_filled_len = input_size * 2;
+            }
             AomFilmGrain   grain;
             EbPrivDataNode grain_node = {FILM_GRAIN_EVENT, &grain, sizeof(grain), header_ptr->p_app_private};
             if (app_cfg->fgs_table.head) {
                 lookup_film_grain_table(&app_cfg->fgs_table, header_ptr->pts, &app_cfg->config, &grain);
+                grain.bit_depth = 10;
                 header_ptr->p_app_private = &grain_node;
             }
             // Send the picture
             if (svt_av1_enc_send_picture(component_handle, header_ptr) != EB_ErrorNone) {
                 return_value = APP_ExitConditionFinished;
             }
+            header_ptr->p_buffer = input_buffer;
+            header_ptr->n_filled_len = input_size;
             // p_app_private is deep copied so it's safe to free it now
             if (app_cfg->fgs_table.head) {
                 header_ptr->p_app_private = grain_node.next;
@@ -968,7 +999,7 @@ void init_reader(EbConfig* app_cfg) {
 * Process Output STATISTICS Buffer
 ***************************************/
 void process_output_statistics_buffer(EbBufferHeaderType* header_ptr, EbConfig* app_cfg) {
-    double   max_pix_value = (app_cfg->config.encoder_bit_depth == 8) ? 255 : 1023;
+    double   max_pix_value = 1023;
     uint32_t source_width  = app_cfg->config.source_width;
     uint32_t source_height = app_cfg->config.source_height;
     uint32_t luma_size     = source_width * source_height;
@@ -1271,7 +1302,7 @@ void process_output_recon_buffer(EncChannel* channel) {
             }
         }
         if (fs && (fs->disp_width != fs->width || fs->disp_height != fs->height)) {
-            const uint32_t bps           = (app_cfg->config.encoder_bit_depth > 8) ? 2 : 1;
+            const uint32_t bps           = 2;
             const uint32_t luma_stride   = (uint32_t)fs->stride * bps;
             const uint32_t chroma_stride = (uint32_t)((fs->stride + fs->subsampling_x) >> fs->subsampling_x) * bps;
             const uint32_t cw            = ((uint32_t)fs->disp_width + fs->subsampling_x) >> fs->subsampling_x;

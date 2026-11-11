@@ -197,6 +197,7 @@ typedef struct EbConfig {
     // Buffer Pools
     EbBufferHeaderType* input_buffer_pool;
     EbBufferHeaderType* recon_buffer;
+    EbSvtIOFormat       conversion_buffer;
 
     FILE*         roi_map_file;
     SvtAv1RoiMap* roi_map;

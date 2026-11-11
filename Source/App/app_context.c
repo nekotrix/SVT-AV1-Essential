@@ -31,9 +31,9 @@
 **************************************
 **************************************/
 
-static EbErrorType allocate_frame_buffer(EbConfig* app_cfg, EbSvtIOFormat* input_ptr) {
+static EbErrorType allocate_frame_buffer(EbConfig* app_cfg, EbSvtIOFormat* input_ptr, uint32_t bit_depth) {
     EbSvtAv1EncConfiguration* cfg                 = &app_cfg->config;
-    const int32_t             ten_bit_packed_mode = cfg->encoder_bit_depth > 8;
+    const int32_t             ten_bit_packed_mode = bit_depth > 8;
 
     // Chroma subsampling
     const EbColorFormat color_format  = (EbColorFormat)cfg->encoder_color_format;
@@ -96,7 +96,7 @@ static EbErrorType allocate_input_buffers(EbConfig* app_cfg) {
 
     // Allocate frame buffer for the p_buffer
     if (app_cfg->buffered_input == -1 && !app_cfg->mmap.enable &&
-        allocate_frame_buffer(app_cfg, p_buffer) != EB_ErrorNone) {
+        allocate_frame_buffer(app_cfg, p_buffer, app_cfg->config.encoder_bit_depth) != EB_ErrorNone) {
         free(p_buffer);
         free(app_cfg->input_buffer_pool);
         app_cfg->input_buffer_pool = NULL;
@@ -118,7 +118,7 @@ static EbErrorType allocate_output_recon_buffers(EbConfig* app_cfg) {
         ? 0
         : 1;
 
-    const size_t ten_bit       = (app_cfg->config.encoder_bit_depth > 8);
+    const size_t ten_bit       = 1;
     const size_t luma_size     = app_cfg->input_padded_width * app_cfg->input_padded_height;
     const size_t chroma_width  = (app_cfg->input_padded_width + subsampling_x) >> subsampling_x;
     const size_t chroma_height = (app_cfg->input_padded_height + subsampling_y) >> subsampling_y;
@@ -401,6 +401,10 @@ static void deallocate_buffers(EbConfig* app_cfg) {
         free(app_cfg->input_buffer_pool);
     }
 
+    free(app_cfg->conversion_buffer.luma);
+    free(app_cfg->conversion_buffer.cb);
+    free(app_cfg->conversion_buffer.cr);
+
     // Deallocate output recon buffers
     if (app_cfg->recon_buffer) {
         free(app_cfg->recon_buffer->p_buffer);
@@ -438,7 +442,11 @@ EbErrorType init_encoder(EbConfig* app_cfg) {
 
     // Send over all configuration parameters
     // Set the Parameters
-    EbErrorType return_error = svt_av1_enc_set_parameter(app_cfg->svt_encoder_handle, &app_cfg->config);
+    EbSvtAv1EncConfiguration config = app_cfg->config;
+    if (config.encoder_bit_depth == 8) {
+        config.encoder_bit_depth = 10;
+    }
+    EbErrorType return_error = svt_av1_enc_set_parameter(app_cfg->svt_encoder_handle, &config);
 
     if (return_error != EB_ErrorNone) {
         return return_error;
@@ -459,6 +467,12 @@ EbErrorType init_encoder(EbConfig* app_cfg) {
 
     if (return_error != EB_ErrorNone) {
         return return_error;
+    }
+    if (app_cfg->config.encoder_bit_depth == 8) {
+        return_error = allocate_frame_buffer(app_cfg, &app_cfg->conversion_buffer, 10);
+        if (return_error != EB_ErrorNone) {
+            return return_error;
+        }
     }
     // STEP 7: Allocate output Recon Buffer
     return_error = allocate_output_recon_buffers(app_cfg);
