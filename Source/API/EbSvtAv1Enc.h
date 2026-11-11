@@ -739,6 +739,12 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint32_t level_of_parallelism;
 
+    /* Pin the execution of threads to the first N logical processors.
+     * 0: unpinned
+     * N: Pin threads to socket's first N processors
+     * default 0 */
+    uint32_t pin_threads;
+
     /* CPU FLAGS to limit assembly instruction set used by encoder.
     * Default is EB_CPU_FLAGS_ALL. */
     EbCpuFlags use_cpu_flags;
@@ -1242,6 +1248,7 @@ typedef struct EbSvtAv1EncConfiguration {
         - sizeof(SpeedPreset)
         - sizeof(QualityPreset)
         - (sizeof(uint8_t) * 7)
+        - sizeof(uint32_t) // pin_threads
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;

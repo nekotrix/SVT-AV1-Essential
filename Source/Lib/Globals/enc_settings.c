@@ -1154,6 +1154,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
 
     // Channel info
     config_ptr->level_of_parallelism = 0;
+    config_ptr->pin_threads          = 0;
 
     // Debug info
     config_ptr->recon_enabled = 0;
@@ -2676,6 +2677,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         {"tier", &config_struct->tier},
         {"level", &config_struct->level},
         {"lp", &config_struct->level_of_parallelism},
+        {"pin", &config_struct->pin_threads},
         {"fps-num", &config_struct->frame_rate_numerator},
         {"fps-denom", &config_struct->frame_rate_denominator},
         {"lookahead", &config_struct->look_ahead_distance},

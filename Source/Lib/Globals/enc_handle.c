@@ -101,6 +101,16 @@
 #define ENCODE_FIRST_PASS                               1
 // clang-format on
 
+/**************************************
+ * Globals
+ **************************************/
+#ifdef _WIN32
+static uint8_t                   svt_aom_group_affinity_enabled = 0;
+static GROUP_AFFINITY            svt_aom_group_affinity;
+#elif defined(__linux__)
+static uint8_t                   svt_aom_group_affinity_enabled = 0;
+static cpu_set_t                 svt_aom_group_affinity;
+#endif
 uint8_t svt_aom_get_tpl_synthesizer_block_size(int8_t tpl_level, uint32_t picture_width, uint32_t picture_height);
 
 /* count number of refs in a steady state MG*/
@@ -170,11 +180,38 @@ static uint32_t get_num_processors() {
 #endif
 }
 
-void    svt_aom_asm_set_convolve_asm_table(void);
-void    svt_aom_asm_set_convolve_hbd_asm_table(void);
-void    svt_aom_init_intra_dc_predictors_c_internal(void);
-void    svt_aom_init_intra_predictors_internal(void);
-void    svt_av1_init_me_luts(void);
+#ifdef _WIN32
+uint64_t get_affinity_mask(uint32_t lpnum) {
+    uint64_t mask = 0x1;
+    for (uint32_t i = lpnum - 1; i > 0; i--)
+        mask += (uint64_t)1 << i;
+    return mask;
+}
+#endif
+
+void svt_set_thread_management_parameters(EbSvtAv1EncConfiguration* config_ptr) {
+#ifdef _WIN32
+    svt_aom_group_affinity_enabled = 1;
+    const uint32_t num_logical_processors = get_num_processors();
+    const uint32_t lps = config_ptr->pin_threads < num_logical_processors ? config_ptr->pin_threads : num_logical_processors;
+    svt_aom_group_affinity.Mask = get_affinity_mask(lps);
+#elif defined(__linux__)
+    svt_aom_group_affinity_enabled = 1;
+    uint32_t num_logical_processors = get_num_processors();
+    CPU_ZERO(&svt_aom_group_affinity);
+    const uint32_t lps = config_ptr->pin_threads < num_logical_processors ? config_ptr->pin_threads : num_logical_processors;
+    for (uint32_t i = 0; i < lps; i++)
+        CPU_SET(i, &svt_aom_group_affinity);
+#else
+    UNUSED(config_ptr);
+#endif
+}
+
+void svt_aom_asm_set_convolve_asm_table(void);
+void svt_aom_asm_set_convolve_hbd_asm_table(void);
+void svt_aom_init_intra_dc_predictors_c_internal(void);
+void svt_aom_init_intra_predictors_internal(void);
+void svt_av1_init_me_luts(void);
 uint8_t svt_aom_get_tpl_group_level(uint8_t tpl, int8_t enc_mode);
 uint8_t svt_aom_set_tpl_group(PictureParentControlSet* pcs, uint8_t tpl_group_level, uint32_t source_width,
                               uint32_t source_height);
@@ -357,6 +394,9 @@ void set_segments_numbers(SequenceControlSet* scs) {
 static EbErrorType load_default_buffer_configuration_settings(SequenceControlSet* scs) {
     EbErrorType return_error = EB_ErrorNone;
     uint32_t    core_count   = get_num_processors();
+    if (scs->static_config.pin_threads && scs->static_config.pin_threads < core_count) {
+        core_count = scs->static_config.pin_threads;
+    }
 
     uint32_t lp = scs->static_config.level_of_parallelism;
     if (lp == 0) {
@@ -2097,6 +2137,9 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType* svt_enc_component) {
     /************************************
     * Thread Handles
     ************************************/
+    if (scs->static_config.pin_threads) {
+        svt_set_thread_management_parameters(&scs->static_config);
+    }
 #if CONFIG_SINGLE_THREAD_KERNEL
     // Single-thread kernel dispatch: at lp=1, register all kernels for
     // cooperative dispatch instead of creating 16 OS threads.
@@ -4829,13 +4872,19 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
             "for info.\n");
         scs->static_config.level_of_parallelism = PARALLEL_LEVEL_6;
     }
+    scs->static_config.pin_threads = config_struct->pin_threads;
+
     // When lp is left unset (0), resolve it to the core-count-based default now,
     // before any pipeline setup reads static_config.level_of_parallelism. This
     // keeps every downstream single-thread check (== 1) consistent with the
     // derived scs->lp used for segment/dispatcher setup; otherwise a 1-core
     // machine gets scs->lp == 1 (ST dispatch) while these checks still see 0.
     if (scs->static_config.level_of_parallelism == 0) {
-        scs->static_config.level_of_parallelism = get_default_level_of_parallelism(get_num_processors());
+        uint32_t core_count = get_num_processors();
+        if (scs->static_config.pin_threads && scs->static_config.pin_threads < core_count) {
+            core_count = scs->static_config.pin_threads;
+        }
+        scs->static_config.level_of_parallelism = get_default_level_of_parallelism(core_count);
     }
 
     scs->static_config.recon_enabled = config_struct->recon_enabled;

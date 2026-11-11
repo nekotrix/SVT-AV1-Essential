@@ -145,6 +145,7 @@
 #define INJECTOR_FRAMERATE_TOKEN "--inj-frm-rt" // no Eval
 #define ASM_TYPE_TOKEN "--asm"
 #define THREAD_MGMNT "--lp"
+#define PIN_TOKEN "--pin"
 
 //double dash
 #define PRESET_TOKEN "--preset"
@@ -1063,6 +1064,9 @@ ConfigDescription fconfig_entry_global_options[] = {
     {THREAD_MGMNT,
      "Amount of parallelism to use. 0 means choose the level based on machine core count. Refer to Appendix A.1 "
      "of the user guide, default is 0 [0, 6]"},
+    {PIN_TOKEN,
+     "Pin the execution to the first N cores. Refer to Appendix "
+     "A.1 of the user guide, default is 0 [0, core count of the machine]"},
     // Termination
     {NULL, NULL}};
 
@@ -1418,6 +1422,7 @@ ConfigEntry config_entry[] = {
 
     //   Thread Management
     {THREAD_MGMNT, "LevelOfParallelism", set_cfg_generic_token},
+    {PIN_TOKEN, "PinnedExecution", set_cfg_generic_token},
 
     // Rate Control Options
     {RATE_CONTROL_ENABLE_TOKEN, "RateControlMode", set_cfg_generic_token},
