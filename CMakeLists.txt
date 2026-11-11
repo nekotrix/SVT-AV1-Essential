@@ -800,7 +800,7 @@ if(SVT_AV1_PGO)
     string(REPLACE ";" "::" SVT_AV1_PGO_CUSTOM_VIDEOS "${SVT_AV1_PGO_CUSTOM_VIDEOS}")
     set(pgo_targets SvtAv1EncApp)
     if(BUILD_TOOLS)
-        list(APPEND pgo_targets SvtFgEssential)
+        list(APPEND pgo_targets SvtFgEssential SvtScdEssential)
     endif()
 
     add_custom_target(PGOCompileGen

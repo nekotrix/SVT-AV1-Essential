@@ -1,1 +1,2 @@
 add_subdirectory(SvtFgEssential)
+add_subdirectory(SvtScdEssential)
