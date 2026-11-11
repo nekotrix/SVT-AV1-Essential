@@ -19,7 +19,7 @@ endif()
 project(svt-av1 VERSION 4.3.0
     LANGUAGES C CXX)
 
-set(VERSION_TAG "")
+set(VERSION_TAG "-pre")
 
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 # Default build type to release if the generator does not has its own set of build types

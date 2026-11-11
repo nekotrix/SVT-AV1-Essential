@@ -1146,7 +1146,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
     config_ptr->intra_refresh_type           = 2;
     config_ptr->hierarchical_levels          = HIERARCHICAL_LEVELS_AUTO;
     config_ptr->pred_structure               = RANDOM_ACCESS;
-    config_ptr->enable_dlf_flag              = 2;
+    config_ptr->enable_dlf_flag              = 1;
     config_ptr->cdef_level                   = DEFAULT;
     config_ptr->enable_restoration_filtering = DEFAULT;
     config_ptr->enable_mfmv                  = DEFAULT;
@@ -1263,7 +1263,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
     config_ptr->adaptive_film_grain               = false;
     config_ptr->max_tx_size                       = 64;
     config_ptr->extended_crf_qindex_offset        = 0;
-    config_ptr->ac_bias                           = 0.25;
+    config_ptr->ac_bias                           = 0;
     config_ptr->hbd_mds                           = DEFAULT;
 
     // Ref-frame management disabled by default → legacy bit-exact behavior

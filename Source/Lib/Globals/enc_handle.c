@@ -5173,7 +5173,7 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
 
     // Override settings for Distortion bias presets
     if (scs->static_config.distortion_bias_preset == 1) {
-        SVT_WARN("Distortion bias preset 1 hard sets: --noise-norm-strength 1 --sharp-tx 1 --tx-bias 3 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1\n");
+        SVT_WARN("Distortion bias preset 1 hard sets: --noise-norm-strength 1 --sharp-tx 1 --tx-bias 3 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1 --enable-dlf 2 --enable-alt-dlf 1 --variance-boost-strength 2\n");
         SVT_WARN("Distortion bias presets serve illustrative purposes. It is recommended to tweak the settings around your preferred preset for better results\n");
         scs->static_config.noise_norm_strength = 1;
         scs->static_config.sharp_tx = 1;
@@ -5181,9 +5181,11 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
         scs->static_config.complex_hvs = 1;
         scs->static_config.noise_adaptive_filtering = 4;
         scs->static_config.alt_cdef = 1;
+        scs->static_config.enable_dlf_flag = 2;
+        scs->static_config.alt_dlf = 1;
     }
     else if (scs->static_config.distortion_bias_preset == 2) {
-        SVT_WARN("Distortion bias preset 2 hard sets: --tune 0 --qm-min 4 --chroma-qm-min 8 --tf-strength 0 --ac-bias 2 --noise-norm-strength 1 --sharp-tx 1 --tx-bias 2 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1\n");
+        SVT_WARN("Distortion bias preset 2 hard sets: --tune 0 --qm-min 4 --chroma-qm-min 8 --tf-strength 0 --ac-bias 2 --noise-norm-strength 1 --sharp-tx 1 --tx-bias 2 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1 --enable-dlf 2 --enable-alt-dlf 1 --variance-boost-strength 2\n");
         SVT_WARN("Distortion bias presets serve illustrative purposes. It is recommended to tweak the settings around your preferred preset for better results\n");
         SVT_WARN("With higher Distortion bias presets and high CRFs, it is recommended to up the film-grain/photon-noise strength for a more consistent picture\n");
         SVT_WARN("Keep in mind for benchmarking analysis that this configuration will likely harm metric performance.\n");
@@ -5198,9 +5200,11 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
         scs->static_config.complex_hvs = 1;
         scs->static_config.noise_adaptive_filtering = 4;
         scs->static_config.alt_cdef = 1;
+        scs->static_config.enable_dlf_flag = 2;
+        scs->static_config.alt_dlf = 1;
     }
     else if (scs->static_config.distortion_bias_preset == 3) {
-        SVT_WARN("Distortion bias preset 3 hard sets: --tune 0 --qm-min 8 --chroma-qm-min 10 --tf-strength 0 --ac-bias 4 --noise-norm-strength 3 --sharp-tx 1 --tx-bias 1 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 2\n");
+        SVT_WARN("Distortion bias preset 3 hard sets: --tune 0 --qm-min 8 --chroma-qm-min 10 --tf-strength 0 --ac-bias 4 --noise-norm-strength 3 --sharp-tx 1 --tx-bias 1 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 2 --enable-dlf 2 --enable-alt-dlf 1 --variance-boost-strength 2\n");
         SVT_WARN("Distortion bias presets serve illustrative purposes. It is recommended to tweak the settings around your preferred preset for better results\n");
         SVT_WARN("With higher Distortion bias presets and high CRFs, it is recommended to up the film-grain/photon-noise strength for a more consistent picture\n");
         SVT_WARN("Keep in mind for benchmarking analysis that this configuration will likely harm metric performance.\n");
@@ -5215,6 +5219,8 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
         scs->static_config.complex_hvs = 1;
         scs->static_config.noise_adaptive_filtering = 4;
         scs->static_config.alt_cdef = 2;
+        scs->static_config.enable_dlf_flag = 2;
+        scs->static_config.alt_dlf = 1;
     }
     else if (scs->static_config.distortion_bias_preset == 4) {
         SVT_WARN("Distortion bias preset 4 hard sets: --tune 0 --qm-min 6 --qm-max 10 --chroma-qm-min 8 --variance-boost-strength 2 --variance-octile 5 --enable-tf 0 --enable-cdef 0 --enable-restoration 0 --ac-bias 4 --noise-norm-strength 1 --tx-bias 1\n");
@@ -5268,6 +5274,9 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
         scs->static_config.variance_boost_curve    = 2;
     } else if (scs->static_config.tune == TUNE_VMAF) {
         SVT_WARN("Tune VMAF: a pre-processing / unsharp masking is applied\n");
+    }
+    if (scs->static_config.distortion_bias_preset >= 1 && scs->static_config.distortion_bias_preset <= 3) {
+        scs->static_config.variance_boost_strength = 2;
     }
 #if !CONFIG_ENABLE_QUANT_MATRIX
     // Quantization matrices are compiled out (flat quantizers): never signal them (tunes IQ and MS-SSIM enable them).

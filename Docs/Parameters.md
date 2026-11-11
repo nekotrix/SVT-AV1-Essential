@@ -123,7 +123,7 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **AdaptiveQuantization**         | --aq-mode                        | [0-2]      | 2           | Set adaptive QP level [0: off, 1: variance base using AV1 segments, 2: deltaq pred efficiency]                                                       |
 | **QpScaleCompressStrength**      | --qp-scale-compress-strength     | [0-8]      | 1           | Sets the strength the QP scale algorithm compresses values across all temporal layers, which results in more consistent video quality (less quality variation across frames in a mini-gop) |
 | **AutoTiling**                   | --auto-tiling                    | [0-1]      | 1           | Automatically sets tiles appropriate for the source input resolution [0: off (manual), 1: on (automatic)]                                            |
-| **AcBias**                       | --ac-bias                        | [0.0-8.0]  | 0.25        | Sets the strength of the internal RD metric to bias toward high-frequency error (helps with texture preservation and film grain retention)           |
+| **AcBias**                       | --ac-bias                        | [0.0-8.0]  | 0           | Sets the strength of the internal RD metric to bias toward high-frequency error (helps with texture preservation and film grain retention)           |
 | **SharpTX**                      | --sharp-tx                       | [0-1]      | 0           | Activation of sharp transform optimizations for higher fidelity encoding (with slightly higher chances of artifacting)                               |
 | **TxBias**                       | --tx-bias                        | [0-3]      | 0           | Transform size/type bias mode [0: disabled, 1: full, 2: transform size only, 3: interpolation filter only]                                           |
 | **COMPLEXHVS**                   | --complex-hvs                    | [0-1]      | 0           | Activation of highest complexity HVS model (0: default behavior, 1: enable highest complexity HVS model)                                             |
@@ -317,7 +317,7 @@ SvtAv1EncApp -i in.y4m -b out.ivf --roi-map-file roi_map.txt
 |----------------------------------|----------------------------|----------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **TileRow**                      | --tile-rows                | [0-6]          | 0           | Number of tile rows to use, `TileRow == log2(x)`, default changes per resolution                                                                                      |
 | **TileCol**                      | --tile-columns             | [0-4]          | 0           | Number of tile columns to use, `TileCol == log2(x)`, default changes per resolution                                                                                   |
-| **LoopFilterEnable**             | --enable-dlf               | [0-3]          | 2           | Deblocking loop filter control (1: enabled, 2: slower, more accurate filtering, 3: maximum accuracy)                                                                                                                                       |
+| **LoopFilterEnable**             | --enable-dlf               | [0-3]          | 1           | Deblocking loop filter control (1: enabled, 2: slower, more accurate filtering, 3: maximum accuracy)                                                                                                                                       |
 | **CDEFLevel**                    | --enable-cdef              | [0-1]          | 1           | Enable Constrained Directional Enhancement Filter                                                                                                                     |
 | **EnableRestoration**            | --enable-restoration       | [0-1]          | 1           | Enable loop restoration filter                                                                                                                                        |
 | **Mfmv**                         | --enable-mfmv              | [-1-1]         | -1          | Motion Field Motion Vector control [-1: auto]                                                                                                                         |
@@ -649,13 +649,13 @@ Gradually selects more and more aggressive parameters that improve detail retent
 
 
 **1**: Mild distortion bias for slightly higher fidelity. Expect higher filesizes compared to **0** at a given CRF.  
-- sets: `--noise-norm-strength 1 --sharp-tx 1 --tx-bias 3 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1`
+- sets: `--noise-norm-strength 1 --sharp-tx 1 --tx-bias 3 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1 --enable-dlf 2 --enable-alt-dlf 1 --variance-boost-strength 2`
 
 **2**: Medium distortion bias for greater fidelity. Expect higher filesizes compared to **1** at a given CRF.  
-- sets: `--tune 0 --qm-min 4 --chroma-qm-min 8 --tf-strength 0 --ac-bias 2 --noise-norm-strength 1 --sharp-tx 1 --tx-bias 2 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1`
+- sets: `--tune 0 --qm-min 4 --chroma-qm-min 8 --tf-strength 0 --ac-bias 2 --noise-norm-strength 1 --sharp-tx 1 --tx-bias 2 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 1 --enable-dlf 2 --enable-alt-dlf 1 --variance-boost-strength 2`
 
 **3**: Strong distortion bias for maximum fidelity. Expect higher filesizes compared to **2** at a given CRF.  
-- sets: `--tune 0 --qm-min 8 --chroma-qm-min 10 --tf-strength 0 --ac-bias 4 --noise-norm-strength 3 --sharp-tx 1 --tx-bias 1 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 2`
+- sets: `--tune 0 --qm-min 8 --chroma-qm-min 10 --tf-strength 0 --ac-bias 4 --noise-norm-strength 3 --sharp-tx 1 --tx-bias 1 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 2 --enable-dlf 2 --enable-alt-dlf 1 --variance-boost-strength 2`
 
 **4**: Mimics SVT-AV1-HDR's tune grain for absolute grain retention with no regard to distortion at all. Filesize behavior can vary from clip to clip.  
 - sets: `--tune 0 --qm-min 6 --qm-max 10 --chroma-qm-min 8 --variance-boost-strength 2 --variance-octile 5 --enable-tf 0 --enable-cdef 0 --enable-restoration 0 --ac-bias 4 --noise-norm-strength 1 --tx-bias 1`

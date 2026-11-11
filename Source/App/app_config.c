@@ -972,7 +972,7 @@ ConfigDescription config_entry_specific[] = {
      "[0-4]"},
 
     // DLF
-    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 2 [0-3]"},
+    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 1 [0-3]"},
     // CDEF
     {CDEF_ENABLE_TOKEN,
      "Enable Constrained Directional Enhancement Filter, default is 1 [0-1]"},
@@ -1039,7 +1039,7 @@ ConfigDescription config_entry_psychovisual[] = {
     {VARIANCE_BOOST_STRENGTH_TOKEN, "Variance boost strength, default is 1 [1-4]"},
     {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 4 [1-8]"},
     // AC-Bias
-    {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.25 [0.0-8.0]"},
+    {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0 [0.0-8.0]"},
     // Alt CDEF
     {ALT_CDEF_TOKEN,
      "Enable alternative CDEF biases."
@@ -1308,7 +1308,7 @@ ConfigDescription fconfig_entry_specific[] = {
      "Number of tile columns to use, `TileCol == log2(x)`, default is 0 [0-4]"},
 
     // DLF
-    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 2 [0-3]"},
+    {LOOP_FILTER_ENABLE, "Deblocking loop filter control, default is 1 [0-3]"},
     // CDEF
     {CDEF_ENABLE_TOKEN, "Enable Constrained Directional Enhancement Filter, default is 1 [0-1]"},
     // RESTORATION
@@ -1442,7 +1442,7 @@ ConfigDescription fconfig_entry_psychovisual[] = {
     // Max TX size
     {MAX_TX_SIZE_TOKEN, "Limits the allowed transform sizes to the specified, default is 64 [32,64]"},
     // AC-Bias
-    {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.25 [0.0-8.0]"},
+    {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0 [0.0-8.0]"},
     // Sharp-tx
     {SHARP_TX_TOKEN, "Sharp transform optimization, default is 0 [0-1]"},
     // TX bias
