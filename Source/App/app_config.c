@@ -37,6 +37,10 @@
 #include "third_party/safestringlib/safe_str_lib.h"
 #endif
 
+#if defined(_WIN32)
+#define strcasecmp _stricmp
+#endif
+
 /**********************************
  * Defines
  **********************************/
@@ -375,6 +379,25 @@ static EbErrorType set_cfg_input_file(EbConfig* cfg, const char* token, const ch
         cfg->input_file = NULL;
         return validate_error(EB_ErrorBadParameter, token, "");
     }
+
+    cfg->input_file_path = strdup(value);
+
+    const char *ext = strrchr(value, '.');
+    if (ext && strcasecmp(ext, ".yuv") && strcasecmp(ext, ".y4m") &&
+        strcmp(value, "stdin") && strcmp(value, "-")) {
+#if HAVE_FFMS2
+        cfg->use_ffms2 = true;
+        // Don't open file handle for FFMS2 inputs
+        cfg->input_file = NULL;
+        cfg->input_file_is_fifo = false;
+        cfg->y4m_input = false;
+        return EB_ErrorNone;
+    }
+#else
+        fputs("Error: This build does not have FFMS2 support\n", stderr);
+        return EB_ErrorBadParameter;
+    }
+#endif
 
     if (!strcmp(value, "stdin") || !strcmp(value, "-")) {
         cfg->input_file         = stdin;
@@ -1568,6 +1591,11 @@ void svt_config_dtor(EbConfig* app_cfg) {
         return;
     }
     // Close any files that are open
+    if (app_cfg->input_file_path) {
+        free(app_cfg->input_file_path);
+        app_cfg->input_file_path = NULL;
+    }
+
     if (app_cfg->input_file) {
         if (!app_cfg->input_file_is_fifo) {
             fclose(app_cfg->input_file);
@@ -1909,7 +1937,7 @@ static EbErrorType app_verify_config(EbConfig* app_cfg) {
     EbErrorType return_error = EB_ErrorNone;
 
     // Check Input File
-    if (app_cfg->input_file == NULL) {
+    if (app_cfg->input_file == NULL && !app_cfg->use_ffms2) {
         fprintf(app_cfg->error_log_file, "Error: Invalid Input File\n");
         return_error = EB_ErrorBadParameter;
     }
@@ -2717,7 +2745,8 @@ EbErrorType read_command_line(int32_t argc, char* const argv[], EncChannel* chan
             }
 
             // For pipe input it is fine if we have -1 here (we will update on end of stream)
-            if (app_cfg->frames_to_be_encoded == -1 && app_cfg->input_file != stdin && !app_cfg->input_file_is_fifo) {
+            if (app_cfg->frames_to_be_encoded == -1 && app_cfg->input_file != stdin
+                && !app_cfg->input_file_is_fifo && !app_cfg->use_ffms2) {
                 fprintf(app_cfg->error_log_file, "Error: Input yuv does not contain enough frames \n");
                 channel->return_error = EB_ErrorBadParameter;
             }

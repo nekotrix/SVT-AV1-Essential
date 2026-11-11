@@ -707,6 +707,83 @@ add_subdirectory(Source/Lib)
 if(BUILD_APPS)
     add_subdirectory(Source/App)
 endif()
+
+option(EXT_LIB_STATIC "Force linking with static libraries for external dependencies" OFF)
+set(SUFFIX "")
+if(EXT_LIB_STATIC)
+  set(SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+else()
+  set(SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+endif()
+
+option(USE_FFMS2 "Enable FFMS2 support (Install FFMS2 first)" OFF)
+if(USE_FFMS2)
+    # link static ffms2 which is c++ libraies
+    # it is fine even if program not link ffms2
+    # it does not affect anything but final linker language invoke
+    set_target_properties(SvtAv1EncApp PROPERTIES LINKER_LANGUAGE CXX)
+    find_package(PkgConfig)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(PC_FFMS2 ffms2 QUIET)
+
+        if(NOT PC_FFMS2_FOUND)
+            message(WARNING "FFMS2 not found, building without FFMS2 support")
+            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=0)
+        else()
+            set(FFMS2_LIBRARY_DIR ${PC_FFMS2_LIBRARY_DIRS})
+            set(FFMS2_INCLUDE_DIR ${PC_FFMS2_INCLUDE_DIRS})
+
+            if (WIN32 AND NOT MINGW)
+                message(WARNING "FFMS2 static and shared building is not guaranteed here.")
+            endif()
+
+            if(EXT_LIB_STATIC)
+                # need this for static build
+                target_compile_definitions(SvtAv1EncApp PRIVATE FFMS_STATIC)
+                set(FFMS2_REQUIRED_LIBRARIES ${PC_FFMS2_STATIC_LIBRARIES})
+
+                foreach(BASE ${FFMS2_REQUIRED_LIBRARIES})
+                    list(APPEND FFMS2_LIBRARY "${BASE}${SUFFIX}")
+                endforeach()
+            else()
+                set(FFMS2_REQUIRED_LIBRARIES ${PC_FFMS2_LIBRARIES})
+                foreach(BASE ${FFMS2_REQUIRED_LIBRARIES})
+                    list(APPEND FFMS2_LIBRARY "${BASE}${SUFFIX}")
+                endforeach()
+            endif()
+
+            message(STATUS "Found FFMS2: ${FFMS2_LIBRARY}")
+            target_include_directories(SvtAv1EncApp PRIVATE ${FFMS2_INCLUDE_DIR})
+            target_link_libraries(SvtAv1EncApp ${FFMS2_LIBRARY})
+            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=1)
+            target_link_directories(SvtAv1EncApp PRIVATE ${FFMS2_LIBRARY_DIR})
+        endif()
+    else()
+        message(WARNING "PkgConfig not found; disabled static building with dovi, hdr10plus or FFMS2.")
+        find_path(FFMS2_INCLUDE_DIR
+            NAMES ffms.h
+            PATHS
+                ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ffms2/include
+        )
+
+        find_library(FFMS2_LIBRARY
+            NAMES ffms2 libffms2
+            PATHS
+                ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ffms2/lib
+        )
+
+        if(FFMS2_INCLUDE_DIR AND FFMS2_LIBRARY)
+            message(STATUS "Found FFMS2: ${FFMS2_LIBRARY}")
+            target_include_directories(SvtAv1EncApp PRIVATE ${FFMS2_INCLUDE_DIR})
+            target_link_libraries(SvtAv1EncApp ${FFMS2_LIBRARY})
+            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=1)
+        else()
+            message(WARNING "FFMS2 not found, building without FFMS2 support")
+            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=0)
+        endif()
+    endif()
+endif()
+
 if(SVT_AV1_PGO)
     string(REPLACE ";" "::" SVT_AV1_PGO_CUSTOM_VIDEOS "${SVT_AV1_PGO_CUSTOM_VIDEOS}")
 

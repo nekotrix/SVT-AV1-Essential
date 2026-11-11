@@ -141,6 +141,7 @@ typedef struct EbConfig {
      * File I/O
      ****************************************/
     FILE*      input_file;
+    char*      input_file_path;
     MemMapFile mmap; //memory mapped file handler
     bool       input_file_is_fifo;
     FILE*      bitstream_file;
@@ -218,6 +219,11 @@ typedef struct EbConfig {
     FilmGrainTable fgs_table;
 
     bool color;
+
+    bool  use_ffms2;
+    void *ffms_video_source;
+    void *ffms_index;
+    int   ffms_track_num;
 } EbConfig;
 
 typedef struct EncChannel {
