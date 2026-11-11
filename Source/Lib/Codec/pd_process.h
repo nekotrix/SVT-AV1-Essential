@@ -141,6 +141,7 @@ typedef struct PictureDecisionContext {
     uint64_t sframe_last_arf;
     bool     next_arf_is_s;
     int64_t  current_input_poc;
+    int32_t  frames_since_last_keyframe;
 
     // Ref-frame management bookkeeping (per pd_process thread):
     //   pic_id_per_dpb_slot[i] : application pic_id held in DPB slot i (0 = none).
