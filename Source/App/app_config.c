@@ -13,6 +13,7 @@
 #if defined(_WIN32) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
 #endif
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -181,6 +182,7 @@
 #define LOOP_FILTER_ENABLE "--enable-dlf"
 #define FORCED_MAX_FRAME_WIDTH_TOKEN "--forced-max-frame-width"
 #define FORCED_MAX_FRAME_HEIGHT_TOKEN "--forced-max-frame-height"
+#define CROP_TOKEN "--crop"
 
 #define COLOR_PRIMARIES_NEW_TOKEN "--color-primaries"
 #define TRANSFER_CHARACTERISTICS_NEW_TOKEN "--transfer-characteristics"
@@ -717,6 +719,8 @@ static struct ParseOpt split_colon_keyequalval_pairs(const char** p) {
     return opt;
 }
 
+static EbErrorType set_cfg_generic_token(EbConfig* cfg, const char* token, const char* value);
+
 static EbErrorType parse_svtav1_params(EbConfig* cfg, const char* token, const char* value) {
     (void)token;
     const char* p   = value;
@@ -726,7 +730,7 @@ static EbErrorType parse_svtav1_params(EbConfig* cfg, const char* token, const c
         if (!opt.key || !opt.val) {
             continue;
         }
-        err = (EbErrorType)(err | svt_av1_enc_parse_parameter(&cfg->config, opt.key, opt.val));
+        err = (EbErrorType)(err | set_cfg_generic_token(cfg, opt.key, opt.val));
         if (err != EB_ErrorNone) {
             fprintf(stderr, "Warning: failed to set parameter '%s' with key '%s'\n", opt.key, opt.val);
         }
@@ -769,6 +773,33 @@ static EbErrorType set_injector_frame_rate(EbConfig* cfg, const char* token, con
     return str_to_uint(token, value, &cfg->injector_frame_rate);
 }
 
+static EbErrorType set_crop(EbConfig* cfg, const char* token, const char* value) {
+    int         crop[4] = {0, 0, -1, -1};
+    int         count = 0;
+    const char* ptr = value;
+    while (ptr && *ptr && count < 4) {
+        char* end;
+        long  val = strtol(ptr, &end, 10);
+        if (end == ptr || val < 0 || val > INT_MAX || (val & 1) ||
+            (*end && *end != ':')) {
+            return validate_error(EB_ErrorBadParameter, token, value);
+        }
+        crop[count++] = (int)val;
+        ptr = *end ? end + 1 : end;
+        if (*end && !*ptr) {
+            return validate_error(EB_ErrorBadParameter, token, value);
+        }
+    }
+    if (count < 2 || (ptr && *ptr) || !crop[0] || !crop[1]) {
+        return validate_error(EB_ErrorBadParameter, token, value);
+    }
+    cfg->crop_w = crop[0];
+    cfg->crop_h = crop[1];
+    cfg->crop_x = crop[2];
+    cfg->crop_y = crop[3];
+    return EB_ErrorNone;
+}
+
 static EbErrorType set_cfg_generic_token(EbConfig* cfg, const char* token, const char* value) {
     if (!strncmp(token, "--", 2)) {
         token += 2;
@@ -776,7 +807,18 @@ static EbErrorType set_cfg_generic_token(EbConfig* cfg, const char* token, const
     if (!strncmp(token, "-", 1)) {
         token += 1;
     }
-    return validate_error(svt_av1_enc_parse_parameter(&cfg->config, token, value), token, value);
+    EbErrorType err = svt_av1_enc_parse_parameter(&cfg->config, token, value);
+    if (err == EB_ErrorNone) {
+        if (!strcmp(token, "color-primaries"))
+            cfg->color_primaries_provided = true;
+        else if (!strcmp(token, "transfer-characteristics"))
+            cfg->transfer_characteristics_provided = true;
+        else if (!strcmp(token, "matrix-coefficients"))
+            cfg->matrix_coefficients_provided = true;
+        else if (!strcmp(token, "chroma-sample-position"))
+            cfg->chroma_sample_position_provided = true;
+    }
+    return validate_error(err, token, value);
 }
 
 /**********************************
@@ -1067,6 +1109,10 @@ ConfigDescription fconfig_entry_global_options[] = {
     {FORCED_MAX_FRAME_WIDTH_TOKEN, "Maximum frame width value to force, default is 0 [4-16384]"},
 
     {FORCED_MAX_FRAME_HEIGHT_TOKEN, "Maximum frame height value to force, default is 0 [4-8704]"},
+
+    {CROP_TOKEN,
+     "Crop FFMS2 input, W:H[:X[:Y]]. Omitted offsets are centered; dimensions and offsets must be even. "
+     "Cannot be combined with resizing"},
 
     {NUMBER_OF_PICTURES_TOKEN,
      "Number of frames to encode. If `n` is larger than the input, the encoder will loop back and "
@@ -1443,6 +1489,7 @@ ConfigEntry config_entry[] = {
     {HEIGHT_LONG_TOKEN, "SourceHeight", set_cfg_generic_token},
     {FORCED_MAX_FRAME_WIDTH_TOKEN, "ForcedMaximumFrameWidth", set_cfg_generic_token},
     {FORCED_MAX_FRAME_HEIGHT_TOKEN, "ForcedMaximumFrameHeight", set_cfg_generic_token},
+    {CROP_TOKEN, "Crop", set_crop},
     // Prediction Structure
     {NUMBER_OF_PICTURES_TOKEN, "FrameToBeEncoded", set_cfg_frames_to_be_encoded},
     {BUFFERED_INPUT_TOKEN, "BufferedInput", set_buffered_input},
@@ -1679,6 +1726,8 @@ EbConfig* svt_config_ctor(bool color) {
     app_cfg->roi_map_file        = NULL;
     app_cfg->fgs_table_path      = NULL;
     app_cfg->mmap.allow          = true;
+    app_cfg->crop_x              = -1;
+    app_cfg->crop_y              = -1;
 #ifdef LIBDOVI_FOUND
     app_cfg->dovi_rpus = NULL;
 #endif
@@ -1862,12 +1911,13 @@ static ConfigEntry* find_entry(const char* name) {
 }
 
 /**
- * @brief Reads a word from a file, but skips commented lines, also splits on ':'
+ * @brief Reads a word from a file, but skips commented lines
  *
  * @param fp file to read from
+ * @param split_colon treat ':' as a separator for keys, but preserve it in values
  * @return char* malloc'd word, or NULL if EOF or error
  */
-static char* read_word(FILE* fp) {
+static char* read_word(FILE* fp, bool split_colon) {
     char*  word     = NULL;
     size_t word_len = 0;
     int    c;
@@ -1888,7 +1938,7 @@ static char* read_word(FILE* fp) {
         }
         // read word
         do {
-            if (c == ':') {
+            if (c == ':' && split_colon) {
                 break;
             }
             char* temp = (char*)realloc(word, ++word_len + 1);
@@ -1937,11 +1987,11 @@ static EbErrorType read_config_file(EbConfig* app_cfg, const char* config_path) 
     EbErrorType return_error = EB_ErrorNone;
     char*       word         = NULL;
     char*       value        = NULL;
-    while (return_error == EB_ErrorNone && (word = read_word(config_file))) {
-        value = read_word(config_file);
+    while (return_error == EB_ErrorNone && (word = read_word(config_file, true))) {
+        value = read_word(config_file, false);
         if (value && !strcmp(value, ":")) {
             free(value);
-            value = read_word(config_file);
+            value = read_word(config_file, false);
         }
         if (!value) {
             fprintf(stderr, "Error: Config File: %s is missing a value for %s\n", config_path, word);
@@ -2081,6 +2131,11 @@ static EbErrorType app_verify_config(EbConfig* app_cfg) {
     // Check Input File
     if (app_cfg->input_file == NULL && !app_cfg->use_ffms2) {
         fprintf(app_cfg->error_log_file, "Error: Invalid Input File\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (app_cfg->crop_w && !app_cfg->use_ffms2) {
+        fprintf(app_cfg->error_log_file, "Error: crop requires an FFMS2 container input (mp4, mkv, etc.)\n");
         return_error = EB_ErrorBadParameter;
     }
 
