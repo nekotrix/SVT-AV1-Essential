@@ -2348,7 +2348,7 @@ static void pd0_detector_allintra(PictureControlSet* pcs, ModeDecisionContext* m
         return;
     }
 
-    uint16_t* sb_var = pcs->ppcs->variance[md_ctx->sb_index];
+    double* sb_var = pcs->ppcs->variance[md_ctx->sb_index];
 
     // Variance accumulation
     int32_t var64 = sb_var[ME_TIER_ZERO_PU_64x64];
