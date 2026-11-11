@@ -1228,6 +1228,97 @@ static const char* level_to_str(unsigned in) {
     return ret;
 }
 
+static const char *color_primaries_to_str(EbColorPrimaries primaries) {
+    const struct {
+        const char      *name;
+        EbColorPrimaries primaries;
+    } color_primaries[] = {
+        {"bt709", EB_CICP_CP_BT_709},
+        {"bt470m", EB_CICP_CP_BT_470_M},
+        {"bt470bg", EB_CICP_CP_BT_470_B_G},
+        {"bt601", EB_CICP_CP_BT_601},
+        {"smpte240", EB_CICP_CP_SMPTE_240},
+        {"film", EB_CICP_CP_GENERIC_FILM},
+        {"bt2020", EB_CICP_CP_BT_2020},
+        {"xyz", EB_CICP_CP_XYZ},
+        {"smpte431", EB_CICP_CP_SMPTE_431},
+        {"smpte432", EB_CICP_CP_SMPTE_432},
+        {"ebu3213", EB_CICP_CP_EBU_3213},
+    };
+    const size_t color_primaries_size = sizeof(color_primaries) / sizeof(color_primaries[0]);
+
+    for (size_t i = 0; i < color_primaries_size; i++) {
+        if (primaries == color_primaries[i].primaries) {
+            return color_primaries[i].name;
+        }
+    }
+
+    return "unknown";
+}
+
+static const char *transfer_characteristics_to_str(EbTransferCharacteristics tfc) {
+    const struct {
+        const char               *name;
+        EbTransferCharacteristics tfc;
+    } transfer_characteristics[] = {
+        {"bt709", EB_CICP_TC_BT_709},
+        {"bt470m", EB_CICP_TC_BT_470_M},
+        {"bt470bg", EB_CICP_TC_BT_470_B_G},
+        {"bt601", EB_CICP_TC_BT_601},
+        {"smpte240", EB_CICP_TC_SMPTE_240},
+        {"linear", EB_CICP_TC_LINEAR},
+        {"log100", EB_CICP_TC_LOG_100},
+        {"log100-sqrt10", EB_CICP_TC_LOG_100_SQRT10},
+        {"iec61966", EB_CICP_TC_IEC_61966},
+        {"bt1361", EB_CICP_TC_BT_1361},
+        {"srgb", EB_CICP_TC_SRGB},
+        {"bt2020-10", EB_CICP_TC_BT_2020_10_BIT},
+        {"bt2020-12", EB_CICP_TC_BT_2020_12_BIT},
+        {"smpte2084", EB_CICP_TC_SMPTE_2084},
+        {"smpte428", EB_CICP_TC_SMPTE_428},
+        {"hlg", EB_CICP_TC_HLG},
+    };
+    const size_t transfer_characteristics_size = sizeof(transfer_characteristics) / sizeof(transfer_characteristics[0]);
+
+    for (size_t i = 0; i < transfer_characteristics_size; i++) {
+        if (tfc == transfer_characteristics[i].tfc) {
+            return transfer_characteristics[i].name;
+        }
+    }
+
+    return "unknown";
+}
+
+static const char *matrix_coefficients_to_str(EbMatrixCoefficients coeff) {
+    const struct {
+        const char          *name;
+        EbMatrixCoefficients coeff;
+    } matrix_coefficients[] = {
+        {"identity", EB_CICP_MC_IDENTITY},
+        {"bt709", EB_CICP_MC_BT_709},
+        {"fcc", EB_CICP_MC_FCC},
+        {"bt470bg", EB_CICP_MC_BT_470_B_G},
+        {"bt601", EB_CICP_MC_BT_601},
+        {"smpte240", EB_CICP_MC_SMPTE_240},
+        {"ycgco", EB_CICP_MC_SMPTE_YCGCO},
+        {"bt2020-ncl", EB_CICP_MC_BT_2020_NCL},
+        {"bt2020-cl", EB_CICP_MC_BT_2020_CL},
+        {"smpte2085", EB_CICP_MC_SMPTE_2085},
+        {"chroma-ncl", EB_CICP_MC_CHROMAT_NCL},
+        {"chroma-cl", EB_CICP_MC_CHROMAT_CL},
+        {"ictcp", EB_CICP_MC_ICTCP},
+    };
+    const size_t matrix_coefficients_size = sizeof(matrix_coefficients) / sizeof(matrix_coefficients[0]);
+
+    for (size_t i = 0; i < matrix_coefficients_size; i++) {
+        if (coeff == matrix_coefficients[i].coeff) {
+            return matrix_coefficients[i].name;
+        }
+    }
+
+    return "unknown";
+}
+
 static double get_extended_crf(EbSvtAv1EncConfiguration* config_ptr) {
     return (double)config_ptr->qp + (double)config_ptr->extended_crf_qindex_offset / 4;
 }
@@ -1255,14 +1346,21 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
             config->frame_rate_numerator,
             config->frame_rate_denominator);
         SVT_INFO(
-            "SVT [config]: bit-depth / color format \t\t\t\t: %d / "
-            "%s\n",
+            "SVT [config]: bit-depth / color format / hdr \t\t\t: %d / "
+            "%s / %d\n",
             config->encoder_bit_depth,
             config->encoder_color_format == EB_YUV400       ? "YUV400"
                 : config->encoder_color_format == EB_YUV420 ? "YUV420"
                 : config->encoder_color_format == EB_YUV422 ? "YUV422"
                 : config->encoder_color_format == EB_YUV444 ? "YUV444"
-                                                            : "Unknown color format");
+                                                            : "Unknown color format",
+            (config->content_light_level.max_cll != 0 || config->mastering_display.max_luma != 0)); // reintroduce enable-hdr param?
+
+        SVT_INFO(
+            "SVT [config]: color primaries / transfer characts / matrix coeffs \t: %s / %s / %s \n",
+            matrix_coefficients_to_str(config->matrix_coefficients),
+            color_primaries_to_str(config->color_primaries),
+            transfer_characteristics_to_str(config->transfer_characteristics));
 
         if (scs->static_config.speed != SPEED_UNKNOWN || (scs->static_config.speed == SPEED_UNKNOWN &&
             config->enc_mode == ENC_M5 &&
@@ -1404,10 +1502,20 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
         }
 
         if (config->film_grain_denoise_strength != 0) {
-            SVT_INFO("SVT [config]: film grain synth / denoising / level \t\t\t: %d / %d / %d\n",
-                     1,
-                     config->film_grain_denoise_apply,
-                     config->film_grain_denoise_strength);
+            if (config->adaptive_film_grain) {
+                SVT_INFO(
+                    "SVT [config]: film grain synth / denoising / level / adaptive \t: %d / %d / %d / True\n",
+                    1,
+                    config->film_grain_denoise_apply,
+                    config->film_grain_denoise_strength);
+            } else {
+                SVT_INFO(
+                    "SVT [config]: film grain synth / denoising / level / adaptive \t: %d / %d / %d / "
+                    "False\n",
+                    1,
+                    config->film_grain_denoise_apply,
+                    config->film_grain_denoise_strength);
+            }
         }
         SVT_INFO("SVT [config]: auto tiling / columns / rows \t\t\t\t: %d / %d / %d\n",
                  config->auto_tiling,
