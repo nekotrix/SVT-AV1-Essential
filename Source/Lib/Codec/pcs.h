@@ -1267,6 +1267,7 @@ typedef struct PictureControlSetInitData {
     int     hbd_mds;
     bool    auto_tiling;
     bool    low_memory;
+    bool    hide_banner;
 } PictureControlSetInitData;
 
 /**************************************
