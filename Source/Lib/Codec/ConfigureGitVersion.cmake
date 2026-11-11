@@ -177,7 +177,7 @@ function(run_git_describe_with_match git_root_dir match_pattern out_result out_o
     execute_process(COMMAND
         ${GIT_EXECUTABLE} -C ${git_root_dir}
             describe
-            --tags --dirty --abbrev
+            --tags --abbrev=0
             --match "${match_pattern}"
         RESULT_VARIABLE res
         OUTPUT_VARIABLE out
@@ -194,7 +194,7 @@ function(run_git_describe_fallback git_root_dir out_result out_output out_error)
     execute_process(COMMAND
         ${GIT_EXECUTABLE} -C ${git_root_dir}
             describe
-            --tags --dirty --abbrev
+            --tags --abbrev=0
             --always
             --match "v[0-9]*.[0-9]*.[0-9]"
             --match "v[0-9]*.[0-9]*.[0-9]-rc*"
