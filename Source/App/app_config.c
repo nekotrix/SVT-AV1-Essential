@@ -172,6 +172,7 @@
 #define OUTPUT_RECON_LONG_TOKEN "--recon"
 #define OUTPUT_FORMAT_IVF_TOKEN "--ivf"
 #define OUTPUT_FORMAT_OBU_TOKEN "--obu"
+#define OUTPUT_FORMAT_WEBM_TOKEN "--webm"
 #define WIDTH_LONG_TOKEN "--width"
 #define HEIGHT_LONG_TOKEN "--height"
 #define NUMBER_OF_PICTURES_TO_SKIP "--skip"
@@ -241,7 +242,6 @@
 #define NOISE_ADAPTIVE_FILTERING_TOKEN "--noise-adaptive-filtering"
 #define ALT_CDEF_TOKEN "--enable-alt-cdef"
 #define ALT_DLF_TOKEN "--enable-alt-dlf"
-#define WRITE_WEBM_TOKEN "--webm"
 
 #define DISTORTION_BIAS_PRESET_TOKEN "--distortion-bias-preset"
 
@@ -849,12 +849,15 @@ ConfigDescription config_entry_options[] = {
     {INPUT_FILE_LONG_TOKEN,
      "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
 
-    {WRITE_WEBM_TOKEN,
-     "Output WebM instead of IVF (default when WebM IO is enabled)"},
+    {OUTPUT_FORMAT_IVF_TOKEN, "Output bitstream in an IVF container"},
+    {OUTPUT_FORMAT_OBU_TOKEN, "Output bitstream as raw OBUs without a container"},
+    {OUTPUT_FORMAT_WEBM_TOKEN, "Output bitstream in a WebM container (requires WebM IO support)"},
     {OUTPUT_BITSTREAM_TOKEN,
-     "Output compressed (ivf) file path, use `stdout` or `-` to write to pipe"},
+     "Output compressed file path, use `stdout` or `-` to write to pipe. Format follows .ivf, .obu or .webm; "
+     "otherwise WebM is used when available, IVF otherwise"},
     {OUTPUT_BITSTREAM_LONG_TOKEN,
-     "Output compressed (ivf) file path, use `stdout` or `-` to write to pipe"},
+     "Output compressed file path, use `stdout` or `-` to write to pipe. Format follows .ivf, .obu or .webm; "
+     "otherwise WebM is used when available, IVF otherwise"},
 
     {PROGRESS_TOKEN,
      "Verbosity of the output, default is 2 [0: no progress is printed, 1: basic progress, 2: detailed progress]"},
@@ -1060,16 +1063,16 @@ ConfigDescription fconfig_entry_options[] = {
     {INPUT_FILE_LONG_TOKEN, "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
     {ALLOW_MMAP_FILE_TOKEN, "Allow memory mapping for regular input file. Performance is platform dependent"},
 
-    {WRITE_WEBM_TOKEN, "Output WebM instead of IVF (default when WebM IO is enabled)"},
     {OUTPUT_BITSTREAM_TOKEN,
      "Output compressed file path, use `stdout` or `-` to write to pipe. "
-     "Format is auto-detected from extension (.ivf or .obu), default is IVF"},
+     "Format follows .ivf, .obu or .webm; otherwise WebM is used when available, IVF otherwise"},
     {OUTPUT_BITSTREAM_LONG_TOKEN,
      "Output compressed file path, use `stdout` or `-` to write to pipe. "
-     "Format is auto-detected from extension (.ivf or .obu), default is IVF"},
+     "Format follows .ivf, .obu or .webm; otherwise WebM is used when available, IVF otherwise"},
 
-    {OUTPUT_FORMAT_IVF_TOKEN, "Output bitstream in IVF container format (default)"},
-    {OUTPUT_FORMAT_OBU_TOKEN, "Output bitstream as raw OBU (Open Bitstream Units) without IVF container"},
+    {OUTPUT_FORMAT_IVF_TOKEN, "Output bitstream in an IVF container"},
+    {OUTPUT_FORMAT_OBU_TOKEN, "Output bitstream as raw OBUs without a container"},
+    {OUTPUT_FORMAT_WEBM_TOKEN, "Output bitstream in a WebM container (requires WebM IO support)"},
 
     {CONFIG_FILE_TOKEN, "Configuration file path"},
     {CONFIG_FILE_LONG_TOKEN, "Configuration file path"},
@@ -1468,7 +1471,6 @@ ConfigEntry config_entry[] = {
     {INPUT_FILE_TOKEN, "InputFile", set_cfg_input_file},
     {INPUT_FILE_LONG_TOKEN, "InputFile", set_cfg_input_file},
     {ALLOW_MMAP_FILE_TOKEN, "AllowMmapFile", set_allow_mmap_file},
-    {WRITE_WEBM_TOKEN, "WebM", set_cfg_generic_token}, // needs to be placed before set_cfg_stream_file!!
     {OUTPUT_BITSTREAM_TOKEN, "StreamFile", set_cfg_stream_file},
     {OUTPUT_BITSTREAM_LONG_TOKEN, "StreamFile", set_cfg_stream_file},
     {ERROR_FILE_TOKEN, "ErrorFile", set_cfg_error_file},
@@ -2890,7 +2892,8 @@ EbErrorType read_command_line(int32_t argc, char* const argv[], EncChannel* chan
                 return EB_ErrorBadParameter;
             }
             // argumentless flags don't consume the next value
-            if (!strcmp(*indx, OUTPUT_FORMAT_IVF_TOKEN) || !strcmp(*indx, OUTPUT_FORMAT_OBU_TOKEN)) {
+            if (!strcmp(*indx, OUTPUT_FORMAT_IVF_TOKEN) || !strcmp(*indx, OUTPUT_FORMAT_OBU_TOKEN) ||
+                !strcmp(*indx, OUTPUT_FORMAT_WEBM_TOKEN)) {
                 continue;
             }
             next_is_value = true;
@@ -2916,7 +2919,7 @@ EbErrorType read_command_line(int32_t argc, char* const argv[], EncChannel* chan
         return_error          = (EbErrorType)(return_error & channel->return_error);
     }
 
-    // Handle --ivf and --obu flags (argumentless, override auto-detection from extension)
+    // Format flags override auto-detection from the output extension.
     for (int32_t i = 0; i < argc; ++i) {
         if (cmd_copy[i] && !strcmp(argv[i], OUTPUT_FORMAT_IVF_TOKEN)) {
             channel->app_cfg->output_format = OUTPUT_FORMAT_IVF;
@@ -2924,12 +2927,19 @@ EbErrorType read_command_line(int32_t argc, char* const argv[], EncChannel* chan
         } else if (cmd_copy[i] && !strcmp(argv[i], OUTPUT_FORMAT_OBU_TOKEN)) {
             channel->app_cfg->output_format = OUTPUT_FORMAT_OBU;
             cmd_copy[i]                     = TOKEN_READ_MARKER;
+        } else if (cmd_copy[i] && !strcmp(argv[i], OUTPUT_FORMAT_WEBM_TOKEN)) {
+            channel->app_cfg->output_format = OUTPUT_FORMAT_WEBM;
+            cmd_copy[i]                     = TOKEN_READ_MARKER;
         }
     }
 
     EbConfig* output_cfg = channel->app_cfg;
     if (output_cfg->output_format == OUTPUT_FORMAT_AUTO) {
-        output_cfg->output_format = output_cfg->config.webm ? OUTPUT_FORMAT_WEBM : OUTPUT_FORMAT_IVF;
+#ifdef CONFIG_WEBM_IO
+        output_cfg->output_format = OUTPUT_FORMAT_WEBM;
+#else
+        output_cfg->output_format = OUTPUT_FORMAT_IVF;
+#endif
     }
 #ifdef CONFIG_WEBM_IO
     output_cfg->write_webm = output_cfg->output_format == OUTPUT_FORMAT_WEBM;

@@ -1414,8 +1414,7 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
     if (config->pass == ENC_FIRST_PASS) {
         SVT_INFO("SVT [config]: preset \t\t\t\t\t\t: Pass 1\n");
     } else {
-        SVT_INFO("SVT [config]: output format / profile / tier / level \t\t: %s / %s / %s / %s\n",
-                 (config->webm) ? "WebM" : "ivf",
+        SVT_INFO("SVT [config]: profile / tier / level \t\t\t\t: %s / %s / %s\n",
                  config->profile == MAIN_PROFILE               ? "main"
                      : config->profile == HIGH_PROFILE         ? "high"
                      : config->profile == PROFESSIONAL_PROFILE ? "professional"
@@ -3038,7 +3037,6 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         {"tile-rows", &config_struct->tile_rows},
         {"tile-columns", &config_struct->tile_columns},
         {"sframe-dist", &config_struct->sframe_dist},
-        {"webm", &config_struct->webm},
     };
 
     const size_t int_opts_size = sizeof(int_opts) / sizeof(int_opts[0]);
