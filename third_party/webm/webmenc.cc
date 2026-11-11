@@ -55,7 +55,7 @@ char *extract_encoder_settings(const char **argv, int argc) {
         int num_skip = skip_input_output_arg(argv[i]);
         i += num_skip;
         if (num_skip == 0) {
-            cur += snprintf(cur, total_size, "%s ", argv[i]);
+            cur += snprintf(cur, total_size - (cur - result), "%s ", argv[i]);
             ++i;
         }
     }
