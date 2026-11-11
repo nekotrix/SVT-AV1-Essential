@@ -9632,7 +9632,7 @@ void svt_aom_sig_deriv_mode_decision_config_default(SequenceControlSet* scs, Pic
         dlf_level = get_dlf_level_default(
             pcs, dlf_enc_mode, is_not_last_layer, fast_decode, input_resolution, (pcs->temporal_layer_index == 0));
     }
-    svt_aom_set_dlf_controls(pcs->ppcs, dlf_level);
+    svt_aom_set_dlf_controls(pcs->ppcs, scs->static_config.enable_dlf_flag == 3 && frm_hdr->allow_intrabc == 0 ? 1 : dlf_level);
 }
 
 static INLINE bool should_disable_cdf_update(SequenceControlSet* scs, EncMode enc_mode, bool is_islice) {
@@ -10075,7 +10075,7 @@ void svt_aom_sig_deriv_mode_decision_config_rtc(SequenceControlSet* scs, Picture
 
         dlf_level = get_dlf_level_rtc(pcs, dlf_enc_mode, is_base);
     }
-    svt_aom_set_dlf_controls(pcs->ppcs, dlf_level);
+    svt_aom_set_dlf_controls(pcs->ppcs, scs->static_config.enable_dlf_flag == 3 && frm_hdr->allow_intrabc == 0 ? 1 : dlf_level);
 }
 
 void svt_aom_sig_deriv_mode_decision_config_allintra(SequenceControlSet* scs, PictureControlSet* pcs) {
@@ -10318,7 +10318,7 @@ void svt_aom_sig_deriv_mode_decision_config_allintra(SequenceControlSet* scs, Pi
         }
         dlf_level = get_dlf_level_allintra(dlf_enc_mode, fast_decode, input_resolution);
     }
-    svt_aom_set_dlf_controls(pcs->ppcs, dlf_level);
+    svt_aom_set_dlf_controls(pcs->ppcs, scs->static_config.enable_dlf_flag == 3 && frm_hdr->allow_intrabc == 0 ? 1 : dlf_level);
 }
 
 /****************************************************
