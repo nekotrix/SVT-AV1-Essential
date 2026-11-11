@@ -216,6 +216,8 @@ typedef struct EbConfig {
 
     char*          fgs_table_path;
     FilmGrainTable fgs_table;
+
+    bool color;
 } EbConfig;
 
 typedef struct EncChannel {
@@ -237,10 +239,10 @@ typedef struct EncApp {
     SvtAv1FixedBuf rc_twopasses_stats;
 } EncApp;
 
-EbConfig* svt_config_ctor();
+EbConfig* svt_config_ctor(bool color);
 void      svt_config_dtor(EbConfig* app_cfg);
 
-EbErrorType     enc_channel_ctor(EncChannel* c);
+EbErrorType     enc_channel_ctor(EncChannel* c, bool color);
 void            enc_channel_dctor(EncChannel* c);
 EbErrorType     read_command_line(int32_t argc, char* const argv[], EncChannel* channel);
 int             get_version(int argc, char* const argv[]);
