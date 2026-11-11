@@ -1462,9 +1462,9 @@ static void dlf_level_modulation(PictureControlSet* pcs, uint8_t* default_dlf_le
     if (modulation_mode == 2 || modulation_mode == 3) {
         if (dlf_level > 4) {
             if (pcs->ref_skip_percentage > 95) {
-                dlf_level = dlf_level >= 6 ? 0 : dlf_level + 2;
+                dlf_level = 7;
             } else if (pcs->ref_skip_percentage > 75) {
-                dlf_level = dlf_level == 7 ? 0 : dlf_level + 1;
+                dlf_level = MIN(7, dlf_level + 1);
             }
         }
     }
@@ -1490,7 +1490,7 @@ static uint8_t get_dlf_level_default(PictureControlSet* pcs, EncMode enc_mode, u
             dlf_level       = is_not_last_layer ? 3 : 6;
             modulation_mode = 3;
         } else {
-            dlf_level       = 0;
+            dlf_level       = 7;
             modulation_mode = 3;
         }
     } else { // fast-decode 2
@@ -1528,7 +1528,7 @@ static uint8_t get_dlf_level_rtc(PictureControlSet* pcs, EncMode enc_mode, int i
         dlf_level       = 7;
         modulation_mode = 3;
     } else {
-        dlf_level       = 0;
+        dlf_level       = pcs->scs->static_config.hierarchical_levels == 0 ? 0 : 7;
         modulation_mode = 3;
     }
     if (!is_base) {
