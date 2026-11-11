@@ -564,10 +564,14 @@ static EbErrorType set_cfg_frames_to_be_encoded(EbConfig* cfg, const char* token
 
 static EbErrorType set_cfg_frames_to_be_skipped(EbConfig* cfg, const char* token, const char* value) {
     EbErrorType ret = str_to_int64(token, value, &cfg->frames_to_be_skipped);
-    if (cfg->frames_to_be_skipped > 0) {
-        cfg->need_to_skip = true;
+    if (ret != EB_ErrorNone) {
+        return ret;
     }
-    return ret;
+    if (cfg->frames_to_be_skipped < 0) {
+        return validate_error(EB_ErrorBadParameter, token, value);
+    }
+    cfg->need_to_skip = cfg->frames_to_be_skipped > 0;
+    return EB_ErrorNone;
 }
 
 static EbErrorType set_buffered_input(EbConfig* cfg, const char* token, const char* value) {

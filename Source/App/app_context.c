@@ -473,6 +473,14 @@ static EbErrorType init_ffms2(EbConfig *app_cfg) {
 
     const FFMS_VideoProperties *props = FFMS_GetVideoProperties(video_source);
 
+    if (app_cfg->frames_to_be_skipped >= props->NumFrames) {
+        fprintf(stderr, "Error: FramesToBeSkipped is greater than or equal to the number of frames detected\n");
+        FFMS_DestroyVideoSource(video_source);
+        FFMS_DestroyIndex(index);
+        return EB_ErrorBadParameter;
+    }
+    app_cfg->need_to_skip = false;
+
     // Check first frame
     const FFMS_Frame *test_frame = FFMS_GetFrame(video_source, 0, &err_info);
     if (!test_frame) {
@@ -608,14 +616,13 @@ static EbErrorType preload_frames_ffms2(EbConfig *app_cfg) {
     // 10-bit = 2 bytes per sample
     const size_t frame_size = (width * height + 2 * chroma_width * chroma_height) * 2;
 
-    app_cfg->sequence_buffer = calloc(app_cfg->buffered_input, sizeof(uint8_t *));
+    if (app_cfg->buffered_input > props->NumFrames - app_cfg->frames_to_be_skipped) {
+        app_cfg->buffered_input = props->NumFrames - app_cfg->frames_to_be_skipped;
+    }
+    const int frames_to_load = app_cfg->buffered_input;
+    app_cfg->sequence_buffer = calloc(frames_to_load, sizeof(uint8_t *));
     if (!app_cfg->sequence_buffer)
         return EB_ErrorInsufficientResources;
-
-    int frames_to_load = app_cfg->buffered_input;
-    if (frames_to_load > props->NumFrames - app_cfg->frames_to_be_skipped) {
-        frames_to_load = props->NumFrames - app_cfg->frames_to_be_skipped;
-    }
 
     for (int i = 0; i < frames_to_load; i++) {
         app_cfg->sequence_buffer[i] = malloc(frame_size);
@@ -653,11 +660,6 @@ static EbErrorType preload_frames_ffms2(EbConfig *app_cfg) {
             dst += chroma_width * 2;
             src_v += frame->Linesize[2];
         }
-    }
-
-    // Fill remaining slots if looping is needed (though I disabled looping for FFMS2)
-    for (int i = frames_to_load; i < app_cfg->buffered_input; i++) {
-        app_cfg->sequence_buffer[i] = app_cfg->sequence_buffer[i % frames_to_load];
     }
 
     return EB_ErrorNone;
