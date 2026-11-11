@@ -1460,10 +1460,11 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
                         : config->tune == TUNE_PSNR    ? "PSNR (1)"
                         : config->tune == TUNE_SSIM    ? "SSIM (2)"
                         : config->tune == TUNE_VMAF    ? "VMAF (5)"
-                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM (3)"
-                                                       : "IQ (4)",
+                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM (4)"
+                                                       : "IQ (3)",
                     config->pred_structure == LOW_DELAY           ? "low delay"
                         : config->pred_structure == RANDOM_ACCESS ? "RA"
+                                                                  : config->pred_structure == ALL_INTRA      ? "all intra"
                                                                   : "Unknown pred structure");
         } else if (scs->static_config.speed != SPEED_UNKNOWN || (scs->static_config.speed == SPEED_UNKNOWN &&
             config->enc_mode == ENC_M4 &&
@@ -1479,10 +1480,11 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
                         : config->tune == TUNE_PSNR    ? "PSNR (1)"
                         : config->tune == TUNE_SSIM    ? "SSIM (2)"
                         : config->tune == TUNE_VMAF    ? "VMAF (5)"
-                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM (3)"
-                                                       : "IQ (4)",
+                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM (4)"
+                                                       : "IQ (3)",
                     config->pred_structure == LOW_DELAY           ? "low delay"
                         : config->pred_structure == RANDOM_ACCESS ? "RA"
+                                                                  : config->pred_structure == ALL_INTRA      ? "all intra"
                                                                   : "Unknown pred structure");
         } else {
             SVT_INFO("SVT [config]: preset / tune / pred struct \t\t\t\t: %d / %s / %s\n",
@@ -1491,10 +1493,11 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
                         : config->tune == TUNE_PSNR    ? "PSNR (1)"
                         : config->tune == TUNE_SSIM    ? "SSIM (2)"
                         : config->tune == TUNE_VMAF    ? "VMAF (5)"
-                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM (3)"
-                                                       : "IQ (4)",
+                        : config->tune == TUNE_MS_SSIM ? "MS_SSIM (4)"
+                                                       : "IQ (3)",
                     config->pred_structure == LOW_DELAY           ? "low delay"
                         : config->pred_structure == RANDOM_ACCESS ? "RA"
+                                                                  : config->pred_structure == ALL_INTRA      ? "all intra"
                                                                   : "Unknown pred structure");
         }
         if (config->level_of_parallelism) {

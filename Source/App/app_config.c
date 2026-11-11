@@ -943,9 +943,8 @@ ConfigDescription config_entry_specific[] = {
      "frame for the base layer picture, default is 0 [0-1]"},
     // --- end: ALTREF_FILTERING_SUPPORT
     {TUNE_TOKEN,
-     "Specifies whether to use PSNR or VQ as the tuning metric [0 = VQ, 1 = PSNR, 2 = SSIM], "
-     "default is 1 "
-     "[0-2]"},
+     "Optimize the encoding process for different desired outcomes [0 = VQ, 1 = PSNR, 2 = SSIM, 3 = IQ (Image "
+     "Quality), 4 = MS_SSIM (MS_SSIM and SSIMULACRA2 optimized mode), 5 = VMAF], default is 1 [0-5]"},
     {LOW_MEMORY_TOKEN,
      "Specifies whether to use params which reduce RAM usage with potential efficiency and speed trade-offs, "
      "most effective in CRF/CQP RA mode, "
