@@ -11,6 +11,11 @@
 
 # Codec Directory CMakeLists.txt
 
+set(COMPILER_ID "${CMAKE_C_COMPILER_ID}")
+set(COMPILER_VERSION "${CMAKE_C_COMPILER_VERSION}")
+set(GIT_COMMIT "unknown")
+set(GIT_COMMIT_DATE "unknown")
+
 if(EXCLUDE_HASH)
     set(PACKAGE_VERSION_STRING ${PROJECT_VERSION}${VERSION_TAG})
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/EbVersion.h.in EbVersion.h @ONLY)
@@ -21,6 +26,8 @@ else()
             -D INPUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/EbVersion.h.in
             -D OUTPUT_FILE=EbVersion.h
             -D GIT_ROOT_DIR=${PROJECT_SOURCE_DIR}
+            -D COMPILER_ID=${COMPILER_ID}
+            -D COMPILER_VERSION=${COMPILER_VERSION}
             -D PROJECT_VERSION=${PROJECT_VERSION}
             -D VERSION_TAG=${VERSION_TAG}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/ConfigureGitVersion.cmake

@@ -29,6 +29,8 @@
 # In the case of a tie, the preference will be given to the tag with the highest version, and for
 # equal versions, the stable tag will be preferred over the rc tag.
 
+set(GIT_COMMIT "unknown")
+set(GIT_COMMIT_DATE "unknown")
 set(PACKAGE_VERSION_STRING "v${PROJECT_VERSION}${VERSION_TAG}")
 
 macro(configure_version)
@@ -40,6 +42,21 @@ endmacro()
 find_package(Git QUIET)
 if(NOT Git_FOUND OR NOT EXISTS "${GIT_ROOT_DIR}/.git")
     configure_version()
+endif()
+
+execute_process(COMMAND ${GIT_EXECUTABLE} -C ${GIT_ROOT_DIR} rev-parse --short HEAD
+    RESULT_VARIABLE git_commit_status
+    OUTPUT_VARIABLE git_commit_output
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT git_commit_status)
+    set(GIT_COMMIT "${git_commit_output}")
+endif()
+execute_process(COMMAND ${GIT_EXECUTABLE} -C ${GIT_ROOT_DIR} log -1 --format=%cs
+    RESULT_VARIABLE git_date_status
+    OUTPUT_VARIABLE git_date_output
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT git_date_status)
+    set(GIT_COMMIT_DATE "${git_date_output}")
 endif()
 
 function(parse_version_tag tag valid major minor patch is_stable rc_version)

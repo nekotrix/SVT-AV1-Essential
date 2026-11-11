@@ -21,6 +21,7 @@
 #include <sys/stat.h>
 
 #include "EbSvtAv1Metadata.h"
+#include "EbVersion.h"
 #include "app_config.h"
 #include "app_context.h"
 #include "app_input_y4m.h"
@@ -2233,6 +2234,14 @@ static void print_options(const char* title, const ConfigDescription* options) {
     }
 }
 
+static void print_build_feature(const char* name, bool enabled, bool color) {
+    printf("  %-14s: %s%s%s\n",
+           name,
+           color ? (enabled ? "\033[0;32m" : "\033[0;31m") : "",
+           enabled ? "Yes" : "No",
+           color ? "\033[0m" : "");
+}
+
 int get_version(int argc, char* const argv[]) {
 #ifdef NDEBUG
 #define BUILD_TYPE_STRING "release"
@@ -2243,6 +2252,35 @@ int get_version(int argc, char* const argv[]) {
         return 0;
     }
     printf("SVT-AV1-Essential %s (" BUILD_TYPE_STRING ")\n", svt_av1_get_version());
+    const char* no_color = getenv("NO_COLOR");
+    bool        color = no_color == NULL || no_color[0] == '\0';
+#ifdef _WIN32
+    color = false;
+#endif
+
+    printf("\n* Compiler\n  %s version %s\n", SVT_AV1_COMPILER_ID, SVT_AV1_COMPILER_VERSION);
+    printf("\n* Date Info\n  Commit Date:  %s (%s)\n", SVT_AV1_GIT_COMMIT_DATE, SVT_AV1_GIT_COMMIT);
+    printf("\n* Features:\n");
+#if HAVE_FFMS2
+    print_build_feature("FFMS2", true, color);
+#else
+    print_build_feature("FFMS2", false, color);
+#endif
+#ifdef CONFIG_WEBM_IO
+    print_build_feature("WEBM", true, color);
+#else
+    print_build_feature("WEBM", false, color);
+#endif
+#ifdef LIBDOVI_FOUND
+    print_build_feature("Dolby Vision", true, color);
+#else
+    print_build_feature("Dolby Vision", false, color);
+#endif
+#ifdef LIBHDR10PLUS_RS_FOUND
+    print_build_feature("HDR10Plus", true, color);
+#else
+    print_build_feature("HDR10Plus", false, color);
+#endif
     return 1;
 #undef BUILD_TYPE_STRING
 }
