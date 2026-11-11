@@ -1254,6 +1254,11 @@ typedef struct EbSvtAv1EncConfiguration {
      * @brief Check if color range is provided by the user
      */
     bool color_range_provided;
+
+    /**
+     * @brief Output WebM instead of IVF (default when WebM IO is enabled)
+     */
+    int webm;
     // clang-format off
     /* Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct */
     uint8_t padding[128
@@ -1271,6 +1276,7 @@ typedef struct EbSvtAv1EncConfiguration {
         - sizeof(QualityPreset)
         - (sizeof(uint8_t) * 8)
         - sizeof(uint32_t) * 2 // photon_noise_iso, pin_threads
+        - sizeof(int) // webm
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;

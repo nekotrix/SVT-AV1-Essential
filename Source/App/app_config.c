@@ -238,6 +238,7 @@
 #define NOISE_ADAPTIVE_FILTERING_TOKEN "--noise-adaptive-filtering"
 #define ALT_CDEF_TOKEN "--enable-alt-cdef"
 #define ALT_DLF_TOKEN "--enable-alt-dlf"
+#define WRITE_WEBM_TOKEN "--webm"
 
 static EbErrorType validate_error(EbErrorType err, const char* token, const char* value) {
     switch (err) {
@@ -465,6 +466,8 @@ static EbErrorType set_cfg_stream_file(EbConfig* cfg, const char* token, const c
             cfg->output_format = OUTPUT_FORMAT_OBU;
         } else if (!strcmp(ext, ".ivf")) {
             cfg->output_format = OUTPUT_FORMAT_IVF;
+        } else if (!strcmp(ext, ".webm")) {
+            cfg->output_format = OUTPUT_FORMAT_WEBM;
         }
     }
     return open_file(&cfg->bitstream_file, token, value, "wb");
@@ -480,8 +483,9 @@ static EbErrorType set_cfg_error_file(EbConfig* cfg, const char* token, const ch
     }
     return open_file(&cfg->error_log_file, token, value, "w+");
 }
-
-static EbErrorType set_cfg_recon_file(EbConfig* cfg, const char* token, const char* value) {
+static EbErrorType set_cfg_recon_file(EbConfig *cfg, const char *token, const char *value) {
+    printf("Svt[info]: You have enabled output recon. If you intended to set the output path,\n");
+    printf("Svt[info]: the right parameter is --output or -b.\n");
     return open_file(&cfg->recon_file, token, value, "wb");
 }
 
@@ -781,6 +785,8 @@ ConfigDescription config_entry_options[] = {
     {INPUT_FILE_LONG_TOKEN,
      "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
 
+    {WRITE_WEBM_TOKEN,
+     "Output WebM instead of IVF (default when WebM IO is enabled)"},
     {OUTPUT_BITSTREAM_TOKEN,
      "Output compressed (ivf) file path, use `stdout` or `-` to write to pipe"},
     {OUTPUT_BITSTREAM_LONG_TOKEN,
@@ -984,6 +990,7 @@ ConfigDescription fconfig_entry_options[] = {
     {INPUT_FILE_LONG_TOKEN, "Input raw video (y4m and yuv) file path, use `stdin` or `-` to read from pipe"},
     {ALLOW_MMAP_FILE_TOKEN, "Allow memory mapping for regular input file. Performance is platform dependent"},
 
+    {WRITE_WEBM_TOKEN, "Output WebM instead of IVF (default when WebM IO is enabled)"},
     {OUTPUT_BITSTREAM_TOKEN,
      "Output compressed file path, use `stdout` or `-` to write to pipe. "
      "Format is auto-detected from extension (.ivf or .obu), default is IVF"},
@@ -1383,6 +1390,7 @@ ConfigEntry config_entry[] = {
     {INPUT_FILE_TOKEN, "InputFile", set_cfg_input_file},
     {INPUT_FILE_LONG_TOKEN, "InputFile", set_cfg_input_file},
     {ALLOW_MMAP_FILE_TOKEN, "AllowMmapFile", set_allow_mmap_file},
+    {WRITE_WEBM_TOKEN, "WebM", set_cfg_generic_token}, // needs to be placed before set_cfg_stream_file!!
     {OUTPUT_BITSTREAM_TOKEN, "StreamFile", set_cfg_stream_file},
     {OUTPUT_BITSTREAM_LONG_TOKEN, "StreamFile", set_cfg_stream_file},
     {ERROR_FILE_TOKEN, "ErrorFile", set_cfg_error_file},
@@ -1633,6 +1641,7 @@ EbConfig* svt_config_ctor(bool color) {
     app_cfg->error_log_file      = stderr;
     app_cfg->buffered_input      = -1;
     app_cfg->progress            = 2;
+    app_cfg->output_format       = OUTPUT_FORMAT_AUTO;
     app_cfg->injector_frame_rate = 60;
     app_cfg->roi_map_file        = NULL;
     app_cfg->fgs_table_path      = NULL;
@@ -1994,7 +2003,42 @@ EbErrorType handle_stats_file(EbConfig* app_cfg, EncPass enc_pass, const SvtAv1F
     }
     return EB_ErrorNone;
 }
+static EbErrorType set_default_output_path(EbConfig *cfg) {
+    if (cfg->bitstream_file || !cfg->input_file_path)
+        return EB_ErrorNone; // already set or no input to derive from
 
+    const char *input = cfg->input_file_path;
+
+    // find last dot to strip extension
+    const char *last_dot   = strrchr(input, '.');
+    const char *last_slash = strrchr(input, '/');
+#ifdef _WIN32
+    const char *last_bslash = strrchr(input, '\\');
+    if (last_bslash > last_slash) last_slash = last_bslash;
+#endif
+    // only strip extension if dot is after the last separator
+    size_t base_len = (last_dot && last_dot > last_slash)
+                      ? (size_t)(last_dot - input)
+                      : strlen(input);
+
+    const char *ext = cfg->output_format == OUTPUT_FORMAT_WEBM ? "_essential.webm"
+        : cfg->output_format == OUTPUT_FORMAT_OBU ? "_essential.obu" : "_essential.ivf";
+
+    fputs("No output provided: file path automatically derived from the input\n", stderr);
+
+    size_t total = base_len + strlen(ext) + 1;
+    char *out_path = malloc(total);
+    if (!out_path)
+        return EB_ErrorInsufficientResources;
+
+    memcpy(out_path, input, base_len);
+    strcpy(out_path + base_len, ext);
+
+    EbErrorType err = open_file(&cfg->bitstream_file, "--output", out_path, "wb");
+    free(out_path);
+
+    return err;
+}
 /******************************************
 * Verify Settings
 ******************************************/
@@ -2643,11 +2687,14 @@ static EbErrorType read_fgs_table(EbConfig* cfg) {
 EbErrorType read_command_line(int32_t argc, char* const argv[], EncChannel* channel) {
     EbErrorType return_error = EB_ErrorNone;
     char        config_string[COMMAND_LINE_MAX_SIZE]; // for one input options
-    char*       config_strings; // for multiple input options
-    const char* cmd_copy[MAX_NUM_TOKENS]; // keep track of extra tokens
-    const char* arg_copy[MAX_NUM_TOKENS]; // keep track of extra arguments
-
-    config_strings = (char*)malloc(sizeof(char) * COMMAND_LINE_MAX_SIZE);
+    char       *config_strings; // for multiple input options
+    const char *cmd_copy[MAX_NUM_TOKENS]; // keep track of extra tokens
+    const char *arg_copy[MAX_NUM_TOKENS]; // keep track of extra arguments
+#ifdef CONFIG_WEBM_IO
+    channel->app_cfg->argc = argc;
+    channel->app_cfg->argv = (const char **)argv;
+#endif
+    config_strings = (char *)malloc(sizeof(char) * COMMAND_LINE_MAX_SIZE);
     for (int i = 0; i < MAX_NUM_TOKENS; ++i) {
         cmd_copy[i] = NULL;
         arg_copy[i] = NULL;
@@ -2755,6 +2802,20 @@ EbErrorType read_command_line(int32_t argc, char* const argv[], EncChannel* chan
         }
     }
 
+    EbConfig* output_cfg = channel->app_cfg;
+    if (output_cfg->output_format == OUTPUT_FORMAT_AUTO) {
+        output_cfg->output_format = output_cfg->config.webm ? OUTPUT_FORMAT_WEBM : OUTPUT_FORMAT_IVF;
+    }
+#ifdef CONFIG_WEBM_IO
+    output_cfg->write_webm = output_cfg->output_format == OUTPUT_FORMAT_WEBM;
+#else
+    if (output_cfg->output_format == OUTPUT_FORMAT_WEBM) {
+        fputs("Warning: This build does not have WebM IO support, falling back to IVF\n", stderr);
+        output_cfg->output_format = OUTPUT_FORMAT_IVF;
+    }
+#endif
+    output_cfg->config.webm = output_cfg->output_format == OUTPUT_FORMAT_WEBM;
+
     /***************************************************************************************************/
     /********************** Parse parameters from input file if in y4m format **************************/
     /********************** overriding config file and command line inputs    **************************/
@@ -2799,6 +2860,7 @@ EbErrorType read_command_line(int32_t argc, char* const argv[], EncChannel* chan
             if (channel->return_error == EB_ErrorNone) {
                 app_cfg->input_padded_width  = app_cfg->config.source_width;
                 app_cfg->input_padded_height = app_cfg->config.source_height;
+                channel->return_error = set_default_output_path(app_cfg);
             }
 
             const int32_t input_frame_count = compute_frames_to_be_encoded(app_cfg);
