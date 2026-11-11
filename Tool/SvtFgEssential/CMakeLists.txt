@@ -7,6 +7,7 @@ add_executable(SvtFgEssential
     svt_fg_common.c
     svt_fg_noise_model.c
     svt_fg_noise_model.h
+    ${codec_dir}/film_grain_analysis.c
     ${codec_dir}/noise_util.c
     ${codec_dir}/fft.c
     ${codec_dir}/grainSynthesis.c

@@ -65,6 +65,7 @@
 #include "pic_operators.h"
 #include "sequence_control_set.h"
 #include "svt_fg_noise_model.h"
+#include "film_grain_analysis.h"
 #include "pic_buffer_desc.h"
 
 #define FG_TOOL_MAX_LINE 4096
@@ -129,6 +130,7 @@ typedef struct TimestampCache {
     uint64_t* timestamps;
     int       count;
     int       capacity;
+    int       round_down;
     double    accumulator;
     double    frame_duration;
 } TimestampCache;
@@ -268,8 +270,9 @@ static void usage(FILE* fp, const char* argv0, int full) {
             "  --source FILE         Noisy input video (required).\n"
             "  --target FILE         Previously denoised input for grain estimation.\n"
             "  --table FILE          Save AV1 film-grain parameters.\n"
-            "  --strength 1..50      Denoising strength (default 6).\n"
+            "  --strength -1|1..50   Denoising strength (default 6); -1 estimates grain automatically.\n"
             "  --jobs N              Frames to analyze in parallel (default 2).\n"
+            "                        Used with manual strength or --target.\n"
             "  --keyint N            Periodic keyframe interval in frames; 0 disables periodic keyframes.\n"
             "  --keyframes LIST|FILE|@FILE\n"
             "                        Keyframe numbers or a list file.\n"
@@ -322,11 +325,16 @@ static void usage(FILE* fp, const char* argv0, int full) {
 #endif
             "\n"
             "Grain options:\n"
-            "  --strength 1..50      Denoising strength (default 6); --noise-level is an alias.\n"
+            "  --strength -1|1..50   Denoising strength (default 6); --noise-level is an alias.\n"
             "                        Higher positive values remove more noise before grain estimation.\n"
+            "                        -1 estimates grain automatically, without a strength setting.\n"
+            "                        Automatic table-only runs skip denoising; video output enables it.\n"
             "                        With --target, grain is estimated from the supplied pair instead.\n"
             "  --adaptive 0|1        Adapt denoising block size to video resolution (default 0).\n"
+            "                        Applies to manual strength or analysis with --target.\n"
             "  --jobs N              Frames to analyze in parallel (1..256, default 2).\n"
+            "                        Applies to manual strength or analysis with --target.\n"
+            "                        Automatic analysis processes one frame at a time.\n"
             "  --seed S              Number controlling the generated grain pattern (1..65535).\n"
             "                        A fixed value keeps the same random seed on every frame.\n"
             "                        Default: change the seed for each frame.\n"
@@ -342,6 +350,7 @@ static void usage(FILE* fp, const char* argv0, int full) {
             "                        Additional keyframe positions, starting from frame 0.\n"
             "                        Accepts comma-separated numbers or a list file.\n"
             "                        Example: --keyframes 0,48,108. Use @FILE to always read a file.\n"
+            "                        Automatic grain analysis restarts at these frames.\n"
             "  --preset N            Encoder preset for automatic keyframe spacing (0..13, default 8).\n"
             "  --hierarchical-levels N\n"
             "                        Encoder frame hierarchy (2..5) for keyframe spacing.\n"
@@ -351,7 +360,7 @@ static void usage(FILE* fp, const char* argv0, int full) {
             "  --table-events svt-ra|per-frame\n"
             "                        When to write grain-table updates (default svt-ra).\n"
             "                        svt-ra follows the encoder's update schedule; per-frame writes\n"
-            "                        an update for every frame.\n"
+            "                        an update for every frame. Automatic analysis always uses per-frame.\n"
             "                        --table-event-mode is an alias.\n"
             "  -h, --help            Show the full help\n");
 }
@@ -717,8 +726,9 @@ static int parse_options(int argc, char** argv, Options* opt) {
                 return 0;
             }
         } else if (!strcmp(argv[i], "--strength") || !strcmp(argv[i], "--noise-level")) {
-            if (!next_arg(argc, argv, &i, &value) || !parse_int_arg(value, 1, 50, &opt->strength)) {
-                fprintf(stderr, "Invalid --strength value; expected 1..50\n");
+            if (!next_arg(argc, argv, &i, &value) || !parse_int_arg(value, -1, 50, &opt->strength) ||
+                opt->strength == 0) {
+                fprintf(stderr, "Invalid --strength value; expected -1 or 1..50\n");
                 return 0;
             }
         } else if (!strcmp(argv[i], "--adaptive")) {
@@ -1630,6 +1640,12 @@ static int frame_read(VideoReader* reader, Frame8* frame) {
             fprintf(stderr, "Truncated frame in %s\n", reader->path);
             return -1;
         }
+        // Match the encoder's (sample << 2) + 1 upshift.
+        if (frame->bit_depth > 8) {
+            memset(frame->y2, 0x55, (size_t)(frame->y_stride / 4) * frame->model_height);
+            memset(frame->u2, 0x55, (size_t)(frame->uv_stride / 4) * (frame->model_height / 2));
+            memset(frame->v2, 0x55, (size_t)(frame->uv_stride / 4) * (frame->model_height / 2));
+        }
     }
     return 1;
 
@@ -1653,7 +1669,7 @@ static int frame_write(VideoWriter* writer, const Frame8* frame) {
             return 0;
         }
     }
-    if (frame->bit_depth > 8) {
+    if (writer->info.bit_depth > 8) {
         return write_plane_10(writer->file, frame->y, frame->y2, frame->width, frame->height, frame->y_stride) &&
             write_plane_10(writer->file, frame->u, frame->u2, uv_width, uv_height, frame->uv_stride) &&
             write_plane_10(writer->file, frame->v, frame->v2, uv_width, uv_height, frame->uv_stride);
@@ -1900,11 +1916,12 @@ static uint64_t timestamp_for_frame(TimestampCache* cache, int frame_index) {
     if (!timestamp_cache_reserve(cache, frame_index)) {
         return 0;
     }
-    // Match SVT's 10,000,000 / frame_rate duration and the inspected table's
-    // ceiling of cumulative durations. Do not perturb boundaries with an epsilon.
+    // Automatic per-frame entries must start no later than the exact frame time
+    // used by the encoder's table lookup. Retain legacy rounding otherwise.
     while (cache->count <= frame_index) {
         cache->accumulator += cache->frame_duration;
-        cache->timestamps[cache->count] = (uint64_t)ceil(cache->accumulator);
+        cache->timestamps[cache->count] = (uint64_t)(cache->round_down ? floor(cache->accumulator)
+                                                                    : ceil(cache->accumulator));
         cache->count++;
     }
     return cache->timestamps[frame_index];
@@ -2385,7 +2402,7 @@ static void progress_monitor_stop(ProgressMonitor* monitor) {
 static int init_denoise_context(AomDenoiseAndModel* denoise_model, const Options* opt, const Frame8* frame) {
     DenoiseAndModelInitData init;
     memset(&init, 0, sizeof(init));
-    init.noise_level          = (uint16_t)opt->strength;
+    init.noise_level          = (uint16_t)AOMMAX(0, opt->strength);
     init.encoder_bit_depth    = frame->bit_depth > 8 ? EB_TEN_BIT : EB_EIGHT_BIT;
     init.encoder_color_format = EB_YUV420;
     init.width                = (uint16_t)frame->model_width;
@@ -2615,6 +2632,12 @@ int main(int argc, char** argv) {
     Frame8         synth_frame;
     PackedFrame10  synth_packed;
     WorkSlot*      slots;
+    SvtFgaContext* automatic     = NULL;
+    Frame8         lookahead     = {0};
+    Frame8         future        = {0};
+    int            next_status   = 0;
+    int            future_status = 0;
+    int            slot_count    = 0;
     ProgressState  progress;
     int            progress_started     = 0;
     int            have_target          = 0;
@@ -2626,6 +2649,8 @@ int main(int argc, char** argv) {
     AomFilmGrain   table_grain;
     int            table_start_frame = -1;
     int            exit_code = 1;
+
+    ProgressMonitor auto_monitor = {0};
 
     memset(&source, 0, sizeof(source));
     memset(&target, 0, sizeof(target));
@@ -2703,13 +2728,37 @@ int main(int argc, char** argv) {
         goto cleanup;
     }
 
-    slots = (WorkSlot*)calloc((size_t)opt.jobs, sizeof(*slots));
+    const int auto_mode  = opt.strength == -1 && !have_target;
+    VideoInfo model_info = source.info;
+    timestamps.round_down = auto_mode;
+    if (auto_mode) {
+        model_info.bit_depth = 10;
+    }
+    slot_count          = auto_mode ? 1 : opt.jobs;
+    slots               = (WorkSlot*)calloc((size_t)slot_count, sizeof(*slots));
     if (!slots) {
         fprintf(stderr, "Unable to allocate work slots\n");
         goto cleanup;
     }
-    for (int i = 0; i < opt.jobs; ++i) {
-        if (!work_slot_init(&slots[i], &opt, &source.info, have_target)) {
+    for (int i = 0; i < slot_count; ++i) {
+        if (!work_slot_init(&slots[i], &opt, &model_info, have_target)) {
+            goto cleanup;
+        }
+    }
+
+    if (auto_mode) {
+        automatic = svt_aom_fga_create(
+            slots[0].source_frame.model_width, slots[0].source_frame.model_height, model_info.bit_depth);
+        if (!automatic || !frame_alloc(&lookahead, source.info.width, source.info.height, model_info.bit_depth) ||
+            !frame_alloc(&future, source.info.width, source.info.height, model_info.bit_depth)) {
+            goto cleanup;
+        }
+        next_status = frame_read(&source, &lookahead);
+        if (next_status < 0) {
+            goto cleanup;
+        }
+        future_status = next_status && opt.frames != 1 ? frame_read(&source, &future) : 0;
+        if (future_status < 0) {
             goto cleanup;
         }
     }
@@ -2717,8 +2766,8 @@ int main(int argc, char** argv) {
     if (opt.output_path) {
         const VideoInfo* ref = have_target ? &target.info : &source.info;
         have_output = 1;
-        if (!frame_alloc(&synth_frame, source.info.width, source.info.height, source.info.bit_depth) ||
-            (source.info.bit_depth > 8 && !packed_frame10_alloc(&synth_packed, source.info.width, source.info.height)) ||
+        if (!frame_alloc(&synth_frame, source.info.width, source.info.height, model_info.bit_depth) ||
+            (model_info.bit_depth > 8 && !packed_frame10_alloc(&synth_packed, source.info.width, source.info.height)) ||
             !writer_open(&output, opt.output_path, ref)) {
             goto cleanup;
         }
@@ -2736,12 +2785,61 @@ int main(int argc, char** argv) {
     progress_init(&progress, opt.frames);
     progress_started = 1;
     progress_render(&progress);
+    if (auto_mode) {
+        progress_monitor_start(&auto_monitor, &progress);
+    }
 
     default_seed = opt.default_seed;
     while (opt.frames < 0 || processed < opt.frames) {
         int batch_count = 0;
 
-        for (; batch_count < opt.jobs && (opt.frames < 0 || processed < opt.frames); ++batch_count) {
+        if (auto_mode) {
+            if (!next_status) {
+                break;
+            }
+            WorkSlot*    slot      = &slots[0];
+            const Frame8 old_frame = slot->source_frame;
+            slot->source_frame     = lookahead;
+            lookahead              = future;
+            future                 = old_frame;
+            next_status            = future_status;
+            future_status = next_status && (opt.frames < 0 || processed + 2 < opt.frames)
+                ? frame_read(&source, &future)
+                : 0;
+            if (future_status < 0) {
+                goto cleanup;
+            }
+            memset(&slot->grain, 0, sizeof(slot->grain));
+            slot->grain.random_seed = seed_for_frame(&opt, processed, &default_seed);
+            slot->frame_index       = processed++;
+            pad_model_frame(&slot->source_frame, slot->denoise_model.packed);
+            // The encoder's PD window excludes the terminal next picture.
+            const int have_next = next_status && future_status && opt.svt_ra_gop_size != 1;
+            if (have_next) {
+                pad_model_frame(&lookahead, slot->denoise_model.packed);
+            }
+            EbPictureBufferDesc pic  = make_picture_desc(&slot->source_frame);
+            EbPictureBufferDesc next = make_picture_desc(&lookahead);
+            const int scene_cut = opt.keyframe_count &&
+                bsearch(&slot->frame_index, opt.keyframes, opt.keyframe_count, sizeof(*opt.keyframes), compare_ints);
+            slot->ok = svt_aom_fga_run(automatic,
+                                      &pic,
+                                      have_next ? &next : NULL,
+                                      scene_cut,
+                                      opt.output_path || opt.denoised_output_path,
+                                      &slot->grain);
+            if (!slot->ok) {
+                snprintf(slot->error,
+                         sizeof(slot->error),
+                         "Automatic grain estimation failed at frame %d",
+                         slot->frame_index);
+            } else {
+                progress_note_frame(&progress);
+            }
+            batch_count = 1;
+        }
+
+        for (; !auto_mode && batch_count < slot_count && (opt.frames < 0 || processed < opt.frames); ++batch_count) {
             WorkSlot* slot = &slots[batch_count];
             int       read_status;
 
@@ -2775,7 +2873,9 @@ int main(int argc, char** argv) {
             break;
         }
 
-        estimate_batch(slots, batch_count, &progress, have_target);
+        if (!auto_mode) {
+            estimate_batch(slots, batch_count, &progress, have_target);
+        }
 
         for (int i = 0; i < batch_count; ++i) {
             WorkSlot* slot = &slots[i];
@@ -2787,7 +2887,7 @@ int main(int argc, char** argv) {
             if (slot->grain.apply_grain) {
                 ++estimates;
             }
-            if (table_file && should_write_table_event(&opt, slot->frame_index)) {
+            if (table_file && (auto_mode || should_write_table_event(&opt, slot->frame_index))) {
                 if (table_start_frame >= 0 &&
                     !write_fgs_table_entry(table_file, &timestamps, table_start_frame, slot->frame_index, &table_grain)) {
                     fprintf(stderr, "Unable to write grain table\n");
@@ -2824,6 +2924,7 @@ int main(int argc, char** argv) {
         fprintf(stderr, "Unable to write grain table\n");
         goto cleanup;
     }
+    progress_monitor_stop(&auto_monitor);
     progress_finish(&progress);
     {
         char duration_text[32];
@@ -2837,6 +2938,10 @@ int main(int argc, char** argv) {
     exit_code = 0;
 
 cleanup:
+    progress_monitor_stop(&auto_monitor);
+    svt_aom_fga_free(automatic);
+    frame_free(&lookahead);
+    frame_free(&future);
     if (progress_started && exit_code != 0) {
         progress_finish(&progress);
     }
@@ -2844,7 +2949,7 @@ cleanup:
         progress_destroy(&progress);
     }
     if (slots) {
-        for (int i = 0; i < opt.jobs; ++i) {
+        for (int i = 0; i < slot_count; ++i) {
             work_slot_free(&slots[i]);
         }
         free(slots);
