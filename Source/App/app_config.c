@@ -240,6 +240,8 @@
 #define ALT_DLF_TOKEN "--enable-alt-dlf"
 #define WRITE_WEBM_TOKEN "--webm"
 
+#define DISTORTION_BIAS_PRESET_TOKEN "--distortion-bias-preset"
+
 static EbErrorType validate_error(EbErrorType err, const char* token, const char* value) {
     switch (err) {
     case EB_ErrorNone:
@@ -977,6 +979,11 @@ ConfigDescription config_entry_psychovisual[] = {
     {ALT_DLF_TOKEN,
      "Enable alternative DLF biases."
      "Default is 0 [0-3]."},
+    // Distortion bias preset
+    {DISTORTION_BIAS_PRESET_TOKEN,
+     "Enable presets that automatically set settings that biases towards higher distortion "
+     "levels for greater fidelity potential. "
+     "Default is 0 [0-4]."},
     // Termination
     {NULL, NULL}};
 
@@ -1382,6 +1389,11 @@ ConfigDescription fconfig_entry_psychovisual[] = {
     {ALT_DLF_TOKEN,
      "Enable alternative DLF biases."
      "Default is 0 [0-3]."},
+    // Distortion bias preset
+    {DISTORTION_BIAS_PRESET_TOKEN,
+     "Enable presets that automatically set settings that biases towards higher distortion "
+     "levels for greater fidelity potential. "
+     "Default is 0 [0-4]."},
     // Termination
     {NULL, NULL}};
 
@@ -1627,6 +1639,7 @@ ConfigEntry config_entry[] = {
     // Alt CDEF & DLF
     {ALT_CDEF_TOKEN, "AltCDEF", set_cfg_generic_token},
     {ALT_DLF_TOKEN, "AltDLF", set_cfg_generic_token},
+    {DISTORTION_BIAS_PRESET_TOKEN, "DistortionBiasPreset", set_cfg_generic_token},
     // Termination
     {NULL, NULL, NULL}};
 
