@@ -1176,6 +1176,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
 
     config_ptr->max_allowed_consecutive_frames_skips = 0;
 
+    config_ptr->auto_tiling                       = true;
     return return_error;
 }
 
@@ -1310,6 +1311,10 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
                      config->film_grain_denoise_apply,
                      config->film_grain_denoise_strength);
         }
+        SVT_INFO("SVT [config]: auto tiling / columns / rows \t\t\t\t: %d / %d / %d\n",
+                 config->auto_tiling,
+                 config->tile_columns,
+                 config->tile_rows);
         SVT_INFO("SVT [config]: sharpness / luminance-based QP bias \t\t\t: %d / %d\n",
                  config->sharpness,
                  config->luminance_qp_bias);
@@ -2536,6 +2541,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         {"adaptive-film-grain", &config_struct->adaptive_film_grain},
         {"enable-kf-tf", &config_struct->enable_tf_key},
         {"enable-intrabc", &config_struct->enable_intrabc},
+        {"auto-tiling", &config_struct->auto_tiling},
     };
     const size_t bool_opts_size = sizeof(bool_opts) / sizeof(bool_opts[0]);
 

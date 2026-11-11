@@ -1445,6 +1445,7 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType* svt_enc_component) {
         input_data.rtc_tune            = scs->static_config.rtc;
         input_data.variance_octile     = scs->static_config.variance_octile;
         input_data.adaptive_film_grain = scs->static_config.adaptive_film_grain;
+        input_data.auto_tiling         = scs->static_config.auto_tiling;
         input_data.hbd_mds             = scs->static_config.hbd_mds;
         input_data.static_config       = scs->static_config;
         input_data.allintra            = scs->allintra;
@@ -4528,6 +4529,9 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
                                                            config_struct->fgs_table != NULL));
     scs->static_config.fgs_table              = config_struct->fgs_table;
 
+    // Auto tiling
+    scs->static_config.auto_tiling = config_struct->auto_tiling;
+
     // MD Parameters
     scs->enable_hbd_mode_decision = SVT_EFFECTIVE_BIT_DEPTH(config_struct->encoder_bit_depth) > 8 ? DEFAULT : 0;
     {
@@ -4536,6 +4540,9 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
             scs->static_config.tile_columns = 0;
 
         } else {
+            if (scs->static_config.auto_tiling) {
+                SVT_WARN("Tiles set manually will be ignored when auto tiling is enabled!\n");
+            }
             if (config_struct->tile_rows == DEFAULT) {
                 scs->static_config.tile_rows    = 0;
                 scs->static_config.tile_columns = config_struct->tile_columns;
@@ -4545,6 +4552,20 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
             } else {
                 scs->static_config.tile_rows    = config_struct->tile_rows;
                 scs->static_config.tile_columns = config_struct->tile_columns;
+            }
+        }
+        if (scs->static_config.auto_tiling) {
+            uint32_t max_dim = scs->max_input_luma_width > scs->max_input_luma_height ?
+                               scs->max_input_luma_width : scs->max_input_luma_height;
+            bool is_vertical = scs->max_input_luma_height > scs->max_input_luma_width;
+
+            if (max_dim >= 3840) {
+                scs->static_config.tile_rows = is_vertical ? 2 : 0;
+                scs->static_config.tile_columns = is_vertical ? 0 : 2;
+            }
+            else if (max_dim >= 1920) {
+                scs->static_config.tile_rows = is_vertical ? 1 : 0;
+                scs->static_config.tile_columns = is_vertical ? 0 : 1;
             }
         }
     }
