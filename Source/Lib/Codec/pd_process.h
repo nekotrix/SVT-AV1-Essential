@@ -16,6 +16,7 @@
 #include "pcs.h"
 #include "sequence_control_set.h"
 #include "utility.h"
+#include "film_grain_analysis.h"
 
 /***************************************
  * Extern Function Declaration
@@ -60,6 +61,9 @@ typedef struct DpbEntry {
  **************************************/
 typedef struct PictureDecisionContext {
     EbDctor dctor;
+#if CONFIG_ENABLE_FILM_GRAIN
+    SvtFgaContext* film_grain_analysis;
+#endif
     EbFifo* picture_analysis_results_input_fifo_ptr;
     EbFifo* picture_decision_results_output_fifo_ptr;
     EbFifo* me_fifo_ptr;

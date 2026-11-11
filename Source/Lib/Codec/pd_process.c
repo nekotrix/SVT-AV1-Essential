@@ -196,6 +196,9 @@ static void picture_decision_context_dctor(EbPtr p) {
         }
         EB_FREE_PTR_ARRAY(obj->prev_picture_histogram, MAX_NUMBER_OF_REGIONS_IN_WIDTH);
     }
+#if CONFIG_ENABLE_FILM_GRAIN
+    svt_aom_fga_free(obj->film_grain_analysis);
+#endif
     EB_FREE_2D(obj->ahd_running_avg);
     EB_FREE_2D(obj->ahd_running_avg_cr);
     EB_FREE_2D(obj->ahd_running_avg_cb);
@@ -3499,9 +3502,9 @@ static void av1_generate_rps_info(PictureParentControlSet* pcs, EncodeContext* e
 }
 
 /***************************************************************************************************
-// Perform Required Picture Analysis Processing for the Overlay frame
+// Refresh picture analysis after input preprocessing
 ***************************************************************************************************/
-void perform_simple_picture_analysis_for_overlay(PictureParentControlSet* pcs) {
+static void refresh_picture_analysis(PictureParentControlSet* pcs) {
     EbPictureBufferDesc* input_padded_pic;
     EbPictureBufferDesc* input_pic;
     EbPaReferenceObject* pa_ref_obj_;
@@ -3548,7 +3551,10 @@ void perform_simple_picture_analysis_for_overlay(PictureParentControlSet* pcs) {
 
     // Gathering statistics of input picture, including Variance Calculation, Histogram Bins
     svt_aom_gathering_picture_statistics(scs, pcs, input_padded_pic, pa_ref_obj_->sixteenth_downsampled_picture_ptr);
+}
 
+void perform_simple_picture_analysis_for_overlay(PictureParentControlSet* pcs) {
+    refresh_picture_analysis(pcs);
     pcs->sc_class0 = pcs->alt_ref_ppcs_ptr->sc_class0;
     pcs->sc_class1 = pcs->alt_ref_ppcs_ptr->sc_class1;
     pcs->sc_class2 = pcs->alt_ref_ppcs_ptr->sc_class2;
@@ -3580,6 +3586,14 @@ void initialize_overlay_frame(PictureParentControlSet* pcs) {
     pcs->ref_list1_count      = 0;
 
     perform_simple_picture_analysis_for_overlay(pcs);
+#if CONFIG_ENABLE_FILM_GRAIN
+    if (pcs->scs->static_config.film_grain_denoise_strength == -1 && !pcs->has_film_grain_event &&
+        !pcs->scs->static_config.fgs_table) {
+        const uint16_t seed                        = pcs->frm_hdr.film_grain_params.random_seed;
+        pcs->frm_hdr.film_grain_params             = pcs->alt_ref_ppcs_ptr->frm_hdr.film_grain_params;
+        pcs->frm_hdr.film_grain_params.random_seed = seed;
+    }
+#endif
 }
 
 /*
@@ -5512,6 +5526,32 @@ EbErrorType svt_aom_picture_decision_kernel_iter(void* context) {
         if (scs->calc_hist) {
             copy_histograms(pcs, ctx);
         }
+
+#if CONFIG_ENABLE_FILM_GRAIN
+        if (scs->static_config.film_grain_denoise_strength == -1 && !scs->static_config.fgs_table &&
+            !pcs->has_film_grain_event) {
+            EbPictureBufferDesc* source = pcs->enhanced_pic;
+            if (!ctx->film_grain_analysis) {
+                ctx->film_grain_analysis = svt_aom_fga_create(source->width, source->height, source->bit_depth);
+            }
+            PictureParentControlSet* next = scs->scd_delay ? pcs->pd_window[2] : NULL;
+            if (!ctx->film_grain_analysis ||
+                !svt_aom_fga_run(ctx->film_grain_analysis,
+                                 source,
+                                 next ? next->enhanced_pic : NULL,
+                                 pcs->scene_change_flag,
+                                 scs->static_config.film_grain_denoise_apply,
+                                 &pcs->frm_hdr.film_grain_params)) {
+                SVT_ERROR("Automatic film grain analysis failed\n");
+                CHECK_REPORT_ERROR_NC(enc_ctx->app_callback_ptr, EB_ErrorUndefined);
+                svt_release_object(in_results_wrapper_ptr);
+                return EB_ErrorUndefined;
+            }
+            if (scs->static_config.film_grain_denoise_apply) {
+                refresh_picture_analysis(pcs);
+            }
+        }
+#endif
 
         // Increment the Pre-Assignment Buffer Intra Count
         enc_ctx->pre_assignment_buffer_intra_count += (pcs->idr_flag || pcs->cra_flag);

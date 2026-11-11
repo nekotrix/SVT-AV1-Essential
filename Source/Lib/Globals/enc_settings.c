@@ -873,10 +873,10 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet* scs) {
             "debug purposes.\n");
     }
 
-    if (config->film_grain_denoise_strength > 50) {
+    if (config->film_grain_denoise_strength < -1 || config->film_grain_denoise_strength > 50) {
         SVT_ERROR(
             "Film grain denoise strength is only supported for values between "
-            "[0,50]\n");
+            "[-1,50]\n");
         return_error = EB_ErrorBadParameter;
     }
 
@@ -1594,7 +1594,10 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
                      config->max_chroma_qm_level);
         }
 
-        if (config->film_grain_denoise_strength != 0) {
+        if (config->film_grain_denoise_strength == -1) {
+            SVT_INFO("SVT [config]: film grain synth / denoising / level \t\t\t: 1 / %d / auto\n",
+                     config->film_grain_denoise_apply);
+        } else if (config->film_grain_denoise_strength != 0) {
             if (config->adaptive_film_grain) {
                 SVT_INFO(
                     "SVT [config]: film grain synth / denoising / level / adaptive \t: %d / %d / %d / True\n",
@@ -2886,7 +2889,6 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         {"height", &config_struct->source_height},
         {"q", &config_struct->qp},
         {"qp", &config_struct->qp},
-        {"film-grain", &config_struct->film_grain_denoise_strength},
         {"photon-noise", &config_struct->photon_noise_iso},
         {"hierarchical-levels", &config_struct->hierarchical_levels},
         {"tier", &config_struct->tier},
@@ -3021,6 +3023,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         const char* name;
         int32_t*    out;
     } int_opts[] = {
+        {"film-grain", &config_struct->film_grain_denoise_strength},
         {"key-frame-chroma-qindex-offset", &config_struct->key_frame_chroma_qindex_offset},
         {"key-frame-qindex-offset", &config_struct->key_frame_qindex_offset},
         {"luma-y-dc-qindex-offset", &config_struct->luma_y_dc_qindex_offset},

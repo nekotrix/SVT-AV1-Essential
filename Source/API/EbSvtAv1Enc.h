@@ -610,11 +610,11 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint8_t enable_dlf_flag;
 
-    /* Film grain denoising the input picture
-    * Flag to enable the denoising
+    /* Film grain analysis strength
+    * -1: automatic, 0: off, 1-50: manual strength
     *
     * Default is 0. */
-    uint32_t film_grain_denoise_strength;
+    int32_t film_grain_denoise_strength;
 
     /**
     * @brief Determines how much denoising is used.

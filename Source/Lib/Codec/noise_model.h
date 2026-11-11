@@ -253,6 +253,11 @@ EbErrorType svt_aom_denoise_and_model_ctor(AomDenoiseAndModel* object_ptr, EbPtr
 int32_t svt_aom_noise_model_init(AomNoiseModel* model, const AomNoiseModelParams params);
 void    svt_aom_noise_model_free(AomNoiseModel* model);
 
+AomNoiseStatus svt_aom_noise_model_update_residual(AomNoiseModel* model, const uint8_t* const data[3],
+                                                  const int16_t* const residual[3], int32_t w, int32_t h,
+                                                  const int32_t stride[3], const uint8_t* flat_blocks,
+                                                  int32_t block_size, double residual_scale, double history_weight);
+
 /*\brief Save the "latest" estimate into the "combined" estimate.
      *
      * This is meant to be called when the noise modeling detected a change
