@@ -142,6 +142,13 @@ int write_webm_file_header(struct WebmOutputContext *webm_ctx,
         return -1;
     }
 
+    if (cfg->dovi_config &&
+        !video_track->AddBlockAdditionMapping(0, "Dolby Vision configuration", 0x64767643,
+                                              cfg->dovi_config, 24)) {
+        fprintf(stderr, "webmenc> Unable to set Dolby Vision config.\n");
+        return -1;
+    }
+
     if (version != nullptr || encoder_settings != nullptr) {
       mkvmuxer::Tag *tag = segment->AddTag();
       if (tag == nullptr) {

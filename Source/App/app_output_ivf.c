@@ -105,6 +105,65 @@ static const uint8_t *find_sequence_header_obu(const uint8_t *buf, size_t sz,
     return NULL;
 }
 
+#ifdef LIBDOVI_FOUND
+static int get_dovi_config(const EbConfig* app_cfg, uint8_t config[24]) {
+    const DoviRpuDataHeader* header = dovi_rpu_get_header(app_cfg->dovi_rpus->list[0]);
+    if (!header) {
+        fprintf(stderr, "webmenc> Unable to read Dolby Vision RPU header.\n");
+        return -1;
+    }
+    const uint8_t compatibility = header->bl_video_full_range_flag      ? 0
+        : app_cfg->config.transfer_characteristics == EB_CICP_TC_HLG    ? 4
+        : app_cfg->config.transfer_characteristics == EB_CICP_TC_BT_709 ? 2
+                                                                        : 1;
+    dovi_rpu_free_header(header);
+
+    const DoviVdrDmData* dm         = dovi_rpu_get_vdr_dm_data(app_cfg->dovi_rpus->list[0]);
+    const bool           compressed = dm && dm->compressed;
+    dovi_rpu_free_vdr_dm_data(dm);
+
+    // Dolby Vision levels: maximum width and decoded pixels per second.
+    const struct {
+        uint32_t width;
+        uint64_t pps;
+    } levels[] = {
+        {1280, 1280ULL * 720 * 24},
+        {1280, 1280ULL * 720 * 30},
+        {1920, 1920ULL * 1080 * 24},
+        {2560, 1920ULL * 1080 * 30},
+        {3840, 1920ULL * 1080 * 60},
+        {3840, 3840ULL * 2160 * 24},
+        {3840, 3840ULL * 2160 * 30},
+        {3840, 3840ULL * 2160 * 48},
+        {3840, 3840ULL * 2160 * 60},
+        {3840, 3840ULL * 2160 * 120},
+        {7680, 3840ULL * 2160 * 120},
+        {7680, 7680ULL * 4320 * 60},
+        {7680, 7680ULL * 4320 * 120},
+    };
+
+    const uint64_t pixels  = (uint64_t)app_cfg->input_padded_width * app_cfg->input_padded_height;
+    const uint64_t samples = pixels * app_cfg->config.frame_rate_numerator;
+    unsigned       level;
+    for (level = 0; level < sizeof(levels) / sizeof(levels[0]); level++) {
+        if (app_cfg->input_padded_width <= levels[level].width &&
+            samples <= levels[level].pps * app_cfg->config.frame_rate_denominator) {
+            break;
+        }
+    }
+    if (level == sizeof(levels) / sizeof(levels[0])) {
+        fprintf(stderr, "webmenc> Video dimensions and frame rate exceed Dolby Vision level limits.\n");
+        return -1;
+    }
+    level++;
+    config[0] = 1; // dv_version_major
+    config[2] = (10 << 1) | (level >> 5); // dv_profile, dv_level
+    config[3] = (level << 3) | 5; // dv_level, RPU and base layer present
+    config[4] = (compatibility << 4) | (compressed << 2);
+    return 0;
+}
+#endif
+
 int write_webm_stream_header(EbConfig *app_cfg,
                              const uint8_t *buf, size_t buf_sz) {
     app_cfg->webm_ctx.stream    = app_cfg->bitstream_file;
@@ -123,6 +182,16 @@ int write_webm_stream_header(EbConfig *app_cfg,
         .timebase_num      = app_cfg->config.frame_rate_denominator,
         .timebase_den      = app_cfg->config.frame_rate_numerator,
     };
+
+#ifdef LIBDOVI_FOUND
+    uint8_t dovi_config[24] = {0};
+    if (app_cfg->dovi_rpus && app_cfg->dovi_rpus->len) {
+        if (get_dovi_config(app_cfg, dovi_config)) {
+            return -1;
+        }
+        cfg.dovi_config = dovi_config;
+    }
+#endif
 
     const char *svt_version = svt_av1_get_version();
     char version[128];

@@ -33,6 +33,7 @@ typedef struct {
     uint32_t       height;
     int            timebase_num;
     int            timebase_den;
+    const uint8_t *dovi_config;
 } SvtWebmEncConfig;
 
 typedef struct {
