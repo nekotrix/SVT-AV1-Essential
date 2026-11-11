@@ -19,7 +19,7 @@
 /**************************************
  * Defines
  **************************************/
-#define DEFAULT_QP 35
+#define DEFAULT_QP 30
 #define MIN_QP_AUTO ((uint32_t)(~0))
 // Have an unusual magic number to reduce probablity of user using them
 #define DEFAULT_TBR 2000513
