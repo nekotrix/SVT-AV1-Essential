@@ -2744,7 +2744,7 @@ static EbErrorType produce_temporally_filtered_pic(PictureParentControlSet** pcs
     // Get the frame update type for the current frame
     const uint32_t frame_update_type = svt_aom_get_frame_update_type(centre_pcs);
 
-    if (scs->static_config.enable_tf > 1) {
+    if (scs->static_config.enable_tf == 2) {
         uint8_t adaptive_tf_shift_factor = calculate_tf_shift_factor(ctx);
         assert(adaptive_tf_shift_factor <= 14);
         const uint8_t kf_tf_shift_factor = CLIP3(0, 14, adaptive_tf_shift_factor + 1);
@@ -3267,7 +3267,7 @@ static EbErrorType produce_temporally_filtered_pic_ld(PictureParentControlSet** 
     // Get the frame update type for the current frame
     const uint32_t frame_update_type = svt_aom_get_frame_update_type(centre_pcs);
 
-    if (scs->static_config.enable_tf > 1) {
+    if (scs->static_config.enable_tf == 2) {
         uint8_t adaptive_tf_shift_factor = calculate_tf_shift_factor(ctx);
         assert(adaptive_tf_shift_factor <= 14);
         const uint8_t kf_tf_shift_factor = CLIP3(0, 14, adaptive_tf_shift_factor + 1);

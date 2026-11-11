@@ -4202,6 +4202,22 @@ static void mctf_frame(SequenceControlSet* scs, PictureParentControlSet* pcs, Pi
     if (scs->static_config.pred_structure != RANDOM_ACCESS && scs->tf_params_per_type[1].enabled) {
         low_delay_store_tf_pictures(scs, pcs, pd_ctx);
     }
+    if (!pcs->tf_ctrls.enabled && scs->static_config.enable_tf == 3 &&
+        (pcs->slice_type != I_SLICE || scs->static_config.enable_tf_key)) {
+        int tf_type_index = MIN(pcs->temporal_layer_index, 2);
+        if (tf_type_index == 0 && pcs->slice_type != I_SLICE) {
+            tf_type_index = 1;
+        }
+        if (!scs->tf_params_per_type[tf_type_index].enabled) {
+            tf_type_index = 1;
+        }
+        pcs->tf_ctrls = scs->tf_params_per_type[tf_type_index];
+        pcs->tf_ctrls.enabled = 1;
+        if (pcs->temporal_layer_index > 2) {
+            pcs->tf_ctrls.num_past_pics = 1;
+            pcs->tf_ctrls.num_future_pics = 1;
+        }
+    }
     if (pcs->tf_ctrls.enabled) {
         derive_tf_window_params(scs, scs->enc_ctx, pcs, pd_ctx);
         pcs->temp_filt_prep_done = 0;

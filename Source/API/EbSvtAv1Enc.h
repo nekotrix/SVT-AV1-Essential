@@ -684,6 +684,7 @@ typedef struct EbSvtAv1EncConfiguration {
      * 0 = off
      * 1 = on
      * 2 = adaptive
+     * 3 = full
      * Default is 1. */
     uint8_t enable_tf;
 
@@ -988,7 +989,7 @@ typedef struct EbSvtAv1EncConfiguration {
      * 1: use adaptive blocksize based on resolution
      *  - 8x8 for <4k
      *  - 16x16 for 4k
-     * Default is 1
+     * Default is 0
      */
     bool adaptive_film_grain;
 
