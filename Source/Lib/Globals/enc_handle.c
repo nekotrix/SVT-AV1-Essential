@@ -1063,6 +1063,7 @@ static void svt_enc_handle_dctor(EbPtr p) {
     EB_DELETE(enc_handle_ptr->picture_manager_context_ptr);
     EB_DELETE(enc_handle_ptr->rate_control_context_ptr);
     EB_DELETE(enc_handle_ptr->packetization_context_ptr);
+    free(enc_handle_ptr->photon_noise_table);
 }
 
 /**********************************
@@ -5255,6 +5256,8 @@ EB_API EbErrorType svt_av1_enc_set_parameter(EbComponentType*          svt_enc_c
 
     EbEncHandle*        enc_handle = (EbEncHandle*)svt_enc_component->p_component_private;
     SequenceControlSet* scs        = enc_handle->scs_instance->scs;
+    free(enc_handle->photon_noise_table);
+    enc_handle->photon_noise_table = NULL;
     copy_api_from_app(scs, config_struct);
 
     EbErrorType return_error = svt_av1_verify_settings(scs);
@@ -5304,6 +5307,9 @@ EB_API EbErrorType svt_av1_enc_set_parameter(EbComponentType*          svt_enc_c
     }
 
     set_param_based_on_input(scs);
+    if (scs->static_config.photon_noise_iso > 0) {
+        enc_handle->photon_noise_table = scs->static_config.fgs_table;
+    }
 
     // LTR pins anchors in DPB slots {4,5,6,7} (svt_aom_ref_mgmt_storeable_slots_mask).
     // That is only safe while the regular refs stay in the bottom 4, i.e. ref counts
