@@ -329,6 +329,8 @@ SvtAv1EncApp -i in.y4m -b out.ivf --roi-map-file roi_map.txt
 | **FilmGrain**                    | --film-grain               | [0-50]         | 0           | Enable film grain [0: off, 1-50: level of denoising for film grain]                                                                                                   |
 | **FilmGrainDenoise**             | --film-grain-denoise       | [0-1]          | 0           | Apply denoising when film grain is ON, default is 0 [0: no denoising, film grain data sent in frame header, 1: level of denoising is set by the film-grain parameter] |
 | **FGSTable**                     | --fgs-table                | any string     | None        | Path to a file containing a pre-generated film grain table for grain synthesis, only available through SvtAv1Enc interface                                            |
+| **PhotonNoise**                  | --photon-noise         | [0-100000]     | 0           | Generate photon noise table for film grain, default is 0 [0: off, 1-100000: ISO value]                                                                                |
+| **PhotonNoiseChroma**            | --photon-noise-chroma  | [0-1]          | 0           | Enable chroma noise, default is 0 [0: off, 1: on]                                                                                                                     |
 | **SuperresMode**                 | --superres-mode            | [0-4]          | 0           | Enable super-resolution mode, refer to the super-resolution section below for more info                                                                               |
 | **SuperresDenom**                | --superres-denom           | [8-16]         | 8           | Super-resolution denominator, only applicable for mode == 1 [8: no scaling, 16: half-scaling]                                                                         |
 | **SuperresKfDenom**              | --superres-kf-denom        | [8-16]         | 8           | Super-resolution denominator for key frames, only applicable for mode == 1 [8: no scaling, 16: half-scaling]                                                          |
@@ -421,6 +423,10 @@ Other options such as updating the Bitrate and resolution during the encoding se
 
 ### 1. Thread management parameters
 
+`PinnedExecution` (`--pin`) parameter is used to
+manage thread affinity on Windows and Ubuntu OS. If `PinnedExecution` is not set, threads are managed by
+OS thread scheduler.
+
 `LevelOfParallelism` (previously `LogicalProcessors`, which was deprecated in v3.0
 and replaced with `LevelOfParallelism`) is used to specify how much parallelism is
 desired; higher levels will create more threads and process more pictures in
@@ -451,8 +457,20 @@ the first N cores, where N is the value passed with `--pin`. If '--lp' is not sp
 parallelism will be based on the N cores available for the process to run, rather than all the cores
 on the machine. If '--lp' is specified, that level of parallelism will be used, regardless of N.
 
-To set cpu affinity a cpu affinity utility such as `taskset` or `numactl` to control could be used
-to pin execution to desired threads.
+This is an example on how to use `--lp` and `--pin` together.
+
+Setting `--lp 4` with `--pin 4` would restrict the encoder to work on cpu 0-3 and set
+the resource allocation to the amount of threads/memory associated with `--lp 4`. Using
+`--pin 0` with `--lp 4` would result in the same allocation of threads/memory but not
+restrict the encoder to run on cpu 0-3; in this case the encoder may use more than 4 cores
+due to the multi-threading nature of the encoder, but would at least allow for more multiple
+`--lp 4` encodes to run on the same machine without them being all restricted to run on
+cpu 0-3 or overflow the memory usage.
+
+To set cpu affinity beyond the first `--pin` cores, a cpu affinity
+utility such as `taskset` or `numactl` to control could be used to pin execution to
+desired threads.
+
 
 Example:
 
