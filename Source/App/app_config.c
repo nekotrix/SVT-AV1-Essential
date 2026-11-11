@@ -185,6 +185,9 @@
 #ifdef LIBDOVI_FOUND
 #define DOLBY_VISION_RPU_TOKEN "--dolby-vision-rpu"
 #endif
+#ifdef LIBHDR10PLUS_RS_FOUND
+#define HDR10PLUS_JSON_TOKEN "--hdr10plus-json"
+#endif
 
 #define SFRAME_DIST_TOKEN "--sframe-dist"
 #define SFRAME_MODE_TOKEN "--sframe-mode"
@@ -487,8 +490,24 @@ static EbErrorType set_cfg_dovi_rpu(EbConfig *cfg, const char *token, const char
 }
 #endif
 
-static EbErrorType set_two_pass_stats(EbConfig* cfg, const char* token, const char* value) {
-    return str_to_str(value, (char**)&cfg->stats, token);
+#ifdef LIBHDR10PLUS_RS_FOUND
+static EbErrorType set_cfg_hdr10plus_json(EbConfig *cfg, const char *token, const char *value) {
+    printf("Svt[info]: Parsing HDR10+ JSON file...\n");
+    Hdr10PlusRsJsonOpaque *hdr10plus_json = hdr10plus_rs_parse_json(value);
+    const char            *error          = hdr10plus_rs_json_get_error(hdr10plus_json);
+    if (error) {
+        fprintf(stderr, "%s\n", error);
+        hdr10plus_rs_json_free(hdr10plus_json);
+        return validate_error(EB_ErrorBadParameter, token, value);
+    }
+    printf("Svt[info]: Loaded HDR10+ JSON file\n");
+    cfg->hdr10plus_json = hdr10plus_json;
+    return EB_ErrorNone;
+}
+#endif
+
+static EbErrorType set_two_pass_stats(EbConfig *cfg, const char *token, const char *value) {
+    return str_to_str(value, (char **)&cfg->stats, token);
 }
 
 static EbErrorType set_passes(EbConfig* cfg, const char* token, const char* value) {
@@ -1266,6 +1285,9 @@ ConfigDescription fconfig_entry_color_description[] = {
 #ifdef LIBDOVI_FOUND
     {DOLBY_VISION_RPU_TOKEN, "Set the Dolby Vision RPU path"},
 #endif
+#ifdef LIBHDR10PLUS_RS_FOUND
+    {HDR10PLUS_JSON_TOKEN, "Set the HDR10+ JSON file path"},
+#endif
     // Termination
     {NULL, NULL}};
 
@@ -1423,6 +1445,9 @@ ConfigEntry config_entry[] = {
     {FILM_GRAIN_DENOISE_APPLY_TOKEN, "FilmGrainDenoise", set_cfg_generic_token},
     {FGS_TABLE_TOKEN, "FilmGrainTable", set_cfg_fgs_table_path},
 #endif
+#ifdef LIBHDR10PLUS_RS_FOUND
+    {HDR10PLUS_JSON_TOKEN, "Hdr10PlusJson", set_cfg_hdr10plus_json},
+#endif
 
     //   Super-resolution support
     {SUPERRES_MODE_INPUT, "SuperresMode", set_cfg_generic_token},
@@ -1527,6 +1552,9 @@ EbConfig* svt_config_ctor() {
 #ifdef LIBDOVI_FOUND
     app_cfg->dovi_rpus = NULL;
 #endif
+#ifdef LIBHDR10PLUS_RS_FOUND
+    app_cfg->hdr10plus_json = NULL;
+#endif
 
     return app_cfg;
 }
@@ -1590,6 +1618,12 @@ void svt_config_dtor(EbConfig* app_cfg) {
     if (app_cfg->dovi_rpus) {
         dovi_rpu_list_free(app_cfg->dovi_rpus);
         app_cfg->dovi_rpus = NULL;
+    }
+#endif
+#ifdef LIBHDR10PLUS_RS_FOUND
+    if (app_cfg->hdr10plus_json) {
+        hdr10plus_rs_json_free(app_cfg->hdr10plus_json);
+        app_cfg->hdr10plus_json = NULL;
     }
 #endif
 
