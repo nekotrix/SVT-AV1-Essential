@@ -2,9 +2,9 @@ name: auto build
 
 on:
   workflow_dispatch:
-    branches: [ "master", "Essential-v3.1.2" ]
+    branches: [ "master", "Essential-v4.0.1" ]
   push:
-    branches: [ "master", "Essential-v3.1.2" ]
+    branches: [ "master", "Essential-v4.0.1" ]
 
 permissions:
   contents: write
@@ -66,16 +66,16 @@ jobs:
       if: contains( matrix.config.os, 'ubuntu' )
       run: |
         if [ "${{ matrix.config.march }}" = "generic" ]; then
-          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
+          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DUSE_WEBM_IO=ON -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
         else
-          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=ON -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_C_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -flto -DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -flto -DNDEBUG"
+          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DUSE_WEBM_IO=ON -DENABLE_AVX512=ON -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_C_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -flto -DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -flto -DNDEBUG"
         fi
         cmake --build svt_build --config Release
       shell: bash
     - name: Mac OS X
       if: contains( matrix.config.os, 'macos' )
       run: |
-        cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}"
+        cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DUSE_WEBM_IO=ON -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}"
         cmake --build svt_build --config Release
       shell: bash
     - name: Windows build
@@ -84,9 +84,9 @@ jobs:
         set CC=clang
         set CXX=clang++
         if "${{ matrix.config.march }}" == "generic" (
-          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
+          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DUSE_WEBM_IO=ON -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
         ) else (
-          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O2 -flto -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O2 -flto -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
+          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DUSE_WEBM_IO=ON -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O2 -flto -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O2 -flto -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
         )
         ninja -C svt_build
       shell: cmd
@@ -98,7 +98,7 @@ jobs:
         retention-days: 90
 
     - name: Get latest release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v3.1.2'
+      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v4.0.1'
       id: latest_release
       uses: actions/github-script@v7
       with:
@@ -112,7 +112,7 @@ jobs:
           return release.data.tag_name;
 
     - name: Upload binaries to existing release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v3.1.2'
+      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v4.0.1'
       uses: actions/github-script@v7
       with:
         script: |
