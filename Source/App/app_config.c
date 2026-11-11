@@ -212,7 +212,6 @@
 #define ADAPTIVE_FILM_GRAIN_TOKEN "--adaptive-film-grain"
 #define MAX_TX_SIZE_TOKEN "--max-tx-size"
 #define AC_BIAS_TOKEN "--ac-bias"
-#define HBD_MDS_TOKEN "--hbd-mds"
 #define ENABLE_INTRABC_TOKEN "--enable-intrabc"
 #define AUTO_TILING_TOKEN "--auto-tiling"
 
@@ -1237,9 +1236,6 @@ ConfigDescription fconfig_entry_psychovisual[] = {
     {MAX_TX_SIZE_TOKEN, "Limits the allowed transform sizes to the specified, default is 64 [32,64]"},
     // AC-Bias
     {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.25 [0.0-8.0]"},
-    //HBD-MDS
-    {HBD_MDS_TOKEN,
-     "High Bit-Depth Mode Decision, default is -1 [-1: preset-determined, 0 = 8-bit, 1 = 10-bit, 2 = hybrid 8/10-bit]"},
     // Termination
     {NULL, NULL}};
 
@@ -1455,8 +1451,6 @@ ConfigEntry config_entry[] = {
     // AC-bias strength
     {AC_BIAS_TOKEN, "AcBias", set_cfg_generic_token},
 
-    // HBD MDS
-    {HBD_MDS_TOKEN, "HBDMDS", set_cfg_generic_token},
     // Auto tiling
     {AUTO_TILING_TOKEN, "AutoTiling", set_cfg_generic_token},
 

@@ -525,9 +525,8 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet* scs) {
     }
 #endif
 
-    if ((SVT_EFFECTIVE_BIT_DEPTH(config->encoder_bit_depth) != 8) &&
-        (SVT_EFFECTIVE_BIT_DEPTH(config->encoder_bit_depth) != 10)) {
-        SVT_ERROR("Encoder Bit Depth shall be only 8 or 10 \n");
+    if (SVT_EFFECTIVE_BIT_DEPTH(config->encoder_bit_depth) != 10) {
+        SVT_ERROR("Encoder Bit Depth shall be only 10 \n");
         return_error = EB_ErrorBadParameter;
     }
 #if !CONFIG_ENABLE_HIGH_BIT_DEPTH
@@ -550,7 +549,7 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet* scs) {
 #endif
     // Check if the EncoderBitDepth is conformant with the Profile constraint
     if ((config->profile == 0 || config->profile == 1) && SVT_EFFECTIVE_BIT_DEPTH(config->encoder_bit_depth) > 10) {
-        SVT_ERROR("The encoder bit depth shall be equal to 8 or 10 for Main/High Profile\n");
+        SVT_ERROR("The encoder bit depth shall be equal to 10 for Main/High Profile\n");
         return_error = EB_ErrorBadParameter;
     }
 
@@ -2512,7 +2511,6 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         {"tile-rows", &config_struct->tile_rows},
         {"tile-columns", &config_struct->tile_columns},
         {"sframe-dist", &config_struct->sframe_dist},
-        {"hbd-mds", &config_struct->hbd_mds},
     };
 
     const size_t int_opts_size = sizeof(int_opts) / sizeof(int_opts[0]);
