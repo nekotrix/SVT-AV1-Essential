@@ -75,6 +75,8 @@ For each enable-*, there is a disable-* option, and vice versa.
     --debug, debug      Build debug
     --disable-avx512,   Disable building avx512 code
     disable-avx512
+    --disable-tools,    Don't build standalone tools
+    disable-tools
     --enable-lto,       Enable link time optimization
     enable-lto
     --enable-dovi,   Enable support for Dolby Vision RPUs (if dovi lib is found)
@@ -93,7 +95,7 @@ For each enable-*, there is a disable-* option, and vice versa.
 -g, --gen, gen=*        Set CMake generator
 -i, --install, install  Install build [Default release]
 -j, --jobs, jobs=*      Set number of jobs for make/CMake [$jobs]
-    --no-apps, no-apps  Don't build the apps, only build the libs
+    --no-apps, no-apps  Don't build the encoder app
 -p, --prefix, prefix=*  Set installation prefix
     --pgo-dir,          Directory to store the pgo profiles
     pgo-dir=*
@@ -296,6 +298,7 @@ parse_options() {
             avx512) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DENABLE_AVX512=OFF" ;;
             lto) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DSVT_AV1_LTO=OFF" ;;
             native) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DNATIVE=OFF" ;;
+            tools) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DBUILD_TOOLS=OFF" ;;
             nvtx) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DSVT_AV1_NVTX=OFF" ;;
             pgo) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DSVT_AV1_PGO=OFF" PGO_COMPILE_STAGE=none ;;
             *) print_message "Unknown option: $1" ;;
@@ -307,6 +310,7 @@ parse_options() {
             avx512) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DENABLE_AVX512=ON" ;;
             lto) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DSVT_AV1_LTO=ON" ;;
             native) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DNATIVE=ON" ;;
+            tools) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DBUILD_TOOLS=ON" ;;
             nvtx) CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DSVT_AV1_NVTX=ON" ;;
             pgo)
                 CMAKE_EXTRA_FLAGS="$CMAKE_EXTRA_FLAGS -DSVT_AV1_PGO=ON"

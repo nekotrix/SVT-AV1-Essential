@@ -173,6 +173,24 @@ if -%1-==-- (
 ) else if /I "%1"=="no-enc" (
     set "cmake_eflags=%cmake_eflags% -DBUILD_ENC=OFF"
     shift
+) else if /I "%1"=="disable-tools" (
+    set "cmake_eflags=%cmake_eflags% -DBUILD_TOOLS=OFF"
+    shift
+) else if /I "%1"=="--disable-tools" (
+    set "cmake_eflags=%cmake_eflags% -DBUILD_TOOLS=OFF"
+    shift
+) else if /I "%1"=="enable-tools" (
+    set "cmake_eflags=%cmake_eflags% -DBUILD_TOOLS=ON"
+    shift
+) else if /I "%1"=="--enable-tools" (
+    set "cmake_eflags=%cmake_eflags% -DBUILD_TOOLS=ON"
+    shift
+) else if /I "%1"=="use-ffms2" (
+    set "cmake_eflags=%cmake_eflags% -DUSE_FFMS2=ON"
+    shift
+) else if /I "%1"=="native" (
+    set "cmake_eflags=%cmake_eflags% -DNATIVE=ON"
+    shift
 ) else if /I "%1"=="no-apps" (
     set "cmake_eflags=%cmake_eflags% -DBUILD_APPS=OFF"
     shift
@@ -185,6 +203,6 @@ goto :args
 
 :help
     echo Batch file to build SVT-AV1 on Windows
-    echo Usage: build.bat [2022^|2019^|2017^|2015^|clean] [release^|debug] [nobuild] [test] [shared^|static] [c-only] [no-avx512] [enable-libdovi] [enable-libhdr10plus] [ext-lib-static] [no-apps] [no-enc]
+    echo Usage: build.bat [2022^|2019^|2017^|2015^|clean] [release^|debug] [nobuild] [test] [shared^|static] [c-only] [no-avx512] [lto] [native] [use-ffms2] [disable-tools] [enable-tools] [enable-libdovi] [enable-libhdr10plus] [ext-lib-static] [no-apps] [no-enc]
     exit /b 1
 goto :EOF

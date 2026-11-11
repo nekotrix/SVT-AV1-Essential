@@ -277,6 +277,7 @@ if(CMAKE_C_COMPILER_ID MATCHES "Clang" AND SVT_AV1_PGO)
 endif()
 
 option(BUILD_APPS "Build Enc Apps" ON)
+option(BUILD_TOOLS "Build standalone tools" ON)
 option(EXCLUDE_HASH "Disables the use of the git hash in the build to produce hash exact binaries, implies REPRODUCIBLE_BUILDS")
 option(REPRODUCIBLE_BUILDS "Disable use of certain C macros to always generate reproducable builds" ${EXCLUDE_HASH})
 if(SVT_AV1_PGO AND NOT BUILD_APPS)
@@ -679,6 +680,9 @@ add_subdirectory(Source/Lib)
 if(BUILD_APPS)
     add_subdirectory(Source/App)
 endif()
+if(BUILD_TOOLS)
+    add_subdirectory(Tool)
+endif()
 
 option(EXT_LIB_STATIC "Force linking with static libraries for external dependencies" OFF)
 set(SUFFIX "")
@@ -689,18 +693,18 @@ else()
 endif()
 
 option(USE_FFMS2 "Enable FFMS2 support (Install FFMS2 first)" OFF)
-if(USE_FFMS2)
+if(USE_FFMS2 AND (BUILD_APPS OR BUILD_TOOLS))
     # link static ffms2 which is c++ libraies
     # it is fine even if program not link ffms2
     # it does not affect anything but final linker language invoke
-    set_target_properties(SvtAv1EncApp PROPERTIES LINKER_LANGUAGE CXX)
+    add_library(ffms2_support INTERFACE)
     find_package(PkgConfig)
     if(PkgConfig_FOUND)
         pkg_check_modules(PC_FFMS2 ffms2 QUIET)
 
         if(NOT PC_FFMS2_FOUND)
             message(WARNING "FFMS2 not found, building without FFMS2 support")
-            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=0)
+            target_compile_definitions(ffms2_support INTERFACE HAVE_FFMS2=0)
         else()
             set(FFMS2_LIBRARY_DIR ${PC_FFMS2_LIBRARY_DIRS})
             set(FFMS2_INCLUDE_DIR ${PC_FFMS2_INCLUDE_DIRS})
@@ -711,7 +715,7 @@ if(USE_FFMS2)
 
             if(EXT_LIB_STATIC)
                 # need this for static build
-                target_compile_definitions(SvtAv1EncApp PRIVATE FFMS_STATIC)
+                target_compile_definitions(ffms2_support INTERFACE FFMS_STATIC)
                 set(FFMS2_REQUIRED_LIBRARIES ${PC_FFMS2_STATIC_LIBRARIES})
 
                 foreach(BASE ${FFMS2_REQUIRED_LIBRARIES})
@@ -725,10 +729,10 @@ if(USE_FFMS2)
             endif()
 
             message(STATUS "Found FFMS2: ${FFMS2_LIBRARY}")
-            target_include_directories(SvtAv1EncApp PRIVATE ${FFMS2_INCLUDE_DIR})
-            target_link_libraries(SvtAv1EncApp ${FFMS2_LIBRARY})
-            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=1)
-            target_link_directories(SvtAv1EncApp PRIVATE ${FFMS2_LIBRARY_DIR})
+            target_include_directories(ffms2_support INTERFACE ${FFMS2_INCLUDE_DIR})
+            target_link_libraries(ffms2_support INTERFACE ${FFMS2_LIBRARY})
+            target_compile_definitions(ffms2_support INTERFACE HAVE_FFMS2=1)
+            target_link_directories(ffms2_support INTERFACE ${FFMS2_LIBRARY_DIR})
         endif()
     else()
         message(WARNING "PkgConfig not found; disabled static building with dovi, hdr10plus or FFMS2.")
@@ -746,14 +750,20 @@ if(USE_FFMS2)
 
         if(FFMS2_INCLUDE_DIR AND FFMS2_LIBRARY)
             message(STATUS "Found FFMS2: ${FFMS2_LIBRARY}")
-            target_include_directories(SvtAv1EncApp PRIVATE ${FFMS2_INCLUDE_DIR})
-            target_link_libraries(SvtAv1EncApp ${FFMS2_LIBRARY})
-            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=1)
+            target_include_directories(ffms2_support INTERFACE ${FFMS2_INCLUDE_DIR})
+            target_link_libraries(ffms2_support INTERFACE ${FFMS2_LIBRARY})
+            target_compile_definitions(ffms2_support INTERFACE HAVE_FFMS2=1)
         else()
             message(WARNING "FFMS2 not found, building without FFMS2 support")
-            target_compile_definitions(SvtAv1EncApp PRIVATE HAVE_FFMS2=0)
+            target_compile_definitions(ffms2_support INTERFACE HAVE_FFMS2=0)
         endif()
     endif()
+    foreach(target SvtAv1EncApp SvtFgEssential)
+        if(TARGET ${target})
+            set_target_properties(${target} PROPERTIES LINKER_LANGUAGE CXX)
+            target_link_libraries(${target} ffms2_support)
+        endif()
+    endforeach()
 endif()
 
 option(USE_WEBM_IO "Enable WebM output support" OFF)
@@ -788,6 +798,10 @@ endif()
 
 if(SVT_AV1_PGO)
     string(REPLACE ";" "::" SVT_AV1_PGO_CUSTOM_VIDEOS "${SVT_AV1_PGO_CUSTOM_VIDEOS}")
+    set(pgo_targets SvtAv1EncApp)
+    if(BUILD_TOOLS)
+        list(APPEND pgo_targets SvtFgEssential)
+    endif()
 
     add_custom_target(PGOCompileGen
         ${CMAKE_COMMAND} ${CMAKE_BINARY_DIR} -DSVT_INTERNAL_PGO_GENERATE=ON -DSVT_INTERNAL_PGO_USE=OFF
@@ -812,7 +826,7 @@ if(SVT_AV1_PGO)
         COMMAND ${PROFILE_MERGE_CMD}
         COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
         --clean-first
-        --target SvtAv1EncApp
+        --target ${pgo_targets}
         COMMENT "Compiling PGO use"
         COMMAND_EXPAND_LISTS
         VERBATIM
