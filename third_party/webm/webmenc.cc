@@ -85,8 +85,8 @@ int write_webm_file_header(struct WebmOutputContext *webm_ctx,
         return -1;
     }
 
-    segment->set_mode(mkvmuxer::Segment::kFile);
-    segment->OutputCues(true);
+    segment->set_mode(writer->Seekable() ? mkvmuxer::Segment::kFile : mkvmuxer::Segment::kLive);
+    segment->OutputCues(writer->Seekable());
 
     mkvmuxer::SegmentInfo *const info = segment->GetSegmentInfo();
     if (!info) {

@@ -15,10 +15,26 @@
 #endif
 
 namespace mkvmuxer {
+namespace {
 
-MkvWriter::MkvWriter() : file_(NULL), writer_owns_file_(true) {}
+int64 GetFilePosition(FILE* file) {
+#if defined(_MSC_VER) || defined(_WIN32)
+  return _ftelli64(file);
+#else
+  return ftell(file);
+#endif
+}
 
-MkvWriter::MkvWriter(FILE* fp) : file_(fp), writer_owns_file_(false) {}
+}  // namespace
+
+MkvWriter::MkvWriter()
+    : file_(NULL), writer_owns_file_(true), seekable_(false), bytes_written_(0) {}
+
+MkvWriter::MkvWriter(FILE* fp)
+    : file_(fp),
+      writer_owns_file_(false),
+      seekable_(fp && GetFilePosition(fp) >= 0),
+      bytes_written_(0) {}
 
 MkvWriter::~MkvWriter() { Close(); }
 
@@ -33,6 +49,7 @@ int32 MkvWriter::Write(const void* buffer, uint32 length) {
     return -1;
 
   const size_t bytes_written = fwrite(buffer, 1, length, file_);
+  bytes_written_ += bytes_written;
 
   return (bytes_written == length) ? 0 : -1;
 }
@@ -51,6 +68,8 @@ bool MkvWriter::Open(const char* filename) {
 #endif
   if (file_ == NULL)
     return false;
+  seekable_ = GetFilePosition(file_) >= 0;
+  bytes_written_ = 0;
   return true;
 }
 
@@ -59,21 +78,19 @@ void MkvWriter::Close() {
     fclose(file_);
   }
   file_ = NULL;
+  seekable_ = false;
+  bytes_written_ = 0;
 }
 
 int64 MkvWriter::Position() const {
   if (!file_)
     return 0;
 
-#if defined(_MSC_VER) || defined(_WIN32)
-  return _ftelli64(file_);
-#else
-  return ftell(file_);
-#endif
+  return seekable_ ? GetFilePosition(file_) : bytes_written_;
 }
 
 int32 MkvWriter::Position(int64 position) {
-  if (!file_)
+  if (!file_ || !seekable_)
     return -1;
 
 #if defined(_MSC_VER) || defined(_WIN32)
@@ -89,7 +106,7 @@ int32 MkvWriter::Position(int64 position) {
 #endif
 }
 
-bool MkvWriter::Seekable() const { return true; }
+bool MkvWriter::Seekable() const { return seekable_; }
 
 void MkvWriter::ElementStartNotify(uint64, int64) {}
 
