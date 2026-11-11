@@ -1273,6 +1273,8 @@ typedef struct PictureControlSetInitData {
     uint8_t sharp_tx;
     uint8_t tx_bias;
     uint8_t complex_hvs;
+    uint8_t alt_cdef;
+    uint8_t alt_dlf;
 } PictureControlSetInitData;
 
 /**************************************

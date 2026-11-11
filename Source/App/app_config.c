@@ -233,6 +233,8 @@
 #define TX_BIAS_TOKEN "--tx-bias"
 #define COMPLEX_HVS_TOKEN "--complex-hvs"
 #define NOISE_ADAPTIVE_FILTERING_TOKEN "--noise-adaptive-filtering"
+#define ALT_CDEF_TOKEN "--enable-alt-cdef"
+#define ALT_DLF_TOKEN "--enable-alt-dlf"
 
 static EbErrorType validate_error(EbErrorType err, const char* token, const char* value) {
     switch (err) {
@@ -955,6 +957,13 @@ ConfigDescription config_entry_psychovisual[] = {
     {VARIANCE_OCTILE_TOKEN, "Octile for variance boost, default is 4 [1-8]"},
     // AC-Bias
     {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.25 [0.0-8.0]"},
+    // Alt CDEF
+    {ALT_CDEF_TOKEN,
+     "Enable alternative CDEF biases."
+     "Default is 0 [0-3]."},
+    {ALT_DLF_TOKEN,
+     "Enable alternative DLF biases."
+     "Default is 0 [0-3]."},
     // Termination
     {NULL, NULL}};
 
@@ -1345,6 +1354,13 @@ ConfigDescription fconfig_entry_psychovisual[] = {
     {NOISE_ADAPTIVE_FILTERING_TOKEN,
      "Controls noise detection which disables CDEF/restoration when noise level is high enough [0: off, 1: on (for both CDEF and restoration), "
      "2: default tune behavior, 3: on (CDEF only), 4: on (restoration only)]"},
+    // Alt CDEF
+    {ALT_CDEF_TOKEN,
+     "Enable alternative CDEF biases."
+     "Default is 0 [0-3]."},
+    {ALT_DLF_TOKEN,
+     "Enable alternative DLF biases."
+     "Default is 0 [0-3]."},
     // Termination
     {NULL, NULL}};
 
@@ -1583,6 +1599,9 @@ ConfigEntry config_entry[] = {
     {COMPLEX_HVS_TOKEN, "ComplexHVS", set_cfg_generic_token},
     // Noise adaptive filtering
     {NOISE_ADAPTIVE_FILTERING_TOKEN, "NoiseAdaptiveFiltering", set_cfg_generic_token},
+    // Alt CDEF & DLF
+    {ALT_CDEF_TOKEN, "AltCDEF", set_cfg_generic_token},
+    {ALT_DLF_TOKEN, "AltDLF", set_cfg_generic_token},
     // Termination
     {NULL, NULL, NULL}};
 

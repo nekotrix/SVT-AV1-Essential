@@ -1049,7 +1049,15 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet* scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+    if (config->alt_cdef > 3) {
+        SVT_ERROR("enable-alt-cdef must be between 0 and 3\n");
+        return_error = EB_ErrorBadParameter;
+    }
 
+    if (config->alt_dlf > 3) {
+        SVT_ERROR("enable-alt-dlf must be between 0 and 3\n");
+        return_error = EB_ErrorBadParameter;
+    }
 
     return return_error;
 }
@@ -1239,6 +1247,8 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
     config_ptr->tx_bias                           = 0;
     config_ptr->complex_hvs                       = 0;
     config_ptr->noise_adaptive_filtering          = 2;
+    config_ptr->alt_cdef                          = 0;
+    config_ptr->alt_dlf                           = 0;
     return return_error;
 }
 
@@ -1582,7 +1592,13 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
             SVT_INFO("SVT [config]: Noise Normalization Strength \t\t\t\t: %d\n", config->noise_norm_strength);
         }
 
+        if (config->cdef_level != 0 && config->alt_cdef) {
+            SVT_INFO("SVT [config]: Alternative CDEF Bias \t\t\t\t\t: %d\n", config->alt_cdef);
+        }
 
+        if (config->enable_dlf_flag != 0 && config->alt_dlf) {
+            SVT_INFO("SVT [config]: Alternative DLF Bias \t\t\t\t\t: %d\n", config->alt_dlf);
+        }
 
         if (config->hbd_mds != DEFAULT) {
             SVT_INFO("SVT [config]: High Bit Depth Mode Decision setting \t\t\t\t\t: %d\n", config->hbd_mds);
@@ -2726,6 +2742,8 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         {"tx-bias", &config_struct->tx_bias},
         {"complex-hvs", &config_struct->complex_hvs},
         {"noise-adaptive-filtering", &config_struct->noise_adaptive_filtering},
+        {"enable-alt-cdef", &config_struct->alt_cdef},
+        {"enable-alt-dlf", &config_struct->alt_dlf},
     };
 
     const size_t uint8_opts_size = sizeof(uint8_opts) / sizeof(uint8_opts[0]);
