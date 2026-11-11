@@ -964,16 +964,37 @@ static void fast_loop_core_pd0(ModeDecisionCandidateBuffer* cand_bf, PictureCont
     ModeDecisionCandidate* cand = cand_bf->cand;
     EbPictureBufferDesc*   pred = cand_bf->pred;
 
-    if (ctx->mds0_ctrls.mds0_dist_type == VAR) {
     // intrabc not allowed in light_pd0
     product_prediction_fun_table_pd0[is_inter_mode(cand->block_mi.mode)](0, ctx, pcs, cand_bf);
-    const AomVarianceFnPtr* fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
-    unsigned int            sse;
-    uint8_t*                pred_y = pred->y_buffer + cu_origin_index;
-    uint8_t*                src_y  = input_pic->y_buffer + input_origin_index;
-    *(cand_bf->fast_cost)          = fn_ptr->vf(pred_y, pred->y_stride, src_y, input_pic->y_stride, &sse);
+    if (ctx->mds0_ctrls.mds0_dist_type == VAR) {
+        const AomVarianceFnPtr* fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
+        unsigned int            sse;
+        uint8_t*                pred_y = pred->y_buffer + cu_origin_index;
+        uint8_t*                src_y  = input_pic->y_buffer + input_origin_index;
+        *(cand_bf->fast_cost)          = fn_ptr->vf(pred_y, pred->y_stride, src_y, input_pic->y_stride, &sse);
     } else {
-        *(cand_bf->fast_cost) = svt_spatial_full_distortion_kernel(input_pic->y_buffer, input_origin_index, input_pic->y_stride << 1, pred->y_buffer, cu_origin_index, pred->y_stride << 1, ctx->blk_geom->bwidth, ctx->blk_geom->bheight >> 1) << 1;
+        *(cand_bf->fast_cost) = svt_spatial_full_distortion_kernel(input_pic->y_buffer,
+                                                                 input_origin_index,
+                                                                 input_pic->y_stride,
+                                                                 pred->y_buffer,
+                                                                 cu_origin_index,
+                                                                 pred->y_stride,
+                                                                 ctx->blk_geom->bwidth,
+                                                                 ctx->blk_geom->bheight);
+        const double effective_ac_bias = get_effective_ac_bias(
+            pcs->scs->static_config.ac_bias, pcs->slice_type == I_SLICE, pcs->temporal_layer_index);
+        if (effective_ac_bias) {
+            *(cand_bf->fast_cost) += get_svt_psy_full_dist(input_pic->y_buffer,
+                                                          input_origin_index,
+                                                          input_pic->y_stride,
+                                                          pred->y_buffer,
+                                                          cu_origin_index,
+                                                          pred->y_stride,
+                                                          ctx->blk_geom->bwidth,
+                                                          ctx->blk_geom->bheight,
+                                                          false,
+                                                          effective_ac_bias);
+        }
     }
 }
 
@@ -1101,6 +1122,20 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer* cand_bf, PictureCon
             if (ctx->mds0_ctrls.mds0_dist_type == SSD) {
                 EbSpatialFullDistType dist = ctx->hbd_md ? svt_full_distortion_kernel16_bits : svt_spatial_full_distortion_kernel;
                 cand_bf->luma_fast_dist = dist(input_pic->y_buffer, input_origin_index, input_pic->y_stride, pred->y_buffer, 0, pred->y_stride, ctx->blk_geom->bwidth, ctx->blk_geom->bheight);
+                const double effective_ac_bias = get_effective_ac_bias(
+                    pcs->scs->static_config.ac_bias, pcs->slice_type == I_SLICE, pcs->temporal_layer_index);
+                if (effective_ac_bias) {
+                    cand_bf->luma_fast_dist += get_svt_psy_full_dist(input_pic->y_buffer,
+                                                                    input_origin_index,
+                                                                    input_pic->y_stride,
+                                                                    pred->y_buffer,
+                                                                    0,
+                                                                    pred->y_stride,
+                                                                    ctx->blk_geom->bwidth,
+                                                                    ctx->blk_geom->bheight,
+                                                                    SVT_EFFECTIVE_HBD_MD(ctx->hbd_md),
+                                                                    effective_ac_bias);
+                }
             } else {
             if (!SVT_EFFECTIVE_HBD_MD(ctx->hbd_md)) {
                 const AomVarianceFnPtr* fn_ptr = &svt_aom_mefn_ptr[ctx->blk_geom->bsize];
@@ -1119,7 +1154,7 @@ static void obmc_trans_face_off(ModeDecisionCandidateBuffer* cand_bf, PictureCon
             }
             cand_bf->fast_luma_rate = obmc_fast_luma_rate;
             if (ctx->mds0_ctrls.mds0_dist_type == SSD) {
-                luma_fast_dist = cand_bf->luma_fast_dist;
+                luma_fast_dist = cand_bf->luma_fast_dist << 4;
                 *(cand_bf->fast_cost) = av1_product_fast_cost_func_table[is_inter_mode(cand->block_mi.mode)](
                     pcs, ctx, cand_bf, full_lambda, luma_fast_dist);
             } else {
@@ -1237,14 +1272,29 @@ void fast_loop_core(ModeDecisionCandidateBuffer* cand_bf, PictureControlSet* pcs
     if (ctx->mds0_ctrls.mds0_dist_type == SSD) {
         EbSpatialFullDistType spatial_full_dist_type_fun = ctx->hbd_md ? svt_full_distortion_kernel16_bits
                                                                        : svt_spatial_full_distortion_kernel;
-        cand_bf->luma_fast_dist = luma_fast_dist = spatial_full_dist_type_fun(input_pic->y_buffer,
-                                                                              input_origin_index,
-                                                                              input_pic->y_stride,
-                                                                              pred->y_buffer,
-                                                                              0,
-                                                                              pred->y_stride,
-                                                                              ctx->blk_geom->bwidth,
-                                                                              ctx->blk_geom->bheight);
+        cand_bf->luma_fast_dist = spatial_full_dist_type_fun(input_pic->y_buffer,
+                                                           input_origin_index,
+                                                           input_pic->y_stride,
+                                                           pred->y_buffer,
+                                                           0,
+                                                           pred->y_stride,
+                                                           ctx->blk_geom->bwidth,
+                                                           ctx->blk_geom->bheight);
+        const double effective_ac_bias = get_effective_ac_bias(
+            pcs->scs->static_config.ac_bias, pcs->slice_type == I_SLICE, pcs->temporal_layer_index);
+        if (effective_ac_bias) {
+            cand_bf->luma_fast_dist += get_svt_psy_full_dist(input_pic->y_buffer,
+                                                            input_origin_index,
+                                                            input_pic->y_stride,
+                                                            pred->y_buffer,
+                                                            0,
+                                                            pred->y_stride,
+                                                            ctx->blk_geom->bwidth,
+                                                            ctx->blk_geom->bheight,
+                                                            SVT_EFFECTIVE_HBD_MD(ctx->hbd_md),
+                                                            effective_ac_bias);
+        }
+        luma_fast_dist = cand_bf->luma_fast_dist << 4;
     } else if (ctx->mds0_use_hadamard_blk) {
         uint32_t satd           = hadamard_path(cand_bf, ctx, input_pic, loc);
         cand_bf->luma_fast_dist = satd;
