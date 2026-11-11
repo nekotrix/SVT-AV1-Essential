@@ -66,6 +66,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/stat.h>
+#if HAVE_FFMS2
+#include <ffms.h>
+#endif
+#ifdef _WIN32
+#define strcasecmp _stricmp
+#else
+#include <strings.h>
+#endif
 #ifdef _WIN32
 #include <fcntl.h>
 #include <io.h>
@@ -87,7 +96,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define IO_BUFFER_SIZE 65536
 #define SCD_PROGRESS_INTERVAL_MS 500
 
-typedef struct Y4MInfo {
+typedef struct VideoInfo {
     unsigned width;
     unsigned height;
     unsigned fps_num;
@@ -96,7 +105,18 @@ typedef struct Y4MInfo {
     unsigned bytes_per_sample;
     size_t chroma_bytes_per_frame;
     char chroma_tag[64];
-} Y4MInfo;
+} VideoInfo;
+
+typedef struct VideoReader {
+    FILE *file;
+#if HAVE_FFMS2
+    FFMS_Index *index;
+    FFMS_VideoSource *video_source;
+    int frame_number;
+    int frame_count;
+    int pixel_format;
+#endif
+} VideoReader;
 
 typedef struct KeyframeList {
     uint64_t *frame;
@@ -171,7 +191,12 @@ static void usage(FILE *fp, const char *argv0, int full) {
         "  --irefresh-type N     Keyframe type (1=forward, 2=closed, default 2)\n"
         "  --enable-tf N         Encoder temporal-filtering setting (0..3, default 1)\n"
         "\n"
-        "Input must be 8-bit or 10-bit 4:2:0 Y4M; use '-' for stdin.\n"
+        "Stdin, pipes and .y4m files use Y4M; other file extensions select FFMS2.\n"
+#if HAVE_FFMS2
+        "FFMS2 support: enabled.\n"
+#else
+        "FFMS2 support: disabled in this build.\n"
+#endif
         "\n"
         "Writes an SVT-AV1 config line, like: ForceKeyFrames : 0f,123f,456f\n");
 }
@@ -647,7 +672,7 @@ static int starts_with(const char *s, const char *prefix) {
     return strncmp(s, prefix, strlen(prefix)) == 0;
 }
 
-static int read_y4m_header(FILE *in, Y4MInfo *info) {
+static int read_y4m_header(FILE *in, VideoInfo *info) {
     char line[4096];
     char *tok;
     unsigned w = 0, h = 0;
@@ -767,7 +792,18 @@ static int skip_exact(FILE *fp, size_t bytes) {
     return 1;
 }
 
-static int read_y4m_frame(FILE *in, const Y4MInfo *info, unsigned char *raw_y,
+static void pad_input_frame(unsigned char *padded_y, unsigned width, unsigned height,
+                            unsigned padded_width, unsigned padded_height) {
+    for (unsigned y = 0; y < height; ++y) {
+        unsigned char *row = padded_y + (size_t)y * padded_width;
+        memset(row + width, row[width - 1], padded_width - width);
+    }
+    for (unsigned y = height; y < padded_height; ++y)
+        memcpy(padded_y + (size_t)y * padded_width,
+               padded_y + (size_t)(height - 1) * padded_width, padded_width);
+}
+
+static int read_y4m_frame(FILE *in, const VideoInfo *info, unsigned char *raw_y,
                           unsigned char *padded_y, unsigned padded_width,
                           unsigned padded_height) {
     char line[4096];
@@ -799,7 +835,6 @@ static int read_y4m_frame(FILE *in, const Y4MInfo *info, unsigned char *raw_y,
             unsigned char *dst = padded_y + (size_t)y * padded_width;
             const unsigned char *src = raw_y + (size_t)y * info->width;
             memcpy(dst, src, info->width);
-            memset(dst + info->width, src[info->width - 1], padded_width - info->width);
         }
     } else {
         const unsigned shift = info->bit_depth - 8;
@@ -812,13 +847,9 @@ static int read_y4m_frame(FILE *in, const Y4MInfo *info, unsigned char *raw_y,
             unsigned char *dst = padded_y + (size_t)y * padded_width;
             const unsigned char *src = raw_y + (size_t)y * info->width;
             memcpy(dst, src, info->width);
-            memset(dst + info->width, src[info->width - 1], padded_width - info->width);
         }
     }
-    /* SVT's padded input picture replicates the right/bottom edge pixels. */
-    for (y = info->height; y < padded_height; ++y)
-        memcpy(padded_y + (size_t)y * padded_width,
-               padded_y + (size_t)(info->height - 1) * padded_width, padded_width);
+    pad_input_frame(padded_y, info->width, info->height, padded_width, padded_height);
     return 1;
 }
 
@@ -839,7 +870,7 @@ static int seek_forward_bytes(FILE* file, uint64_t bytes) {
     return ch != EOF;
 }
 
-static int64_t infer_y4m_frame_count(FILE *file, const Y4MInfo *info) {
+static int64_t infer_y4m_frame_count(FILE *file, const VideoInfo *info) {
     fpos_t original_pos;
     char line[4096];
     const uint64_t payload_size = (uint64_t)info->width * info->height * info->bytes_per_sample +
@@ -860,6 +891,152 @@ static int64_t infer_y4m_frame_count(FILE *file, const Y4MInfo *info) {
     }
     if (fsetpos(file, &original_pos)) return -1;
     return count;
+}
+
+static int input_is_pipe(const char *path) {
+    if (!strcmp(path, "-")) return 1;
+#ifndef _WIN32
+    struct stat st;
+    return !stat(path, &st) && S_ISFIFO(st.st_mode);
+#else
+    return !strncmp(path, "\\\\.\\pipe\\", 9);
+#endif
+}
+
+#if HAVE_FFMS2
+static int init_ffms2(VideoReader *reader, const char *path, VideoInfo *info) {
+    FFMS_ErrorInfo error;
+    char message[1024];
+    FFMS_Init(0, 0);
+    error.Buffer = message;
+    error.BufferSize = sizeof(message);
+    error.ErrorType = FFMS_ERROR_SUCCESS;
+    error.SubType = FFMS_ERROR_SUCCESS;
+
+    FFMS_Indexer *indexer = FFMS_CreateIndexer(path, &error);
+    if (!indexer) {
+        fprintf(stderr, "FFMS2: Cannot open %s: %s\n", path, message);
+        return 0;
+    }
+    reader->index = FFMS_DoIndexing2(indexer, FFMS_IEH_ABORT, &error);
+    if (!reader->index) {
+        fprintf(stderr, "FFMS2: Cannot index %s: %s\n", path, message);
+        return 0;
+    }
+    int track = FFMS_GetFirstTrackOfType(reader->index, FFMS_TYPE_VIDEO, &error);
+    if (track < 0) {
+        fprintf(stderr, "FFMS2: No video track: %s\n", message);
+        return 0;
+    }
+    reader->video_source = FFMS_CreateVideoSource(path, track, reader->index, -1, FFMS_SEEK_NORMAL, &error);
+    if (!reader->video_source) {
+        fprintf(stderr, "FFMS2: Cannot create video source: %s\n", message);
+        return 0;
+    }
+    const FFMS_VideoProperties *props = FFMS_GetVideoProperties(reader->video_source);
+    const FFMS_Frame *frame = FFMS_GetFrame(reader->video_source, 0, &error);
+    if (!frame) {
+        fprintf(stderr, "FFMS2: Cannot read first frame: %s\n", message);
+        return 0;
+    }
+    const int width = frame->EncodedWidth, height = frame->EncodedHeight;
+    if (width < 1 || width > 16384 || height < 1 || height > 8704 || props->NumFrames <= 0 ||
+        props->FPSNumerator <= 0 || props->FPSDenominator <= 0 ||
+        (uint64_t)props->FPSNumerator > UINT_MAX || (uint64_t)props->FPSDenominator > UINT_MAX) {
+        fprintf(stderr, "FFMS2: Invalid dimensions, frame count or frame rate\n");
+        return 0;
+    }
+    // Keep ten-bit samples intact until the same truncation as the Y4M reader.
+    int formats[2] = {FFMS_GetPixFmt("yuv420p10le"), -1};
+    if (formats[0] < 0) {
+        fprintf(stderr, "FFMS2: Unsupported output pixel format yuv420p10le\n");
+        return 0;
+    }
+    if (FFMS_SetOutputFormatV2(reader->video_source, formats, width, height,
+                               FFMS_RESIZER_BILINEAR, &error)) {
+        fprintf(stderr, "FFMS2: Cannot set output format: %s\n", message);
+        return 0;
+    }
+    reader->frame_count = props->NumFrames;
+    reader->pixel_format = formats[0];
+    info->width = width;
+    info->height = height;
+    info->fps_num = props->FPSNumerator;
+    info->fps_den = props->FPSDenominator;
+    info->bit_depth = 10;
+    info->bytes_per_sample = 2;
+    return 1;
+}
+
+static int read_ffms2_frame(VideoReader *reader, const VideoInfo *info, unsigned char *padded_y,
+                             unsigned padded_width, unsigned padded_height) {
+    if (reader->frame_number >= reader->frame_count) return 0;
+    FFMS_ErrorInfo error;
+    char message[1024];
+    error.Buffer = message;
+    error.BufferSize = sizeof(message);
+    error.ErrorType = FFMS_ERROR_SUCCESS;
+    error.SubType = FFMS_ERROR_SUCCESS;
+    const FFMS_Frame *frame = FFMS_GetFrame(reader->video_source, reader->frame_number, &error);
+    if (!frame) {
+        fprintf(stderr, "FFMS2: Cannot read frame %d: %s\n", reader->frame_number, message);
+        return -1;
+    }
+    if (frame->ScaledWidth != (int)info->width || frame->ScaledHeight != (int)info->height ||
+        frame->ConvertedPixelFormat != reader->pixel_format || !frame->Data[0] ||
+        frame->Linesize[0] < (int)info->width * 2) {
+        fprintf(stderr, "FFMS2: Invalid frame dimensions, pixel format or stride\n");
+        return -1;
+    }
+    for (unsigned y = 0; y < info->height; ++y) {
+        const uint8_t *src = frame->Data[0] + (size_t)y * frame->Linesize[0];
+        uint8_t *dst = padded_y + (size_t)y * padded_width;
+        for (unsigned x = 0; x < info->width; ++x) {
+            unsigned sample = (unsigned)src[2 * x] | ((unsigned)src[2 * x + 1] << 8);
+            dst[x] = (uint8_t)((sample >> 2) > 255 ? 255 : sample >> 2);
+        }
+    }
+    pad_input_frame(padded_y, info->width, info->height, padded_width, padded_height);
+    ++reader->frame_number;
+    return 1;
+}
+#endif
+
+static int reader_open(VideoReader *reader, const Options *opt, VideoInfo *info) {
+    int pipe = input_is_pipe(opt->input_path);
+    const char *extension = strrchr(opt->input_path, '.');
+    if (extension && (strchr(extension, '/') || strchr(extension, '\\'))) extension = NULL;
+    if (!pipe && extension && strcasecmp(extension, ".y4m")) {
+#if HAVE_FFMS2
+        return init_ffms2(reader, opt->input_path, info);
+#else
+        fprintf(stderr, "This build does not have FFMS2 support; rebuild with USE_FFMS2 enabled\n");
+        return 0;
+#endif
+    }
+    reader->file = !strcmp(opt->input_path, "-") ? stdin : fopen(opt->input_path, "rb");
+    if (!reader->file) {
+        fprintf(stderr, "Cannot open input '%s': %s\n", opt->input_path, strerror(errno));
+        return 0;
+    }
+    return read_y4m_header(reader->file, info);
+}
+
+static int reader_read_frame(VideoReader *reader, const VideoInfo *info, unsigned char *raw_y,
+                              unsigned char *padded_y, unsigned padded_width, unsigned padded_height) {
+#if HAVE_FFMS2
+    if (reader->video_source)
+        return read_ffms2_frame(reader, info, padded_y, padded_width, padded_height);
+#endif
+    return read_y4m_frame(reader->file, info, raw_y, padded_y, padded_width, padded_height);
+}
+
+static void reader_close(VideoReader *reader) {
+#if HAVE_FFMS2
+    if (reader->video_source) FFMS_DestroyVideoSource(reader->video_source);
+    if (reader->index) FFMS_DestroyIndex(reader->index);
+#endif
+    if (reader->file && reader->file != stdin) fclose(reader->file);
 }
 
 static int append_keyframe(KeyframeList *list, uint64_t frame) {
@@ -906,7 +1083,7 @@ static int write_config(FILE *out, const KeyframeList *list) {
  * upstream helpers. The extreme-rate fallback avoids signed overflow in the
  * original multiply-by-five expression while preserving the previous result.
  */
-static int adapter_resolve_configuration(Options *opt, const Y4MInfo *info, SequenceControlSet *scs) {
+static int adapter_resolve_configuration(Options *opt, const VideoInfo *info, SequenceControlSet *scs) {
     EbSvtAv1EncConfiguration *config = &scs->static_config;
     double groups;
 
@@ -1148,8 +1325,9 @@ static int adapter_process_picture(SequenceControlSet* scs, EncodeContext* enc_c
 
 int main(int argc, char **argv) {
     Options opt;
-    FILE *in = NULL, *out = NULL;
-    Y4MInfo info;
+    FILE *out = NULL;
+    VideoReader reader = {0};
+    VideoInfo info;
     KeyframeList keyframes = {0};
     SequenceControlSet *scs = NULL;
     StandaloneContext *context = NULL;
@@ -1184,16 +1362,7 @@ int main(int argc, char **argv) {
     _setmode(_fileno(stdin), _O_BINARY);
 #endif
 
-    if (strcmp(opt.input_path, "-") == 0)
-        in = stdin;
-    else {
-        in = fopen(opt.input_path, "rb");
-        if (!in) {
-            fprintf(stderr, "Cannot open input '%s': %s\n", opt.input_path, strerror(errno));
-            goto cleanup;
-        }
-    }
-    if (!read_y4m_header(in, &info))
+    if (!reader_open(&reader, &opt, &info))
         goto cleanup;
 
     if (!adapter_resolve_configuration(&opt, &info, scs))
@@ -1207,10 +1376,10 @@ int main(int argc, char **argv) {
     padded_size = (size_t)padded_width * padded_height;
     lowres_size = (size_t)(padded_width / 4) * (padded_height / 4);
 
-    raw_y = (unsigned char *)malloc(raw_size ? raw_size : 1);
+    if (reader.file) raw_y = (unsigned char *)malloc(raw_size ? raw_size : 1);
     padded_y = (unsigned char *)calloc(padded_size + SIMD_GUARD_BYTES, 1);
-    if (!raw_y || !padded_y) {
-        fprintf(stderr, "Out of memory allocating Y4M frame buffers\n");
+    if ((reader.file && !raw_y) || !padded_y) {
+        fprintf(stderr, "Out of memory allocating input frame buffers\n");
         goto cleanup;
     }
     {
@@ -1225,7 +1394,13 @@ int main(int argc, char **argv) {
 
     progress_init(&progress, -1);
     progress_started = 1;
-    if (progress.enabled) progress.total_frames = infer_y4m_frame_count(in, &info);
+    if (progress.enabled) {
+#if HAVE_FFMS2
+        if (reader.video_source) progress.total_frames = reader.frame_count;
+        else
+#endif
+            progress.total_frames = infer_y4m_frame_count(reader.file, &info);
+    }
     progress_render(&progress);
     progress_monitor_start(&monitor, &progress);
 
@@ -1237,7 +1412,7 @@ int main(int argc, char **argv) {
         const uint64_t ring_size = scs->scd_delay + 2u;
         uint64_t frames_read = 0, current_index = 1;
         int r;
-        while ((r = read_y4m_frame(in, &info, raw_y, padded_y,
+        while ((r = reader_read_frame(&reader, &info, raw_y, padded_y,
                                    padded_width, padded_height)) == 1) {
             if (frames_read == 0 && !append_keyframe(&keyframes, 0))
                 goto cleanup;
@@ -1261,7 +1436,7 @@ int main(int argc, char **argv) {
         }
         if (r < 0) goto cleanup;
         if (frames_read == 0) {
-            fprintf(stderr, "Y4M stream contains no frames\n");
+            fprintf(stderr, "Input stream contains no frames\n");
             goto cleanup;
         }
         /* EOS invalidates all remaining detection windows. */
@@ -1299,8 +1474,7 @@ cleanup:
         fprintf(stderr, "Failed closing output\n");
         status = 1;
     }
-    if (in && in != stdin)
-        fclose(in);
+    reader_close(&reader);
     free(raw_y);
     free(padded_y);
     free(quarter);
