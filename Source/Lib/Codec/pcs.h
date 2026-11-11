@@ -1266,6 +1266,8 @@ typedef struct PictureControlSetInitData {
     bool    adaptive_film_grain;
     bool    use_flat_ipp;
     int     hbd_mds;
+    QualityZone* zones;
+    uint16_t     num_zones;
     bool    auto_tiling;
     bool    low_memory;
     bool    hide_banner;

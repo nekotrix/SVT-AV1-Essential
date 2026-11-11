@@ -222,6 +222,13 @@ typedef struct SvtAv1SFramePositions {
     int8_t*   sframe_qp_offsets;
 } SvtAv1SFramePositions;
 
+typedef struct QualityZone {
+    uint32_t start_frame; // inclusive
+    uint32_t end_frame; // inclusive
+    int      zone_baseq; // base CRF/CQP value for this zone
+    int      zone_qsidx; // quarter step index
+} QualityZone;
+
 // Will contain the EbEncApi which will live in the EncHandle class
 // Only modifiable during config-time.
 /* EbSvtAv1EncConfiguration.fast_decode_user_opts bits (used only when built with ENABLE_FAST_DECODE_3) */
@@ -1133,6 +1140,16 @@ typedef struct EbSvtAv1EncConfiguration {
      * output packet.
      */
     uint8_t max_allowed_consecutive_frames_skips;
+    /* @brief Quality zones configuration string
+     *
+     * Format: "start1,end1,quality1;start2,end2,quality2" etc
+     * Example: "0,100,35;101,200,25"
+     * Default is no zones.
+     */
+    char* zones;
+    // Internal parsed zones (not exposed to CLI)
+    QualityZone* parsed_zones;
+    uint16_t     num_zones;
 
     /**
      * @brief Options that fast_decode 3 must leave unchanged (SVT_AV1_FD_USER_* bits).
@@ -1288,6 +1305,9 @@ typedef struct EbSvtAv1EncConfiguration {
         - (sizeof(uint8_t) * 9)
         - sizeof(uint32_t) * 2 // photon_noise_iso, pin_threads
         - sizeof(int) // webm
+        - sizeof(char*)
+        - sizeof(QualityZone*)
+        - sizeof(uint16_t)
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;

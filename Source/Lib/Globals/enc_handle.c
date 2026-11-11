@@ -1486,6 +1486,8 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType* svt_enc_component) {
         input_data.rtc_tune            = scs->static_config.rtc;
         input_data.variance_octile     = scs->static_config.variance_octile;
         input_data.adaptive_film_grain = scs->static_config.adaptive_film_grain;
+        input_data.zones               = scs->static_config.parsed_zones;
+        input_data.num_zones           = scs->static_config.num_zones;
         input_data.noise_norm_strength = scs->static_config.noise_norm_strength;
         input_data.sharp_tx = scs->static_config.sharp_tx;
         input_data.tx_bias = scs->static_config.tx_bias;
@@ -5098,6 +5100,11 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
 
     scs->static_config.max_allowed_consecutive_frames_skips = config_struct->max_allowed_consecutive_frames_skips;
     scs->static_config.hide_banner = config_struct->hide_banner;
+    // Zones
+    scs->static_config.zones        = config_struct->zones;
+    scs->static_config.parsed_zones = config_struct->parsed_zones;
+    scs->static_config.num_zones    = config_struct->num_zones;
+
 
     // Noise normalization strength
     scs->static_config.noise_norm_strength = config_struct->noise_norm_strength;
