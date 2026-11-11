@@ -19,7 +19,8 @@
 /**************************************
  * Defines
  **************************************/
-#define DEFAULT_QP 30
+#define DEFAULT_QP -2 // 35 for >1080p otherwise 30
+#define DEFAULT_MODE -2 // M5 for >1080p otherwise M4
 #define MIN_QP_AUTO ((uint32_t)(~0))
 // Have an unusual magic number to reduce probablity of user using them
 #define DEFAULT_TBR 2000513
