@@ -44,15 +44,19 @@
 #endif
 #include <fcntl.h>
 #include <io.h>
+#include <process.h>
 #include <windows.h>
 #define FG_ISATTY(stream) _isatty(_fileno(stream))
 #define strcasecmp _stricmp
 #else
 #include <pthread.h>
+#include <spawn.h>
 #include <strings.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #define FG_ISATTY(stream) isatty(fileno(stream))
+extern char** environ;
 #endif
 
 #if HAVE_FFMS2
@@ -201,6 +205,7 @@ typedef struct Options {
     int            keyframe_count;
     int            jobs;
     int            svt_ra_gop_size;
+    int            scd;
     TableEventMode table_event_mode;
 } Options;
 
@@ -276,7 +281,9 @@ static void usage(FILE* fp, const char* argv0, int full) {
             "                        Used with manual strength or --target.\n"
             "  --keyint N            Periodic keyframe interval in frames; 0 disables periodic keyframes.\n"
             "  --keyframes LIST|FILE|@FILE\n"
-            "                        Keyframe numbers or a list file.\n"
+            "                        Keyframe numbers, a list file or an SCD config.\n"
+            "  --scd                 Run SvtScdEssential first to detect keyframes.\n"
+            "                        Requires a seekable source.\n"
             "  --seed S              Set a fixed grain-pattern seed (1..65535).\n"
             "                        -1 uses a sequence optimized to reduce repeating grain patterns.\n"
             "  --seeds S1,S2,...|-1  Cycle through seeds; -1 uses an optimized sequence.\n"
@@ -352,15 +359,20 @@ static void usage(FILE* fp, const char* argv0, int full) {
             "                        Default: derive the interval from frame rate and encoder settings.\n"
             "  --keyframes LIST|FILE|@FILE\n"
             "                        Additional keyframe positions, starting from frame 0.\n"
-            "                        Accepts comma-separated numbers or a list file.\n"
+            "                        Accepts comma-separated numbers, a list file or an SCD config.\n"
             "                        Example: --keyframes 0,48,108. Use @FILE to always read a file.\n"
             "                        Automatic grain analysis restarts at these frames.\n"
-            "  --preset N            Encoder preset for automatic keyframe spacing (0..13, default 8).\n"
+            "  --scd                 Run SvtScdEssential first to detect scene changes and keyframes.\n"
+            "                        Requires the companion binary and a seekable Y4M or FFMS2 source.\n"
+            "                        Uses the same frame limit, FPS and encoder settings.\n"
+            "                        Cannot be combined with --keyframes; detected keyframes also\n"
+            "                        restart automatic grain analysis.\n"
+            "  --preset N            Encoder preset for automatic keyframe spacing and --scd (0..13, default 8).\n"
             "  --hierarchical-levels N\n"
-            "                        Encoder frame hierarchy (2..5) for keyframe spacing.\n"
+            "                        Encoder frame hierarchy (2..5) for keyframe spacing and --scd.\n"
             "                        Default: follow preset and video resolution.\n"
             "  --irefresh-type N     Encoder keyframe type: 1=forward, 2=closed (default 2).\n"
-            "                        Use the same value as your encoder for table timing.\n"
+            "                        Use the same value as your encoder for table timing and --scd.\n"
             "  --table-events svt-ra|per-frame\n"
             "                        When to write grain-table updates (default svt-ra).\n"
             "                        svt-ra follows the encoder's update schedule; per-frame writes\n"
@@ -405,6 +417,10 @@ static int parse_frame_number_arg(char* text, int* out) {
     if (*text == '#') {
         ++text;
     }
+    const size_t length = strlen(text);
+    if (length && text[length - 1] == 'f') {
+        text[length - 1] = '\0';
+    }
     return parse_int_arg(text, 0, 2147483647, out);
 }
 
@@ -425,7 +441,16 @@ static int parse_frame_list(const char* text, int** frames, int* frame_count) {
     }
     strcpy(copy, text);
 
-    token = strtok(copy, ",");
+    token = trim_token(copy);
+    if (!strncmp(token, "ForceKeyFrames", sizeof("ForceKeyFrames") - 1)) {
+        token = trim_token(token + sizeof("ForceKeyFrames") - 1);
+        if (*token != ':') {
+            free(copy);
+            return 0;
+        }
+        ++token;
+    }
+    token = strtok(token, ",");
     while (token) {
         int  frame_number;
         int* grown;
@@ -571,7 +596,7 @@ static int input_path_is_pipe(const char* path) {
     struct stat statbuf;
     return !stat(path, &statbuf) && S_ISFIFO(statbuf.st_mode);
 #else
-    return 0;
+    return !strncmp(path, "\\\\.\\pipe\\", 9);
 #endif
 }
 
@@ -631,6 +656,8 @@ static int parse_options(int argc, char** argv, Options* opt) {
             if (!next_arg(argc, argv, &i, &opt->target_path)) {
                 return 0;
             }
+        } else if (!strcmp(argv[i], "--scd")) {
+            opt->scd = 1;
         } else if (!strcmp(argv[i], "--fast")) {
             opt->fast = 1;
         } else if (!strcmp(argv[i], "--source-format")) {
@@ -797,6 +824,10 @@ static int parse_options(int argc, char** argv, Options* opt) {
     if (opt->target_path && path_uses_ffms2(opt->source_path, opt->source_format) &&
         path_uses_ffms2(opt->target_path, opt->target_format)) {
         fprintf(stderr, "Only one of --source and --target may use FFMS2\n");
+        return 0;
+    }
+    if (opt->scd && (opt->keyframe_count > 0 || input_path_is_pipe(opt->source_path))) {
+        fprintf(stderr, "--scd requires a seekable source and cannot be combined with --keyframes\n");
         return 0;
     }
     if (opt->keyframe_count > 0) {
@@ -1791,6 +1822,149 @@ static int set_table_config(Options* opt, VideoInfo* info) {
     return 1;
 }
 
+static int run_scd(const char* argv0, Options* opt, const VideoInfo* info, int keyint) {
+#if defined(_WIN32)
+    const char* name = "SvtScdEssential.exe";
+#else
+    const char* name = "SvtScdEssential";
+#endif
+    char executable[1024];
+    char source_path[1024];
+    char config_path[1024];
+    char values[7][32];
+    char* args[20];
+    int argc = 0;
+    int ok = 0;
+    const char* separator = strrchr(argv0, '/');
+#if defined(_WIN32)
+    const char* backslash = strrchr(argv0, '\\');
+    if (backslash && (!separator || backslash > separator)) {
+        separator = backslash;
+    }
+#endif
+    const size_t directory_length = separator ? (size_t)(separator - argv0 + 1) : 0;
+    if (directory_length + strlen(name) >= sizeof(executable)) {
+        fprintf(stderr, "SvtScdEssential path is too long\n");
+        return 0;
+    }
+    memcpy(executable, argv0, directory_length);
+    strcpy(executable + directory_length, name);
+    if (snprintf(source_path, sizeof(source_path), "%s%s", opt->source_path[0] == '-' ? "./" : "",
+                 opt->source_path) >= (int)sizeof(source_path)) {
+        fprintf(stderr, "SCD source path is too long\n");
+        return 0;
+    }
+#if defined(_WIN32)
+    char temp_dir[MAX_PATH];
+    DWORD length = GetTempPathA(sizeof(temp_dir), temp_dir);
+    if (!length || length >= sizeof(temp_dir) || !GetTempFileNameA(temp_dir, "scd", 0, config_path)) {
+        fprintf(stderr, "Unable to create SCD keyframe config\n");
+        return 0;
+    }
+#else
+    const char* temp_dir = getenv("TMPDIR");
+    if (!temp_dir || !*temp_dir) {
+        temp_dir = "/tmp";
+    }
+    if (snprintf(config_path, sizeof(config_path), "%s/svt-scd-XXXXXX", temp_dir) >= (int)sizeof(config_path)) {
+        fprintf(stderr, "SCD temporary path is too long\n");
+        return 0;
+    }
+    int fd = mkstemp(config_path);
+    if (fd < 0) {
+        fprintf(stderr, "Unable to create SCD keyframe config: %s\n", strerror(errno));
+        return 0;
+    }
+    close(fd);
+#endif
+    snprintf(values[0], sizeof(values[0]), "%d", opt->preset);
+    snprintf(values[1], sizeof(values[1]), "%d", opt->hierarchical_levels);
+    snprintf(values[2], sizeof(values[2]), "%d", opt->intra_refresh_type);
+    snprintf(values[3], sizeof(values[3]), "%d", keyint < 0 ? -2 : keyint);
+    snprintf(values[4], sizeof(values[4]), "%d", info->fps_num);
+    snprintf(values[5], sizeof(values[5]), "%d", info->fps_den);
+    snprintf(values[6], sizeof(values[6]), "%d", opt->frames);
+    args[argc++] = executable;
+    args[argc++] = source_path;
+    args[argc++] = config_path;
+    args[argc++] = "--preset";
+    args[argc++] = values[0];
+    if (opt->hierarchical_levels > 0) {
+        args[argc++] = "--hierarchical-levels";
+        args[argc++] = values[1];
+    }
+    args[argc++] = "--irefresh-type";
+    args[argc++] = values[2];
+    args[argc++] = "--keyint";
+    args[argc++] = values[3];
+    args[argc++] = "--fps-num";
+    args[argc++] = values[4];
+    args[argc++] = "--fps-denom";
+    args[argc++] = values[5];
+    if (opt->frames > 0) {
+        args[argc++] = "--frames";
+        args[argc++] = values[6];
+    }
+    args[argc] = NULL;
+
+    fprintf(stderr, "Running SvtScdEssential...\n");
+#if defined(_WIN32)
+    char* quoted[3] = {0};
+    for (int i = 0; i < 3; ++i) {
+        const size_t size = strlen(args[i]) + 3;
+        quoted[i] = (char*)malloc(size);
+        if (!quoted[i]) {
+            fprintf(stderr, "Unable to allocate SCD arguments\n");
+            for (int j = 0; j < i; ++j) {
+                free(quoted[j]);
+            }
+            goto cleanup;
+        }
+        snprintf(quoted[i], size, "\"%s\"", args[i]);
+        args[i] = quoted[i];
+    }
+    const intptr_t result = _spawnvp(_P_WAIT, executable, (const char* const*)args);
+    const int spawn_errno = errno;
+    for (int i = 0; i < 3; ++i) {
+        free(quoted[i]);
+    }
+    if (result != 0) {
+        fprintf(stderr, "SvtScdEssential failed%s%s\n", result == -1 ? ": " : "",
+                result == -1 ? strerror(spawn_errno) : "");
+        goto cleanup;
+    }
+#else
+    pid_t pid;
+    int error = posix_spawnp(&pid, executable, NULL, NULL, args, environ);
+    if (error) {
+        fprintf(stderr, "Unable to run %s: %s\n", executable, strerror(error));
+        goto cleanup;
+    }
+    int status;
+    pid_t waited;
+    do {
+        waited = waitpid(pid, &status, 0);
+    } while (waited < 0 && errno == EINTR);
+    if (waited < 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+        fprintf(stderr, "SvtScdEssential failed\n");
+        goto cleanup;
+    }
+#endif
+    if (!parse_keyframes(config_path, &opt->keyframes, &opt->keyframe_count) || !options_ensure_keyframe_zero(opt)) {
+        fprintf(stderr, "Unable to read SCD keyframes\n");
+        goto cleanup;
+    }
+    // SCD's list already includes periodic keyframes.
+    opt->svt_ra_gop_size = keyint == 1 ? 1 : 0;
+    fprintf(stderr, "SCD: %d keyframe(s).\n", opt->keyframe_count);
+    ok = 1;
+cleanup:
+    if (remove(config_path)) {
+        fprintf(stderr, "Unable to remove SCD keyframe config %s\n", config_path);
+    }
+    return ok;
+}
+
 /* Film-grain seeds and table export */
 static uint16_t advance_seed(uint16_t seed) {
     seed = (uint16_t)(seed + 3381);
@@ -2637,6 +2811,11 @@ int main(int argc, char** argv) {
     if (!reader_open(&source, opt.source_path, opt.width, opt.height, opt.bit_depth, opt.source_format)) {
         goto cleanup;
     }
+    const int scd_keyint = opt.svt_ra_gop_size;
+    if (opt.scd && (source.is_pipe || source.info.container == VIDEO_RAW)) {
+        fprintf(stderr, "--scd requires a seekable Y4M or FFMS2 source\n");
+        goto cleanup;
+    }
     if (!set_table_config(&opt, &source.info)) {
         goto cleanup;
     }
@@ -2674,6 +2853,9 @@ int main(int argc, char** argv) {
             fprintf(stderr, "Source and target bit depths differ\n");
             goto cleanup;
         }
+    }
+    if (opt.scd && !run_scd(argv[0], &opt, &source.info, scd_keyint)) {
+        goto cleanup;
     }
     if (!timestamp_cache_init(&timestamps, &source.info)) {
         goto cleanup;

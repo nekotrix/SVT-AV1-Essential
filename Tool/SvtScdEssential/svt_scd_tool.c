@@ -135,6 +135,9 @@ typedef struct Options {
     int hierarchical_levels;
     int intra_refresh_type;
     int enable_tf;
+    int frames;
+    unsigned fps_num;
+    unsigned fps_den;
 } Options;
 
 typedef struct ProgressState {
@@ -185,6 +188,10 @@ static void usage(FILE *fp, const char *argv0, int full) {
     fprintf(fp,
         "\n"
         "Advanced options:\n"
+        "  --frames N            Maximum number of frames to process\n"
+        "                        Default: process all frames.\n"
+        "  --fps-num N --fps-denom D\n"
+        "                        Override the input frame rate; specify both together.\n"
         "  --preset N            Encoder preset (0..13, default 8)\n"
         "  --hierarchical-levels N\n"
         "                        Hierarchy (2..5, default follows preset and resolution)\n"
@@ -597,6 +604,8 @@ static int parse_options(int argc, char **argv, Options *opt) {
     opt->hierarchical_levels = -1;
     opt->intra_refresh_type = 2;
     opt->enable_tf = 1;
+    opt->frames = -1;
+    opt->fps_num = opt->fps_den = 0;
 
     for (i = 1; i < argc; ++i) {
         const char *a = argv[i];
@@ -604,6 +613,17 @@ static int parse_options(int argc, char **argv, Options *opt) {
         if (!strcmp(a, "-h") || !strcmp(a, "--help")) {
             usage(stdout, argv[0], 1);
             exit(0);
+        }
+        if (!strcmp(a, "--frames") || !strcmp(a, "--fps-num") || !strcmp(a, "--fps-denom")) {
+            unsigned parsed;
+            if (++i >= argc || !parse_uint(argv[i], &parsed) || parsed < 1 || parsed > INT_MAX) {
+                fprintf(stderr, "Invalid %s value\n", a);
+                return 0;
+            }
+            if (!strcmp(a, "--frames")) opt->frames = (int)parsed;
+            else if (!strcmp(a, "--fps-num")) opt->fps_num = parsed;
+            else opt->fps_den = parsed;
+            continue;
         }
         if (!strcmp(a, "--preset") || !strcmp(a, "--hierarchical-levels") ||
             !strcmp(a, "--irefresh-type") || !strcmp(a, "--enable-tf")) {
@@ -663,6 +683,10 @@ static int parse_options(int argc, char **argv, Options *opt) {
     if (min_keyint_value && !parse_keyint(min_keyint_value, &opt->min_keyint,
                                           &opt->multiply_keyint, 1)) {
         fprintf(stderr, "Invalid --min-keyint value: %s\n", min_keyint_value);
+        return 0;
+    }
+    if ((opt->fps_num && !opt->fps_den) || (!opt->fps_num && opt->fps_den)) {
+        fprintf(stderr, "--fps-num and --fps-denom must be specified together\n");
         return 0;
     }
     return 1;
@@ -870,7 +894,7 @@ static int seek_forward_bytes(FILE* file, uint64_t bytes) {
     return ch != EOF;
 }
 
-static int64_t infer_y4m_frame_count(FILE *file, const VideoInfo *info) {
+static int64_t infer_y4m_frame_count(FILE *file, const VideoInfo *info, int frames) {
     fpos_t original_pos;
     char line[4096];
     const uint64_t payload_size = (uint64_t)info->width * info->height * info->bytes_per_sample +
@@ -878,7 +902,7 @@ static int64_t infer_y4m_frame_count(FILE *file, const VideoInfo *info) {
     int64_t count = 0;
 
     if (fgetpos(file, &original_pos)) return -1;
-    for (;;) {
+    while (frames < 0 || count < frames) {
         if (!fgets(line, sizeof(line), file)) {
             if (ferror(file)) count = -1;
             break;
@@ -1365,6 +1389,10 @@ int main(int argc, char **argv) {
     if (!reader_open(&reader, &opt, &info))
         goto cleanup;
 
+    if (opt.fps_num) {
+        info.fps_num = opt.fps_num;
+        info.fps_den = opt.fps_den;
+    }
     if (!adapter_resolve_configuration(&opt, &info, scs))
         goto cleanup;
 
@@ -1399,8 +1427,10 @@ int main(int argc, char **argv) {
         if (reader.video_source) progress.total_frames = reader.frame_count;
         else
 #endif
-            progress.total_frames = infer_y4m_frame_count(reader.file, &info);
+            progress.total_frames = infer_y4m_frame_count(reader.file, &info, opt.frames);
     }
+    if (opt.frames > 0 && (progress.total_frames < 0 || progress.total_frames > opt.frames))
+        progress.total_frames = opt.frames;
     progress_render(&progress);
     progress_monitor_start(&monitor, &progress);
 
@@ -1411,8 +1441,9 @@ int main(int argc, char **argv) {
     {
         const uint64_t ring_size = scs->scd_delay + 2u;
         uint64_t frames_read = 0, current_index = 1;
-        int r;
-        while ((r = reader_read_frame(&reader, &info, raw_y, padded_y,
+        int r = 0;
+        while ((opt.frames < 0 || frames_read < (uint64_t)opt.frames) &&
+               (r = reader_read_frame(&reader, &info, raw_y, padded_y,
                                    padded_width, padded_height)) == 1) {
             if (frames_read == 0 && !append_keyframe(&keyframes, 0))
                 goto cleanup;
