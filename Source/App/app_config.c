@@ -228,6 +228,11 @@
 #define SPEED_TOKEN "--speed"
 #define QUALITY_TOKEN "--quality"
 #define HIDE_BANNER_TOKEN "--hide-banner"
+#define NOISE_NORM_STRENGTH_TOKEN "--noise-norm-strength"
+#define SHARP_TX_TOKEN "--sharp-tx"
+#define TX_BIAS_TOKEN "--tx-bias"
+#define COMPLEX_HVS_TOKEN "--complex-hvs"
+#define NOISE_ADAPTIVE_FILTERING_TOKEN "--noise-adaptive-filtering"
 
 static EbErrorType validate_error(EbErrorType err, const char* token, const char* value) {
     switch (err) {
@@ -1147,6 +1152,8 @@ ConfigDescription fconfig_entry_rc[] = {
     {SHARPNESS_TOKEN, "Bias towards decreased/increased sharpness, default is 1 [-7 to 7]"},
     // QP scale compress strength
     {QP_SCALE_COMPRESS_STRENGTH_TOKEN, "QP scale compress strength, default is 1 [0-8]"},
+    // Noise normalization strength
+    {NOISE_NORM_STRENGTH_TOKEN, "Noise normalization strength, default is 0 [0-4]"},
     // Termination
     {NULL, NULL}};
 
@@ -1327,6 +1334,17 @@ ConfigDescription fconfig_entry_psychovisual[] = {
     {MAX_TX_SIZE_TOKEN, "Limits the allowed transform sizes to the specified, default is 64 [32,64]"},
     // AC-Bias
     {AC_BIAS_TOKEN, "Strength of AC bias in rate distortion, default is 0.25 [0.0-8.0]"},
+    // Sharp-tx
+    {SHARP_TX_TOKEN, "Sharp transform optimization, default is 0 [0-1]"},
+    // TX bias
+    {TX_BIAS_TOKEN,
+     "Transform size/type bias type, default is 0 [0-3]; 1 = full, 2, transform size only, 3 = interpolation only"},
+    // Complex HVS
+    {COMPLEX_HVS_TOKEN, "Enable highest complexity HVS model, default is 0 [0-1]"},
+    // Noise adaptive filtering
+    {NOISE_ADAPTIVE_FILTERING_TOKEN,
+     "Controls noise detection which disables CDEF/restoration when noise level is high enough [0: off, 1: on (for both CDEF and restoration), "
+     "2: default tune behavior, 3: on (CDEF only), 4: on (restoration only)]"},
     // Termination
     {NULL, NULL}};
 
@@ -1554,6 +1572,17 @@ ConfigEntry config_entry[] = {
     {AUTO_TILING_TOKEN, "AutoTiling", set_cfg_generic_token},
     {SPEED_TOKEN, "Speed", set_cfg_generic_token},
     {QUALITY_TOKEN, "Quality", set_cfg_generic_token},
+
+    // Noise normalization strength
+    {NOISE_NORM_STRENGTH_TOKEN, "NoiseNormStrength", set_cfg_generic_token},
+    // Sharp TX
+    {SHARP_TX_TOKEN, "SharpTX", set_cfg_generic_token},
+    // TX bias
+    {TX_BIAS_TOKEN, "TxBias", set_cfg_generic_token},
+    // Complex HVS
+    {COMPLEX_HVS_TOKEN, "ComplexHVS", set_cfg_generic_token},
+    // Noise adaptive filtering
+    {NOISE_ADAPTIVE_FILTERING_TOKEN, "NoiseAdaptiveFiltering", set_cfg_generic_token},
     // Termination
     {NULL, NULL, NULL}};
 

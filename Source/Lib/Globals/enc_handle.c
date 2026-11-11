@@ -1445,6 +1445,10 @@ EB_API EbErrorType svt_av1_enc_init(EbComponentType* svt_enc_component) {
         input_data.rtc_tune            = scs->static_config.rtc;
         input_data.variance_octile     = scs->static_config.variance_octile;
         input_data.adaptive_film_grain = scs->static_config.adaptive_film_grain;
+        input_data.noise_norm_strength = scs->static_config.noise_norm_strength;
+        input_data.sharp_tx = scs->static_config.sharp_tx;
+        input_data.tx_bias = scs->static_config.tx_bias;
+        input_data.complex_hvs = scs->static_config.complex_hvs;
         input_data.low_memory          = scs->static_config.low_memory;
         input_data.auto_tiling         = scs->static_config.auto_tiling;
         input_data.hbd_mds             = scs->static_config.hbd_mds;
@@ -3364,6 +3368,31 @@ static void derive_vq_params(SequenceControlSet* scs) {
         vq_ctrl->sharpness_ctrls.restoration      = 0;
         vq_ctrl->sharpness_ctrls.rdoq             = 0;
     }
+
+    switch (scs->static_config.noise_adaptive_filtering) {
+        case 0:
+            vq_ctrl->sharpness_ctrls.cdef = 0;
+            vq_ctrl->sharpness_ctrls.restoration = 0;
+            break;
+        case 1:
+            vq_ctrl->sharpness_ctrls.cdef = 1;
+            vq_ctrl->sharpness_ctrls.restoration = 1;
+            break;
+        case 2:
+            // No override; honor tune defaults
+            break;
+        case 3:
+            vq_ctrl->sharpness_ctrls.cdef = 1;
+            vq_ctrl->sharpness_ctrls.restoration = 0;
+            break;
+        case 4:
+            vq_ctrl->sharpness_ctrls.cdef = 0;
+            vq_ctrl->sharpness_ctrls.restoration = 1;
+            break;
+        default:
+            break;
+    }
+
     // Do not use scene_transition if LD or 1st pass or middle pass
     if (scs->static_config.pred_structure != RANDOM_ACCESS || scs->static_config.pass == ENC_FIRST_PASS) {
         vq_ctrl->sharpness_ctrls.scene_transition = 0;
@@ -4985,6 +5014,23 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
 
     scs->static_config.max_allowed_consecutive_frames_skips = config_struct->max_allowed_consecutive_frames_skips;
     scs->static_config.hide_banner = config_struct->hide_banner;
+
+    // Noise normalization strength
+    scs->static_config.noise_norm_strength = config_struct->noise_norm_strength;
+
+    // Sharp TX
+    scs->static_config.sharp_tx = config_struct->sharp_tx;
+
+    // TX bias
+    scs->static_config.tx_bias = config_struct->tx_bias;
+
+    // Complex HVS
+    scs->static_config.complex_hvs = config_struct->complex_hvs;
+
+    // Noise adaptive filtering
+    scs->static_config.noise_adaptive_filtering = config_struct->noise_adaptive_filtering;
+
+
 
     // Override settings for Still IQ tune
     if (scs->static_config.tune == TUNE_IQ) {

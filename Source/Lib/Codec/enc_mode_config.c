@@ -6902,9 +6902,11 @@ static void set_mds0_controls(ModeDecisionContext* ctx, uint8_t mds0_level) {
     Mds0Ctrls* ctrls = &ctx->mds0_ctrls;
     switch (mds0_level) {
     case 0:
+        ctrls->mds0_dist_type    = VAR;
         ctrls->pruning_method_th = 0;
         break;
     case 1:
+        ctrls->mds0_dist_type                          = VAR;
         ctrls->pruning_method_th                       = 100;
         ctrls->per_class_dist_to_cost_th[CAND_CLASS_0] = 50;
         ctrls->per_class_dist_to_cost_th[CAND_CLASS_1] = 10;
@@ -6912,12 +6914,15 @@ static void set_mds0_controls(ModeDecisionContext* ctx, uint8_t mds0_level) {
         ctrls->per_class_dist_to_cost_th[CAND_CLASS_3] = 50;
         break;
     case 2:
+        ctrls->mds0_dist_type    = VAR;
         ctrls->pruning_method_th = (uint8_t)~0;
         ctrls->dist_to_cost_th   = 0;
         break;
-    default:
-        assert(0);
+    case 3:
+        ctrls->mds0_dist_type    = SSD;
+        ctrls->pruning_method_th = 0;
         break;
+    default: assert(0); break;
     }
 }
 
@@ -9350,7 +9355,9 @@ void svt_aom_sig_deriv_mode_decision_config_default(SequenceControlSet* scs, Pic
     }
     // Set the level for mds0
     pcs->mds0_level = 0;
-    if (enc_mode <= ENC_M2) {
+    if (pcs->scs->static_config.complex_hvs == 1) {
+        pcs->mds0_level = 3;
+    } else if (enc_mode <= ENC_M2) {
         pcs->mds0_level = 0;
     } else if (enc_mode <= ENC_M5) {
         pcs->mds0_level = is_base ? 0 : 1;

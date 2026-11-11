@@ -1019,6 +1019,38 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet* scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+    if (config->ac_bias > 8.0 || config->ac_bias < 0.0) {
+        SVT_ERROR("AC bias strength must be between 0.0 and 8.0\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->noise_norm_strength > 4) {
+        SVT_ERROR("Noise normalization strength must be between 0 and 4\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->sharp_tx > 1) {
+        SVT_ERROR("sharp-tx must be either 0 and 1\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->tx_bias > 3) {
+        SVT_ERROR("TX bias must be between 0 and 3\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->complex_hvs > 1) {
+        SVT_ERROR("complex-hvs must be between 0 and 1\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+    if (config->noise_adaptive_filtering > 4) {
+        SVT_ERROR("noise-adaptive-filtering must be between 0 and 4\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
+
+
     return return_error;
 }
 
@@ -1168,7 +1200,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
     config_ptr->enable_variance_boost             = true;
     config_ptr->variance_boost_strength           = 1;
     config_ptr->variance_octile                   = 4;
-    config_ptr->tf_strength                       = 1;
+    config_ptr->tf_strength                       = 0;
     config_ptr->variance_boost_curve              = 0;
     config_ptr->luminance_qp_bias                 = 10;
     config_ptr->sharpness                         = 1;
@@ -1202,6 +1234,11 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
     config_ptr->quality                           = QUALITY_UNKNOWN;
     config_ptr->low_memory                        = false;
     config_ptr->hide_banner                       = false;
+    config_ptr->noise_norm_strength               = 0;
+    config_ptr->sharp_tx                          = 0;
+    config_ptr->tx_bias                           = 0;
+    config_ptr->complex_hvs                       = 0;
+    config_ptr->noise_adaptive_filtering          = 2;
     return return_error;
 }
 
@@ -1533,9 +1570,19 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
 
         SVT_INFO("SVT [config]: QP scale compress strength \t\t\t\t: %d\n", config->qp_scale_compress_strength);
 
-        if (config->ac_bias) {
-            SVT_INFO("SVT [config]: AC Bias Strength \t\t\t\t\t: %.2f\n", config->ac_bias);
+        if (config->ac_bias || config->tx_bias) {
+            SVT_INFO("SVT [config]: AC Bias Strength / TX Bias \t\t\t\t: %.2f / %s\n",
+                     config->ac_bias,
+                     config->tx_bias == 1
+                         ? "full"
+                         : (config->tx_bias == 2 ? "size only" : (config->tx_bias == 3 ? "interp. only" : "off")));
         }
+
+        if (config->noise_norm_strength > 0) {
+            SVT_INFO("SVT [config]: Noise Normalization Strength \t\t\t\t: %d\n", config->noise_norm_strength);
+        }
+
+
 
         if (config->hbd_mds != DEFAULT) {
             SVT_INFO("SVT [config]: High Bit Depth Mode Decision setting \t\t\t\t\t: %d\n", config->hbd_mds);
@@ -2674,6 +2721,11 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         {"enable-tf", &config_struct->enable_tf},
         {"tf-strength", &config_struct->tf_strength},
         {"max-tx-size", &config_struct->max_tx_size},
+        {"noise-norm-strength", &config_struct->noise_norm_strength},
+        {"sharp-tx", &config_struct->sharp_tx},
+        {"tx-bias", &config_struct->tx_bias},
+        {"complex-hvs", &config_struct->complex_hvs},
+        {"noise-adaptive-filtering", &config_struct->noise_adaptive_filtering},
     };
 
     const size_t uint8_opts_size = sizeof(uint8_opts) / sizeof(uint8_opts[0]);

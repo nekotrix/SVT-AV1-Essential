@@ -2179,6 +2179,17 @@ static void interpolation_filter_search(PictureControlSet* pcs, ModeDecisionCont
             }
         }
 
+        // TX bias: bias RD towards picking sharper interpolation filters
+        if (scs->static_config.tx_bias > 0) {
+            // SHARP filter on either x or y axis
+            if (filter_sets[i][0] == 2 || filter_sets[i][1] == 2)
+                tmp_rd = (tmp_rd * 75) / 100;
+
+            // REG filter on either x or y axis
+            if (filter_sets[i][0] == 0 || filter_sets[i][1] == 0)
+                tmp_rd = (tmp_rd * 80) / 100;
+        }
+
         // Update best interpoaltion filter
         if (tmp_rd < rd) {
             rd              = tmp_rd;
@@ -2515,7 +2526,7 @@ static void enc_make_inter_predictor_pd0(uint8_t* src, uint8_t* dst, SubpelParam
     svt_inter_predictor_pd0(src, src_stride, dst, dst_stride, blk_width, blk_height, subpel_params, conv_params);
 }
 
-void svt_aom_enc_make_inter_predictor(SequenceControlSet* scs, uint8_t* src_ptr, uint8_t* src_ptr_2b, uint8_t* dst_ptr,
+void NOINLINE svt_aom_enc_make_inter_predictor(SequenceControlSet* scs, uint8_t* src_ptr, uint8_t* src_ptr_2b, uint8_t* dst_ptr,
                                       int16_t pre_y, int16_t pre_x, Mv mv, const struct ScaleFactors* const sf,
                                       ConvolveParams* conv_params, InterpFilters interp_filters,
                                       const InterInterCompoundData* const interinter_comp, uint8_t* seg_mask,

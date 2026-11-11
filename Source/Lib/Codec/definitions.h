@@ -83,7 +83,7 @@ void svt_aom_assert_err(uint32_t condition, char* err_msg);
 
 #define DS_SC_FACT 23
 
-#define VQ_NOISE_LVL_TH 15000
+#define VQ_NOISE_LVL_TH 16000
 #define VQ_STABILITY_ME_VAR_TH 750
 #define VQ_PIC_AVG_VARIANCE_TH 1000
 #define NUM_MV_COMPONENTS 2
