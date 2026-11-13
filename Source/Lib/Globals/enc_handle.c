@@ -5223,7 +5223,7 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
         scs->static_config.alt_dlf = 1;
     }
     else if (scs->static_config.distortion_bias_preset == 4) {
-        SVT_WARN("Distortion bias preset 4 hard sets: --tune 0 --qm-min 6 --qm-max 10 --chroma-qm-min 8 --variance-boost-strength 2 --variance-octile 5 --enable-tf 0 --enable-cdef 0 --enable-restoration 0 --ac-bias 4 --noise-norm-strength 1 --tx-bias 1\n");
+        SVT_WARN("Distortion bias preset 4 hard sets: --tune 0 --qm-min 6 --qm-max 10 --chroma-qm-min 8 --variance-boost-strength 2 --variance-octile 5 --enable-tf 0 --enable-cdef 0 --enable-restoration 0 --ac-bias 4 --noise-norm-strength 1 --tx-bias 1 --complex-hvs 1 --sharp-tx 1\n");
         SVT_WARN("Distortion bias presets serve illustrative purposes. It is recommended to tweak the settings around your preferred preset for better results\n");
         SVT_WARN("With higher Distortion bias presets and high CRFs, it is recommended to up the film-grain/photon-noise strength for a more consistent picture\n");
         SVT_WARN(
@@ -5237,6 +5237,8 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
         scs->static_config.variance_octile = 5;
         scs->static_config.noise_norm_strength = 1;
         scs->static_config.tx_bias = 1;
+        scs->static_config.complex_hvs = 1;
+        scs->static_config.sharp_tx = 1;
         /* Inspired by SVT-AV1-HDR's tune grain*/
         scs->static_config.enable_tf = 0;
         scs->static_config.cdef_level = 0;

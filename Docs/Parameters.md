@@ -658,6 +658,6 @@ Gradually selects more and more aggressive parameters that improve detail retent
 - sets: `--tune 0 --qm-min 8 --chroma-qm-min 10 --tf-strength 0 --ac-bias 4 --noise-norm-strength 3 --sharp-tx 1 --tx-bias 1 --complex-hvs 1 --noise-adaptive-filtering 4 --enable-alt-cdef 2 --enable-dlf 2 --enable-alt-dlf 1 --variance-boost-strength 2`
 
 **4**: Mimics SVT-AV1-HDR's tune grain for absolute grain retention with no regard to distortion at all. Filesize behavior can vary from clip to clip.  
-- sets: `--tune 0 --qm-min 6 --qm-max 10 --chroma-qm-min 8 --variance-boost-strength 2 --variance-octile 5 --enable-tf 0 --enable-cdef 0 --enable-restoration 0 --ac-bias 4 --noise-norm-strength 1 --tx-bias 1`
+- sets: `--tune 0 --qm-min 6 --qm-max 10 --chroma-qm-min 8 --variance-boost-strength 2 --variance-octile 5 --enable-tf 0 --enable-cdef 0 --enable-restoration 0 --ac-bias 4 --noise-norm-strength 1 --tx-bias 1 --complex-hvs 1 --sharp-tx 1`
 
 It is recommended to use the parameters from these presets as baseline for additional tweaking, but these are good for quick testing.
