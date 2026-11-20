@@ -44,7 +44,7 @@ const double svt_av1_tpl_hl_islice_div_factor[EB_MAX_TEMPORAL_LAYERS]     = {1, 
 const double svt_av1_tpl_hl_base_frame_div_factor[EB_MAX_TEMPORAL_LAYERS] = {1, 3, 3, 2, 1, 1};
 
 const double svt_av1_r0_weight[3]                = {0.75 /* I_SLICE */, 0.9 /* BASE */, 1 /* NON-BASE */};
-const double svt_av1_qp_scale_compress_weight[4] = {1, 1.125, 1.25, 1.375};
+const double svt_av1_qp_scale_compress_weight[9] = {1, 1.125, 1.25, 1.375, 1.5, 1.625, 1.75, 1.875, 2};
 
 static uint8_t NOINLINE clamp_qp(SequenceControlSet* scs, int qp) {
     int qmin = scs->static_config.min_qp_allowed;

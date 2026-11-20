@@ -932,7 +932,7 @@ typedef struct EbSvtAv1EncConfiguration {
 
     /* @brief compresses the QP hierarchical layer scale to improve temporal video consistency
     * 0: no compression, original SVT-AV1 scaling
-    * 1-3: enable compression, the higher the number the stronger the compression
+    * 1-8: enable compression, the higher the number the stronger the compression
     *      (different frame quality fluctuation/mean quality tradeoffs)
     * Default is 1
     */
@@ -999,7 +999,7 @@ typedef struct EbSvtAv1EncConfiguration {
      * @brief Enable MCTF for key frames.
      * 0 = off
      * 1 = on
-     * Default is 1. */
+     * Default is 0. */
     bool enable_tf_key;
 
     /**
