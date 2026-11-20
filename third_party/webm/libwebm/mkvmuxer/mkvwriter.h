@@ -42,6 +42,8 @@ class MkvWriter : public IMkvWriter {
   // File handle to output file.
   FILE* file_;
   bool writer_owns_file_;
+  bool seekable_;
+  int64 bytes_written_;
 
   LIBWEBM_DISALLOW_COPY_AND_ASSIGN(MkvWriter);
 };
