@@ -10,10 +10,10 @@ set(BUILD_DIRECTORY ${CMAKE_ARGV3})
 # We only need to encode one short video during profiling, in order to execute
 # the code paths we want to optimise. Encoding 29 more files provides no
 # benefits and slows down the process to an unacceptable level.
-set(PROFILING_VIDEO "stefan_sif.y4m")
+set(PROFILING_VIDEO "cosmos_aom_sdr_12025-12075.y4m")
 
 set(EXPECTED_HASH
-    28c0dc1afdd9081d8004cc35f839f8d34cabc0fc8b677f9f70286be6bdbd9f57)
+    71a9e694319335308fa2ab2d77d4885ee231daff6ef8d240ed354171e6a61675)
 set(FILEHASH "")
 if(EXISTS ${BUILD_DIRECTORY}/objective-1-fast/${PROFILING_VIDEO})
     file(SHA256 "${BUILD_DIRECTORY}/objective-1-fast/${PROFILING_VIDEO}" FILEHASH)
@@ -21,7 +21,7 @@ endif()
 
 if(NOT FILEHASH STREQUAL EXPECTED_HASH)
     file(
-        DOWNLOAD https://media.xiph.org/video/derf/y4m/${PROFILING_VIDEO}
+        DOWNLOAD https://media.xiph.org/video/av2/y4m/${PROFILING_VIDEO}
         ${BUILD_DIRECTORY}/objective-1-fast/${PROFILING_VIDEO}
         SHOW_PROGRESS
         EXPECTED_HASH SHA256=${EXPECTED_HASH})
