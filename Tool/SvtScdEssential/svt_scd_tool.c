@@ -1433,7 +1433,8 @@ int main(int argc, char **argv) {
         if (reader.video_source) progress.total_frames = reader.frame_count;
         else
 #endif
-            progress.total_frames = infer_y4m_frame_count(reader.file, &info, opt.frames);
+            if (!input_is_pipe(opt.input_path))
+                progress.total_frames = infer_y4m_frame_count(reader.file, &info, opt.frames);
     }
     if (opt.frames > 0 && (progress.total_frames < 0 || progress.total_frames > opt.frames))
         progress.total_frames = opt.frames;
