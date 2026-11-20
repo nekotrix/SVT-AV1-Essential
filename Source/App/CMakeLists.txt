@@ -14,7 +14,8 @@ cmake_minimum_required(VERSION 3.5...3.28)
 # APP Directory CMakeLists.txt
 
 # Include Subdirectories
-include_directories(${PROJECT_SOURCE_DIR}/Source/API/)
+include_directories(${PROJECT_SOURCE_DIR}/Source/API/
+    ${PROJECT_BINARY_DIR}/Source/Lib/Codec/)
 find_package(PkgConfig)
 if(NOT PkgConfig_FOUND)
   message(WARNING "PkgConfig not found; disabled building with dovi & hdr10plus.")
@@ -153,6 +154,7 @@ endif()
 
 #********** SET COMPILE FLAGS************
 # Link the Encoder App
+add_dependencies(SvtAv1EncApp EbVersionHeaderGen)
 target_link_libraries(SvtAv1EncApp SvtAv1Enc ${LIBDOVI_LIBRARY} ${LIBHDR10PLUS_RS_LIBRARY})
 target_link_directories(SvtAv1EncApp PRIVATE ${LIBDOVI_LIBRARY_DIR} ${LIBHDR10PLUS_RS_LIBRARY_DIR})
 
