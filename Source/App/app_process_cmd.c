@@ -1087,6 +1087,12 @@ static void ffms2_read_input_frames(EbConfig *app_cfg, uint8_t is_16bit, EbBuffe
     const uint8_t *src_u = frame->Data[1];
     const uint8_t *src_v = frame->Data[2];
 
+    if (app_cfg->crop_w) {
+        src_y += (size_t)app_cfg->crop_y * frame->Linesize[0] + app_cfg->crop_x * 2;
+        src_u += (size_t)(app_cfg->crop_y >> 1) * frame->Linesize[1] + app_cfg->crop_x;
+        src_v += (size_t)(app_cfg->crop_y >> 1) * frame->Linesize[2] + app_cfg->crop_x;
+    }
+
     for (uint32_t y = 0; y < height; y++) {
         memcpy(dst_y, src_y, width * 2);
         dst_y += width * 2;
