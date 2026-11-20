@@ -915,7 +915,7 @@ ConfigDescription config_entry_specific[] = {
     {FAST_DECODE_TOKEN, "Fast Decoder levels, default is 0 [0-2]"},
     // --- start: ALTREF_FILTERING_SUPPORT
     {ENABLE_TF_TOKEN,
-     "Enable ALT-REF (temporally filtered) frames, default is 1 [0-2]"},
+     "Enable ALT-REF (temporally filtered) frames, default is 1 [0-3]"},
 
     {ENABLE_OVERLAYS,
      "Enable the insertion of overlayer pictures which will be used as an additional reference "
@@ -1252,7 +1252,7 @@ ConfigDescription fconfig_entry_specific[] = {
     {FAST_DECODE_TOKEN, "Fast Decoder levels, default is 0 [0-2]"},
 #endif
     // --- start: ALTREF_FILTERING_SUPPORT
-    {ENABLE_TF_TOKEN, "Enable ALT-REF (temporally filtered) frames, default is 1 [0-2]"},
+    {ENABLE_TF_TOKEN, "Enable ALT-REF (temporally filtered) frames, default is 1 [0-3]"},
     {ENABLE_TF_KEY_TOKEN, "Enable MCTF for key frames, default is 0 [0-1]"},
     {ENABLE_OVERLAYS,
      "Enable the insertion of overlayer pictures which will be used as an additional reference "
