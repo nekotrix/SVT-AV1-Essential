@@ -114,7 +114,7 @@ SVT-AV1-Essential sports different defaults from mainline SVT-AV1 in order to pr
 - Forced 10-bit color depth and HBD mode, for higher internal precision and thus higher quality visuals and efficiency.
 - `--speed` set to `slow` by default at 1080p and below, and `medium` above.
 - `--quality` set to `medium` by default.
-- `--enable-dlf` set to `2` by default.
+- `--enable-dlf` set to `1` by default.
 - `--enable-variance-boost` set to `1` by default.
 - `--variance-boost-strength` set to `1` by default.
 - `--variance-octile` set to `4` by default.
@@ -127,7 +127,7 @@ SVT-AV1-Essential sports different defaults from mainline SVT-AV1 in order to pr
 - `--chroma-qm-min` set to `4` by default.
 - `--enable-dg` (dynamic gop) set to `0` by default.
 - `--adaptive-film-grain` set to `0` by default.
-- `--ac-bias` set to `0.25` by default.
+- `--ac-bias` set to `0` by default.
 
 It is expected for these provided defaults to be much slower than the *default* mainline SVT-AV1 configuration.
 The user can leverage a faster `--speed` to compensate for that while still getting better visuals in return, 

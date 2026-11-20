@@ -604,8 +604,8 @@ typedef struct EbSvtAv1EncConfiguration {
      * @brief Deblocking loop filter control
      *
      * 0: disabled
-     * 1: enabled
-     * 2: more accurate (slower) [Default]
+     * 1: enabled [Default]
+     * 2: more accurate (slower)
      * 3: most accurate (very slow)
      */
     uint8_t enable_dlf_flag;
