@@ -31,6 +31,10 @@
 #define ftello _ftelli64
 #endif
 
+#ifdef CONFIG_WEBM_IO
+#include "third_party/webm/webmenc.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -58,7 +62,9 @@ typedef enum EncPass {
 } EncPass;
 
 typedef enum OutputFormat {
-    OUTPUT_FORMAT_IVF = 0,
+    OUTPUT_FORMAT_AUTO = 0,
+    OUTPUT_FORMAT_IVF,
+    OUTPUT_FORMAT_WEBM,
     OUTPUT_FORMAT_OBU,
 } OutputFormat;
 
@@ -224,6 +230,12 @@ typedef struct EbConfig {
     void *ffms_video_source;
     void *ffms_index;
     int   ffms_track_num;
+#ifdef CONFIG_WEBM_IO
+    bool                     write_webm;        // Enable WebM output
+    struct WebmOutputContext webm_ctx;          // WebM context
+    int          argc;
+    const char **argv;
+#endif
 } EbConfig;
 
 typedef struct EncChannel {
