@@ -1,4 +1,2 @@
 add_subdirectory(SvtFgEssential)
 add_subdirectory(SvtScdEssential)
-
-add_dependencies(SvtFgEssential SvtScdEssential)
