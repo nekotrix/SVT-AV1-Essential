@@ -29,6 +29,7 @@ static void svt_sequence_control_set_dctor(EbPtr p) {
     EB_FREE_ARRAY(obj->b64_geom);
     free_sb_geoms(obj->sb_geom);
     free_scale_evts(&obj->static_config.frame_scale_evts);
+    EB_FREE_ARRAY(obj->static_config.fgs_seeds);
     EB_FREE_ARRAY(obj->static_config.sframe_posi.sframe_qps);
     EB_FREE_ARRAY(obj->static_config.sframe_posi.sframe_qp_offsets);
     obj->static_config.sframe_posi.sframe_qp_num = 0;
@@ -167,8 +168,15 @@ EbErrorType copy_sequence_control_set(SequenceControlSet* dst, SequenceControlSe
     if (dst->b64_geom != NULL) {
         EB_FREE_ARRAY(dst->b64_geom);
     }
+    EB_FREE_ARRAY(dst->static_config.fgs_seeds);
     // Copy the non-pointer members
     *dst = *src;
+    if (src->static_config.fgs_seed_count) {
+        EB_MALLOC_ARRAY(dst->static_config.fgs_seeds, src->static_config.fgs_seed_count);
+        memcpy(dst->static_config.fgs_seeds,
+               src->static_config.fgs_seeds,
+               src->static_config.fgs_seed_count * sizeof(*dst->static_config.fgs_seeds));
+    }
 
     EB_MALLOC_ARRAY(dst->b64_geom, dst->b64_total_count);
     memcpy(dst->b64_geom, src->b64_geom, sizeof(B64Geom) * dst->b64_total_count);

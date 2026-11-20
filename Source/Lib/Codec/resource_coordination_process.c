@@ -312,6 +312,11 @@ void speed_buffer_control(ResourceCoordinationContext* context_ptr, PictureParen
 
 // Film grain (assigning the random-seed)
 static void assign_film_grain_random_seed(PictureParentControlSet* pcs) {
+    const EbSvtAv1EncConfiguration* config = &pcs->scs->static_config;
+    if (config->fgs_seed_count) {
+        pcs->frm_hdr.film_grain_params.random_seed = config->fgs_seeds[pcs->picture_number % config->fgs_seed_count];
+        return;
+    }
     uint16_t* fgn_random_seed_ptr              = &pcs->scs->film_grain_random_seed;
     pcs->frm_hdr.film_grain_params.random_seed = *fgn_random_seed_ptr;
     *fgn_random_seed_ptr += 3381; // Changing random seed for film grain
