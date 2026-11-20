@@ -69,10 +69,24 @@ EbHandle    svt_create_mutex(void);
 EbErrorType svt_release_mutex(EbHandle mutex_handle);
 EbErrorType svt_block_on_mutex(EbHandle mutex_handle);
 EbErrorType svt_destroy_mutex(EbHandle mutex_handle);
+#ifdef _WIN32
+#define EB_PIN_THREAD(pointer) \
+    if (svt_aom_group_affinity_enabled) { \
+        SetThreadAffinityMask(pointer, svt_aom_group_affinity.Mask); \
+    }
+#elif defined(__linux__) && !defined(__ANDROID__)
+#define EB_PIN_THREAD(pointer) \
+    if (svt_aom_group_affinity_enabled) { \
+        pthread_setaffinity_np(*((pthread_t*)pointer), sizeof(cpu_set_t), &svt_aom_group_affinity); \
+    }
+#else
+#define EB_PIN_THREAD(pointer) ((void)0)
+#endif
 #define EB_CREATE_THREAD_NAMED(pointer, thread_function, thread_context, name) \
     do {                                                                       \
         pointer = svt_create_thread(thread_function, thread_context, name);    \
         EB_ADD_MEM(pointer, 1, EB_THREAD);                                     \
+        EB_PIN_THREAD(pointer);                                              \
     } while (0)
 
 /* `thread_function` must be a bare identifier here; the macro derives the
