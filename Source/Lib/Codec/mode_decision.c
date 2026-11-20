@@ -854,7 +854,7 @@ static INLINE uint8_t is_dc_only_safe(PictureControlSet* pcs, ModeDecisionContex
     const Position blk_org = {.x = ctx->blk_org_x - ctx->sb_origin_x, .y = ctx->blk_org_y - ctx->sb_origin_y};
     svt_aom_get_blk_var_map(ctx->blk_geom->sq_size, blk_org.x, blk_org.y, &blk_idx, sub_idx);
 
-    uint16_t* sb_var  = pcs->ppcs->variance[ctx->sb_index];
+    double* sb_var  = pcs->ppcs->variance[ctx->sb_index];
     uint32_t  blk_var = sb_var[blk_idx];
 
     // For 8x8, we do not have 4x4 sub-variance, skip spread check
