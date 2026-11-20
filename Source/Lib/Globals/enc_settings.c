@@ -1206,6 +1206,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
     config_ptr->speed                             = SPEED_UNKNOWN;
     config_ptr->quality                           = QUALITY_UNKNOWN;
     config_ptr->low_memory                        = false;
+    config_ptr->hide_banner                       = false;
     return return_error;
 }
 
@@ -2704,6 +2705,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
         {"enable-intrabc", &config_struct->enable_intrabc},
         {"auto-tiling", &config_struct->auto_tiling},
         {"low-memory", &config_struct->low_memory},
+        {"hide-banner", &config_struct->hide_banner},
     };
     const size_t bool_opts_size = sizeof(bool_opts) / sizeof(bool_opts[0]);
 
