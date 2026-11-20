@@ -1152,6 +1152,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
     config_ptr->intra_period_length          = -2;
     config_ptr->min_intra_period_length      = -1;
     config_ptr->multiply_keyint              = false;
+    config_ptr->multiply_min_keyint          = false;
     config_ptr->intra_refresh_type           = 2;
     config_ptr->hierarchical_levels          = HIERARCHICAL_LEVELS_AUTO;
     config_ptr->pred_structure               = RANDOM_ACCESS;
@@ -2748,7 +2749,7 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
     }
 
     if (!strcmp(name, "min-keyint")) {
-        return str_to_keyint(value, &config_struct->min_intra_period_length, &config_struct->multiply_keyint);
+        return str_to_keyint(value, &config_struct->min_intra_period_length, &config_struct->multiply_min_keyint);
     }
 
     if (!strcmp(name, "speed"))
