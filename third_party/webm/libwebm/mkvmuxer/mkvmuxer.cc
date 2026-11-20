@@ -687,8 +687,9 @@ BlockAdditionMapping::~BlockAdditionMapping() {
 }
 
 uint64_t BlockAdditionMapping::PayloadSize() const {
-  return EbmlElementSize(libwebm::kMkvBlockAddIdValue,
-                         static_cast<uint64>(value_)) +
+  return (value_ ? EbmlElementSize(libwebm::kMkvBlockAddIdValue,
+                                  static_cast<uint64>(value_))
+                 : 0) +
          (name_ ? EbmlElementSize(libwebm::kMkvBlockAddIdName, name_) : 0) +
          EbmlElementSize(libwebm::kMkvBlockAddIdType,
                          static_cast<uint64>(type_)) +
@@ -714,8 +715,8 @@ bool BlockAdditionMapping::Write(IMkvWriter* writer) const {
   if (!WriteEbmlMasterElement(writer, libwebm::kMkvBlockAdditionMapping,
                               PayloadSize()))
     return false;
-  if (!WriteEbmlElement(writer, libwebm::kMkvBlockAddIdValue,
-                        static_cast<uint64>(value_)))
+  if (value_ && !WriteEbmlElement(writer, libwebm::kMkvBlockAddIdValue,
+                                 static_cast<uint64>(value_)))
     return false;
   if (name_ && !WriteEbmlElement(writer, libwebm::kMkvBlockAddIdName, name_))
     return false;
