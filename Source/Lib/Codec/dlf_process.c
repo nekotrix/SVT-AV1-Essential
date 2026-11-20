@@ -110,7 +110,7 @@ EbErrorType svt_aom_dlf_kernel_iter(void* context) {
         pcs->temp_lf_recon_pic_16bit         = NULL;
         if (pcs->zero_filt_sse == -1 &&
             (frm_hdr->loop_filter_params.filter_level[0] || frm_hdr->loop_filter_params.filter_level[1])) {
-            pcs->zero_filt_sse = picture_sse_calculations(pcs, recon_buffer, /*plane*/ 0);
+            pcs->zero_filt_sse = picture_sse_calculations(pcs, recon_buffer, /*plane*/ 0, 0);
             if (pcs->best_filt_sse != -1 && pcs->zero_filt_sse <= pcs->best_filt_sse) {
                 frm_hdr->loop_filter_params.filter_level[0] = 0;
                 frm_hdr->loop_filter_params.filter_level[1] = 0;
@@ -128,7 +128,7 @@ EbErrorType svt_aom_dlf_kernel_iter(void* context) {
             svt_av1_loop_filter_frame(recon_buffer, pcs, 0, 3);
         }
         if (need_filt_sse) {
-            pcs->best_filt_sse = picture_sse_calculations(pcs, recon_buffer, /*plane*/ 0);
+            pcs->best_filt_sse = picture_sse_calculations(pcs, recon_buffer, /*plane*/ 0, 0);
         }
         pcs->dlf_dist_dev = pcs->zero_filt_sse == 0 ||
                 !(frm_hdr->loop_filter_params.filter_level[0] || frm_hdr->loop_filter_params.filter_level[1])

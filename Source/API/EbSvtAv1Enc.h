@@ -1216,6 +1216,21 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint8_t noise_adaptive_filtering;
 
+    /**
+     * @brief Enable alternative CDEF biases
+     * 0: disabled
+     * 1-3: enabled
+     * Default is 0
+     */
+    uint8_t alt_cdef;
+
+    /**
+     * @brief Enable alternative DLF biases
+     * 0: disabled
+     * 1-3: enabled
+     * Default is 0
+     */
+    uint8_t alt_dlf;
     // clang-format off
     /* Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct */
     uint8_t padding[128
@@ -1232,7 +1247,7 @@ typedef struct EbSvtAv1EncConfiguration {
         - sizeof(uint8_t) // roi_map_block_size
         - sizeof(SpeedPreset)
         - sizeof(QualityPreset)
-        - (sizeof(uint8_t) * 5)
+        - (sizeof(uint8_t) * 7)
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;
