@@ -972,6 +972,42 @@ static void write_picture(const SvtFgaContext* ctx, EbPictureBufferDesc* pic) {
     }
 }
 
+void svt_aom_fga_apply_multiplier(AomFilmGrain* grain, float multiplier) {
+    if (!grain->apply_grain || multiplier == 1) {
+        return;
+    }
+    if (multiplier == 0) {
+        grain->apply_grain = 0;
+        return;
+    }
+    const int counts[]     = {grain->num_y_points, grain->num_cb_points, grain->num_cr_points};
+    int32_t (*points[])[2] = {grain->scaling_points_y, grain->scaling_points_cb, grain->scaling_points_cr};
+    int peak               = 0;
+    for (int c = 0; c < 3; ++c) {
+        for (int i = 0; i < counts[c]; ++i) {
+            peak = AOMMAX(peak, points[c][i][1]);
+        }
+    }
+    // Adjust the shared shift to retain precision without clipping stronger grain.
+    double scale = multiplier;
+    while (peak * scale > 255 && grain->scaling_shift > 8) {
+        scale *= 0.5;
+        --grain->scaling_shift;
+    }
+    while (peak * scale <= 127.5 && grain->scaling_shift < 11) {
+        scale *= 2;
+        ++grain->scaling_shift;
+    }
+    peak = 0;
+    for (int c = 0; c < 3; ++c) {
+        for (int i = 0; i < counts[c]; ++i) {
+            points[c][i][1] = AOMMIN(255, (int)(points[c][i][1] * scale + 0.5));
+            peak            = AOMMAX(peak, points[c][i][1]);
+        }
+    }
+    grain->apply_grain = peak != 0;
+}
+
 int svt_aom_fga_run(SvtFgaContext* ctx, EbPictureBufferDesc* source, const EbPictureBufferDesc* next, bool scene_cut,
                     bool denoise, AomFilmGrain* grain) {
     if (!ctx || !source || !grain || !valid_picture(ctx, source) || (next && !valid_picture(ctx, next))) {

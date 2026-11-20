@@ -5528,6 +5528,7 @@ EbErrorType svt_aom_picture_decision_kernel_iter(void* context) {
             if (scs->static_config.film_grain_denoise_apply) {
                 refresh_picture_analysis(pcs);
             }
+            svt_aom_fga_apply_multiplier(&pcs->frm_hdr.film_grain_params, scs->static_config.fgs_multiplier);
         }
 #endif
 

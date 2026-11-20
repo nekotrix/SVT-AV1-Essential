@@ -889,6 +889,11 @@ EbErrorType svt_av1_verify_settings(SequenceControlSet* scs) {
         return_error = EB_ErrorBadParameter;
     }
 
+    if (!(config->fgs_multiplier >= 0 && config->fgs_multiplier <= 2)) {
+        SVT_ERROR("FGS multiplier must be between 0 and 2\n");
+        return_error = EB_ErrorBadParameter;
+    }
+
     if (config->film_grain_denoise_apply != 0 && config->film_grain_denoise_apply != 1) {
         SVT_ERROR("The film grain denoise apply signal can only have a value of 0 or 1\n");
         return_error = EB_ErrorBadParameter;
@@ -1183,6 +1188,7 @@ EbErrorType svt_av1_set_default_params(EbSvtAv1EncConfiguration* config_ptr) {
 
     // Film grain denoising
     config_ptr->film_grain_denoise_strength = 0;
+    config_ptr->fgs_multiplier              = 1;
     config_ptr->film_grain_denoise_apply    = 0;
     config_ptr->photon_noise_iso            = 0;
     config_ptr->enable_photon_noise_chroma  = 0;
@@ -1607,8 +1613,10 @@ void svt_av1_print_lib_params(SequenceControlSet* scs) {
         }
 
         if (config->film_grain_denoise_strength == -1) {
-            SVT_INFO("SVT [config]: film grain synth / denoising / level \t\t\t: 1 / %d / auto\n",
-                     config->film_grain_denoise_apply);
+            SVT_INFO("SVT [config]: film grain synth / denoising / level / multiplier \t: %d / %d / auto / %.3g\n",
+                     config->fgs_multiplier != 0,
+                     config->film_grain_denoise_apply,
+                     config->fgs_multiplier);
         } else if (config->film_grain_denoise_strength != 0) {
             if (config->adaptive_film_grain) {
                 SVT_INFO(
@@ -2714,6 +2722,14 @@ EB_API EbErrorType svt_av1_enc_parse_parameter(EbSvtAv1EncConfiguration* config_
 
     EbErrorType return_error = EB_ErrorBadParameter;
 
+    if (!strcmp(name, "fgs-multiplier")) {
+        double multiplier;
+        if (str_to_double(value, &multiplier, NULL) != EB_ErrorNone || !(multiplier >= 0 && multiplier <= 2)) {
+            return EB_ErrorBadParameter;
+        }
+        config_struct->fgs_multiplier = (float)multiplier;
+        return EB_ErrorNone;
+    }
     if (!strcmp(name, "fgs-seed")) {
         uint16_t* seeds;
         uint32_t  count;

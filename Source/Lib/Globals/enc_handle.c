@@ -4734,6 +4734,7 @@ static void copy_api_from_app(SequenceControlSet* scs, EbSvtAv1EncConfiguration*
     //Film Grain
     scs->static_config.film_grain_denoise_strength = config_struct->film_grain_denoise_strength;
     scs->static_config.film_grain_denoise_apply    = config_struct->film_grain_denoise_apply;
+    scs->static_config.fgs_multiplier              = config_struct->fgs_multiplier;
     if (scs->static_config.film_grain_denoise_strength == 0 && scs->static_config.film_grain_denoise_apply == 1) {
         SVT_WARN("Film grain denoise apply signal is going to be ignored when film grain is off.\n");
     }

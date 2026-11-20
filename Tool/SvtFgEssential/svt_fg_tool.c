@@ -187,6 +187,7 @@ typedef struct Options {
     int            height;
     int            frames;
     int            strength;
+    float          multiplier;
     int            adaptive;
     int            bit_depth;
     int            fps_num;
@@ -273,6 +274,7 @@ static void usage(FILE* fp, const char* argv0, int full) {
             "  --target FILE         Previously denoised input for grain estimation.\n"
             "  --table FILE          Save AV1 film-grain parameters.\n"
             "  --strength -1|1..50   Denoising strength (default 6); -1 estimates grain automatically.\n"
+            "  --multiplier FACTOR   Grain amplitude for automatic analysis (0..2, default 1).\n"
             "  --jobs N              Frames to analyze in parallel (default 2).\n"
             "                        Used with manual strength or --target.\n"
             "  --keyint N            Periodic keyframe interval in frames; 0 disables periodic keyframes.\n"
@@ -334,6 +336,8 @@ static void usage(FILE* fp, const char* argv0, int full) {
             "                        -1 estimates grain automatically, without a strength setting.\n"
             "                        Automatic table-only runs skip denoising; video output enables it.\n"
             "                        With --target, grain is estimated from the supplied pair instead.\n"
+            "  --multiplier FACTOR   Grain amplitude for --strength -1 without --target (0..2, default 1).\n"
+            "                        0 disables synthesis.\n"
             "  --adaptive 0|1        Adapt denoising block size to video resolution (default 0).\n"
             "                        Applies to manual strength or analysis with --target.\n"
             "  --jobs N              Frames to analyze in parallel (1..256, default 2).\n"
@@ -623,6 +627,7 @@ static int parse_options(int argc, char** argv, Options* opt) {
     memset(opt, 0, sizeof(*opt));
     opt->frames              = -1;
     opt->strength            = 6;
+    opt->multiplier          = 1;
     opt->adaptive            = 0;
     opt->bit_depth           = 8;
     opt->seed_mode           = SEED_MODE_SVT_DEFAULT;
@@ -696,6 +701,17 @@ static int parse_options(int argc, char** argv, Options* opt) {
                 fprintf(stderr, "Invalid --strength value; expected -1 or 1..50\n");
                 return 0;
             }
+        } else if (!strcmp(argv[i], "--multiplier")) {
+            if (!next_arg(argc, argv, &i, &value)) {
+                return 0;
+            }
+            char* end;
+            const double multiplier = strtod(value, &end);
+            if (end == value || *end || !(multiplier >= 0 && multiplier <= 2)) {
+                fprintf(stderr, "Invalid --multiplier value; expected 0..2\n");
+                return 0;
+            }
+            opt->multiplier = (float)multiplier;
         } else if (!strcmp(argv[i], "--adaptive")) {
             if (!next_arg(argc, argv, &i, &value) || !parse_bool_arg(value, &opt->adaptive)) {
                 fprintf(stderr, "Invalid --adaptive value; expected 0 or 1\n");
@@ -2808,6 +2824,7 @@ int main(int argc, char** argv) {
                          "Automatic grain estimation failed at frame %d",
                          slot->frame_index);
             } else {
+                svt_aom_fga_apply_multiplier(&slot->grain, opt.multiplier);
                 progress_note_frame(&progress);
             }
             batch_count = 1;

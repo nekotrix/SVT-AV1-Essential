@@ -96,6 +96,7 @@
 #define TIER_TOKEN "--tier"
 #define LEVEL_TOKEN "--level"
 #define FILM_GRAIN_TOKEN "--film-grain"
+#define FGS_MULTIPLIER_TOKEN "--fgs-multiplier"
 #define FGS_SEED_TOKEN "--fgs-seed"
 #define FILM_GRAIN_DENOISE_APPLY_TOKEN "--film-grain-denoise"
 #define PHOTON_NOISE_TOKEN "--photon-noise"
@@ -1009,6 +1010,9 @@ ConfigDescription config_entry_specific[] = {
 
     {FGS_TABLE_TOKEN, "Set the film grain model table path"},
 
+    {FGS_MULTIPLIER_TOKEN,
+     "Grain amplitude multiplier for --film-grain -1 only, default is 1 [0-2]; 0 disables synthesis"},
+
     {FGS_SEED_TOKEN,
      "Film grain seed (1-65535) or comma-separated list; -1 uses a sequence optimized to reduce "
      "repeating grain patterns. Lists repeat one seed per frame; default changes the seed for each frame"},
@@ -1349,6 +1353,9 @@ ConfigDescription fconfig_entry_specific[] = {
 
     {FGS_TABLE_TOKEN, "Set the film grain model table path"},
 
+    {FGS_MULTIPLIER_TOKEN,
+     "Grain amplitude multiplier for --film-grain -1 only, default is 1 [0-2]; 0 disables synthesis"},
+
     {FGS_SEED_TOKEN,
      "Film grain seed (1-65535) or comma-separated list; -1 uses a sequence optimized to reduce "
      "repeating grain patterns. Lists repeat one seed per frame; default changes the seed for each frame"},
@@ -1608,6 +1615,7 @@ ConfigEntry config_entry[] = {
 
 #if CONFIG_ENABLE_FILM_GRAIN
     {FILM_GRAIN_TOKEN, "FilmGrain", set_cfg_generic_token},
+    {FGS_MULTIPLIER_TOKEN, "FgsMultiplier", set_cfg_generic_token},
     {FGS_SEED_TOKEN, "FilmGrainSeed", set_cfg_generic_token},
     {FILM_GRAIN_DENOISE_APPLY_TOKEN, "FilmGrainDenoise", set_cfg_generic_token},
     {FGS_TABLE_TOKEN, "FilmGrainTable", set_cfg_fgs_table_path},
