@@ -39,6 +39,7 @@ struct _EbEncHandle {
     // Config Set Pool & Active Array
     EbSystemResource*             scs_pool_ptr;
     EbSequenceControlSetInstance* scs_instance;
+    AomFilmGrain*                 photon_noise_table;
 
     // Full Results
     EbSystemResource* picture_control_set_pool_ptr;
