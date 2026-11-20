@@ -9109,6 +9109,8 @@ void svt_aom_sig_deriv_mode_decision_config_default(SequenceControlSet* scs, Pic
             pcs->wm_level = pcs->wm_level == 1 ? pcs->wm_level : pcs->wm_level == 0 ? MAX_WARP_LVL : pcs->wm_level - 1;
         }
     }
+    if (enc_mode >= ENC_M2 && enc_mode <= ENC_M3 && !is_base && pcs->wm_level && pcs->wm_level < 4)
+        pcs->wm_level = 4;
 
     bool enable_wm = pcs->wm_level ? 1 : 0;
     // Note: local warp should be disabled when super-res or resize is ON
@@ -9317,6 +9319,8 @@ void svt_aom_sig_deriv_mode_decision_config_default(SequenceControlSet* scs, Pic
     frm_hdr->tx_mode = (pcs->txs_level) ? TX_MODE_SELECT : TX_MODE_LARGEST;
     // Set the level for nic
     pcs->nic_level = svt_aom_get_nic_level_default(enc_mode, is_base);
+    if (enc_mode >= ENC_M2 && enc_mode <= ENC_M6 && !is_base && !is_islice)
+        pcs->nic_level = MIN(11, pcs->nic_level + 1);
 
     // Set the level for SQ me-search
     pcs->md_sq_mv_search_level = 0;
