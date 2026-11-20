@@ -98,7 +98,7 @@ For more information on valid values for specific keys, refer to the [EbEncSetti
 | **Tune**                         | --tune                      | [0-5]                          | 1           | Optimize the encoding process for different desired outcomes [0 = VQ (video and still image), 1 = PSNR (video and still image), 2 = SSIM (video and still image), 3 = IQ (still image only), 4 = MS-SSIM (video and still image), 5 = VMAF (video only)]  |
 | **AdaptiveFilmGrain**            | --adaptive-film-grain       | [0,1]                          | 0           | Allows film grain synthesis to be sourced from different block sizes depending on resolution                  |
 | **MaxTxSize**                    | --max-tx-size               | [32,64]                        | 64          | Restricts use of block transform sizes to the specified value                                                 |
-| **LowMemory**                    | --low-memory                | [0-1]                          | 0           | Specifies whether to use params which reduce RAM consumption with potential efficiency and speed trade-offs   |
+| **LowMemory**                    | --low-memory                | [0-2]                          | 0           | Specifies whether to use params which reduce RAM consumption with potential efficiency and speed trade-offs   |
 | **NoiseNormStrength**            |  --noise-norm-strength      | [0-4]                          | 0           | Selectively boost AC coefficients to improve fine detail retention in certain circumstances                   |
 
 ## Rate Control Options
