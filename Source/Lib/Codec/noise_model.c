@@ -810,12 +810,54 @@ void svt_av1_add_block_observations_internal_c(uint32_t n, const double val, con
     }
 }
 
+static double extract_residual_row(const AomNoiseModel* model, const int16_t* residual,
+                                   const int16_t* luma_residual, int stride, int luma_stride,
+                                   const int32_t sub_log2[2], int x, int y, double scale, double* row) {
+    for (int i = 0; i < model->n; ++i) {
+        row[i] = residual[(y + model->coords[i][1]) * stride + x + model->coords[i][0]] * scale;
+    }
+    if (luma_residual) {
+        double sum = 0;
+        for (int dy = 0; dy < (1 << sub_log2[1]); ++dy) {
+            for (int dx = 0; dx < (1 << sub_log2[0]); ++dx) {
+                sum += luma_residual[((y << sub_log2[1]) + dy) * luma_stride + (x << sub_log2[0]) + dx];
+            }
+        }
+        row[model->n] = sum * scale / (1 << (sub_log2[0] + sub_log2[1]));
+    }
+    return residual[y * stride + x] * scale;
+}
+
+static double residual_variance(const int16_t* residual, int stride, int x, int y, int width, int height,
+                                double scale) {
+    double sum = 0, sum_sq = 0;
+    const int count = width * height;
+    for (int row = 0; row < height; ++row) {
+        for (int col = 0; col < width; ++col) {
+            const double value = residual[(y + row) * stride + x + col] * scale;
+            sum += value;
+            sum_sq += value * value;
+        }
+    }
+    return AOMMAX(0, sum_sq / count - (sum / count) * (sum / count));
+}
+
+static void equation_system_accumulate(AomEquationSystem* dst, const AomEquationSystem* src, double weight) {
+    for (int i = 0; i < dst->n * dst->n; ++i) {
+        dst->A[i] = weight * dst->A[i] + src->A[i];
+    }
+    for (int i = 0; i < dst->n; ++i) {
+        dst->b[i] = weight * dst->b[i] + src->b[i];
+    }
+}
+
 static int32_t add_block_observations(AomNoiseModel* noise_model, int32_t c, const uint8_t* const data,
                                       const uint8_t* const denoised, int32_t w, int32_t h, int32_t stride,
                                       int32_t sub_log2[2], const uint8_t* const alt_data,
                                       const uint8_t* const alt_denoised, int32_t alt_stride,
                                       const uint8_t* const flat_blocks, int32_t block_size, int32_t num_blocks_w,
-                                      int32_t num_blocks_h) {
+                                      int32_t num_blocks_h, const int16_t* residual,
+                                      const int16_t* luma_residual, double residual_scale) {
     const int32_t lag           = noise_model->params.lag;
     const int32_t num_coords    = noise_model->n;
     const double  normalization = (1 << noise_model->params.bit_depth) - 1;
@@ -857,7 +899,10 @@ static int32_t add_block_observations(AomNoiseModel* noise_model, int32_t c, con
                                          : ((block_size >> sub_log2[0]) - lag));
             for (int32_t y = y_start; y < y_end; ++y) {
                 for (int32_t x = x_start; x < x_end; ++x) {
-                    const double val = noise_model->params.use_highbd
+                    const double val = residual
+                        ? extract_residual_row(noise_model, residual, luma_residual, stride, alt_stride,
+                                               sub_log2, x + x_o, y + y_o, residual_scale, buffer)
+                        : noise_model->params.use_highbd
                         ? extract_ar_row_highbd(noise_model->coords,
                                                 num_coords,
                                                 (const uint16_t* const)data,
@@ -901,7 +946,8 @@ static void add_noise_std_observations(AomNoiseModel* noise_model, int32_t c, co
                                        const uint8_t* const data, const uint8_t* const denoised, int32_t w, int32_t h,
                                        int32_t stride, const int32_t sub_log2[2], const uint8_t* const alt_data,
                                        int32_t alt_stride, const uint8_t* const flat_blocks, int32_t block_size,
-                                       int32_t num_blocks_w, int32_t num_blocks_h) {
+                                       int32_t num_blocks_w, int32_t num_blocks_h,
+                                       const int16_t* residual, double residual_scale) {
     const int32_t           num_coords            = noise_model->n;
     AomNoiseStrengthSolver* noise_strength_solver = &noise_model->latest_state[c].strength_solver;
 
@@ -930,7 +976,9 @@ static void add_noise_std_observations(AomNoiseModel* noise_model, int32_t c, co
                                                          y_o << sub_log2[1],
                                                          block_size,
                                                          noise_model->params.use_highbd);
-                const double noise_var  = get_noise_var(data,
+                const double noise_var  = residual
+                    ? residual_variance(residual, stride, x_o, y_o, num_samples_w, num_samples_h, residual_scale)
+                    : get_noise_var(data,
                                                         denoised,
                                                         stride,
                                                         w >> sub_log2[0],
@@ -1024,10 +1072,11 @@ static int32_t ar_equation_system_solve(AomNoiseState* state, int32_t is_chroma)
  * \param[in]     flat_blocks     A map to blocks that have been determined flat
  * \param[in]     block_size      The size of blocks.
  */
-static AomNoiseStatus noise_model_update(AomNoiseModel* const noise_model, const uint8_t* const data[3],
+static AomNoiseStatus noise_model_update_internal(AomNoiseModel* const noise_model, const uint8_t* const data[3],
                                          const uint8_t* const denoised[3], int32_t w, int32_t h,
                                          const int32_t stride[3], int32_t chroma_sub_log2[2],
-                                         const uint8_t* const flat_blocks, int32_t block_size) {
+                                         const uint8_t* const flat_blocks, int32_t block_size,
+                                         const int16_t* const residual[3], double residual_scale, double history_weight) {
     const int32_t num_blocks_w = (w + block_size - 1) / block_size;
     const int32_t num_blocks_h = (h + block_size - 1) / block_size;
     //  int32_t y_model_different = 0;
@@ -1086,7 +1135,10 @@ static AomNoiseStatus noise_model_update(AomNoiseModel* const noise_model, const
                                     flat_blocks,
                                     block_size,
                                     num_blocks_w,
-                                    num_blocks_h)) {
+                                    num_blocks_h,
+                                    residual ? residual[channel] : NULL,
+                                    residual && channel ? residual[0] : NULL,
+                                    residual_scale)) {
             SVT_ERROR("Adding block observation failed\n");
             return AOM_NOISE_STATUS_INTERNAL_ERROR;
         }
@@ -1114,11 +1166,19 @@ static AomNoiseStatus noise_model_update(AomNoiseModel* const noise_model, const
                                    flat_blocks,
                                    block_size,
                                    num_blocks_w,
-                                   num_blocks_h);
+                                   num_blocks_h,
+                                   residual ? residual[channel] : NULL,
+                                   residual_scale);
 
         if (!svt_aom_noise_strength_solver_solve(&noise_model->latest_state[channel].strength_solver)) {
             SVT_ERROR("Solving latest noise strength failed!\n");
             return AOM_NOISE_STATUS_INTERNAL_ERROR;
+        }
+        if (residual) {
+            // Keep the fitting statistics free of the solver's regularization.
+            AomNoiseStrengthSolver* solver = &noise_model->latest_state[channel].strength_solver;
+            const double regularization = solver->total / solver->num_equations / 8192.;
+            for (int j = 0; j < solver->num_bins; ++j) solver->eqns.b[j] -= regularization;
         }
 
         // Check noise characteristics and return if error.
@@ -1129,8 +1189,15 @@ static AomNoiseStatus noise_model_update(AomNoiseModel* const noise_model, const
         //      y_model_different = 1;
         //    }
 
-        noise_model->combined_state[channel].num_observations = noise_model->latest_state[channel].num_observations;
-        equation_system_copy(&noise_model->combined_state[channel].eqns, &noise_model->latest_state[channel].eqns);
+        if (history_weight > 0) {
+            AomNoiseState* combined = &noise_model->combined_state[channel];
+            const AomNoiseState* latest = &noise_model->latest_state[channel];
+            combined->num_observations = (int32_t)(combined->num_observations * history_weight) + latest->num_observations;
+            equation_system_accumulate(&combined->eqns, &latest->eqns, history_weight);
+        } else {
+            noise_model->combined_state[channel].num_observations = noise_model->latest_state[channel].num_observations;
+            equation_system_copy(&noise_model->combined_state[channel].eqns, &noise_model->latest_state[channel].eqns);
+        }
         if (!ar_equation_system_solve(&noise_model->combined_state[channel], is_chroma)) {
             if (is_chroma) {
                 set_chroma_coefficient_fallback_soln(&noise_model->combined_state[channel].eqns);
@@ -1140,16 +1207,46 @@ static AomNoiseStatus noise_model_update(AomNoiseModel* const noise_model, const
             }
         }
 
-        noise_strength_solver_copy(&noise_model->combined_state[channel].strength_solver,
-                                   &noise_model->latest_state[channel].strength_solver);
+        if (history_weight > 0) {
+            AomNoiseStrengthSolver* combined = &noise_model->combined_state[channel].strength_solver;
+            const AomNoiseStrengthSolver* latest = &noise_model->latest_state[channel].strength_solver;
+            equation_system_accumulate(&combined->eqns, &latest->eqns, history_weight);
+            combined->num_equations = (int32_t)(combined->num_equations * history_weight) + latest->num_equations;
+            combined->total = history_weight * combined->total + latest->total;
+        } else {
+            noise_strength_solver_copy(&noise_model->combined_state[channel].strength_solver,
+                                       &noise_model->latest_state[channel].strength_solver);
+        }
 
         if (!svt_aom_noise_strength_solver_solve(&noise_model->combined_state[channel].strength_solver)) {
             SVT_ERROR("Solving combined noise strength failed!\n");
             return AOM_NOISE_STATUS_INTERNAL_ERROR;
         }
+        if (residual) {
+            AomNoiseStrengthSolver* solver = &noise_model->combined_state[channel].strength_solver;
+            const double regularization = solver->total / solver->num_equations / 8192.;
+            for (int j = 0; j < solver->num_bins; ++j) solver->eqns.b[j] -= regularization;
+        }
     }
 
     return AOM_NOISE_STATUS_OK;
+}
+
+static AomNoiseStatus noise_model_update(AomNoiseModel* model, const uint8_t* const data[3],
+                                         const uint8_t* const denoised[3], int32_t w, int32_t h,
+                                         const int32_t stride[3], int32_t chroma_sub_log2[2],
+                                         const uint8_t* flat_blocks, int32_t block_size) {
+    return noise_model_update_internal(model, data, denoised, w, h, stride, chroma_sub_log2, flat_blocks,
+                                       block_size, NULL, 1.0, 0.0);
+}
+
+AomNoiseStatus svt_aom_noise_model_update_residual(AomNoiseModel* model, const uint8_t* const data[3],
+                                                  const int16_t* const residual[3], int32_t w, int32_t h,
+                                                  const int32_t stride[3], const uint8_t* flat_blocks,
+                                                  int32_t block_size, double residual_scale, double history_weight) {
+    int32_t chroma_sub_log2[2] = {1, 1};
+    return noise_model_update_internal(model, data, data, w, h, stride, chroma_sub_log2, flat_blocks,
+                                       block_size, residual, residual_scale, history_weight);
 }
 
 void svt_aom_noise_model_save_latest(AomNoiseModel* noise_model) {

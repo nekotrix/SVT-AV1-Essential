@@ -15,6 +15,10 @@
 #include "aom_dsp_rtcd.h"
 #include "noise_util.h"
 #include "noise_model.h"
+#include "film_grain_analysis.h"
+#include <cmath>
+#include <random>
+#include <vector>
 
 namespace {
 using svt_av1_test_tool::SVTRandom;
@@ -398,5 +402,94 @@ TEST(fg_flat_block_finder_extract_block, hbd_AVX2) {
     delete[] block_finder->A;
     delete block_finder;
 }
+class AutoGrainPicture {
+  public:
+    AutoGrainPicture(int depth, int seed, bool noisy) {
+        pic_.width = 256;
+        pic_.height = 128;
+        pic_.bit_depth = depth == 10 ? EB_TEN_BIT : EB_EIGHT_BIT;
+        pic_.color_format = EB_YUV420;
+        std::mt19937 random(seed);
+        std::normal_distribution<double> noise(0, 4);
+        for (int c = 0; c < 3; ++c) {
+            const int w = pic_.width >> (c != 0);
+            const int h = pic_.height >> (c != 0);
+            const int stride = w + 16;
+            high_[c].resize(stride * h, 0);
+            low_[c].resize(stride * h / 4, 0);
+            pic_.buffer[c] = high_[c].data();
+            pic_.buffer_bit_inc[c] = low_[c].data();
+            pic_.stride[c] = pic_.stride_bit_inc[c] = stride;
+            for (int y = 0; y < h; ++y) {
+                for (int x = 0; x < w; ++x) {
+                    const double value =
+                        100 + x * 0.25 + (noisy ? noise(random) : 0);
+                    const int sample =
+                        (int)std::round(value * (depth == 10 ? 4 : 1));
+                    high_[c][y * stride + x] =
+                        (uint8_t)(sample >> (depth == 10 ? 2 : 0));
+                    low_[c][y * stride / 4 + x / 4] |= (sample & 3)
+                                                       << (6 - 2 * (x & 3));
+                }
+            }
+        }
+    }
+    EbPictureBufferDesc pic_ = {};
+    std::vector<uint8_t> high_[3], low_[3];
+};
+
+static double grain_strength(const AomFilmGrain &grain) {
+    const int value = grain.num_y_points ? grain.scaling_points_y[0][1] : 0;
+    return std::ldexp((double)value, 5 - grain.scaling_shift);
+}
+
+TEST(AutomaticFilmGrain, IndependentAndRepeatedFrames) {
+    for (int depth : {8, 10}) {
+        for (bool repeated : {false, true}) {
+            AutoGrainPicture source(depth, 13, true);
+            AutoGrainPicture next(depth, 37, true);
+            const std::vector<uint8_t> before = source.high_[0];
+            SvtFgaContext *ctx = svt_aom_fga_create(256, 128, depth);
+            ASSERT_NE(nullptr, ctx);
+            AomFilmGrain grain = {};
+            grain.random_seed = 123;
+            ASSERT_TRUE(svt_aom_fga_run(ctx,
+                                        &source.pic_,
+                                        repeated ? &source.pic_ : &next.pic_,
+                                        false,
+                                        false,
+                                        &grain));
+            EXPECT_TRUE(grain.apply_grain);
+            EXPECT_GE(grain_strength(grain), 3.0);
+            EXPECT_LE(grain_strength(grain), 5.0);
+            EXPECT_EQ(123, grain.random_seed);
+            EXPECT_EQ(before, source.high_[0]);
+            AutoGrainPicture clean(depth, 0, false);
+            ASSERT_TRUE(svt_aom_fga_run(
+                ctx, &clean.pic_, &clean.pic_, true, false, &grain));
+            EXPECT_FALSE(grain.apply_grain);
+            svt_aom_fga_free(ctx);
+        }
+    }
+}
+
+TEST(AutomaticFilmGrain, DenoisingPreservesReference) {
+    for (int depth : {8, 10}) {
+        AutoGrainPicture source(depth, 13, true);
+        AutoGrainPicture next(depth, 37, true);
+        const std::vector<uint8_t> before = source.high_[0];
+        const std::vector<uint8_t> reference = next.high_[0];
+        SvtFgaContext *ctx = svt_aom_fga_create(256, 128, depth);
+        ASSERT_NE(nullptr, ctx);
+        AomFilmGrain grain = {};
+        ASSERT_TRUE(svt_aom_fga_run(
+            ctx, &source.pic_, &next.pic_, false, true, &grain));
+        EXPECT_TRUE(grain.apply_grain);
+        EXPECT_NE(before, source.high_[0]);
+        EXPECT_EQ(reference, next.high_[0]);
+        svt_aom_fga_free(ctx);
+    }
+}
+
 #endif  // CONFIG_ENABLE_FILM_GRAIN
 }  // namespace

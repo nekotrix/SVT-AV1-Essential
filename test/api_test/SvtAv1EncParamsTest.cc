@@ -124,6 +124,8 @@ class EncParamTestBase : public ::testing::Test {
                 ctxt_.enc_params.encoder_bit_depth = 8;
                 ctxt_.enc_params.encoder_color_format = EB_YUV422;
             }
+        } else if (!param_name_str_.compare("film_grain_denoise_strength")) {
+            ctxt_.enc_params.encoder_bit_depth = 10;
         } else if (!param_name_str_.compare("target_bit_rate")) {
             ctxt_.enc_params.rate_control_mode = SVT_AV1_RC_MODE_VBR;
         }

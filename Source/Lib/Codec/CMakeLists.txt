@@ -143,6 +143,8 @@ set(all_files
         ec_results.h
         fft.c
         fft_common.h
+        film_grain_analysis.c
+        film_grain_analysis.h
         filter.h
         firstpass.c
         firstpass.h

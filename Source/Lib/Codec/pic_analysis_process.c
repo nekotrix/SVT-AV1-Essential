@@ -477,7 +477,7 @@ static EbErrorType denoise_estimate_film_grain(SequenceControlSet* scs, PictureP
     EbPictureBufferDesc* input_pic         = pcs->enhanced_pic;
     frm_hdr->film_grain_params.apply_grain = 0;
 
-    if (scs->static_config.film_grain_denoise_strength) {
+    if (scs->static_config.film_grain_denoise_strength > 0) {
         if (apply_denoise_2d(scs, pcs, input_pic) < 0) {
             return 1;
         }
@@ -516,7 +516,7 @@ void svt_aom_picture_pre_processing_operations(PictureParentControlSet* pcs, Seq
         pcs->frm_hdr.film_grain_params = pcs->film_grain_event;
     } else if (scs->static_config.fgs_table) {
         apply_film_grain_table(scs, pcs);
-    } else if (scs->static_config.film_grain_denoise_strength) {
+    } else if (scs->static_config.film_grain_denoise_strength > 0) {
         denoise_estimate_film_grain(scs, pcs);
     }
 #else

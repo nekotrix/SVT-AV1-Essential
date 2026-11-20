@@ -427,22 +427,10 @@ static const vector<uint8_t> valid_enable_dlf_flag = {
 };
 static const vector<uint8_t> invalid_enable_dlf_flag = {3};
 
-/* Film grain denoising the input picture
- * Flag to enable the denoising
- *
- * Default is 0. */
-// TODO: the description of this parameter is incorrect, refer to source code,
-// it should be a bool
-static const vector<uint32_t> default_film_grain_denoise_strength = {
-    false,
-};
-static const vector<uint32_t> valid_film_grain_denoise_strength = {
-    false,
-    true,
-};
-static const vector<uint32_t> invalid_film_grain_denoise_strength = {
-    // none
-};
+/* Film grain strength: automatic, disabled, or manual. */
+static const vector<int32_t> default_film_grain_denoise_strength = {0};
+static const vector<int32_t> valid_film_grain_denoise_strength = {-1, 0, 1, 50};
+static const vector<int32_t> invalid_film_grain_denoise_strength = {-2, 51};
 
 /* Warped motion
  *
