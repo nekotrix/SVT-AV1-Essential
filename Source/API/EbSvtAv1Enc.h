@@ -189,6 +189,24 @@ typedef enum SvtAv1FrameUpdateType {
     SVT_AV1_FRAME_UPDATE_TYPES
 } SvtAv1FrameUpdateType;
 
+typedef enum {
+    SPEED_UNKNOWN = -1,
+    SPEED_SLOWER  =  0,
+    SPEED_SLOW    =  1,
+    SPEED_MEDIUM  =  2,
+    SPEED_FAST    =  3,
+    SPEED_FASTER  =  4
+} SpeedPreset;
+
+typedef enum {
+    QUALITY_UNKNOWN = -1,
+    QUALITY_HIGHER  =  0,
+    QUALITY_HIGH    =  1,
+    QUALITY_MEDIUM  =  2,
+    QUALITY_LOW     =  3,
+    QUALITY_LOWER   =  4
+} QualityPreset;
+
 typedef struct SvtAv1FrameScaleEvts {
     uint32_t  evt_num;
     uint64_t* start_frame_nums;
@@ -1124,6 +1142,18 @@ typedef struct EbSvtAv1EncConfiguration {
      */
     uint8_t roi_map_block_size;
 
+    /* @brief speed override
+     *
+     * Default is None
+     */
+    SpeedPreset speed;
+
+    /* @brief quality override
+     *
+     * Default is None
+     */
+    QualityPreset quality;
+
     // clang-format off
     /* Add 128 Byte Padding to Struct to avoid changing the size of the public configuration struct */
     uint8_t padding[128
@@ -1138,6 +1168,8 @@ typedef struct EbSvtAv1EncConfiguration {
         - sizeof(uint8_t) // max_allowed_consecutive_frames_skips
         - sizeof(uint8_t) // fast_decode_user_opts
         - sizeof(uint8_t) // roi_map_block_size
+        - sizeof(SpeedPreset)
+        - sizeof(QualityPreset)
     ];
     // clang-format on
 } EbSvtAv1EncConfiguration;
