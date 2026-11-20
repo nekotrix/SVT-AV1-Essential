@@ -952,8 +952,9 @@ static void add_noise_std_observations(AomNoiseModel* noise_model, int32_t c, co
     AomNoiseStrengthSolver* noise_strength_solver = &noise_model->latest_state[c].strength_solver;
 
     const AomNoiseStrengthSolver* noise_strength_luma = &noise_model->latest_state[0].strength_solver;
-    const double                  luma_gain           = noise_model->latest_state[0].ar_gain;
-    const double                  noise_gain          = noise_model->latest_state[c].ar_gain;
+    // Pool measured strengths before compensating for the final AR gain.
+    const double luma_gain  = residual ? 1 : noise_model->latest_state[0].ar_gain;
+    const double noise_gain = residual ? 1 : noise_model->latest_state[c].ar_gain;
     for (int32_t by = 0; by < num_blocks_h; ++by) {
         const int32_t y_o = by * (block_size >> sub_log2[1]);
         for (int32_t bx = 0; bx < num_blocks_w; ++bx) {
@@ -1225,7 +1226,10 @@ static AomNoiseStatus noise_model_update_internal(AomNoiseModel* const noise_mod
         if (residual) {
             AomNoiseStrengthSolver* solver = &noise_model->combined_state[channel].strength_solver;
             const double regularization = solver->total / solver->num_equations / 8192.;
-            for (int j = 0; j < solver->num_bins; ++j) solver->eqns.b[j] -= regularization;
+            for (int j = 0; j < solver->num_bins; ++j) {
+                solver->eqns.b[j] -= regularization;
+                solver->eqns.x[j] /= noise_model->combined_state[channel].ar_gain;
+            }
         }
     }
 

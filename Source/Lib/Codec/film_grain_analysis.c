@@ -11,10 +11,12 @@
 #include <string.h>
 #include "film_grain_analysis.h"
 #include "noise_util.h"
+#include "aom_dsp_rtcd.h"
 
 #define FGA_BLOCK_SIZE 32
 #define FGA_MAX_BLOCKS 256
-#define FGA_INTERVAL 16
+#define FGA_INTERVAL 11
+#define FGA_HOLD_FRAMES 48
 
 typedef struct SvtFgaFrame {
     const uint16_t* plane[3];
@@ -38,6 +40,7 @@ struct SvtFgaContext {
     uint16_t*          coarse[3];
     int16_t*           residual[3];
     uint8_t*           flat;
+    uint8_t*           luma_bin;
     double*            variance;
     double*            scratch;
     FgaMotion*         motion[2];
@@ -76,6 +79,7 @@ SvtFgaContext* svt_aom_fga_create(int width, int height, int bit_depth) {
     ctx->coarse_h    = (height + 3) / 4;
     const int blocks = ctx->blocks_w * ctx->blocks_h;
     ctx->flat        = calloc(blocks, 1);
+    ctx->luma_bin    = calloc(blocks, 1);
     ctx->variance    = calloc(blocks, sizeof(*ctx->variance));
     ctx->scratch     = calloc(blocks, sizeof(*ctx->scratch));
     for (int i = 0; i < 3; ++i) {
@@ -96,7 +100,7 @@ SvtFgaContext* svt_aom_fga_create(int width, int height, int bit_depth) {
         }
     }
     const AomNoiseModelParams params = {AOM_NOISE_SHAPE_SQUARE, 3, bit_depth, 1};
-    if (!ctx->flat || !ctx->variance || !ctx->scratch ||
+    if (!ctx->flat || !ctx->luma_bin || !ctx->variance || !ctx->scratch ||
         !svt_aom_flat_block_finder_init(&ctx->finder, FGA_BLOCK_SIZE, bit_depth, 1) ||
         !svt_aom_noise_model_init(&ctx->model, params)) {
         goto fail;
@@ -122,6 +126,7 @@ void svt_aom_fga_free(SvtFgaContext* ctx) {
     free(ctx->motion[0]);
     free(ctx->motion[1]);
     free(ctx->flat);
+    free(ctx->luma_bin);
     free(ctx->variance);
     free(ctx->scratch);
     svt_aom_flat_block_finder_free(&ctx->finder);
@@ -265,6 +270,17 @@ static int compare_double(const void* a, const void* b) {
     return (x > y) - (x < y);
 }
 
+// Use a median-deviation limit to reject texture outliers.
+static double outlier_threshold(double* values, int count) {
+    qsort(values, count, sizeof(*values), compare_double);
+    const double center = values[count / 2];
+    for (int i = 0; i < count; ++i) {
+        values[i] = fabs(values[i] - center);
+    }
+    qsort(values, count, sizeof(*values), compare_double);
+    return center + 4.5 * values[count / 2];
+}
+
 static int reset_model(SvtFgaContext* ctx) {
     const AomNoiseModelParams params = {AOM_NOISE_SHAPE_SQUARE, 3, ctx->bit_depth, 1};
     svt_aom_noise_model_free(&ctx->model);
@@ -388,6 +404,294 @@ static int denoise_frame(SvtFgaContext* ctx, const SvtFgaFrame* source) {
     return svt_aom_wiener_denoise_2d(data, denoised, ctx->width, ctx->height, strides, sub, psd, 32, ctx->bit_depth, 1);
 }
 
+// Remove brightness drift before fitting the residual.
+static void detrend_residual(SvtFgaContext* ctx, const SvtFgaFrame* source, double scale) {
+    for (int c = 0; c < 3; ++c) {
+        const int sub = c > 0, size = 32 >> sub;
+        const int width = ctx->width >> sub, height = ctx->height >> sub;
+        for (int by = 0; by < ctx->blocks_h; ++by) {
+            for (int bx = 0; bx < ctx->blocks_w; ++bx) {
+                if (!ctx->flat[by * ctx->blocks_w + bx]) {
+                    continue;
+                }
+                const int w = AOMMIN(size, width - bx * size), h = AOMMIN(size, height - by * size);
+                double    sum = 0, sx = 0, sy = 0, squares = 0;
+                double    raw_sum = 0, raw_x = 0, raw_y = 0, raw_squares = 0;
+                for (int y = 0; y < h; ++y) {
+                    for (int x = 0; x < w; ++x) {
+                        const double v   = ctx->residual[c][(by * size + y) * width + bx * size + x];
+                        const double raw = source->plane[c][(by * size + y) * source->stride[c] + bx * size + x];
+                        raw_sum += raw;
+                        raw_x += (2 * x - w + 1) * raw;
+                        raw_y += (2 * y - h + 1) * raw;
+                        raw_squares += raw * raw;
+                        squares += v * v;
+                        sum += v;
+                        sx += (2 * x - w + 1) * v;
+                        sy += (2 * y - h + 1) * v;
+                    }
+                }
+                const double count    = w * h;
+                const double norm_x   = w > 1 ? 3.0 / (count * (w * w - 1)) : 0;
+                const double norm_y   = h > 1 ? 3.0 / (count * (h * h - 1)) : 0;
+                const double variance = AOMMAX(0, squares - sum * sum / count - sx * sx * norm_x - sy * sy * norm_y);
+                const double raw_variance = AOMMAX(
+                    0, raw_squares - raw_sum * raw_sum / count - raw_x * raw_x * norm_x - raw_y * raw_y * norm_y);
+                if (!c && scale != 0.25 &&
+                    variance * scale * scale > 1.5 * raw_variance + 0.125 * count * (1 << (2 * (ctx->bit_depth - 8)))) {
+                    ctx->flat[by * ctx->blocks_w + bx] = 0;
+                    continue;
+                }
+                const double factor = variance > 0 ? sqrt(AOMMIN(1, 1.5 * raw_variance / (variance * scale * scale)))
+                                                   : 1;
+                const double mean   = sum / count;
+                sx *= norm_x;
+                sy *= norm_y;
+                for (int y = 0; y < h; ++y) {
+                    for (int x = 0; x < w; ++x) {
+                        int16_t* v = &ctx->residual[c][(by * size + y) * width + bx * size + x];
+                        *v         = (int16_t)lrint((*v - mean - sx * (2 * x - w + 1) - sy * (2 * y - h + 1)) * factor);
+                    }
+                }
+            }
+        }
+    }
+}
+
+static int valid_grain_spectrum(const SvtFgaContext* ctx, const int32_t* coeffs, int unit) {
+    DECLARE_ALIGNED(32, float, kernel[32 * 32]) = {0};
+    DECLARE_ALIGNED(32, float, temp[2 * 32 * 32]);
+    DECLARE_ALIGNED(32, float, spectrum[2 * 32 * 32]) = {0};
+    double power[32 * 32];
+    kernel[0] = 1;
+    for (int i = 0; i < ctx->model.n; ++i) {
+        const int x        = (ctx->model.coords[i][0] + 32) % 32;
+        const int y        = (ctx->model.coords[i][1] + 32) % 32;
+        kernel[y * 32 + x] = -(float)coeffs[i] / unit;
+    }
+    svt_aom_fft32x32_float(kernel, temp, spectrum);
+    for (int y = 0; y < 32; ++y) {
+        for (int x = 0; x <= 16; ++x) {
+            const int    i    = y * 32 + x;
+            const double real = spectrum[2 * i], imag = spectrum[2 * i + 1];
+            power[i] = 1 / AOMMAX(real * real + imag * imag, 1e-12);
+        }
+    }
+    for (int y = 0; y < 32; ++y) {
+        for (int x = 17; x < 32; ++x) {
+            power[y * 32 + x] = power[((32 - y) % 32) * 32 + 32 - x];
+        }
+    }
+    for (int y = 0; y < 32; ++y) {
+        for (int x = 0; x < 32; ++x) {
+            double neighbours = 0;
+            for (int dy = -2; dy <= 2; dy += 2) {
+                for (int dx = -2; dx <= 2; dx += 2) {
+                    if (dx || dy) {
+                        neighbours += power[((y + dy + 32) % 32) * 32 + (x + dx + 32) % 32];
+                    }
+                }
+            }
+            if (power[y * 32 + x] > 3 * neighbours / 8) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+// Check the quantized filter: rounding can turn a fitted model into a resonance.
+static int constrain_grain(SvtFgaContext* ctx, AomFilmGrain* grain) {
+    if (!svt_aom_noise_model_get_grain_parameters(&ctx->model, grain)) {
+        return 0;
+    }
+    int32_t*  coeffs[3] = {grain->ar_coeffs_y, grain->ar_coeffs_cb, grain->ar_coeffs_cr};
+    const int n         = ctx->model.n;
+    for (;;) {
+        const int unit = 1 << grain->ar_coeff_shift;
+        for (int c = 0; c < 3; ++c) {
+            AomNoiseState* state  = &ctx->model.combined_state[c];
+            double         energy = 0, high = 0, target_high = 0, target_energy = 0;
+            // Measure decay and correlation beyond the grain scale in every direction.
+            for (;;) {
+                double impulse[64][128] = {{0}}, tail = 0;
+                energy = high = 0;
+                for (int y = 0; y < 64; ++y) {
+                    for (int x = 0; x < 128; ++x) {
+                        double value = y == 0 && x == 64;
+                        for (int i = 0; i < n; ++i) {
+                            const int rx = x + ctx->model.coords[i][0], ry = y + ctx->model.coords[i][1];
+                            if (ry >= 0 && rx >= 0 && rx < 128) {
+                                value += coeffs[c][i] * impulse[ry][rx] / unit;
+                            }
+                        }
+                        impulse[y][x] = value;
+                        energy += value * value;
+                        const double d = (value - (x ? impulse[y][x - 1] : 0) - (y ? impulse[y - 1][x] : 0) +
+                                          (x && y ? impulse[y - 1][x - 1] : 0)) /
+                            2;
+                        high += d * d;
+                        if (y >= 60 || x < 8 || x >= 120) {
+                            tail += value * value;
+                        }
+                    }
+                }
+                int valid = isfinite(energy) && tail < 1e-4 * energy;
+                for (int distance = 4; distance <= 8 && valid; distance *= 2) {
+                    for (int dy = 0; dy <= distance && valid; ++dy) {
+                        for (int dx = -distance; dx <= distance && valid; ++dx) {
+                            if ((!dy && dx <= 0) || AOMMAX(abs(dx), dy) != distance) {
+                                continue;
+                            }
+                            double correlation = 0;
+                            for (int y = dy; y < 64; ++y) {
+                                for (int x = AOMMAX(0, dx); x < AOMMIN(128, 128 + dx); ++x) {
+                                    correlation += impulse[y][x] * impulse[y - dy][x - dx];
+                                }
+                            }
+                            valid = fabs(correlation) < (distance == 4 ? 0.2 : 0.05) * energy;
+                        }
+                    }
+                }
+                if (valid && !valid_grain_spectrum(ctx, coeffs[c], unit)) {
+                    if (!target_high) {
+                        target_high   = high;
+                        target_energy = energy;
+                    }
+                    valid = 0;
+                }
+                if (valid) {
+                    break;
+                }
+                for (int i = 0; i < n; ++i) {
+                    coeffs[c][i] = coeffs[c][i] * 3 / 4;
+                }
+            }
+            // Preserve fine-scale power after removing a narrow resonance.
+            const double gain  = sqrt(energy);
+            const double ratio = target_high ? state->ar_gain * sqrt(target_high / (target_energy * high))
+                                             : state->ar_gain / gain;
+            state->ar_gain     = gain;
+            for (int i = 0; i < n; ++i) {
+                state->eqns.x[i] = (double)coeffs[c][i] / unit;
+            }
+            for (int i = 0; i < state->strength_solver.eqns.n; ++i) {
+                state->strength_solver.eqns.x[i] *= ratio;
+            }
+        }
+        if (!svt_aom_noise_model_get_grain_parameters(&ctx->model, grain)) {
+            return 0;
+        }
+        // Strength changes can change the shared coefficient precision.
+        int unchanged = 1;
+        for (int c = 0; c < 3; ++c) {
+            for (int i = 0; i < n; ++i) {
+                unchanged &= ctx->model.combined_state[c].eqns.x[i] ==
+                    (double)coeffs[c][i] / (1 << grain->ar_coeff_shift);
+            }
+        }
+        if (unchanged) {
+            return 1;
+        }
+    }
+}
+
+static double block_highpass_variance(const SvtFgaContext* ctx, const SvtFgaFrame* source, int c, int bx, int by) {
+    const int size = 32 >> (c > 0), width = ctx->width >> (c > 0), height = ctx->height >> (c > 0);
+    const int w = AOMMIN(size, width - bx * size), h = AOMMIN(size, height - by * size);
+    double    sum = 0, squares = 0;
+    for (int y = 1; y < h; ++y) {
+        for (int x = 1; x < w; ++x) {
+            const int    p = (by * size + y) * source->stride[c] + bx * size + x;
+            const double v = (source->plane[c][p] - source->plane[c][p - 1] - source->plane[c][p - source->stride[c]] +
+                              source->plane[c][p - source->stride[c] - 1]) /
+                2.0;
+            sum += v;
+            squares += v * v;
+        }
+    }
+    const int n = (w - 1) * (h - 1);
+    return n ? AOMMAX(0, squares / n - (sum / n) * (sum / n)) : 0;
+}
+
+static int select_blocks(SvtFgaContext* ctx, const SvtFgaFrame* source, SvtFgaStats* stats) {
+    const int blocks = ctx->blocks_w * ctx->blocks_h;
+    svt_aom_flat_block_finder_run(
+        &ctx->finder, (const uint8_t*)source->plane[0], ctx->width, ctx->height, source->stride[0], ctx->flat);
+    for (int i = 0; i < blocks; ++i) {
+        stats->flat_blocks += ctx->flat[i] != 0;
+    }
+    int count[16] = {0}, quota[16] = {0}, seen[16] = {0};
+    for (int i = 0; i < blocks; ++i) {
+        if (!ctx->flat[i]) {
+            continue;
+        }
+        const int x = (i % ctx->blocks_w) * 8, y = (i / ctx->blocks_w) * 8;
+        const int w = AOMMIN(8, ctx->coarse_w - x), h = AOMMIN(8, ctx->coarse_h - y);
+        double    sum = 0, squares = 0, sx = 0, sy = 0;
+        for (int dy = 0; dy < h; ++dy) {
+            for (int dx = 0; dx < w; ++dx) {
+                const double v = ctx->coarse[0][(y + dy) * ctx->coarse_w + x + dx];
+                sum += v;
+                squares += v * v;
+                sx += (2 * dx - w + 1) * v;
+                sy += (2 * dy - h + 1) * v;
+            }
+        }
+        const int    n    = w * h;
+        const double nx   = w > 1 ? 3.0 / (n * (w * w - 1)) : 0;
+        const double ny   = h > 1 ? 3.0 / (n * (h * h - 1)) : 0;
+        const double low  = AOMMAX(0, squares / n - (sum / n) * (sum / n) - (sx * sx * nx + sy * sy * ny) / n);
+        const double high = block_highpass_variance(ctx, source, 0, i % ctx->blocks_w, i / ctx->blocks_w);
+        ctx->variance[i]  = low / AOMMAX(high, 0.125 * (1 << (2 * (ctx->bit_depth - 8))));
+        ctx->luma_bin[i]  = (int)(sum / (w * h)) >> (ctx->bit_depth - 4);
+        ++count[ctx->luma_bin[i]];
+    }
+    const int limit     = AOMMIN(FGA_MAX_BLOCKS, stats->flat_blocks);
+    int       remaining = limit, available = stats->flat_blocks;
+    for (int bin = 0; bin < 16; ++bin) {
+        quota[bin] = AOMMIN(8, count[bin]);
+        remaining -= quota[bin];
+        available -= quota[bin];
+    }
+    for (int bin = 0; bin < 16; ++bin) {
+        const int extra = available ? remaining * (count[bin] - quota[bin]) / available : 0;
+        available -= count[bin] - quota[bin];
+        quota[bin] += extra;
+        remaining -= extra;
+    }
+    double threshold[16];
+    int    eligible[16] = {0};
+    for (int bin = 0; bin < 16; ++bin) {
+        int n = 0;
+        for (int i = 0; i < blocks; ++i) {
+            if (ctx->flat[i] && ctx->luma_bin[i] == bin) {
+                ctx->scratch[n++] = ctx->variance[i];
+            }
+        }
+        threshold[bin] = n >= 8 ? outlier_threshold(ctx->scratch, n) : HUGE_VAL;
+    }
+    for (int i = 0; i < blocks; ++i) {
+        if (ctx->flat[i]) {
+            const int bin = ctx->luma_bin[i];
+            if (ctx->variance[i] > threshold[bin]) {
+                ctx->flat[i] = 0;
+            } else {
+                ++eligible[bin];
+            }
+        }
+    }
+    for (int i = 0; i < blocks; ++i) {
+        if (!ctx->flat[i]) {
+            continue;
+        }
+        const int bin = ctx->luma_bin[i];
+        ctx->flat[i]  = (seen[bin] + 1) * quota[bin] / eligible[bin] > seen[bin] * quota[bin] / eligible[bin];
+        ++seen[bin];
+    }
+    return limit;
+}
+
 static int analyze(SvtFgaContext* ctx, const SvtFgaFrame* source, const SvtFgaFrame* previous, const SvtFgaFrame* next,
                    AomFilmGrain* grain, SvtFgaStats* stats) {
     const SvtFgaFrame* refs[2] = {previous, next};
@@ -412,22 +716,7 @@ static int analyze(SvtFgaContext* ctx, const SvtFgaFrame* source, const SvtFgaFr
         return 0;
     }
     const int blocks = ctx->blocks_w * ctx->blocks_h;
-    svt_aom_flat_block_finder_run(
-        &ctx->finder, (const uint8_t*)source->plane[0], ctx->width, ctx->height, source->stride[0], ctx->flat);
-    for (int i = 0; i < blocks; ++i) {
-        stats->flat_blocks += ctx->flat[i] != 0;
-    }
-    const int limit = AOMMIN(FGA_MAX_BLOCKS, stats->flat_blocks);
-    int       seen  = 0;
-    for (int i = 0; i < blocks; ++i) {
-        if (!ctx->flat[i]) {
-            continue;
-        }
-        ctx->flat[i] = (seen + 1) * limit / AOMMAX(1, stats->flat_blocks) >
-            seen * limit / AOMMAX(1, stats->flat_blocks);
-        ++seen;
-    }
-    int repeated = 0;
+    const int limit  = select_blocks(ctx, source, stats);
     for (int i = 0; i < 2; ++i) {
         if (!refs[i]) {
             continue;
@@ -438,7 +727,9 @@ static int analyze(SvtFgaContext* ctx, const SvtFgaFrame* source, const SvtFgaFr
                             refs[i]->plane[0] + y * refs[i]->stride[0],
                             ctx->width * sizeof(uint16_t));
         }
-        repeated |= equal;
+        if (equal) {
+            refs[i] = NULL;
+        }
     }
     double sad[2] = {0};
     for (int i = 0; i < 2; ++i) {
@@ -461,7 +752,7 @@ static int analyze(SvtFgaContext* ctx, const SvtFgaFrame* source, const SvtFgaFr
         goto no_estimate;
     }
     double scale = 1.0 / sqrt(2.0);
-    if (!neighbours || repeated) {
+    if (!neighbours) {
         if (!spatial_residual(ctx, source)) {
             return 0;
         }
@@ -489,6 +780,7 @@ static int analyze(SvtFgaContext* ctx, const SvtFgaFrame* source, const SvtFgaFr
             }
         }
     }
+    detrend_residual(ctx, source, scale);
     double total_variance = 0;
     for (int i = 0; i < blocks; ++i) {
         if (!ctx->flat[i]) {
@@ -506,26 +798,58 @@ static int analyze(SvtFgaContext* ctx, const SvtFgaFrame* source, const SvtFgaFr
         }
         ctx->variance[i] = AOMMAX(0, squares / (w * h) - (sum / (w * h)) * (sum / (w * h)));
     }
+    double shape[FGA_MAX_BLOCKS];
+    int    selected[FGA_MAX_BLOCKS], samples = 0;
+    for (int by = 0; by < ctx->blocks_h; ++by) {
+        for (int bx = 0; bx < ctx->blocks_w; ++bx) {
+            const int i = by * ctx->blocks_w + bx;
+            if (!ctx->flat[i]) {
+                continue;
+            }
+            const int w = AOMMIN(32, ctx->width - bx * 32), h = AOMMIN(32, ctx->height - by * 32);
+            double    sum = 0, squares = 0;
+            for (int y = 1; y < h; ++y) {
+                for (int x = 1; x < w; ++x) {
+                    const int    p = (by * 32 + y) * ctx->width + bx * 32 + x;
+                    const double v = (ctx->residual[0][p] - ctx->residual[0][p - 1] - ctx->residual[0][p - ctx->width] +
+                                      ctx->residual[0][p - ctx->width - 1]) *
+                        scale / 2;
+                    sum += v;
+                    squares += v * v;
+                }
+            }
+            const int    n        = (w - 1) * (h - 1);
+            const double high     = n ? squares / n - (sum / n) * (sum / n) : 0;
+            shape[samples]        = ctx->variance[i] / AOMMAX(high, 0.125 * (1 << (2 * (ctx->bit_depth - 8))));
+            ctx->scratch[samples] = shape[samples];
+            selected[samples++]   = i;
+        }
+    }
+    if (samples >= 16) {
+        const double threshold = outlier_threshold(ctx->scratch, samples);
+        for (int i = 0; i < samples; ++i) {
+            if (shape[i] > threshold) {
+                ctx->flat[selected[i]] = 0;
+            }
+        }
+    }
+
     for (int bin = 0; bin < 16; ++bin) {
         int count = 0;
         for (int i = 0; i < blocks; ++i) {
             if (!ctx->flat[i]) {
                 continue;
             }
-            int x = (i % ctx->blocks_w) * 8, y = (i / ctx->blocks_w) * 8;
-            if ((ctx->coarse[0][y * ctx->coarse_w + x] >> (ctx->bit_depth - 4)) == bin) {
+            if (ctx->luma_bin[i] == bin) {
                 ctx->scratch[count++] = ctx->variance[i];
             }
         }
         if (count < 8) {
             continue;
         }
-        qsort(ctx->scratch, count, sizeof(double), compare_double);
-        const double threshold = 4 * ctx->scratch[count / 2];
+        const double threshold = outlier_threshold(ctx->scratch, count) + 0.125 * (1 << (2 * (ctx->bit_depth - 8)));
         for (int i = 0; i < blocks; ++i) {
-            int x = (i % ctx->blocks_w) * 8, y = (i / ctx->blocks_w) * 8;
-            if ((ctx->coarse[0][y * ctx->coarse_w + x] >> (ctx->bit_depth - 4)) == bin &&
-                ctx->variance[i] > threshold) {
+            if (ctx->flat[i] && ctx->luma_bin[i] == bin && ctx->variance[i] > threshold) {
                 ctx->flat[i] = 0;
             }
         }
@@ -579,7 +903,7 @@ static int analyze(SvtFgaContext* ctx, const SvtFgaFrame* source, const SvtFgaFr
         if (svt_aom_noise_model_update_residual(
                 &ctx->model, data, residual, ctx->width, ctx->height, strides, ctx->flat, FGA_BLOCK_SIZE, scale, 0.5) ==
                 AOM_NOISE_STATUS_OK &&
-            svt_aom_noise_model_get_grain_parameters(&ctx->model, grain)) {
+            constrain_grain(ctx, grain)) {
             grain->bit_depth = ctx->bit_depth;
             ctx->last_grain  = *grain;
             ctx->failures    = 0;
@@ -587,7 +911,8 @@ static int analyze(SvtFgaContext* ctx, const SvtFgaFrame* source, const SvtFgaFr
         }
     }
 no_estimate:
-    if (++ctx->failures >= 3) {
+    ctx->failures += FGA_INTERVAL;
+    if (ctx->failures >= FGA_HOLD_FRAMES) {
         memset(&ctx->last_grain, 0, sizeof(ctx->last_grain));
     }
     const uint16_t seed = grain->random_seed;
