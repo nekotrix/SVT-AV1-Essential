@@ -231,6 +231,7 @@ EbErrorType     enc_channel_ctor(EncChannel* c);
 void            enc_channel_dctor(EncChannel* c);
 EbErrorType     read_command_line(int32_t argc, char* const argv[], EncChannel* channel);
 int             get_version(int argc, char* const argv[]);
+extern uint32_t get_fhelp(int32_t argc, char* const argv[]);
 extern uint32_t get_help(int32_t argc, char* const argv[]);
 extern uint32_t get_color_help(int32_t argc, char* const argv[]);
 uint32_t        get_passes(int32_t argc, char* const argv[], EncPass enc_pass[MAX_ENC_PASS]);
