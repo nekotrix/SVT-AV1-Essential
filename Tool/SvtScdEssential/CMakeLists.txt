@@ -9,7 +9,9 @@ add_executable(SvtScdEssential
     ${codec_dir}/me_sad_calculation.c
     ${codec_dir}/pic_operators.c
     ${codec_dir}/svt_log.c
+    ${codec_dir}/svt_malloc.c
     ${codec_dir}/svt_threads.c
+    ${PROJECT_SOURCE_DIR}/Source/Lib/C_DEFAULT/pack_unpack_c.c
     ${PROJECT_SOURCE_DIR}/Source/Lib/C_DEFAULT/picture_operators_c.c)
 
 target_include_directories(SvtScdEssential PRIVATE
