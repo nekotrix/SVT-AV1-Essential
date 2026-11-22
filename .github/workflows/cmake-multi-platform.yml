@@ -1,10 +1,15 @@
+# Inspired by Akatmks/build-svt-av1 and Uranite/SVT-AV1-Essential-Builds.
+# Thanks to studies and contributions from Akatsumekusa, Uranite, afed, Emre,
+# Ironclad, Itachi Uchiha, Khaoklong, Miss Ashenlight, Soda, SwareJonge, Yiss,
+# Trix, and other people in the community for discovering the method to build
+# the fastest binary.
+
 name: auto build
 
 on:
   workflow_dispatch:
-    branches: [ "master", "Essential-v4.0.1" ]
   push:
-    branches: [ "master", "Essential-v4.0.1" ]
+    branches: [ "master", "Essential-v4.3.1" ]
 
 permissions:
   contents: write
@@ -17,145 +22,734 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {
-              name: "Windows_Optimized",
-              os: windows-2022,
-              generators: "Ninja",
-              msvc_arch: x64,
-              c_compiler: clang,
-              cpp_compiler: clang++,
-              march: "x86-64-v3"
-            }
-          - {
-              name: "Windows_Generic",
-              os: windows-2022,
-              generators: "Ninja",
-              msvc_arch: x64,
-              c_compiler: clang,
-              cpp_compiler: clang++,
-              march: "generic"
-            }
-          - {
-              name: "Linux_Optimized",
-              os: ubuntu-latest,
-              c_compiler: clang,
-              cpp_compiler: clang++,
-              march: "x86-64-v3"
-            }
-          - {
-              name: "Linux_Generic",
-              os: ubuntu-latest,
-              c_compiler: clang,
-              cpp_compiler: clang++,
-              march: "generic"
-            }
-          - {
-              name: "MacOS_Arm",
-              os: macos-latest,
-              c_compiler: clang,
-              cpp_compiler: clang++,
-              osx_arch: arm64,
-              march: "generic"
-            }
-    env:
-      CMAKE_GENERATOR: "${{ matrix.config.generators }}"
+          - name: "Windows_Optimized"
+            os: windows-latest
+            platform: windows
+            mode: optimized
+            arch_cflags: "-march=x86-64-v3 -mtune=znver2 -mno-gather"
+            dep_arch_cflags: "-march=x86-64-v3 -mtune=znver2"
+            rust_cpu: "x86-64-v3"
+            opt_level: "3"
+          - name: "Windows_Generic"
+            os: windows-latest
+            platform: windows
+            mode: generic
+            arch_cflags: ""
+            dep_arch_cflags: ""
+            rust_cpu: "x86-64"
+            opt_level: "2"
+          - name: "Linux_Optimized"
+            os: ubuntu-latest
+            platform: linux
+            mode: optimized
+            arch_cflags: "-march=x86-64-v3 -mtune=znver2 -mno-gather"
+            dep_arch_cflags: "-march=x86-64-v3 -mtune=znver2"
+            rust_cpu: "x86-64-v3"
+            opt_level: "3"
+          - name: "Linux_Generic"
+            os: ubuntu-latest
+            platform: linux
+            mode: generic
+            arch_cflags: ""
+            dep_arch_cflags: ""
+            rust_cpu: "x86-64"
+            opt_level: "2"
+          - name: "MacOS_Arm_Optimized"
+            os: macos-latest
+            platform: macos
+            mode: optimized
+            arch_cflags: "-march=armv8.5-a+simd+crypto -mtune=apple-m3"
+            dep_arch_cflags: "-march=armv8.5-a+simd+crypto -mtune=apple-m3"
+            rust_cpu: "apple-m3"
+            opt_level: "3"
+          - name: "MacOS_Arm_Generic"
+            os: macos-latest
+            platform: macos
+            mode: generic
+            arch_cflags: ""
+            dep_arch_cflags: ""
+            rust_cpu: "apple-m1"
+            opt_level: "2"
+
     steps:
-    - uses: actions/checkout@v4
-    - uses: ilammy/setup-nasm@v1
-    - name: Ubuntu
-      if: contains( matrix.config.os, 'ubuntu' )
-      run: |
-        if [ "${{ matrix.config.march }}" = "generic" ]; then
-          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DUSE_WEBM_IO=ON -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
-        else
-          cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DUSE_WEBM_IO=ON -DENABLE_AVX512=ON -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_C_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -flto -DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=-march=${{ matrix.config.march }} -O3 -flto -DNDEBUG"
-        fi
-        cmake --build svt_build --config Release
-      shell: bash
-    - name: Mac OS X
-      if: contains( matrix.config.os, 'macos' )
-      run: |
-        cmake --fresh -B svt_build -DCMAKE_BUILD_TYPE=Release "-DCMAKE_CXX_COMPILER=${{ matrix.config.cpp_compiler }}" "-DCMAKE_C_COMPILER=${{ matrix.config.c_compiler }}" -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=ON -DUSE_WEBM_IO=ON -DCMAKE_C_FLAGS_RELEASE="-O3 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON "-DCMAKE_OSX_ARCHITECTURES=${{ matrix.config.osx_arch }}"
-        cmake --build svt_build --config Release
-      shell: bash
-    - name: Windows build
-      if: contains( matrix.config.os, 'windows' )
-      run: |
-        set CC=clang
-        set CXX=clang++
-        if "${{ matrix.config.march }}" == "generic" (
-          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DUSE_WEBM_IO=ON -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-O2 -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-O2 -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
-        ) else (
-          cmake --fresh -B svt_build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DSVT_AV1_LTO=OFF -DUSE_WEBM_IO=ON -DENABLE_AVX512=ON -DCMAKE_C_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O2 -flto -DNDEBUG" -DCMAKE_CXX_FLAGS_RELEASE="-march=${{ matrix.config.march }} -O2 -flto -DNDEBUG" -DREPRODUCIBLE_BUILDS=ON
-        )
-        ninja -C svt_build
-      shell: cmd
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.config.name }}
-        path: Bin/Release/
-        retention-days: 90
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
-    - name: Get latest release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v4.0.1'
-      id: latest_release
-      uses: actions/github-script@v7
-      with:
-        result-encoding: string
-        script: |
-          const release = await github.rest.repos.getLatestRelease({
-            owner: context.repo.owner,
-            repo: context.repo.repo
-          });
-          console.log('Latest release tag:', release.data.tag_name);
-          return release.data.tag_name;
+      # -----------------------------------------------------------------------
+      # Toolchain & Environment Setup
+      # -----------------------------------------------------------------------
+      - name: Setup MSYS2 (Windows)
+        if: matrix.config.platform == 'windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANG64
+          path-type: inherit
+          install: >-
+            mingw-w64-clang-x86_64-pkgconf
+            mingw-w64-clang-x86_64-ninja
 
-    - name: Upload binaries to existing release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v4.0.1'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          const path = require('path');
+      - name: Install system packages (Linux)
+        if: matrix.config.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build pkgconf meson python3
 
-          const tag = '${{ steps.latest_release.outputs.result }}';
-          console.log('Using tag:', tag);
+      - name: Install system packages (macOS)
+        if: matrix.config.platform == 'macos'
+        run: |
+          brew install llvm lld ninja pkgconf meson
+          echo "/opt/homebrew/opt/llvm/bin" >> "$GITHUB_PATH"
+          echo "/opt/homebrew/opt/lld/bin" >> "$GITHUB_PATH"
 
-          // Get the existing release
-          const release = await github.rest.repos.getReleaseByTag({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            tag: tag
-          });
+      - name: Setup NASM (x86-64)
+        if: matrix.config.platform != 'macos'
+        uses: ilammy/setup-nasm@v1
 
-          // Extract version without leading "v" if present
-          const version = tag.startsWith('v') ? tag.slice(1) : tag;
+      - name: Setup LLVM (Windows)
+        if: matrix.config.platform == 'windows'
+        uses: ZhongRuoyu/setup-llvm@v0
+        with:
+          llvm-version: 22
 
-          // Find binary files (executables only, not .a files)
-          const binDir = 'Bin/Release';
-          const files = fs.readdirSync(binDir);
-          const binaries = files.filter(file => {
-            const ext = path.extname(file).toLowerCase();
-            return !ext || ext === '.exe'; // No extension (Unix) or .exe (Windows)
-          });
+      - name: Setup LLVM (Linux)
+        if: matrix.config.platform == 'linux'
+        uses: ZhongRuoyu/setup-llvm@v0
 
-          console.log('Found binaries:', binaries);
+      - name: Setup CMake & Meson (Windows)
+        if: matrix.config.platform == 'windows'
+        uses: lukka/get-cmake@latest
 
-          // Upload each binary
-          for (const binary of binaries) {
-            const filePath = path.join(binDir, binary);
-            const ext = path.extname(binary);
-            const base = path.basename(binary, ext);
-            const fileName = `${base}-${version}-${{ matrix.config.name }}${ext}`;
+      - name: Install Meson (Windows)
+        if: matrix.config.platform == 'windows'
+        shell: pwsh
+        run: pip install meson
 
-            console.log(`Uploading ${fileName}...`);
+      - name: Remove MSYS2 coreutils link.exe to prevent shadowing MSVC link.exe (Windows)
+        if: matrix.config.platform == 'windows'
+        shell: msys2 {0}
+        run: rm -f /usr/bin/link.exe
 
+      # -----------------------------------------------------------------------
+      # PGO Training Video Setup (Optimized builds only)
+      # -----------------------------------------------------------------------
+      - name: Setup FFmpeg for PGO video
+        if: matrix.config.mode == 'optimized'
+        uses: AnimMouse/setup-ffmpeg@v1
+
+      - name: Checkout PGO training clip (FoodMarket2)
+        if: matrix.config.mode == 'optimized'
+        uses: actions/checkout@v4
+        with:
+          repository: Akatmks/build-svt-av1
+          ref: FoodMarket2
+          path: PGO
+
+      - name: Prepare PGO Y4M input (Windows)
+        if: matrix.config.mode == 'optimized' && matrix.config.platform == 'windows'
+        shell: msys2 {0}
+        working-directory: PGO
+        run: |
+          cat PGO.mkv.* > PGO.mkv
+          ffmpeg -i PGO.mkv -strict -1 -f yuv4mpegpipe -pix_fmt yuv420p10le PGO.y4m
+
+      - name: Prepare PGO Y4M input (Linux & macOS)
+        if: matrix.config.mode == 'optimized' && matrix.config.platform != 'windows'
+        shell: bash
+        working-directory: PGO
+        run: |
+          cat PGO.mkv.* > PGO.mkv
+          ffmpeg -i PGO.mkv -strict -1 -f yuv4mpegpipe -pix_fmt yuv420p10le PGO.y4m
+
+      # -----------------------------------------------------------------------
+      # Static Dolby Vision (libdovi) & HDR10+ (libhdr10plus-rs)
+      # -----------------------------------------------------------------------
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install cargo-c (Windows)
+        if: matrix.config.platform == 'windows'
+        shell: msys2 {0}
+        run: cargo binstall -y cargo-c
+
+      - name: Install cargo-c (Linux & macOS)
+        if: matrix.config.platform != 'windows'
+        shell: bash
+        run: cargo binstall -y cargo-c
+
+      - name: Download dovi_tool source
+        uses: robinraju/release-downloader@v1
+        with:
+          repository: quietvoid/dovi_tool
+          latest: true
+          tarBall: true
+          out-file-path: deps/src/dovi_tool
+
+      - name: Download hdr10plus_tool source
+        uses: robinraju/release-downloader@v1
+        with:
+          repository: quietvoid/hdr10plus_tool
+          latest: true
+          tarBall: true
+          out-file-path: deps/src/hdr10plus_tool
+
+      - name: Build static libdovi and libhdr10plus-rs (Windows)
+        if: matrix.config.platform == 'windows'
+        shell: msys2 {0}
+        env:
+          RUSTFLAGS: "-Ctarget-cpu=${{ matrix.config.rust_cpu }} -Copt-level=${{ matrix.config.opt_level }}"
+        run: |
+          set -e
+          DEPS_PREFIX="$(cygpath -m -a deps/install)"
+
+          cd deps/src/dovi_tool
+          tar -xz --strip-components=1 -f *.tar.gz
+          cd dolby_vision
+          cargo cinstall --verbose --release --library-type staticlib --libdir lib --prefix "$DEPS_PREFIX"
+          cd ../../../..
+
+          cd deps/src/hdr10plus_tool
+          tar -xz --strip-components=1 -f *.tar.gz
+          cd hdr10plus
+          cargo cinstall --verbose --release --library-type staticlib --libdir lib --prefix "$DEPS_PREFIX"
+
+      - name: Build static libdovi and libhdr10plus-rs (Linux & macOS)
+        if: matrix.config.platform != 'windows'
+        shell: bash
+        env:
+          RUSTFLAGS: "-Ctarget-cpu=${{ matrix.config.rust_cpu }} -Copt-level=${{ matrix.config.opt_level }}"
+        run: |
+          set -e
+          mkdir -p deps/install
+          DEPS_PREFIX="$(cd deps/install && pwd)"
+
+          cd deps/src/dovi_tool
+          tar -xz --strip-components=1 -f *.tar.gz
+          cd dolby_vision
+          cargo cinstall --verbose --release --library-type staticlib --libdir lib --prefix "$DEPS_PREFIX"
+          cd ../../../..
+
+          cd deps/src/hdr10plus_tool
+          tar -xz --strip-components=1 -f *.tar.gz
+          cd hdr10plus
+          cargo cinstall --verbose --release --library-type staticlib --libdir lib --prefix "$DEPS_PREFIX"
+
+      # -----------------------------------------------------------------------
+      # Static FFMS2 & Dependencies (zlib, dav1d, FFmpeg, ffms2)
+      # -----------------------------------------------------------------------
+      - name: Setup MSVC Developer Command Prompt (Windows)
+        if: matrix.config.platform == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Checkout FFMS2 source
+        uses: actions/checkout@v4
+        with:
+          repository: Uranite/ffms2
+          path: deps/src/ffms2
+
+      - name: Build static FFMS2 and dependencies (Windows)
+        if: matrix.config.platform == 'windows'
+        shell: msys2 {0}
+        working-directory: deps/src
+        env:
+          ARCH_CFLAGS: ${{ matrix.config.dep_arch_cflags }}
+          MODE: ${{ matrix.config.mode }}
+        run: |
+          set -e
+          export CC="clang"
+          export CXX="clang++"
+          INSTALL_PREFIX="$(pwd)/../install"
+          INSTALL_PREFIX_MIXED="$(cygpath -m "$INSTALL_PREFIX")"
+
+          if [ "$MODE" = "optimized" ]; then
+            DEP_CFLAGS="-flto -O3 -DNDEBUG ${ARCH_CFLAGS}"
+            MESON_LTO="-Db_lto=true -Doptimization=3"
+            FFMPEG_LTO="--enable-lto=full"
+            FFMPEG_CFLAGS="-flto -DNDEBUG ${ARCH_CFLAGS} /clang:-O3"
+          else
+            DEP_CFLAGS="-O2 -DNDEBUG ${ARCH_CFLAGS}"
+            MESON_LTO="-Db_lto=false -Doptimization=2"
+            FFMPEG_LTO=""
+            FFMPEG_CFLAGS="-DNDEBUG ${ARCH_CFLAGS} /clang:-O2"
+          fi
+
+          git clone --depth 1 https://github.com/madler/zlib.git
+          cd zlib
+          cmake --fresh -B zlib_build -G Ninja \
+            -DZLIB_BUILD_SHARED=OFF -DZLIB_BUILD_STATIC=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded \
+            -DCMAKE_C_FLAGS_RELEASE="${DEP_CFLAGS}" \
+            -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
+          cmake --build zlib_build
+          cmake --install zlib_build
+          cd ..
+
+          git clone --depth 1 https://code.videolan.org/videolan/dav1d.git
+          cd dav1d
+          meson setup build \
+            --prefix="$INSTALL_PREFIX" \
+            --default-library=static \
+            --buildtype=release \
+            -Db_vscrt=mt \
+            ${MESON_LTO} \
+            -Denable_tools=false \
+            -Denable_examples=false \
+            -Dc_args="-DNDEBUG ${ARCH_CFLAGS}" \
+            -Dc_link_args="-fuse-ld=lld"
+          meson install -C build
+          mv "$INSTALL_PREFIX/lib/libdav1d.a" "$INSTALL_PREFIX/lib/dav1d.lib" || true
+          cd ..
+
+          git clone --depth 1 -b n8.1.2 https://github.com/FFmpeg/FFmpeg.git
+          cd FFmpeg
+          export PKG_CONFIG_PATH="$INSTALL_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+          sed -i 's/if test "$cc_type" = "clang"; then/if true; then/' configure
+          sed -i 's/test "$cc_type" != "$ld_type" && die "LTO requires same compiler and linker"/true/' configure
+          sed -i 's/echo zlib.lib ;;/echo zs.lib ;;/' configure
+          sed -i 's|gsub(/\\\\/, "/");|gsub(/\\\\\\\\/, "/");|' configure
+          sed -i 's|$(Q)echo $^ > $@.objs|$(file >$@.objs,$^)|' ffbuild/library.mak
+
+          export INCLUDE="$INSTALL_PREFIX_MIXED/include;$INCLUDE"
+          export LIB="$INSTALL_PREFIX_MIXED/lib;$LIB"
+
+          ./configure \
+            --prefix="$INSTALL_PREFIX" \
+            --cc="clang-cl" \
+            --cxx="clang-cl" \
+            --as="clang-cl" \
+            --ld="lld-link" \
+            --ar="llvm-ar" \
+            --ranlib="llvm-ranlib" \
+            --nm="llvm-nm" \
+            --strip="llvm-strip" \
+            --toolchain="msvc" \
+            ${FFMPEG_LTO} \
+            --extra-cflags="${FFMPEG_CFLAGS}" \
+            --extra-libs="dav1d.lib zs.lib" \
+            --disable-shared \
+            --enable-static \
+            --pkg-config-flags="--static" \
+            --disable-programs --disable-doc --disable-network --disable-autodetect \
+            --disable-debug --disable-encoders --disable-muxers --disable-filters \
+            --disable-avfilter --disable-devices --disable-hwaccels \
+            --enable-libdav1d --enable-zlib || (cat ffbuild/config.log; exit 1)
+          make -j$(nproc)
+          make install
+          cd ..
+
+          for pc in "$INSTALL_PREFIX"/lib/pkgconfig/*.pc; do
+            sed -i 's/-libpath:/-L/g' "$pc"
+            sed -i 's/ \([a-zA-Z0-9_\-]*\)\.lib/ -l\1/g' "$pc"
+          done
+
+          cd ffms2
+          cmake -B build_ffms2 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DENABLE_AVISYNTH=OFF \
+            -DENABLE_VAPOURSYNTH=OFF \
+            -DENABLE_TOOLS=OFF \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded \
+            -DCMAKE_CXX_FLAGS="${DEP_CFLAGS}" \
+            -DCMAKE_C_FLAGS="${DEP_CFLAGS}" \
+            -DZLIB_INCLUDE_DIR="$INSTALL_PREFIX/include" \
+            -DZLIB_LIBRARY="$INSTALL_PREFIX/lib/zs.lib" \
+            -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
+          cmake --build build_ffms2
+          cmake --install build_ffms2
+
+      - name: Build static FFMS2 and dependencies (Linux & macOS)
+        if: matrix.config.platform != 'windows'
+        shell: bash
+        working-directory: deps/src
+        env:
+          ARCH_CFLAGS: ${{ matrix.config.dep_arch_cflags }}
+          MODE: ${{ matrix.config.mode }}
+          PLATFORM: ${{ matrix.config.platform }}
+        run: |
+          set -e
+          export CC="clang"
+          export CXX="clang++"
+          INSTALL_PREFIX="$(cd ../install && pwd)"
+          JOBS=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+
+          if [ "$MODE" = "optimized" ]; then
+            DEP_CFLAGS="-fPIC -O3 -DNDEBUG ${ARCH_CFLAGS}"
+            MESON_OPT="-Doptimization=3"
+          else
+            DEP_CFLAGS="-fPIC -O2 -DNDEBUG ${ARCH_CFLAGS}"
+            MESON_OPT="-Doptimization=2"
+          fi
+
+          git clone --depth 1 https://github.com/madler/zlib.git
+          cd zlib
+          cmake --fresh -B zlib_build -G Ninja \
+            -DZLIB_BUILD_SHARED=OFF -DZLIB_BUILD_STATIC=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DCMAKE_AR="$(command -v llvm-ar)" \
+            -DCMAKE_RANLIB="$(command -v llvm-ranlib)" \
+            -DCMAKE_C_FLAGS_RELEASE="${DEP_CFLAGS}" \
+            -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
+          cmake --build zlib_build
+          cmake --install zlib_build
+          rm -f "$INSTALL_PREFIX"/lib/libz.so* "$INSTALL_PREFIX"/lib/libz*.dylib
+          cd ..
+
+          git clone --depth 1 https://code.videolan.org/videolan/dav1d.git
+          cd dav1d
+          AR=llvm-ar RANLIB=llvm-ranlib meson setup build \
+            --prefix="$INSTALL_PREFIX" \
+            --libdir=lib \
+            --default-library=static \
+            --buildtype=release \
+            -Db_staticpic=true \
+            -Db_lto=false \
+            ${MESON_OPT} \
+            -Denable_tools=false \
+            -Denable_examples=false \
+            -Dc_args="-DNDEBUG ${ARCH_CFLAGS}" \
+            -Dc_link_args="-fuse-ld=lld"
+          meson install -C build
+          cd ..
+
+          git clone --depth 1 -b n8.1.2 https://github.com/FFmpeg/FFmpeg.git
+          cd FFmpeg
+          export PKG_CONFIG_PATH="$INSTALL_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+          ./configure \
+            --prefix="$INSTALL_PREFIX" \
+            --cc="clang" \
+            --cxx="clang++" \
+            --ar="llvm-ar" \
+            --ranlib="llvm-ranlib" \
+            --nm="llvm-nm" \
+            --strip="llvm-strip" \
+            --enable-pic \
+            --extra-cflags="${DEP_CFLAGS}" \
+            --extra-ldflags="-fuse-ld=lld -L$INSTALL_PREFIX/lib" \
+            --disable-shared \
+            --enable-static \
+            --pkg-config-flags="--static" \
+            --disable-programs --disable-doc --disable-network --disable-autodetect \
+            --disable-debug --disable-encoders --disable-muxers --disable-filters \
+            --disable-avfilter --disable-devices --disable-hwaccels \
+            --enable-libdav1d --enable-zlib || (cat ffbuild/config.log; exit 1)
+          make -j"$JOBS"
+          make install
+          cd ..
+
+          cd ffms2
+          PKG_CONFIG_PATH="$INSTALL_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH" cmake -B build_ffms2 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DENABLE_AVISYNTH=OFF \
+            -DENABLE_VAPOURSYNTH=OFF \
+            -DENABLE_TOOLS=OFF \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DZLIB_INCLUDE_DIR="$INSTALL_PREFIX/include" \
+            -DZLIB_LIBRARY="$INSTALL_PREFIX/lib/libz.a" \
+            -DCMAKE_AR="$(command -v llvm-ar)" \
+            -DCMAKE_RANLIB="$(command -v llvm-ranlib)" \
+            -DCMAKE_CXX_FLAGS="${DEP_CFLAGS}" \
+            -DCMAKE_C_FLAGS="${DEP_CFLAGS}" \
+            -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX"
+          cmake --build build_ffms2
+          cmake --install build_ffms2
+
+      # -----------------------------------------------------------------------
+      # Build SVT-AV1-Essential (Generic & Optimized with PGO)
+      # -----------------------------------------------------------------------
+      - name: Build SVT-AV1-Essential (Windows)
+        if: matrix.config.platform == 'windows'
+        shell: msys2 {0}
+        env:
+          MODE: ${{ matrix.config.mode }}
+          ARCH_CFLAGS: ${{ matrix.config.arch_cflags }}
+          PGO_PARAMS: "--crf 20.00 --tune 0 --film-grain 8 --enable-dlf 2"
+        run: |
+          set -e
+          sed -i "s/ --dirty / /g" Source/Lib/Codec/ConfigureGitVersion.cmake || true
+
+          DEPS_PC_DIR="$PWD/deps/install/lib/pkgconfig"
+          export PKG_CONFIG_PATH="$(cygpath -u -a "$DEPS_PC_DIR"):$PKG_CONFIG_PATH"
+          DOVI_CFLAGS="$(pkg-config --cflags --static --dont-define-prefix "$DEPS_PC_DIR/dovi.pc")"
+          DOVI_LIBS="$(pkg-config --libs --static --dont-define-prefix "$DEPS_PC_DIR/dovi.pc")"
+          HDR10P_CFLAGS="$(pkg-config --cflags --static --dont-define-prefix "$DEPS_PC_DIR/hdr10plus-rs.pc")"
+          HDR10P_LIBS="$(pkg-config --libs --static --dont-define-prefix "$DEPS_PC_DIR/hdr10plus-rs.pc")"
+
+          COMMON_CMAKE_ARGS=(
+            -G Ninja
+            -DCMAKE_C_COMPILER=clang
+            -DCMAKE_CXX_COMPILER=clang++
+            -DCMAKE_BUILD_TYPE=Release
+            -DBUILD_SHARED_LIBS=OFF
+            -DBUILD_APPS=ON
+            -DBUILD_TOOLS=ON
+            -DUSE_WEBM_IO=ON
+            -DSVT_AV1_LTO=OFF
+            -DREPRODUCIBLE_BUILDS=ON
+            -DENABLE_AVX512=ON
+            -DTHREADS_PREFER_PTHREAD_FLAG=OFF
+            -DCMAKE_USE_WIN32_THREADS_INIT=ON
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+            -DUSE_FFMS2=ON
+            -DEXT_LIB_STATIC=ON
+          )
+          EXTRA_CFLAGS="-DLIBDOVI_FOUND=1 -DLIBHDR10PLUS_RS_FOUND=1 ${DOVI_CFLAGS} ${HDR10P_CFLAGS}"
+          EXTRA_LDFLAGS="-fuse-ld=lld ${DOVI_LIBS} ${HDR10P_LIBS}"
+
+          run_cmake_build() {
+            local cflags="$1"
+            local ldflags="$2"
+            rm -rf svt_build Bin/Release
+            cmake --fresh -B svt_build "${COMMON_CMAKE_ARGS[@]}" \
+              -DCMAKE_C_FLAGS_RELEASE="$cflags" \
+              -DCMAKE_CXX_FLAGS_RELEASE="$cflags" \
+              -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$ldflags"
+            ninja -v -C svt_build
+          }
+
+          if [ "$MODE" = "generic" ]; then
+            run_cmake_build "-DNDEBUG -O2 ${EXTRA_CFLAGS}" "${EXTRA_LDFLAGS}"
+          else
+            OPT_CFLAGS="-DNDEBUG -O3 -fno-exceptions -fno-rtti -fno-stack-protector -fno-sanitize=all -fno-dwarf2-cfi-asm -Wno-deprecated ${ARCH_CFLAGS} ${EXTRA_CFLAGS} -flto=full -fwhole-program-vtables"
+            OPT_LDFLAGS="${EXTRA_LDFLAGS} -flto=full -fwhole-program-vtables"
+
+            run_cmake_build "${OPT_CFLAGS} -fprofile-generate=PGO -ftemporal-profile" "${OPT_LDFLAGS} -fprofile-generate=PGO"
+
+            rm -f PGO/*.profraw PGO/default.profdata
+            for i in 1 2 3 4 5; do
+              LLVM_PROFILE_FILE="PGO/%p.profraw" Bin/Release/SvtAv1EncApp -i PGO/PGO.y4m -b /dev/null --preset 2 --lp 6 ${PGO_PARAMS}
+            done
+            LLVM_PROFILE_FILE="PGO/%p.profraw" Bin/Release/SvtScdEssential PGO/PGO.y4m PGO/scenes.cfg
+            LLVM_PROFILE_FILE="PGO/%p.profraw" Bin/Release/SvtFgEssential --source PGO/PGO.y4m --table PGO/grain.tbl --strength -1 --keyframes PGO/scenes.cfg
+            LLVM_PROFILE_FILE="PGO/%p.profraw" Bin/Release/SvtFgEssential --source PGO/PGO.y4m --table PGO/grain_manual.tbl --strength 8 --fast
+
+            llvm-profdata merge -o PGO/default.profdata PGO/*.profraw
+
+            PROFDATA_PATH="$(cygpath -m -a PGO/default.profdata)"
+            run_cmake_build "${OPT_CFLAGS} -fvisibility=hidden -fvisibility-inlines-hidden -fprofile-use=${PROFDATA_PATH} -Wno-profile-instr-unprofiled" "${OPT_LDFLAGS} -fvisibility=hidden -fvisibility-inlines-hidden"
+          fi
+
+          NO_COLOR=1 Bin/Release/SvtAv1EncApp --version
+          NO_COLOR=1 Bin/Release/SvtAv1EncApp --version | grep -q "FFMS2.*Yes"
+          NO_COLOR=1 Bin/Release/SvtAv1EncApp --version | grep -q "WEBM.*Yes"
+          NO_COLOR=1 Bin/Release/SvtAv1EncApp --version | grep -q "Dolby Vision.*Yes"
+          NO_COLOR=1 Bin/Release/SvtAv1EncApp --version | grep -q "HDR10Plus.*Yes"
+          Bin/Release/SvtScdEssential --help | grep -q "FFMS2 support: enabled"
+          Bin/Release/SvtFgEssential --help | grep -q "FFMS2 support: enabled"
+          if [ "$MODE" = "optimized" ]; then
+            Bin/Release/SvtAv1EncApp -i PGO/PGO.y4m -b /dev/null ${PGO_PARAMS} --preset 4
+          fi
+
+      - name: Build SVT-AV1-Essential (Linux & macOS)
+        if: matrix.config.platform != 'windows'
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.config.platform }}
+          MODE: ${{ matrix.config.mode }}
+          ARCH_CFLAGS: ${{ matrix.config.arch_cflags }}
+          PGO_PARAMS: "--crf 20.00 --tune 0 --film-grain 8 --enable-dlf 2"
+        run: |
+          set -e
+
+          if [ "$PLATFORM" = "macos" ]; then
+            sed -i "" "s/ --dirty / /g" Source/Lib/Codec/ConfigureGitVersion.cmake || true
+          else
+            sed -i "s/ --dirty / /g" Source/Lib/Codec/ConfigureGitVersion.cmake || true
+          fi
+
+          DEPS_PC_DIR="$PWD/deps/install/lib/pkgconfig"
+          export PKG_CONFIG_PATH="$DEPS_PC_DIR:$PKG_CONFIG_PATH"
+          DOVI_CFLAGS="$(pkg-config --cflags --static --dont-define-prefix "$DEPS_PC_DIR/dovi.pc")"
+          DOVI_LIBS="$(pkg-config --libs --static --dont-define-prefix "$DEPS_PC_DIR/dovi.pc")"
+          HDR10P_CFLAGS="$(pkg-config --cflags --static --dont-define-prefix "$DEPS_PC_DIR/hdr10plus-rs.pc")"
+          HDR10P_LIBS="$(pkg-config --libs --static --dont-define-prefix "$DEPS_PC_DIR/hdr10plus-rs.pc")"
+          FFMS2_CFLAGS="$(pkg-config --cflags --static --dont-define-prefix "$DEPS_PC_DIR/ffms2.pc")"
+          FFMS2_LIBS="$(pkg-config --libs --static --dont-define-prefix "$DEPS_PC_DIR/ffms2.pc")"
+
+          COMMON_CMAKE_ARGS=(
+            -G Ninja
+            -DCMAKE_C_COMPILER=clang
+            -DCMAKE_CXX_COMPILER=clang++
+            -DCMAKE_BUILD_TYPE=Release
+            -DBUILD_SHARED_LIBS=OFF
+            -DBUILD_APPS=ON
+            -DBUILD_TOOLS=ON
+            -DUSE_WEBM_IO=ON
+            -DSVT_AV1_LTO=OFF
+            -DREPRODUCIBLE_BUILDS=ON
+          )
+
+          if [ "$PLATFORM" = "linux" ]; then
+            COMMON_CMAKE_ARGS+=(
+              -DENABLE_AVX512=ON
+              -DCMAKE_AR="$(command -v llvm-ar)"
+              -DCMAKE_RANLIB="$(command -v llvm-ranlib)"
+              -DCMAKE_C_STANDARD_LIBRARIES="${FFMS2_LIBS} ${DOVI_LIBS} ${HDR10P_LIBS} -lstdc++"
+              -DCMAKE_CXX_STANDARD_LIBRARIES="${FFMS2_LIBS} ${DOVI_LIBS} ${HDR10P_LIBS} -lstdc++"
+            )
+          elif [ "$PLATFORM" = "macos" ]; then
+            LLVM_PREFIX="/opt/homebrew/opt/llvm"
+            COMMON_CMAKE_ARGS+=(
+              -DCMAKE_OSX_ARCHITECTURES=arm64
+              -DCMAKE_PREFIX_PATH="$LLVM_PREFIX"
+              -DCMAKE_AR="$LLVM_PREFIX/bin/llvm-ar"
+              -DCMAKE_RANLIB="$LLVM_PREFIX/bin/llvm-ranlib"
+              -DCMAKE_C_STANDARD_INCLUDE_DIRECTORIES="$LLVM_PREFIX/include"
+              -DCMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES="$LLVM_PREFIX/include"
+              -DCMAKE_C_STANDARD_LIBRARIES="-L$LLVM_PREFIX/lib ${FFMS2_LIBS} ${DOVI_LIBS} ${HDR10P_LIBS} -lc++"
+              -DCMAKE_CXX_STANDARD_LIBRARIES="-L$LLVM_PREFIX/lib ${FFMS2_LIBS} ${DOVI_LIBS} ${HDR10P_LIBS} -lc++"
+            )
+          fi
+          EXTRA_CFLAGS="-DLIBDOVI_FOUND=1 -DLIBHDR10PLUS_RS_FOUND=1 -DHAVE_FFMS2=1 -DFFMS_STATIC ${DOVI_CFLAGS} ${HDR10P_CFLAGS} ${FFMS2_CFLAGS}"
+          EXTRA_LDFLAGS="-fuse-ld=lld --rtlib=compiler-rt"
+
+          run_cmake_build() {
+            local cflags="$1"
+            local ldflags="$2"
+            rm -rf svt_build Bin/Release
+            if [ "$PLATFORM" = "macos" ]; then
+              CFLAGS="$cflags" CXXFLAGS="$cflags" LDFLAGS="$ldflags" cmake --fresh -B svt_build "${COMMON_CMAKE_ARGS[@]}"
+            else
+              cmake --fresh -B svt_build "${COMMON_CMAKE_ARGS[@]}" \
+                -DCMAKE_C_FLAGS_RELEASE="$cflags" \
+                -DCMAKE_CXX_FLAGS_RELEASE="$cflags" \
+                -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$ldflags"
+            fi
+            ninja -v -C svt_build
+          }
+
+          if [ "$MODE" = "generic" ]; then
+            run_cmake_build "-DNDEBUG -O2 ${EXTRA_CFLAGS}" "${EXTRA_LDFLAGS}"
+          else
+            OPT_CFLAGS="-DNDEBUG -O3 -fno-exceptions -fno-rtti -fno-stack-protector -fno-sanitize=all -fno-dwarf2-cfi-asm -Wno-deprecated ${ARCH_CFLAGS} ${EXTRA_CFLAGS}"
+            OPT_LDFLAGS="${EXTRA_LDFLAGS}"
+
+            if [ "$PLATFORM" = "linux" ]; then
+              OPT_CFLAGS="${OPT_CFLAGS} -fno-semantic-interposition -fno-stack-clash-protection -fno-pic -fno-pie -flto=thin -fwhole-program-vtables"
+              OPT_LDFLAGS="${OPT_LDFLAGS} -flto=thin -fwhole-program-vtables -Wl,--lto-O3 -Wl,-O3 -Wl,--as-needed -Wl,--gc-sections -Wl,--icf=all -Wl,--strip-all -Wl,-z,norelro -Wl,--build-id=none -Wl,--relax -Wl,-z,noseparate-code -Wl,-znow"
+            elif [ "$PLATFORM" = "macos" ]; then
+              OPT_CFLAGS="${OPT_CFLAGS} -flto=full -fwhole-program-vtables"
+              OPT_LDFLAGS="${OPT_LDFLAGS} -flto=full -fwhole-program-vtables -Wl,--lto-O3 -Wl,-O3"
+            fi
+
+            run_cmake_build "${OPT_CFLAGS} -fprofile-generate=PGO -ftemporal-profile" "${OPT_LDFLAGS} -fprofile-generate=PGO"
+
+            rm -f PGO/*.profraw PGO/default.profdata
+            for i in 1 2 3 4 5; do
+              LLVM_PROFILE_FILE="PGO/%p.profraw" Bin/Release/SvtAv1EncApp -i PGO/PGO.y4m -b /dev/null --preset 2 --lp 6 ${PGO_PARAMS}
+            done
+            LLVM_PROFILE_FILE="PGO/%p.profraw" Bin/Release/SvtScdEssential PGO/PGO.y4m PGO/scenes.cfg
+            LLVM_PROFILE_FILE="PGO/%p.profraw" Bin/Release/SvtFgEssential --source PGO/PGO.y4m --table PGO/grain.tbl --strength -1 --keyframes PGO/scenes.cfg
+            LLVM_PROFILE_FILE="PGO/%p.profraw" Bin/Release/SvtFgEssential --source PGO/PGO.y4m --table PGO/grain_manual.tbl --strength 8 --fast
+
+            llvm-profdata merge -o PGO/default.profdata PGO/*.profraw
+
+            PROFDATA_PATH="$PWD/PGO/default.profdata"
+            run_cmake_build "${OPT_CFLAGS} -fvisibility=hidden -fvisibility-inlines-hidden -fprofile-use=${PROFDATA_PATH} -Wno-profile-instr-unprofiled" "${OPT_LDFLAGS} -fvisibility=hidden -fvisibility-inlines-hidden"
+          fi
+
+          NO_COLOR=1 Bin/Release/SvtAv1EncApp --version
+          NO_COLOR=1 Bin/Release/SvtAv1EncApp --version | grep -q "FFMS2.*Yes"
+          NO_COLOR=1 Bin/Release/SvtAv1EncApp --version | grep -q "WEBM.*Yes"
+          NO_COLOR=1 Bin/Release/SvtAv1EncApp --version | grep -q "Dolby Vision.*Yes"
+          NO_COLOR=1 Bin/Release/SvtAv1EncApp --version | grep -q "HDR10Plus.*Yes"
+          Bin/Release/SvtScdEssential --help | grep -q "FFMS2 support: enabled"
+          Bin/Release/SvtFgEssential --help | grep -q "FFMS2 support: enabled"
+          if [ "$MODE" = "optimized" ]; then
+            Bin/Release/SvtAv1EncApp -i PGO/PGO.y4m -b /dev/null ${PGO_PARAMS} --preset 4
+          fi
+
+      - name: Package binaries into zip archive
+        shell: bash
+        env:
+          CONFIG_NAME: ${{ matrix.config.name }}
+        run: |
+          set -e
+          PY_BIN="$(command -v python3 || command -v python)"
+          "$PY_BIN" - "SVT-AV1-Essential-${CONFIG_NAME}.zip" << 'PYEOF'
+          import os, stat, sys, zipfile
+
+          zip_name = sys.argv[1]
+          bin_dir = "Bin/Release"
+          with zipfile.ZipFile(zip_name, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+              for fname in sorted(os.listdir(bin_dir)):
+                  ext = os.path.splitext(fname)[1].lower()
+                  if ext and ext != ".exe":
+                      continue
+                  fpath = os.path.join(bin_dir, fname)
+                  if not os.path.isfile(fpath):
+                      continue
+                  st = os.stat(fpath)
+                  zinfo = zipfile.ZipInfo.from_file(fpath, arcname=fname)
+                  zinfo.compress_type = zipfile.ZIP_DEFLATED
+                  zinfo.external_attr = ((st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH) & 0xFFFF) << 16
+                  with open(fpath, "rb") as f:
+                      zf.writestr(zinfo, f.read())
+                  print(f"Added {fname} to {zip_name}")
+          PYEOF
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.config.name }}
+          path: SVT-AV1-Essential-${{ matrix.config.name }}.zip
+          retention-days: 90
+
+      - name: Upload zip archive to existing v4.3.1 release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/Essential-v4.3.1'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let release;
+            try {
+              const res = await github.rest.repos.getLatestRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo
+              });
+              release = res.data;
+            } catch (err) {
+              console.log('No latest release found, skipping release asset upload.');
+              return;
+            }
+
+            const tag = release.tag_name;
+            console.log('Latest release tag:', tag);
+            if (!tag.includes('4.3.1')) {
+              console.log(`Latest release (${tag}) is not a 4.3.1 release; skipping upload to avoid overwriting older releases.`);
+              return;
+            }
+
+            const version = tag.startsWith('v') ? tag.slice(1) : tag;
+            const localZip = 'SVT-AV1-Essential-${{ matrix.config.name }}.zip';
+            const assetName = `SVT-AV1-${version}-${{ matrix.config.name }}.zip`;
+
+            const existing = release.assets.find(a => a.name === assetName);
+            if (existing) {
+              console.log(`Deleting existing asset ${assetName} (id: ${existing.id})...`);
+              await github.rest.repos.deleteReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                asset_id: existing.id
+              });
+            }
+
+            console.log(`Uploading ${assetName} to release ${tag}...`);
             await github.rest.repos.uploadReleaseAsset({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              release_id: release.data.id,
-              name: fileName,
-              data: fs.readFileSync(filePath)
+              release_id: release.id,
+              name: assetName,
+              data: fs.readFileSync(localZip)
             });
-          }
