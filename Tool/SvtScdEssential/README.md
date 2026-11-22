@@ -17,6 +17,8 @@ SvtScdEssential [input] [output.cfg] [options]
   - Other container formats (`.mkv`, `.mp4`, etc.) are decoded via **FFMS2** when built with `use-ffms2` (`-DUSE_FFMS2=ON`).
 - **`[output.cfg]`**: Destination file for the `ForceKeyFrames` configuration line, or `-` for `stdout` (default: `-`).
 
+![illustration](https://i.kek.sh/Hch8EBfW3Z7.webp)
+
 ### Quick Examples
 
 Detect scene changes on an MKV file (using FFMS2) with automatic keyframe intervals and save to `scenes.cfg`:

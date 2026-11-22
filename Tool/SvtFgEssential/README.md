@@ -33,6 +33,10 @@ SvtFgEssential --source input.y4m --table grain.tbl --strength 10 --seed -1 --jo
 Xdenoiser -i noisy.mkv -o - | SvtFgEssential --source noisy.mkv --target - --table grain.tbl --jobs 4
 ```
 
+| Source | Encoder Default (5159kbps) | Encoder Default + SVT-FG `--strength -1 --seed -1` table (5162kbps) |
+|--------|----------------------------|----------------------------|
+| ![src](https://i.kek.sh/q32ENKFQ4QW.webp) | ![enc](https://i.kek.sh/GMbfT84GtXi.webp) | ![encfg](https://i.kek.sh/zFAXTn9XaLP.webp) |
+
 ## Options
 
 ### Input and Output Options
