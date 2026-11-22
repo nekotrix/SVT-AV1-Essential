@@ -69,6 +69,8 @@ set(all_files
 
 if(NOT MSVC)
     set_source_files_properties(variance_window_avx512icl.c PROPERTIES COMPILE_OPTIONS "-mavx512vnni")
+elseif(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    set_source_files_properties(variance_window_avx512icl.c PROPERTIES COMPILE_OPTIONS "/clang:-mavx512vnni")
 endif()
 
 add_library(ASM_AVX512 OBJECT ${all_files})
