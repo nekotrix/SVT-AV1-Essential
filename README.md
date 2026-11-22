@@ -10,6 +10,7 @@ The canonical URL for the mainline project is at <https://github.com/AOMediaCode
 - [SVT-AV1-Essential Feature Additions](#SVT-AV1-Essential-Feature-Additions)
 - [Modified Defaults](#Modified-Defaults)
 - [Other Changes](#Other-Changes)
+- [Tools](#Tools)
 - [Upcoming Features](#Upcoming-Features)
 - [Auto-Boost-Essential Integration](#Auto-Boost-Essential-Integration)
 - [Development and Release Strategy](#Development-and-Release-Strategy)
@@ -71,10 +72,10 @@ It's typically not advised to go higher than 3.
 **2** enables a more accurate loop filter that prevents blocking, for a modest increase in compute time (most noticeable at presets 7+).  
 **3** forces the most accurate loop filter for every encoding scenario, with important consequences in compute time at faster presets.
 
-- **`--low-memory`**
+- **`--low-memory`** *0 to 2*
 
 This parameter sets options that reduce RAM usage of the encoding instance significantly.  
-Enabling low-memory can have some impact on encoding speeds and perceptual quality.  
+Enabling low-memory can have some impact on encoding speeds, and perceptual quality (for level 2).  
 It is most effective in CRF/CQP Random Access mode.
 
 - **`--enable-tf 3`**
@@ -107,6 +108,25 @@ It is recommended to use the parameters from these presets as baseline for addit
 Pin the encoder instance to the first X threads of your processor with this setting.  
 This feature, removed in mainline v4.0, was brought back for people that want better control over the CPU core usage of the encoder.
 
+- **`--film-grain -1` & `--fgs-multiplier`** *0 to 2*
+
+**-1** enables automatic film grain analysis and denoising, dynamically estimating AV1 film grain parameters across scenes without requiring manual strength tuning.  
+`--fgs-multiplier` scales the synthesized grain amplitude in automatic mode (default **1**; **0** disables synthesis).
+
+- **`--fgs-seed`** *S1,S2,... or -1*
+
+Controls the random seed(s) used for film grain synthesis (`1..65535`), either as a fixed seed or a comma-separated sequence cycled across frames.  
+**-1** selects a pre-tested seed sequence designed to reduce visible repeating grain patterns.
+
+- **`--photon-noise`** *0 to 100000* **& `--photon-noise-chroma`** *0 and 1*
+
+Generates the original synthetic photon-noise table directly from an ISO value, without analyzing or denoising the source video.  
+Pair with `--photon-noise-chroma 1` to also synthesize chroma noise.
+
+- **`--crop`** *left:top:right:bottom*
+
+Crops input frames on the fly by the specified even pixel offsets before encoding (requires FFMS2 input).
+
 ### Modified Defaults
 
 SVT-AV1-Essential sports different defaults from mainline SVT-AV1 in order to provide a better out-of-the-box experience. They include:
@@ -114,12 +134,11 @@ SVT-AV1-Essential sports different defaults from mainline SVT-AV1 in order to pr
 - Forced 10-bit color depth and HBD mode, for higher internal precision and thus higher quality visuals and efficiency.
 - `--speed` set to `slow` by default at 1080p and below, and `medium` above.
 - `--quality` set to `medium` by default.
-- `--enable-dlf` set to `1` by default.
 - `--enable-variance-boost` set to `1` by default.
 - `--variance-boost-strength` set to `1` by default.
 - `--variance-octile` set to `4` by default.
 - `--tf-strength` (temporal filtering) set to `1` by default.
-- `--luminance-qp-bias` set to `10` by default.
+- `--luminance-qp-bias` set to `10` by default (auto-disabled for FFMS2 HDR inputs).
 - `--sharpness` set to `1` by default.
 - `--qp-scale-compress-strength` set to `1` by default.
 - `--enable-qm` set to `1` by default.
@@ -127,24 +146,18 @@ SVT-AV1-Essential sports different defaults from mainline SVT-AV1 in order to pr
 - `--chroma-qm-min` set to `4` by default.
 - `--enable-dg` (dynamic gop) set to `0` by default.
 - `--adaptive-film-grain` set to `0` by default.
-- `--ac-bias` set to `0` by default.
 
-It is expected for these provided defaults to be much slower than the *default* mainline SVT-AV1 configuration.
-The user can leverage a faster `--speed` to compensate for that while still getting better visuals in return, 
+It is expected for these provided defaults to be somewhat slower than the *default* mainline SVT-AV1 configuration.
+The user can leverage a faster `--speed` to compensate while still getting better visuals in return, 
 or better speeds at similar quality levels.
 
-Benchmarks *(v4 updated)*:
-|                    Metrics                    |                    Speed                    |
-|-----------------------------------------------|---------------------------------------------|
-| ![Metrics](https://i.kek.sh/oO74b21iKhy.webp) | ![Speed](https://i.kek.sh/Jm4hjOSvblM.webp) |
-| ![Metrics](https://i.kek.sh/mpvtTdnNd42.webp) | ![Speed](https://i.kek.sh/w4TxXBms0EJ.webp) |
-| ![Metrics](https://i.kek.sh/CME1OAWMrps.webp) | ![Speed](https://i.kek.sh/LyV2RQHxrXS.webp) |
-| ![Metrics](https://i.kek.sh/CFkE9iAZxzr.webp) | ![Speed](https://i.kek.sh/ncTQcuuhBjW.webp) |
-| ![Metrics](https://i.kek.sh/qJwHDdo500C.webp) | ![Speed](https://i.kek.sh/VnxxO7bXFU1.webp) |
-| ![Metrics](https://i.kek.sh/rR97WP9lSmO.webp) | ![Speed](https://i.kek.sh/7YKHh7HEThG.webp) |
+Benchmarks *(v4.3.1 updated)*:
+|                x86 (i7 12700)               |              ARM (Mac Mini M6)              |
+|---------------------------------------------|---------------------------------------------|
+| ![graph](https://i.kek.sh/UyIxH1JJtKv.webp) | ![graph](https://i.kek.sh/BEaqT5ccrkR.webp) |
 
 *Pay particular attention to the x and y axes.*  
-*Speed may vary depending on your hardware configuration and source resolution.*
+*Speed may vary depending on your hardware configuration and source input characteristics.*
 
 ### Other Changes
 
@@ -160,21 +173,29 @@ The banner displays more information than ever so you have a better idea of what
 
 Some may prefer to hide the banner though, so we have that option too!
 
+- **Automatic 8-bit to 10-bit input conversion**
+
+Since 10-bit is the only supported encoding configuration in SVT-AV1-Essential, 8-bit YUV and Y4M inputs are now automatically converted internally to 10-bit on the fly without requiring external preprocessing!
+
 - **Built-in FFMS2 support**
 
-At last, SVT-AV1-Essential supports input formats other than yuv and y4m! Input your favorite MP4s, MKVs and more, and get automatic conversion to YUV420P10, automatic metadata handling and automatic HDR detection!
+At last, SVT-AV1-Essential supports input formats other than yuv and y4m! Input your favorite MP4s, MKVs and more, and get automatic conversion to YUV420P10, automatic metadata handling, automatic HDR detection, frame skipping (`--skip`) and on-the-fly cropping (`--crop`)!
 
 - **Built-in WebM support (`--webm`)**
 
-SVT-AV1-Essential now also supports WebM output (as an alternative to IVF output)! WebM output permits automatic metadata & encoder settings passthrough, the latter of which being similar in concept to what you can observe in x264 and x265 encodes!
+SVT-AV1-Essential now also supports WebM output (as an alternative to IVF and OBU output, and as the default format when compiled in)! WebM output supports piping, Dolby Vision configuration records, and automatic metadata & encoder settings passthrough, the latter of which being similar in concept to what you can observe in x264 and x265 encodes!
 
 - **Automatic output fallback**
 
-With either WebM or ivf output, the output file name will fallback to the input file name plus the right extension if no output is provided. No more making mistakes!
+With WebM, IVF or OBU output, the output file name will fallback to the input file name plus the right extension if no output is provided. No more making mistakes!
 
 - **Temporal filtering on keyframes**
 
 Temporal filtering is always disabled on keyframes to eliminate blurring issues and losses of detail.
+
+- **Informative `--version` & no-argument output**
+
+Calling the encoder without arguments or with `--version` displays detailed build information, including compiler, target platform, and compiled optional features (FFMS2, WebM, Dolby Vision, HDR10+).
 
 - **HDR features galore**
 
@@ -189,13 +210,25 @@ Borrowed from SVT-AV1-PSY and SVT-AV1-HDR, some recognizable psychovisual settin
 Version 3 of SVT-AV1 introduced a mismatch between restoration algorithms, resulting in inconsistent, severe drops in chroma quality.
 A fix was found and implemented.
 
+### Tools
+
+SVT-AV1-Essential ships with two standalone companion CLI tools (built by default alongside `SvtAv1EncApp` unless `--disable-tools` is passed):
+
+#### SVT-SCD-Essential
+
+`SvtScdEssential` is a fast standalone scene-change detection tool that runs SVT-AV1-Essential's internal pre-analysis and picture-decision logic without encoding.  
+It accepts Y4M streams (including pipes) or any video container via FFMS2 and writes an SVT-AV1 configuration file (`ForceKeyFrames : ...`) that can be fed directly to `SvtAv1EncApp -c` or to `SvtFgEssential --keyframes`.  
+More details and usage examples in the [SVT-SCD-Essential README](Tool/SvtScdEssential/README.md).
+
+#### SVT-FG-Essential
+
+`SvtFgEssential` is a standalone AV1 film-grain estimation and synthesis tool powered by SVT-AV1-Essential's noise modeling and automatic grain analysis engine.  
+It generates standard AV1 film-grain tables (`--table`, usable via `--fgs-table`), and can also output grain-synthesized previews (`--output`), with support for automatic grain analysis (`--strength -1`), external denoised references (`--target`), custom seed sequences (`--seed` / `--seeds`), and `SvtScdEssential` keyframe lists (`--keyframes`).  
+More details and usage examples in the [SVT-FG-Essential README](Tool/SvtFgEssential/README.md).
+
 ### Upcoming Features
 
 Many SVT-AV1-Essential features are planned and currently in the work:
-
-- **`--backcompat`** *0 and 1*
-
-Restores back the original, default SVT-AV1 behavior. Once enabled, the output from SVT-AV1-Essential would always be identical to its mainline SVT-AV1 counterpart whatever the settings used.
 
 - **`--zones-params`** *(WIP)*
 
@@ -209,13 +242,13 @@ For use of `--zones` in VBR/CBR mode.
 
 Inspired by Julio Barba's `--enable-qm 2` experiments.
 
-- **Open GOP and Lookahead experiments**
+- **Hybrid Keyframes & Higher Lookahead**
 
-Soon to be available in the [Discussions tab](https://github.com/nekotrix/SVT-AV1-Essential/discussions/).
+[Patch available](https://github.com/nekotrix/SVT-AV1-Essential/discussions/42)
 
-- **Support RTC mode**
+- ~~**Support RTC mode**~~
 
-Currently hanging due to unknown causes, I wish to increase the range of usecases supported by SVT-AV1-Essential.
+RTC is not a supported control mode of SVT-AV1-Essential.
 
 - **Finding better defaults, improving the speed trade-offs...**
 
